@@ -33,7 +33,7 @@ const split = (src, prefix) => {
 const pt = split(readFileSync(join(ROOT, DIR, 'content-pt.tsx'), 'utf8'), 'Pt');
 const en = split(readFileSync(join(ROOT, DIR, 'content-en.tsx'), 'utf8'), 'En');
 
-const TAGS = /<(H2|H3|CodeBlock|table|Callout|LI|P|UL|ol|CapabilityCards|ErrorCatalogue|ResourceReference|\w+Diagram)[\s>/]/g;
+const TAGS = /<(H2|H3|CodeBlock|table|Callout|LI|P|UL|ol|CapabilityCards|ErrorCatalogue|HttpClassTable|ResourceReference|EventReference|Troubleshooting|StageBar|StepCard|NextStepCards|RecipeCard|ChapterFacts|DoDont|\w+Diagram)[\s>/]/g;
 const tokens = (s) => [...s.matchAll(TAGS)].map((m) => ({ t: m[1], at: s.slice(m.index, m.index + 90).replace(/\s+/g, ' ') }));
 
 /** Aligned difference by longest common subsequence of element kinds. */

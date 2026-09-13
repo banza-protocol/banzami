@@ -36,6 +36,7 @@ const SURFACES = [
   'apps/website/app/developers/docs/content-pt.tsx',
   'apps/website/app/developers/docs/content-en.tsx',
   'apps/website/app/developers/docs/reference.tsx',
+  'apps/website/app/developers/docs/endpoint-meta.ts',
   'apps/website/public/developers/openapi/banzami-sandbox.openapi.json',
   'apps/website/public/developers/postman/banzami-sandbox.postman_collection.json',
   'docs/developer/openapi/banzami-sandbox.openapi.json',
@@ -68,7 +69,8 @@ describe('documented request values are values the operator accepts', () => {
   });
 
   it('the reference lists the real vocabulary rather than one example', () => {
-    const ref = read('apps/website/app/developers/docs/reference.tsx');
+    // The accepted values live with the parameters they belong to.
+    const ref = read('apps/website/app/developers/docs/endpoint-meta.ts');
     for (const p of SESSION_PURPOSES) expect(ref, `reference omits session purpose ${p}`).toContain(p);
     for (const p of ACCOUNT_PURPOSES.filter((x) => x !== 'PRIMARY')) {
       expect(ref, `reference omits account purpose ${p}`).toContain(p);

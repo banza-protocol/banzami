@@ -83,21 +83,21 @@ describe('what replaced it says the true thing', () => {
   it('the checklist survived the programme, as a checklist and not an approval', () => {
     // The Sandbox validation list was the one genuinely useful part of the
     // preview journey; it is kept, without the gate in front of it.
-    expect(PT).toContain('Antes de pôr a integração a sério');
+    expect(PT).toContain('Lista de verificação');
     expect(PT).toContain('Idempotency-Key');
-    expect(PT).toMatch(/não há convite/i);
+    expect(PT).toMatch(/Não existe candidatura nem lista de espera para Live/i);
   });
 
   it('the security guide replaced the readiness package', () => {
-    for (const t of ['A chave secreta é do servidor', 'Revelada uma vez', 'Rotação e revogação', 'O segredo do webhook']) {
+    for (const t of ['Guardar a chave secreta', 'Revelada uma única vez', 'Rodar e revogar chaves', 'O segredo do webhook']) {
       expect(PT.includes(t), `PT security guide is missing: ${t}`).toBe(true);
     }
     // And it still refuses to overclaim in the direction that matters.
-    expect(PT).toMatch(/Não existe ambiente financeiro Live/i);
+    expect(PT).toMatch(/Financial Live não está disponível/i);
   });
 
   it('support guidance never asks for a secret', () => {
-    expect(PT).toMatch(/Nunca envie uma chave de API/i);
+    expect(PT).toMatch(/Nunca envie chaves de API/i);
     expect(PT).toContain('request_id');
   });
 });

@@ -28,8 +28,8 @@ export default function WebhooksPage() {
             Os endpoints, eventos e entregas reais do seu projecto.
           </p>
           <p style={{ margin: '4px 0 0' }}>
-            <DocsLink href="/docs/guides#webhooks">Verificar a assinatura e reentregas</DocsLink>{' · '}
-            <DocsLink href="/docs/guides#resolucao">Quando o webhook não chega</DocsLink>
+            <DocsLink href="/docs/webhooks#receita">Verificar a assinatura e reentregas</DocsLink>{' · '}
+            <DocsLink href="/docs/troubleshooting#symptom-webhook-missing">Quando o webhook não chega</DocsLink>
           </p>
         </div>
         <WebhooksManager />

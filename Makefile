@@ -401,6 +401,12 @@ check-docs-prod: check-docs-drift check-docs-claims
 	node tools/check-webhook-event-catalogue.mjs
 	node tools/check-openapi-route-drift.mjs
 	node tools/check-docs-code-examples.mjs
+	node tools/check-docs-api-reference.mjs
+	node tools/check-docs-api-reference.selftest.mjs
+	node tools/check-docs-dx.mjs
+	node tools/check-docs-search.mjs
+	node tools/check-docs-editorial.mjs
+	node tools/docs/build-llms-txt.mjs --check
 
 .PHONY: check-implementation-matrix
 check-implementation-matrix:

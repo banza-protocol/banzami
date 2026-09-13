@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { formatMoneyDisplay } from '@/lib/money';
-import { Card, Pill } from '@/components/developers/portal/ui';
+import { Card, DocsLink, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { FinancialSetupPointer, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/developer-api';
@@ -319,6 +319,10 @@ export default function TransacoesPage() {
           Pagamentos, reembolsos e transferências entre contas do negócio ligado a este projeto — de
           todo o negócio, não só as que este projeto iniciou. Os pedidos à API que
           não movem dinheiro estão em Registos.
+        </p>
+        <p style={{ margin: '-14px 0 20px' }}>
+          <DocsLink href="/docs/payments#confirmar">Confirmar pagamentos</DocsLink>{' · '}
+          <DocsLink href="/docs/refunds">Reembolsos</DocsLink>
         </p>
         <Transactions />
       </div>

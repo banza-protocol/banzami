@@ -1,12 +1,7 @@
 'use client';
 
-import { DocsShell } from '../shell';
-import { PtGuides } from '../content-pt';
+import { GuidesMoved } from '../GuidesMoved';
 
-export default function PtGuidesPage() {
-  return (
-    <DocsShell lang="pt" active="guides">
-      {(copy) => <PtGuides copy={copy} />}
-    </DocsShell>
-  );
+export default function PtGuidesMovedPage() {
+  return <GuidesMoved lang="pt" />;
 }

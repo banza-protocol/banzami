@@ -15,9 +15,9 @@ const AVAILABLE = { pt: 'Disponível em Sandbox', en: BADGE_LABELS_EN.ok };
 
 const CARDS: { title: Record<Lang, string>; desc: Record<Lang, string>; href: Record<Lang, string>; tone: Tone; badgeText: Record<Lang, string>; icon: ReactNode }[] = [
   {
-    title: { pt: 'Criar cobrança', en: 'Create a charge' },
-    desc: { pt: 'Links de pagamento, sessões e QR.', en: 'Payment links, sessions and QR.' },
-    href: { pt: '/docs/guides#cobranca', en: '/docs/en/guides#charges' },
+    title: { pt: 'Aceitar pagamentos', en: 'Accept payments' },
+    desc: { pt: 'Sessões, links e QR.', en: 'Sessions, links and QR.' },
+    href: { pt: '/docs/payments', en: '/docs/en/payments' },
     tone: 'ok',
     badgeText: AVAILABLE,
     icon: (
@@ -30,9 +30,9 @@ const CARDS: { title: Record<Lang, string>; desc: Record<Lang, string>; href: Re
     // Precise on purpose. The capability moves money between accounts of the
     // SAME project owner and cannot leave it; "between accounts" alone invites
     // a reader to expect arbitrary external transfer.
-    title: { pt: 'Transferências', en: 'Transfers' },
-    desc: { pt: 'Movimente valor entre contas do seu projeto.', en: 'Move value between your project’s accounts.' },
-    href: { pt: '/docs/guides#transferencias', en: '/docs/en/guides#transfers' },
+    title: { pt: 'Transferências entre contas', en: 'Transfers between accounts' },
+    desc: { pt: 'Mover valor entre contas do mesmo Business.', en: 'Move value between accounts of the same Business.' },
+    href: { pt: '/docs/transfers', en: '/docs/en/transfers' },
     tone: 'ok',
     badgeText: AVAILABLE,
     icon: (
@@ -43,8 +43,8 @@ const CARDS: { title: Record<Lang, string>; desc: Record<Lang, string>; href: Re
   },
   {
     title: { pt: 'Webhooks', en: 'Webhooks' },
-    desc: { pt: 'Eventos assinados no seu servidor.', en: 'Signed events on your server.' },
-    href: { pt: '/docs/guides#webhooks', en: '/docs/en/guides#webhooks' },
+    desc: { pt: 'Eventos assinados, entregues ao seu servidor.', en: 'Signed events, delivered to your server.' },
+    href: { pt: '/docs/webhooks', en: '/docs/en/webhooks' },
     tone: 'ok',
     badgeText: AVAILABLE,
     icon: (
@@ -57,8 +57,8 @@ const CARDS: { title: Record<Lang, string>; desc: Record<Lang, string>; href: Re
   },
   {
     title: { pt: 'Reembolsos', en: 'Refunds' },
-    desc: { pt: 'Devolva pagamentos processados.', en: 'Return processed payments.' },
-    href: { pt: '/docs/guides#reembolsos', en: '/docs/en/guides#refunds' },
+    desc: { pt: 'Devolver um pagamento, total ou parcialmente.', en: 'Return a payment in full or in part.' },
+    href: { pt: '/docs/refunds', en: '/docs/en/refunds' },
     tone: 'ok',
     badgeText: AVAILABLE,
     icon: (
@@ -78,14 +78,14 @@ export function CapabilityCards({ lang }: { lang: Lang }) {
           key={c.title.en}
           href={c.href[lang]}
           className="bz-doccard"
-          style={{ position: 'relative', display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 16, padding: 18, boxShadow: '0 14px 40px -34px rgba(181,16,31,.35)' }}
+          style={{ position: 'relative', display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #EAE3E3', borderRadius: 12, padding: 16 }}
         >
           <span style={{ position: 'absolute', top: 13, right: 13 }}><Badge tone={c.tone}>{c.badgeText[lang]}</Badge></span>
           <span style={{ width: 34, height: 34, borderRadius: 10, background: '#FFF1F0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, color: RED }}>
             {c.icon}
           </span>
-          <p style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: INK }}>{c.title[lang]}</p>
-          <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600 }}>{c.desc[lang]}</p>
+          <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: INK }}>{c.title[lang]}</p>
+          <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#6f6468', fontWeight: 600 }}>{c.desc[lang]}</p>
         </a>
       ))}
     </div>

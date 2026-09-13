@@ -12,7 +12,7 @@ const ORIGIN = 'https://developers.banzami.com';
 export function GET(req: NextRequest) {
   const host = (req.headers.get('host') ?? '').split(':')[0].toLowerCase();
   if (host !== 'developers.banzami.com') return new NextResponse('Not found', { status: 404 });
-  const urls = Object.keys(DOCS_META).flatMap((slug) => (['pt', 'en'] as const).map((lang) => {
+  const urls = Object.keys(DOCS_META).filter((slug) => slug !== 'guides').flatMap((slug) => (['pt', 'en'] as const).map((lang) => {
     const path = (l: 'pt' | 'en') => `${l === 'pt' ? '/docs' : '/docs/en'}${slug ? `/${slug}` : ''}`;
     return `  <url>\n    <loc>${ORIGIN}${path(lang)}</loc>\n`
       + `    <xhtml:link rel="alternate" hreflang="pt" href="${ORIGIN}${path('pt')}"/>\n`

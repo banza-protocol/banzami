@@ -24,7 +24,9 @@ const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 // is a thin index. The claim checks therefore read content + landing together.
 const DOCS_SOURCES = [
   'apps/website/app/developers/docs/content-pt.tsx',
-  'apps/website/app/developers/docs/page.tsx',
+  'apps/website/app/developers/docs/content-en.tsx',
+  'apps/website/app/developers/docs/HomePage.tsx',
+  'apps/website/app/developers/docs/CapabilityCards.tsx',
 ];
 let failures = 0;
 const fail = m => { console.error(`  ✗ ${m}`); failures++; };
@@ -33,31 +35,31 @@ const pass = m => console.log(`  ✓ ${m}`);
 const { capabilities } = parseManifest(ROOT);
 const dispOf = id => (capabilities.find(c => c.id === id) || {}).disposition;
 
-// Docs capability anchor → manifest capability.
+// Docs capability page → manifest capability. Each capability card links to the
+// page that documents it, and carries the tone its disposition earns.
 const MAP = {
-  cobranca: 'CAP-PAY-001',
-  transferencias: 'CAP-WALLET-001',
+  payments: 'CAP-PAY-001',
+  transfers: 'CAP-WALLET-001',
   webhooks: 'CAP-WEBHOOK-001',
-  reembolsos: 'CAP-REFUND-001',
+  refunds: 'CAP-REFUND-001',
 };
 
 const src = DOCS_SOURCES.map(p => readFileSync(resolve(ROOT, p), 'utf-8')).join('\n');
 
 // 1. Availability badges: a non-released capability must not be tone 'ok'
 //    (the "Disponível em Sandbox" label).
-for (const [anchor, capId] of Object.entries(MAP)) {
+for (const [slug, capId] of Object.entries(MAP)) {
   const disp = dispOf(capId);
-  // card: href: '#anchor', \n tone: 'X'
-  const card = new RegExp(`href: '(?:/docs/guides)?#${anchor}',\\s*\\n\\s*tone: '([a-z]+)'`).exec(src);
-  const h3 = new RegExp(`<H3 id="${anchor}">[^<]*<Badge tone="([a-z]+)"`).exec(src);
-  for (const [where, m] of [['card', card], ['H3', h3]]) {
-    if (!m) continue;
-    const tone = m[1];
-    if (disp !== 'released' && tone === 'ok')
-      fail(`${anchor} (${capId} is ${disp}) badged 'ok' in ${where} — must not claim "Disponível em Sandbox"`);
-    if (disp === 'released' && tone !== 'ok')
-      fail(`${anchor} (${capId} is released) not badged 'ok' in ${where} — under-claims`);
-  }
+  // card: href: { pt: '/docs/<slug>', en: '/docs/en/<slug>' },\n tone: 'X'
+  const card = new RegExp(`href: \\{ pt: '/docs/${slug}', en: '/docs/en/${slug}' \\},\\s*\\n\\s*tone: '([a-z]+)'`).exec(src);
+  // A card that cannot be found is a failure, not a pass: a check that matches
+  // nothing proves nothing.
+  if (!card) { fail(`no capability card links to /docs/${slug} with a tone — the badge cannot be checked`); continue; }
+  const tone = card[1];
+  if (disp !== 'released' && tone === 'ok')
+    fail(`${slug} (${capId} is ${disp}) badged 'ok' — must not claim "Disponível em Sandbox"`);
+  if (disp === 'released' && tone !== 'ok')
+    fail(`${slug} (${capId} is released) not badged 'ok' — under-claims`);
 }
 if (failures === 0) pass('docs availability badges match manifest disposition');
 

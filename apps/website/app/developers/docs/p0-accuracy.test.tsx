@@ -18,14 +18,14 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import DocsPage from './page';
-import PtGetStartedPage from './get-started/page';
+import PtConceptsPage from './concepts/page';
 import PtReferencePage from './reference/page';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: the PT documentation corpus = area content + landing page.
-const DOCS = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/page.tsx');
+const DOCS = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/HomePage.tsx');
 const OVERVIEW = read('app/developers/page.tsx');
 const WEBHOOK_DIAGRAM = read('components/developers/WebhookFlowDiagram.tsx');
 const SDK_DIAGRAM = read('components/developers/SdkEcosystemDiagram.tsx');
@@ -130,14 +130,15 @@ describe('P0 — no invented endpoints', () => {
 
 describe('P0 — /docs content contracts (rendered)', () => {
   it('shows the Sandbox/Preview status section with the non-operational Console wording', () => {
-    render(<PtGetStartedPage />);
-    expect(screen.getByText('Estado atual desta documentação')).toBeTruthy();
-    expect(DOCS).toContain('Produção e trilhos de dinheiro real não estão disponíveis');
+    render(<PtConceptsPage />);
+    expect(screen.getByRole('heading', { level: 3, name: 'Sandbox e Live' })).toBeTruthy();
+    expect(DOCS).toContain('Financial Live não está disponível');
+    expect(DOCS).toContain('Indisponível (fail-closed)');
     // The Console left preview entirely: no page renders illustrative data
     // (see illustrative-data.test.ts), and the Overview derives from the
     // project's own request log. Claiming a demo dashboard is now the false
     // statement, so the docs must assert the opposite.
-    expect(DOCS).toContain('nenhuma página da Consola apresenta dados ilustrativos');
+    expect(DOCS).toContain('Nenhuma página da Consola apresenta dados ilustrativos');
     expect(DOCS).not.toContain('pré-visualização demo, não operacional');
   });
   it('documents the canonical error envelope and renders the error catalogue', () => {
@@ -159,11 +160,10 @@ describe('P0 — /docs content contracts (rendered)', () => {
   });
   it('has the credential↔capability matrix, and it still refuses Production', () => {
     render(<PtReferencePage />);
-    expect(screen.getByRole('heading', { name: 'Credenciais e capacidades' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Capacidades por credencial' })).toBeTruthy();
     // Whatever the Sandbox evidence says, this row does not move: Financial LIVE
-    // is unavailable and fail-closed, in the canonical words (DOCS-PROD-001 §31).
-    expect(DOCS).toContain('Financial LIVE / trilhos bancários / fornecedores externos');
-    expect(DOCS).toContain('Indisponível · fail-closed');
+    // is unavailable and fail-closed (DOCS-PROD-001 §31).
+    expect(DOCS).toContain("['Financial Live', '—', 'Indisponível (fail-closed)']");
     // An unreleased capability must never be presented as usable. The old test
     // demanded the literal "Pendente E2E" for it — a phrase §2 lists as stale.
     // What it has to be is absent from the "available" column, not tagged.
@@ -197,11 +197,9 @@ describe('P0 — /docs content contracts (rendered)', () => {
   it('webhooks: delivery is described as real, and the retry contract is documented', () => {
     expect(DOCS).toContain('A entrega de webhooks é real');
     expect(DOCS).not.toContain('Não reivindicamos a entrega');
-    // "simulated" may still appear — to say what is NOT simulated, or about the
-    // internal Sandbox funding utilities — but never as the state of delivery.
-    expect(/entrega[^.]{0,60}permanece\s+<strong>simulada/i.test(DOCS)).toBe(false);
-    expect(DOCS).toContain('Contrato de reentrega');
-    expect(DOCS).toContain('5 tentativas');
+    expect(/entrega[^.]{0,60}(permanece|é)\s+(<strong>)?simulada/i.test(DOCS)).toBe(false);
+    expect(DOCS).toContain('Tentativas e reentrega');
+    expect(DOCS).toContain('Depois da quinta falha');
   });
   it('payment-session example shows request AND response with placeholder keys only', () => {
     expect(DOCS).toContain('"session_id"');

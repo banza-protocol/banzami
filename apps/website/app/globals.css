@@ -324,7 +324,12 @@ body {
 .bz-side::-webkit-scrollbar { width: 0; }
 
 /* Docs sidebar: sticky beside the article on desktop. */
-.bz-docsnav { position: sticky; top: 20px; }
+.bz-docsnav { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+.bz-docsmenu-toggle { display: none; }
+.bz-docarticle a:hover { text-decoration: underline !important; text-underline-offset: 3px; }
+.bz-docarticle a:focus-visible, .bz-docsnav a:focus-visible, .bz-docsmenu-toggle:focus-visible { outline: 2px solid #9A1B22; outline-offset: 2px; border-radius: 6px; }
+.bz-skip { position: absolute; left: 12px; top: -60px; z-index: 100; background: #241d20; color: #fff; padding: 10px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+.bz-skip:focus { top: 12px; }
 
 @media (max-width: 1080px) { .bz-2rail { grid-template-columns: 1fr !important; } }
 @media (max-width: 900px) {
@@ -333,7 +338,10 @@ body {
   .bz-docsgrid { grid-template-columns: 1fr !important; }
   /* Single column: the nav is normal-flow above the article — never sticky, so it
      can never overlap the scrolling documentation content. */
-  .bz-docsnav { position: static !important; top: auto !important; margin-bottom: 18px; }
+  .bz-docsnav { position: static !important; top: auto !important; margin-bottom: 18px; max-height: none; overflow: visible; }
+  .bz-docsmenu-toggle { display: flex; }
+  .bz-docsnavlist { display: none; }
+  .bz-docsnavlist.is-open { display: block; }
 }
 @media (max-width: 720px) {
   /* The sidebar goes; its navigation does not. .bz-mobilenav carries the same

@@ -27,7 +27,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
 const argv = process.argv.slice(2);
 const ORIGIN = argv.includes('--origin') ? argv[argv.indexOf('--origin') + 1] : 'https://developers.banzami.com';
 
-const AREAS = ['', '/get-started', '/console', '/sdk', '/guides', '/doa', '/reference', '/testing', '/trust', '/artifacts', '/changelog', '/glossary'];
+const AREAS = ['', '/get-started', '/concepts', '/payments', '/webhooks', '/refunds', '/settlements', '/receipts', '/transfers', '/doa', '/console', '/reference', '/events', '/errors', '/sdk', '/artifacts', '/testing', '/going-live', '/trust', '/glossary', '/troubleshooting', '/support', '/changelog'];
 const ROUTES = [...AREAS.map((a) => `/docs${a}`), ...AREAS.map((a) => `/docs/en${a}`)];
 
 const VIEWPORTS = [

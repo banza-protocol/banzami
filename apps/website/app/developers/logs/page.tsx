@@ -43,8 +43,8 @@ export default function LogsPage() {
             : 'Os eventos emitidos por este projeto e cada tentativa de entrega, com o código que o seu servidor respondeu.'}
         </p>
         <p style={{ margin: '-10px 0 18px' }}>
-          <DocsLink href="/docs/reference#catalogo-de-erros">Catálogo de erros</DocsLink>{' · '}
-          <DocsLink href="/docs/guides#resolucao">Resolução de problemas</DocsLink>
+          <DocsLink href="/docs/errors#catalogo-de-erros">Catálogo de erros</DocsLink>{' · '}
+          <DocsLink href="/docs/troubleshooting">Resolução de problemas</DocsLink>
         </p>
 
         <div

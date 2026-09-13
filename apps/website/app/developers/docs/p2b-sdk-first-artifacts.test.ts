@@ -23,20 +23,17 @@ const ART_MANIFEST = JSON.parse(read(`${PUB}/artifacts/manifest.json`));
 
 describe('P2B — SDK-first wording in PT and EN', () => {
   it('PT contains the SDK-first model with the required wording', () => {
-    expect(PT).toContain('Modelo de integração SDK-first');
-    expect(PT).toContain('A filosofia de integração do Banzami é');
-    expect(PT).toContain('camada de referência técnica do protocolo');
+    expect(PT).toContain('São o caminho recomendado; a API HTTP serve para diagnóstico e integrações específicas');
     // The controlled-preview programme is retired (189ad786); unpublished packages are simply source-only.
-    expect(PT).toContain('consomem-se por código-fonte');
+    expect(PT).toContain("'Código-fonte'");
     expect(PT).not.toContain('pré-visualização controlada');
   });
   it('EN contains the SDK-first integration model with the required wording', () => {
-    expect(EN).toContain('SDK-first integration model');
-    expect(EN).toContain('technical protocol reference layer');
+    expect(EN).toContain('They are the recommended path; the HTTP API is there for diagnostics and specific integrations');
     // Was: 'controlled preview until official publication'. Python and PHP are
     // still unpublished, but nothing about them is controlled — they are simply
     // consumed from source, and the docs say why there is no install command.
-    expect(EN).toContain('no install command for them');
+    expect(EN).toContain('no install command for packages no registry offers');
   });
   it('docs never call direct HTTP the official/recommended integration path', () => {
     for (const [name, src] of Object.entries({ PT, EN, README })) {
@@ -47,13 +44,9 @@ describe('P2B — SDK-first wording in PT and EN', () => {
     }
   });
   it('artifact sections are labelled protocol reference in both languages', () => {
-    expect(PT).toContain('Artefactos técnicos de referência');
-    expect(PT).toContain('referência do protocolo');
-    expect(EN).toContain('Technical reference artifacts');
-    expect(EN).toContain('protocol reference');
-    // curl examples labelled diagnostic/protocol reference
-    expect(PT).toContain('diagnóstico / referência do protocolo');
-    expect(EN).toContain('diagnostic / protocol reference');
+    // The artifacts page says what each file is for, and curl is for diagnosis.
+    expect(PT).toContain('Diagnóstico com curl.');
+    expect(EN).toContain('Diagnose with curl.');
   });
 });
 
@@ -79,8 +72,8 @@ describe('P2B — install commands match what is actually published', () => {
   // that are genuinely unpublished. A blanket "nothing is published" is now the
   // false claim, and it was the one steering readers away from a real install.
   it('the unpublished families are still flagged in both languages', () => {
-    expect(PT).toContain('Os pacotes Python e PHP ainda não foram publicados');
-    expect(EN).toContain('The Python and PHP packages are not published yet');
+    expect(PT).toContain('Os SDKs de Python, PHP e Go não estão publicados');
+    expect(EN).toContain('The Python, PHP and Go SDKs are not published');
     expect(PT).not.toMatch(/SDKs ainda não estão publicados publicamente/);
     expect(EN).not.toMatch(/SDKs are not yet publicly published/);
   });
@@ -193,7 +186,7 @@ describe('P2B — public artifact manifest and parity', () => {
 
 describe('P2B — previous honesty preserved', () => {
   it('claim safety holds: no Production webhook claim, pending wording tracks the manifest', () => {
-    expect(EN).toContain('Outbound delivery is real and verified end to end');
+    expect(EN).toContain('Webhook delivery is real, over the public internet.');
     // "Pendente E2E" wording belongs on the page only while the manifest still
     // withholds a release. Asserting it unconditionally would pin a claim the
     // evidence has since overtaken.

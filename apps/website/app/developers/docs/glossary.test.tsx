@@ -18,8 +18,8 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('glossary data (single source of truth)', () => {
-  it('has 28 canonical terms with unique ids and real definitions', () => {
-    expect(GLOSSARY).toHaveLength(28);
+  it('has 29 canonical terms with unique ids and real definitions', () => {
+    expect(GLOSSARY).toHaveLength(29);
     const ids = GLOSSARY.map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const e of GLOSSARY) {

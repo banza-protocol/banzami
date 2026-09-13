@@ -12,11 +12,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import DocsHomePt from './page';
 import PtGetStartedPage from './get-started/page';
-import PtGuidesPage from './guides/page';
+import PtWebhooksPage from './webhooks/page';
+import PtConceptsPage from './concepts/page';
 import PtSdkPage from './sdk/page';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
-const PT = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/page.tsx');
+const PT = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/HomePage.tsx') + read('app/developers/docs/events.ts');
 
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', class {
@@ -27,77 +28,79 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('Public Developer Docs — P3A landing + area routes', () => {
-  it('the PT home renders the nine documentation areas as route links', () => {
+  it('the PT sidebar lists every documentation page as a route link, grouped by task', () => {
     render(<DocsHomePt />);
     const nav = screen.getByRole('navigation', { name: /Secções da documentação/i });
     const expected: [string, string][] = [
-      ['Começar', '/docs/get-started'],
-      ['SDKs', '/docs/sdk'],
-      ['Guias', '/docs/guides'],
-      ['Referência API', '/docs/reference'],
+      ['Quickstart', '/docs/get-started'],
+      ['Como o Banzami funciona', '/docs/concepts'],
+      ['Aceitar pagamentos', '/docs/payments'],
+      ['Webhooks', '/docs/webhooks'],
+      ['Eventos', '/docs/events'],
+      ['Erros', '/docs/errors'],
+      ['Referência da API', '/docs/reference'],
       ['Testar no Sandbox', '/docs/testing'],
       ['Segurança', '/docs/trust'],
-      ['Artefactos', '/docs/artifacts'],
-      ['Changelog', '/docs/changelog'],
+      ['Resolução de problemas', '/docs/troubleshooting'],
+      ['Suporte', '/docs/support'],
       ['Glossário', '/docs/glossary'],
     ];
     for (const [label, href] of expected) {
       const link = within(nav).getByRole('link', { name: label });
       expect(link.getAttribute('href')).toBe(href);
     }
+    for (const group of ['Começar', 'Construir', 'Consola', 'Referência', 'Aprender', 'Recursos']) expect(within(nav).getByText(group)).toBeTruthy();
   });
-  it('the PT home is a landing page (title + status card), not the former giant page', () => {
+  it('the PT home starts from tasks: what to build, two ways in, and the environment', () => {
     render(<DocsHomePt />);
-    expect(screen.getByText('Documentação Developers Banzami')).toBeTruthy();
-    expect(screen.getByText('Estado atual')).toBeTruthy();
-    // The giant page's deep content must NOT be on the landing page itself.
-    expect(screen.queryByText('Contrato esperado do SDK')).toBeNull();
-    expect(screen.queryByText('Referência por recurso')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Documentação para developers' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Começar a construir' }).getAttribute('href')).toBe('/docs/get-started');
+    expect(screen.getAllByRole('link', { name: 'Referência da API' }).some((a) => a.getAttribute('href') === '/docs/reference')).toBe(true);
+    expect(screen.getByText('Sandbox disponível')).toBeTruthy();
+    expect(screen.getByText('Financial Live indisponível')).toBeTruthy();
+    for (const task of ['Aceitar um pagamento', 'Partilhar um link de pagamento', 'Mostrar um QR', 'Receber webhooks', 'Reembolsar um pagamento', 'Liquidar uma conta', 'Verificar um comprovativo', 'Construir como o DOA']) {
+      expect(screen.getAllByText(task).length).toBeGreaterThan(0);
+    }
+    // The deep content is on the task pages, not the home page.
+    expect(screen.queryByText('Configurar um endpoint, passo a passo')).toBeNull();
   });
-  it('the four capability cards are real links to the guides sections with factual badges', () => {
-    render(<PtGetStartedPage />);
+  it('the four capability cards are real links to their pages with factual badges', () => {
+    render(<PtConceptsPage />);
     for (const [title, href] of [
-      ['Criar cobrança', '/docs/guides#cobranca'],
-      ['Transferências', '/docs/guides#transferencias'],
-      ['Webhooks', '/docs/guides#webhooks'],
-      ['Reembolsos', '/docs/guides#reembolsos'],
+      ['Aceitar pagamentos', '/docs/payments'],
+      ['Transferências entre contas', '/docs/transfers'],
+      ['Webhooks', '/docs/webhooks'],
+      ['Reembolsos', '/docs/refunds'],
     ] as [string, string][]) {
-      // Scope to the card links: the prose around them legitimately names the
-      // same capabilities, so a bare text lookup matches more than the card.
       const card = screen.getAllByRole('link')
         .find((a) => a.getAttribute('href') === href && (a.textContent ?? '').includes(title));
       expect(card, `capability card for ${title}`).toBeTruthy();
     }
     expect(screen.getAllByText('Disponível em Sandbox').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Produção em preparação').length).toBeGreaterThan(0);
   });
-  it('presents the three layers and DOA as the reference integration (get-started)', () => {
-    render(<PtGetStartedPage />);
-    expect(screen.getByText('Três camadas')).toBeTruthy();
-    expect(screen.getByText(/DOA · INTEGRAÇÃO DE REFERÊNCIA/)).toBeTruthy();
-    expect(PT).toContain('operacional no ambiente Sandbox');
-  });
-  it('has the Produção-em-preparação card and the transition message (get-started)', () => {
-    render(<PtGetStartedPage />);
-    expect(screen.getAllByText('Produção').length).toBeGreaterThan(0);
-    expect(PT).toContain('A ativação para pagamentos reais');
+  it('states Sandbox and Live truthfully: fictitious money, Live unavailable, live keys refused', () => {
+    render(<PtConceptsPage />);
+    expect(screen.getByRole('heading', { level: 3, name: 'Sandbox e Live' })).toBeTruthy();
+    expect(PT).toContain('usam dinheiro fictício');
+    expect(PT).toContain('bz_live_ é recusada; não são emitidas');
+    expect(PT).toMatch(/O DOA é uma implementação de referência, não um tenant privilegiado/);
   });
   it('API Reference uses the real payment-session model, never /v1/charges', () => {
     expect(PT).toContain('createPaymentSession');
     expect(PT).toContain('sandbox-api.banzami.com');
     expect(PT.includes('/v1/charges')).toBe(false);
   });
-  it('SDKs are shown with what is published and what is still source-only (sdk route)', () => {
+  it('SDKs are shown with what is published and what is not (sdk route)', () => {
     render(<PtSdkPage />);
-    expect(screen.getAllByText(/ainda não foram publicados/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/não estão publicados/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/npm install @banzami\/sdk/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('@banzami/sdk').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Parcial — webhooks + payment links').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Não publicado').length).toBeGreaterThan(0);
   });
-  it('Webhooks documents the canonical banza-signature header + real events (guides route)', () => {
-    render(<PtGuidesPage />);
+  it('Webhooks documents the canonical banza-signature header + only emitted events (webhooks route)', () => {
+    render(<PtWebhooksPage />);
     expect(screen.getAllByText(/banza-signature/).length).toBeGreaterThan(0);
-    for (const ev of ['payment_session.paid', 'payment_link.paid', 'application_settlement.completed', 'application_settlement.cancelled', 'application_settlement.failed']) {
+    for (const ev of ['payment_session.paid', 'payment_link.paid', 'refund.completed', 'application_settlement.completed', 'application_settlement.cancelled', 'application_settlement.failed']) {
       expect(PT.includes(ev), `missing verified event ${ev}`).toBe(true);
     }
     for (const bad of ['application_settlement.executed', 'payment.completed', 'transfer.completed', 'wallet.credit', 'transfer.initiated']) {
@@ -105,9 +108,9 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
       expect(code.includes(bad), `unverified event ${bad} must never appear`).toBe(false);
     }
   });
-  it('Webhooks callout keeps the scoped email honesty (controlled test vs normal DOA flows)', () => {
-    expect(PT).toContain('não foi enviado email externo');
-    expect(PT.replace(/\s+/g, ' ')).toContain('o DOA entrega o recibo ao doador');
+  it('webhook delivery is described as real, and events emitted while disabled as never delivered', () => {
+    expect(PT).toContain('A entrega de webhooks é real, sobre a internet pública.');
+    expect(PT).toContain('nunca lhe são entregues');
   });
   it('copy button copies and shows an accessible toast', async () => {
     const writeText = vi.fn(() => Promise.resolve());
@@ -122,12 +125,12 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     render(<PtSdkPage />);
     const nav = screen.getByRole('navigation', { name: /Secções da documentação/i });
     const active = within(nav).getByRole('link', { name: 'SDKs' });
-    expect(active.getAttribute('aria-current')).toBe('true');
+    expect(active.getAttribute('aria-current')).toBe('page');
   });
   it('no page fetches on load and no developer-api origin is exposed', () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    for (const Page of [DocsHomePt, PtGetStartedPage, PtGuidesPage, PtSdkPage]) {
+    for (const Page of [DocsHomePt, PtGetStartedPage, PtWebhooksPage, PtSdkPage]) {
       render(<Page />);
       cleanup();
     }
@@ -146,6 +149,6 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
   it('the get-started page links back to banzami.com and to the Console login', () => {
     render(<PtGetStartedPage />);
     expect(screen.getByRole('link', { name: /Voltar ao Banzami/i }).getAttribute('href')).toBe('https://banzami.com');
-    expect(screen.getByRole('link', { name: /Entrar na Consola/i }).getAttribute('href')).toBe('/login');
+    expect(screen.getAllByRole('link', { name: /Entrar na Consola/i }).some((a) => a.getAttribute('href') === '/login')).toBe(true);
   });
 });

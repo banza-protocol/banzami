@@ -1,0 +1,171 @@
+# Banzami Developers
+
+> Accept kwanza payments with Banzami: quickstart, API v1, SDK, webhooks and a reference implementation. Sandbox available; Financial Live unavailable.
+
+- API: https://sandbox-api.banzami.com/v1 (Sandbox). Authentication: Authorization: Bearer bz_test_sk_… (project secret key, server-side only).
+- Financial Live: unavailable (fail-closed). bz_live_ keys are refused.
+- Amounts are integers in minor units: 100 = 1 Kz.
+- Server SDK: @banzami/sdk (npm install @banzami/sdk), current version 0.13.0. OpenAPI: https://developers.banzami.com/developers/openapi/banzami-sandbox.openapi.json
+- Portuguese pages: https://developers.banzami.com/docs · English pages: https://developers.banzami.com/docs/en
+
+## Get started
+
+- [Home](https://developers.banzami.com/docs/en): Accept kwanza payments with Banzami: quickstart, API v1, SDK, webhooks and a reference implementation. Sandbox available; Financial Live unavailable.
+- [Quickstart](https://developers.banzami.com/docs/en/get-started): Create and confirm your first Sandbox payment in twelve steps: account, project, Financial Setup, key, SDK, session and webhook.
+- [How Banzami works](https://developers.banzami.com/docs/en/concepts): The integration model, Sandbox and Live, amounts in minor units, idempotency and request_id.
+
+## Build
+
+- [Accept payments](https://developers.banzami.com/docs/en/payments): Payment Sessions, Payment Links and QR: create, present and confirm a payment on your server.
+- [Webhooks](https://developers.banzami.com/docs/en/webhooks): Receive signed events: verify the signature, deduplicate, respond, replay and rotate the secret.
+- [Refunds](https://developers.banzami.com/docs/en/refunds): Return a payment in full or in part, with idempotency, rules and errors.
+- [Settlements](https://developers.banzami.com/docs/en/settlements): Settle an account balance to a beneficiary: gross, fee, net, fee destination and errors.
+- [Receipts](https://developers.banzami.com/docs/en/receipts): SECURE_V1 proof references, public verification and how they differ from a transaction reference.
+- [Accounts and transfers](https://developers.banzami.com/docs/en/transfers): Segregated accounts per campaign or store, and transfers between accounts of the same Business.
+- [Build like DOA](https://developers.banzami.com/docs/en/doa): How a fundraising application integrates Banzami through the public contracts, from campaign account to settlement.
+
+## Console
+
+- [The Console](https://developers.banzami.com/docs/en/console): Account, workspaces and roles, projects, Financial Setup, API keys, webhooks, logs and activity.
+
+## Reference
+
+- [API reference](https://developers.banzami.com/docs/en/reference): Public API v1: authentication, idempotency, limits and every endpoint, with scope, parameters, response, errors and SDK method.
+- [Events](https://developers.banzami.com/docs/en/events): Banzami’s seven webhook events: when they are emitted, fields, expected action and examples.
+- [Errors](https://developers.banzami.com/docs/en/errors): The error envelope, what to do by HTTP status and the searchable catalogue of every code.
+- [SDKs](https://developers.banzami.com/docs/en/sdk): @banzami/sdk (npm) and banzami_client (pub.dev): what each SDK handles and the status of each family.
+- [Artifacts](https://developers.banzami.com/docs/en/artifacts): OpenAPI v1, Postman collection, examples, availability matrix and manifests.
+
+## Learn
+
+- [Sandbox testing](https://developers.banzami.com/docs/en/testing): Test scenarios with how to trigger them, the expected response, the event and the Console check.
+- [From Sandbox toward Live](https://developers.banzami.com/docs/en/going-live): The status of Financial Live and the checklist for a ready integration.
+- [Security](https://developers.banzami.com/docs/en/trust): Where to keep keys and webhook secrets, least-privilege scopes and credential rotation.
+- [Glossary](https://developers.banzami.com/docs/en/glossary): The terms used across the Banzami documentation.
+
+## Resources
+
+- [Troubleshooting](https://developers.banzami.com/docs/en/troubleshooting): Diagnosis by symptom: causes, what to check, where to look in the Console and when to retry.
+- [Support](https://developers.banzami.com/docs/en/support): How to contact support, what to include and what never to send.
+- [Changelog](https://developers.banzami.com/docs/en/changelog): Changes to the API, SDK, Sandbox and documentation, with impact and required action.
+
+## Endpoints
+
+- GET /v1/me — scope identity:read; SDK me() — https://developers.banzami.com/docs/en/reference#ref-me
+- GET /v1/financial-setup — scope identity:read; SDK getFinancialSetup() — https://developers.banzami.com/docs/en/reference#ref-financial-setup
+- POST /v1/payment-sessions — scope payment_sessions:write; SDK createPaymentSession(); events payment_session.created, payment_session.paid — https://developers.banzami.com/docs/en/reference#ref-ps-create
+- GET /v1/payment-sessions/{id} — scope payment_sessions:read; SDK getPaymentSession() — https://developers.banzami.com/docs/en/reference#ref-ps-get
+- GET /v1/payment-sessions — scope payment_sessions:read; SDK listPaymentSessions() — https://developers.banzami.com/docs/en/reference#ref-ps-list
+- GET /v1/payment-sessions/{id}/link — scope payment_sessions:read — https://developers.banzami.com/docs/en/reference#ref-ps-link
+- GET /v1/payment-sessions/{id}/qr — scope payment_sessions:read — https://developers.banzami.com/docs/en/reference#ref-ps-qr
+- POST /v1/payment-links — scope payment_links:write; SDK createPaymentLink(); events payment_link.paid — https://developers.banzami.com/docs/en/reference#ref-pl-create
+- POST /v1/wallet-accounts — scope wallet_accounts:create; SDK createWalletAccount() — https://developers.banzami.com/docs/en/reference#ref-wacc-create
+- GET /v1/wallet-accounts — scope wallet_accounts:read; SDK listWalletAccounts() — https://developers.banzami.com/docs/en/reference#ref-wacc-list
+- GET /v1/wallet-accounts/{id} — scope wallet_accounts:read; SDK getWalletAccount() — https://developers.banzami.com/docs/en/reference#ref-wacc-get
+- POST /v1/wallet-account-transfers — scope transfers:write; SDK createTransfer() — https://developers.banzami.com/docs/en/reference#ref-transfer-create
+- POST /v1/refunds — scope refunds:write; SDK createRefund(); events refund.completed — https://developers.banzami.com/docs/en/reference#ref-refund-create
+- POST /v1/webhooks/endpoints — scope webhooks:write; SDK createWebhookEndpoint() — https://developers.banzami.com/docs/en/reference#ref-webhook-register
+- POST /v1/application-settlements — scope application_settlements:write; SDK createBusinessApplicationSettlement(); events application_settlement.completed — https://developers.banzami.com/docs/en/reference#ref-settlement-create
+- GET /v1/payment-links — scope payment_links:read; SDK listPaymentLinks() — https://developers.banzami.com/docs/en/reference#ref-pl-list
+- GET /v1/payment-links/{id} — scope payment_links:read; SDK getPaymentLink() — https://developers.banzami.com/docs/en/reference#ref-pl-get
+- DELETE /v1/payment-links/{id} — scope payment_links:write; SDK cancelPaymentLink() — https://developers.banzami.com/docs/en/reference#ref-pl-cancel
+- GET /v1/refunds — scope refunds:read; SDK listRefunds() — https://developers.banzami.com/docs/en/reference#ref-refund-list
+- GET /v1/refunds/{id} — scope refunds:read; SDK getRefund() — https://developers.banzami.com/docs/en/reference#ref-refund-get
+- GET /v1/consumers/handle/{handle} — scope customers:read; SDK resolveHandle() — https://developers.banzami.com/docs/en/reference#ref-handle-resolve
+- GET /v1/webhooks/endpoints — scope webhooks:read; SDK listWebhookEndpoints() — https://developers.banzami.com/docs/en/reference#ref-webhook-list
+- GET /v1/webhooks/endpoints/{id} — scope webhooks:read; SDK getWebhookEndpoint() — https://developers.banzami.com/docs/en/reference#ref-webhook-get
+- DELETE /v1/webhooks/endpoints/{id} — scope webhooks:write; SDK deactivateWebhookEndpoint() — https://developers.banzami.com/docs/en/reference#ref-webhook-deactivate
+- GET /v1/webhooks/endpoints/{id}/health — scope webhooks:read; SDK endpointHealth() — https://developers.banzami.com/docs/en/reference#ref-webhook-health
+- POST /v1/webhooks/endpoints/{id}/rotate-secret — scope webhooks:write; SDK rotateWebhookEndpointSecret() — https://developers.banzami.com/docs/en/reference#ref-webhook-rotate
+- GET /v1/webhooks/events — scope webhooks:read; SDK listWebhookEvents() — https://developers.banzami.com/docs/en/reference#ref-webhook-events
+- GET /v1/webhooks/events/{id}/deliveries — scope webhooks:read; SDK listWebhookDeliveries() — https://developers.banzami.com/docs/en/reference#ref-webhook-deliveries
+- POST /v1/webhooks/deliveries/{id}/replay — scope webhooks:write; SDK replayWebhookDelivery() — https://developers.banzami.com/docs/en/reference#ref-webhook-replay
+- GET /v1/public/proofs/{ref} — scope none (public) — https://developers.banzami.com/docs/en/reference#ref-public-proof
+
+## Webhook events
+
+- payment_session.created: When a new session is created. Not emitted when the same purpose + reference returns a session that already existed. Fields: payment_session_id, destination_account_ref, amount_minor, currency, purpose, reference_type, reference_id, interfaces. — https://developers.banzami.com/docs/en/events#event-payment_session-created
+- payment_session.paid: When the payer pays the session and the money is in your account — at the same moment the session becomes PAID. Fields: payment_session_id, amount_minor, interface, destination_account_ref, reference_type, reference_id, transfer_id, acquiring_payment_id, refund_source. — https://developers.banzami.com/docs/en/events#event-payment_session-paid
+- payment_link.paid: When a link is paid — a link you created, or the link behind a Payment Session. Fields: id, slug, wallet_account_id, amount_minor, currency, description, status, paid_at, expires_at, created_at, updated_at, refund_source. — https://developers.banzami.com/docs/en/events#event-payment_link-paid
+- refund.completed: When a refund was made and the value is back with the payer — in the same request that createRefund answers 201. Fields: refund_id, source_type, source_id, amount_minor, currency, status, trace_id, created_at. — https://developers.banzami.com/docs/en/events#event-refund-completed
+- application_settlement.completed: When a settlement you requested finished: the net is with the beneficiary and the fee, if any, in your fee destination. Fields: id, owner_ref, status, gross_amount, application_fee, net_amount, currency, source_account_id, idempotency_key, created_at, completed_at. — https://developers.banzami.com/docs/en/events#event-application_settlement-completed
+- application_settlement.cancelled: When Banzami cancels a settlement that was created but never completed. No money left the account. Fields: id, owner_ref, status, source_account_id, idempotency_key, cancelled_at. — https://developers.banzami.com/docs/en/events#event-application_settlement-cancelled
+- application_settlement.failed: When Banzami marks as failed a settlement that could not complete. No money left the account. Fields: id, owner_ref, status, failure_reason, source_account_id, idempotency_key, failed_at. — https://developers.banzami.com/docs/en/events#event-application_settlement-failed
+
+## Errors
+
+Envelope: { code, message, request_id }. Branch on code. A 4xx error stays stored against the Idempotency-Key for 24 hours: nothing happened, and resending the same key returns the same error. Fix the request and use a new key. A 5xx, a 429 or a timeout is not stored: retry with the same key.
+
+- UNAUTHORIZED (401): The key is missing, revoked or rotated, or is not a Sandbox key. bz_live_ keys are refused. Send Authorization: Bearer bz_test_sk_… with an active key, and confirm with GET /v1/me.
+- INVALID_TOKEN (401): The credential is invalid or has expired. Use a valid key.
+- AUTHORIZATION_UNAVAILABLE (503): The key could not be verified right now. This does not mean the key is invalid. Wait for Retry-After (2 s) and retry with the same idempotency key.
+- INSUFFICIENT_SCOPE (403): The key lacks the scope for this operation; the message names it. Create a key with that scope. An existing key’s scopes cannot be changed.
+- FORBIDDEN (403): The credential cannot perform this operation: the scope is missing (on GET /v1/me) or the resource belongs to another project. Check the key’s scopes, and that the id belongs to your project.
+- USE_FINANCIAL_SETUP (403): A project key does not read the Business state through this route. Use GET /v1/financial-setup (getFinancialSetup() in the SDK).
+- MERCHANT_NOT_ACTIVE (403): The Business is not active, so it cannot create sessions or accounts. Check its status in the Console, under Financial Setup.
+- PAYMENTS_UNAVAILABLE (403, 503): 403: the project has not completed Financial Setup and cannot receive payments. 503: the check could not be made right now. 403: complete Financial Setup and confirm with getFinancialSetup(). 503: retry with the same idempotency key.
+- BINDING_CHANGED (409): The project’s Financial Setup changed during the request. Nothing was created. Retry with a new idempotency key: this response stays stored against the previous key for 24 h.
+- FINANCIAL_SETUP_CONFLICT (409): The project’s Financial Setup is inconsistent and could not be evaluated. Contact support with the request_id.
+- ENVIRONMENT_UNDECLARED (503): The service could not confirm the credential’s environment, because of a Banzami configuration fault. Retry later; if it persists, contact support with the request_id.
+- INVALID_BODY (400): The request body is not valid JSON. Send valid JSON with Content-Type: application/json.
+- BAD_REQUEST (400): A request field is invalid; the message names it. Correct the field named in the message.
+- INVALID_REQUEST (4xx): The request was refused without a more specific reason. Read the message and correct the request.
+- MISSING_FIELD (400): A required field is missing; the message names it. Add the field named in the message.
+- INVALID_AMOUNT (400): The amount is not a positive integer in minor units. Send a positive integer: 100 minor units = 1 Kz.
+- INVALID_CURRENCY (400): The currency is not a three-letter ISO 4217 code. Use AOA.
+- INVALID_DESTINATION (400): The source and destination accounts are the same. Name two different accounts.
+- INVALID_EXPIRY (400): expires_at is not in the future. Send a future date, in UTC.
+- INVALID_METADATA (400): A metadata field exceeds the allowed format or length; the message gives the limits. Bring the field within the limits given.
+- INVALID_PARAM (400): A query parameter is invalid, for example limit outside 1 to 100. Correct the parameter named in the message.
+- INVALID_SOURCE_TYPE (400): source_type is neither ACQUIRING_PAYMENT nor WALLET_PAYMENT. Use the source_type from the payment’s refund_source.
+- INVALID_WEBHOOK_URL (400): The webhook URL is not a public HTTPS endpoint, or is too long. Use a public HTTPS address. Private and loopback addresses are refused.
+- UNSUPPORTED_EVENT (400): One of the requested events is not in the catalogue. Use only events from the event catalogue.
+- PAYEE_NOT_ALLOWED (400): The request names the payee. With a project key, the payee comes from Financial Setup. Remove the field named in the message (merchant_id, wallet_id or payee).
+- PRICING_FIELD_NOT_ACCEPTED (400): The request names a price or a fee. Pricing is assigned to the Business by Banzami. Remove the pricing field.
+- PDF_NOT_SUPPORTED (415): The QR code is not available as PDF. Request format=png or format=svg.
+- ROUTE_RETIRED (410): The route was retired; the message names the alternative. Use the route named in the message.
+- NOT_FOUND (404): The resource does not exist, or belongs to another project. Both return the same response. Check the id, and that it belongs to this project.
+- NO_LINK (404): The session has no payment link. Read the session’s interfaces and use the one available.
+- NO_QR (404): The session has no QR interface. Read the session’s interfaces and use the one available.
+- IDEMPOTENCY_KEY_REUSED (409): This idempotency key was already used for a different request. Do not retry with this key: it belongs to the other operation. Use a new key.
+- IDEMPOTENCY_CONFLICT (409): On a request: another request with this key is still in progress. On a settlement: the key was already used for another settlement. Request in progress: wait and retry with the same key. Another settlement: use a new key.
+- IDEMPOTENCY_KEY_CONFLICT (409): The idempotency key was already used on this payment with a different amount or currency. Retry with the original request, or use another key for a different refund.
+- LINK_NOT_ACTIVE (422): The payment link is no longer active: it was paid, expired or was cancelled. Create a new link.
+- WALLET_ACCOUNT_INACTIVE (409): The account that should receive the payment is not active. Use an active account.
+- PRIMARY_NOT_CREATABLE (422): An account with purpose PRIMARY cannot be created: the main account comes with the wallet. Use another purpose, for example CAMPAIGN, STORE or EVENT.
+- DELIVERY_ALREADY_SUCCEEDED (409): The delivery already succeeded and is not sent again. Replay only deliveries that failed.
+- ACCOUNT_FROZEN (422): The account is frozen; movements from it are refused. Contact support with the request_id.
+- ACCOUNTS_NOT_SAME_WALLET (422): The two accounts do not belong to the same wallet. Transfer only between accounts of the same Business.
+- CURRENCY_MISMATCH (422): The accounts, the payment and the request do not share a currency. Use the account’s or payment’s currency.
+- INSUFFICIENT_FUNDS (422): The source account does not have enough available balance. Check the balance and retry once there is enough, with a new key.
+- NOTHING_TO_SETTLE (422): The source account has no available balance to settle. Settle once there is a balance, with a new key.
+- SOURCE_NOT_SEGREGATED (422): The source is the Business’s main account; only a segregated account can be settled. Use the id of a segregated account, for example one with purpose CAMPAIGN.
+- BENEFICIARY_NOT_FOUND (422): The beneficiary’s @banza has no active wallet in this currency. Check the beneficiary @banza.
+- FEE_DESTINATION_NOT_FOUND (422): The @banza named for the fee has no active wallet in this currency. Check the fee destination @banza.
+- FEE_DESTINATION_NOT_OWNED (403): The fee destination does not belong to your Business. Name an account of your own Business.
+- FEE_DESTINATION_REQUIRED (422): The pricing profile applies a fee to this settlement and the request names no fee destination. Send feeDestinationBanzaName.
+- FEE_DESTINATION_NOT_BUSINESS_ACCOUNT (422): The fee destination is not a Business account. Name the Business account that receives the fee.
+- FEE_DESTINATION_NOT_ACTIVE (422): The fee destination account is not active. Contact support with the request_id.
+- FEE_DESTINATION_KYB_NOT_APPROVED (422): The fee destination Business’s verification is not approved yet. Retry after approval, with a new key.
+- FEE_DESTINATION_WALLET_UNAVAILABLE (422): The fee destination account has no active wallet in this currency. Contact support with the request_id.
+- FEE_DESTINATION_TYPE_NOT_ALLOWED (422): The fee can only go to an APPLICATION or PLATFORM account. Name an account of that type. The classification is assigned by Banzami.
+- FEE_EXCEEDS_GROSS (422): The calculated fee would exceed the gross being settled. Settle once the balance is larger, or contact support with the request_id.
+- PRICING_NOT_CONFIGURED (409): The Business has no pricing profile yet, so the settlement cannot be calculated. The profile is assigned by Banzami: contact support with the request_id.
+- PRICING_CONFIGURATION_ERROR (409): More than one pricing rule applies to this settlement. Contact support with the request_id.
+- INVALID_STATUS (409): The settlement is in a state that does not allow this change. Check the settlement’s current state.
+- SETTLEMENT_NOT_COMPLETED (422): The settlement was created but could not be completed. Retry with the same key: the existing settlement resumes and is never duplicated.
+- SETTLEMENT_REJECTED (4xx): The settlement was refused without a more specific reason. Read the message and correct the request.
+- REFUND_EXCEEDS_CAPTURED (422): The requested amount exceeds what is left to refund on this payment. The message gives the amount available; request at most that, with a new key.
+- REFUND_NOT_FUNDABLE (422): The account that received the payment does not hold enough to return it. Retry once the account holds enough, with a new key.
+- INVALID_PAYMENT_STATUS (422): The payment is in a state that cannot be refunded. Only a completed payment can be refunded.
+- INVALID_TRANSACTION_STATUS (422): The transaction is in a state that cannot be refunded. Only a completed payment can be refunded.
+- WALLET_NOT_FOUND (422): The wallet of the Business that received the payment was not found. Contact support with the request_id.
+- CONSUMER_WALLET_NOT_FOUND (422): The payer’s wallet no longer exists. Contact support with the request_id.
+- REFUND_FAILED (4xx): The refund was refused without a more specific reason. Read the message and contact support with the request_id.
+- RATE_LIMITED (429): Too many requests. Nothing was executed. Wait for Retry-After, then retry with the same key.
+- INTERNAL_ERROR (500): A failure on Banzami’s side. Retry with the same key. If it persists, contact support with the request_id.
+- QR_RENDER_FAILED (500): The QR image could not be generated. Retry the request.
+- UPSTREAM_ERROR (502): A Banzami service failed. Your request may be valid. Retry with the same key.
+- SERVICE_UNAVAILABLE (503): The service is temporarily unavailable. Retry with the same key, with increasing backoff.
+- UNAVAILABLE (503): The service is temporarily unavailable. Retry with the same key, with increasing backoff.
+

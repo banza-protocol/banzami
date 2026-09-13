@@ -46,8 +46,8 @@ export function isReleased(id: string): boolean {
 
 /** The four capabilities the public docs advertise as cards, in card order. */
 export const CARD_CAPABILITIES: { card: string; id: string }[] = [
-  { card: 'Criar cobrança', id: 'CAP-PAY-001' },
-  { card: 'Transferências', id: 'CAP-TRANSFER-002' },
+  { card: 'Aceitar pagamentos', id: 'CAP-PAY-001' },
+  { card: 'Transferências entre contas', id: 'CAP-TRANSFER-002' },
   { card: 'Webhooks', id: 'CAP-WEBHOOK-001' },
   { card: 'Reembolsos', id: 'CAP-REFUND-001' },
 ];

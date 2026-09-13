@@ -27,7 +27,10 @@ describe('documentation SEO (DOCS-PROD-001 §57)', () => {
   });
   it('lists every docs page in the developers sitemap, and only there', async () => {
     const xml = await (await sitemap(new NextRequest('https://developers.banzami.com/sitemap.xml', { headers: { host: 'developers.banzami.com' } }))).text();
-    expect((xml.match(/<loc>/g) ?? []).length).toBe(Object.keys(DOCS_META).length * 2);
+    // /docs/guides is a retired redirect page: noindex, and not in the sitemap.
+    expect((xml.match(/<loc>/g) ?? []).length).toBe((Object.keys(DOCS_META).length - 1) * 2);
+    expect(xml).not.toMatch(/\/docs(\/en)?\/guides</);
+    expect(docsMetadata('pt', 'guides').robots).toEqual({ index: false, follow: true });
     expect(xml).not.toMatch(/login|api-keys|saldos/);
     const other = await sitemap(new NextRequest('https://banzami.com/sitemap.xml', { headers: { host: 'banzami.com' } }));
     expect(other.status).toBe(404);

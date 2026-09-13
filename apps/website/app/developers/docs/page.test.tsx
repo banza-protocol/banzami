@@ -27,10 +27,10 @@ describe('Glossary route — Conceitos content preserved (P3A)', () => {
     const link = within(nav).getByRole('link', { name: 'Glossário' });
     expect(link.getAttribute('href')).toBe('/docs/glossary');
   });
-  it('the glossary page shows the Conceitos heading and subtitle', () => {
+  it('the glossary page shows its heading and subtitle', () => {
     render(<PtGlossaryPage />);
-    expect(screen.getByRole('heading', { name: 'Conceitos' })).toBeTruthy();
-    expect(screen.getByText(/Definições rápidas dos termos usados/)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Glossário' })).toBeTruthy();
+    expect(screen.getByText(/Os termos usados nesta documentação/)).toBeTruthy();
   });
   it('renders every canonical glossary term with its definition', () => {
     render(<PtGlossaryPage />);

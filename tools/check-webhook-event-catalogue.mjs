@@ -29,9 +29,11 @@
  *
  *   node tools/check-webhook-event-catalogue.mjs
  */
+// Type-stripped .ts modules warn about the package type; the warning is noise here.
+process.removeAllListeners('warning');
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -64,19 +66,40 @@ function registrable() {
   return new Set([...block.matchAll(/"([a-z_.]+)":\s*true/g)].map((m) => m[1]));
 }
 
-/** What the public catalogue publishes, per language. */
-function documented(file) {
-  const src = read(file);
-  const i = src.indexOf('const EVENTS: string[] = [');
-  if (i < 0) throw new Error(`no EVENTS catalogue in ${file}`);
-  const block = src.slice(i, src.indexOf('];', i));
-  return new Set([...block.matchAll(/'([a-z_.]+)'/g)].map((m) => m[1]));
+/** What the public catalogue publishes: the event reference both languages render. */
+const { EVENT_DOCS } = await import(pathToFileURL(join(ROOT, 'apps/website/app/developers/docs/events.ts')).href);
+const documented = () => new Set(EVENT_DOCS.map((e) => e.name));
+
+/** The keys an emitter writes into `data` for one event. */
+function emittedKeys(event, sources) {
+  const keys = new Set();
+  for (const file of sources) {
+    const src = read(file);
+    if (file.endsWith('domain.rs')) {
+      // application_settlement.*: data is the serialised aggregate.
+      const struct = /pub struct ApplicationSettlement \{([\s\S]*?)\n\}/.exec(src);
+      for (const m of struct?.[1].matchAll(/pub (\w+):/g) ?? []) keys.add(m[1]);
+      continue;
+    }
+    for (const at of src.matchAll(new RegExp(`"${event.replace('.', '\\.')}",`, 'g'))) {
+      const after = src.slice(at.index, at.index + 3000);
+      const json = /serde_json::json!\(\{([\s\S]*?)\n\s*\}\)/.exec(after);
+      if (json && json.index < 400) for (const m of json[1].matchAll(/"([a-z_]+)":/g)) keys.add(m[1]);
+    }
+    // payment_link.paid: the link row as json_build_object, plus refund_source.
+    const fn = new RegExp(`fn \\w+[\\s\\S]{0,2500}?"${event.replace('.', '\\.')}"`).exec(src);
+    if (fn) {
+      for (const m of fn[0].matchAll(/'([a-z_]+)', [a-z_]+(?:::text)?/g)) keys.add(m[1]);
+      for (const m of fn[0].matchAll(/data\["([a-z_]+)"\]/g)) keys.add(m[1]);
+    }
+  }
+  return keys;
 }
 
 const EMITTED = emitted();
 const REGISTRABLE = registrable();
-const PT = documented('apps/website/app/developers/docs/content-pt.tsx');
-const EN = documented('apps/website/app/developers/docs/content-en.tsx');
+const PT = documented();
+const EN = documented();
 
 let failures = 0;
 const fail = (m, d) => { console.error(`  ✗ ${m}${d ? `\n      ${d}` : ''}`); failures += 1; };
@@ -121,10 +144,48 @@ console.log(`webhook event catalogue\n  emitted ${EMITTED.size} · registrable $
     : pass('EMITTED_BUT_NOT_REGISTRABLE = 0 — every event that fires can be subscribed to');
 }
 
+// ── every event is a complete mini reference, true to its emitter ─────────────
+{
+  const shell = read('apps/website/app/developers/docs/shell.tsx');
+  const slugs = new Set([...shell.matchAll(/slug: '([a-z-]*)'/g)].map((m) => m[1]));
+  const reference = read('apps/website/app/developers/docs/reference.tsx');
+  const missing = [];
+  const dead = [];
+  for (const e of EVENT_DOCS) {
+    const bi = (v) => v && typeof v.pt === 'string' && v.pt.trim() && typeof v.en === 'string' && v.en.trim();
+    for (const k of ['resource', 'when', 'action', 'dedupe', 'ordering', 'sandbox']) if (!bi(e[k])) missing.push(`${e.name}: ${k} missing in a language`);
+    if (!e.fields?.length) missing.push(`${e.name}: no fields`);
+    for (const f of e.fields ?? []) if (!f.type || !bi(f.note)) missing.push(`${e.name}: field ${f.name} lacks a type or a note in both languages`);
+    if (!slugs.has(e.guide)) missing.push(`${e.name}: guide "${e.guide}" is not a page`);
+    if (!reference.includes(`id: '${e.endpoint}'`)) missing.push(`${e.name}: endpoint ${e.endpoint} is not in the reference`);
+    if (e.doa !== null && !bi(e.doa)) missing.push(`${e.name}: DOA usage in one language only`);
+    let sample;
+    try { sample = JSON.parse(e.sample); } catch { missing.push(`${e.name}: the sample is not JSON`); }
+    if (sample) {
+      if (sample.type !== e.name) missing.push(`${e.name}: the sample's type is ${sample.type}`);
+      for (const k of ['id', 'type', 'created_at', 'data']) if (!(k in sample)) missing.push(`${e.name}: the sample envelope lacks ${k}`);
+      for (const k of Object.keys(sample.data ?? {})) if (!e.fields.some((f) => f.name === k)) dead.push(`${e.name}: the sample carries ${k}, which the reference does not document`);
+    }
+    const keys = emittedKeys(e.name, e.source);
+    if (!keys.size) dead.push(`${e.name}: no keys read from ${e.source.join(', ')}`);
+    for (const f of e.fields ?? []) {
+      // Money fields of the settlement aggregate serialise as { amount_minor, currency }.
+      if (!keys.has(f.name)) dead.push(`${e.name}: ${f.name} is documented, the emitter never writes it`);
+    }
+  }
+  missing.length
+    ? fail(`EVENT_REFERENCE_REQUIRED_FIELDS_MISSING = ${missing.length}`, missing.join('\n      '))
+    : pass(`EVENT_REFERENCE_REQUIRED_FIELDS_MISSING = 0 — every event says when, what, what to do, duplicates, ordering and Sandbox, in both languages`);
+  dead.length
+    ? fail(`EVENT_REFERENCE_DEAD_FIELDS = ${dead.length}`, dead.join('\n      '))
+    : pass('EVENT_REFERENCE_DEAD_FIELDS = 0 — every documented field is one the emitter writes');
+}
+
 console.log(`\n  emitted:     ${sorted(EMITTED).join(', ')}`);
 console.log(`  documented:  ${sorted(PT).join(', ')}`);
 const ahead = sorted(REGISTRABLE).filter((e) => !EMITTED.has(e));
 if (ahead.length) console.log(`  registrable but not emitted (deliberately undocumented): ${ahead.join(', ')}`);
 
 if (failures) { console.error(`\n✗ ${failures} catalogue failure(s)`); process.exit(1); }
+console.log('\nEVENT_REFERENCE_ACTIONABLE=PASS\nEVENT_REFERENCE_ALL_EMITTED=PASS');
 console.log('\n✓ the published catalogue is exactly what the operator emits');

@@ -1,0 +1,180 @@
+// Troubleshooting by symptom: what you see, what it usually is, what to check,
+// where in the Console, whether to retry, which codes it covers and which guide
+// explains it. Every code named here is checked against error-catalogue.json and
+// every guide slug against the documentation routes by tools/check-docs-dx.mjs.
+
+export type Bi = { pt: string; en: string };
+
+export type Symptom = {
+  id: string;
+  symptom: Bi;
+  causes: Bi;
+  check: Bi;
+  console: Bi;
+  retry: Bi;
+  codes: string[];
+  guide: string;
+};
+
+export const SYMPTOMS: Symptom[] = [
+  {
+    id: 'symptom-401',
+    symptom: { pt: 'Todas as chamadas respondem 401', en: 'Every call answers 401' },
+    causes: { pt: 'A chave falta, foi revogada ou rodada, foi copiada incompleta, ou não é uma chave Sandbox (bz_live_ é recusada).', en: 'The key is missing, was revoked or rotated, was copied incomplete, or is not a Sandbox key (bz_live_ is refused).' },
+    check: { pt: 'GET /v1/me com a mesma chave. Confirme que o header é Authorization: Bearer bz_test_sk_… sem espaços a mais.', en: 'GET /v1/me with the same key. Check the header is Authorization: Bearer bz_test_sk_… with no extra spaces.' },
+    console: { pt: 'Chaves de API: o estado da chave (Ativa ou Revogada) e a última utilização.', en: 'API keys: the key status (Active or Revoked) and its last use.' },
+    retry: { pt: 'Não com a mesma chave. Use a chave ativa.', en: 'Not with the same key. Use the active key.' },
+    codes: ['UNAUTHORIZED'],
+    guide: 'trust',
+  },
+  {
+    id: 'symptom-scope',
+    symptom: { pt: '403 INSUFFICIENT_SCOPE numa operação', en: '403 INSUFFICIENT_SCOPE on one operation' },
+    causes: { pt: 'A chave não tem o scope que esta rota exige. Os scopes fixam-se na criação e não mudam.', en: 'The key lacks the scope this route requires. Scopes are fixed at creation and never change.' },
+    check: { pt: 'O scope da rota na Referência API, e os scopes que GET /v1/me devolve.', en: 'The route’s scope in the API reference, and the scopes GET /v1/me returns.' },
+    console: { pt: 'Chaves de API: os scopes da chave.', en: 'API keys: the key’s scopes.' },
+    retry: { pt: 'Só com uma chave nova que tenha o scope.', en: 'Only with a new key that has the scope.' },
+    codes: ['INSUFFICIENT_SCOPE'],
+    guide: 'reference',
+  },
+  {
+    id: 'symptom-payments-unavailable',
+    symptom: { pt: '403 PAYMENTS_UNAVAILABLE ao criar um pagamento', en: '403 PAYMENTS_UNAVAILABLE when creating a payment' },
+    causes: { pt: 'O projeto ainda não tem a configuração financeira concluída: não há quem receba.', en: 'The Project has no completed financial setup yet: there is nobody to pay.' },
+    check: { pt: 'GET /v1/financial-setup — financial_setup.state. UNCONFIGURED ou uma candidatura em análise explicam o 403.', en: 'GET /v1/financial-setup — financial_setup.state. UNCONFIGURED or an application in review explains the 403.' },
+    console: { pt: 'Configuração financeira: o estado e o que falta.', en: 'Financial setup: the state and what is missing.' },
+    retry: { pt: 'Não até o estado mudar. Repetir não ajuda.', en: 'Not until the state changes. Retrying does not help.' },
+    codes: ['PAYMENTS_UNAVAILABLE'],
+    guide: 'get-started',
+  },
+  {
+    id: 'symptom-404',
+    symptom: { pt: '404 num recurso que sabe que existe', en: '404 on a resource you know exists' },
+    causes: { pt: 'Existe, mas é de outro projeto — ou está a usar o slug de um link onde se pede o id.', en: 'It exists but belongs to another Project — or you are using a link slug where the id is expected.' },
+    check: { pt: 'Que a chave é do projeto que criou o recurso, e que envia o id devolvido na criação.', en: 'That the key belongs to the Project that created the resource, and that you send the id returned at creation.' },
+    console: { pt: 'Registos: o pedido pelo request_id, e o projeto selecionado.', en: 'Logs: the request by request_id, and the selected Project.' },
+    retry: { pt: 'Não. Um 404 de outro projeto é deliberado e não muda.', en: 'No. A 404 for another Project is deliberate and will not change.' },
+    codes: ['NOT_FOUND'],
+    guide: 'reference',
+  },
+  {
+    id: 'symptom-payee',
+    symptom: { pt: '400 PAYEE_NOT_ALLOWED', en: '400 PAYEE_NOT_ALLOWED' },
+    causes: { pt: 'O corpo nomeia um destinatário — merchant_id, wallet_id, payee — com uma chave de projeto.', en: 'The body names a payee — merchant_id, wallet_id, payee — with a project key.' },
+    check: { pt: 'Remova esses campos. Quem recebe vem da configuração financeira; para escolher uma das suas contas, use wallet_account_id.', en: 'Remove those fields. Who is paid comes from financial setup; to pick one of your own accounts, use wallet_account_id.' },
+    console: { pt: 'Registos: o pedido recusado.', en: 'Logs: the refused request.' },
+    retry: { pt: 'Depois de corrigir o corpo, com uma chave de idempotência nova.', en: 'After fixing the body, with a new idempotency key.' },
+    codes: ['PAYEE_NOT_ALLOWED'],
+    guide: 'payments',
+  },
+  {
+    id: 'symptom-idempotency',
+    symptom: { pt: '409 ao repetir um pedido', en: '409 when retrying a request' },
+    causes: { pt: 'IDEMPOTENCY_KEY_REUSED: a mesma chave com um corpo diferente. IDEMPOTENCY_CONFLICT: o primeiro pedido com essa chave ainda está em curso.', en: 'IDEMPOTENCY_KEY_REUSED: the same key with a different body. IDEMPOTENCY_CONFLICT: the first request with that key is still in flight.' },
+    check: { pt: 'Se o corpo mudou, é outro pedido. Se não mudou, espere uns segundos.', en: 'If the body changed, it is another request. If not, wait a few seconds.' },
+    console: { pt: 'Registos: os dois pedidos com a mesma Idempotency-Key.', en: 'Logs: the two requests with the same Idempotency-Key.' },
+    retry: { pt: 'CONFLICT: sim, com a mesma chave. KEY_REUSED: só com uma chave nova.', en: 'CONFLICT: yes, with the same key. KEY_REUSED: only with a new key.' },
+    codes: ['IDEMPOTENCY_KEY_REUSED', 'IDEMPOTENCY_CONFLICT'],
+    guide: 'reference',
+  },
+  {
+    id: 'symptom-amount',
+    symptom: { pt: '400 no montante, ou um valor 100 vezes errado', en: '400 on the amount, or a value 100 times off' },
+    causes: { pt: 'Montantes são inteiros em unidades menores: 250 Kz são 25000. Zero, negativos e decimais são recusados.', en: 'Amounts are integers in minor units: 250 Kz is 25000. Zero, negatives and decimals are refused.' },
+    check: { pt: 'Multiplique Kwanzas por 100 antes de enviar, e divida por 100 para mostrar.', en: 'Multiply Kwanzas by 100 before sending, and divide by 100 to display.' },
+    console: { pt: 'Registos: o pedido; Transações: o valor que ficou registado.', en: 'Logs: the request; Transactions: the value recorded.' },
+    retry: { pt: 'Depois de corrigir, com uma chave de idempotência nova.', en: 'After fixing, with a new idempotency key.' },
+    codes: ['INVALID_AMOUNT', 'BAD_REQUEST', 'MISSING_FIELD'],
+    guide: 'payments',
+  },
+  {
+    id: 'symptom-429',
+    symptom: { pt: '429 RATE_LIMITED', en: '429 RATE_LIMITED' },
+    causes: { pt: 'Demasiados pedidos do mesmo IP ou da mesma chave. Nada foi executado.', en: 'Too many requests from the same IP or key. Nothing was executed.' },
+    check: { pt: 'O header Retry-After, em segundos.', en: 'The Retry-After header, in seconds.' },
+    console: { pt: 'Registos: a sequência de pedidos que chegou ao limite.', en: 'Logs: the burst of requests that hit the limit.' },
+    retry: { pt: 'Sim, depois de Retry-After, com a mesma chave de idempotência.', en: 'Yes, after Retry-After, with the same idempotency key.' },
+    codes: ['RATE_LIMITED'],
+    guide: 'reference',
+  },
+  {
+    id: 'symptom-session-active',
+    symptom: { pt: 'A sessão continua ACTIVE', en: 'The session stays ACTIVE' },
+    causes: { pt: 'O pagador ainda não pagou. Voltar à sua página não é pagar. No Sandbox, pagar precisa de um pagador com carteira Banzami.', en: 'The payer has not paid yet. Coming back to your page is not paying. In the Sandbox, paying needs a payer with a Banzami wallet.' },
+    check: { pt: 'getPaymentSession no servidor. Só PAID confirma.', en: 'getPaymentSession on your server. Only PAID confirms.' },
+    console: { pt: 'Transações: o pagamento aparece quando acontece.', en: 'Transactions: the payment appears when it happens.' },
+    retry: { pt: 'Não há nada a repetir: espere pelo webhook ou volte a ler a sessão.', en: 'Nothing to retry: wait for the webhook or read the session again.' },
+    codes: [],
+    guide: 'testing',
+  },
+  {
+    id: 'symptom-webhook-missing',
+    symptom: { pt: 'O webhook não chega', en: 'The webhook does not arrive' },
+    causes: { pt: 'O endpoint não é HTTPS público, responde fora de 2xx ou demasiado devagar, não subscreve esse evento, ou estava desativado quando o evento foi emitido.', en: 'The endpoint is not public HTTPS, answers outside 2xx or too slowly, does not subscribe to that event, or was disabled when the event was emitted.' },
+    check: { pt: 'listWebhookEvents: o evento existe? listWebhookDeliveries(evento): o código que o seu servidor devolveu.', en: 'listWebhookEvents: does the event exist? listWebhookDeliveries(event): the status your server returned.' },
+    console: { pt: 'Webhooks: o evento, as entregas, e o código de resposta de cada tentativa.', en: 'Webhooks: the event, its deliveries, and each attempt’s response status.' },
+    retry: { pt: 'O Banzami tenta até 5 vezes. Depois de corrigir, reentregue as que falharam. Um evento emitido com o endpoint desativado nunca lhe é entregue.', en: 'Banzami tries up to 5 times. After fixing, replay the failed ones. An event emitted while the endpoint was disabled is never delivered to it.' },
+    codes: ['DELIVERY_ALREADY_SUCCEEDED'],
+    guide: 'webhooks',
+  },
+  {
+    id: 'symptom-signature',
+    symptom: { pt: 'A assinatura não bate certo', en: 'The signature does not verify' },
+    causes: { pt: 'O corpo foi lido como JSON e reserializado antes de verificar, ou o segredo é o anterior a uma rotação.', en: 'The body was parsed and re-serialised before verifying, or the secret is the one from before a rotation.' },
+    check: { pt: 'Verifique sobre o corpo em bruto (req.text()) com o segredo atual do endpoint.', en: 'Verify over the raw body (req.text()) with the endpoint’s current secret.' },
+    console: { pt: 'Webhooks: a data da última rotação do segredo.', en: 'Webhooks: when the secret was last rotated.' },
+    retry: { pt: 'Responda 400; o Banzami volta a tentar. Corrija e, se preciso, reentregue.', en: 'Answer 400; Banzami tries again. Fix it and replay if needed.' },
+    codes: [],
+    guide: 'webhooks',
+  },
+  {
+    id: 'symptom-duplicate',
+    symptom: { pt: 'O mesmo evento chega duas vezes', en: 'The same event arrives twice' },
+    causes: { pt: 'É o comportamento esperado: a entrega é at-least-once.', en: 'This is expected: delivery is at-least-once.' },
+    check: { pt: 'Que deduplica pelo id do envelope antes de qualquer efeito de negócio.', en: 'That you deduplicate by the envelope id before any business effect.' },
+    console: { pt: 'Webhooks: as tentativas da entrega.', en: 'Webhooks: the delivery’s attempts.' },
+    retry: { pt: 'Não se aplica. Responda 2xx à repetição e não faça nada.', en: 'Not applicable. Answer 2xx to the repeat and do nothing.' },
+    codes: [],
+    guide: 'webhooks',
+  },
+  {
+    id: 'symptom-refund',
+    symptom: { pt: 'Um reembolso é recusado', en: 'A refund is refused' },
+    causes: { pt: 'O montante excede o que resta, a conta que recebeu já não tem saldo, ou o pagamento não é reembolsável.', en: 'The amount exceeds what is left, the receiving account no longer has the balance, or the payment is not refundable.' },
+    check: { pt: 'O code, e listRefunds({ sourceId }) para ver o que já foi devolvido.', en: 'The code, and listRefunds({ sourceId }) to see what was already returned.' },
+    console: { pt: 'Transações: o pagamento e os reembolsos sobre ele; Saldos: a conta que recebeu.', en: 'Transactions: the payment and its refunds; Balances: the receiving account.' },
+    retry: { pt: 'Nada foi devolvido. Corrija e repita com uma idempotency_key nova.', en: 'Nothing was returned. Fix it and retry with a new idempotency_key.' },
+    codes: ['REFUND_EXCEEDS_CAPTURED', 'REFUND_NOT_FUNDABLE', 'INVALID_PAYMENT_STATUS', 'IDEMPOTENCY_KEY_CONFLICT'],
+    guide: 'refunds',
+  },
+  {
+    id: 'symptom-receipt',
+    symptom: { pt: 'O comprovativo não se verifica', en: 'The receipt does not verify' },
+    causes: { pt: '404: a referência não existe ou foi alterada. 503: a verificação está indisponível. Ou usou a referência curta da app, que não é uma prova.', en: '404: the reference does not exist or was altered. 503: verification is unavailable. Or you used the app’s short reference, which is not a proof.' },
+    check: { pt: 'Copie a referência BZM-… sem a reescrever — não há normalização.', en: 'Copy the BZM-… reference without retyping it — there is no normalisation.' },
+    console: { pt: 'Transações: o pagamento a que o comprovativo pertence.', en: 'Transactions: the payment the receipt belongs to.' },
+    retry: { pt: '503: sim, mais tarde. 404: não — e não conclua que é falso sem confirmar a referência.', en: '503: yes, later. 404: no — and do not conclude it is forged without checking the reference.' },
+    codes: [],
+    guide: 'receipts',
+  },
+  {
+    id: 'symptom-settlement',
+    symptom: { pt: 'Uma liquidação é recusada', en: 'A settlement is refused' },
+    causes: { pt: 'Sem perfil de preço, sem destino de taxa quando há taxa, conta vazia, beneficiário sem carteira, ou a conta PRIMARY como origem.', en: 'No pricing profile, no fee destination when there is a fee, an empty account, a beneficiary without a wallet, or the PRIMARY account as source.' },
+    check: { pt: 'GET /v1/financial-setup — settlement.ready e settlement.blockers dizem o que falta antes de pedir.', en: 'GET /v1/financial-setup — settlement.ready and settlement.blockers say what is missing before you ask.' },
+    console: { pt: 'Configuração financeira: a prontidão para liquidar; Saldos: o saldo da conta.', en: 'Financial setup: settlement readiness; Balances: the account balance.' },
+    retry: { pt: 'Um 4xx não liquidou nada: corrija e use uma chave nova. SETTLEMENT_NOT_COMPLETED e 5xx: repita com a MESMA chave.', en: 'A 4xx settled nothing: fix it and use a new key. SETTLEMENT_NOT_COMPLETED and 5xx: retry with the SAME key.' },
+    codes: ['PRICING_NOT_CONFIGURED', 'FEE_DESTINATION_REQUIRED', 'NOTHING_TO_SETTLE', 'BENEFICIARY_NOT_FOUND', 'SOURCE_NOT_SEGREGATED', 'SETTLEMENT_NOT_COMPLETED'],
+    guide: 'settlements',
+  },
+  {
+    id: 'symptom-5xx',
+    symptom: { pt: 'Um 5xx ou um tempo-limite numa escrita que move dinheiro', en: 'A 5xx or a timeout on a write that moves money' },
+    causes: { pt: 'Falha temporária. Não sabe se o efeito aconteceu.', en: 'A temporary failure. You do not know whether the effect happened.' },
+    check: { pt: 'Não crie uma chave nova: repita com a mesma chave de idempotência e o mesmo corpo — o Banzami devolve o resultado original ou executa uma única vez.', en: 'Do not mint a new key: retry with the same idempotency key and body — Banzami returns the original result or executes once.' },
+    console: { pt: 'Registos: o pedido; Transações: se o movimento existe.', en: 'Logs: the request; Transactions: whether the movement exists.' },
+    retry: { pt: 'Sim, com backoff e a MESMA chave.', en: 'Yes, with backoff and the SAME key.' },
+    codes: ['UPSTREAM_ERROR', 'SERVICE_UNAVAILABLE', 'INTERNAL_ERROR'],
+    guide: 'reference',
+  },
+];

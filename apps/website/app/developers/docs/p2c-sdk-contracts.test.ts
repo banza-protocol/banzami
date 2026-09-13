@@ -29,33 +29,33 @@ const TS_EX = read(`${PUB}/examples/sdk/typescript-payment-session.example.ts`);
 // integration path over one that works.
 describe('P2C — SDK publication sections (PT/EN)', () => {
   it('PT names the published packages and keeps the contract section', () => {
-    expect(PT).toContain('Publicação dos SDKs');
+    expect(PT).toContain('Versão atual');
     expect(PT).toContain('npm install @banzami/sdk');
     expect(PT).toContain('dart pub add banzami_client');
-    expect(PT).toContain('Contrato esperado do SDK');
+    expect(PT).toContain('O que o SDK trata por si');
     // The callout says which examples are real instructions and which are not,
     // instead of disclaiming all of them.
-    expect(PT).toContain('Os exemplos desta documentação são em TypeScript e são instruções reais');
-    expect(PT).toContain('ainda não há pacote em registo público para instalar');
+    expect(PT).toContain('Os exemplos TypeScript desta documentação');
+    expect(PT).toContain('são compilados contra o pacote publicado');
   });
   it('EN names the published packages and keeps the contract section', () => {
-    expect(EN).toContain('SDK publication');
+    expect(EN).toContain('Current version');
     expect(EN).toContain('npm install @banzami/sdk');
     expect(EN).toContain('dart pub add banzami_client');
-    expect(EN).toContain('Expected SDK contract');
-    expect(EN).toContain('The examples in this documentation are TypeScript and they are real');
-    expect(EN).toContain('no install command for them');
+    expect(EN).toContain('What the SDK handles for you');
+    expect(EN).toContain('The TypeScript examples in these docs');
+    expect(EN).toContain('no install command for packages no registry offers');
   });
   it('the SDK family table distinguishes published from source-only, and forbids the blanket warning', () => {
     for (const [src, published, sourceOnly, banned] of [
-      [PT, ['publicado'], ['não publicado', 'consumir por código-fonte'],
+      [PT, ['Publicado'], ['Não publicado', 'Código-fonte'],
         ['não instale de registos públicos ainda', 'acesso de pré-visualização aprovado']],
-      [EN, ['published'], ['not published', 'consume from source'],
+      [EN, ['Published'], ['Not published', 'Source code'],
         ['do not install from public registries yet', 'use only through approved preview access']],
     ] as [string, string[], string[], string[]][]) {
       for (const v of [...published, ...sourceOnly]) expect(src.includes(v), `missing table value: ${v}`).toBe(true);
       for (const v of banned) expect(src.includes(v), `stale table value must be gone: ${v}`).toBe(false);
-      for (const fam of ['JavaScript/TypeScript', 'Python', 'PHP']) expect(src).toContain(fam);
+      for (const fam of ['JavaScript / TypeScript', 'Python', 'PHP']) expect(src).toContain(fam);
     }
   });
 });
@@ -145,8 +145,8 @@ describe('P2C — published SDK example', () => {
 
 describe('P2C — previous honesty preserved', () => {
   it('HTTP/OpenAPI remains secondary; direct HTTP never official/recommended', () => {
-    expect(PT).toContain('camada de referência técnica do protocolo');
-    expect(EN).toContain('technical protocol reference layer');
+    expect(PT).toContain('a API HTTP serve para diagnóstico');
+    expect(EN).toContain('the HTTP API is there for diagnostics');
     for (const bad of ['official http integration path', 'caminho oficial é http', 'official public documentation path', 'recommended direct http']) {
       expect((PT + EN).toLowerCase().includes(bad)).toBe(false);
     }

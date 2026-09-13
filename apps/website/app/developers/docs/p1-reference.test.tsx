@@ -21,14 +21,14 @@ import PtReferencePage from './reference/page';
 import EnTestingPage from './en/testing/page';
 import EnReferencePage from './en/reference/page';
 import EnSdkPage from './en/sdk/page';
-import EnGuidesPage from './en/guides/page';
-import EnGetStartedPage from './en/get-started/page';
+import EnWebhooksPage from './en/webhooks/page';
+import EnConceptsPage from './en/concepts/page';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: PT/EN corpora = area content + landing pages.
-const PT = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/page.tsx');
-const EN = read('app/developers/docs/content-en.tsx') + read('app/developers/docs/en/page.tsx');
+const PT = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/HomePage.tsx');
+const EN = read('app/developers/docs/content-en.tsx') + read('app/developers/docs/HomePage.tsx');
 const REF = read('app/developers/docs/reference.tsx');
 
 beforeEach(() => {
@@ -65,23 +65,23 @@ describe('P1 — key sections exist in BOTH PT and EN', () => {
     expect(screen.getAllByText('Testar no Sandbox').length).toBeGreaterThan(0);
     cleanup();
     render(<PtReferencePage />);
-    expect(screen.getAllByText('Referência por recurso').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Autenticação e gestão de chaves/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Endpoints').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Autenticação').length).toBeGreaterThan(0);
   });
   it('EN renders the P1 sections (on their new area routes)', () => {
     render(<EnTestingPage />);
     expect(screen.getAllByText('Sandbox testing').length).toBeGreaterThan(0);
     cleanup();
     render(<EnReferencePage />);
-    expect(screen.getAllByText('Resource reference').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Credentials and capabilities').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Authentication and key management/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Endpoints').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Capabilities by credential').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Authentication').length).toBeGreaterThan(0);
     cleanup();
-    render(<EnGuidesPage />);
-    expect(screen.getAllByText('Redelivery contract').length).toBeGreaterThan(0);
+    render(<EnWebhooksPage />);
+    expect(screen.getAllByText('Retries and replay').length).toBeGreaterThan(0);
     cleanup();
-    render(<EnGetStartedPage />);
-    expect(screen.getAllByText('Current status of this documentation').length).toBeGreaterThan(0);
+    render(<EnConceptsPage />);
+    expect(screen.getAllByText('Sandbox and Live').length).toBeGreaterThan(0);
   });
   it('the shared resource reference is bilingual and rendered by both pages', () => {
     expect(PT).toContain('<ResourceReference lang="pt"');
@@ -95,8 +95,9 @@ describe('P1 — key sections exist in BOTH PT and EN', () => {
       expect(src).toContain('"request_id"');
       expect(src).toContain('Idempotency-Key: idem_');
       expect(src).toContain('"type": "payment_session.paid"'); // implemented envelope example
-      expect(src).toContain('[Breaking]');
     }
+    expect(PT).toContain('Alterações incompatíveis são marcadas como tal');
+    expect(EN).toContain('Breaking changes are marked as such');
   });
   it('curl-first examples exist in both languages', () => {
     expect(PT).toContain('curl https://sandbox-api.banzami.com/v1/me');
@@ -136,7 +137,7 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
     for (const cmd of PUBLISHED_INSTALLS) {
       expect(EN.includes(cmd), `EN must document the real install "${cmd}"`).toBe(true);
     }
-    expect(EN).toContain('not published yet');
+    expect(EN).toContain('are not published');
   });
   it('EN names the refunds/transfers project scopes and matches the manifest', () => {
     expect(EN).toContain('refunds:write');
@@ -151,15 +152,15 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
   // What must never appear is a claim that PRODUCTION is available, which is a
   // different sentence and is checked immediately below.
   it('EN describes webhook delivery as real, without claiming Production', () => {
-    expect(EN).toContain('Outbound delivery is real and verified end to end');
+    expect(EN).toContain('Webhook delivery is real, over the public internet.');
     expect(EN).not.toContain('We do not claim webhook delivery as public Production');
-    expect(EN).toMatch(/no real money ever moves/i);
+    expect(EN).toMatch(/Nothing done in the Sandbox moves real money/i);
   });
   it('no production/live/real-money availability claims in EN', () => {
     for (const bad of ['Production is available', 'live payments are available', 'real money is enabled', 'production ready', 'BNA approved']) {
       expect(EN.toLowerCase().includes(bad.toLowerCase()), `EN must not claim "${bad}"`).toBe(false);
     }
-    expect(EN).toContain('Production and real-money rails are not available');
+    expect(EN).toContain('No real-money rails are active');
   });
   it('placeholder keys only in EN and the shared reference', () => {
     for (const src of [EN, REF]) {

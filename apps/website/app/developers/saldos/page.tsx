@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { formatMoneyDisplay as money } from '@/lib/money';
-import { Card, Pill } from '@/components/developers/portal/ui';
+import { Card, DocsLink, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { FinancialReadinessPanel, FinancialSetupPointer, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { WalletAccountForm } from '@/components/developers/portal/WalletAccountForm';
@@ -211,6 +211,10 @@ export default function SaldosPage() {
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           As contas do destinatário financeiro a que este projeto está ligado, e o que cada uma
           tem. Em Sandbox, nenhum destes valores é dinheiro real.
+        </p>
+        <p style={{ margin: '-14px 0 20px' }}>
+          <DocsLink href="/docs/transfers#contas-segregadas">Contas segregadas</DocsLink>{' · '}
+          <DocsLink href="/docs/settlements">Liquidações</DocsLink>
         </p>
         <Balances />
       </div>

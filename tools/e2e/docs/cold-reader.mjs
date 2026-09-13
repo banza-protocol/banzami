@@ -30,9 +30,10 @@ const BASE = process.env.BZ_DOCS ?? 'https://developers.banzami.com';
 
 /** Every canonical documentation route, in both languages. */
 const ROUTES = [
-  '/docs', '/docs/get-started', '/docs/console', '/docs/guides', '/docs/reference',
-  '/docs/sdk', '/docs/testing', '/docs/trust', '/docs/doa', '/docs/glossary',
-  '/docs/changelog', '/docs/artifacts',
+  '/docs', '/docs/get-started', '/docs/concepts', '/docs/payments', '/docs/webhooks', '/docs/refunds',
+  '/docs/settlements', '/docs/receipts', '/docs/transfers', '/docs/doa', '/docs/console', '/docs/reference',
+  '/docs/events', '/docs/errors', '/docs/sdk', '/docs/artifacts', '/docs/testing', '/docs/going-live',
+  '/docs/trust', '/docs/glossary', '/docs/troubleshooting', '/docs/support', '/docs/changelog',
 ];
 const EN = ROUTES.map((r) => r.replace('/docs', '/docs/en'));
 

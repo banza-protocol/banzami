@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
-import { Card } from '@/components/developers/portal/ui';
+import { Card, DocsLink } from '@/components/developers/portal/ui';
 
 // Go Live — the truthful state of an environment that does not exist yet.
 //
@@ -35,6 +35,9 @@ export default function GoLivePage() {
           O Banzami está em Sandbox. Os trilhos financeiros de produção não estão activados para
           nenhuma conta, não há candidaturas em curso, e nada nesta consola — nenhum botão, nenhuma
           definição, nenhuma chave — os pode activar.
+        </p>
+        <p style={{ margin: '-16px 0 22px' }}>
+          <DocsLink href="/docs/going-live">Preparar a integração para Live</DocsLink>
         </p>
 
         <Card style={{ padding: 24, marginBottom: 16 }}>

@@ -1,47 +1,53 @@
 'use client';
 
-// EN documentation content, split by area (P3A information architecture).
-// Every block below was MOVED VERBATIM from the previous single EN page —
-// same components, same styles, same claim-safety wording. Cross-area anchors
-// were remapped to their new routes. See content-map.ts.
+// EN documentation content, one page function per documentation route. Written
+// as English technical documentation, not as a translation: the pages carry the
+// same facts, sections, examples and illustrations as the Portuguese ones
+// (tools/check-docs-pt-en-structure.mjs holds that), in native English.
 
-import { BADGE_LABELS_EN, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, NextSteps, P, PageLede, RED, Section, UL, mono } from './ui';
+import type { ReactNode } from 'react';
+import { BADGE_LABELS_EN, Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H3, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono } from './ui';
 import { ResourceReference } from './reference';
-import { ErrorCatalogue } from './ErrorCatalogue';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram, JourneyStripDiagram } from './diagrams';
+import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
+import { EventReference } from './EventReference';
+import { Troubleshooting } from './Troubleshooting';
+import { StageBar, StepCard, NextStepCards, RecipeCard, ChapterFacts, DoDont } from './dx';
+import { EVENT_NAMES } from './events';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import type { CopyFn } from './content-pt';
 
 // English concepts (translations of the canonical PT glossary — same 28 terms).
 const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
   { term: 'Sandbox', def: 'Test environment for validating Banzami integrations without moving real money.' },
-  { term: 'Production', def: 'Environment for real-money operations, once the platform is enabled. Currently in preparation.' },
-  { term: 'Ledger', def: 'Financial record keeping every debit and credit of a transaction, preserving balance integrity.' },
+  { term: 'Financial Live', def: 'The real-money environment. It is not available; the Sandbox is the only environment.' },
+  { term: 'Ledger', def: 'Banzami’s accounting record: every debit and credit of every transaction, from which balances derive.' },
   { term: 'Idempotency', def: 'Guarantee that repeating the same request never creates a second transfer, payment or financial effect.' },
   { term: 'Webhook', def: 'Notification Banzami sends directly to your application server when an event happens.' },
-  { term: 'banza-signature', def: 'BANZA-protocol signature header used by Banzami to prove a webhook is authentic and unmodified.', code: true },
-  { term: 'HMAC-SHA256', def: 'Signature method used to verify the origin and integrity of a received event.' },
-  { term: 'OTP', def: 'Temporary code confirming you control the email or contact used to sign in.' },
-  { term: 'Business account', def: 'Banzami account used by an organisation to run integrations, receive value and manage its activity.' },
-  { term: 'Settlement', def: 'Process by which confirmed value is calculated and handled under the operator’s rules.' },
+  { term: 'banza-signature', def: 'The header carrying each webhook delivery’s signature. Verifying it confirms the delivery comes from Banzami, unaltered.', code: true },
+  { term: 'HMAC-SHA256', def: 'The webhook signature algorithm, computed with the endpoint secret.' },
+  { term: 'OTP', def: 'The six-digit code, sent by email, that signs you in to the Console.' },
+  { term: 'Business account', def: 'The Banzami account of an organisation, used to receive payments and manage its activity.' },
+  { term: 'Settlement', def: 'Paying out an account balance to a beneficiary, with the fee set by Banzami’s pricing. It happens only when you request it.' },
   { term: '@banza', def: 'Public identifier of a Banzami account, used to receive transfers.', code: true },
-  { term: 'API key', def: 'Credential an application uses to authenticate against a Banzami integration.' },
-  { term: 'Publishable key', def: 'Identifier that may be used client-side when the flow allows it; never a substitute for a secret key.' },
-  { term: 'Secret key', def: 'Server-only credential. Never expose it in a browser, mobile app, repository, logs or screenshots.' },
-  { term: 'Replay', def: 'Re-delivery or repetition of an already-received request/event. Idempotency prevents duplicated effects.' },
+  { term: 'API key', def: 'The credential an application uses to authenticate to the Banzami API. It identifies a project.' },
+  { term: 'Publishable key', def: 'A bz_test_pk_ key that may be used client-side, read-only. It never replaces the secret key.' },
+  { term: 'Secret key', def: 'A bz_test_sk_ key, reserved for the server. Never put it in a browser, a mobile app or a repository.' },
+  { term: 'Replay', def: 'A new delivery of an event, or a repeat of a request. Idempotency prevents duplicate effects.' },
   { term: 'At-least-once', def: 'Delivery model where an event may arrive more than once; your server must handle it idempotently.', code: true },
-  { term: 'QR', def: 'Visual code that opens a Banzami payment journey or identifies an operation quickly.' },
-  { term: 'Payment session', def: 'Representation of a payment attempt tied to a reference from your application.' },
-  { term: 'Receipt', def: 'Record issued after a confirmed operation, with the data needed for lookup and verification.' },
+  { term: 'QR', def: 'The code that opens a session’s payment page when read with a camera or the Banzami app.' },
+  { term: 'Payment session', def: 'A payment request tied to a reference from your application, with a link and a QR code.' },
+  { term: 'Receipt', def: 'The document of a confirmed payment, with a publicly verifiable BZM-… reference.' },
   { term: 'Workspace', def: 'The group of people with access to a set of projects, with roles (Owner, Admin, Developer, Finance, Viewer).' },
   { term: 'Project', def: 'One integrated application: its keys, webhooks and logs. The Project ID does not change when its name does.' },
-  { term: 'Financial setup', def: 'The link between a project and the Business that receives its money. Without it, the project cannot be paid.' },
-  { term: 'Business', def: 'The legal entity, verified by Banzami, that owns the money a project receives.' },
-  { term: 'Wallet account', def: 'An account inside a Business wallet, to keep value apart — one per campaign, for example.' },
+  { term: 'Financial Setup', def: 'The connection between a project and the Business that receives its payments. Without it, the project cannot be paid.' },
+  { term: 'Business', def: 'The entity, verified by Banzami, that receives a project’s payments.' },
+  { term: 'Wallet account', def: 'An account inside a Business wallet, to keep funds apart — one per campaign, for example.' },
   { term: 'Payment link', def: 'An address on pay.banzami.com where the payer pays; with a fixed or an open amount.' },
   { term: 'Refund', def: 'Returning a confirmed payment, fully or partially, from the account that received it.' },
   { term: 'Transaction', def: 'A movement of value recorded in the ledger — a payment, a refund or a transfer.' },
-  { term: 'Minor units', def: 'How amounts travel in the API: integers, where 100 minor units are 1 Kz. Never decimals.' },
+  { term: 'Minor units', def: 'The format of amounts in the API: integers, where 100 minor units are 1 Kz. Never decimals.' },
+  { term: 'amount_minor', def: 'The API’s amount field, in minor units: 25000 is 250 Kz.', code: true },
 ];
 
 // -- Code samples (placeholders only, Sandbox-only) ------------------------------
@@ -56,8 +62,8 @@ const banzami = new BanzamiClient({ apiKey });
 const setup = await banzami.getFinancialSetup();
 
 // 1. Create a payment session.
-//    Do not name the destination account: with a Console key the recipient
-//    comes from the project's financial setup. Sending one is refused by the API.
+//    Do not name the payee: it comes from the project's Financial Setup, and the
+//    API refuses merchant_id or wallet_id. (walletAccountId picks one of the project’s accounts.)
 const session = await banzami.createPaymentSession({
   purpose: 'ORDER',
   referenceType: 'ORDER',
@@ -71,14 +77,14 @@ const session = await banzami.createPaymentSession({
 const link = banzami.paymentSessionInterface(session, 'PAYMENT_LINK');
 // link.value  ->  https://pay.banzami.com/pay/{slug}
 
-// 3. Know that it paid. The source of truth is Banzami, not the payer's browser:
+// 3. Confirm the payment. The source of truth is Banzami, not the payer's browser:
 //    confirm on your server, from the webhook or by reading the session.
 const now = await banzami.getPaymentSession(session.session_id);
 // now.status  ->  'PAID' once the payer has paid`;
 
 const SAMPLE_CURL_SESSION = `# Create a payment session in the Sandbox (placeholder values).
-# With a developer key you do NOT send wallet_account_id: the recipient comes
-# from the project's financial setup, and the API refuses a client-supplied recipient.
+# The payee comes from the project's Financial Setup: the request names no merchant
+# and no wallet. amount_minor 25000 = 250 Kz (100 minor units = 1 Kz).
 curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -121,11 +127,11 @@ const webhookSecret = process.env.BANZAMI_WEBHOOK_SECRET;
 if (!apiKey || !webhookSecret) throw new Error('API key or webhook secret is not set');
 const banzami = new BanzamiClient({ apiKey, webhookSecret });
 
-// In your webhook endpoint (server): the RAW body, and the header.
+// In your webhook endpoint (server): the raw body and the header.
 const raw = await req.text();
 const sig = req.headers.get('banza-signature') ?? '';
-// constructEvent verifies the signature and ONLY THEN returns the event.
-// If the signature does not match, it throws — and nothing was read.
+// constructEvent verifies the signature and only then returns the event.
+// With an invalid signature, it throws and nothing is read.
 const event = banzami.webhooks.constructEvent(raw, sig);
 
 switch (event.type) {
@@ -145,18 +151,18 @@ const ep = await banzami.createWebhookEndpoint({
   url:    'https://www.example.com/api/webhooks/banzami',
   events: ['payment_session.paid'],
 });
-storeSecret(ep.secret);   // returned ONCE — no later read brings it back
+storeSecret(ep.secret);   // returned once — no later read returns it
 
 // See what happened
 const { data: endpoints } = await banzami.listWebhookEndpoints();
 const { data: events }    = await banzami.listWebhookEvents(20);
 const { data: deliveries } = await banzami.listWebhookDeliveries(events[0].id);
 
-// Rotate the secret. Update the receiver FIRST: the swap is immediate, not overlapping.
+// Rotate the secret. Prepare the receiver first: the switch is immediate.
 const rotated = await banzami.rotateWebhookEndpointSecret(ep.id);
 storeSecret(rotated.secret);`;
 
-const SAMPLE_CURL_ME = `# Verify your test key (placeholder) against the Sandbox API
+const SAMPLE_CURL_ME = `# Check your test key (placeholder) against the Sandbox API
 curl https://sandbox-api.banzami.com/v1/me \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"
 
@@ -175,14 +181,14 @@ curl https://sandbox-api.banzami.com/v1/me \\
 const SAMPLE_KEYS = `bz_test_pk_XXXXXXXXXXXXXXXX   # publishable — may live client-side
 bz_test_sk_XXXXXXXXXXXXXXXX   # secret — server only, revealed exactly once`;
 
-const SAMPLE_ERROR = `# Canonical error envelope (Sandbox)
+const SAMPLE_ERROR = `# Error envelope
 {
   "code": "INVALID_AMOUNT",
   "message": "amount_minor must be a positive integer",
   "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
 }`;
 
-const SAMPLE_WEBHOOK_ENVELOPE = `# Event envelope delivered to your endpoint (implemented in Sandbox)
+const SAMPLE_WEBHOOK_ENVELOPE = `# Event envelope delivered to your endpoint
 {
   "id": "evt_XXXXXXXX",
   "type": "payment_session.paid",
@@ -190,1037 +196,1182 @@ const SAMPLE_WEBHOOK_ENVELOPE = `# Event envelope delivered to your endpoint (im
   "data": { /* event object */ }
 }`;
 
-const SAMPLE_IDEM_RETRY = `# Safe retry: the SAME Idempotency-Key replays the original response
+const SAMPLE_IDEM_RETRY = `# Safe retry: the same Idempotency-Key replays the original response
 curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: idem_order_123" \\
   -d '{ ...same body... }'
-# -> 201 with the SAME response; no duplicate session is created.
+# -> 201 with the same response; no duplicate session is created.
 
-# What NOT to do: change the Idempotency-Key when retrying after a timeout —
+# Avoid: changing the Idempotency-Key when retrying after a timeout —
 # that can create a second effect. Always reuse the original key.`;
 
 // Verified event catalogue (same closed set as the PT page and its tests).
 // Every event the operator actually emits, and only those — see the PT note.
-const EVENTS: string[] = [
-  'payment_session.created',
-  'payment_session.paid',
-  'payment_link.paid',
-  'refund.completed',
-  'application_settlement.completed',
-  'application_settlement.cancelled',
-  'application_settlement.failed',
-];
+const EVENTS: string[] = EVENT_NAMES;
 
-const SDKS: { name: string; lang: string; state: string }[] = [
-  { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Published — npm, server SDK, recommended path' },
-  { name: 'banzami-python', lang: 'Python', state: 'Complete (source code)' },
-  { name: 'banzami/sdk-php', lang: 'PHP (+ Laravel)', state: 'Complete (source code)' },
-  { name: 'banzami_client', lang: 'Dart / Flutter (client)', state: 'Published — public client SDK, publishable key' },
-  { name: '@banzami/checkout', lang: 'JavaScript (browser)', state: 'Complete (source code)' },
-  { name: 'banzami-go', lang: 'Go', state: 'Partial — webhooks + payment links' },
-];
+const SDKS: { name: string; lang: string; state: string; consume: string }[] = [
+  { name: '@banzami/sdk', lang: 'TypeScript / Node.js', state: 'Published — server', consume: 'npm install @banzami/sdk' },
+  { name: 'banzami_client', lang: 'Dart / Flutter', state: 'Published — client, read-only', consume: 'dart pub add banzami_client' },
+  { name: 'banzami-python', lang: 'Python', state: 'Not published', consume: '—' },
+  { name: 'banzami/sdk-php', lang: 'PHP', state: 'Not published', consume: '—' },
+]
 
 
 
 const enCopy = { toastText: 'Copied to clipboard', buttonText: 'Copy' };
 
+// -- Samples for the task pages ------------------------------------------------
+const SAMPLE_READY = `import { BanzamiClient } from '@banzami/sdk';
+const apiKey = process.env.BANZAMI_API_KEY;
+if (!apiKey) throw new Error('BANZAMI_API_KEY is not set');
+const banzami = new BanzamiClient({ apiKey });
+
+// Before showing "Pay": can this project receive payments?
+const setup = await banzami.getFinancialSetup();
+const canReceive = setup.financial_setup.state !== 'UNCONFIGURED' && setup.wallet.ready;
+// state: 'UNCONFIGURED' | 'READY' | 'SEALED'
+
+// Before settling: what still blocks it?
+if (!setup.settlement.ready) console.log(setup.settlement.blockers);`;
+
+const SAMPLE_LINK_CURL = `# Create a reusable payment link (placeholder values).
+# amount_minor 25000 = 250 Kz. No merchant_id, no wallet_id: the payee comes from the project.
+curl -X POST https://sandbox-api.banzami.com/v1/payment-links \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: idem_link_001" \\
+  -d '{ "amount_minor": 25000, "currency": "AOA", "description": "Order #123" }'
+
+# Response (201) — the payer opens https://pay.banzami.com/pay/slug_example
+{ "slug": "slug_example", "amount_minor": 25000, "currency": "AOA", "status": "ACTIVE" }`;
+
+const SAMPLE_REFUND = `import { BanzamiClient } from '@banzami/sdk';
+const apiKey = process.env.BANZAMI_API_KEY;
+if (!apiKey) throw new Error('BANZAMI_API_KEY is not set');
+const banzami = new BanzamiClient({ apiKey });
+
+// The payment to return: the refund_source from payment_session.paid,
+// or from the session itself once it is paid.
+const session = await banzami.getPaymentSession('psess_example');
+if (!session.refund_source) throw new Error('the session has not been paid');
+
+// Create the idempotency key BEFORE the request and store it:
+// it is what prevents a second refund if the response is lost.
+const key = 'idem_refund_order_123';
+
+const refund = await banzami.createRefund({
+  source_type: session.refund_source.source_type,  // 'WALLET_PAYMENT'
+  source_id:   session.refund_source.source_id,
+  amount_minor: 5000,                               // 50 Kz — partial
+  currency:    'AOA',
+  idempotency_key: key,
+  reason:      'Item out of stock',
+});
+// refund.status -> 'SUCCEEDED'`;
+
+const SAMPLE_TRANSFER = `import { BanzamiClient } from '@banzami/sdk';
+const apiKey = process.env.BANZAMI_API_KEY;
+if (!apiKey) throw new Error('BANZAMI_API_KEY is not set');
+const banzami = new BanzamiClient({ apiKey });
+
+// Two accounts of the SAME Business — campaign A and campaign B, for example.
+const t = await banzami.createTransfer({
+  sourceWalletAccountId:      'wacc_campaign_a',
+  destinationWalletAccountId: 'wacc_campaign_b',
+  amountMinor: 50000,            // 500 Kz
+  currency: 'AOA',
+  idempotencyKey: 'idem_transfer_123',
+});
+// t.status -> 'COMPLETED' — the Business total is unchanged; only its distribution moved.`;
+
+const SAMPLE_SETTLE = `import { BanzamiClient } from '@banzami/sdk';
+const apiKey = process.env.BANZAMI_API_KEY;
+if (!apiKey) throw new Error('BANZAMI_API_KEY is not set');
+const banzami = new BanzamiClient({ apiKey });
+
+// 1. Ready to settle? Each blocker is the refusal the settlement would return.
+const setup = await banzami.getFinancialSetup();
+if (!setup.settlement.ready) throw new Error(setup.settlement.blockers.join(', '));
+
+// 2. Settle the whole campaign account. No amount and no fee in the request.
+const settlement = await banzami.createBusinessApplicationSettlement({
+  sourceAccountId:         'wacc_campaign_123',
+  beneficiaryBanzaName:    '@beneficiary_example',
+  feeDestinationBanzaName: '@my-business',        // when your pricing charges a fee
+  referenceId:             'campaign_123',
+  idempotencyKey:          'idem_settlement_campaign_123',
+});
+// settlement.gross_amount_minor     100000   (1,000 Kz, the account balance)
+// settlement.application_fee_minor    2000   (200 bps = 2%)
+// settlement.net_amount_minor        98000   (to the beneficiary)`;
+
+const SAMPLE_WEBHOOK_WRONG = `// (banzami was created with { apiKey, webhookSecret })
+
+// WRONG — parses the body as JSON and verifies afterwards.
+// The bytes reaching verification are no longer the bytes Banzami signed,
+// and your code already used data nobody authenticated.
+const parsed = await req.json();                      // ✗ parse before verify
+banzami.webhooks.constructEvent(JSON.stringify(parsed), signature); // ✗ fails
+
+// RIGHT — the raw body, verified, and only then the event.
+const raw = await req.text();
+const verified = banzami.webhooks.constructEvent(raw, signature);`;
+
+
+const QS_STAGES = [
+  { title: 'Account and project', steps: [1, 3] as [number, number], note: 'A few minutes, with an email address.' },
+  { title: 'Financial Setup', steps: [4, 4] as [number, number], note: 'Reviewed by Banzami before it is ready.' },
+  { title: 'Key and SDK', steps: [5, 7] as [number, number], note: 'A few minutes, up to the first 200 response.' },
+  { title: 'First payment', steps: [8, 12] as [number, number], note: 'Session, payment, confirmation and webhook.' },
+];
+
 export function EnGetStarted({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
-<Section id="introduction">
-              <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>Introduction</h1>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/sdk', text: 'SDKs' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/reference', text: 'API Reference' }]} />
-              <P style={{ fontSize: 15.5, color: MUT, fontWeight: 600 }}>
-                Start integrating Banzami in minutes. Every call uses the <strong>Sandbox</strong> environment by default.
-                Build and validate your integration in the Sandbox — <strong>Production</strong> will be activated once the
-                platform is enabled for real payments.
-              </P>
-
-              <div id="current-status" style={{ scrollMarginTop: 72, margin: '0 0 18px', borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '16px 18px', maxWidth: 660 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>Current status of this documentation</span>
-                  <Badge tone="prep">Sandbox</Badge>
-                </div>
-                <UL>
-                  <LI>This documents the <strong>Sandbox</strong>, which is the only environment that exists. The SDKs install from public registries and the Console is operational; what is missing is real money, not capability.</LI>
-                  <LI><strong>Money in the Sandbox is fictitious.</strong> Balances, payments and settlements are real as mechanics and behave the way they will in production — but no kwanza leaves or enters a bank account, and nothing that happens here has any financial effect in the world. That is why you can test freely.</LI>
-                  <LI><strong>Production and real-money rails are not available.</strong> Public pay/checkout, live rails and external providers are not available.</LI>
-                  <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. The Overview, Balances, Transactions, Webhooks and Logs derive from the project&rsquo;s own data — no Console page renders illustrative data, and nothing is shown that the platform cannot answer for.</LI>
-                </UL>
-              </div>
-
-              <CapabilityCards lang="en" />
-
-              {/* h2, not h3: it follows the page h1 directly, and a skipped
-                  heading level is a screen reader announcing a subsection of
-                  something that is not there. */}
-              <H2>Three layers</H2>
-              <P>When integrating Banzami, always tell three layers apart:</P>
-              <UL>
-                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly. The Overview, Balances, Transactions, Webhooks and Logs show your project&rsquo;s real data: Balances the accounts of the payee the project is bound to, Transactions the payments, refunds and transfers that happened, and Logs every request made with one of the project&rsquo;s keys. There is no customer directory and no status page — neither exists as a product.</LI>
-                <LI><strong>Banzami integration layer</strong> — what your application uses for payments: payment links, sessions, QR, confirmation, receipts, signed webhooks and operator-controlled settlement.</LI>
-                <LI><strong>Banzami Operator / Core</strong> — Banzami&rsquo;s financial layer: it executes the payment, keeps balances and integrity, and calculates and controls settlement. Your application never creates or manages its own financial ledger.</LI>
-              </UL>
-
-              <div id="doa" style={{ scrollMarginTop: 72, margin: '24px 0', borderRadius: 18, border: '1px solid #F2E2E0', background: 'linear-gradient(135deg,#fff,#FFF4F3)', padding: 22, boxShadow: '0 18px 44px -38px rgba(181,16,31,.4)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '.04em', color: RED }}>DOA · REFERENCE INTEGRATION</span>
-                  <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge>
-                </div>
-                <P style={{ marginBottom: 8 }}>
-                  <strong>DOA is the reference implementation of the Banzami integration.</strong> It shows how an application
-                  runs its own business logic — campaigns and donations — while delegating everything financial to Banzami.
-                </P>
-                <UL>
-                  <LI>It creates a Banzami payment journey and shows the donor a link and a QR.</LI>
-                  <LI>It follows the confirmation and verifies signed webhooks on its server.</LI>
-                  <LI>It issues receipts and requests settlement within the operator&rsquo;s model.</LI>
-                  <LI>It creates no ledger, financial balance or payment infrastructure of its own.</LI>
-                </UL>
-                <P style={{ margin: 0 }}>
-                  The DOA integration is currently operational in the Sandbox environment and is used to continuously validate
-                  the Banzami integration model.
-                </P>
-                <div style={{ marginTop: 14 }}>
-                  <JourneyStripDiagram
-                    title="An integration's journey, from the user to settlement"
-                    steps={['User', 'DOA app', 'Banzami', 'Link / QR / Session', 'Confirmation', 'Webhook / Receipt', 'Settlement']}
-                  />
-                </div>
-              </div>
-
-              <div id="production" style={{ scrollMarginTop: 72, marginTop: 8, borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '18px 20px', maxWidth: 660 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <span style={{ fontSize: 15, fontWeight: 900, color: INK }}>Production</span>
-                  <Badge tone="prep">{BADGE_LABELS_EN.prep}</Badge>
-                </div>
-                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>
-                  The Sandbox lets you validate your integration without moving real money. Activation for real payments
-                  will be made available after the required platform-enablement steps are complete.
-                </p>
-              </div>
-            </Section>
 <Section id="quickstart">
-              <H2>Quickstart</H2>
+              <h1 style={H1_STYLE}>Quickstart</h1>
+              <PageLede>Create your first payment in the Sandbox and confirm it on your server. Twelve steps, in four stages.</PageLede>
               <Callout>
-                <strong>Recommended path: the TypeScript SDK.</strong> Install it with{' '}
-                <Code>npm install @banzami/sdk</Code>. curl is for validating the protocol,
-                diagnosing Sandbox behaviour or auditing low-level calls — it is not the
-                implementation path.
+                <strong>Prerequisites:</strong> an email address, Node.js 18 or later on your server, and the details of the entity that will receive payments.
               </Callout>
-              <P>From first sign-in to your first confirmed payment, in the Sandbox — twelve steps:</P>
-              <ol style={{ margin: '0 0 16px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <LI>Sign in to the Console at <Code>developers.banzami.com/login</Code> with email + code (OTP).</LI>
-                <LI>Create or pick a <strong>workspace</strong>.</LI>
-                <LI>Create a <strong>Sandbox project</strong>.</LI>
-                <LI>Complete the project&rsquo;s <a href="#financial-setup" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>financial setup</a> — apply for a Business, or connect one that already exists with its owner&rsquo;s consent code. <strong>Without this step the project cannot receive payments.</strong></LI>
-                <LI>Create a <strong>secret test key</strong> and save it when it appears — it is shown exactly once.</LI>
-                <LI>Install the SDK: <Code>npm install @banzami/sdk</Code>.</LI>
-                <LI>Make the first call: <Code>GET /v1/me</Code> confirms the environment, project, scopes and key status.</LI>
-                <LI>Create a <strong>payment session</strong>.</LI>
-                <LI>Open the link the session returns — it is the payer&rsquo;s page on <Code>pay.banzami.com</Code>.</LI>
-                <LI>Confirm the outcome: <Code>getPaymentSession</Code> reads <Code>PAID</Code> once the payer pays.</LI>
-                <LI>Receive the <Code>payment_session.paid</Code> webhook and <strong>verify its signature before you read it</strong>.</LI>
-                <LI>See the payment in the Console, under <strong>Transactions</strong>.</LI>
-              </ol>
-              <Callout>
-                Steps 1–3 and 5–7 take minutes. Step 4 does not: a new Business is{' '}
-                <strong>reviewed by Banzami</strong> before it can receive, and connecting an existing
-                Business needs its owner&rsquo;s code. That is why financial setup comes before the first
-                payment — not after it fails.
-              </Callout>
-              <CodeBlock label="curl · first call (GET /v1/me)" raw={SAMPLE_CURL_ME} onCopy={copy} {...enCopy} />
-              <Callout>
-                Every example uses <strong>placeholder keys and identifiers</strong> and is <strong>Sandbox-only</strong> —
-                no real money ever moves. Replace the values with your own Sandbox project’s.
-              </Callout>
-              <CodeBlock label="test keys" raw={SAMPLE_KEYS} onCopy={copy} {...enCopy} />
-              <UL>
-                <LI><Code>bz_test_pk_</Code> — publishable key (may live client-side).</LI>
-                <LI><Code>bz_test_sk_</Code> — secret key (server only).</LI>
-                <LI>The secret key appears <strong>exactly once</strong>; you can <strong>rotate</strong> or <strong>revoke</strong> keys at any time.</LI>
-              </UL>
-              <Callout>Never expose secret keys in a browser, mobile app, repository, logs, screenshots or analytics.</Callout>
-              <P>
-                Banzami is <strong>SDK-first</strong>. The TypeScript SDK is{' '}
-                <strong>published</strong> and is the recommended path — install it with{' '}
-                <Code>npm install @banzami/sdk</Code>. The curl examples are{' '}
-                <strong>reference/diagnostic</strong> material for the protocol, not the implementation path.
-                The Dart client SDK <Code>banzami_client</Code> is also published, on pub.dev. The Python, PHP
-                and Go SDKs are <strong>not yet published</strong> to PyPI, Packagist or a module proxy — see{' '}
-                <a href="/docs/en/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
-              </P>
+              <PathDiagram title="From sign-up to first payment" desc="Account, workspace, project, Financial Setup, API key, SDK and payment, in that order. Financial Setup is the step that depends on a review by Banzami." steps={['Account', 'Workspace', 'Project', 'Financial Setup', 'API key', 'SDK', 'Payment']} highlight={3} />
+              <StageBar lang="en" stages={QS_STAGES} anchor={(n) => 'step-' + n} />
 
-              <H3 id="financial-setup">Financial setup — before the first payment</H3>
-              <P>
-                A freshly created project can do everything except receive money. Keys, webhooks and API
-                calls work; creating a payment session answers <Code>403 PAYMENTS_UNAVAILABLE</Code>. What
-                is missing is <strong>who receives</strong>: money goes to a <strong>Business</strong>, a
-                verified entity, and financial setup is what connects the project to that Business.
-              </P>
-              <P>There are two paths, and the difference is who already exists:</P>
-              <UL>
-                <LI>
-                  <strong>A new Business.</strong> In the Console, under <strong>Financial setup</strong>,
-                  apply for the Business: entity, representative, documents. Banzami reviews the application
-                  — it is a human decision and it is not instant, in the Sandbox too. Once approved, the
-                  project is connected and can receive.
-                </LI>
-                <LI>
-                  <strong>A Business that already exists.</strong> If the entity is already verified on
-                  Banzami, its owner generates a <strong>consent code</strong> in the Banzami Business app.
-                  Paste it into the Console and the project connects to that Business without repeating the
-                  verification. The code is single-use.
-                </LI>
-              </UL>
-              <P>
-                To know whether the project is ready, check <strong>Financial setup</strong> in the Console,
-                or ask the API with <Code>getFinancialSetup()</Code> — that is what your application should
-                read before it offers a way to pay.
-              </P>
-              <Callout tone="warn">
-                There is no shortcut: no request of yours, no field, no key makes a project financially
-                ready. It is the Business&rsquo;s verification that gives the project authority to receive,
-                which is why your key never chooses the recipient.
-              </Callout>
+              <StepCard lang="en" n={1} of={12} id="step-1" title="Sign in to the Console"
+                what={<>Your developer account at <Code>developers.banzami.com</Code>.</>}
+                why="Workspaces, projects and keys belong to a signed-in person."
+                success="The Console shows your list of workspaces."
+                next="Create a workspace.">
+                Open <a href="/login" style={a}>developers.banzami.com/login</a> and sign in with your email and the six-digit code you receive. There is no password.
+              </StepCard>
 
-              <H3 id="first-payment">Your first payment</H3>
-              <P>
-                A payment session is the main flow: you create it, Banzami gives you a link and a
-                QR, and the payer uses either. With a project key you do <strong>not</strong> name
-                the destination account — the recipient comes from the project&rsquo;s financial setup, and
-                the API refuses a client-supplied one.
-              </P>
-              <CodeBlock label="curl · create a payment session (request + response)" raw={SAMPLE_CURL_SESSION} onCopy={copy} {...enCopy} />
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Failures worth expecting: <Code>401</Code> (key missing, revoked or live),{' '}
-                <Code>403 PAYMENTS_UNAVAILABLE</Code> (the project has no financial setup yet — see{' '}
-                <a href="#financial-setup" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>above</a>),{' '}
-                <Code>403 INSUFFICIENT_SCOPE</Code>,{' '}
-                <Code>400 INVALID_BODY / BAD_REQUEST</Code>, <Code>409 IDEMPOTENCY_CONFLICT</Code> (a request with the
-                same Idempotency-Key still in flight) and <Code>409 IDEMPOTENCY_KEY_REUSED</Code> (the same key with a
-                different body). See{' '}
-                <a href="/docs/en/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
-              </P>
-              <CodeBlock label="ts · create a payment session (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} {...enCopy} />
-              <H3 id="after-the-payment">After you create the session</H3>
-              <UL>
-                <LI><strong>Open the payment.</strong> The session&rsquo;s link is the payer&rsquo;s page on <Code>pay.banzami.com</Code>; the QR encodes the same address, and any camera opens it.</LI>
-                <LI><strong>Confirm.</strong> When the payer pays, <Code>getPaymentSession</Code> reads <Code>PAID</Code>. Do not conclude it paid because the payer came back to your page — confirm on the server.</LI>
-                <LI><strong>Receive the webhook.</strong> Register your endpoint with <Code>createWebhookEndpoint</Code> and store the secret, which appears once. When <Code>payment_session.paid</Code> arrives, <strong>verify the signature before you read the event</strong> and handle it idempotently by its <Code>id</Code> — delivery is at-least-once. See{' '}
-                  <a href="/docs/en/guides#webhooks" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Webhooks</a>.</LI>
-                <LI><strong>See it in the Console.</strong> The payment appears under the project&rsquo;s <strong>Transactions</strong>, with its amount and status.</LI>
-              </UL>
+              <StepCard lang="en" n={2} of={12} id="step-2" title="Create a workspace"
+                what="The space your team shares."
+                why="The workspace decides who can access its projects, keys and logs."
+                success="The workspace appears in the switcher, with you as Owner."
+                next="Create the project for your application.">
+                In the Console, select <strong>Create workspace</strong> and enter your company or team name.
+              </StepCard>
 
-              </Section>
-    </>
-  );
-}
-
-export function EnSdk({ copy }: { copy: CopyFn }) {
-  return (
-    <>
-<Section id="sdks">
-              <H2>SDKs</H2>
-              <PageLede><strong>SDK-first</strong> model, two SDKs published to public registries, the SDK contract, per-family status and ergonomics examples.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/trust', text: 'Security' }]} />
-<H3 id="sdk-first">SDK-first integration model</H3>
-              <P>
-                Banzami&rsquo;s integration philosophy is <strong>SDK-first</strong>. Banzami SDKs should be the recommended
-                path for integrating payments, creating sessions, validating responses, handling errors, managing idempotency,
-                and consuming webhooks.
-              </P>
-              <P>
-                The HTTP API and OpenAPI exist as the <strong>technical protocol reference layer</strong>. Direct HTTP usage
-                is secondary and should be reserved for diagnostics, audits, controlled testing, or advanced integrators.
-              </P>
-              <P>
-                Two SDKs are published to public registries and install with no commercial contact:{' '}
-                <Code>npm install @banzami/sdk</Code> (server) and <Code>dart pub add banzami_client</Code> (client).
-                The Python and PHP packages are not published yet and are consumed from source. This
-                documentation gives no install command for them, because a command pointing at a package
-                no registry has returns an error that looks like the reader's mistake.
-              </P>
-
-              <H3 id="sdk-maturity">SDK maturity matrix</H3>
-              <P>
-                The SDKs handle authentication, idempotency, retries and webhook signature verification. Today they are
-                published: <Code>@banzami/sdk</Code> on npm and <Code>banzami_client</Code> on pub.dev, each proven by a
-                clean-room install from the public registry outside every Banzami repository; the rest are consumed as{' '}
-                <strong>source code</strong>. Banzami is SDK-first: the curl examples
-                in this documentation are the <strong>protocol reference</strong> layer, not the recommended implementation
-                path; internal or approved SDK packages may exist but are not public install paths.
-              </P>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>SDK</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Language</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>State</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SDKS.map((s) => (
-                      <tr key={s.name}>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontWeight: 700, color: INK }}>{s.name}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{s.lang}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{s.state}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <P>
-                <strong>DOA</strong> is the real proof of SDK-first consumption: it uses <Code>@banzami/sdk</Code> to create sessions and links,
-                produce QR, resolve <Code>@banza</Code>, verify webhooks and request settlement — with no direct HTTP calls.
-              </P>
-
-              {/* The anchor keeps its old id so links written when this section was
-   called "SDK preview" still land on it. The section is not a preview. */}
-              <H3 id="sdk-preview">SDK publication</H3>
-              <P>
-                <Code>@banzami/sdk</Code> (npm) and <Code>banzami_client</Code> (pub.dev) are published and are the
-                recommended path. They install from the public registry, with no invite and no commercial contact.
-              </P>
-              <P>
-                This documentation describes the expected SDK contract: authentication, session creation, idempotency,
-                response validation, errors, webhooks and availability limits. It gives no installation command for
-                the Python and PHP packages, because they are not yet published to PyPI or Packagist.
-              </P>
-
-              <H3 id="sdk-contract">Expected SDK contract</H3>
-              <P>What official Banzami SDKs are expected to handle (<strong>expected contract</strong>, not published SDK behaviour):</P>
-              <UL>
-                <LI>Bearer authentication and environment separation (Sandbox vs future Production).</LI>
-                <LI>Payment session creation and retrieval; public link and QR payload retrieval (verified surfaces).</LI>
-                <LI><strong>Idempotency</strong>: Idempotency-Key generation or explicit caller-provided keys.</LI>
-                <LI>Canonical error mapping and <Code>request_id</Code> exposure; safe retry guidance.</LI>
-                <LI>Webhook signature verification (<Code>banza-signature</Code>) and verified event-envelope parsing (expected/planned).</LI>
-                <LI><strong>Never</strong>: client-side exposure of secret keys, automatic live-rails activation, or Production key issuance (not available).</LI>
-              </UL>
-
-              <H3 id="sdk-families">SDK family status</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>SDK family</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Current status</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Public package</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Install command</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Recommended use now</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['JavaScript/TypeScript', 'published', '@banzami/sdk', 'npm install @banzami/sdk', 'recommended path (server)', 'secret key — never in the client'],
-                      ['Dart / Flutter (client)', 'published', 'banzami_client', 'dart pub add banzami_client', 'recommended path (client)', 'publishable key, read-only'],
-                      ['Python', 'not published', 'none', 'not available', 'consume from source', 'publication pending'],
-                      ['PHP', 'not published', 'none', 'not available', 'consume from source', 'publication pending'],
-                    ] as [string, string, string, string, string, string][]).map(([fam, st, pkg, cmd, use, note]) => (
-                      <tr key={fam}>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{fam}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{st}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{pkg}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{cmd}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{use}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{note}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <P>
-                Machine-readable contract:{' '}
-                <a href="/developers/artifacts/sdk-contract.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-contract.json</a>
-                {' '}·{' '}
-                <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a>.
-                A complete example with the published SDK:{' '}
-                <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>.
-              </P>
-              <Callout>
-                The examples in this documentation are TypeScript and they are real
-                instructions: the package is published and every example is compiled against
-                it. Python and PHP have no examples here — and no install command, because there is not yet
-                a package in a public registry to install.
-              </Callout>
-
-              <H3 id="before-you-integrate">Before you put the integration in front of anyone</H3>
-              <P>
-                This is not an approval process: there is no invitation, no eligibility
-                step and no sales conversation between you and the Sandbox. It is the
-                list of things worth having tested before there are users on the other
-                side.
-              </P>
-              <UL>
-                <LI>Identity and authentication: <Code>GET /v1/me</Code> answers for the key your application will actually run with.</LI>
-                <LI>Financial readiness: <Code>GET /v1/financial-setup</Code> returns your Project&apos;s state, and your application knows what to show while it is not ready.</LI>
-                <LI>Creating and reading the payment resource you will use — session or link — plus the QR payload, if you present a QR.</LI>
-                <LI>Idempotency: a retry with the <strong>same</strong> <Code>Idempotency-Key</Code> tested, and concurrent requests understood.</LI>
-                <LI>Errors: a validation <Code>400</Code> and a <Code>401</Code> tested, with the <Code>request_id</Code> reaching your logs.</LI>
-                <LI>Webhooks: signature verified with the SDK&apos;s own method, duplicate deliveries treated as the same event, and the secret stored where secrets live.</LI>
-                <LI>Secrets: the secret key on the server only — never in a browser, never in a mobile app, never in the repository.</LI>
-              </UL>
-
-              <H3 id="report-a-problem">Found a problem?</H3>
-              <P>
-                Send the <Code>request_id</Code> from the response, the timestamp, the
-                environment (<Code>SANDBOX</Code>), the operation you attempted and the SDK
-                version. The <Code>request_id</Code> is what lets us follow the exact
-                request on our side.
-              </P>
-              <Callout tone="warn">
-                Never send the secret key, the webhook secret, an OTP code or a session
-                token — through any support channel. Nothing we need in order to help is
-                a secret.
-              </Callout>
-
-              </Section>
-    </>
-  );
-}
-
-export function EnConsole({ copy }: { copy: CopyFn }) {
-  return (
-    <>
-<Section id="console">
-              <H2>The Console</H2>
-              <PageLede>Everything that exists at <Code>developers.banzami.com</Code>, screen by screen — and what each thing means before you use it.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/get-started', text: 'Quickstart' }, { href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/trust', text: 'Security' }]} />
-
-              <H3 id="model">The model, before the screens</H3>
-              <P>
-                Four things, nested inside one another. Worth reading once, because nearly every
-                integration mistake is one of these four mistaken for another.
-              </P>
-              <ConceptModelDiagram l={{
-                title: 'The model: person, workspace, project, and what each project holds',
-                person: 'Person (email + code)', workspace: 'Workspace', project: 'Project',
-                financialSetup: 'Financial setup', business: 'Business',
-                wallet: 'Wallet', accounts: 'Accounts',
-                apiKeys: 'API keys', webhooks: 'Webhook endpoints',
-                noteWorkspace: 'who has access to what',
-                noteProject: 'the unit of integration',
-                noteBusiness: 'who receives the money',
-                noteKeys: 'how your app authenticates',
-                noteWebhooks: 'where the events go',
-              }} />
-              <UL>
-                <LI><strong>Person ≠ Workspace.</strong> A person belongs to several workspaces; a workspace has several members.</LI>
-                <LI><strong>Workspace ≠ Project.</strong> The workspace is the access boundary. The project is the <em>integration</em> boundary: keys, webhooks and logs belong to the project.</LI>
-                <LI><strong>Project ≠ Business.</strong> The project is your application. The Business is the legal entity that receives the money. Financial Setup connects them, and a project without that connection can do everything except get paid.</LI>
-                <LI><strong>Business ≠ wallet account.</strong> The Business has a wallet; the wallet has segregated accounts. Accounts are where value separates by campaign, store or event.</LI>
-              </UL>
-              <Callout>
-                <strong>Authority flows down, never up.</strong> Your key identifies the Project;
-                the Project determines the Business; the Business determines the wallet and its
-                accounts. No field in your request picks the owner — the ids you send{' '}
-                <em>select</em> resources within what is already yours, they never grant access to
-                anything else.
-              </Callout>
-
-              <H3 id="account">Account</H3>
-              <P>
-                Your personal profile, at <Code>/conta</Code>. You sign in with an email and a
-                six-digit code: there is no password to choose, forget or reuse.
-              </P>
-              <UL>
-                <LI><strong>Profile</strong> — the name people who share a workspace with you see. The email is your identifier and is not editable.</LI>
-                <LI><strong>Security</strong> — describes the real model: a code by email, a session in a cookie. There are no password or MFA controls because neither exists.</LI>
-                <LI><strong>Sessions</strong> — your open sessions, with origin and last use, and a button to end all the others. This is the screen for the day you lose a laptop.</LI>
-                <LI><strong>Sign out</strong> — asks for confirmation. Cancel keeps the session; confirming ends it, and the browser back button does not bring it back.</LI>
-              </UL>
-
-              <H3 id="workspace">Workspaces, members and roles</H3>
-              <P>
-                A workspace is <em>who</em> has access. Creating one is immediate and involves
-                nobody at Banzami.
-              </P>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
-                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Role</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Can</th>
-                  </tr></thead>
-                  <tbody>
-                    {[
-                      ['Owner', 'Everything, including inviting, changing roles, archiving and deleting. The last owner cannot leave — there is no workspace without one.'],
-                      ['Admin', 'Manage members, projects and keys. Cannot change or remove an Owner or another Admin, and cannot appoint Admins.'],
-                      ['Developer', 'Create and manage projects, keys and webhooks. Does not manage members.'],
-                      ['Finance', 'See balances, transactions and settlements. Does not issue keys.'],
-                      ['Viewer', 'Read. Nothing else.'],
-                    ].map((r, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700 }}>{r[0]}</td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <UL>
-                <LI><strong>Inviting</strong> produces a link the Console copies for you. Whoever accepts it signs in with their own email and their own code — the invitation names the role, not the person.</LI>
-                <LI><strong>Leaving</strong> a workspace is always possible, except for the last Owner: a workspace is never left without one.</LI>
-                <LI><strong>Transferring ownership</strong> takes two steps: an Owner gives the Owner role to another member and then leaves or changes their own role. There is no single button that hands the workspace over, so there is no moment without an owner.</LI>
-                <LI><strong>Archiving</strong> a workspace is refused while it still has active projects, and the refusal says how many. Archive those first.</LI>
-                <LI><strong>Deleting</strong> is only possible when the workspace is genuinely empty. A workspace with history is archived; one that never held anything disappears.</LI>
-              </UL>
-
-              <H3 id="activity">Workspace activity</H3>
-              <P>
-                Under <Code>Settings · Activity</Code>, the workspace's administrative record: who
-                changed what, to whom, and when. Invitations, joins and departures, role changes
-                and removals, and the changes made to the workspace itself, to its projects and to
-                its keys. A role change shows <strong>both halves</strong> of the transition — from
-                which role to which — because that is usually the question.
-              </P>
-              <UL>
-                <LI><strong>This workspace and no other.</strong> The record is filtered by the workspace you are already a member of; there is no way to ask for somebody else's.</LI>
-                <LI><strong>Owners and Admins.</strong> Seeing who has access and who granted it is a management question, and those are the roles that can change it too.</LI>
-                <LI><strong>It is nobody's account security history.</strong> Personal sessions, sign-in codes and account settings are not here — they live under <Code>/conta</Code>, and belong to that person alone.</LI>
-                <LI><strong>No secrets.</strong> A key that was created appears as an event; its value, its prefix and webhook secrets appear nowhere.</LI>
-                <LI><strong>Permanent.</strong> It cannot be edited or deleted from the Console, and it outlives what it describes: a deleted project still appears here.</LI>
-              </UL>
-              <Callout>
-                <strong>Activity is not Logs.</strong> Activity answers "who has authority here, and
-                who gave it to them" — workspace administration. <Code>Logs</Code> answers "what did
-                my application ask the API" — one project's integration traffic. They are different
-                pages because they are different questions.
-              </Callout>
-
-              <H3 id="project">Projects</H3>
-              <P>
-                The project is the unit of integration: one application, one set of keys, its
-                webhooks and its logs. One application, one project.
-              </P>
-              <UL>
-                <LI><strong>The Project ID does not change.</strong> Renaming changes the label and nothing else — the id you wrote into your configuration stays valid.</LI>
-                <LI><strong>Deleting</strong> is possible while the project has no history at all: no key ever issued, no request logged, no financial connection. The Console says what is in the way.</LI>
-                <LI><strong>Archiving</strong> is what you do to a project that <em>had</em> history. Archiving revokes the active keys and says how many — and from then on a call with any of them answers <Code>401</Code>.</LI>
-                <LI>An archived project leaves the selector and returns behind &ldquo;Show archived&rdquo;, marked as archived.</LI>
-              </UL>
+              <StepCard lang="en" n={3} of={12} id="step-3" title="Create a project"
+                what="The unit of integration: one application, with its keys, webhooks and logs."
+                why="Keys identify the project, and the project determines who receives payments."
+                success="The Console shows the Project ID, which stays the same if you rename the project."
+                next="Complete Financial Setup.">
+                In the workspace, select <strong>New project</strong>. Create one project per application.
+              </StepCard>
 
               <H3 id="financial-setup">Financial Setup</H3>
               <P>
-                This is where a project gains a financial owner. Without it everything works —
-                keys, webhooks, integration — <strong>except receiving money</strong>. That split
-                is deliberate: you can build and test the whole integration before there is a
-                verified legal entity behind it.
+                Financial Setup connects the project to a <strong>Business</strong>: the verified entity that receives payments.
+                Without it, the project can use keys, webhooks and the API, but cannot be paid — creating a session returns <Code>403 PAYMENTS_UNAVAILABLE</Code>.
               </P>
-              <P>There are two paths, and they are genuinely different:</P>
-              <UL>
-                <LI><strong>A new Business.</strong> You submit an application — entity, representative, documents — and Banzami verifies it. It is a human decision, and it takes as long as it takes.</LI>
-                <LI><strong>An existing Business.</strong> If the entity is already verified with Banzami, its owner issues you a <strong>consent code</strong>. Paste it, and the project connects to that Business without repeating the verification. The code is single-use: connecting consumes it.</LI>
-              </UL>
-              <P>
-                The state is readable over the API at <Code>GET /v1/financial-setup</Code>, so your
-                application knows what to show while it is not ready.
-              </P>
-              <Callout tone="warn">
-                The fee is not yours to choose. Banzami assigns pricing to the Business; no field
-                in your request selects it, and no path through the Console changes it.
+              <FinancialSetupDiagram l={{
+                title: 'Financial Setup: two paths, one result',
+                desc: 'A project becomes financially ready in one of two ways: by applying for a new Business, which Banzami reviews, or by connecting an existing Business with a consent code from its owner.',
+                project: 'Project',
+                newBusiness: 'Apply for a Business', newNote: 'reviewed by Banzami',
+                existing: 'Connect an existing Business', existingNote: 'owner’s consent code',
+                ready: 'Financially ready', readyNote: 'the project can receive payments',
+              }} />
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}>
+                    <th style={TH}></th>
+                    <th style={TH}>New Business</th>
+                    <th style={TH}>Existing Business</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['Use when', 'The entity is not yet verified by Banzami.', 'The entity is already verified by Banzami.'],
+                      ['What you do', 'Submit an application: entity details, representative and documents.', 'Enter the consent code its owner generates in the Banzami Business app.'],
+                      ['Who decides', 'Banzami, after review. Not immediate, in the Sandbox too.', 'The Business owner, by issuing the code. Each code works once.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <StepCard lang="en" n={4} of={12} id="step-4" title="Complete Financial Setup"
+                what="Connect the project to the Business that receives its payments."
+                why="The payee of every payment comes from this setup, never from your application’s request."
+                success={<>The Console shows the project as ready, and <Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
+                next="While the application is in review, continue with steps 5 to 7.">
+                In the Console, open <strong>Financial Setup</strong> and choose one of the two paths in the table above. In your application, check readiness before offering payment:
+                <CodeBlock label="ts · check financial readiness" raw={SAMPLE_READY} onCopy={copy} {...enCopy} />
+              </StepCard>
+              <Callout>No field, request or key makes a project financially ready. Pricing is also assigned to the Business by Banzami.</Callout>
+
+              <StepCard lang="en" n={5} of={12} id="step-5" title="Create a secret key"
+                what={<>A <Code>bz_test_sk_…</Code> secret key with the scopes this guide uses.</>}
+                why="The key authenticates your application. Scopes are set at creation and cannot be changed."
+                success={<>The secret is stored in a server environment variable, <Code>BANZAMI_API_KEY</Code>. The Console shows it only once.</>}
+                next="Install the SDK.">
+                In the project, open <strong>API keys</strong> and create a key with <Code>identity:read</Code>, <Code>payment_sessions:write</Code>,{' '}
+                <Code>payment_sessions:read</Code>, <Code>webhooks:write</Code> and <Code>webhooks:read</Code>.
+                <CodeBlock label="test key prefixes" raw={SAMPLE_KEYS} onCopy={copy} {...enCopy} />
+              </StepCard>
+              <Callout>Keep the secret key on your server. <a href="/docs/en/trust#keys" style={a}>Where to store keys</a></Callout>
+
+              <StepCard lang="en" n={6} of={12} id="step-6" title="Install the SDK"
+                what={<><Code>@banzami/sdk</Code>, the official server SDK.</>}
+                why="The SDK handles authentication, idempotency keys, retries and webhook verification."
+                success={<><Code>import {'{'} BanzamiClient {'}'} from &apos;@banzami/sdk&apos;</Code> compiles.</>}
+                next="Make your first call.">
+                <Code>npm install @banzami/sdk</Code>
+              </StepCard>
+
+              <StepCard lang="en" n={7} of={12} id="step-7" title="Make your first call"
+                what={<><Code>GET /v1/me</Code> returns the environment, project, scopes and key status.</>}
+                why="It confirms the key works before you create any payment."
+                success={<><Code>200</Code> with <Code>&quot;environment&quot;: &quot;SANDBOX&quot;</Code>. A <Code>401</Code> points to the key.</>}
+                next="Create a payment session.">
+                <CodeBlock label="curl · first call (GET /v1/me)" raw={SAMPLE_CURL_ME} onCopy={copy} {...enCopy} />
+                With the SDK: <Code>await banzami.me()</Code>.
+              </StepCard>
+
+              <H3 id="first-payment">Create your first payment</H3>
+              <Callout>
+                <strong>Amounts in minor units:</strong> <Code>amount_minor: 25000</Code> is 250 Kz (100 minor units = 1 Kz). <a href="/docs/en/concepts#minor-units" style={a}>Amounts in minor units</a>
               </Callout>
-
-              <H3 id="keys">API keys</H3>
-              <UL>
-                <LI>The <strong>name</strong> is yours: it tells the key apart in the list and in Workspace activity, and changes nothing about what it can do.</LI>
-                <LI><strong>Scopes</strong> are chosen at creation and do not change. A read-only key will never write.</LI>
-                <LI>The secret appears <strong>exactly once</strong>, in the creation dialog, with a copy button. After that the list shows the prefix and a mask.</LI>
-                <LI><strong>Rotating</strong> creates the successor and revokes the predecessor in the same step: the new key works at once, and the old one stops working at that instant. To swap without failures on your server, create a new key first, put it in use, and only then revoke the old one.</LI>
-                <LI><strong>Revoking</strong> is immediate: the next call with that key answers <Code>401</Code>.</LI>
-                <LI>The list shows <strong>last use</strong>, which is how you find the key nobody uses any more.</LI>
-              </UL>
-              <P>
-                Where to keep the key and what never to do with it is in{' '}
-                <a href="/docs/en/trust" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Security</a>.
+              <StepCard lang="en" n={8} of={12} id="step-8" title="Create a payment session"
+                what={<>A payment session, with a link and a QR code for the payer.</>}
+                why="The session is the main way to collect a payment: one request, several ways to pay, one confirmation."
+                success={<><Code>201</Code> with <Code>status: &quot;ACTIVE&quot;</Code> and a <Code>PAYMENT_LINK</Code> interface. Store the <Code>session_id</Code>.</>}
+                next="Open the payment page.">
+                Do not name the payee: it comes from Financial Setup. Use <Code>reference_id</Code> to tie the session to your order.
+                <CodeBlock label="ts · create a payment session (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} {...enCopy} />
+                <CodeBlock label="curl · create a payment session (request + response)" raw={SAMPLE_CURL_SESSION} onCopy={copy} {...enCopy} />
+              </StepCard>
+              <P style={{ fontSize: 13, color: MUT }}>
+                The most common errors at this step: <Code>403 PAYMENTS_UNAVAILABLE</Code> (step 4 not complete), <Code>403 INSUFFICIENT_SCOPE</Code> (step 5),{' '}
+                <Code>400 BAD_REQUEST</Code> (invalid amount) and <Code>409 IDEMPOTENCY_KEY_REUSED</Code>. <a href="/docs/en/errors" style={a}>See the error catalogue</a>
               </P>
 
-              <H3 id="console-webhooks">Webhooks</H3>
-              <UL>
-                <LI><strong>Registering</strong> an HTTPS endpoint returns the signing secret exactly once.</LI>
-                <LI><strong>Events</strong> lists what your project emitted; opening one shows its deliveries, with status and response code.</LI>
-                <LI><strong>Redelivering</strong> repeats the same delivery — it is that delivery again, not a new one.</LI>
-                <LI><strong>Rotating the secret</strong> issues a new one, revealed once; the endpoint stays.</LI>
-                <LI><strong>Disabling</strong> stops queueing new events for this endpoint, without deleting it or its history. Events emitted while it is disabled are not delivered to it afterwards; <strong>re-enabling</strong> starts receiving again from that moment, and the ones it missed are still listed under Events.</LI>
-                <LI>A delivery that fails is <strong>retried</strong>, up to 5 attempts, with growing backoff. The full contract, and what to do when nothing arrives, are in{' '}
-                  <a href="/docs/en/guides#redelivery" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Redelivery contract</a> and{' '}
-                  <a href="/docs/en/guides#troubleshooting" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Troubleshooting</a>.</LI>
-              </UL>
+              <StepCard lang="en" n={9} of={12} id="step-9" title="Open the payment page"
+                what={<>The session link, at <Code>pay.banzami.com/pay/…</Code>. The QR code encodes the same address.</>}
+                why="The payer pays on a Banzami page. Your application never handles payment details."
+                success="The page shows the amount and the SANDBOX — test environment notice."
+                next="Confirm the payment on your server.">
+                Open <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code> in a browser.
+              </StepCard>
 
-              <H3 id="logs">Balances, transactions and logs</H3>
-              <UL>
-                <LI><strong>Balances</strong> shows the accounts of the owner your project is bound to, and what is in each.</LI>
-                <LI><strong>Transactions</strong> shows the project&rsquo;s real movement — not a sample, not an example.</LI>
-                <LI><strong>Logs</strong> lists the requests your key made to the API, with <Code>request_id</Code>. It is the first place to open when something answered what you did not expect. For who changed what in the workspace, that is <a href="#activity" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Activity</a> — a different question, a different page.</LI>
-              </UL>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                No Console page renders illustrative data. If a list is empty it is because there
-                is nothing in it — not because the screen has not been wired up yet.
-              </P>
-            </Section>
+              <StepCard lang="en" n={10} of={12} id="step-10" title="Confirm the payment on your server"
+                what={<>Read the session with <Code>getPaymentSession</Code> after the payer pays.</>}
+                why="A payer returning to your page does not confirm payment. The confirmation comes from Banzami."
+                success={<><Code>status</Code> is <Code>PAID</Code>.</>}
+                next="Receive the same confirmation by webhook.">
+                In the Sandbox, the payment is made with a Banzami wallet. <a href="/docs/en/testing#pay-session" style={a}>How to pay a test session</a>
+              </StepCard>
+
+              <StepCard lang="en" n={11} of={12} id="step-11" title="Receive the webhook"
+                what={<>The <Code>payment_session.paid</Code> event, delivered to your HTTPS endpoint.</>}
+                why="It confirms the payment without polling, even if the payer closes the page."
+                success={<>In <strong>Webhooks</strong>, the delivery shows your server’s <Code>2xx</Code> response.</>}
+                next="See the payment in the Console.">
+                Register the endpoint with <Code>createWebhookEndpoint</Code>, verify the signature before reading the event, and deduplicate by <Code>id</Code>. <a href="/docs/en/webhooks" style={a}>Set up webhooks</a>
+              </StepCard>
+
+              <StepCard lang="en" n={12} of={12} id="step-12" title="See the payment in the Console"
+                what={<>The payment in <strong>Transactions</strong>, and the key’s requests in <strong>Logs</strong>.</>}
+                why={<>This is where you investigate an unexpected response, starting from the <Code>request_id</Code>.</>}
+                success="The payment appears with its amount and status."
+                next="Choose what to build next.">
+                In the project, open <strong>Transactions</strong>. The Console shows times in your browser’s time zone.
+              </StepCard>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/webhooks', title: 'Set up webhooks', desc: 'Verification, duplicates, retries and secret rotation.' },
+                { href: '/docs/en/payments', title: 'Accept payments', desc: 'Sessions, links and QR, and when to use each.' },
+                { href: '/docs/en/testing', title: 'Test in the Sandbox', desc: 'Test scenarios and their expected results.' },
+                { href: '/docs/en/doa', title: 'Build like DOA', desc: 'A complete integration, from payment to settlement.' },
+              ]} />
+              </Section>
     </>
   );
 }
 
-export function EnGuides({ copy }: { copy: CopyFn }) {
+export function EnConcepts({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
-<Section id="guides">
-              <H2>Guides</H2>
-              <PageLede>Practical integration guidance — payment sessions, links, QR, idempotency, errors and webhooks. The framing is <strong>SDK-first</strong>; where curl/HTTP appears, it is protocol reference material.</PageLede>
-              <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/sdk', text: 'SDKs' }]} />
-              <P>Task-oriented guides for the verified Sandbox surfaces. Where HTTP/curl appears, it is protocol reference / diagnostic material — Banzami is SDK-first.</P>
+<Section id="concepts-banzami">
+              <h1 style={H1_STYLE}>How Banzami works</h1>
+              <PageLede>The integration model, the environments, and the rules that apply to every financial resource.</PageLede>
 
-<H3 id="segregated-accounts">Where the money lands: financial setup and accounts <Badge tone="ok">Available in Sandbox</Badge></H3>
+              <H3 id="sandbox-live">Sandbox and Live</H3>
               <P>
-                Two different questions, answered in different places — and the distinction is what
-                makes the platform safe to use:
+                The <strong>Sandbox</strong> is the integration environment available today. Payments, balances, refunds and settlements follow the same rules they will follow
+                in production, with fictitious money: no value enters or leaves a bank account.
               </P>
-              <UL>
-                <LI><strong>Who</strong> owns the money? — the <strong>project&rsquo;s financial setup</strong> answers. It is established by the operator, it does not change, and your application never names it in a request.</LI>
-                <LI><strong>Which</strong> of that owner&rsquo;s accounts receives? — the <strong>wallet account</strong> answers. That one your application chooses, among its own.</LI>
-              </UL>
-              <P>
-                A donation platform needs exactly this: each campaign accumulates in its own account,
-                without mixing with the others, and settlement happens from that account at close.
-              </P>
-              <SegregatedAccountsDiagram l={{
-                title: 'Segregated accounts: one financial owner, one account per campaign',
-                project: 'Your project',
-                owner: 'financial owner',
-                ownerNote: 'from financial setup — never from your request',
-                accounts: ['Campaign A', 'Campaign B', 'Campaign C'],
-                accountNote: 'one wallet account each',
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}>
+                    <th style={TH}></th>
+                    <th style={TH}>Sandbox</th>
+                    <th style={TH}>Financial Live</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['Status', 'Available', 'Unavailable (fail-closed)'],
+                      ['Money', 'Fictitious', '—'],
+                      ['API rules', 'API v1: authorisation, idempotency, events and errors', 'The same, once it exists'],
+                      ['Data', 'May be retired by Banzami; keep your own records', '—'],
+                      ['Does not prove', 'Regulatory approval, Live readiness or automatic Live access', '—'],
+                      ['Keys', 'bz_test_sk_ and bz_test_pk_', 'bz_live_ is refused; none are issued'],
+                      ['API', 'https://sandbox-api.banzami.com/v1', '—'],
+                      ['Console', 'Your project’s real data', '—'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P><a href="/docs/en/going-live" style={a}>Prepare your integration for Live</a></P>
+              <CapabilityCards lang="en" />
+
+              <H3 id="model">The integration model</H3>
+              <ConceptModelDiagram l={{
+                title: 'Person, workspace, project, and what each project contains',
+                desc: 'A person belongs to workspaces. Each workspace contains projects. Each project has a Financial Setup that connects it to a Business, with a wallet and accounts, and has API keys and webhook endpoints.',
+                person: 'Person (email + code)', workspace: 'Workspace', project: 'Project',
+                financialSetup: 'Financial Setup', business: 'Business',
+                wallet: 'Wallet', accounts: 'Accounts',
+                apiKeys: 'API keys', webhooks: 'Webhook endpoints',
+                noteWorkspace: 'who has access',
+                noteProject: 'the unit of integration',
+                noteBusiness: 'who receives payments',
+                noteKeys: 'how your app authenticates',
+                noteWebhooks: 'where events go',
               }} />
-              <P>
-                In practice, with your developer key:
-              </P>
-              <UL>
-                <LI>Open one account per campaign with <Code>createWalletAccount</Code> — give the purpose and your reference, <strong>never</strong> a wallet or a merchant.</LI>
-                <LI>Create the payment with <Code>createPaymentSession</Code>, passing that campaign&rsquo;s <Code>walletAccountId</Code>.</LI>
-                <LI>If you omit <Code>walletAccountId</Code>, the payment lands in the project&rsquo;s default account — enough when you do not need to segregate.</LI>
-              </UL>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                The server always checks that the account you name is yours. Another owner&rsquo;s account
-                answers <Code>404</Code> — not <Code>403</Code> — so nobody can discover other people&rsquo;s
-                accounts from the status code. And naming <Code>merchant_id</Code> or <Code>wallet_id</Code> is
-                refused with <Code>400 PAYEE_NOT_ALLOWED</Code>: choosing an account is selection, choosing an
-                owner would be authority.
-              </P>
-
-              <H3 id="charges">Create a charge <Badge tone="ok">Available in Sandbox</Badge></H3>
-              <P>
-                A charge starts from a <strong>payment link</strong> or a <strong>payment session</strong>: create the intent,
-                present the link/QR to the payer and track the confirmation (by polling and/or webhook). In the Banzami model,
-                the operator executes the payment and owns the financial truth — your application only creates the journey and reacts to state.
-              </P>
-              <UL>
-                <LI><strong>Testable in Sandbox:</strong> create sessions/links, present the QR, confirm the payment and issue the receipt. The session QR encodes the hosted pay URL (<Code>pay.banzami.com/pay/{'{slug}'}</Code>): any phone camera opens the pay page.</LI>
-                <LI><strong>Reserved for Production:</strong> real-money movement — <em>Production in preparation</em>.</LI>
-              </UL>
-
-              <H3 id="transfers">Transfers <Badge tone="ok">Available in Sandbox</Badge></H3>
-              <P>
-                Move value between two accounts of your own project. The request names the source account,
-                the destination account, the amount in minor units (AOA) and an idempotency key. In the Sandbox
-                the transfer confirms synchronously, with atomic debit and credit in the ledger — the owner&rsquo;s
-                total does not change, only how it is distributed across accounts.
-              </P>
-              <P>
-                Replaying the same idempotency key returns the original transfer without moving funds twice;
-                reusing it with a different request answers <Code>409</Code> rather than silently repeating.
-                Verified end to end in the Sandbox. Never real money — <em>Production in preparation</em>.
-              </P>
-              <Callout tone="warn">
-                <strong>What Transfers is, and what it is not.</strong> It moves value between two accounts of the
-                {' '}<strong>same owner</strong> that your project&rsquo;s financial setup fixes — Campaign A to Campaign B of the
-                same organisation, say. Nothing crosses the owner boundary: it is not a payout, not an application
-                settlement (ADR-029), not a consumer-to-consumer P2P transfer. Naming an account that is not yours
-                answers <Code>404</Code>, indistinguishable from one that does not exist.
-              </Callout>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Credential: a project key with the <Code>transfers:write</Code> scope, on{' '}
-                <Code>POST /v1/wallet-account-transfers</Code>. The owner comes from the financial setup — no request field can
-                name it. See the{' '}
-                <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
-                Never real money — <em>Production in preparation</em>.
-              </P>
-
-              <H3 id="refunds">Refunds <Badge tone="ok">Available in Sandbox</Badge></H3>
-              <P>
-                Banzami refunds return, fully or partially, the value of an eligible payment confirmed in the Sandbox. Each request
-                identifies the payment source, respects the amount already captured and is processed idempotently.
-              </P>
-              <UL>
-                <LI><Code>ACQUIRING_PAYMENT</Code> — payment made over an external rail.</LI>
-                <LI><Code>WALLET_PAYMENT</Code> — native payment between Banzami wallets.</LI>
-                <LI>The currency is validated against the original source.</LI>
-                <LI>Partial refunds are allowed up to the payment&rsquo;s accrued cap.</LI>
-                <LI>Reusing the same <Code>idempotency_key</Code> does not refund twice.</LI>
-                <LI>Production remains <em>Production in preparation</em>.</LI>
-              </UL>
-              <P>
-                <strong>Request fields:</strong> <Code>source_type</Code> (<Code>ACQUIRING_PAYMENT</Code> or
-                {' '}<Code>WALLET_PAYMENT</Code>), <Code>source_id</Code>, <Code>amount_minor</Code>, <Code>currency</Code>
-                {' '}and <Code>idempotency_key</Code>.
-              </P>
-              <Callout>
-                <strong>Path verified in Sandbox.</strong> Refunds were validated end to end through the public gateway
-                (<Code>POST /v1/refunds</Code>): acquiring and wallet sources, full and partial refunds, the cumulative cap per
-                source, currency validation against the source, idempotent replay and <Code>idempotency_key</Code> conflict,
-                request authorisation and correction of the receipt&rsquo;s state. There is never real money — <em>Production in preparation</em>.
-              </Callout>
-
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Technical reference: the payment source is typed per BANZA ADR-017. Credential: a project key with the
-                {' '}<Code>refunds:write</Code> scope, on <Code>POST /v1/refunds</Code>. The refund debits the account
-                that <strong>received</strong> the payment — not the owner&rsquo;s general balance — and another
-                project&rsquo;s payment answers <Code>404</Code>. See the{' '}
-                <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
-                Never real money — <em>Production in preparation</em>.
-              </P>
-              <H3 id="receipts">Receipts and public verification</H3>
-              <P>
-                Every confirmed payment has a <strong>receipt</strong>: a document carrying a{' '}
-                <strong>public proof reference</strong> and a QR. Whoever holds that reference can confirm, with no
-                account and no key, that the payment exists and what state it is in. The PDF receipt is issued to the
-                Business that received the payment, in the Banzami Business app — a project key does not download
-                receipts.
-              </P>
-              <P><strong>The reference.</strong> The current format is called <Code>SECURE_V1</Code>:</P>
-              <CodeBlock label="SECURE_V1 format" onCopy={copy} {...enCopy} raw={`BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
-
-# 24 symbols in six groups of four, after BZM-.
-# Alphabet: 0-9 and A-Z without I, L, O and U — no letter reads as a digit.
-# 120 bits: it cannot be guessed or enumerated.`} />
-              <UL>
-                <LI><strong>It is a bearer capability.</strong> Whoever holds the reference sees the amount, both parties&rsquo; @banza and the description. Share it the way you would share the receipt itself.</LI>
-                <LI><strong>It is exact.</strong> There is no normalisation: lower-case letters, spaces or an extra hyphen answer <Code>404</Code>, exactly like a reference that does not exist. Copy it; do not retype it.</LI>
-                <LI>Older eight-symbol references (<Code>BZM-XXXX-XXXX</Code>) still verify; new ones are always <Code>SECURE_V1</Code>.</LI>
-              </UL>
-              <P><strong>Verifying.</strong> The receipt&rsquo;s QR opens <Code>https://banzami.com/r/&#123;reference&#125;</Code>, the public verification page. The same check exists as a public API, with no authentication:</P>
-              <CodeBlock label="curl · verify a receipt" onCopy={copy} {...enCopy} raw={`curl https://sandbox-api.banzami.com/v1/public/proofs/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`} />
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
-                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>HTTP</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Response</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Means</th>
-                  </tr></thead>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Concept</th><th style={TH}>What it is</th><th style={TH}>Not to be confused with</th></tr></thead>
                   <tbody>
                     {[
-                      ['200', 'the receipt status + amount, parties, date', 'Verified. Read status: CONFIRMED, PENDING, REVERSED, CANCELLED, FAILED or EXPIRED.'],
-                      ['404', 'exists: false, status NOT_FOUND', 'It does not exist — or the reference was altered. The two answers are the same on purpose.'],
-                      ['503', 'exists: false, status UNAVAILABLE', 'Verification is temporarily unavailable. Try again later; do not conclude it is forged.'],
-                    ].map((r, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700 }}><Code>{r[0]}</Code></td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
-                      </tr>
+                      ['Workspace', 'Your team’s access boundary. A person can belong to several workspaces.', 'Project — the integration boundary.'],
+                      ['Project', 'One application: keys, webhooks and logs.', 'Business — the entity that receives payments.'],
+                      ['Business', 'The verified entity that receives payments.', 'Account — where value sits, inside the Business wallet.'],
+                      ['Account', 'A division of the wallet, per campaign or store for example.', 'Wallet — the set of the Business’s accounts.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <UL>
-                <LI><strong>Refunded or reversed</strong>, a receipt does not disappear: it becomes <Code>REVERSED</Code>. The proof that the payment existed remains, and says it was undone.</LI>
-                <LI>
-                  <strong>Do not confuse it with the app&rsquo;s short reference.</strong> The Banzami app shows an
-                  eight-character reference on every transfer (for example <Code>5AD6BEA0</Code>): it is the start of the
-                  transfer&rsquo;s id, it helps the person recognise the entry in their list, and it{' '}
-                  <strong>does not verify</strong> at <Code>/r/</Code>. Only the receipt&rsquo;s <Code>BZM-…</Code>{' '}
-                  reference is a public proof.
-                </LI>
-              </UL>
-</Section>
-<Section id="webhooks">
-              <H2>Webhooks <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H2>
-              <P>
-                Use webhooks to confirm events on your server without relying on the browser or polling alone. Banzami signs
-                every event; your endpoint verifies the signature and reacts idempotently.
-              </P>
               <Callout>
-                <strong>Full journey verified in Sandbox.</strong> End-to-end delivery was confirmed against the implemented DOA
-                endpoint: a real <Code>payment_session.paid</Code> emitted by the operator was delivered by the outbox, the canonical{' '}
-                <Code>banza-signature</Code> header was accepted, the donation was confirmed <strong>exactly once</strong> and the
-                receipt was recorded. In the controlled test no external email was sent; in normal flows with an email contact, DOA
-                delivers the receipt to the donor. Redelivery of the same event was <strong>deduplicated</strong> (no duplicated
-                effect). There is never real money — <em>Production in preparation</em>.
-              </Callout>
-              <Callout>
-                <strong>Honest scope.</strong> Outbound delivery is real and verified end to end: Banzami emits{' '}
-                <Code>payment_session.paid</Code> because money moved, its outbox delivers over the public internet to the
-                registered HTTPS endpoint, and the reference application accepts it. This section used to say delivery to an
-                external sink remained simulated — true when written, and no longer. What still does not exist is{' '}
-                <strong>Production</strong>: this is the Sandbox, and no real money ever moves.
-              </Callout>
-              <H3 id="how-it-works">How it works</H3>
-              <UL>
-                <LI>Banzami sends a <Code>POST</Code> to your endpoint with the event body as JSON.</LI>
-                <LI>The signature travels in the <Code>banza-signature</Code> header, formatted <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
-                <LI>The signature is HMAC-SHA256 over <Code>&quot;{'{'}t{'}'}.{'{'}body{'}'}&quot;</Code>, with a <strong>5-minute</strong> replay tolerance.</LI>
-                <LI>Process <strong>idempotently</strong> and answer <Code>2xx</Code> fast; delivery is at-least-once, unordered, with redelivery on failure.</LI>
-              </UL>
-              <Callout tone="warn">
-                <strong>Verify the signature before you parse the event.</strong> Read the raw body,
-                check it against <Code>banza-signature</Code>, and only then treat the JSON as
-                something that came from Banzami. Anything on the public internet can POST to your
-                endpoint; until the signature checks out, the body is a stranger&apos;s claim about
-                your money. Re-serialising the JSON before verifying changes the bytes and the
-                signature stops matching — read it once, as text.
-              </Callout>
-              <CodeBlock label="ts · verify and handle an event" raw={SAMPLE_WEBHOOK} onCopy={copy} {...enCopy} />
-              <CodeBlock label="json · event envelope (implemented in Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} {...enCopy} />
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                The envelope above is the shape implemented in the Sandbox: <Code>id</Code> (dedupe on it), <Code>type</Code>{' '}
-                (one of the verified catalogue below), <Code>created_at</Code> and <Code>data</Code> with the event object.
-              </P>
-              <H3 id="redelivery">Redelivery contract</H3>
-              <UL>
-                <LI>At-least-once delivery, no ordering guarantee — handle every event <strong>idempotently</strong> (dedupe by event id).</LI>
-                <LI>Signature in <Code>banza-signature</Code> with a <strong>5-minute</strong> timestamp (replay) tolerance.</LI>
-                <LI>Implemented in the Sandbox: up to <strong>5 attempts</strong> per delivery — the first and, after each failure, another after{' '}
-                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code>. After the fifth failure the delivery is <Code>FAILED</Code>; you can replay it.</LI>
-                <LI>Any <Code>2xx</Code> from your endpoint counts as delivered; answer fast and process asynchronously.</LI>
-                <LI><em>Note:</em> this is the contract implemented and verified in the Sandbox; Production behaviour is not claimed (Production in preparation).</LI>
-              </UL>
-              <H3 id="manage-endpoint">Manage the endpoint with your project key <Badge tone="ok" /></H3>
-              <P>
-                The endpoint that receives <strong>your</strong> events is managed with the
-                <strong> project key</strong> — no merchant credential is needed, or possible.
-                The owner comes from the project&rsquo;s financial setup; none of these requests accepts a{' '}
-                <Code>merchant_id</Code>, because there is no field for one.
-              </P>
-              <CodeBlock label="ts · register and rotate the secret" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} {...enCopy} />
-              <UL>
-                <LI>The <Code>secret</Code> is returned <strong>exactly once</strong>, on registration and on rotation. No later read brings it back — store it immediately.</LI>
-                <LI><Code>webhooks:read</Code> sees endpoints, events and deliveries. <Code>webhooks:write</Code> registers, disables, redelivers and rotates the secret. A read scope never authorises a write.</LI>
-                <LI>Another project&rsquo;s endpoint answers <Code>404</Code> — never <Code>403</Code> — so an id cannot be used to discover other people&rsquo;s integrations.</LI>
-              </UL>
-              <Callout tone="warn">
-                <strong>Rotation is immediate, not overlapping.</strong> The signature is checked
-                against <em>one</em> secret. Update your receiver first and rotate afterwards —
-                or rotate at a moment when a short window of refused deliveries is acceptable.
-                Because delivery is <Code>at-least-once</Code> with retries, a delivery refused in
-                that window is <strong>not</strong> a lost event: it is tried again.
+                <strong>Authority comes from the key.</strong> The key identifies the project, and the project determines the Business. The ids you send select your own resources; they never grant access to another project’s.
               </Callout>
 
-              <H3 id="events">Events</H3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
-                {EVENTS.map((e) => (
-                  <span key={e} style={{ fontFamily: mono, fontSize: 12.5, fontWeight: 700, color: '#9A1B22', background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 8, padding: '4px 9px' }}>{e}</span>
-                ))}
-              </div>
-              <P>
-                This is the <strong>verified event catalogue</strong> — only events whose emission and contract are verified
-                in the current Sandbox are listed; nothing outside it is a contractual event name. Payment confirmation and
-                settlement are <strong>distinct</strong> events with distinct business effects: <Code>payment_session.paid</Code>{' '}
-                confirms the payment; <Code>application_settlement.completed</Code> concludes the settlement.
-              </P>
-            
-              <H3 id="troubleshooting">Troubleshooting</H3>
-              <P>
-                The thirteen problems that actually come up, and what to do about each. In every
-                case, keep the <Code>request_id</Code> from the response before doing anything else.
-              </P>
+              <H3 id="responsibilities">What your application owns and what Banzami owns</H3>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
-                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What you see</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What it usually is</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What to do</th>
-                  </tr></thead>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Your application</th><th style={TH}>Banzami</th></tr></thead>
                   <tbody>
                     {[
-                      ['401 UNAUTHORIZED', 'The key is missing, was revoked or rotated, or is not a Sandbox key.', 'Check it under API keys: if it reads Revoked, use the successor. If you created it seconds ago, confirm you copied the whole secret.'],
-                      ['403 INSUFFICIENT_SCOPE', 'A missing scope. Scopes are fixed at creation and never change.', 'Compare the key’s scopes with what the route requires in the reference. If one is missing, create a new key — the existing one will never gain it.'],
-                      ['403 PAYMENTS_UNAVAILABLE', 'The project has no completed financial setup.', 'GET /v1/financial-setup reports the state. Complete Financial Setup; until then the project can do everything except get paid.'],
-                      ['404 on a resource that exists', 'It exists, and belongs to another project.', 'That is deliberate: a 403 here would let you enumerate other people’s resources. Check you are using the key of the project that created it.'],
-                      ['409 IDEMPOTENCY_KEY_REUSED', 'The same Idempotency-Key with a different body.', 'An idempotency key belongs to one request. If the body changed, it is a different request: use a different key.'],
-                      ['400 MISSING_FIELD · INVALID_AMOUNT', 'A missing field, or one with the wrong type.', 'The message names the field. Amounts are integers in minor units — 250 Kz is 25000, not 250.'],
-                      ['429 RATE_LIMITED', 'Too many requests, or too many codes requested.', 'Slow down and retry with backoff. Retrying immediately extends the window rather than shortening it.'],
-                      ['A payment stays pending', 'The payer has not finished.', 'A pending payment is a normal state, not an error. Wait for the webhook; never confirm anything from a timeout.'],
-                      ['The webhook never arrives', 'The endpoint is not public HTTPS, or it answers slowly.', 'Open the event’s deliveries in the Console: they show the code your server returned. A slow 2xx is treated as a failure.'],
-                      ['The signature does not match', 'The body was re-serialised before verifying.', 'Verify over the RAW body. Parsing the JSON and serialising it again changes the bytes, and the signature is over the bytes.'],
-                      ['A refund is refused', 'The amount exceeds what is left, the receiving account no longer has the balance, or the payment is not refundable.', 'The message and the code say which (REFUND_EXCEEDS_CAPTURED, REFUND_NOT_FUNDABLE, INVALID_PAYMENT_STATUS). Nothing was returned: fix it and retry with a new idempotency key.'],
-                      ['The receipt does not verify', '404: the reference does not exist or was altered. 503: verification is unavailable.', 'Copy the BZM-… reference without retyping it — there is no normalisation. A 503 is retried later and does not mean the receipt is forged.'],
-                      ['A settlement does not proceed', 'The account has no balance, or the beneficiary is not eligible.', 'GET /v1/financial-setup shows what is blocking. Gross is read from the account: an empty account has nothing to settle.'],
+                      ['Customers, orders, campaigns and business rules', 'Payment execution'],
+                      ['User experience', 'Balances, accounts and the ledger'],
+                      ['The state of your resources (order paid, campaign closed)', 'Pricing and fees'],
+                      ['Reconciliation with your own records', 'Receipts and their public verification'],
+                      ['The settlement request, when you decide to settle', 'Settlement calculation and execution'],
                     ].map((r, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700, whiteSpace: 'nowrap' }}>{r[0]}</td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
-                      </tr>
+                      <tr key={i}><td style={TD}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <Callout tone="warn">
-                When you ask for help, send the <Code>request_id</Code>, the timestamp, the
-                environment and the operation. <strong>Never send the key, the webhook secret, an
-                OTP code or a session token</strong> — nothing we need in order to help is a secret.
-              </Callout>
+
+              <H3 id="pattern">One pattern for every financial resource</H3>
+              <P>Every financial resource is created on your server, confirmed on your server, and visible in the Console.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ ...TABLE, minWidth: 640 }}>
+                  <thead><tr style={THEAD}>
+                    <th style={TH}>Resource</th>
+                    <th style={TH}>Create</th>
+                    <th style={TH}>Confirm</th>
+                    <th style={TH}>Idempotency</th>
+                    <th style={TH}>Console</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['Payment Session', 'createPaymentSession', 'payment_session.paid · status PAID', 'Idempotency-Key; one session per purpose + reference', 'Transactions'],
+                      ['Payment Link', 'POST /v1/payment-links', 'payment_link.paid', 'Idempotency-Key', 'Transactions'],
+                      ['QR code', 'included in the session (DYNAMIC_QR or STATIC_QR)', 'the session’s', '—', 'Transactions'],
+                      ['Refund', 'createRefund', 'refund.completed · status SUCCEEDED', 'idempotency_key required', 'Transactions'],
+                      ['Transfer', 'createTransfer', 'the response · status COMPLETED', 'idempotencyKey required', 'Transactions · Balances'],
+                      ['Settlement', 'createBusinessApplicationSettlement', 'application_settlement.completed', 'idempotencyKey required', 'Balances'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : i === 1 ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="minor-units">Amounts in minor units</H3>
+              <P>
+                Every amount is an integer in minor units: <Code>amount_minor: 25000</Code> is 250 Kz, because 100 minor units make 1 Kz.
+                Integers avoid the rounding errors of decimal numbers. To display an amount, divide by 100 or use the SDK’s <Code>formatMinor</Code>.
+              </P>
+
+              <H3 id="idempotency">Idempotency</H3>
+              <P>
+                A request that moves money can lose its response to a timeout. Sent again with the same idempotency key, the retry returns the original result
+                instead of causing a second effect. <a href="/docs/en/reference#idempotency" style={a}>Idempotency rules</a>
+              </P>
+
+              <H3 id="request-id">request_id</H3>
+              <P>
+                Every response carries a <Code>request_id</Code>. Log it whenever a response is not what you expected: it finds the request in
+                <strong> Console → Logs</strong> (kept for 30 days), and it is the first thing support asks for.
+              </P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/get-started', title: 'Quickstart', desc: 'Create and confirm your first payment.' },
+                { href: '/docs/en/payments', title: 'Accept payments', desc: 'Sessions, links and QR.' },
+                { href: '/docs/en/doa', title: 'Build like DOA', desc: 'The model applied to a complete integration.' },
+              ]} />
             </Section>
     </>
   );
 }
 
+
+export function EnPayments({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="payments">
+              <h1 style={H1_STYLE}>Accept payments</h1>
+              <PageLede>Collect a payment with a Payment Session, a reusable Payment Link or a QR code. The payer pays on a Banzami page, and your application receives the confirmation on its server.</PageLede>
+
+              <H3 id="choose">Choose a resource</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Payment Session</th><th style={TH}>Payment Link</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['For', 'An order, a donation, a specific request', 'A shareable URL, created once'],
+                      ['Your reference', 'purpose + reference_id, returned in events', 'None; tie it by id or slug'],
+                      ['Link and QR', 'Link and QR: DYNAMIC_QR for a fixed amount, STATIC_QR for an open amount', 'A link; render the QR from its URL'],
+                      ['Destination account', 'The default account or one of yours (wallet_account_id)', 'The project’s default account'],
+                      ['Confirmation', 'payment_session.paid and status PAID', 'payment_link.paid'],
+                      ['SDK (0.13.0)', 'createPaymentSession', 'HTTP — see the note below'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>For most integrations, a Payment Session is the right choice: it ties the payment to your reference and already includes the link and the QR code.</P>
+
+              <H3 id="journey">How a payment flows</H3>
+              <ResponsibilityDiagram
+                title="How a payment flows"
+                desc="Your application creates the session and shows the link or QR code. The payer pays on Banzami’s page. Banzami records the payment and sends the webhook. Your application verifies the webhook and updates its state."
+                appLabel="Your application" banzamiLabel="Banzami"
+                steps={[
+                  { side: 'app', text: 'Creates the session' },
+                  { side: 'banzami', text: 'Returns link and QR' },
+                  { side: 'app', text: 'Shows link or QR' },
+                  { side: 'banzami', text: 'The payer pays' },
+                  { side: 'banzami', text: 'Records it, sends webhook' },
+                  { side: 'app', text: 'Verifies and confirms' },
+                ]} />
+
+              <H3 id="create-session">Create a Payment Session</H3>
+              <Callout><strong>Minor units:</strong> <Code>amountMinor: 25000</Code> is 250 Kz (100 = 1 Kz).</Callout>
+              <CodeBlock label="ts · create a payment session (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} {...enCopy} />
+              <UL>
+                <LI><strong>Payee:</strong> comes from Financial Setup. <Code>merchant_id</Code>, <Code>wallet_id</Code> or <Code>payee</Code> in the request returns <Code>400 PAYEE_NOT_ALLOWED</Code>.</LI>
+                <LI><strong>Destination account:</strong> the project’s main account by default. To keep funds apart, pass <Code>walletAccountId</Code> for one of your accounts. <a href="/docs/en/transfers" style={a}>Segregated accounts</a></LI>
+                <LI><strong>Reference:</strong> there is one session per <Code>purpose</Code> + <Code>reference_id</Code>. Sending the same reference again returns the existing session (<Code>200</Code>), even with a different amount.</LI>
+                <LI><strong>Open amount:</strong> without <Code>amountMinor</Code>, the payer enters the amount, and the QR interface is <Code>STATIC_QR</Code> instead of <Code>DYNAMIC_QR</Code>.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: MUT }}><strong>Expected result:</strong> <Code>201</Code>, <Code>status: &quot;ACTIVE&quot;</Code> and <Code>interfaces</Code> with <Code>PAYMENT_LINK</Code> (and <Code>DYNAMIC_QR</Code> for a fixed amount).</P>
+
+              <H3 id="present">Show the link or QR code</H3>
+              <UL>
+                <LI><strong>Link:</strong> <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code> — an <Code>https://pay.banzami.com/pay/…</Code> URL.</LI>
+                <LI><strong>QR code:</strong> <Code>paymentSessionInterface(session, &apos;DYNAMIC_QR&apos;).value</Code> (or <Code>STATIC_QR</Code>, for an open amount) holds the same URL. For the image, call <Code>GET /v1/payment-sessions/{'{'}id{'}'}/qr?format=svg</Code>.</LI>
+                <LI>Any phone camera opens the page from the QR code. The page shows “SANDBOX — test environment”.</LI>
+              </UL>
+
+              <H3 id="confirm">Confirm the payment</H3>
+              <P>
+                Always confirm on your server: through the <Code>payment_session.paid</Code> webhook, or by reading the session until <Code>status</Code> is <Code>PAID</Code>.
+                A payer returning to your page is not a confirmation.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Status</th><th style={TH}>Meaning</th><th style={TH}>What to do</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['ACTIVE', 'The session is waiting for payment.', 'Show the link or QR code. This is not an error.'],
+                      ['PAID', 'The payment has reached your account.', 'Confirm the order, once.'],
+                      ['CANCELLED', 'The session was cancelled and can no longer be paid.', 'Create a new session if you still want to collect.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="links">Create a Payment Link</H3>
+              <P>
+                A Payment Link is a reusable URL you can share without creating a session per customer. With a project key, the request does not name the payee.
+              </P>
+              <CodeBlock label="curl · create a payment link" raw={SAMPLE_LINK_CURL} onCopy={copy} {...enCopy} />
+              <Callout tone="warn">
+                <strong>SDK 0.13.0:</strong> <Code>createPaymentLink</Code> and <Code>listPaymentLinks</Code> still require <Code>merchantId</Code> in their types, which a project key cannot send. Use HTTP for links until the next SDK release.
+              </Callout>
+              <UL>
+                <LI><strong>Confirm:</strong> the <Code>payment_link.paid</Code> event, or <Code>GET /v1/payment-links/{'{'}id{'}'}</Code> with the id returned at creation (a slug returns <Code>404</Code>).</LI>
+                <LI><strong>Close an unpaid link:</strong> <Code>DELETE /v1/payment-links/{'{'}id{'}'}</Code> returns it with <Code>status: &quot;CANCELLED&quot;</Code>.</LI>
+                <LI><strong>List:</strong> <Code>GET /v1/payment-links?limit=20</Code>, with <Code>next_cursor</Code> for the next page.</LI>
+              </UL>
+
+              <H3 id="payment-errors">Common errors</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Response</th><th style={TH}>Cause</th><th style={TH}>Fix</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['403 PAYMENTS_UNAVAILABLE', 'The project has not completed Financial Setup.', 'Complete Financial Setup.'],
+                      ['403 INSUFFICIENT_SCOPE', 'The key lacks payment_sessions:write.', 'Create a key with that scope.'],
+                      ['400 PAYEE_NOT_ALLOWED', 'The request names a payee.', 'Remove merchant_id, wallet_id and payee.'],
+                      ['400 BAD_REQUEST', 'Zero or negative amount, or a currency that differs from the account.', 'Send a positive integer in minor units.'],
+                      ['404 NOT_FOUND', 'wallet_account_id belongs to an account that is not yours.', 'Use one of the project’s accounts.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="payment-console">In the Console</H3>
+              <P>Payments appear in <strong>Transactions</strong>, with amount and status. Every request made with the key appears in <strong>Logs</strong>, with its <Code>request_id</Code>.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/webhooks', title: 'Set up webhooks', desc: 'Receive payment_session.paid safely.' },
+                { href: '/docs/en/refunds', title: 'Refund a payment', desc: 'In full or in part, with idempotency.' },
+                { href: '/docs/en/reference#resource-sessions', title: 'Reference: sessions', desc: 'Parameters, responses and errors.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnWebhooks({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="webhooks">
+              <h1 style={H1_STYLE}>Webhooks</h1>
+              <PageLede>Banzami sends signed events to an HTTPS endpoint on your server when a payment, refund or settlement changes state.</PageLede>
+
+              <H3 id="lifecycle">The life of a delivery</H3>
+              <PathDiagram title="The life of a webhook delivery" desc="Banzami records the event and sends it to the endpoint. The endpoint verifies the signature, deduplicates by id, applies the effect and responds 2xx. Without a 2xx, Banzami retries up to five times." steps={['Event', 'Signed delivery', 'Verify', 'Deduplicate', 'Apply', 'Respond 2xx']} highlight={2} />
+
+              <H3 id="recipe">Set up an endpoint, step by step</H3>
+              <StepCard lang="en" n={1} of={10} id="webhook-step-1" title="Expose a public HTTPS endpoint"
+                what="A POST route on your server, reachable from the internet."
+                why="Banzami delivers over the public internet. HTTP, localhost and private addresses are refused at registration."
+                success="A test POST to the URL reaches your server."
+                next="Register the endpoint.">
+                For example <Code>https://www.example.com/api/webhooks/banzami</Code>.
+              </StepCard>
+              <StepCard lang="en" n={2} of={10} id="webhook-step-2" title="Register the endpoint and store the secret"
+                what={<><Code>createWebhookEndpoint</Code> (<Code>POST /v1/webhooks/endpoints</Code>) with the URL and the events you want.</>}
+                why="The returned secret is the only way to verify that a delivery comes from Banzami."
+                success={<>The response includes <Code>secret</Code>. Store it as <Code>BANZAMI_WEBHOOK_SECRET</Code> — it is not returned again.</>}
+                next="Read the raw body.">
+                <CodeBlock label="ts · register and rotate the secret" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} {...enCopy} />
+              </StepCard>
+              <StepCard lang="en" n={3} of={10} id="webhook-step-3" title="Read the raw body"
+                what={<><Code>await req.text()</Code>, before any parsing.</>}
+                why="The signature covers the bytes received. Parsing and re-serialising the JSON changes those bytes."
+                success="You have the body as text, not as an object."
+                next="Verify the signature.">
+                In frameworks that parse the body automatically, turn that off for this route.
+              </StepCard>
+              <StepCard lang="en" n={4} of={10} id="webhook-step-4" title="Verify the signature before parsing"
+                what={<><Code>banzami.webhooks.constructEvent(raw, signature)</Code>, with the <Code>banza-signature</Code> header.</>}
+                why="Anyone can POST to your endpoint. Until the signature checks out, the content cannot be trusted."
+                success={<><Code>constructEvent</Code> returns the event. With an invalid signature, it throws.</>}
+                next="Reject invalid signatures.">
+                <CodeBlock label="ts · verify and handle an event" raw={SAMPLE_WEBHOOK} onCopy={copy} {...enCopy} />
+              </StepCard>
+              <Callout tone="warn"><strong>Common mistake:</strong> reading the body with <Code>req.json()</Code> and verifying afterwards. Verification fails, and your code has already used unauthenticated data.</Callout>
+              <CodeBlock label="ts · wrong and right" raw={SAMPLE_WEBHOOK_WRONG} onCopy={copy} {...enCopy} />
+              <StepCard lang="en" n={5} of={10} id="webhook-step-5" title="Reject invalid signatures"
+                what={<>Respond <Code>400</Code> with no side effects when <Code>constructEvent</Code> throws.</>}
+                why="A genuine delivery that failed is retried by Banzami; a forged request causes nothing."
+                success="The request is rejected and nothing is written."
+                next="Deduplicate.">
+                The header format is <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>. The timestamp tolerance is 5 minutes.
+              </StepCard>
+              <StepCard lang="en" n={6} of={10} id="webhook-step-6" title="Deduplicate by event id"
+                what={<>Record the envelope <Code>id</Code> and ignore an id you have already processed.</>}
+                why="Delivery is at-least-once: the same event can arrive more than once."
+                success="A second delivery of the same event causes no second effect."
+                next="Apply the effect.">
+                Store the id in the same transaction that applies the effect.
+              </StepCard>
+              <StepCard lang="en" n={7} of={10} id="webhook-step-7" title="Apply the business effect"
+                what={<>Update your state from <Code>type</Code> and <Code>data</Code>.</>}
+                why="The event carries your reference — reference_id, for example — so you can match it to your resource."
+                success="The order, donation or settlement is updated exactly once."
+                next="Respond quickly.">
+                Each event’s fields are listed in <a href="/docs/en/events" style={a}>Events</a>. Do not rely on arrival order.
+              </StepCard>
+              <StepCard lang="en" n={8} of={10} id="webhook-step-8" title="Respond 2xx quickly"
+                what={<>Respond <Code>2xx</Code> and move slow work to a queue.</>}
+                why="A slow or non-2xx response counts as a failure and triggers a retry."
+                success={<>In <strong>Console → Webhooks</strong>, the delivery shows <Code>2xx</Code>.</>}
+                next="Handle failures and replays.">
+                Any <Code>2xx</Code> status counts as delivered.
+              </StepCard>
+              <StepCard lang="en" n={9} of={10} id="webhook-step-9" title="Recover failed deliveries"
+                what="List deliveries and replay the ones that failed."
+                why="A delivery that failed five times is not retried automatically again."
+                success={<>The replayed delivery becomes <Code>SUCCESS</Code>.</>}
+                next="Rotate the secret when needed.">
+                <Code>listWebhookEvents</Code>, <Code>listWebhookDeliveries(eventId)</Code> and <Code>replayWebhookDelivery(deliveryId)</Code>. A delivery that already succeeded returns <Code>409 DELIVERY_ALREADY_SUCCEEDED</Code>.
+              </StepCard>
+              <StepCard lang="en" n={10} of={10} id="webhook-step-10" title="Rotate the secret without losing deliveries"
+                what={<><Code>rotateWebhookEndpointSecret(id)</Code> returns a new secret, once.</>}
+                why="The switch is immediate: the next delivery is signed with the new secret."
+                success="Your server accepts deliveries signed with the new secret."
+                next="Monitor in Console → Webhooks.">
+                Prepare your server for the new secret before rotating. A delivery rejected during the switch is retried by Banzami.
+              </StepCard>
+
+              <H3 id="redelivery">Retries and replay</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Attempt</th><th style={TH}>When</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['1', 'Immediately after the event'],
+                      ['2', '1 minute after the previous failure'],
+                      ['3', '5 minutes after the previous failure'],
+                      ['4', '30 minutes after the previous failure'],
+                      ['5', '2 hours after the previous failure'],
+                    ].map((r) => (
+                      <tr key={r[0]}><td style={TD_MONO}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>After the fifth failure, the delivery is <Code>FAILED</Code> and can be replayed. Delivery order is not guaranteed.</P>
+
+              <H3 id="disable">Disable and re-enable an endpoint</H3>
+              <P>
+                A disabled endpoint stops receiving events. <strong>Events emitted while it is disabled are never delivered to it</strong>, even after you re-enable it;
+                they remain visible under <strong>Events</strong>. Re-enabling applies to the events that follow.
+              </P>
+
+              <H3 id="envelope">Envelope format</H3>
+              <CodeBlock label="json · event envelope" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} {...enCopy} />
+              <P style={{ fontSize: 13, color: MUT }}><Code>id</Code> (deduplication), <Code>type</Code> (one of the events), <Code>created_at</Code> (UTC) and <Code>data</Code>. <a href="/docs/en/events" style={a}>Fields for each event</a></P>
+
+              <H3 id="manage-endpoint">Scopes and access</H3>
+              <UL>
+                <LI><Code>webhooks:read</Code> reads endpoints, events and deliveries. <Code>webhooks:write</Code> registers, disables, replays and rotates the secret.</LI>
+                <LI>An endpoint, event or delivery from another project returns <Code>404</Code>.</LI>
+                <LI>The owner comes from Financial Setup: no request accepts <Code>merchant_id</Code>.</LI>
+              </UL>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/events', title: 'Event reference', desc: 'When each event is emitted and what to do.' },
+                { href: '/docs/en/testing#test-webhooks', title: 'Test webhooks', desc: 'Trigger a delivery, a failure and a replay.' },
+                { href: '/docs/en/troubleshooting#symptom-webhook-missing', title: 'Webhook not arriving', desc: 'Step-by-step diagnosis.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnEvents({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="events-page">
+              <h1 style={H1_STYLE}>Events</h1>
+              <PageLede>The seven events Banzami emits: when they happen, the fields they carry, and what your application should do.</PageLede>
+              <UL>
+                <LI>All of them arrive in the same <a href="/docs/en/webhooks#envelope" style={a}>envelope</a>, signed, delivered at least once and in no guaranteed order.</LI>
+                <LI>The listed fields are the contract. A payload may carry other fields for internal audit; do not depend on them.</LI>
+                <LI>Amounts are in minor units (100 = 1 Kz); timestamps are UTC.</LI>
+              </UL>
+              <H3 id="event-catalogue">Catalogue</H3>
+              <EventReference lang="en" onCopy={copy} />
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/webhooks', title: 'Set up webhooks', desc: 'Verify, deduplicate and respond.' },
+                { href: '/docs/en/testing', title: 'Test in the Sandbox', desc: 'Which events you can trigger, and how.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+
+export function EnRefunds({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="refunds">
+              <h1 style={H1_STYLE}>Refunds</h1>
+              <PageLede>Return all or part of a confirmed payment to the payer. The amount is debited from the account that received the payment.</PageLede>
+
+              <H3 id="refund-flow">How it works</H3>
+              <PathDiagram title="How a refund flows" desc="A confirmed payment carries refund_source. Your application creates the refund with that refund_source and an idempotency_key. Banzami debits the receiving account, returns the amount to the payer and emits refund.completed." steps={['Payment PAID', 'refund_source', 'createRefund', 'Account debited', 'refund.completed']} highlight={2} />
+
+              <H3 id="create-refund">Refund a payment</H3>
+              <Callout><strong>Minor units:</strong> <Code>amount_minor: 5000</Code> is 50 Kz (100 = 1 Kz).</Callout>
+              <StepCard lang="en" n={1} of={3} id="refund-step-1" title="Get the payment source"
+                what={<>The payment’s <Code>refund_source</Code>: <Code>{'{'} source_type, source_id {'}'}</Code>.</>}
+                why="A refund refers to the payment itself, not to the session or link that led to it."
+                success={<>You have <Code>source_type</Code> (<Code>WALLET_PAYMENT</Code>) and <Code>source_id</Code>.</>}
+                next="Create the idempotency key.">
+                It comes in the <Code>payment_session.paid</Code> or <Code>payment_link.paid</Code> event, and on the session once it is paid.
+              </StepCard>
+              <StepCard lang="en" n={2} of={3} id="refund-step-2" title="Store an idempotency key"
+                what={<>One <Code>idempotency_key</Code> per refund intent, stored before the request.</>}
+                why="If the response is lost, retrying with the same key returns the original refund instead of refunding twice."
+                success="The key is recorded in your system against the refund."
+                next="Create the refund.">
+                The SDK does not generate this key: a fresh random value on every attempt would defeat the protection.
+              </StepCard>
+              <StepCard lang="en" n={3} of={3} id="refund-step-3" title="Create the refund"
+                what={<><Code>createRefund</Code>, with the source, amount, currency and key.</>}
+                why="The refund executes immediately and emits refund.completed."
+                success={<><Code>201</Code> with <Code>status: &quot;SUCCEEDED&quot;</Code>, and a <Code>refund.completed</Code> event whose <Code>trace_id</Code> is your key.</>}
+                next="Show the refund to your customer.">
+                <CodeBlock label="ts · refund a payment (@banzami/sdk)" raw={SAMPLE_REFUND} onCopy={copy} {...enCopy} />
+              </StepCard>
+
+              <H3 id="refund-rules">Rules</H3>
+              <UL>
+                <LI><strong>Sources:</strong> <Code>WALLET_PAYMENT</Code> for Session and Link payments, and <Code>ACQUIRING_PAYMENT</Code> for payments over an external rail.</LI>
+                <LI><strong>Partial refunds:</strong> you can make several refunds against one payment, up to the amount received.</LI>
+                <LI><strong>Currency:</strong> must be the payment’s currency.</LI>
+                <LI><strong>Balance:</strong> the amount leaves the account that received the payment. If that account no longer holds enough, the request returns <Code>422 REFUND_NOT_FUNDABLE</Code>.</LI>
+                <LI><strong>Receipt:</strong> once a payment is fully refunded, its receipt becomes <Code>REVERSED</Code>. <a href="/docs/en/receipts" style={a}>Receipts</a></LI>
+                <LI><strong>Access:</strong> the <Code>refunds:write</Code> scope, on <Code>POST /v1/refunds</Code>. Another project’s payment returns <Code>404</Code>.</LI>
+              </UL>
+
+              <H3 id="refund-errors">Common errors</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Response</th><th style={TH}>Cause</th><th style={TH}>Retry</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['422 REFUND_EXCEEDS_CAPTURED', 'The amount exceeds what is left to refund.', 'With a different amount and a new key.'],
+                      ['422 REFUND_NOT_FUNDABLE', 'The receiving account does not hold enough.', 'Once the balance is there, with a new key.'],
+                      ['422 INVALID_PAYMENT_STATUS', 'The payment cannot be refunded.', 'No.'],
+                      ['422 CURRENCY_MISMATCH', 'The currency is not the payment’s.', 'With the right currency and a new key.'],
+                      ['409 IDEMPOTENCY_KEY_CONFLICT', 'The same key was used with a different amount or currency on this payment.', 'With the original request, or with a new key for a different refund.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="refund-console">In the Console</H3>
+              <P>In <strong>Transactions</strong>, the <strong>Refunds</strong> filter shows every refund. Through the API, <Code>listRefunds({'{'} sourceId {'}'})</Code> lists a payment’s refunds.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/testing#test-refunds', title: 'Test a refund', desc: 'Full, partial and over the limit.' },
+                { href: '/docs/en/events#event-refund-completed', title: 'refund.completed', desc: 'The event’s fields.' },
+                { href: '/docs/en/reference#resource-refunds', title: 'Reference: refunds', desc: 'Parameters, responses and errors.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnSettlements({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="settlements">
+              <h1 style={H1_STYLE}>Settlements</h1>
+              <PageLede>Pay out the balance of a segregated account to a beneficiary. Banzami calculates the fee, credits the net amount and reports the result.</PageLede>
+
+              <H3 id="payment-vs-settlement">Payment and settlement</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Payment</th><th style={TH}>Settlement</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Movement', 'From the payer to your account', 'From your account to the beneficiary'],
+                      ['Started by', 'The payer', 'Your application, with an explicit request'],
+                      ['Fee', 'None', 'Set by the pricing profile Banzami assigned'],
+                      ['Automatic', 'Yes, when the payer pays', 'No. It happens only when you request it'],
+                      ['Event', 'payment_session.paid', 'application_settlement.completed'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="calculation">How the amount is split</H3>
+              <Callout><strong>Minor units:</strong> <Code>100000</Code> is 1,000 Kz (100 = 1 Kz).</Callout>
+              <SettlementSplitDiagram l={{
+                title: 'Settling 1,000 Kz with a 200 bps fee',
+                desc: 'The campaign account holds 100000 minor units. At 200 basis points the fee is 2000 and goes to your fee destination; 98000 goes to the beneficiary. The three movements sum to zero.',
+                source: 'Campaign account', gross: '100000',
+                beneficiary: 'Beneficiary (net)', net: '98000',
+                fee: 'Fee destination', feeAmount: '2000',
+                sum: '−100000 + 2000 + 98000 = 0',
+              }} />
+              <UL>
+                <LI><strong>Gross:</strong> the account’s whole available balance at the time of the request. The request carries no amount.</LI>
+                <LI><strong>Fee:</strong> 200 basis points (bps) = 2%. It comes from the pricing profile Banzami assigned to your Business; a pricing field in the request returns <Code>400 PRICING_FIELD_NOT_ACCEPTED</Code>.</LI>
+                <LI><strong>Net:</strong> gross minus fee, credited to the beneficiary.</LI>
+              </UL>
+
+              <H3 id="request-settlement">Request a settlement</H3>
+              <StepCard lang="en" n={1} of={3} id="settlement-step-1" title="Check the project can settle"
+                what={<><Code>getFinancialSetup()</Code> → <Code>settlement.ready</Code> and <Code>settlement.blockers</Code>.</>}
+                why="Each blocker is the refusal the settlement would return."
+                success={<><Code>settlement.ready</Code> is <Code>true</Code>.</>}
+                next="Choose the account and beneficiary.">
+                Common blockers: no pricing profile (<Code>PRICING_NOT_CONFIGURED</Code>) or an ineligible fee destination (<Code>FEE_DESTINATION_TYPE_NOT_ALLOWED</Code>).
+              </StepCard>
+              <StepCard lang="en" n={2} of={3} id="settlement-step-2" title="Store the idempotency key"
+                what={<>One <Code>idempotencyKey</Code> per settlement, stored before the request.</>}
+                why="If the response is lost, the same key returns the settlement already made, or resumes one that did not complete."
+                success="The key is recorded against the campaign or order."
+                next="Create the settlement.">
+                For example <Code>idem_settlement_campaign_123</Code>.
+              </StepCard>
+              <StepCard lang="en" n={3} of={3} id="settlement-step-3" title="Create the settlement"
+                what={<><Code>createBusinessApplicationSettlement</Code> with the account, the beneficiary and, when there is a fee, the fee destination.</>}
+                why="Banzami calculates gross, fee and net, and moves all three in one operation."
+                success={<><Code>201</Code> with <Code>status: &quot;COMPLETED&quot;</Code>, <Code>gross_amount_minor</Code>, <Code>application_fee_minor</Code> and <Code>net_amount_minor</Code>. Store the response.</>}
+                next="Receive application_settlement.completed.">
+                <CodeBlock label="ts · settle an account (@banzami/sdk)" raw={SAMPLE_SETTLE} onCopy={copy} {...enCopy} />
+              </StepCard>
+
+              <H3 id="fee-destination">Fee destination</H3>
+              <P>
+                When the pricing profile resolves a fee, pass <Code>feeDestinationBanzaName</Code>: an @banza of your own Business, of type
+                <Code> APPLICATION</Code> or <Code>PLATFORM</Code>, with approved verification and an active wallet. Without it, the settlement returns <Code>422 FEE_DESTINATION_REQUIRED</Code>.
+                The APPLICATION classification of an account is assigned by Banzami.
+              </P>
+
+              <H3 id="settlement-errors">Errors and retries</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Response</th><th style={TH}>Cause</th><th style={TH}>Idempotency key</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['409 PRICING_NOT_CONFIGURED', 'The Business has no pricing profile yet.', 'New, once Banzami assigns the profile'],
+                      ['422 FEE_DESTINATION_REQUIRED', 'There is a fee and no destination.', 'New, with the destination'],
+                      ['422 NOTHING_TO_SETTLE', 'The account has no available balance.', 'New, once there is a balance'],
+                      ['422 SOURCE_NOT_SEGREGATED', 'The source is the Business’s main account.', 'New, with a segregated account'],
+                      ['422 BENEFICIARY_NOT_FOUND', 'The @banza has no active wallet in this currency.', 'New, with another beneficiary'],
+                      ['422 SETTLEMENT_NOT_COMPLETED', 'The settlement was created but did not complete.', 'The same — it resumes the settlement'],
+                      ['502 · 503', 'A temporary failure.', 'The same'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="settlement-console">In the Console</H3>
+              <UL>
+                <LI><strong>Financial Setup</strong> shows settlement readiness, the pricing profile and the fee destination.</LI>
+                <LI><strong>Balances</strong> shows the account balance, which drops to zero after the settlement.</LI>
+                <LI>The Console does not list settlements, and a project key cannot fetch one by id. Keep the request’s response and the <Code>application_settlement.completed</Code> event.</LI>
+              </UL>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/doa#doa-settlement', title: 'Settlement in DOA', desc: 'Closing a campaign and settling it.' },
+                { href: '/docs/en/events#event-application_settlement-completed', title: 'Settlement events', desc: 'completed, cancelled and failed.' },
+                { href: '/docs/en/reference#ref-settlement-create', title: 'Reference: settlement', desc: 'Parameters, responses and errors.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnReceipts({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="receipts">
+              <h1 style={H1_STYLE}>Receipts</h1>
+              <PageLede>Every confirmed payment has a receipt with a public reference. Anyone holding the reference can verify the payment, with no account and no key.</PageLede>
+
+              <H3 id="two-references">Transaction reference and proof reference</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Transaction reference</th><th style={TH}>Proof reference (SECURE_V1)</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Example', '5AD6BEA0', 'BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX'],
+                      ['What it is', 'The start of the transfer id', 'The receipt’s identifier'],
+                      ['Where it appears', 'In the Banzami app’s activity list', 'On the receipt, with a QR code'],
+                      ['Publicly verifiable', 'No', 'Yes, at banzami.com/r/{reference} and through the API'],
+                      ['Use it to', 'Recognise the transaction in a list', 'Prove the payment exists and what state it is in'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : i === 1 || (i === 2 && r[0] === 'Example') ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="format">SECURE_V1 format</H3>
+              <UL>
+                <LI><Code>BZM-</Code> followed by 24 symbols in six groups of four.</LI>
+                <LI>Alphabet: digits and upper-case letters, without I, L, O and U, so no letter is mistaken for a digit.</LI>
+                <LI>120 random bits: a reference cannot be guessed or enumerated.</LI>
+                <LI>Older eight-symbol references (<Code>BZM-XXXX-XXXX</Code>) remain verifiable.</LI>
+              </UL>
+              <Callout>Whoever holds the reference sees the amount, both parties’ @banza and the description. Share it with the same care as the receipt itself.</Callout>
+
+              <H3 id="verify">Verify a receipt</H3>
+              <P>The receipt’s QR code opens <Code>banzami.com/r/&#123;reference&#125;</Code>, the public verification page. The public API performs the same check, with no authentication.</P>
+              <PathDiagram title="Verifying a receipt" desc="A receipt has a reference and a QR code. The QR code opens banzami.com/r/{reference}. The same check is available in the public API, which answers 200, 404 or 503." steps={['Receipt', 'BZM-… reference', 'banzami.com/r/… or API', 'Result']} highlight={2} />
+              <CodeBlock label="curl · verify a receipt" onCopy={copy} {...enCopy} raw={`curl https://sandbox-api.banzami.com/v1/public/proofs/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`} />
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>HTTP</th><th style={TH}>Response</th><th style={TH}>Meaning</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['200', 'status, amount, parties and date', 'Verified. status: CONFIRMED, PENDING, REVERSED, CANCELLED, FAILED or EXPIRED.'],
+                      ['404', 'exists: false, status NOT_FOUND', 'It does not exist, or the reference was altered. Both return the same response.'],
+                      ['503', 'exists: false, status UNAVAILABLE', 'Verification is temporarily unavailable. Try again later; it does not mean the receipt is forged.'],
+                    ].map((r) => (
+                      <tr key={r[0]}><td style={TD_MONO}>{r[0]}</td><td style={TD}>{r[1]}</td><td style={TD}>{r[2]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>No normalisation:</strong> lower case, spaces or an extra hyphen return <Code>404</Code>. Copy the reference; do not retype it.</LI>
+                <LI><strong>Refunds:</strong> a fully refunded payment keeps its receipt, with <Code>status: REVERSED</Code>.</LI>
+                <LI><strong>Issuing:</strong> the receipt PDF is issued to the Business in the Banzami Business app. A project key does not download receipts.</LI>
+              </UL>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/doa#doa-receipt', title: 'Receipts in DOA', desc: 'Banzami’s receipt and the application’s own.' },
+                { href: '/docs/en/reference#ref-public-proof', title: 'Reference: verification', desc: 'GET /v1/public/proofs/{ref}.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnTransfers({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="accounts-transfers">
+              <h1 style={H1_STYLE}>Accounts and transfers</h1>
+              <PageLede>Keep funds apart per campaign, store or event in segregated accounts, and move value between accounts of the same Business.</PageLede>
+
+              <H3 id="segregated-accounts">Segregated accounts</H3>
+              <SegregatedAccountsDiagram l={{
+                title: 'One Business, one account per campaign',
+                desc: 'The project is connected to a Business through Financial Setup. Inside that Business’s wallet, each campaign has its own account.',
+                project: 'Your project',
+                owner: 'Business',
+                ownerNote: 'set by Financial Setup',
+                accounts: ['Campaign A', 'Campaign B', 'Campaign C'],
+                accountNote: 'one account per campaign',
+              }} />
+              <UL>
+                <LI><strong>Create:</strong> <Code>createWalletAccount</Code> with a <Code>purpose</Code> and your reference. The request names no wallet and no Business.</LI>
+                <LI><strong>Receive:</strong> pass that account’s <Code>walletAccountId</Code> to <Code>createPaymentSession</Code>.</LI>
+                <LI><strong>Settle:</strong> the account is the source of <a href="/docs/en/settlements" style={a}>a settlement</a>.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: MUT }}>Another project’s account returns <Code>404</Code>, like one that does not exist. Naming the wallet returns <Code>400 PAYEE_NOT_ALLOWED</Code>.</P>
+
+              <H3 id="transfers">Transfer between accounts</H3>
+              <Callout><strong>Minor units:</strong> <Code>amountMinor: 50000</Code> is 500 Kz (100 = 1 Kz).</Callout>
+              <CodeBlock label="ts · transfer between accounts (@banzami/sdk)" raw={SAMPLE_TRANSFER} onCopy={copy} {...enCopy} />
+              <P style={{ fontSize: 13, color: MUT }}><strong>Expected result:</strong> <Code>201</Code> with <Code>status: &quot;COMPLETED&quot;</Code>. Debit and credit are atomic; the Business total does not change.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>A transfer is</th><th style={TH}>A transfer is not</th></tr></thead>
+                  <tbody>
+                    <tr><td style={TD}>A move between two accounts of the same Business</td><td style={TD}>A payment to a third party</td></tr>
+                    <tr><td style={TD}>Synchronous, confirmed in the response</td><td style={TD}>A settlement with a fee</td></tr>
+                    <tr><td style={TD}>Protected by the idempotencyKey</td><td style={TD}>A withdrawal to a bank account</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>Idempotency:</strong> the same key returns the original transfer; the same key with a different request returns <Code>409 IDEMPOTENCY_KEY_REUSED</Code>.</LI>
+                <LI><strong>Balance:</strong> without enough funds, the request returns <Code>422 INSUFFICIENT_FUNDS</Code> and nothing moves.</LI>
+                <LI><strong>Access:</strong> the <Code>transfers:write</Code> scope, on <Code>POST /v1/wallet-account-transfers</Code>.</LI>
+              </UL>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/settlements', title: 'Settle an account', desc: 'From the account balance to the beneficiary.' },
+                { href: '/docs/en/reference#resource-accounts', title: 'Reference: accounts', desc: 'Parameters, responses and errors.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+
 export function EnDoa({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
 <Section id="doa">
-              <H2>Reference implementation — DOA</H2>
-              <PageLede>A real application, running, integrating Banzami through exactly the public contracts in this documentation.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/console', text: 'The Console' }, { href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/reference', text: 'API Reference' }]} />
-
-              <H3 id="doa-what">What DOA is, and why it is here</H3>
-              <P>
-                <a href="https://www.doadoa.app" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>DOA</a>{' '}
-                is an Angolan crowdfunding platform. Someone creates a campaign, shares a link or
-                a QR, and anyone who wants to donates in Kwanza. It is a real application, with
-                real donors, running on the Banzami Sandbox.
-              </P>
+              <h1 style={H1_STYLE}>Reference implementation — DOA</h1>
+              <PageLede>
+                <a href="https://www.doadoa.app" style={a}>DOA</a> is an Angolan fundraising application that uses the Banzami Sandbox for its financial flows.
+                This guide uses DOA to show how an external application integrates Banzami through the public contracts.
+              </PageLede>
               <Callout>
-                <strong>DOA is not a special tenant.</strong> It has no endpoints of its own, no
-                scopes of its own, and no code path that names it. It does exactly what any
-                integration does, with the same contracts that are in this documentation — which
-                is precisely what makes it useful as an example. If anything here only worked for
-                DOA, it would not be documented.
+                <strong>DOA is a reference implementation, not a privileged tenant.</strong> It uses the same public API, SDK, authorisation model,
+                webhooks and settlement model available to every developer.
               </Callout>
 
-              <H3 id="doa-boundary">The boundary: what is yours, and what is Banzami&rsquo;s</H3>
-              <P>
-                This is the most important decision in any integration, and the easiest to get
-                wrong in the expensive direction: reimplementing money.
-              </P>
+              <H3 id="doa-what">What DOA demonstrates</H3>
+              <UL>
+                <LI>One segregated account per campaign, so one campaign’s funds never mix with another’s.</LI>
+                <LI>Payments through a Payment Session, with Banzami’s payment page and QR code.</LI>
+                <LI>Confirmation by verified webhook, applied exactly once.</LI>
+                <LI>Settling a campaign to its beneficiary, with the fee calculated by Banzami.</LI>
+                <LI>Reconciliation without keeping balances of its own.</LI>
+              </UL>
+
+              <H3 id="doa-architecture">Architecture</H3>
+              <PathDiagram title="DOA integration architecture" desc="The donor uses the DOA application. DOA’s server calls the Banzami API through @banzami/sdk. The donor pays at pay.banzami.com. Banzami sends signed webhooks to DOA’s server." steps={['Donor', 'DOA application', '@banzami/sdk', 'Banzami API', 'pay.banzami.com', 'Webhook to DOA']} highlight={3} />
+
+              <H3 id="doa-boundary">Responsibilities</H3>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
-                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>DOA owns</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Banzami owns</th>
-                  </tr></thead>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>DOA owns</th><th style={TH}>Banzami owns</th></tr></thead>
                   <tbody>
                     {[
-                      ['Campaigns: creating, editing, closing', 'The money: balances, accounts, the ledger'],
-                      ['The donor experience', 'Payment execution'],
-                      ['Campaign state (active, closed, settled)', 'Pricing and the fee'],
-                      ['Who can manage what, on DOA’s side', 'Receipts and their public verification'],
-                      ['The application’s business logic', 'Settlement to the beneficiary'],
+                      ['Campaigns', 'Financial execution'],
+                      ['The donor experience', 'Balances'],
+                      ['Campaign state', 'The ledger'],
+                      ['Application business rules', 'Pricing and fees'],
+                      ['Application-side reconciliation', 'Receipts and public verification'],
+                      ['Requesting settlement', 'Settlement'],
                     ].map((r, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 600 }}>{r[0]}</td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
-                      </tr>
+                      <tr key={i}><td style={TD}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <SegregatedAccountsDiagram l={{
-                title: 'Segregated accounts: one financial owner, one account per campaign',
-                project: 'Your project',
-                owner: 'financial owner',
-                ownerNote: 'from financial setup — never from your request',
-                accounts: ['Campaign A', 'Campaign B', 'Campaign C'],
-                accountNote: 'one wallet account each',
-              }} />
-              <P>
-                DOA never stores a balance of its own. When it needs to know what a campaign has
-                received, it asks Banzami — because the alternative is two numbers that one day
-                diverge, and on that day one of them is wrong and nobody knows which.
-              </P>
+              <P>DOA never stores a balance. When it needs to know how much a campaign has received, it asks Banzami.</P>
 
-              <H3 id="doa-prepare">Preparing the project</H3>
-              <P>
-                Everything DOA does starts like any other integration — a developer account, a
-                workspace and a project. DOA received none of these steps differently.
-              </P>
+              <H3 id="doa-flow">The integration journey</H3>
+              <ResponsibilityDiagram
+                title="From donor to settlement: what DOA does and what Banzami does"
+                desc="DOA creates the campaign account and the payment session. Banzami returns the link and QR code, takes the payment, issues the receipt and sends the webhook. DOA confirms the donation and, at close, requests settlement. Banzami calculates the fee and settles."
+                appLabel="DOA" banzamiLabel="Banzami"
+                steps={[
+                  { side: 'app', text: 'Campaign account' },
+                  { side: 'app', text: 'Payment session' },
+                  { side: 'banzami', text: 'Link and QR code' },
+                  { side: 'banzami', text: 'Payment and receipt' },
+                  { side: 'banzami', text: 'payment_session.paid' },
+                  { side: 'app', text: 'Confirms the donation' },
+                  { side: 'app', text: 'Requests settlement' },
+                  { side: 'banzami', text: 'Fee and settlement' },
+                ]} />
+
+              <H3 id="doa-prepare">1. Prepare the project</H3>
+              <ChapterFacts lang="en" appLabel="DOA"
+                goal="A project with Financial Setup complete and a key with the scopes it needs."
+                app="Creates the workspace and project in the Console, completes Financial Setup, and stores the key and webhook secret on its server."
+                banzami="Reviews the Business application, or accepts the owner’s consent code, and assigns the pricing profile."
+                result={<><Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
+                failure={<><Code>403 PAYMENTS_UNAVAILABLE</Code> when creating a session: Financial Setup is not complete yet.</>} />
               <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <LI>Sign in to the <a href="/docs/en/console" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Console</a>, create a <strong>workspace</strong> and, inside it, a <strong>project</strong> for the application.</LI>
+                <LI>In the <a href="/docs/en/console" style={a}>Console</a>, create a <strong>workspace</strong> and a <strong>project</strong> for the application.</LI>
                 <LI>
-                  Complete the <strong>financial setup</strong>. DOA receives donations for beneficiaries, so it
-                  needs a Business. There are two paths: <strong>apply for a new Business</strong>, which Banzami
-                  reviews before the project can receive; or <strong>connect a Business that already exists</strong>{' '}
-                  with the consent code its owner generates in the Banzami Business app. See{' '}
-                  <a href="/docs/en/get-started#financial-setup" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Financial setup</a>.
+                  Complete <strong>Financial Setup</strong>: apply for a new Business, which Banzami reviews, or connect an existing Business with the
+                  consent code its owner generates. <a href="/docs/en/get-started#financial-setup" style={a}>Financial Setup</a>
                 </LI>
                 <LI>
-                  Create a <strong>secret key</strong> with the scopes this pattern uses, and only those:{' '}
-                  <Code>identity:read</Code>, <Code>wallet_accounts:create</Code>, <Code>wallet_accounts:read</Code>,{' '}
-                  <Code>payment_sessions:write</Code>, <Code>payment_sessions:read</Code>,{' '}
-                  <Code>webhooks:write</Code>, <Code>webhooks:read</Code> and{' '}
-                  <Code>application_settlements:write</Code>. Settlement has a scope of its own: being able to
-                  take payments never carries, by accident, the ability to pay money out.
+                  Create a secret key with <Code>identity:read</Code>, <Code>wallet_accounts:create</Code>, <Code>wallet_accounts:read</Code>,{' '}
+                  <Code>payment_sessions:write</Code>, <Code>payment_sessions:read</Code>, <Code>webhooks:write</Code>, <Code>webhooks:read</Code> and{' '}
+                  <Code>application_settlements:write</Code>. Settlement has a scope of its own: being able to receive does not grant the ability to settle.
                 </LI>
                 <LI>Install the SDK on the server: <Code>npm install @banzami/sdk</Code>.</LI>
                 <LI>
-                  Configure the server with <Code>BANZAMI_API_KEY</Code> (the <Code>bz_test_sk_</Code> key) and{' '}
-                  <Code>BANZAMI_WEBHOOK_SECRET</Code> (the endpoint&rsquo;s secret, shown once when you register it). If
-                  your business&rsquo;s pricing profile applies a fee to settlements, also{' '}
-                  <Code>BANZAMI_FEE_DESTINATION</Code>: the @banza of your business&rsquo;s account that receives it. No
-                  merchant_id, no wallet_id.
+                  Set <Code>BANZAMI_API_KEY</Code> and <Code>BANZAMI_WEBHOOK_SECRET</Code> (the endpoint secret, returned once at registration). If the pricing profile
+                  charges a settlement fee, also set <Code>BANZAMI_FEE_DESTINATION</Code>, the @banza of your Business that receives it.
                 </LI>
-                <LI>
-                  Before letting a campaign go live, ask whether the project can receive yet:{' '}
-                  <Code>getFinancialSetup()</Code>. That is how DOA lets people create campaigns and does not let
-                  them activate one until financial setup is complete.
-                </LI>
+                <LI>Before activating a campaign, confirm with <Code>getFinancialSetup()</Code> that the project can receive payments.</LI>
               </ol>
 
-              <H3 id="doa-flow">The whole journey</H3>
-              <DonationFlowDiagram title="From donor to settlement: who does what, and with which call" steps={[
-                { actor: 'Donor', what: 'picks a campaign and names an amount', how: "DOA's own business logic" },
-                { actor: 'DOA', what: 'asks for a payment session', how: 'POST /v1/payment-sessions' },
-                { actor: 'Banzami', what: 'returns the link and the QR', how: 'GET /v1/payment-sessions/{id}/link · /qr' },
-                { actor: 'Donor', what: 'pays on the Banzami surface' },
-                { actor: 'Banzami', what: 'moves the money and records the financial truth' },
-                { actor: 'webhook', what: 'payment_session.paid — signed, at-least-once', how: 'DOA verifies the signature and processes idempotently' },
-                { actor: 'DOA', what: 'marks the donation confirmed', how: "DOA's own state" },
-                { actor: 'DOA', what: 'closes the campaign and asks for settlement', how: 'POST /v1/application-settlements' },
-                { actor: 'webhook', what: 'application_settlement.completed — gross, fee and net' },
-              ]} />
-              <P>
-                The donor pays on a Banzami page, not a DOA one. The session returns a link to{' '}
-                <Code>pay.banzami.com/pay/…</Code> and a QR that encodes the same address; DOA shows one or the
-                other and never builds a financial request itself. The donor coming back to DOA&rsquo;s page
-                proves nothing — confirmation arrives on the webhook, or by reading the session on the server.
-              </P>
-
-              <H3 id="doa-accounts">One account per campaign</H3>
-              <P>
-                Every DOA campaign has its own segregated account under DOA&rsquo;s wallet. That is
-                why a campaign&rsquo;s balance is a question with an answer, rather than a running
-                total the application has to maintain.
-              </P>
-              <CodeBlock label="account per campaign" onCopy={copy} raw={`// When the campaign is activated, DOA opens the account that will receive it.
+              <H3 id="doa-accounts">2. Create the campaign account</H3>
+              <ChapterFacts lang="en" appLabel="DOA"
+                goal="One segregated account per campaign."
+                app="Creates the account when the campaign is activated, and stores its id with the campaign."
+                banzami="Opens the account in the project’s Business wallet."
+                result={<><Code>201</Code> with the account <Code>id</Code> and <Code>status: &quot;ACTIVE&quot;</Code>.</>}
+                failure={<><Code>400 PAYEE_NOT_ALLOWED</Code> if the request names the wallet.</>} />
+              <CodeBlock label="ts · one account per campaign" onCopy={copy} {...enCopy} raw={`// When the campaign is activated, open the account that will receive it.
 const account = await banzami.createWalletAccount({
   purpose:       'CAMPAIGN',
   referenceType: 'CAMPAIGN',
-  referenceId:   campaign.id,      // YOUR reference, not ours
+  referenceId:   campaign.id,      // your application's reference
   label:         campaign.title,
 });
 
-// Keep the id. It is how settlement knows where to take the money from.
+// Store the id: it is the settlement source.
 await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id });`} />
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                <Code>reference_type</Code> and <Code>reference_id</Code> are yours: Banzami stores
-                them and hands them back, and never interprets them. That is how your table joins
-                to ours without either needing to know about the other.
+
+              <H3 id="doa-payment">3. Create the payment</H3>
+              <Callout><strong>Minor units:</strong> <Code>amountMinor: 500000</Code> is 5,000 Kz (100 = 1 Kz).</Callout>
+              <ChapterFacts lang="en" appLabel="DOA"
+                goal="One Payment Session per donation, credited to the campaign account."
+                app="Creates the session with the donation intent id as its reference."
+                banzami="Creates the link and QR code, both tied to the campaign account."
+                result={<><Code>201</Code> with <Code>status: &quot;ACTIVE&quot;</Code> and a <Code>pay.banzami.com/pay/…</Code> link.</>}
+                failure="Sending the same reference again returns the existing session, even with a different amount." />
+              <CodeBlock label="ts · one session per donation" onCopy={copy} {...enCopy} raw={`const session = await banzami.createPaymentSession({
+  walletAccountId: campaign.banzami_wallet_account_id,
+  purpose:         'DONATION',
+  referenceType:   'DONATION',
+  referenceId:     intent.id,       // returned in payment_session.paid
+  amountMinor:     500000,          // 5,000 Kz
+  currency:        'AOA',
+  description:     'Donation to ' + campaign.title,
+});
+const link = banzami.paymentSessionInterface(session, 'PAYMENT_LINK');`} />
+
+              <H3 id="doa-page">4. Payment page and QR code</H3>
+              <P>
+                The donor pays on a Banzami page. The session returns a link to <Code>pay.banzami.com/pay/…</Code> and a QR code that encodes the same address;
+                DOA shows one of them. The donor returning to DOA does not confirm the payment: the confirmation arrives by webhook, or by reading the session on the server.
               </P>
 
-              <H3 id="doa-webhook">The webhook, the way DOA handles it</H3>
-              <CodeBlock label="webhook" onCopy={copy} raw={`export async function POST(req) {
-  // 1. The RAW body. Re-serialising the JSON changes the bytes,
-  //    and the signature stops matching.
+              <H3 id="doa-webhook">5. Receive the webhook</H3>
+              <ChapterFacts lang="en" appLabel="DOA"
+                goal="Confirm each donation exactly once, from a verified event."
+                app="Verifies the signature over the raw body, deduplicates by event id, and confirms the donation."
+                banzami="Signs and delivers payment_session.paid, and retries if it does not receive a 2xx."
+                result="The donation is confirmed once, even when the event arrives more than once."
+                failure="Parsing the JSON before verifying: the signature check fails." />
+              <CodeBlock label="ts · webhook" onCopy={copy} {...enCopy} raw={`export async function POST(req) {
+  // 1. The raw body: re-serialising the JSON changes the signed bytes.
   const raw = await req.text();
 
-  // 2. Verify BEFORE looking at the contents. constructEvent does both in the
-  //    right order: it checks the signature, and only then returns the event.
-  //    Do not JSON.parse(raw) separately — that is reading before verifying.
-  //    (the client was created with { apiKey, webhookSecret })
+  // 2. Verify before reading. constructEvent verifies the signature and only then
+  //    returns the event. (client created with { apiKey, webhookSecret })
   let event;
   try {
     event = banzami.webhooks.constructEvent(raw, req.headers.get('banza-signature') ?? '');
@@ -1228,491 +1379,842 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
     return new Response('invalid signature', { status: 400 });
   }
 
-  // 3. Idempotent on the event id. Delivery is at-least-once:
-  //    this same event WILL arrive again, sooner or later.
-  if (await db.events.seen(event.id)) return new Response('ok');
+  // 3. Idempotent by event id: delivery is at-least-once.
+  if (await db.events.exists(event.id)) return new Response('ok');
   await db.events.record(event.id);
 
-  // 4. Only now the business effect.
+  // 4. The business effect.
   if (event.type === 'payment_session.paid') {
-    // reference_id is the reference DOA gave the session when it created it.
+    // reference_id is the reference given when the session was created.
     await confirmDonation(event.data.reference_id);
   }
 
-  // 5. 2xx quickly. Slow work goes on a queue, not in here.
+  // 5. Respond 2xx quickly; slow work goes to a queue.
   return new Response('ok');
 }`} />
-              <Callout tone="warn">
-                Steps 1 and 3 are the ones people forget. Without the raw body the signature fails
-                for a reason that looks like a Banzami bug; without deduplication on the event id,
-                an ordinary redelivery duplicates the donation.
-              </Callout>
 
-              <H3 id="doa-receipt">The donor&rsquo;s receipt</H3>
+              <H3 id="doa-state">6. Update application state</H3>
+              <UL>
+                <LI><strong>The donation</strong> becomes confirmed when the event is applied. DOA confirms by donation intent, once, whether the confirmation comes through <Code>payment_session.paid</Code> or <Code>payment_link.paid</Code>.</LI>
+                <LI><strong>The campaign total</strong> is not a balance DOA stores: it reads it from Banzami with <Code>getWalletAccount</Code>.</LI>
+                <LI><strong>The campaign state</strong> (active, closed, settled) belongs to DOA. The state of the money belongs to Banzami.</LI>
+              </UL>
+
+              <H3 id="doa-receipt">7. Receipt</H3>
               <P>
-                When the donor pays, Banzami issues the payment&rsquo;s <strong>receipt</strong> — not DOA. The donor
-                receives it in the Banzami app, with a public <Code>BZM-…</Code> reference and a QR that opens{' '}
-                <Code>https://banzami.com/r/&#123;reference&#125;</Code>. The donation receipt DOA sends is something else: it is
-                DOA&rsquo;s, it says which campaign received, and it may quote that reference.
+                The payment receipt is issued by Banzami, with a public <Code>BZM-…</Code> reference and a QR code that opens <Code>https://banzami.com/r/&#123;reference&#125;</Code>.
+                The donation receipt DOA sends is an application document, which can quote that reference.
               </P>
               <P>
-                Anyone can confirm the receipt, with no account and no key, with{' '}
-                <Code>GET /v1/public/proofs/&#123;reference&#125;</Code>: <Code>200</Code> with the status and the amount, or{' '}
-                <Code>404</Code> if it does not exist or was altered. Whoever holds the reference sees the amount and both
-                parties&rsquo; @banza — share it the way you would share the receipt itself. See{' '}
-                <a href="/docs/en/guides#receipts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Receipts and public verification</a>.
+                Verification is public: <Code>GET /v1/public/proofs/&#123;reference&#125;</Code> returns <Code>200</Code> with the status and amount, or <Code>404</Code>.{' '}
+                <a href="/docs/en/receipts" style={a}>Receipts</a>
               </P>
 
-              <H3 id="doa-settlement">Settlement, and who decides what</H3>
+              <H3 id="doa-close">8. Close the campaign</H3>
               <P>
-                When a campaign closes, DOA requests settlement of that campaign&rsquo;s account.
-                The request carries neither an amount nor a rate — and that is not an omission for
-                convenience, it is the design.
+                Closing a campaign is DOA’s decision, and it is when DOA requests settlement. Until then, the balance stays in the campaign account.
+                A closed campaign with a pending settlement is a normal state, and the application should present it as one.
               </P>
-              <CodeBlock label="settlement" onCopy={copy} raw={`const settlement = await banzami.createBusinessApplicationSettlement({
-  sourceAccountId:      campaign.banzami_wallet_account_id,
-  beneficiaryBanzaName: campaign.payout_banza,     // the @banza receiving it
-  // Where the fee goes, when your pricing profile applies one. It must be an
-  // account of YOUR business, of type APPLICATION or PLATFORM. Without it, a
-  // settlement that carries a fee is refused with 422 FEE_DESTINATION_REQUIRED.
+
+              <H3 id="doa-settlement">9. Settle the campaign</H3>
+              <ChapterFacts lang="en" appLabel="DOA"
+                goal="Pay out the campaign balance to the beneficiary."
+                app="Requests settlement of the campaign account with one idempotency key per campaign, and stores the settlement id."
+                banzami="Reads the balance, applies the pricing profile, credits the fee and the net, and emits application_settlement.completed."
+                result={<><Code>201</Code> with <Code>gross_amount_minor</Code>, <Code>application_fee_minor</Code> and <Code>net_amount_minor</Code>.</>}
+                failure={<><Code>422 FEE_DESTINATION_REQUIRED</Code>: the pricing profile has a fee and the request names no destination.</>} />
+              <CodeBlock label="ts · settlement" onCopy={copy} {...enCopy} raw={`const settlement = await banzami.createBusinessApplicationSettlement({
+  sourceAccountId:         campaign.banzami_wallet_account_id,
+  beneficiaryBanzaName:    campaign.beneficiary_banza,    // the @banza that receives
+  // An @banza of your Business (APPLICATION or PLATFORM) when the profile has a fee.
   feeDestinationBanzaName: process.env.BANZAMI_FEE_DESTINATION,
-  referenceType:        'CAMPAIGN',
-  referenceId:          campaign.id,               // your reference, returned on the webhook
-  // A settlement moves money: the idempotency key is required, and it has to
-  // survive a timeout. Store it before you make the request.
-  idempotencyKey:       'idem_settlement_' + campaign.id,
+  referenceType:           'CAMPAIGN',
+  referenceId:             campaign.id,
+  // One key per campaign, stored before the request.
+  idempotencyKey:          'idem_settlement_' + campaign.id,
 });
 
-// What comes back is already the result, computed by Banzami:
+// Result, calculated by Banzami:
 // {
-//   gross_amount_minor:     100000,   // read from the account balance, not sent by you
-//   application_fee_minor:    2000,   // the pricing assigned to the Business (200 bps)
-//   net_amount_minor:        98000,   // what goes to the beneficiary
+//   gross_amount_minor:     100000,   // the account balance
+//   application_fee_minor:    2000,   // 200 bps
+//   net_amount_minor:        98000,   // to the beneficiary
 //   currency: "AOA", status: "COMPLETED"
-// }
-// -100000 + 2000 + 98000 = 0`} />
+// }`} />
               <P>
-                And the three parts sum to zero against the movement, which is the property that
-                makes this auditable: <Code>-100000 + 2000 + 98000 = 0</Code>. The gross is the account&rsquo;s
-                balance at the moment of the request; the fee is the one in the pricing profile Banzami assigned to
-                your business, not a field you can send.
+                The three movements sum to zero: <Code>-100000 + 2000 + 98000 = 0</Code>. The request carries no amount and no fee; settlement is never automatic.{' '}
+                <a href="/docs/en/settlements" style={a}>Settlements</a>
               </P>
-              <Callout>
-                <strong>A payment is not a settlement.</strong> A confirmed payment puts money in
-                the campaign&rsquo;s account. Settlement is a second act, requested by you, that
-                takes the money out. DOA requests it after the campaign closes — it does not
-                happen on its own.
-              </Callout>
 
-              <H3 id="doa-credentials">Rotating and revoking credentials</H3>
+              <H3 id="doa-reconciliation">10. Reconcile</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Check</th><th style={TH}>Source at Banzami</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Every confirmed donation matches a payment', 'payment_session.paid and getPaymentSession'],
+                      ['The campaign total', 'getWalletAccount (the account balance)'],
+                      ['A settlement’s gross, fee and net', 'The createBusinessApplicationSettlement response and application_settlement.completed'],
+                      ['A specific request', 'request_id in Console → Logs'],
+                    ].map((r, i) => (
+                      <tr key={i}><td style={TD}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="doa-credentials">11. Rotate and revoke credentials</H3>
               <UL>
-                <LI><strong>Rotating the key.</strong> Create a new key with the same scopes, put it on the server, confirm <Code>GET /v1/me</Code> answers, and only then revoke the old one. Revocation is immediate: the next call with the old key answers <Code>401</Code>.</LI>
-                <LI><strong>Rotating the webhook secret.</strong> <Code>rotateWebhookEndpointSecret</Code> returns a new secret, once. The cutover is immediate, not overlapping: update <Code>BANZAMI_WEBHOOK_SECRET</Code> on the server before you rotate, or the next deliveries fail verification.</LI>
-                <LI><strong>A suspected leak.</strong> Revoke first, investigate after. A revoked key is not reactivated; you create another.</LI>
+                <LI><strong>API key:</strong> create a new key with the same scopes, deploy it, confirm <Code>GET /v1/me</Code>, then revoke the old one. Revocation is immediate: the old key starts returning <Code>401</Code>.</LI>
+                <LI><strong>Webhook secret:</strong> <Code>rotateWebhookEndpointSecret</Code> returns a new secret, once. The switch is immediate; prepare your server before rotating.</LI>
+                <LI><strong>Suspected exposure:</strong> revoke first, investigate second. A revoked key cannot be reactivated.</LI>
               </UL>
 
-              <H3 id="doa-troubleshooting">When something does not go as expected</H3>
+              <H3 id="doa-lessons">What to reuse in your application</H3>
               <UL>
-                <LI><Code>403 PAYMENTS_UNAVAILABLE</Code> when creating the session — the project has no completed financial setup yet. Check the state in the Console or with <Code>getFinancialSetup()</Code>. Retrying does not help.</LI>
-                <LI><Code>403 INSUFFICIENT_SCOPE</Code> — the key lacks the operation&rsquo;s scope; the message names it. Create a key with that scope. Scopes are not added to an existing key.</LI>
-                <LI><strong>The webhook does not arrive.</strong> Look at the endpoint&rsquo;s deliveries in the Console: your server&rsquo;s response code and the time of the attempt. An endpoint that answers outside <Code>2xx</Code> gets the delivery again.</LI>
-                <LI><strong>The signature does not verify.</strong> It is almost always the body: it was read as JSON and serialised again. Verify over the raw body, with the endpoint&rsquo;s current secret.</LI>
-                <LI><strong>The same event twice.</strong> That is expected — delivery is at-least-once. Handle it by the event&rsquo;s <Code>id</Code> and ignore what you have already processed.</LI>
-                <LI><strong>The settlement is refused.</strong> The source account has to be your own account with a balance, and the beneficiary an existing <Code>@banza</Code>. Retry with the <strong>same</strong> idempotency key: a settlement that did happen does not happen twice.</LI>
-                <LI><strong>When you ask for help</strong>, send the response&rsquo;s <Code>request_id</Code>, the time and the operation. Never send the key, the webhook secret or a sign-in code. See <a href="/docs/en/trust#support" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Support</a>.</LI>
+                <LI><strong>One account per business unit from the start.</strong> Separating funds after they are mixed is far harder.</LI>
+                <LI><strong>No duplicated balances.</strong> Show the amount Banzami returns.</LI>
+                <LI><strong>Financial readiness is a condition.</strong> Check it before offering payment, rather than waiting for the 403.</LI>
+                <LI><strong>Log the request_id</strong> of every unexpected response.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: MUT }}>The examples use fictitious identifiers and contain no keys, secrets or internal ids.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/get-started', title: 'Quickstart', desc: 'The same steps, for your application.' },
+                { href: '/docs/en/settlements', title: 'Settlements', desc: 'Calculation, fee destination and errors.' },
+                { href: '/docs/en/troubleshooting', title: 'Troubleshooting', desc: 'By symptom, with what to check.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+
+export function EnConsole({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="console">
+              <h1 style={H1_STYLE}>The Console</h1>
+              <PageLede>The Console, at <Code>developers.banzami.com</Code>, is where you manage workspaces, projects, Financial Setup, keys, webhooks and logs.</PageLede>
+
+              <H3 id="model">The model</H3>
+              <P>Person, workspace, project and Business are distinct concepts. <a href="/docs/en/concepts#model" style={a}>The integration model</a></P>
+
+              <H3 id="account">Account</H3>
+              <P>Your personal account is at <Code>/conta</Code>. You sign in with your email and a six-digit code; there is no password.</P>
+              <UL>
+                <LI><strong>Profile</strong> — the name shown to members of your workspaces. Your email is your identifier and cannot be changed.</LI>
+                <LI><strong>Security</strong> — describes how sign-in works: a code by email and a cookie session. There is no password or MFA to configure.</LI>
+                <LI><strong>Sessions</strong> — open sessions, with origin and last use, and an option to end all others.</LI>
+                <LI><strong>Sign out</strong> — asks for confirmation and ends the current session.</LI>
               </UL>
 
-              <H3 id="doa-lessons">What DOA learned along the way</H3>
+              <H3 id="workspace">Workspaces, members and roles</H3>
+              <P>A workspace defines who has access. Creating one is immediate.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Role</th><th style={TH}>Permissions</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Owner', 'Everything, including inviting, changing roles, archiving and deleting. The last Owner cannot leave.'],
+                      ['Admin', 'Manage members, projects and keys. Cannot change or remove Owners or other Admins, and cannot appoint Admins.'],
+                      ['Developer', 'Create and manage projects, keys and webhooks. Does not manage members.'],
+                      ['Finance', 'View balances, transactions and settlements. Does not create keys.'],
+                      ['Viewer', 'Read-only.'],
+                    ].map((r) => (
+                      <tr key={r[0]}><td style={TD_HEAD}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <UL>
-                <LI><strong>Never duplicate a balance.</strong> DOA shows what Banzami says. Two numbers that ought to be equal end up not being, and then someone has to decide which one is true.</LI>
-                <LI><strong>Keep the <Code>request_id</Code> of everything.</strong> It is the first thing support asks for and the last thing anyone thinks to log.</LI>
-                <LI><strong>One account per campaign, from the start.</strong> Separating value after it has been mixed is far harder than never mixing it.</LI>
-                <LI><strong>Campaign state is DOA&rsquo;s; money state is Banzami&rsquo;s.</strong> A closed campaign with a pending settlement is a normal state, and the application has to know how to show it.</LI>
-                <LI><strong>Financial readiness is a condition, not an error.</strong> Before Financial Setup is complete DOA lets you create campaigns and not activate them — rather than allowing everything and failing at the payment.</LI>
+                <LI><strong>Invite</strong> generates a link the Console copies for you. The invitation sets the role; whoever accepts signs in with their own email.</LI>
+                <LI><strong>Leaving a workspace</strong> is always possible, except for the last Owner.</LI>
+                <LI><strong>Transferring ownership</strong> takes two steps: an Owner gives another member the Owner role, then leaves or changes their own role. The workspace is never without an Owner.</LI>
+                <LI><strong>Archive</strong> is refused while projects are active; the Console says how many.</LI>
+                <LI><strong>Delete</strong> is possible only for a workspace with no history. A workspace with history is archived.</LI>
               </UL>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                The examples above are minimal and sanitised: fictitious identifiers, no keys, no
-                secrets and no internal ids. What they teach is the recommended pattern, not the
-                story of how DOA got there.
+
+              <H3 id="activity">Workspace activity</H3>
+              <P>
+                Under <Code>Settings · Activity</Code>, the workspace’s administrative record: invitations, joins and departures, role changes, and changes to the workspace,
+                its projects and its keys. A role change shows both the previous and the new role.
               </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Activity</th><th style={TH}>Logs</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Answers', 'Who changed what in the workspace', 'What your application asked the API'],
+                      ['Scope', 'The workspace', 'One project'],
+                      ['Who sees it', 'Owners and Admins', 'Members with access to the project'],
+                      ['Retention', 'Permanent; survives deleted projects', '30 days'],
+                      ['Secrets', 'Never: no key values or prefixes', 'Never: no Authorization header, no request bodies'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P style={{ fontSize: 13, color: MUT }}>Personal sessions, sign-in codes and account settings are not in Activity; they belong to <Code>/conta</Code>.</P>
+
+              <H3 id="project">Projects</H3>
+              <UL>
+                <LI><strong>Project ID</strong> — does not change when you rename the project.</LI>
+                <LI><strong>Delete</strong> — possible while the project has no history: no key ever issued, no request logged, no Financial Setup.</LI>
+                <LI><strong>Archive</strong> — for projects with history. Revokes active keys; from then on they return <Code>401</Code>.</LI>
+                <LI>Archived projects appear under <strong>Show archived</strong>.</LI>
+              </UL>
+
+              <H3 id="financial">Financial Setup</H3>
+              <P>
+                Connects the project to the Business that receives its payments, by application or by consent code. It shows the application status, settlement readiness,
+                the pricing profile and the fee destination. <a href="/docs/en/get-started#financial-setup" style={a}>The two paths</a>
+              </P>
+              <P style={{ fontSize: 13, color: MUT }}>The same state is available through the API at <Code>GET /v1/financial-setup</Code>.</P>
+
+              <H3 id="keys">API keys</H3>
+              <UL>
+                <LI><strong>Name</strong> — identifies the key in the list and in Activity; it does not change permissions.</LI>
+                <LI><strong>Scopes</strong> — set at creation and immutable.</LI>
+                <LI><strong>Secret</strong> — shown once, in the creation dialog. Afterwards the list shows only the prefix and a mask.</LI>
+                <LI><strong>Rotate</strong> — creates the successor and revokes the previous key in one step. For a switch without downtime, create a new key first, deploy it, then revoke the old one.</LI>
+                <LI><strong>Revoke</strong> — immediate: the next request with that key returns <Code>401</Code>.</LI>
+                <LI><strong>Last used</strong> — shows which keys are no longer in use.</LI>
+              </UL>
+              <P><a href="/docs/en/trust#keys" style={a}>Where to store keys</a></P>
+
+              <H3 id="console-webhooks">Webhooks</H3>
+              <UL>
+                <LI><strong>Register</strong> an HTTPS endpoint; the signing secret is returned once.</LI>
+                <LI><strong>Events</strong> lists your project’s events; each event shows its deliveries, with status and response code.</LI>
+                <LI><strong>Replay</strong> repeats the same delivery.</LI>
+                <LI><strong>Rotate secret</strong> issues a new secret, shown once; the endpoint stays the same.</LI>
+                <LI><strong>Disable</strong> stops sending events to the endpoint without deleting it. Events emitted while it is disabled are not delivered to it later.</LI>
+              </UL>
+              <P><a href="/docs/en/webhooks" style={a}>Set up webhooks</a></P>
+
+              <H3 id="logs">Balances, transactions and logs</H3>
+              <UL>
+                <LI><strong>Balances</strong> — the accounts of the Business connected to the project, and the balance of each.</LI>
+                <LI><strong>Transactions</strong> — payments, refunds and transfers between accounts of the Business connected to the project, including those started by other projects of the same Business.</LI>
+                <LI><strong>Logs</strong> — every request made with the project’s keys, with <Code>request_id</Code>, status and latency.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: MUT }}>No Console page shows illustrative data. An empty list means there is nothing recorded yet.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/get-started', title: 'Quickstart', desc: 'From account to first payment.' },
+                { href: '/docs/en/trust', title: 'Security', desc: 'Keys, secrets and permissions.' },
+                { href: '/docs/en/troubleshooting', title: 'Troubleshooting', desc: 'What to check in the Console, by symptom.' },
+              ]} />
             </Section>
     </>
   );
 }
 
 export function EnReference({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
 <Section id="api-reference">
-              <H2>API Reference</H2>
-              <PageLede>The <strong>protocol reference</strong> layer (API/OpenAPI). <strong>It is not the recommended implementation path</strong> — Banzami is SDK-first; use this reference for diagnostics, audits and advanced integrators.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/sdk', text: 'SDKs' }]} />
-              <P>The reference splits into two areas: what you manage in the <strong>Console</strong> and what your application calls in the <strong>integration layer</strong>.</P>
-              <P>
-                Your application authenticates by sending the Sandbox <Code>bz_test_</Code> API key directly in the{' '}
-                <Code>Authorization: Bearer …</Code> header and calls the integration layer at <Code>sandbox-api.banzami.com</Code>.
-                <Code>bz_live_</Code> keys are <strong>rejected fail-closed</strong> — there is no Production key issuance.
-              </P>
-
-              <H3 id="console-management">Managed in the Console</H3>
-              <P>
-                Workspaces, projects, members and <strong>keys</strong> are managed in the Banzami Developers portal — through the
-                interface, with a session and role-based permissions. It is not a public API to call directly, so its internal
-                endpoints are not exposed here. The Overview, Webhooks and Logs show the project&rsquo;s real data —
-                requests, latencies, errors and emitted events, correlatable by <Code>request_id</Code>.
-              </P>
-
-              <H3 id="credentials">Credentials and capabilities</H3>
-              <P>
-                Not every documented capability is callable with the same credential today. This matrix tells the truth per
-                credential — so “Available in Sandbox” is always true <em>for you</em>, not just for the platform:
-              </P>
+              <h1 style={H1_STYLE}>API reference</h1>
+              <PageLede>Banzami’s public API v1, endpoint by endpoint: authentication, scope, parameters, response, errors, events and the matching SDK method.</PageLede>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Capability</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Credential</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Status</th>
-                    </tr>
-                  </thead>
+                <table style={TABLE}>
+                  <tbody>
+                    {[
+                      ['Base URL', 'https://sandbox-api.banzami.com/v1'],
+                      ['Authentication', 'Authorization: Bearer bz_test_sk_…'],
+                      ['Format', 'JSON; UTC timestamps (RFC 3339); amounts in minor units'],
+                      ['Version', 'v1'],
+                      ['Recommended SDK', '@banzami/sdk'],
+                      ['Specification', 'OpenAPI at /developers/openapi/banzami-sandbox.openapi.json'],
+                    ].map((r) => (
+                      <tr key={r[0]}><td style={TD_HEAD}>{r[0]}</td><td style={TD_MONO}>{r[1]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="authentication">Authentication</H3>
+              <UL>
+                <LI>Send the secret key in the <Code>Authorization: Bearer bz_test_sk_…</Code> header. There is no token exchange.</LI>
+                <LI><Code>bz_live_</Code> keys are refused. <a href="/docs/en/concepts#sandbox-live" style={a}>Sandbox and Live</a></LI>
+                <LI>A revoked or rotated key returns <Code>401 UNAUTHORIZED</Code>.</LI>
+                <LI>Workspaces, projects, members and keys are managed in the Console; they are not part of this API.</LI>
+              </UL>
+
+              <H3 id="credentials">Capabilities by credential</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Capability</th><th style={TH}>Credential</th><th style={TH}>Status</th></tr></thead>
                   <tbody>
                     {([
-                      ['Console — sign in, workspaces, projects, members, keys', 'OTP session (email + code)', 'Operational in Sandbox'],
-                      ['Console — Transactions, Webhooks, Logs and Workspace Activity', 'OTP session (email + code)', 'The project’s and workspace’s own real data'],
-                      ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in Sandbox'],
-                      ['Payment sessions', 'Developer key (payment_sessions:write / :read, project with financial setup complete)', 'Available in Sandbox'],
-                      ['Payment links', 'Developer key (payment_links:write / :read, project with financial setup complete)', 'Available in Sandbox'],
-                      ['Webhook endpoint registration (POST /v1/webhooks/endpoints)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
-                      ['Outbound webhook delivery', '—', 'Available in Sandbox — real, signed deliveries to your HTTPS endpoint'],
-                      ['Refunds (POST /v1/refunds)', 'Project key (refunds:write)', 'Available in Sandbox — the refund debits the account that received the payment'],
-                      ['Transfers (POST /v1/wallet-account-transfers)', 'Project key (transfers:write)', 'Available in Sandbox — between accounts of the project’s own owner'],
-                      ['Financial LIVE / banking rails / external providers', '—', 'Unavailable · fail-closed'],
+                      ['Console — workspaces, projects, members, keys', 'Session (email + code)', 'Available in Sandbox'],
+                      ['GET /v1/me', 'Project key (identity:read)', 'Available in Sandbox'],
+                      ['Payment Sessions', 'Project key (payment_sessions:write / :read) and completed Financial Setup', 'Available in Sandbox'],
+                      ['Payment Links', 'Project key (payment_links:write / :read) and completed Financial Setup', 'Available in Sandbox'],
+                      ['Webhooks', 'Project key (webhooks:write / :read)', 'Available in Sandbox'],
+                      ['Refunds', 'Project key (refunds:write / :read)', 'Available in Sandbox'],
+                      ['Transfers between accounts', 'Project key (transfers:write)', 'Available in Sandbox'],
+                      ['Settlements', 'Project key (application_settlements:write)', 'Available in Sandbox'],
+                      ['Financial Live', '—', 'Unavailable (fail-closed)'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
-                      <tr key={cap}>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{cred}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{st}</td>
-                      </tr>
+                      <tr key={cap}><td style={TD_HEAD}>{cap}</td><td style={TD}>{cred}</td><td style={TD}>{st}</td></tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
               <H3 id="idempotency">Idempotency <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H3>
-              <P>
-                Send the <Code>Idempotency-Key</Code> header on any write so you can <strong>retry safely</strong> after a
-                network failure or timeout without duplicating the effect. Sandbox behaviour: the original response (2xx or
-                4xx) is replayed for the same key for <strong>24 hours</strong>, scoped per credential, method and path;
-                <Code>5xx</Code> responses are never replayed (the request may be retried); two <strong>concurrent</strong>{' '}
-                requests with the same key get <Code>409 IDEMPOTENCY_CONFLICT</Code> until the first finishes — wait and retry
-                with the <em>same</em> key. The same key with a different body gets <Code>409 IDEMPOTENCY_KEY_REUSED</Code>:
-                it is a different request and needs a different key.
-              </P>
-              <CodeBlock label="curl · safe retry with Idempotency-Key" raw={SAMPLE_IDEM_RETRY} onCopy={copy} {...enCopy} />
-
-              <H3 id="authentication">Authentication and key management <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H3>
               <UL>
-                <LI><strong>Direct Bearer:</strong> send the Sandbox key in <Code>Authorization: Bearer bz_test_sk_…</Code> (or <Code>X-API-Key</Code>). <Code>bz_live_</Code> keys are <strong>rejected fail-closed</strong> — Production keys are not issued.</LI>
-                <LI><strong>Environment separation:</strong> <Code>bz_test_</Code> keys belong to the Sandbox; future Production keys will be issued only after platform enablement (<em>Production in preparation</em>).</LI>
-                <LI><strong>Secrets stay server-side:</strong> the <Code>bz_test_sk_</Code> never reaches a browser, mobile app, repository, logs or analytics; only the <Code>bz_test_pk_</Code> may live client-side.</LI>
-                <LI><strong>Rotation:</strong> rotate keys periodically and whenever exposure is suspected; after rotation the previous key stops being accepted immediately.</LI>
-                <LI><strong>Revocation (verified behaviour):</strong> a revoked key receives <Code>401 UNAUTHORIZED</Code> on any call — verified in the Sandbox E2E.</LI>
+                <LI><strong><Code>Idempotency-Key</Code> header:</strong> on any write, the original response (2xx or 4xx) is replayed for the same key for 24 hours, per credential, method and path.</LI>
+                <LI><strong>5xx:</strong> never replayed; the request can be retried with the same key.</LI>
+                <LI><strong>Concurrent requests</strong> with the same key: the second gets <Code>409 IDEMPOTENCY_CONFLICT</Code>. Wait, then retry with the same key.</LI>
+                <LI><strong>The same key with a different body</strong> gets <Code>409 IDEMPOTENCY_KEY_REUSED</Code>: it is a different request and needs a different key.</LI>
+                <LI><strong>Refunds, transfers and settlements</strong> also require an <Code>idempotency_key</Code> in the body, which protects the money movement.</LI>
               </UL>
+              <CodeBlock label="curl · safe retry with Idempotency-Key" raw={SAMPLE_IDEM_RETRY} onCopy={copy} {...enCopy} />
 
               <H3 id="rate-limits">Rate limits</H3>
               <P>
-                There are limits per IP address and per key. Exceeding them returns <Code>429 RATE_LIMITED</Code> with a{' '}
-                <Code>Retry-After</Code> header, in seconds: wait that long and retry with the same idempotency key. The
-                limit values are not part of the contract and may change; the behaviour — 429, Retry-After, nothing
-                executed — is.
+                Limits apply per IP address and per key. When you exceed them, the API returns <Code>429 RATE_LIMITED</Code> with a <Code>Retry-After</Code> header, in seconds, and does not execute the request.
+                The limit values may change; this behaviour does not.
               </P>
               <H3 id="time">Dates and times</H3>
               <P>
-                Every date in the API is UTC, in RFC 3339 (<Code>2026-07-11T11:45:00Z</Code>). Store them that way and
-                convert only for display. The Console shows them in your browser&rsquo;s local time, and the public receipt
-                verification page in Luanda time — the time of the event is always the API&rsquo;s UTC.
+                All timestamps are UTC, in RFC 3339 (<Code>2026-07-11T11:45:00Z</Code>). The Console displays them in your browser’s time zone, and the public receipt verification
+                page in Luanda time.
               </P>
-              <H3 id="identifiers">Identifiers to keep</H3>
+              <H3 id="identifiers">Identifiers to store</H3>
               <UL>
-                <LI><strong>Project ID</strong> — your project; it does not change when the name does.</LI>
-                <LI><strong>The ids of the resources</strong> you create — <Code>session_id</Code>, the account, refund and endpoint ids — to read them later.</LI>
-                <LI><strong>Your own <Code>reference_id</Code></strong> — Banzami stores it and returns it, on resources and events; it is how a payment is tied to your order.</LI>
-                <LI><strong>Each event&rsquo;s <Code>id</Code></strong> — to deduplicate repeated deliveries.</LI>
-                <LI><strong>The receipt&rsquo;s <Code>BZM-…</Code> reference</strong>, when you have it — it is what verifies publicly.</LI>
-                <LI><strong>The <Code>request_id</Code></strong> of every response that went wrong — it is what support asks for.</LI>
+                <LI><strong>Project ID</strong> — unchanged when the project is renamed.</LI>
+                <LI><strong>Resource ids</strong> — <Code>session_id</Code>, account, refund, endpoint — to look them up.</LI>
+                <LI><strong><Code>reference_id</Code></strong> — your reference, returned on resources and events.</LI>
+                <LI><strong>Each event’s <Code>id</Code></strong> — to deduplicate deliveries.</LI>
+                <LI><strong>The <Code>BZM-…</Code> reference</strong> — the one that verifies publicly.</LI>
+                <LI><strong><Code>request_id</Code></strong> — of every unexpected response.</LI>
               </UL>
-              <P>
-                An id is not authority. Knowing the id of another project&rsquo;s resource gives no access to it — it answers{' '}
-                <Code>404</Code> — and no request of yours carries the Business or wallet id: those come from financial setup.
-              </P>
+              <P style={{ fontSize: 13, color: MUT }}>An id grants no access: another project’s resource returns <Code>404</Code>.</P>
 
-              <H3 id="resource-reference">Resource reference</H3>
-              <P>
-                Endpoint-by-endpoint reference of the public surface verified in the Sandbox — method, credential, headers,
-                request body, response and common errors. Only resources with real evidence; nothing here claims Production.
-              </P>
+              <H3 id="resource-reference">Endpoints</H3>
               <ResourceReference lang="en" onCopy={copy} />
 
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Credential note: refunds and transfers are reached with a project key holding
-                {' '}<Code>refunds:write</Code> and <Code>transfers:write</Code>, on <Code>/v1/refunds</Code> and
-                {' '}<Code>/v1/wallet-account-transfers</Code>. Both were verified end to end against the deployed Sandbox, including
-                the refusals: a read-only key cannot write, and another project&rsquo;s payment or account answers <Code>404</Code>.
-                Sandbox only — never present either as available in Production.
-              </P>
-
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/errors', title: 'Error catalogue', desc: 'Every code, what it means and what to do.' },
+                { href: '/docs/en/events', title: 'Event reference', desc: 'Fields and expected action.' },
+                { href: '/docs/en/artifacts', title: 'OpenAPI and Postman', desc: 'The same endpoints, machine-readable.' },
+              ]} />
               </Section>
+    </>
+  );
+}
+
+export function EnErrors({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
 <Section id="errors">
-              <H2>Errors</H2>
-              <P>
-                Every error response from the integration layer uses the <strong>same JSON envelope</strong>: a stable code,
-                a readable message and a <Code>request_id</Code> to correlate with support. Handle errors by <Code>code</Code>,
-                never by message.
-              </P>
-              <CodeBlock label="json · canonical error envelope" raw={SAMPLE_ERROR} onCopy={copy} {...enCopy} />
-              <P>
-                That <Code>request_id</Code> is searchable. In <strong>Console → Logs → API requests</strong>, paste it to
-                find the exact request: method, path, status, latency and timestamp. Logs are your project&rsquo;s and only
-                your project&rsquo;s, and are kept for <strong>30 days</strong>. What is never stored: the{' '}
-                <Code>Authorization</Code> header, API keys, webhook secrets, cookies, OTPs or the request body.
-              </P>
-              <H3 id="error-catalogue">Error catalogue</H3>
-              <P>
-                Every code a project key can receive, and only those. The list is generated from the gateway source and
-                checked against it: a new code missing from here, or a code here that no longer exists, fails the check.
-                It describes the <strong>Sandbox</strong>; Financial LIVE behaviour is not claimed.
-              </P>
+              <h1 style={H1_STYLE}>Errors</h1>
+              <PageLede>Every error response uses the same envelope. Handle it by HTTP status first, then by the <Code>code</Code> field — never by the message.</PageLede>
+              <CodeBlock label="json · error envelope" raw={SAMPLE_ERROR} onCopy={copy} {...enCopy} />
+              <UL>
+                <LI><Code>code</Code> — stable; the field to branch on in your application.</LI>
+                <LI><Code>message</Code> — an English explanation for logs. It may change.</LI>
+                <LI><Code>request_id</Code> — finds the request in <strong>Console → Logs</strong> for 30 days. Logs never store the <Code>Authorization</Code> header, keys, secrets, cookies, OTP codes or request bodies.</LI>
+              </UL>
+
+              <H3 id="by-status">By HTTP status</H3>
+              <HttpClassTable lang="en" />
+
+              <H3 id="error-catalogue">By error code</H3>
+              <P>Every code a project key can receive in the Sandbox, and only those. Search by code or word, or filter by HTTP status and domain.</P>
               <ErrorCatalogue lang="en" />
-              <H3 id="console-errors">Console (access and keys)</H3>
-              <UL>
-                <LI><Code>INVALID_EMAIL</Code> / <Code>INVALID_CODE</Code> — fix the email, or ask for a new one-time code.</LI>
-                <LI><Code>RATE_LIMITED</Code> — too many requests; wait before retrying.</LI>
-                <LI><Code>UNAUTHENTICATED</Code> — the session expired; sign in again.</LI>
-                <LI><Code>FORBIDDEN</Code> — no permission for the action (role, or the origin/CSRF check).</LI>
-                <LI><Code>CONFLICT</Code> / <Code>LAST_OWNER</Code> — a state conflict; includes the last-Owner protection.</LI>
-                <LI><Code>INVITE_INVALID</Code> — the invitation expired, was revoked or was already used; ask for a new one.</LI>
-                <LI><Code>VALIDATION</Code> — invalid data; fix the fields.</LI>
-              </UL>
-              <H3 id="integration-errors">Integration</H3>
-              <UL>
-                <LI><Code>401 UNAUTHORIZED</Code> — the key is missing, revoked, or not a Sandbox key. The <Code>bz_test_sk_</Code> key goes straight into <Code>Authorization: Bearer</Code>; there is no token to exchange.</LI>
-                <LI>After a <strong>rotation</strong>, use the new key; the previous one stops being accepted.</LI>
-                <LI>Never repeat an operation that moves value without an <strong>idempotency key</strong>.</LI>
-              </UL>
+
+              <H3 id="console-errors">Console errors</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Code</th><th style={TH}>What to do</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['INVALID_EMAIL / INVALID_CODE', 'Correct the email, or request a new code.'],
+                      ['RATE_LIMITED', 'Wait before requesting another code.'],
+                      ['UNAUTHENTICATED', 'The session expired: sign in again.'],
+                      ['FORBIDDEN', 'Your role does not allow the action, or the request failed the origin check.'],
+                      ['CONFLICT / LAST_OWNER', 'The state changed, or the action would leave the workspace without an Owner.'],
+                      ['INVITE_INVALID', 'The invitation expired, was revoked or was already used: ask for a new one.'],
+                      ['VALIDATION', 'Correct the fields indicated.'],
+                    ].map((r) => (
+                      <tr key={r[0]}><td style={TD_MONO}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/troubleshooting', title: 'Troubleshooting', desc: 'Start from the symptom instead of the code.' },
+                { href: '/docs/en/reference#idempotency', title: 'Idempotency', desc: 'When to retry with the same key.' },
+                { href: '/docs/en/support', title: 'Support', desc: 'What to send, and what never to send.' },
+              ]} />
             </Section>
     </>
   );
 }
 
+
+export function EnSdk({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="sdks">
+              <h1 style={H1_STYLE}>SDKs</h1>
+              <PageLede>The official SDKs handle authentication, idempotency, retries and webhook verification. They are the recommended path; the HTTP API is there for diagnostics and specific integrations.</PageLede>
+
+              <H3 id="sdk-maturity">Available SDKs</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ ...TABLE, minWidth: 560 }}>
+                  <thead><tr style={THEAD}><th style={TH}>Package</th><th style={TH}>Language</th><th style={TH}>Status</th><th style={TH}>Install</th></tr></thead>
+                  <tbody>
+                    {SDKS.map((s) => (
+                      <tr key={s.name}><td style={TD_MONO}>{s.name}</td><td style={TD}>{s.lang}</td><td style={TD}>{s.state}</td><td style={TD_MONO}>{s.consume}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><Code>@banzami/sdk</Code> (npm) is the server SDK and uses the secret key.</LI>
+                <LI><Code>banzami_client</Code> (pub.dev) is the client SDK and uses only the read-only publishable key.</LI>
+                <LI>The Python, PHP and Go SDKs are not published; these docs show no install command for packages no registry offers.</LI>
+              </UL>
+
+              <H3 id="sdk-first">What the SDK handles for you</H3>
+              <UL>
+                <LI>Authentication with your key, and environment separation.</LI>
+                <LI>An <Code>Idempotency-Key</Code> on every write, and retries on <Code>429</Code>, <Code>502</Code>, <Code>503</Code> and <Code>504</Code>.</LI>
+                <LI>Typed errors: <Code>BanzamiApiError</Code> with <Code>status</Code> and <Code>code</Code>.</LI>
+                <LI>Webhook signature verification: <Code>webhooks.constructEvent</Code>.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: MUT }}>
+                Refunds, transfers and settlements require an idempotency key of your own: the SDK does not generate one, because a new key on every attempt would defeat the protection.
+              </P>
+
+              <H3 id="sdk-preview">Current version</H3>
+              <P>
+                <Code>@banzami/sdk</Code> 0.13.0. In 0.13.0, <Code>createPaymentLink</Code> and <Code>listPaymentLinks</Code> still require <Code>merchantId</Code> in their types; with a project key,
+                use HTTP for Payment Links. <a href="/docs/en/payments#links" style={a}>Payment Links</a>
+              </P>
+              <P>
+                Complete example: <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={a}>typescript-payment-session.example.ts</a>. The TypeScript examples in these docs
+                are compiled against the published package.
+              </P>
+
+              <H3 id="sdk-families">Status by family</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ ...TABLE, minWidth: 560 }}>
+                  <thead><tr style={THEAD}><th style={TH}>Family</th><th style={TH}>Status</th><th style={TH}>Public package</th><th style={TH}>Use</th></tr></thead>
+                  <tbody>
+                    {([
+                      ['JavaScript / TypeScript', 'Published', '@banzami/sdk', 'Server — secret key'],
+                      ['Dart / Flutter (client)', 'Published', 'banzami_client', 'Client — publishable key, read-only'],
+                      ['Python', 'Not published', '—', 'Source code'],
+                      ['PHP', 'Not published', '—', 'Source code'],
+                    ] as [string, string, string, string][]).map((r) => (
+                      <tr key={r[0]}><td style={TD_HEAD}>{r[0]}</td><td style={TD}>{r[1]}</td><td style={TD_MONO}>{r[2]}</td><td style={TD}>{r[3]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>
+                Machine-readable contracts:{' '}
+                <a href="/developers/artifacts/sdk-contract.json" style={a}>sdk-contract.json</a> ·{' '}
+                <a href="/developers/artifacts/sdk-first-manifest.json" style={a}>sdk-first-manifest.json</a>.
+              </P>
+
+              <H3 id="before-you-integrate">Reference implementation</H3>
+              <P>
+                <strong>DOA</strong> uses <Code>@banzami/sdk</Code> to create accounts and sessions, resolve <Code>@banza</Code>, verify webhooks and request settlements, with no direct HTTP calls.{' '}
+                <a href="/docs/en/doa" style={a}>Build like DOA</a>
+              </P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/get-started', title: 'Quickstart', desc: 'Install the SDK and create your first payment.' },
+                { href: '/docs/en/reference', title: 'API reference', desc: 'Every endpoint, with its SDK method.' },
+                { href: '/docs/en/support', title: 'Support', desc: 'Report a problem with the SDK.' },
+              ]} />
+              </Section>
+    </>
+  );
+}
+
+export function EnArtifacts({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="artifacts-page">
+              <h1 style={H1_STYLE}>Artifacts</h1>
+              <PageLede>The same API in formats for tooling: OpenAPI, Postman, examples and manifests. They describe the Sandbox.</PageLede>
+<H3 id="artifacts">Available files</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Artifact</th><th style={TH}>Use it to</th></tr></thead>
+                  <tbody>
+                    <tr><td style={TD}><a href="/developers/openapi/banzami-sandbox.openapi.json" style={a}>OpenAPI 3</a></td><td style={TD}>Generate clients, validate requests, import into tools. Public endpoints only.</td></tr>
+                    <tr><td style={TD}><a href="/developers/postman/banzami-sandbox.postman_collection.json" style={a}>Postman collection</a></td><td style={TD}>Explore the API by hand.</td></tr>
+                    <tr><td style={TD}><a href="/developers/examples/curl/get-me.sh" style={a}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={a}>create-payment-session.sh</a></td><td style={TD}>Diagnose with curl.</td></tr>
+                    <tr><td style={TD}><a href="/developers/availability/banzami-developers-availability.json" style={a}>Availability matrix</a></td><td style={TD}>Each capability’s status, as JSON.</td></tr>
+                    <tr><td style={TD}><a href="/developers/artifacts/manifest.json" style={a}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={a}>sdk-first-manifest.json</a></td><td style={TD}>Index of the artifacts and published SDKs.</td></tr>
+                    <tr><td style={TD}><a href="/llms.txt" style={a}>llms.txt</a></td><td style={TD}>A plain-text index of the documentation, for tools and assistants.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <P style={{ fontSize: 13, color: MUT }}>The artifacts do not describe Financial Live, which is not available.</P>
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/reference', title: 'API reference', desc: 'The same surface, explained.' },
+                { href: '/docs/en/changelog', title: 'Changelog', desc: 'What changed, and when.' },
+              ]} />
+</Section>
+    </>
+  );
+}
+
+const RECIPES_NOTE = 'The examples use a test key from your project. Nothing done in the Sandbox moves real money.';
+
 export function EnTesting({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
 <Section id="testing">
-              <H2>Sandbox testing</H2>
-              <PageLede>How to validate the integration in the Sandbox, and what the Sandbox guarantees. <strong>No real money ever moves.</strong></PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/trust', text: 'Security' }, { href: '/docs/en/guides', text: 'Guides' }]} />
-              <P><strong>What the Sandbox is:</strong> a complete integration environment with test accounts, sessions, links, QR and webhooks — flows behave like the real ones, but <strong>no real money ever moves</strong>.</P>
-              <P><strong>What the Sandbox is not:</strong> there are no live rails, no external providers activated, and no Production key issuance. All test credentials in these examples are placeholders.</P>
+              <h1 style={H1_STYLE}>Sandbox testing</h1>
+              <PageLede>Test scenarios for every part of your integration: how to trigger each one, the expected response, the event, where to check in the Console, and how to clean up.</PageLede>
+              <Callout>The Sandbox has no special amounts, cards or references that force an outcome. Every scenario uses the API’s real behaviour.</Callout>
+              <P style={{ fontSize: 13, color: MUT }}>{RECIPES_NOTE}</P>
+
+              <H3 id="recipe-basics">Keys and readiness</H3>
+              <RecipeCard lang="en" r={{ id: 'first-call', title: 'The key works',
+                trigger: <><Code>GET /v1/me</Code> with the key.</>,
+                api: <><Code>200</Code> with <Code>environment: &quot;SANDBOX&quot;</Code> and the scopes.</>,
+                event: 'None.', console: 'Logs: the request, with its request_id.', cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'invalid-key', title: 'Invalid or revoked key',
+                trigger: 'Revoke a test key in the Console and use it.',
+                api: <><Code>401 UNAUTHORIZED</Code>.</>,
+                event: 'None.', console: 'API keys: the key shown as revoked.', cleanup: 'None; the revoked key stays in the history.' }} />
+              <RecipeCard lang="en" r={{ id: 'missing-scope', title: 'Missing scope',
+                trigger: <>Create a key with only <Code>identity:read</Code> and try to create a session.</>,
+                api: <><Code>403 INSUFFICIENT_SCOPE</Code>.</>,
+                event: 'None.', console: 'Logs: the refused request.', cleanup: 'Revoke the test key.' }} />
+              <RecipeCard lang="en" r={{ id: 'no-setup', title: 'Project without Financial Setup',
+                trigger: 'In a new project, create a payment session.',
+                api: <><Code>403 PAYMENTS_UNAVAILABLE</Code>; <Code>getFinancialSetup()</Code> returns <Code>UNCONFIGURED</Code>.</>,
+                event: 'None.', console: 'Financial Setup: not configured.', cleanup: 'Delete the project if it has no other history.' }} />
+
+              <H3 id="recipe-payments">Payments</H3>
+              <RecipeCard lang="en" r={{ id: 'create-session-test', title: 'Create a session',
+                trigger: <><Code>createPaymentSession</Code> with <Code>amountMinor: 25000</Code> (250 Kz).</>,
+                api: <><Code>201</Code>, <Code>status: &quot;ACTIVE&quot;</Code>, <Code>PAYMENT_LINK</Code> and <Code>DYNAMIC_QR</Code> interfaces.</>,
+                event: <><Code>payment_session.created</Code>.</>,
+                console: 'Webhooks → Events: the event.',
+                cleanup: 'Not needed: an unpaid session has no financial effect.' }} />
+              <RecipeCard lang="en" r={{ id: 'pay-session', title: 'Pay a session',
+                trigger: 'Open the session link and pay with a Banzami wallet in the Sandbox. A new Sandbox consumer account starts with 10,000 Kz of test money.',
+                api: <><Code>getPaymentSession</Code> returns <Code>status: &quot;PAID&quot;</Code> and <Code>refund_source</Code>.</>,
+                event: <><Code>payment_session.paid</Code> and <Code>payment_link.paid</Code>.</>,
+                console: 'Transactions: the payment; Balances: the account holding the amount.',
+                cleanup: 'Refund the payment if you want to return the balance to the payer.',
+                limits: <>There is no API that marks a session as paid. You need access to a Banzami wallet in the Sandbox; if you do not have one, <a href="/docs/en/support" style={a}>contact support</a>.</> }} />
+              <RecipeCard lang="en" r={{ id: 'test-idempotency', title: 'Retry a request safely',
+                trigger: <>Send the same POST twice with the same <Code>Idempotency-Key</Code>; then the same key with a different body.</>,
+                api: <>The second response matches the first. With a different body: <Code>409 IDEMPOTENCY_KEY_REUSED</Code>. Two concurrent requests: <Code>409 IDEMPOTENCY_CONFLICT</Code>.</>,
+                event: 'A single event, for the first request.',
+                console: 'Logs: the requests sharing the key.',
+                cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'invalid-amount', title: 'Invalid amount',
+                trigger: <><Code>amount_minor: 0</Code>. (Omitting the amount is not an error: it creates an open-amount session.)</>,
+                api: <><Code>400 BAD_REQUEST</Code>.</>,
+                event: 'None.', console: 'Logs: the refused request.', cleanup: 'None.' }} />
+
+              <H3 id="test-webhooks">Webhooks</H3>
+              <RecipeCard lang="en" r={{ id: 'webhook-delivery', title: 'Receive a delivery',
+                trigger: <>Register a public HTTPS endpoint for <Code>payment_session.created</Code> and create a session. No payer needed.</>,
+                api: <><Code>createWebhookEndpoint</Code> returns <Code>201</Code> with <Code>secret</Code>.</>,
+                event: <><Code>payment_session.created</Code>, signed, at your endpoint.</>,
+                console: 'Webhooks: the delivery with its 2xx response.',
+                cleanup: <><Code>deactivateWebhookEndpoint</Code>.</> }} />
+              <RecipeCard lang="en" r={{ id: 'webhook-failure', title: 'Failure and replay',
+                trigger: <>Make the endpoint return <Code>500</Code> and create a session. Fix the endpoint and replay.</>,
+                api: <><Code>listWebhookDeliveries</Code> shows the attempts; <Code>replayWebhookDelivery</Code> puts the delivery back in <Code>PENDING</Code>. Replaying a successful delivery returns <Code>409 DELIVERY_ALREADY_SUCCEEDED</Code>.</>,
+                event: 'The same event, again.',
+                console: 'Webhooks: each attempt, with the status code returned.',
+                cleanup: <><Code>deactivateWebhookEndpoint</Code>.</>,
+                limits: 'Automatic retries follow the real schedule: the second attempt comes a minute after the first failure.' }} />
+              <RecipeCard lang="en" r={{ id: 'webhook-signature', title: 'Invalid signature',
+                trigger: <>POST to your own endpoint with a made-up <Code>banza-signature</Code>.</>,
+                api: <><Code>constructEvent</Code> throws; the endpoint responds <Code>400</Code> with no side effects.</>,
+                event: 'None — the request did not come from Banzami.', console: 'Nothing: the test is local.', cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'webhook-disabled', title: 'Disabled endpoint',
+                trigger: 'Disable the endpoint and create a session.',
+                api: <>The event appears in <Code>listWebhookEvents</Code>, with no delivery to that endpoint.</>,
+                event: 'Not delivered, even after re-enabling.',
+                console: 'Webhooks → Events: the event with no delivery.',
+                cleanup: 'Re-enable the endpoint in the Console if you want to keep it.' }} />
+
+              <H3 id="test-refunds">Refunds, transfers and settlements</H3>
+              <RecipeCard lang="en" r={{ id: 'partial-refund', title: 'Full, partial and excessive refund',
+                trigger: <>After <a href="#pay-session" style={a}>paying a session</a>, refund part of it, then the rest, then once more.</>,
+                api: <><Code>201</Code> with <Code>SUCCEEDED</Code> twice; the third returns <Code>422 REFUND_EXCEEDS_CAPTURED</Code>.</>,
+                event: <><Code>refund.completed</Code> for each refund made.</>,
+                console: 'Transactions → Refunds.', cleanup: 'None: the payment ends fully refunded.' }} />
+              <RecipeCard lang="en" r={{ id: 'transfer-no-funds', title: 'Transfer without funds',
+                trigger: <>Create two accounts and transfer from the empty one.</>,
+                api: <><Code>422 INSUFFICIENT_FUNDS</Code>; nothing moves.</>,
+                event: 'None.', console: 'Balances: both accounts at zero.', cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'settlement-test', title: 'Settlement',
+                trigger: <>Settle an account with no balance; then an account holding a test payment.</>,
+                api: <>No balance: <Code>422 NOTHING_TO_SETTLE</Code>. With a balance: <Code>201</Code> with gross, fee and net.</>,
+                event: <><Code>application_settlement.completed</Code>.</>,
+                console: 'Balances: the account at zero; Financial Setup: readiness.',
+                cleanup: 'None.',
+                limits: <>The <Code>application_settlement.cancelled</Code> and <Code>.failed</Code> events result from Banzami’s decisions and cannot be triggered for testing.</> }} />
+
+              <H3 id="test-other">Receipts and limits</H3>
+              <RecipeCard lang="en" r={{ id: 'receipt-test', title: 'Verify a receipt',
+                trigger: <>Verify the <Code>BZM-…</Code> reference of a test payment; then the same reference with one character changed.</>,
+                api: <><Code>200</Code> with <Code>CONFIRMED</Code>; changed: <Code>404</Code>.</>,
+                event: 'None.', console: 'Transactions: the matching payment.', cleanup: 'None.',
+                limits: <>A <Code>503</Code> response cannot be triggered.</> }} />
+              <RecipeCard lang="en" r={{ id: 'rate-limit', title: 'Rate limit',
+                trigger: <>Test your handling of <Code>429</Code> and <Code>Retry-After</Code> with a mocked response in your own code.</>,
+                api: <><Code>429 RATE_LIMITED</Code> with <Code>Retry-After</Code>.</>,
+                event: 'None.', console: 'Logs.', cleanup: 'None.',
+                limits: 'Do not hit the limit against the Sandbox on purpose: it is shared with other integrations.' }} />
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/going-live', title: 'Prepare for Live', desc: 'The readiness checklist for your integration.' },
+                { href: '/docs/en/troubleshooting', title: 'Troubleshooting', desc: 'When a scenario does not give the expected result.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnGoingLive({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="going-live">
+              <h1 style={H1_STYLE}>From Sandbox toward Live</h1>
+              <PageLede>Financial Live is not available. What your Sandbox work already establishes, and what to check before your integration goes into use.</PageLede>
+
+              <H3 id="live-status">Current status</H3>
               <UL>
-                <LI><strong>1. First call:</strong> <Code>GET /v1/me</Code> with your key — success is <Code>200</Code> with <Code>environment: SANDBOX</Code>; the typical failure is <Code>401 UNAUTHORIZED</Code> (wrong/revoked key).</LI>
-                <LI><strong>2. Create a session:</strong> <Code>POST /v1/payment-sessions</Code> — success is <Code>201</Code> with <Code>status: ACTIVE</Code> and the link/QR interfaces.</LI>
-                <LI><strong>3. Test idempotency:</strong> repeat the same POST with the same <Code>Idempotency-Key</Code> — you should receive the original response with no duplicated effect; send two concurrently and one gets <Code>409 IDEMPOTENCY_CONFLICT</Code>.</LI>
-                <LI><strong>4. Test errors:</strong> send <Code>amount_minor: 0</Code> to see <Code>400 BAD_REQUEST</Code> (omitting the amount is not an error: it creates an open-amount session); use an invalid key to see <Code>401</Code>; always keep the <Code>request_id</Code> from the response.</LI>
-                <LI><strong>5. Interpreting results:</strong> any response carrying the error envelope (see <a href="/docs/en/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) is actionable via its <Code>code</Code>.</LI>
+                <LI>No real-money rails are active, and no <Code>bz_live_</Code> keys are issued.</LI>
+                <LI>There is no Live application process and no waiting list.</LI>
+                <LI>There is no automatic migration from the Sandbox to Live.</LI>
               </UL>
-              <Callout tone="warn">
-                Internal Sandbox funding/simulation utilities exist but are <strong>internal — not public</strong>; they are
-                not part of the documented surface.
-              </Callout>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Webhook delivery is real, not simulated: Banzami delivers over the public internet to the HTTPS endpoint you
-                registered, signed, with redelivery on failure — see{' '}
-                <a href="/docs/en/guides#webhooks" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Webhooks</a>.
-                This page said outbound delivery remained simulated; that stopped being true when the reference application
-                began receiving real events.
-              </P>
+
+              <H3 id="what-carries">What your Sandbox work already establishes</H3>
+              <P>Your integration, webhook handling, idempotency, error handling and reconciliation follow the API v1 contracts, which are the contracts documented here.</P>
+
+              <H3 id="checklist">Checklist</H3>
+              <UL>
+                <LI><strong>Identity:</strong> <Code>GET /v1/me</Code> succeeds with the key your application uses.</LI>
+                <LI><strong>Readiness:</strong> your application calls <Code>getFinancialSetup()</Code> and knows what to show when the project cannot receive payments.</LI>
+                <LI><strong>Payments:</strong> creation, showing the link or QR code, and server-side confirmation are tested.</LI>
+                <LI><strong>Idempotency:</strong> a retry with the same key is tested; concurrent requests are understood.</LI>
+                <LI><strong>Errors:</strong> a <Code>400</Code> and a <Code>401</Code> are tested, with the <Code>request_id</Code> in your logs.</LI>
+                <LI><strong>Webhooks:</strong> the signature is verified before parsing, duplicates are ignored, failure and replay are tested.</LI>
+                <LI><strong>Secrets:</strong> the key and webhook secret live only on the server, and rotation is tested.</LI>
+                <LI><strong>Reconciliation:</strong> your records match Transactions and Balances in the Console.</LI>
+              </UL>
+
+              <H3 id="follow">Follow changes</H3>
+              <P>Changes to the API contract and the Sandbox are published in the <a href="/docs/en/changelog" style={a}>changelog</a>, with their impact and the action required.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/testing', title: 'Sandbox testing', desc: 'A test scenario for each checklist item.' },
+                { href: '/docs/en/trust', title: 'Security', desc: 'Keys and secrets in your production setup.' },
+              ]} />
             </Section>
     </>
   );
 }
 
 export function EnTrust({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
 <Section id="trust-page">
-              <H2>Security</H2>
-              <PageLede>Where credentials live, what never leaves your server, and what the Sandbox guarantees.</PageLede>
-              <NextSteps label="Related:" links={[{ href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/reference#authentication', text: 'Authentication' }, { href: '/docs/en/guides#webhooks', text: 'Webhooks' }]} />
+              <h1 style={H1_STYLE}>Security</h1>
+              <PageLede>Where to store keys and secrets, how to limit permissions, and how to rotate credentials.</PageLede>
 
-              <H3 id="keys">The secret key belongs to the server, and only there</H3>
-              <P>
-                A <Code>bz_test_sk_…</Code> key authorises everything your Project can do.
-                Whoever holds it can create charges, move money between your accounts and
-                issue refunds. So it lives on the server and nowhere else.
-              </P>
-              <UL>
-                <LI><strong>Never in the browser.</strong> Not in JavaScript, not in <Code>localStorage</Code>, not in a <Code>NEXT_PUBLIC_*</Code> variable — all of that is code the user downloads and can read.</LI>
-                <LI><strong>Never in a mobile app.</strong> A distributed binary is readable; a key inside one is a published key.</LI>
-                <LI><strong>Never in the repository.</strong> Not in a commit, not in a config file, not in a versioned <Code>.env</Code>. Git history does not forget.</LI>
-                <LI><strong>Never in a screenshot</strong>, a ticket, a chat message or an email.</LI>
-              </UL>
-              <P>
-                The right place is a server-process environment variable, read at start-up,
-                supplied by your platform&apos;s secret manager.
-              </P>
+              <H3 id="keys">Store the secret key</H3>
+              <P>A <Code>bz_test_sk_…</Code> key authorises everything the project can do, including refunds and settlements. Keep it in a server environment variable supplied by your platform’s secret manager.</P>
+              <DoDont lang="en"
+                dos={[
+                  'Keep the key in a server environment variable.',
+                  'Create one key per system, with the minimum scopes.',
+                  'Rotate the key when someone with access leaves the team.',
+                  'Log the request_id, never the key.',
+                ]}
+                donts={[
+                  <>Put the key in browser code, <Code>localStorage</Code> or a <Code>NEXT_PUBLIC_*</Code> variable.</>,
+                  'Ship it inside a mobile app.',
+                  'Commit it to a repository or a versioned .env file.',
+                  'Send it by email, chat, ticket or screenshot.',
+                ]} />
 
               <H3 id="reveal-once">Revealed once</H3>
-              <P>
-                When you create a key in the Console the full value appears <strong>exactly
-                once</strong>, in that dialog. After that the Console shows only the prefix
-                and a mask: the value is not recoverable from the screen, the page source,
-                the network or browser storage. If you lose it, revoke it and create
-                another — that is faster than looking for it, and it leaves a record of why.
-              </P>
+              <P>The full key appears once, in the creation dialog. Afterwards the Console shows only the prefix and a mask. If you lose the key, revoke it and create another.</P>
 
-              <H3 id="least-privilege">Ask only for the scopes you need</H3>
-              <P>
-                Scopes are chosen when the key is created and do not change afterwards. A
-                key that can only read will never write, even if the code using it has a
-                bug — which is what makes least privilege useful rather than merely tidy.
-              </P>
+              <H3 id="least-privilege">Limit scopes</H3>
+              <P>Scopes are set at creation and never change. A read-only key can never write, even if the code using it has a bug.</P>
               <UL>
-                <LI>One key per integrating system, not one key for everything.</LI>
-                <LI>If the application only reads payment state, do not ask for <Code>:write</Code>.</LI>
-                <LI>A compromised key can be revoked on its own, without stopping the other systems.</LI>
+                <LI>One key per integrating system.</LI>
+                <LI>No <Code>:write</Code> when the system only reads.</LI>
+                <LI>A compromised key can be revoked without affecting other systems.</LI>
               </UL>
 
-              <H3 id="rotation">Rotation and revocation</H3>
-              <P>
-                Rotating a key in the Console creates the successor and revokes the predecessor in
-                the same step. The predecessor stops authenticating immediately: a call with it
-                answers <Code>401</Code>, and the failure belongs to the key, not to the request. To
-                swap without failures on your server, first create a new key with the same scopes,
-                put it in use, and only then revoke the old one.
-              </P>
+              <H3 id="rotation">Rotate and revoke keys</H3>
+              <PathDiagram title="Rotating a key without downtime" desc="Create a new key with the same scopes, deploy it on the server, confirm with GET /v1/me, and only then revoke the previous key." steps={['Create new key', 'Deploy it', 'Confirm /v1/me', 'Revoke the old key']} highlight={3} />
               <UL>
-                <LI><strong>Rotate</strong> when someone with access leaves, when you change hosting provider, or on a schedule if your policy requires one.</LI>
-                <LI><strong>Revoke immediately</strong> if the key has appeared somewhere it should not be — a log, a shared screen, a public repository. Revoking is free; assuming nobody noticed is not.</LI>
-                <LI>The key list shows last use, which is how you find the one nobody uses any more.</LI>
+                <LI><strong>Rotate in the Console</strong> creates the successor and revokes the previous key in one step; to avoid failures, follow the sequence above.</LI>
+                <LI><strong>Revoke</strong> is immediate: the key starts returning <Code>401</Code>.</LI>
+                <LI><strong>Suspected exposure:</strong> revoke immediately, then investigate.</LI>
               </UL>
 
               <H3 id="webhook-secret">The webhook secret</H3>
-              <P>
-                The signing secret is revealed once, like the key, and is stored the same
-                way. It is how you verify that a <Code>POST</Code> to your endpoint came
-                from Banzami and not from someone who found the URL.
-              </P>
-              <UL>
-                <LI>Verify the signature <strong>before</strong> doing anything at all with the event body.</LI>
-                <LI>Verify over the <strong>raw body</strong>, exactly as it arrived — re-serialising the JSON changes the bytes and the signature stops matching.</LI>
-                <LI>Use the SDK&apos;s verifier where one exists: the comparison is constant-time and the replay window is already handled.</LI>
-                <LI>Rotate the secret from the Console if you suspect it; the endpoint stays the same.</LI>
-              </UL>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Secret key</th><th style={TH}>Webhook secret</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Purpose', 'Authenticate your application to the API', 'Verify that a delivery comes from Banzami'],
+                      ['Used in', 'Your application’s requests to Banzami', 'Your application’s webhook endpoint'],
+                      ['Revealed', 'Once, at creation', 'Once, at registration and on each rotation'],
+                      ['Rotation', 'New key, then revoke the old one', 'rotateWebhookEndpointSecret; immediate switch'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>Verify the signature over the raw body, before parsing the event, with the SDK’s verifier. <a href="/docs/en/webhooks#recipe" style={a}>Set up webhooks</a></P>
 
               <H3 id="sandbox-guarantees">What the Sandbox guarantees</H3>
-              <P>
-                The Sandbox is a complete environment: accounts, charges, links, QR,
-                webhooks, refunds and settlements behave as they would with real money, and
-                webhook delivery to your endpoint is real delivery, over the public internet.
-              </P>
               <UL>
-                <LI><strong>No real money, ever.</strong> Balances are fictitious Kwanza; no value leaves any bank.</LI>
-                <LI><strong>There is no financial Live environment.</strong> It is not switched off awaiting a request: it does not exist, and <Code>bz_live_…</Code> keys are issued to nobody.</LI>
-                <LI><strong>The data is real enough to hurt.</strong> Treat test data as you would a customer&apos;s: do not put real people&apos;s personal details in it.</LI>
-                <LI><strong>What your key reaches is the OpenAPI document, and nothing else.</strong> There are no hidden routes for project keys waiting to be discovered: a CI check compares the routes that accept your key with the document. Merchant, consumer and operator routes exist, and refuse your key with <Code>401</Code> or <Code>403</Code>.</LI>
+                <LI>Payment, refund, settlement and webhook flows follow the same rules as in production, with fictitious money.</LI>
+                <LI>Webhook delivery is real, over the public internet.</LI>
+                <LI>A project key reaches only the endpoints in the OpenAPI document; routes for other credential types return <Code>401</Code> or <Code>403</Code>.</LI>
+                <LI>Treat test data like customer data: do not use real people’s personal details.</LI>
               </UL>
-              <Callout tone="warn">
-                If an SDK, an example or a page asks you for a <Code>bz_live_…</Code> key,
-                you are looking at stale documentation or at something that is not ours.
-                There are no Live keys.
-              </Callout>
 
-              <H3 id="support">What to send support — and what never to send</H3>
-              <P>To investigate a request we need this, and only this:</P>
-              <UL>
-                <LI>The <Code>request_id</Code> from the response.</LI>
-                <LI>The timestamp, with timezone.</LI>
-                <LI>The environment (<Code>SANDBOX</Code>) and the operation you attempted.</LI>
-                <LI>The SDK version, if you used one.</LI>
-                <LI>The request body <strong>with credentials removed</strong>, if it is relevant.</LI>
-              </UL>
-              <Callout tone="warn">
-                Never send an API key, a webhook secret, an OTP code or a session token —
-                through any channel, to anyone, including us. Nothing we need in order to
-                help is a secret, and a secret that has been sent is a secret to rotate.
-              </Callout>
+              <H3 id="vulnerabilities">Report a vulnerability</H3>
+              <P>Email <a href="mailto:security@banzami.com" style={a}>security@banzami.com</a>. For anything else, use <a href="/docs/en/support" style={a}>support</a>.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/webhooks', title: 'Set up webhooks', desc: 'Verification and secret rotation.' },
+                { href: '/docs/en/support', title: 'Support', desc: 'What to send without exposing secrets.' },
+              ]} />
             </Section>
     </>
   );
 }
 
-export function EnArtifacts({ copy }: { copy: CopyFn }) {
+export function EnTroubleshooting({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
-<Section id="artifacts-page">
-              <H2>Artifacts</H2>
-              <PageLede>Public <strong>Sandbox</strong> artifacts — OpenAPI, Postman, availability matrix, manifests and examples. There is no Production contract because there is no Production.</PageLede>
-              <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/trust', text: 'Security' }, { href: '/docs/en/changelog', text: 'Changelog' }]} />
-<H3 id="artifacts">Technical reference artifacts</H3>
-              <P>
-                The same documented surface exists in <strong>machine-readable</strong> form — <strong>protocol reference
-                artifacts</strong>, published as static files. They are <strong>not the primary integration recommendation</strong>{' '}
-                (Banzami is SDK-first), describe only the current Sandbox scope, are{' '}
-                <strong>not Production contracts</strong>, not live rails, not regulatory approval, and not a replacement for
-                the SDKs:
-              </P>
+<Section id="troubleshooting">
+              <h1 style={H1_STYLE}>Troubleshooting</h1>
+              <PageLede>Start from what you are seeing. Each symptom lists the likely causes, what to check, where to look in the Console, and whether to retry.</PageLede>
+              <Troubleshooting lang="en" />
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/errors', title: 'Error catalogue', desc: 'Every code, searchable.' },
+                { href: '/docs/en/support', title: 'Support', desc: 'When the symptom is not listed here.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnSupport({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="support">
+              <h1 style={H1_STYLE}>Support</h1>
+              <PageLede>Email <a href="mailto:developers@banzami.com" style={a}>developers@banzami.com</a> from your account address. A person reads and answers every message; there is no ticket system.</PageLede>
+
+              <H3 id="before">Before you write</H3>
               <UL>
-                <LI><strong>OpenAPI</strong> (protocol reference) — <a href="/developers/openapi/banzami-sandbox.openapi.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/openapi/banzami-sandbox.openapi.json</a> — verified endpoints only.</LI>
-                <LI><strong>Postman collection</strong> (protocol reference) — <a href="/developers/postman/banzami-sandbox.postman_collection.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/postman/banzami-sandbox.postman_collection.json</a>.</LI>
-                <LI><strong>curl examples</strong> (diagnostic / protocol reference) — <a href="/developers/examples/curl/get-me.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>create-payment-session.sh</a>; full fixtures in <Code>docs/developer/examples/</Code>.</LI>
-                <LI><strong>Availability matrix</strong> — <a href="/developers/availability/banzami-developers-availability.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/availability/banzami-developers-availability.json</a> (the machine-readable source of this documentation's states, checked by tests).</LI>
-                <LI><strong>Manifests</strong> — <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a> (machine-readable SDK-first model; @banzami/sdk and banzami_client published, the others not).</LI>
+                <LI><a href="/docs/en/troubleshooting" style={a}>Troubleshooting</a>, starting from the symptom.</LI>
+                <LI><a href="/docs/en/errors" style={a}>Error catalogue</a>, starting from the code.</LI>
+                <LI><strong>Console → Logs</strong>, starting from the <Code>request_id</Code>.</LI>
               </UL>
-                          <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                The <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>artifact manifest</a> indexes every
-                public artifact — the OpenAPI document, the Postman collection, the availability
-                matrix and the examples. They describe the Sandbox, which is the only
-                environment that exists.
-              </P>
-</Section>
+
+              <H3 id="include">What to include</H3>
+              <UL>
+                <LI>The <Code>request_id</Code> from the response.</LI>
+                <LI>The date and time, with time zone.</LI>
+                <LI>The environment (<Code>SANDBOX</Code>), the Project ID and the operation.</LI>
+                <LI>The SDK version, if you used one.</LI>
+                <LI>The request body without credentials, if relevant.</LI>
+              </UL>
+
+              <H3 id="never">What never to send</H3>
+              <Callout tone="warn">Never send API keys, webhook secrets, OTP codes or session tokens, to anyone. Support never needs a secret.</Callout>
+
+              <H3 id="security-support">Vulnerabilities</H3>
+              <P>Report vulnerabilities to <a href="mailto:security@banzami.com" style={a}>security@banzami.com</a>.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/troubleshooting', title: 'Troubleshooting', desc: 'By symptom.' },
+                { href: '/docs/en/trust', title: 'Security', desc: 'Keys, secrets and rotation.' },
+              ]} />
+            </Section>
     </>
   );
 }
 
 export function EnChangelog({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
 <Section id="changelog">
-              <H2>Changelog</H2>
-              <PageLede>Documentation, API-contract and Sandbox change tracking. There is no invented product release history.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/trust', text: 'Security' }]} />
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Dated entries by category: <Code>[Docs]</Code> (documentation only), <Code>[API]</Code> (API contract),{' '}
-                <Code>[Sandbox]</Code> (Sandbox platform). Incompatible changes will be marked <Code>[Breaking]</Code>.
-                There are no Production releases — <em>Production in preparation</em>.
-              </P>
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {([
-                  ['13 Sep 2026', 'Docs', 'Error catalogue generated from the gateway, route by route, in both languages; the full DOA tutorial, with the settlement fee destination and the donor receipt; illustrations in SVG.'],
-                  ['13 Sep 2026', 'API', 'GET /v1/public/proofs/{ref} published in the reference and the OpenAPI.'],
-                  ['12 Sep 2026', 'Sandbox', '@banzami/sdk 0.13.0 published on npm; createApplicationSettlement retired in favour of createBusinessApplicationSettlement.'],
-                  ['11 Sep 2026', 'API', 'POST /v1/payment-links/{id}/mark-used retired: it answers 410 ROUTE_RETIRED.'],
-                  ['10 Sep 2026', 'Sandbox', 'Financial setup by reviewed application or by consent code; one-click setup retired.'],
-                  ['11 Jul 2026', 'Docs', 'Resource reference (PT/EN), Sandbox testing guide, authentication and key management, webhook envelope and idempotent-retry examples.'],
-                  ['11 Jul 2026', 'Docs', 'curl examples with request and response, credential↔capability matrix, error envelope, idempotency in code and the webhook redelivery contract.'],
-                  ['July 2026', 'Sandbox', 'Sandbox Console available: email + OTP sign-in, workspaces, projects and test keys.'],
-                  ['July 2026', 'Sandbox', 'Test keys with rotation and revocation; team roles and invites.'],
-                  ['July 2026', 'Docs', 'Public developers documentation.'],
-                  ['July 2026', 'Sandbox', 'DOA published as the reference integration (Sandbox).'],
-                ] as [string, string, string][]).map(([when, cat, what], i) => (
-                  <li key={i} style={{ display: 'flex', gap: 12 }}>
-                    <span style={{ flex: 'none', width: 92, fontSize: 12, fontWeight: 800, color: '#a89a9e', fontFamily: mono, paddingTop: 2 }}>{when}</span>
-                    <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: '#9A1B22', fontFamily: mono, paddingTop: 3 }}>[{cat}]</span>
-                    <span style={{ fontSize: 14, lineHeight: 1.55, color: '#5a4a4e', fontWeight: 500, minWidth: 0, overflowWrap: 'anywhere' }}>{what}</span>
-                  </li>
-                ))}
-              </ul>
+              <h1 style={H1_STYLE}>Changelog</h1>
+              <PageLede>Changes to the API contract, the SDK, the Sandbox and the documentation, with their impact on your integration and the action required.</PageLede>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ ...TABLE, minWidth: 680 }}>
+                  <thead><tr style={THEAD}><th style={TH}>Date</th><th style={TH}>Area</th><th style={TH}>Change</th><th style={TH}>Impact</th><th style={TH}>Action</th></tr></thead>
+                  <tbody>
+                    {([
+                      ['13 Sep 2026', 'Docs', 'Session reference corrected: wallet_account_id is accepted with a project key, to choose one of your own accounts.', 'You can segregate payments by account.', 'None.'],
+                      ['13 Sep 2026', 'Docs', 'Refund response corrected: status SUCCEEDED.', 'Code comparing against COMPLETED does not recognise the refund.', 'Compare against SUCCEEDED.'],
+                      ['13 Sep 2026', 'SDK', 'createPaymentLink and listPaymentLinks no longer require merchantId (next @banzami/sdk release).', 'In 0.13.0, a project key cannot create links through the SDK.', 'Until the next release, use HTTP for links.'],
+                      ['13 Sep 2026', 'Docs', 'Documentation reorganised by task, with an event reference, a searchable error catalogue and test scenarios.', '/docs/guides addresses redirect to the new pages.', 'Update bookmarks, if you have any.'],
+                      ['13 Sep 2026', 'API', 'GET /v1/public/proofs/{ref} published in the reference and the OpenAPI document.', 'Public receipt verification is documented.', 'None.'],
+                      ['12 Sep 2026', 'SDK', '@banzami/sdk 0.13.0; createApplicationSettlement removed in favour of createBusinessApplicationSettlement.', 'Calls to the removed method fail.', 'Migrate to createBusinessApplicationSettlement.'],
+                      ['11 Sep 2026', 'API', 'POST /v1/payment-links/{id}/mark-used retired: returns 410 ROUTE_RETIRED.', 'A link is marked paid only by a payment.', 'Use DELETE /v1/payment-links/{id} to close a link.'],
+                      ['10 Sep 2026', 'Sandbox', 'Financial Setup by reviewed application or consent code; one-click setup removed.', 'New projects must complete Financial Setup to receive payments.', 'Complete Financial Setup.'],
+                      ['11 Jul 2026', 'Docs', 'Per-resource reference, testing guide, authentication and webhook envelope.', '—', 'None.'],
+                      ['July 2026', 'Sandbox', 'Sandbox Console: email-and-code sign-in, workspaces, projects, test keys, roles and invitations.', '—', 'None.'],
+                    ] as [string, string, string, string, string][]).map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ ...TD_MONO, whiteSpace: 'nowrap' }}>{r[0]}</td>
+                        <td style={TD_HEAD}>{r[1]}</td>
+                        <td style={{ ...TD, overflowWrap: 'anywhere' }}>{r[2]}</td>
+                        <td style={TD}>{r[3]}</td>
+                        <td style={TD}>{r[4]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P style={{ fontSize: 13, color: MUT }}>Breaking changes are marked as such and always state the action required. There are no production releases: Financial Live is not available.</P>
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/artifacts', title: 'Artifacts', desc: 'Updated OpenAPI and manifests.' },
+                { href: '/docs/en/sdk', title: 'SDKs', desc: 'Published versions.' },
+              ]} />
             </Section>
     </>
   );
@@ -1723,27 +2225,27 @@ export function EnGlossary({ copy }: { copy: CopyFn }) {
     <>
 <Section id="glossary-page">
 <div id="concepts" style={{ scrollMarginTop: 72 }}>
-              <H2>Concepts</H2>
-              <PageLede>Definitions of the terms used across this documentation, in the Banzami context.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/get-started', text: 'Get started' }, { href: '/docs/en/reference', text: 'API Reference' }]} />
-              <P>Quick definitions of the terms used in this documentation, in the Banzami context.</P>
+              <h1 style={H1_STYLE}>Glossary</h1>
+              <PageLede>The terms used in this documentation, in Banzami’s context.</PageLede>
               <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {CONCEPTS.map((e) => (
                   <div key={e.term}>
                     <dt style={{ margin: 0 }}>
                       {e.code ? (
-                        <code style={{ fontFamily: mono, fontSize: 13, background: '#FFF1F0', color: '#9A1B22', padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>{e.term}</code>
+                        <code style={{ fontFamily: mono, fontSize: 13, background: '#F6F2F2', color: INK, padding: '1px 6px', borderRadius: 6, fontWeight: 600 }}>{e.term}</code>
                       ) : (
-                        <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>{e.term}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: INK }}>{e.term}</span>
                       )}
                     </dt>
-                    <dd style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>{e.def}</dd>
+                    <dd style={{ margin: '4px 0 0', fontSize: 14, lineHeight: 1.6, color: BODY }}>{e.def}</dd>
                   </div>
                 ))}
               </dl>
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/concepts', title: 'How Banzami works', desc: 'The concepts, in context.' },
+              ]} />
             </div>
 </Section>
     </>
   );
 }
-

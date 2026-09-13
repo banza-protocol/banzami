@@ -10,8 +10,8 @@
     "branch_on": "code"
   },
   "idempotency_rule": {
-    "pt": "Um 4xx fica guardado com a Idempotency-Key durante 24 horas: nada aconteceu, e reenviar a mesma chave devolve o mesmo erro. Corrija o pedido e use uma chave NOVA. Um 5xx, um 429 ou um tempo-limite não fica guardado: repita com a MESMA chave.",
-    "en": "A 4xx is stored against the Idempotency-Key for 24 hours: nothing happened, and resending the same key returns the same error. Fix the request and use a NEW key. A 5xx, a 429 or a timeout is not stored: retry with the SAME key."
+    "pt": "Um erro 4xx fica associado à Idempotency-Key durante 24 horas: nada aconteceu, e reenviar a mesma chave devolve o mesmo erro. Corrija o pedido e use uma chave nova. Um 5xx, um 429 ou um tempo-limite não fica associado: repita com a mesma chave.",
+    "en": "A 4xx error stays stored against the Idempotency-Key for 24 hours: nothing happened, and resending the same key returns the same error. Fix the request and use a new key. A 5xx, a 429 or a timeout is not stored: retry with the same key."
   },
   "forwarded": [
     {
@@ -74,12 +74,12 @@
       "family": "credentials",
       "source": "gateway",
       "meaning": {
-        "pt": "Falta a chave, está revogada ou rodada, ou não é uma chave Sandbox. Uma chave bz_live_ é recusada.",
-        "en": "The key is missing, revoked or rotated, or is not a Sandbox key. A bz_live_ key is refused."
+        "pt": "A chave falta, foi revogada ou rodada, ou não é uma chave Sandbox. As chaves bz_live_ são recusadas.",
+        "en": "The key is missing, revoked or rotated, or is not a Sandbox key. bz_live_ keys are refused."
       },
       "action": {
-        "pt": "Envie Authorization: Bearer bz_test_sk_… com uma chave activa. Confirme com GET /v1/me.",
-        "en": "Send Authorization: Bearer bz_test_sk_… with an active key. Confirm with GET /v1/me."
+        "pt": "Envie Authorization: Bearer bz_test_sk_… com uma chave ativa e confirme com GET /v1/me.",
+        "en": "Send Authorization: Bearer bz_test_sk_… with an active key, and confirm with GET /v1/me."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -96,8 +96,8 @@
         "en": "The credential is invalid or has expired."
       },
       "action": {
-        "pt": "Obtenha uma credencial válida; reenviar a mesma não muda nada.",
-        "en": "Obtain a valid credential; resending the same one changes nothing."
+        "pt": "Use uma chave válida.",
+        "en": "Use a valid key."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -110,12 +110,12 @@
       "family": "credentials",
       "source": "gateway",
       "meaning": {
-        "pt": "Não foi possível verificar a chave neste momento. Não quer dizer que a chave é inválida.",
-        "en": "The key could not be verified right now. It does not mean the key is invalid."
+        "pt": "Não foi possível verificar a chave neste momento. A chave não é necessariamente inválida.",
+        "en": "The key could not be verified right now. This does not mean the key is invalid."
       },
       "action": {
-        "pt": "Espere o Retry-After (2 s) e repita com a MESMA chave de idempotência.",
-        "en": "Wait for Retry-After (2 s) and retry with the SAME idempotency key."
+        "pt": "Aguarde o Retry-After (2 s) e repita com a mesma chave de idempotência.",
+        "en": "Wait for Retry-After (2 s) and retry with the same idempotency key."
       },
       "retry": "after_delay",
       "idempotency_key": "same"
@@ -128,12 +128,12 @@
       "family": "credentials",
       "source": "gateway",
       "meaning": {
-        "pt": "A chave não tem o scope desta operação; a mensagem diz qual.",
-        "en": "The key lacks this operation's scope; the message names it."
+        "pt": "A chave não tem o scope desta operação; a mensagem indica qual.",
+        "en": "The key lacks the scope for this operation; the message names it."
       },
       "action": {
-        "pt": "Crie uma chave com esse scope. Uma chave existente nunca ganha scopes.",
-        "en": "Create a key with that scope. An existing key never gains scopes."
+        "pt": "Crie uma chave com esse scope. Os scopes de uma chave existente não podem ser alterados.",
+        "en": "Create a key with that scope. An existing key’s scopes cannot be changed."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -146,8 +146,8 @@
       "family": "credentials",
       "source": "gateway",
       "meaning": {
-        "pt": "A credencial não pode fazer isto: falta-lhe o scope (em GET /v1/me) ou o recurso indicado não é seu.",
-        "en": "The credential may not do this: it lacks the scope (on GET /v1/me) or the resource you named is not yours."
+        "pt": "A credencial não pode executar esta operação: falta o scope (em GET /v1/me) ou o recurso pertence a outro projeto.",
+        "en": "The credential cannot perform this operation: the scope is missing (on GET /v1/me) or the resource belongs to another project."
       },
       "action": {
         "pt": "Confirme os scopes da chave e que o id pertence ao seu projeto.",
@@ -164,12 +164,12 @@
       "family": "credentials",
       "source": "gateway",
       "meaning": {
-        "pt": "Uma chave de projeto não lê o estado da empresa por esta rota.",
-        "en": "A project key does not read the business state through this route."
+        "pt": "Uma chave de projeto não consulta o estado do Business por esta rota.",
+        "en": "A project key does not read the Business state through this route."
       },
       "action": {
-        "pt": "Use GET /v1/financial-setup — getFinancialSetup() no SDK.",
-        "en": "Use GET /v1/financial-setup — getFinancialSetup() in the SDK."
+        "pt": "Use GET /v1/financial-setup (getFinancialSetup() no SDK).",
+        "en": "Use GET /v1/financial-setup (getFinancialSetup() in the SDK)."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -182,12 +182,12 @@
       "family": "credentials",
       "source": "gateway",
       "meaning": {
-        "pt": "A empresa não está activa, por isso não pode criar sessões nem contas.",
-        "en": "The business is not active, so it cannot create sessions or accounts."
+        "pt": "O Business não está ativo, por isso não pode criar sessões nem contas.",
+        "en": "The Business is not active, so it cannot create sessions or accounts."
       },
       "action": {
-        "pt": "Veja o estado da empresa na Consola. Repetir não ajuda.",
-        "en": "Check the business state in the Console. Retrying does not help."
+        "pt": "Consulte o estado na Consola, em Configuração financeira.",
+        "en": "Check its status in the Console, under Financial Setup."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -201,12 +201,12 @@
       "family": "setup",
       "source": "gateway",
       "meaning": {
-        "pt": "403: o projeto não tem configuração financeira concluída, por isso não pode receber nem guardar valor. 503: a verificação não pôde ser feita agora.",
-        "en": "403: the project has no completed financial setup, so it cannot receive or hold value. 503: the check could not be made right now."
+        "pt": "403: o projeto não tem a configuração financeira concluída e não pode receber pagamentos. 503: a verificação não pôde ser feita neste momento.",
+        "en": "403: the project has not completed Financial Setup and cannot receive payments. 503: the check could not be made right now."
       },
       "action": {
-        "pt": "403: conclua a configuração financeira; veja o estado com getFinancialSetup(). 503: repita com a MESMA chave.",
-        "en": "403: complete financial setup; check the state with getFinancialSetup(). 503: retry with the SAME key."
+        "pt": "403: conclua a configuração financeira e confirme com getFinancialSetup(). 503: repita com a mesma chave de idempotência.",
+        "en": "403: complete Financial Setup and confirm with getFinancialSetup(). 503: retry with the same idempotency key."
       },
       "retry": "after_change",
       "idempotency_key": "new"
@@ -219,12 +219,12 @@
       "family": "setup",
       "source": "gateway",
       "meaning": {
-        "pt": "A configuração financeira do projeto mudou enquanto o pedido estava em curso. Nada foi criado.",
-        "en": "The project's financial setup changed while the request was in flight. Nothing was created."
+        "pt": "A configuração financeira do projeto mudou durante o pedido. Nada foi criado.",
+        "en": "The project’s Financial Setup changed during the request. Nothing was created."
       },
       "action": {
-        "pt": "Repita com uma chave NOVA: esta resposta fica guardada com a chave antiga durante 24 h.",
-        "en": "Retry with a NEW key: this response is stored against the old key for 24 h."
+        "pt": "Repita com uma chave de idempotência nova: esta resposta fica associada à chave anterior durante 24 h.",
+        "en": "Retry with a new idempotency key: this response stays stored against the previous key for 24 h."
       },
       "retry": "yes",
       "idempotency_key": "new"
@@ -237,12 +237,12 @@
       "family": "setup",
       "source": "gateway",
       "meaning": {
-        "pt": "A configuração financeira do projeto não é coerente e não pôde ser avaliada.",
-        "en": "The project's financial setup is inconsistent and could not be evaluated."
+        "pt": "A configuração financeira do projeto está inconsistente e não pôde ser avaliada.",
+        "en": "The project’s Financial Setup is inconsistent and could not be evaluated."
       },
       "action": {
-        "pt": "Contacte o suporte com o request_id. Não se resolve do seu lado.",
-        "en": "Contact support with the request_id. It cannot be resolved on your side."
+        "pt": "Contacte o suporte com o request_id.",
+        "en": "Contact support with the request_id."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -255,8 +255,8 @@
       "family": "setup",
       "source": "gateway",
       "meaning": {
-        "pt": "O serviço não consegue confirmar o ambiente da credencial. É uma falha de configuração do Banzami.",
-        "en": "The service cannot confirm the credential's environment. It is a Banzami configuration fault."
+        "pt": "O serviço não conseguiu confirmar o ambiente da credencial, por uma falha de configuração do Banzami.",
+        "en": "The service could not confirm the credential’s environment, because of a Banzami configuration fault."
       },
       "action": {
         "pt": "Repita mais tarde; se persistir, contacte o suporte com o request_id.",
@@ -273,12 +273,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "O corpo não é JSON válido ou não se consegue ler.",
-        "en": "The body is not valid JSON or could not be read."
+        "pt": "O corpo do pedido não é JSON válido.",
+        "en": "The request body is not valid JSON."
       },
       "action": {
-        "pt": "Envie JSON válido com Content-Type: application/json. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Send valid JSON with Content-Type: application/json. Fix the request and send it with a NEW idempotency key."
+        "pt": "Envie JSON válido com Content-Type: application/json.",
+        "en": "Send valid JSON with Content-Type: application/json."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -291,12 +291,12 @@
       "family": "request",
       "source": "core",
       "meaning": {
-        "pt": "O pedido foi recusado por um campo inválido; a mensagem diz qual.",
-        "en": "The request was refused because of an invalid field; the message names it."
+        "pt": "Um campo do pedido é inválido; a mensagem indica qual.",
+        "en": "A request field is invalid; the message names it."
       },
       "action": {
-        "pt": "Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Fix the request and send it with a NEW idempotency key."
+        "pt": "Corrija o campo indicado.",
+        "en": "Correct the field named in the message."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -309,12 +309,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "O pedido foi recusado, sem motivo mais específico.",
-        "en": "The request was refused, with no more specific reason."
+        "pt": "O pedido foi recusado sem um motivo mais específico.",
+        "en": "The request was refused without a more specific reason."
       },
       "action": {
-        "pt": "Leia a mensagem. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Read the message. Fix the request and send it with a NEW idempotency key."
+        "pt": "Leia a mensagem e corrija o pedido.",
+        "en": "Read the message and correct the request."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -327,12 +327,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "Falta um campo obrigatório; a mensagem diz qual.",
+        "pt": "Falta um campo obrigatório; a mensagem indica qual.",
         "en": "A required field is missing; the message names it."
       },
       "action": {
-        "pt": "Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Fix the request and send it with a NEW idempotency key."
+        "pt": "Acrescente o campo indicado.",
+        "en": "Add the field named in the message."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -349,8 +349,8 @@
         "en": "The amount is not a positive integer in minor units."
       },
       "action": {
-        "pt": "100 unidades menores = 1 Kz. Nunca decimais. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "100 minor units = 1 Kz. Never decimals. Fix the request and send it with a NEW idempotency key."
+        "pt": "Envie um inteiro positivo: 100 unidades menores = 1 Kz.",
+        "en": "Send a positive integer: 100 minor units = 1 Kz."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -363,12 +363,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "A moeda não é um código ISO-4217 de três letras.",
-        "en": "The currency is not a three-letter ISO-4217 code."
+        "pt": "A moeda não é um código ISO 4217 de três letras.",
+        "en": "The currency is not a three-letter ISO 4217 code."
       },
       "action": {
-        "pt": "Use AOA. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Use AOA. Fix the request and send it with a NEW idempotency key."
+        "pt": "Use AOA.",
+        "en": "Use AOA."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -385,8 +385,8 @@
         "en": "The source and destination accounts are the same."
       },
       "action": {
-        "pt": "Indique duas contas diferentes. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Name two different accounts. Fix the request and send it with a NEW idempotency key."
+        "pt": "Indique duas contas diferentes.",
+        "en": "Name two different accounts."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -403,8 +403,8 @@
         "en": "expires_at is not in the future."
       },
       "action": {
-        "pt": "Envie uma data futura, em UTC. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Send a future date, in UTC. Fix the request and send it with a NEW idempotency key."
+        "pt": "Envie uma data futura, em UTC.",
+        "en": "Send a future date, in UTC."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -417,12 +417,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "Um campo de metadata está fora do formato ou do tamanho permitido; a mensagem dá os limites.",
-        "en": "A metadata field is outside the allowed format or length; the message gives the limits."
+        "pt": "Um campo de metadata excede o formato ou o tamanho permitido; a mensagem indica os limites.",
+        "en": "A metadata field exceeds the allowed format or length; the message gives the limits."
       },
       "action": {
-        "pt": "Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Fix the request and send it with a NEW idempotency key."
+        "pt": "Ajuste o campo aos limites indicados.",
+        "en": "Bring the field within the limits given."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -435,12 +435,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "Um parâmetro de consulta é inválido — por exemplo limit fora de 1–100.",
-        "en": "A query parameter is invalid — for example limit outside 1–100."
+        "pt": "Um parâmetro de query é inválido, por exemplo limit fora de 1 a 100.",
+        "en": "A query parameter is invalid, for example limit outside 1 to 100."
       },
       "action": {
-        "pt": "Corrija o parâmetro.",
-        "en": "Fix the parameter."
+        "pt": "Corrija o parâmetro indicado.",
+        "en": "Correct the parameter named in the message."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -453,12 +453,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "source_type do reembolso não é ACQUIRING_PAYMENT nem WALLET_PAYMENT.",
-        "en": "The refund's source_type is neither ACQUIRING_PAYMENT nor WALLET_PAYMENT."
+        "pt": "source_type não é ACQUIRING_PAYMENT nem WALLET_PAYMENT.",
+        "en": "source_type is neither ACQUIRING_PAYMENT nor WALLET_PAYMENT."
       },
       "action": {
-        "pt": "Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Fix the request and send it with a NEW idempotency key."
+        "pt": "Use o source_type do refund_source do pagamento.",
+        "en": "Use the source_type from the payment’s refund_source."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -471,12 +471,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "O endereço do webhook não é um endpoint HTTPS público, ou é demasiado longo.",
+        "pt": "O URL do webhook não é um endpoint HTTPS público, ou é demasiado longo.",
         "en": "The webhook URL is not a public HTTPS endpoint, or is too long."
       },
       "action": {
-        "pt": "Use HTTPS num endereço público. Endereços privados e de loopback são recusados.",
-        "en": "Use HTTPS on a public address. Private and loopback addresses are refused."
+        "pt": "Use um endereço HTTPS público. Endereços privados e de loopback são recusados.",
+        "en": "Use a public HTTPS address. Private and loopback addresses are refused."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -489,8 +489,8 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "Pediu um tipo de evento que não existe.",
-        "en": "You asked for an event type that does not exist."
+        "pt": "Um dos eventos pedidos não existe no catálogo.",
+        "en": "One of the requested events is not in the catalogue."
       },
       "action": {
         "pt": "Use apenas eventos do catálogo de eventos.",
@@ -507,12 +507,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "O pedido indica quem recebe. Com uma chave de projeto, quem recebe vem da configuração financeira e nunca do pedido.",
-        "en": "The request names who is paid. With a project key, who is paid comes from financial setup and never from the request."
+        "pt": "O pedido indica o destinatário. Com uma chave de projeto, o destinatário vem da configuração financeira.",
+        "en": "The request names the payee. With a project key, the payee comes from Financial Setup."
       },
       "action": {
-        "pt": "Remova o campo que a mensagem nomeia (merchant_id, wallet_id, payee…). Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Remove the field the message names (merchant_id, wallet_id, payee…). Fix the request and send it with a NEW idempotency key."
+        "pt": "Remova o campo indicado na mensagem (merchant_id, wallet_id ou payee).",
+        "en": "Remove the field named in the message (merchant_id, wallet_id or payee)."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -525,12 +525,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "O pedido tenta escolher o preço ou a taxa. O preço é atribuído à empresa pelo Banzami.",
-        "en": "The request tries to choose the price or the fee. Pricing is assigned to the business by Banzami."
+        "pt": "O pedido indica um preço ou uma taxa. O preço é atribuído ao Business pelo Banzami.",
+        "en": "The request names a price or a fee. Pricing is assigned to the Business by Banzami."
       },
       "action": {
-        "pt": "Remova o campo de preço. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Remove the pricing field. Fix the request and send it with a NEW idempotency key."
+        "pt": "Remova o campo de preço.",
+        "en": "Remove the pricing field."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -543,12 +543,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "O QR ainda não é gerado em PDF.",
-        "en": "QR rendering to PDF is not available yet."
+        "pt": "O QR não está disponível em PDF.",
+        "en": "The QR code is not available as PDF."
       },
       "action": {
         "pt": "Peça format=png ou format=svg.",
-        "en": "Ask for format=png or format=svg."
+        "en": "Request format=png or format=svg."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -561,12 +561,12 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "A rota foi retirada; a mensagem diz o que usar em vez dela.",
-        "en": "The route has been retired; the message says what to use instead."
+        "pt": "A rota foi retirada; a mensagem indica a alternativa.",
+        "en": "The route was retired; the message names the alternative."
       },
       "action": {
-        "pt": "Use a rota que a mensagem indica.",
-        "en": "Use the route the message names."
+        "pt": "Use a rota indicada na mensagem.",
+        "en": "Use the route named in the message."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -579,12 +579,12 @@
       "family": "not_found",
       "source": "gateway",
       "meaning": {
-        "pt": "O recurso não existe — ou existe e não é do seu projeto. As duas respostas são iguais de propósito.",
-        "en": "The resource does not exist — or it exists and is not your project’s. The two answers are the same on purpose."
+        "pt": "O recurso não existe, ou pertence a outro projeto. As duas situações têm a mesma resposta.",
+        "en": "The resource does not exist, or belongs to another project. Both return the same response."
       },
       "action": {
         "pt": "Confirme o id e que pertence a este projeto.",
-        "en": "Confirm the id, and that it belongs to this project."
+        "en": "Check the id, and that it belongs to this project."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -601,8 +601,8 @@
         "en": "The session has no payment link."
       },
       "action": {
-        "pt": "Leia as interfaces da sessão e use a que existir.",
-        "en": "Read the session's interfaces and use the one that exists."
+        "pt": "Consulte as interfaces da sessão e use a disponível.",
+        "en": "Read the session’s interfaces and use the one available."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -619,8 +619,8 @@
         "en": "The session has no QR interface."
       },
       "action": {
-        "pt": "Leia as interfaces da sessão e use a que existir.",
-        "en": "Read the session's interfaces and use the one that exists."
+        "pt": "Consulte as interfaces da sessão e use a disponível.",
+        "en": "Read the session’s interfaces and use the one available."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -633,12 +633,12 @@
       "family": "idempotency",
       "source": "gateway",
       "meaning": {
-        "pt": "Esta chave de idempotência já foi usada para um pedido DIFERENTE.",
-        "en": "This idempotency key was already used for a DIFFERENT request."
+        "pt": "Esta chave de idempotência já foi usada num pedido diferente.",
+        "en": "This idempotency key was already used for a different request."
       },
       "action": {
-        "pt": "Não repita: a chave pertence à outra operação. Use uma chave nova para esta.",
-        "en": "Do not retry: the key belongs to the other operation. Use a new key for this one."
+        "pt": "Não repita com esta chave: pertence à outra operação. Use uma chave nova.",
+        "en": "Do not retry with this key: it belongs to the other operation. Use a new key."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -651,12 +651,12 @@
       "family": "idempotency",
       "source": "gateway",
       "meaning": {
-        "pt": "Duas situações. Num pedido qualquer: outro pedido com esta chave ainda está em curso. Numa liquidação: a chave já foi usada para uma liquidação diferente.",
-        "en": "Two situations. On any request: another request with this key is still in progress. On a settlement: the key was already used for a different settlement."
+        "pt": "Num pedido: outro pedido com esta chave ainda está em curso. Numa liquidação: a chave já foi usada noutra liquidação.",
+        "en": "On a request: another request with this key is still in progress. On a settlement: the key was already used for another settlement."
       },
       "action": {
-        "pt": "Em curso: espere e repita com a MESMA chave. Liquidação diferente: não repita; use uma chave nova.",
-        "en": "In progress: wait and retry with the SAME key. Different settlement: do not retry; use a new key."
+        "pt": "Pedido em curso: aguarde e repita com a mesma chave. Outra liquidação: use uma chave nova.",
+        "en": "Request in progress: wait and retry with the same key. Another settlement: use a new key."
       },
       "retry": "after_delay",
       "idempotency_key": "same"
@@ -669,12 +669,12 @@
       "family": "idempotency",
       "source": "core",
       "meaning": {
-        "pt": "Já existe um reembolso com esta chave de idempotência para este pagamento.",
-        "en": "A refund with this idempotency key already exists for this payment."
+        "pt": "A chave de idempotência já foi usada neste pagamento com outro montante ou moeda.",
+        "en": "The idempotency key was already used on this payment with a different amount or currency."
       },
       "action": {
-        "pt": "Leia os reembolsos do pagamento: esse pedido já foi feito. Para outro reembolso, use outra chave.",
-        "en": "Read the payment’s refunds: that request was already made. For another refund, use another key."
+        "pt": "Repita com o pedido original, ou use outra chave para um reembolso diferente.",
+        "en": "Retry with the original request, or use another key for a different refund."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -687,8 +687,8 @@
       "family": "state",
       "source": "gateway",
       "meaning": {
-        "pt": "O link de pagamento já não está activo.",
-        "en": "The payment link is no longer active."
+        "pt": "O link de pagamento já não está ativo: foi pago, expirou ou foi cancelado.",
+        "en": "The payment link is no longer active: it was paid, expired or was cancelled."
       },
       "action": {
         "pt": "Crie um link novo.",
@@ -705,12 +705,12 @@
       "family": "state",
       "source": "core",
       "meaning": {
-        "pt": "A conta que devia receber não está activa.",
-        "en": "The account that should receive is not active."
+        "pt": "A conta que devia receber não está ativa.",
+        "en": "The account that should receive the payment is not active."
       },
       "action": {
-        "pt": "Use uma conta activa. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Use an active account. Fix the request and send it with a NEW idempotency key."
+        "pt": "Use uma conta ativa.",
+        "en": "Use an active account."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -723,12 +723,12 @@
       "family": "state",
       "source": "gateway",
       "meaning": {
-        "pt": "Tentou criar uma conta PRIMARY. Essa conta é criada com a carteira.",
-        "en": "You tried to create a PRIMARY account. That account is created with the wallet."
+        "pt": "Uma conta com purpose PRIMARY não pode ser criada: a conta principal nasce com a carteira.",
+        "en": "An account with purpose PRIMARY cannot be created: the main account comes with the wallet."
       },
       "action": {
-        "pt": "Use outro propósito — CAMPAIGN, STORE, EVENT…",
-        "en": "Use another purpose — CAMPAIGN, STORE, EVENT…"
+        "pt": "Use outro purpose, por exemplo CAMPAIGN, STORE ou EVENT.",
+        "en": "Use another purpose, for example CAMPAIGN, STORE or EVENT."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -741,11 +741,11 @@
       "family": "state",
       "source": "gateway",
       "meaning": {
-        "pt": "Tentou reentregar uma entrega que já teve sucesso.",
-        "en": "You tried to replay a delivery that already succeeded."
+        "pt": "A entrega já teve sucesso e não é reenviada.",
+        "en": "The delivery already succeeded and is not sent again."
       },
       "action": {
-        "pt": "Reentregue apenas entregas que falharam.",
+        "pt": "Reenvie apenas entregas que falharam.",
         "en": "Replay only deliveries that failed."
       },
       "retry": "no",
@@ -763,8 +763,8 @@
         "en": "The account is frozen; movements from it are refused."
       },
       "action": {
-        "pt": "Contacte o suporte com o request_id. Repetir não ajuda.",
-        "en": "Contact support with the request_id. Retrying does not help."
+        "pt": "Contacte o suporte com o request_id.",
+        "en": "Contact support with the request_id."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -781,8 +781,8 @@
         "en": "The two accounts do not belong to the same wallet."
       },
       "action": {
-        "pt": "Transfira apenas entre contas do mesmo titular. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Transfer only between accounts of the same owner. Fix the request and send it with a NEW idempotency key."
+        "pt": "Transfira apenas entre contas do mesmo Business.",
+        "en": "Transfer only between accounts of the same Business."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -795,12 +795,12 @@
       "family": "state",
       "source": "core",
       "meaning": {
-        "pt": "As contas, o pagamento e o pedido não estão na mesma moeda.",
-        "en": "The accounts, the payment and the request are not in the same currency."
+        "pt": "As contas, o pagamento e o pedido não usam a mesma moeda.",
+        "en": "The accounts, the payment and the request do not share a currency."
       },
       "action": {
-        "pt": "Use a moeda da conta. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Use the account's currency. Fix the request and send it with a NEW idempotency key."
+        "pt": "Use a moeda da conta ou do pagamento.",
+        "en": "Use the account’s or payment’s currency."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -817,8 +817,8 @@
         "en": "The source account does not have enough available balance."
       },
       "action": {
-        "pt": "Consulte o saldo e repita com uma chave NOVA quando houver saldo.",
-        "en": "Check the balance and retry with a NEW key once there is balance."
+        "pt": "Consulte o saldo e repita quando houver saldo, com uma chave nova.",
+        "en": "Check the balance and retry once there is enough, with a new key."
       },
       "retry": "after_change",
       "idempotency_key": "new"
@@ -835,8 +835,8 @@
         "en": "The source account has no available balance to settle."
       },
       "action": {
-        "pt": "Liquide quando houver saldo, com uma chave NOVA.",
-        "en": "Settle once there is balance, with a NEW key."
+        "pt": "Liquide quando houver saldo, com uma chave nova.",
+        "en": "Settle once there is a balance, with a new key."
       },
       "retry": "after_change",
       "idempotency_key": "new"
@@ -849,12 +849,12 @@
       "family": "settlement",
       "source": "gateway",
       "meaning": {
-        "pt": "Tentou liquidar a partir da conta principal. Liquida-se a partir de uma conta segregada (por exemplo CAMPAIGN).",
-        "en": "You tried to settle from the primary account. Settlement is from a segregated account (for example CAMPAIGN)."
+        "pt": "A origem é a conta principal do Business; só uma conta segregada pode ser liquidada.",
+        "en": "The source is the Business’s main account; only a segregated account can be settled."
       },
       "action": {
-        "pt": "Use o id de uma conta segregada. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Use the id of a segregated account. Fix the request and send it with a NEW idempotency key."
+        "pt": "Use o id de uma conta segregada, por exemplo de purpose CAMPAIGN.",
+        "en": "Use the id of a segregated account, for example one with purpose CAMPAIGN."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -867,12 +867,12 @@
       "family": "settlement",
       "source": "gateway",
       "meaning": {
-        "pt": "O @banza do beneficiário não tem carteira activa nesta moeda.",
-        "en": "The beneficiary's @banza has no active wallet in this currency."
+        "pt": "O @banza do beneficiário não tem carteira ativa nesta moeda.",
+        "en": "The beneficiary’s @banza has no active wallet in this currency."
       },
       "action": {
-        "pt": "Confirme o @banza. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Confirm the @banza. Fix the request and send it with a NEW idempotency key."
+        "pt": "Confirme o @banza do beneficiário.",
+        "en": "Check the beneficiary @banza."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -885,12 +885,12 @@
       "family": "settlement",
       "source": "gateway",
       "meaning": {
-        "pt": "O @banza indicado para a taxa não tem carteira activa nesta moeda.",
+        "pt": "O @banza indicado para a taxa não tem carteira ativa nesta moeda.",
         "en": "The @banza named for the fee has no active wallet in this currency."
       },
       "action": {
-        "pt": "Confirme o @banza. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Confirm the @banza. Fix the request and send it with a NEW idempotency key."
+        "pt": "Confirme o @banza do destino da taxa.",
+        "en": "Check the fee destination @banza."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -903,12 +903,12 @@
       "family": "settlement",
       "source": "gateway",
       "meaning": {
-        "pt": "O destino da taxa não é uma conta da sua empresa.",
-        "en": "The fee destination is not an account of your business."
+        "pt": "O destino da taxa não pertence ao seu Business.",
+        "en": "The fee destination does not belong to your Business."
       },
       "action": {
-        "pt": "Indique uma conta da sua própria empresa. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Name an account of your own business. Fix the request and send it with a NEW idempotency key."
+        "pt": "Indique uma conta do seu próprio Business.",
+        "en": "Name an account of your own Business."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -921,12 +921,12 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "O seu perfil de preço aplica uma taxa a esta liquidação, e não indicou para onde vai.",
-        "en": "Your pricing profile applies a fee to this settlement, and you did not say where it goes."
+        "pt": "O perfil de preço aplica uma taxa a esta liquidação e o pedido não indica o destino da taxa.",
+        "en": "The pricing profile applies a fee to this settlement and the request names no fee destination."
       },
       "action": {
-        "pt": "Envie feeDestinationBanzaName. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Send feeDestinationBanzaName. Fix the request and send it with a NEW idempotency key."
+        "pt": "Envie feeDestinationBanzaName.",
+        "en": "Send feeDestinationBanzaName."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -939,12 +939,12 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "O destino da taxa não é uma conta de empresa.",
-        "en": "The fee destination is not a business account."
+        "pt": "O destino da taxa não é uma conta de Business.",
+        "en": "The fee destination is not a Business account."
       },
       "action": {
-        "pt": "Indique a conta de empresa que recebe a taxa. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Name the business account that receives the fee. Fix the request and send it with a NEW idempotency key."
+        "pt": "Indique a conta de Business que recebe a taxa.",
+        "en": "Name the Business account that receives the fee."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -957,7 +957,7 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "A conta de destino da taxa não está activa.",
+        "pt": "A conta de destino da taxa não está ativa.",
         "en": "The fee destination account is not active."
       },
       "action": {
@@ -975,12 +975,12 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "A conta de destino da taxa ainda não tem a verificação da empresa aprovada.",
-        "en": "The fee destination account does not have its business verification approved yet."
+        "pt": "A verificação do Business de destino da taxa ainda não está aprovada.",
+        "en": "The fee destination Business’s verification is not approved yet."
       },
       "action": {
-        "pt": "Conclua a verificação dessa empresa; depois repita com uma chave NOVA.",
-        "en": "Complete that business’s verification; then retry with a NEW key."
+        "pt": "Repita depois da aprovação, com uma chave nova.",
+        "en": "Retry after approval, with a new key."
       },
       "retry": "after_change",
       "idempotency_key": "new"
@@ -993,7 +993,7 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "A conta de destino da taxa não tem carteira activa nesta moeda.",
+        "pt": "A conta de destino da taxa não tem carteira ativa nesta moeda.",
         "en": "The fee destination account has no active wallet in this currency."
       },
       "action": {
@@ -1011,12 +1011,12 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "Uma taxa de aplicação só pode ir para uma conta de tipo APPLICATION ou PLATFORM.",
-        "en": "An application fee may only go to an APPLICATION or PLATFORM account."
+        "pt": "A taxa só pode ir para uma conta do tipo APPLICATION ou PLATFORM.",
+        "en": "The fee can only go to an APPLICATION or PLATFORM account."
       },
       "action": {
-        "pt": "Indique uma conta desse tipo. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Name an account of that type. Fix the request and send it with a NEW idempotency key."
+        "pt": "Indique uma conta desse tipo. A classificação é atribuída pelo Banzami.",
+        "en": "Name an account of that type. The classification is assigned by Banzami."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -1029,12 +1029,12 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "A taxa calculada seria maior do que o bruto a liquidar.",
-        "en": "The computed fee would be larger than the gross being settled."
+        "pt": "A taxa calculada seria superior ao montante bruto a liquidar.",
+        "en": "The calculated fee would exceed the gross being settled."
       },
       "action": {
-        "pt": "Liquide um montante maior, ou contacte o suporte com o request_id.",
-        "en": "Settle a larger amount, or contact support with the request_id."
+        "pt": "Liquide quando o saldo for maior, ou contacte o suporte com o request_id.",
+        "en": "Settle once the balance is larger, or contact support with the request_id."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -1047,12 +1047,12 @@
       "family": "settlement",
       "source": "gateway+core",
       "meaning": {
-        "pt": "A sua empresa ainda não tem um perfil de preço, por isso a liquidação não pode ser calculada.",
-        "en": "Your business has no pricing profile yet, so the settlement cannot be priced."
+        "pt": "O Business ainda não tem perfil de preço, por isso a liquidação não pode ser calculada.",
+        "en": "The Business has no pricing profile yet, so the settlement cannot be calculated."
       },
       "action": {
-        "pt": "Contacte o suporte com o request_id.",
-        "en": "Contact support with the request_id."
+        "pt": "O perfil é atribuído pelo Banzami: contacte o suporte com o request_id.",
+        "en": "The profile is assigned by Banzami: contact support with the request_id."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -1069,8 +1069,8 @@
         "en": "More than one pricing rule applies to this settlement."
       },
       "action": {
-        "pt": "Contacte o suporte com o request_id. Não se resolve do seu lado.",
-        "en": "Contact support with the request_id. It cannot be resolved on your side."
+        "pt": "Contacte o suporte com o request_id.",
+        "en": "Contact support with the request_id."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -1083,12 +1083,12 @@
       "family": "settlement",
       "source": "core",
       "meaning": {
-        "pt": "A liquidação já está num estado que não permite esta mudança.",
-        "en": "The settlement is already in a state that does not allow this change."
+        "pt": "A liquidação está num estado que não permite esta alteração.",
+        "en": "The settlement is in a state that does not allow this change."
       },
       "action": {
-        "pt": "Leia a liquidação para ver o estado actual.",
-        "en": "Read the settlement to see its current state."
+        "pt": "Consulte o estado atual da liquidação.",
+        "en": "Check the settlement’s current state."
       },
       "retry": "no",
       "idempotency_key": "n/a"
@@ -1105,8 +1105,8 @@
         "en": "The settlement was created but could not be completed."
       },
       "action": {
-        "pt": "Repita com a MESMA chave: a liquidação existente é retomada, nunca duplicada.",
-        "en": "Retry with the SAME key: the existing settlement is resumed, never duplicated."
+        "pt": "Repita com a mesma chave: a liquidação existente é retomada, nunca duplicada.",
+        "en": "Retry with the same key: the existing settlement resumes and is never duplicated."
       },
       "retry": "yes",
       "idempotency_key": "same"
@@ -1119,12 +1119,12 @@
       "family": "settlement",
       "source": "gateway",
       "meaning": {
-        "pt": "A liquidação foi recusada, sem motivo mais específico.",
-        "en": "The settlement was refused, with no more specific reason."
+        "pt": "A liquidação foi recusada sem um motivo mais específico.",
+        "en": "The settlement was refused without a more specific reason."
       },
       "action": {
-        "pt": "Leia a mensagem. Corrija o pedido e envie-o com uma chave de idempotência NOVA.",
-        "en": "Read the message. Fix the request and send it with a NEW idempotency key."
+        "pt": "Leia a mensagem e corrija o pedido.",
+        "en": "Read the message and correct the request."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -1137,12 +1137,12 @@
       "family": "refund",
       "source": "core",
       "meaning": {
-        "pt": "O reembolso pedido é maior do que o que ainda resta reembolsar do pagamento.",
-        "en": "The requested refund is larger than what is left to refund on the payment."
+        "pt": "O montante pedido excede o que falta reembolsar neste pagamento.",
+        "en": "The requested amount exceeds what is left to refund on this payment."
       },
       "action": {
-        "pt": "A mensagem diz quanto resta. Peça no máximo isso, com uma chave NOVA.",
-        "en": "The message says how much remains. Ask for at most that, with a NEW key."
+        "pt": "A mensagem indica o valor disponível; peça no máximo esse valor, com uma chave nova.",
+        "en": "The message gives the amount available; request at most that, with a new key."
       },
       "retry": "no",
       "idempotency_key": "new"
@@ -1155,12 +1155,12 @@
       "family": "refund",
       "source": "core",
       "meaning": {
-        "pt": "A conta que recebeu o pagamento já não tem saldo para o devolver.",
-        "en": "The account that received the payment no longer has the balance to return it."
+        "pt": "A conta que recebeu o pagamento não tem saldo suficiente para o devolver.",
+        "en": "The account that received the payment does not hold enough to return it."
       },
       "action": {
-        "pt": "Repita com uma chave NOVA quando a conta tiver saldo.",
-        "en": "Retry with a NEW key once the account has balance."
+        "pt": "Repita quando a conta tiver saldo, com uma chave nova.",
+        "en": "Retry once the account holds enough, with a new key."
       },
       "retry": "after_change",
       "idempotency_key": "new"
@@ -1173,11 +1173,11 @@
       "family": "refund",
       "source": "core",
       "meaning": {
-        "pt": "O pagamento está num estado que não se reembolsa.",
+        "pt": "O pagamento está num estado que não permite reembolso.",
         "en": "The payment is in a state that cannot be refunded."
       },
       "action": {
-        "pt": "Só se reembolsa um pagamento concluído.",
+        "pt": "Só um pagamento concluído pode ser reembolsado.",
         "en": "Only a completed payment can be refunded."
       },
       "retry": "no",
@@ -1191,11 +1191,11 @@
       "family": "refund",
       "source": "core",
       "meaning": {
-        "pt": "A transacção está num estado que não se reembolsa.",
+        "pt": "A transação está num estado que não permite reembolso.",
         "en": "The transaction is in a state that cannot be refunded."
       },
       "action": {
-        "pt": "Só se reembolsa um pagamento concluído.",
+        "pt": "Só um pagamento concluído pode ser reembolsado.",
         "en": "Only a completed payment can be refunded."
       },
       "retry": "no",
@@ -1209,8 +1209,8 @@
       "family": "refund",
       "source": "core",
       "meaning": {
-        "pt": "A carteira da empresa que recebeu o pagamento não foi encontrada.",
-        "en": "The wallet of the business that received the payment was not found."
+        "pt": "A carteira do Business que recebeu o pagamento não foi encontrada.",
+        "en": "The wallet of the Business that received the payment was not found."
       },
       "action": {
         "pt": "Contacte o suporte com o request_id.",
@@ -1227,7 +1227,7 @@
       "family": "refund",
       "source": "core",
       "meaning": {
-        "pt": "A carteira de quem pagou já não existe.",
+        "pt": "A carteira do pagador já não existe.",
         "en": "The payer’s wallet no longer exists."
       },
       "action": {
@@ -1245,8 +1245,8 @@
       "family": "refund",
       "source": "gateway",
       "meaning": {
-        "pt": "O reembolso foi recusado, sem motivo mais específico.",
-        "en": "The refund was refused, with no more specific reason."
+        "pt": "O reembolso foi recusado sem um motivo mais específico.",
+        "en": "The refund was refused without a more specific reason."
       },
       "action": {
         "pt": "Leia a mensagem e contacte o suporte com o request_id.",
@@ -1263,12 +1263,12 @@
       "family": "server",
       "source": "gateway",
       "meaning": {
-        "pt": "Demasiados pedidos.",
-        "en": "Too many requests."
+        "pt": "Demasiados pedidos. Nada foi executado.",
+        "en": "Too many requests. Nothing was executed."
       },
       "action": {
-        "pt": "Espere o Retry-After e repita com a MESMA chave.",
-        "en": "Wait for Retry-After, then retry with the SAME key."
+        "pt": "Aguarde o Retry-After e repita com a mesma chave.",
+        "en": "Wait for Retry-After, then retry with the same key."
       },
       "retry": "after_delay",
       "idempotency_key": "same"
@@ -1282,11 +1282,11 @@
       "source": "gateway+core",
       "meaning": {
         "pt": "Falha do lado do Banzami.",
-        "en": "A failure on the Banzami side."
+        "en": "A failure on Banzami’s side."
       },
       "action": {
-        "pt": "Repita com a MESMA chave. Se persistir, contacte o suporte com o request_id.",
-        "en": "Retry with the SAME key. If it persists, contact support with the request_id."
+        "pt": "Repita com a mesma chave. Se persistir, contacte o suporte com o request_id.",
+        "en": "Retry with the same key. If it persists, contact support with the request_id."
       },
       "retry": "yes",
       "idempotency_key": "same"
@@ -1299,12 +1299,12 @@
       "family": "server",
       "source": "gateway",
       "meaning": {
-        "pt": "Não foi possível desenhar o QR.",
-        "en": "The QR could not be rendered."
+        "pt": "Não foi possível gerar a imagem do QR.",
+        "en": "The QR image could not be generated."
       },
       "action": {
-        "pt": "Repita.",
-        "en": "Retry."
+        "pt": "Repita o pedido.",
+        "en": "Retry the request."
       },
       "retry": "yes",
       "idempotency_key": "n/a"
@@ -1317,12 +1317,12 @@
       "family": "server",
       "source": "gateway",
       "meaning": {
-        "pt": "Um serviço interno falhou. O pedido pode estar certo.",
-        "en": "An internal service failed. Your request may be perfectly valid."
+        "pt": "Um serviço do Banzami falhou. O pedido pode estar correto.",
+        "en": "A Banzami service failed. Your request may be valid."
       },
       "action": {
-        "pt": "Repita com a MESMA chave.",
-        "en": "Retry with the SAME key."
+        "pt": "Repita com a mesma chave.",
+        "en": "Retry with the same key."
       },
       "retry": "yes",
       "idempotency_key": "same"
@@ -1335,12 +1335,12 @@
       "family": "server",
       "source": "gateway",
       "meaning": {
-        "pt": "Temporariamente indisponível.",
-        "en": "Temporarily unavailable."
+        "pt": "Serviço temporariamente indisponível.",
+        "en": "The service is temporarily unavailable."
       },
       "action": {
-        "pt": "Repita com a MESMA chave, com espera crescente.",
-        "en": "Retry with the SAME key, with increasing backoff."
+        "pt": "Repita com a mesma chave, com espera crescente.",
+        "en": "Retry with the same key, with increasing backoff."
       },
       "retry": "yes",
       "idempotency_key": "same"
@@ -1353,12 +1353,12 @@
       "family": "server",
       "source": "gateway",
       "meaning": {
-        "pt": "Temporariamente indisponível.",
-        "en": "Temporarily unavailable."
+        "pt": "Serviço temporariamente indisponível.",
+        "en": "The service is temporarily unavailable."
       },
       "action": {
-        "pt": "Repita com a MESMA chave, com espera crescente.",
-        "en": "Retry with the SAME key, with increasing backoff."
+        "pt": "Repita com a mesma chave, com espera crescente.",
+        "en": "Retry with the same key, with increasing backoff."
       },
       "retry": "yes",
       "idempotency_key": "same"

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
-import { Card } from '@/components/developers/portal/ui';
+import { Card, DocsLink } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 
 // Suporte — a working way to reach someone, and nothing that pretends to be
@@ -43,6 +43,10 @@ export default function SuportePage() {
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           Uma pessoa lê o email desta caixa. Não há sistema de tickets, por isso não receberá um
           número de referência — receberá uma resposta.
+        </p>
+        <p style={{ margin: '-14px 0 20px' }}>
+          <DocsLink href="/docs/troubleshooting">Resolução de problemas</DocsLink>{' · '}
+          <DocsLink href="/docs/support">O que enviar ao suporte</DocsLink>
         </p>
 
         <Card style={{ padding: 24, marginBottom: 16 }}>

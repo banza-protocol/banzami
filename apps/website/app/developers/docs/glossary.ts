@@ -25,13 +25,13 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     id: 'producao',
-    term: 'Produção',
-    def: 'Ambiente destinado a operações com dinheiro real quando a plataforma estiver habilitada.',
+    term: 'Financial Live',
+    def: 'O ambiente de dinheiro real. Não está disponível: o Sandbox é o único ambiente.',
   },
   {
     id: 'ledger',
     term: 'Ledger',
-    def: 'Registo financeiro que mantém cada débito e crédito associado a uma transação, preservando a integridade do saldo.',
+    def: 'O registo contabilístico do Banzami: cada débito e crédito de cada transação, de onde derivam os saldos.',
   },
   {
     id: 'idempotencia',
@@ -47,27 +47,27 @@ export const GLOSSARY: GlossaryEntry[] = [
     id: 'banza-signature',
     term: 'banza-signature',
     code: true,
-    def: 'Header de assinatura do protocolo BANZA usado pelo Banzami para confirmar que um webhook é autêntico e não foi alterado.',
+    def: 'O header com a assinatura de cada entrega de webhook. Verificá-lo confirma que a entrega vem do Banzami e não foi alterada.',
   },
   {
     id: 'hmac-sha256',
     term: 'HMAC-SHA256',
-    def: 'Método de assinatura usado para verificar a origem e a integridade de um evento recebido.',
+    def: 'O algoritmo da assinatura dos webhooks, calculada com o segredo do endpoint.',
   },
   {
     id: 'otp',
     term: 'OTP',
-    def: 'Código temporário usado para confirmar que controla o email ou contacto utilizado no acesso.',
+    def: 'O código de seis dígitos, enviado por email, com que entra na Consola.',
   },
   {
     id: 'conta-business',
     term: 'Conta Business',
-    def: 'Conta Banzami usada por uma organização para operar integrações, receber valores e gerir a sua atividade na plataforma.',
+    def: 'A conta Banzami de uma organização, usada para receber pagamentos e gerir a sua atividade.',
   },
   {
     id: 'liquidacao',
     term: 'Liquidação',
-    def: 'Processo pelo qual valores confirmados são apurados e tratados segundo as regras do operador.',
+    def: 'A transferência do saldo de uma conta para um beneficiário, com a taxa definida pelo Banzami. Só acontece quando a aplicação a pede.',
   },
   {
     id: 'banza-handle',
@@ -77,23 +77,23 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     id: 'api-key',
-    term: 'API key',
-    def: 'Credencial usada por uma aplicação para se autenticar perante uma integração Banzami.',
+    term: 'Chave de API',
+    def: 'A credencial com que uma aplicação se autentica na API do Banzami. Identifica um projeto.',
   },
   {
     id: 'chave-publicavel',
     term: 'Chave publicável',
-    def: 'Identificador que pode ser usado no cliente quando o fluxo o permite; não substitui uma chave secreta.',
+    def: 'Uma chave bz_test_pk_ que pode ser usada no cliente, apenas para leitura. Não substitui a chave secreta.',
   },
   {
     id: 'chave-secreta',
     term: 'Chave secreta',
-    def: 'Credencial reservada ao servidor da aplicação. Nunca deve ser exposta no browser, app móvel, repositórios, logs ou capturas de ecrã.',
+    def: 'Uma chave bz_test_sk_, reservada ao servidor. Nunca deve estar no browser, numa app móvel ou num repositório.',
   },
   {
     id: 'replay',
     term: 'Replay',
-    def: 'Nova entrega ou repetição de um pedido/evento já recebido. A idempotência impede que produza efeitos duplicados.',
+    def: 'Uma nova entrega de um evento ou a repetição de um pedido. A idempotência impede efeitos duplicados.',
   },
   {
     id: 'at-least-once',
@@ -104,17 +104,17 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'qr',
     term: 'QR',
-    def: 'Código visual que abre uma jornada de pagamento Banzami ou identifica uma operação de forma rápida.',
+    def: 'O código que abre a página de pagamento de uma sessão quando lido com a câmara ou a app Banzami.',
   },
   {
     id: 'sessao-pagamento',
     term: 'Sessão de pagamento',
-    def: 'Representação de uma tentativa de pagamento associada a uma referência da sua aplicação.',
+    def: 'Um pedido de pagamento associado a uma referência da sua aplicação, com link e QR.',
   },
   {
     id: 'comprovativo',
     term: 'Comprovativo',
-    def: 'Registo emitido após uma operação confirmada, com os dados necessários para consulta e verificação.',
+    def: 'O documento de um pagamento confirmado, com uma referência BZM-… verificável publicamente.',
   },
   {
     id: 'workspace',
@@ -129,17 +129,17 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'configuracao-financeira',
     term: 'Configuração financeira',
-    def: 'A ligação entre um projeto e o Business que recebe o seu dinheiro. Sem ela, o projeto não recebe pagamentos.',
+    def: 'A ligação entre um projeto e o Business que recebe os seus pagamentos. Sem ela, o projeto não recebe pagamentos.',
   },
   {
     id: 'business',
     term: 'Business',
-    def: 'A entidade legal verificada pelo Banzami que é dona do dinheiro que um projeto recebe.',
+    def: 'A entidade verificada pelo Banzami que recebe os pagamentos de um projeto.',
   },
   {
     id: 'wallet-account',
-    term: 'Wallet account',
-    def: 'Uma conta dentro da carteira de um Business, para separar valor — por exemplo uma por campanha.',
+    term: 'Conta (wallet account)',
+    def: 'Uma conta dentro da carteira de um Business, para separar valores — por exemplo, uma por campanha.',
   },
   {
     id: 'link-pagamento',
@@ -154,12 +154,18 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'transacao',
     term: 'Transação',
-    def: 'Um movimento de valor registado no livro-razão — um pagamento, um reembolso ou uma transferência.',
+    def: 'Um movimento de valor registado no ledger: um pagamento, um reembolso ou uma transferência.',
   },
   {
     id: 'unidades-menores',
     term: 'Unidades menores',
-    def: 'A forma como os montantes viajam na API: inteiros, em que 100 unidades menores são 1 Kz. Nunca decimais.',
+    def: 'O formato dos montantes na API: inteiros, em que 100 unidades menores são 1 Kz. Nunca decimais.',
+  },
+  {
+    id: 'amount-minor',
+    term: 'amount_minor',
+    code: true,
+    def: 'O campo de montante da API, em unidades menores: 25000 são 250 Kz.',
   },
 ];
 

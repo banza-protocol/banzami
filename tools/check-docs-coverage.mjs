@@ -50,7 +50,7 @@ function specItems(n, heading) {
 
 async function corpus() {
   if (DEPLOYED) {
-    const routes = ['/docs', '/docs/get-started', '/docs/console', '/docs/guides', '/docs/reference', '/docs/sdk', '/docs/testing', '/docs/trust', '/docs/doa', '/docs/glossary', '/docs/changelog', '/docs/artifacts'];
+    const routes = ['/docs', '/docs/get-started', '/docs/concepts', '/docs/payments', '/docs/webhooks', '/docs/events', '/docs/refunds', '/docs/settlements', '/docs/receipts', '/docs/transfers', '/docs/doa', '/docs/console', '/docs/reference', '/docs/errors', '/docs/sdk', '/docs/artifacts', '/docs/testing', '/docs/going-live', '/docs/trust', '/docs/glossary', '/docs/troubleshooting', '/docs/support', '/docs/changelog'];
     const get = async (p) => (await fetch(DOCS_URL + p)).text();
     const pt = (await Promise.all(routes.map(get))).join('\n');
     const en = (await Promise.all(routes.map((r) => get(r.replace('/docs', '/docs/en'))))).join('\n');
@@ -62,7 +62,7 @@ async function corpus() {
   }
   const dir = join(ROOT, 'apps/website/app/developers/docs');
   const read = (f) => readFileSync(join(dir, f), 'utf8');
-  const shared = ['reference.tsx', 'ErrorCatalogue.tsx', 'CapabilityCards.tsx'].map(read).join('\n');
+  const shared = ['reference.tsx', 'ErrorCatalogue.tsx', 'CapabilityCards.tsx', 'events.ts', 'symptoms.ts', 'endpoint-meta.ts'].map(read).join('\n');
   return { pt: `${read('content-pt.tsx')}\n${shared}`, en: `${read('content-en.tsx')}\n${shared}` };
 }
 
@@ -70,7 +70,11 @@ const raw = await corpus();
 // Judged on the text a reader sees: tags gone, JSX spacers and entities
 // resolved, whitespace collapsed — so a line break or a <strong> in the source
 // can neither hide an item nor fake one.
-const plain = (s) => s.replace(/raw=\{`([\s\S]*?)`\}/g, (_, code) => `>${code.replace(/[<>]/g, ' ')}<`).replace(/\{' '\}/g, ' ').replace(/<[^>]+>/g, '').replace(/&rsquo;/g, '’').replace(/&apos;|&#39;/g, "'").replace(/\s+/g, ' ');
+// Text a reader sees also lives in component props — a step's what/why, a
+// next-step card's title — so those are lifted out before tags are removed.
+const PROP_TEXT = /\b(what|why|success|next|title|desc|goal|app|banzami|result|failure|trigger|api|event|console|cleanup|limits)=(?:"([^"]*)"|\{'((?:[^'\\]|\\.)*)'\})/g;
+const ITEM_TEXT = /\b(title|desc): '((?:[^'\\]|\\.)*)'/g;
+const plain = (s) => s.replace(PROP_TEXT, (_, _k, a, b) => `>${a ?? b}<`).replace(ITEM_TEXT, (_, _k, v) => `>${v}<`).replace(/raw=\{`([\s\S]*?)`\}/g, (_, code) => `>${code.replace(/[<>]/g, ' ')}<`).replace(/\{' '\}/g, ' ').replace(/<[^>]+>/g, '').replace(/&rsquo;/g, '’').replace(/&apos;|&#39;/g, "'").replace(/\s+/g, ' ');
 const pt = plain(raw.pt);
 const en = plain(raw.en);
 let failures = 0;

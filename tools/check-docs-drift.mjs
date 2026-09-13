@@ -59,7 +59,7 @@ undocumentedOps.length
 // in order to say it is NOT part of the contract; that has to be said next to it.
 const referenced = [...new Set((REF.match(/\/v1\/[A-Za-z0-9/_{}-]+/g) ?? []).map((p) => p.replace(/[.,;:)]+$/, '')))];
 const templates = specPaths.map((p) => new RegExp(`^${p.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{[^}]+\}/g, '[^/]+')}$`));
-const DISCLAIMED = /(retirad|retired|410|apenas credencial|apenas sess[ãa]o|merchant credential only|merchant session only|consumer surface only|superf[íi]cie de consumidor)/i;
+const DISCLAIMED = /(retirad|retired|410|apenas credencial|apenas sess[ãa]o|merchant credential only|merchant session only|consumer surface only|superf[íi]cie de consumidor|n[ãa]o dispon[íi]vel a uma chave de projeto|not available to a project key)/i;
 const stray = referenced.filter((p) => {
   if (specPaths.includes(p) || templates.some((t) => t.test(p))) return false;
   const near = new RegExp(`${p.replace(/[{}]/g, '.')}[\\s\\S]{0,300}`, 'i').exec(REF)?.[0] ?? '';

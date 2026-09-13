@@ -118,6 +118,7 @@ const docFiles = [
 ];
 const universe = new Set([...gatewayAllCodes(ROOT), ...consoleSet, ...internal, ...documented.keys()]);
 for (const [, fn] of coreFns) for (const m of fn.body.matchAll(/ApiError::\w+\(\s*"([A-Z][A-Z0-9_]{2,})"/g)) universe.add(m[1]);
+const INTERFACE_TYPES = new Set(['PAYMENT_LINK', 'DYNAMIC_QR', 'STATIC_QR', 'DEEP_LINK']);
 const ERRORISH = /(ERROR|INVALID|NOT_|UNAUTH|FORBIDDEN|CONFLICT|LIMIT|VALIDATION|MISSING|UNAVAILABLE|DENIED|EXPIRED|REUSED|MISMATCH|INSUFFICIENT|UNSUPPORTED|REJECTED|FAILED|RETIRED|FROZEN|UNPROCESSABLE|EXCEEDS)/;
 
 /** Every error-code mention in a file, with a line number and whether it sits in the Console list. */
@@ -126,14 +127,23 @@ function mentions(file) {
   const out = [];
   // The Console list documents the Console's own backend, not the Developer API.
   const consoleRanges = [];
-  for (const m of src.matchAll(/<H3(?: id="[^"]*")?>Console \((?:acesso e chaves|access and keys)\)<\/H3>/g)) {
-    const end = src.indexOf('<H3', m.index + 5);
-    consoleRanges.push([m.index, end < 0 ? src.length : end]);
+  const consoleRows = [];
+  for (const m of src.matchAll(/<H3(?: id="[^"]*")?>(?:Console \((?:acesso e chaves|access and keys)\)|Erros da Consola|Console errors)<\/H3>/g)) {
+    const next = [src.indexOf('<H3', m.index + 5), src.indexOf('<NextStepCards', m.index)].filter((x) => x > 0);
+    const end = next.length ? Math.min(...next) : src.length;
+    consoleRanges.push([m.index, end]);
+    // The Console table lists codes as row labels: 'INVALID_EMAIL / INVALID_CODE'.
+    for (const row of src.slice(m.index, end).matchAll(/\['([A-Z][A-Z0-9_]+(?: \/ [A-Z][A-Z0-9_]+)*)'/g)) {
+      for (const t of row[1].split(' / ')) consoleRows.push([t, m.index + row.index]);
+    }
   }
   const inConsole = (i) => consoleRanges.some(([a, b]) => i >= a && i < b);
   const lineOf = (i) => src.slice(0, i).split('\n').length;
   const add = (token, i, ctx) => {
     const t = token.replace(/\*$/, '');
+    // Payment Session interface types are API vocabulary, not error codes, even
+    // where an internal surface happens to use the same word as a code.
+    if (INTERFACE_TYPES.has(t)) return;
     // A wildcard counts only when it is the prefix of a known code
     // (FEE_DESTINATION_*), not any starred identifier (NEXT_PUBLIC_*).
     const isCode = token.endsWith('*') ? [...universe].some((c) => c.startsWith(t)) : (universe.has(t) || (ERRORISH.test(t) && t.includes('_')));
@@ -146,6 +156,10 @@ function mentions(file) {
   }
   // <Code>X</Code>
   for (const m of src.matchAll(/<Code>([A-Z][A-Z0-9_]{2,}\*?)<\/Code>/g)) add(m[1], m.index, 'code');
+  // Console table rows are Console codes by position.
+  for (const [t, i] of consoleRows) out.push({ code: t, line: lineOf(i), console: true, ctx: 'console-row' });
+  // codes: ['A', 'B'] — the troubleshooting data names codes explicitly.
+  for (const block of src.matchAll(/codes: \[([^\]]*)\]/g)) for (const t of block[1].matchAll(/'([A-Z][A-Z0-9_]+)'/g)) out.push({ code: t[1], line: lineOf(block.index), console: false, ctx: 'codes' });
   // failures: 'A, B, C.'   /  ERROR_CODES { code: 'A' }   /  a string list of codes
   for (const m of src.matchAll(/failures:\s*'([^']*)'/g)) for (const t of m[1].matchAll(/[A-Za-z][A-Za-z0-9_]{2,}/g)) if (/_/.test(t[0])) add(t[0].toUpperCase() === t[0] ? t[0] : `${t[0]}`, m.index, 'failures');
   // An ERROR_CODES list is a list of error codes: a lower-case entry there is
@@ -252,6 +266,26 @@ for (const c of enNamed) if (!ptNamed.has(c)) drift.push(`${c} is named in Engli
 }
 report('DOC_ERROR_CATALOGUE_PT_EN_DRIFT', drift);
 
+// ── each code answers what, why, what to do, retry, key, where to look ───────
+{
+  const tsx = read(`${DOCS}/ErrorCatalogue.tsx`);
+  const families = [...tsx.matchAll(/\{ id: '([a-z_]+)', pt: '/g)].map((m) => m[1]);
+  const inspect = tsx.slice(tsx.indexOf('export const INSPECT'), tsx.indexOf('};', tsx.indexOf('export const INSPECT')));
+  const missing = [];
+  for (const e of errors) {
+    for (const f of ['meaning', 'action']) for (const l of ['pt', 'en']) if (!e[f]?.[l]?.trim()) missing.push(`${e.code}: ${f}.${l}`);
+    if (!['no', 'yes', 'after_delay', 'after_change'].includes(e.retry)) missing.push(`${e.code}: retry`);
+    if (!['new', 'same', 'n/a'].includes(e.idempotency_key)) missing.push(`${e.code}: idempotency_key`);
+    if (!families.includes(e.family)) missing.push(`${e.code}: family ${e.family} is not rendered`);
+    if (!new RegExp(`\\b${e.family}: \\{ pt: '[^']+', en: '[^']+' \\}`).test(inspect)) missing.push(`${e.code}: no "where to look" for family ${e.family}`);
+  }
+  if (!/request_id/.test(tsx)) missing.push('the catalogue never tells the reader to keep the request_id');
+  report('ERROR_REFERENCE_REQUIRED_FIELDS_MISSING', missing, 'every code must say what it means, what to do, whether to retry, with which key, and where to look');
+  const searchable = /type="search"/.test(tsx) && /setStatus\(/.test(tsx) && /setFamily\(/.test(tsx) && /export function HttpClassTable/.test(tsx);
+  report('ERROR_CATALOGUE_SEARCHABLE_MISSING', searchable ? [] : ['the catalogue has no search box, HTTP filter, domain filter or HTTP-class layer'], '');
+  counters.ORPHAN_CODES = counters.DOC_ERRORS_NOT_PUBLIC ?? 0;
+}
+
 // ── what must never be published ────────────────────────────────────────────
 const INTERNALS = /\b(redis|postgres(?:ql)?|sqlx?|core-api|internal\/v1|CORE_INTERNAL|pepper|goroutine|panic|stack trace|\w+\.go|\w+\.rs)\b/i;
 report('DOC_ERRORS_INTERNAL_DETAIL',
@@ -261,6 +295,8 @@ console.log('');
 for (const [k, v] of Object.entries(counters)) console.log(`${k}=${v}`);
 console.log(`DOC_ERRORS_REACHABLE=${reachable.size}`);
 console.log(`DOC_ERRORS_DOCUMENTED=${errors.length}`);
+console.log(`ERROR_CATALOGUE_ACTIONABLE=${counters.ERROR_REFERENCE_REQUIRED_FIELDS_MISSING === 0 ? 'PASS' : 'FAIL'}`);
+console.log(`ERROR_CATALOGUE_SEARCHABLE=${counters.ERROR_CATALOGUE_SEARCHABLE_MISSING === 0 ? 'PASS' : 'FAIL'}`);
 console.log(`DOC_ERROR_CATALOGUE=${failures === 0 ? 'PASS' : 'FAIL'}`);
 
 if (failures) { console.error(`\n✗ ${failures} check(s) failed`); process.exit(1); }

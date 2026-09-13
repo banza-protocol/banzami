@@ -10,7 +10,8 @@
 // available to a credential that would be rejected today.
 
 import type { ReactNode } from 'react';
-import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H3, INK, LI, P, UL, mono, type Tone } from './ui';
+import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H3, INK, P, mono, type Tone } from './ui';
+import { ENDPOINT_META, type EndpointMeta, type Param, type ParamIn } from './endpoint-meta';
 
 type Bi = { pt: string; en: string };
 
@@ -21,8 +22,6 @@ export type EndpointSpec = {
   tone: Tone;
   desc: Bi;
   credential: Bi;
-  headers: string[];
-  requestFields?: { name: string; note: Bi }[];
   curl?: string;
   response?: string;
   errors: { code: string; note: Bi }[];
@@ -36,14 +35,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/me',
     tone: 'ok',
     desc: {
-      pt: 'Identidade da chave: devolve o ambiente, o projeto ({id, name, ref}), os scopes e o estado da chave autenticada. project.id é o id do próprio projeto, o mesmo da Console, e não muda com o nome. Não devolve estado financeiro — ver GET /v1/financial-setup.',
-      en: 'Key identity: returns the environment, the project ({id, name, ref}), the scopes and status of the authenticated key. project.id is the Project\'s own id, as in the Console, and survives a rename. Returns no financial state — see GET /v1/financial-setup.',
+      pt: 'Devolve o ambiente, o projeto, os scopes e o estado da chave. Use-o para confirmar uma chave antes de a pôr em uso; não devolve estado financeiro.',
+      en: 'Returns the environment, project, scopes and status of the key. Use it to confirm a key before deploying it; it returns no financial state.',
     },
-    credential: {
-      pt: 'Chave developer bz_test_ (scope identity:read)',
-      en: 'Developer key bz_test_ (identity:read scope)',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto', en: 'Project secret key' },
     curl: `curl https://sandbox-api.banzami.com/v1/me \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -57,7 +52,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   "key_status": "ACTIVE"
 }`,
     errors: [
-      { code: '401 UNAUTHORIZED', note: { pt: 'chave em falta, inválida, revogada ou bz_live_ (recusada, fail-closed)', en: 'missing, invalid, revoked or bz_live_ key (rejected, fail-closed)' } },
+      { code: '401 UNAUTHORIZED', note: { pt: 'a chave falta, é inválida ou foi revogada; uma chave bz_live_ é sempre recusada', en: 'the key is missing, invalid or revoked; a bz_live_ key is always refused' } },
       { code: '403 FORBIDDEN', note: { pt: 'chave sem o scope identity:read', en: 'key without the identity:read scope' } },
     ],
   },
@@ -67,14 +62,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/financial-setup',
     tone: 'ok',
     desc: {
-      pt: 'Prontidão financeira do seu projeto: se pode liquidar e, se não, o que falta. A chave é a autoridade — o pedido não indica projeto, titular nem conta. settlement.ready é verdadeiro exatamente quando os pré-requisitos da liquidação passam; cada bloqueio é a recusa que a liquidação devolveria. Um projeto ainda não configurado responde 200 com financial_setup.state UNCONFIGURED. SDK: getFinancialSetup().',
-      en: 'Your Project\'s financial readiness: whether it can settle and, if not, what is missing. The key is the authority — the request names no Project, owner or account. settlement.ready is true exactly when settlement\'s prerequisites pass; each blocker is the refusal a settlement would return. A Project not yet configured answers 200 with financial_setup.state UNCONFIGURED. SDK: getFinancialSetup().',
+      pt: 'Devolve a prontidão financeira do projeto: se pode receber e liquidar e, se não puder, o que falta. Cada bloqueio em settlement.blockers é a recusa que uma liquidação devolveria; um projeto por configurar responde 200 com UNCONFIGURED.',
+      en: 'Returns the project’s financial readiness: whether it can receive payments and settle and, if not, what is missing. Each entry in settlement.blockers is the refusal a settlement would return; an unconfigured project answers 200 with UNCONFIGURED.',
     },
-    credential: {
-      pt: 'Chave developer bz_test_ (scope identity:read)',
-      en: 'Developer key bz_test_ (identity:read scope)',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto', en: 'Project secret key' },
     curl: `curl https://sandbox-api.banzami.com/v1/financial-setup \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -91,10 +82,10 @@ export const ENDPOINTS: EndpointSpec[] = [
   "settlement": { "ready": true, "blockers": [], "warnings": ["WEBHOOK_ENDPOINT_MISSING"] }
 }`,
     errors: [
-      { code: '401 UNAUTHORIZED', note: { pt: 'chave em falta, inválida, revogada ou bz_live_ (recusada, fail-closed)', en: 'missing, invalid, revoked or bz_live_ key (rejected, fail-closed)' } },
+      { code: '401 UNAUTHORIZED', note: { pt: 'a chave falta, é inválida ou foi revogada; uma chave bz_live_ é sempre recusada', en: 'the key is missing, invalid or revoked; a bz_live_ key is always refused' } },
       { code: '403 INSUFFICIENT_SCOPE', note: { pt: 'chave sem o scope identity:read', en: 'key without the identity:read scope' } },
-      { code: '409 FINANCIAL_SETUP_CONFLICT', note: { pt: 'a configuração do projeto não corresponde a uma conta; contacte o suporte', en: 'the project\'s setup does not match an account; contact support' } },
-      { code: '503 SERVICE_UNAVAILABLE', note: { pt: 'não foi possível avaliar agora; nunca é reportado como configuração em falta — repita', en: 'could not be evaluated right now; never reported as missing configuration — retry' } },
+      { code: '409 FINANCIAL_SETUP_CONFLICT', note: { pt: 'a configuração financeira do projeto está inconsistente; contacte o suporte com o request_id', en: 'the project’s Financial Setup is inconsistent; contact support with the request_id' } },
+      { code: '503 SERVICE_UNAVAILABLE', note: { pt: 'a prontidão não pôde ser avaliada neste momento; repita o pedido', en: 'readiness could not be evaluated right now; retry the request' } },
     ],
   },
   {
@@ -103,31 +94,15 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-sessions',
     tone: 'ok',
     desc: {
-      pt: 'Cria uma sessão de pagamento e devolve o id, o estado e as interfaces (link/QR) para apresentar ao pagador.',
-      en: 'Creates a payment session and returns its id, status and the interfaces (link/QR) to present to the payer.',
+      pt: 'Cria uma sessão de pagamento com um link e um QR que o pagador abre para pagar. O destinatário vem da configuração financeira do projeto.',
+      en: 'Creates a Payment Session with a link and a QR code the payer opens to pay. The payee comes from the project’s Financial Setup.',
     },
-    credential: {
-      pt: 'Chave developer (payment_sessions:write, projeto com configuração financeira concluída) ou credencial de merchant',
-      en: 'Developer key (payment_sessions:write, project with completed financial setup) or merchant credential',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json', 'Idempotency-Key: idem_pedido_123'],
-    requestFields: [
-      { name: 'wallet_account_id', note: {
-        pt: 'APENAS credencial de merchant. Com uma chave de projeto quem recebe vem da configuração financeira — não envie este campo; a API recusa-o com 400 PAYEE_NOT_ALLOWED.',
-        en: 'Merchant credential ONLY. With a project key who is paid comes from financial setup — do not send this field; the API refuses it with 400 PAYEE_NOT_ALLOWED.' } },
-      { name: 'purpose', note: { pt: 'finalidade — um de GENERIC, DONATION, ORDER, TICKET, STORE, EVENT, CAMPAIGN, CUSTOM', en: 'purpose — one of GENERIC, DONATION, ORDER, TICKET, STORE, EVENT, CAMPAIGN, CUSTOM' } },
-      { name: 'reference_type / reference_id', note: { pt: 'a sua referência de negócio', en: 'your business reference' } },
-      { name: 'amount_minor', note: { pt: 'montante em unidades menores (AOA)', en: 'amount in minor units (AOA)' } },
-      { name: 'currency', note: { pt: 'moeda (AOA)', en: 'currency (AOA)' } },
-      { name: 'description', note: { pt: 'descrição apresentada ao pagador', en: 'description shown to the payer' } },
-      { name: 'expires_at / metadata', note: { pt: 'opcionais', en: 'optional' } },
-    ],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: idem_pedido_123" \\
   -d '{
-    "wallet_account_id": "wacc_exemplo",
     "purpose": "ORDER",
     "reference_type": "PEDIDO",
     "reference_id": "pedido_123",
@@ -156,13 +131,14 @@ export const ENDPOINTS: EndpointSpec[] = [
   ]
 }`,
     errors: [
-      { code: '400 MISSING_FIELD / INVALID_BODY / INVALID_METADATA', note: { pt: 'corrija o pedido', en: 'fix the request' } },
-      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'wallet_account_id enviado com uma chave de projeto — quem recebe vem da configuração financeira', en: 'wallet_account_id sent with a project key — who is paid comes from financial setup' } },
-      { code: '401 UNAUTHORIZED', note: { pt: 'credencial inválida', en: 'invalid credential' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem o scope, ou projeto sem configuração financeira concluída', en: 'key without the scope, or project without completed financial setup' } },
+      { code: '400 MISSING_FIELD / INVALID_BODY / INVALID_METADATA', note: { pt: 'o JSON é inválido, falta um campo ou metadata excede os limites', en: 'the JSON is invalid, a field is missing, or metadata exceeds its limits' } },
+      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'o corpo indica um destinatário (merchant_id, wallet_id ou payee); o destinatário vem da configuração financeira', en: 'the body names a payee (merchant_id, wallet_id or payee); the payee comes from Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'wallet_account_id não existe ou pertence a outro projeto', en: 'wallet_account_id does not exist or belongs to another project' } },
+      { code: '401 UNAUTHORIZED', note: { pt: 'a chave falta, é inválida ou foi revogada', en: 'the key is missing, invalid or revoked' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_sessions:write, ou projeto sem configuração financeira concluída', en: 'key without payment_sessions:write, or project without completed Financial Setup' } },
       { code: '409 IDEMPOTENCY_CONFLICT', note: { pt: 'um pedido com a mesma Idempotency-Key ainda está em curso', en: 'a request with the same Idempotency-Key is still in flight' } },
       { code: '409 IDEMPOTENCY_KEY_REUSED', note: { pt: 'a mesma Idempotency-Key com um corpo diferente', en: 'the same Idempotency-Key with a different body' } },
-      { code: '409 BINDING_CHANGED', note: { pt: 'a configuração financeira mudou durante o pedido — repita com uma chave nova', en: 'financial setup changed during the request — retry with a new key' } },
+      { code: '409 BINDING_CHANGED', note: { pt: 'a configuração financeira mudou durante o pedido; repita com uma Idempotency-Key nova', en: 'Financial Setup changed during the request; retry with a new Idempotency-Key' } },
     ],
     idem: {
       pt: 'Suporta Idempotency-Key: a resposta original é reproduzida durante 24 horas para a mesma chave.',
@@ -175,19 +151,31 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-sessions/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Consulta uma sessão (o mesmo corpo da criação, com o estado atual).',
-      en: 'Fetches one session (same body as creation, with the current status).',
+      pt: 'Devolve uma sessão com o estado atual. Consulte-a no servidor para confirmar um pagamento; depois de paga, inclui refund_source.',
+      en: 'Returns a session with its current status. Read it on your server to confirm a payment; once paid, it includes refund_source.',
     },
-    credential: {
-      pt: 'Como na criação',
-      en: 'Same as creation',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/payment-sessions/psess_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "session_id": "psess_exemplo",
+  "wallet_account_id": "wacc_exemplo",
+  "currency": "AOA",
+  "amount_minor": 25000,
+  "purpose": "ORDER",
+  "reference_type": "PEDIDO",
+  "reference_id": "pedido_123",
+  "status": "PAID",
+  "expires_at": "2026-07-11T12:00:00Z",
+  "created_at": "2026-07-11T11:45:00Z",
+  "interfaces": [
+    { "type": "PAYMENT_LINK", "value": "https://pay.banzami.com/pay/slug_exemplo", "format": "URL" }
+  ],
+  "refund_source": { "source_type": "WALLET_PAYMENT", "source_id": "wpay_exemplo" }
+}`,
     errors: [
-      { code: '404 NOT_FOUND', note: { pt: 'sessão inexistente ou fora do seu âmbito', en: 'session missing or outside your scope' } },
-      { code: '401 UNAUTHORIZED', note: { pt: 'credencial inválida', en: 'invalid credential' } },
+      { code: '404 NOT_FOUND', note: { pt: 'a sessão não existe ou pertence a outro projeto', en: 'the session does not exist or belongs to another project' } },
+      { code: '401 UNAUTHORIZED', note: { pt: 'a chave falta, é inválida ou foi revogada', en: 'the key is missing, invalid or revoked' } },
     ],
   },
   {
@@ -196,11 +184,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-sessions',
     tone: 'ok',
     desc: {
-      pt: 'Lista as sessões do projeto, da mais recente para a mais antiga. ?status= filtra por estado (por exemplo ACTIVE ou PAID); ?limit= de 1 a 200 (por omissão 50) — um valor fora desse intervalo é substituído pelo predefinido. Sem cursor: devolve as sessões mais recentes até ao limite.',
-      en: 'Lists the project’s sessions, newest first. ?status= filters by status (ACTIVE or PAID, for example); ?limit= from 1 to 200 (default 50) — a value outside that range is replaced by the default. No cursor: it returns the most recent sessions up to the limit.',
+      pt: 'Lista as sessões do projeto, da mais recente para a mais antiga, com filtro por estado. Não tem paginação por cursor.',
+      en: 'Lists the project’s sessions, newest first, with a status filter. It has no cursor pagination.',
     },
-    credential: { pt: 'Chave de projeto (payment_sessions:read) ou credencial de merchant', en: 'Project key (payment_sessions:read) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl "https://sandbox-api.banzami.com/v1/payment-sessions?status=PAID&limit=20" \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -217,8 +204,8 @@ export const ENDPOINTS: EndpointSpec[] = [
   ]
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_sessions:read, ou projeto sem configuração financeira concluída', en: 'key without payment_sessions:read, or project without completed financial setup' } },
-      { code: '401 UNAUTHORIZED', note: { pt: 'credencial inválida', en: 'invalid credential' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_sessions:read, ou projeto sem configuração financeira concluída', en: 'key without payment_sessions:read, or project without completed Financial Setup' } },
+      { code: '401 UNAUTHORIZED', note: { pt: 'a chave falta, é inválida ou foi revogada', en: 'the key is missing, invalid or revoked' } },
     ],
   },
   {
@@ -227,11 +214,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-sessions/{id}/link',
     tone: 'ok',
     desc: {
-      pt: 'Devolve o link público de pagamento da sessão.',
-      en: 'Returns the session’s public payment link.',
+      pt: 'Devolve o link de pagamento da sessão, para o apresentar ao pagador.',
+      en: 'Returns the session’s payment link, to show to the payer.',
     },
-    credential: { pt: 'Como na criação', en: 'Same as creation' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     response: `{
   "type": "PAYMENT_LINK",
   "slug": "slug_exemplo",
@@ -247,15 +233,18 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-sessions/{id}/qr',
     tone: 'ok',
     desc: {
-      pt: 'Devolve o QR da sessão. O QR codifica o URL da página de pagamento da sessão (https://pay.banzami.com/pay/{slug}) — qualquer câmara de telemóvel abre a página e o pagador paga aí. Sem parâmetros devolve o valor codificável em JSON ({"type":"QR","value":"https://pay.banzami.com/pay/{slug}"}); com ?format=png|svg devolve a imagem renderizada (?format=pdf responde 415).',
-      en: 'Returns the session QR. The QR encodes the session’s hosted pay URL (https://pay.banzami.com/pay/{slug}) — any phone camera opens the page and the payer pays there. Without parameters it returns the encodable value as JSON ({"type":"QR","value":"https://pay.banzami.com/pay/{slug}"}); with ?format=png|svg it returns the rendered image (?format=pdf answers 415).',
+      pt: 'Devolve o QR da sessão, como valor JSON ou como imagem PNG ou SVG. O QR codifica o URL da página de pagamento, que qualquer câmara abre.',
+      en: 'Returns the session’s QR code, as a JSON value or as a PNG or SVG image. The QR code encodes the payment page URL, which any camera opens.',
     },
-    credential: { pt: 'Como na criação', en: 'Same as creation' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl "https://sandbox-api.banzami.com/v1/payment-sessions/psess_exemplo/qr?format=svg" \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "type": "QR",
+  "value": "https://pay.banzami.com/pay/slug_exemplo"
+}`,
     errors: [
-      { code: '404 NOT_FOUND', note: { pt: 'sessão inexistente', en: 'session missing' } },
+      { code: '404 NOT_FOUND', note: { pt: 'a sessão não existe ou pertence a outro projeto', en: 'the session does not exist or belongs to another project' } },
     ],
   },
   {
@@ -264,20 +253,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-links',
     tone: 'ok',
     desc: {
-      pt: 'Cria um link de pagamento reutilizável com slug público (pay.banzami.com/pay/{slug}). GET /v1/payment-links lista; GET/DELETE /v1/payment-links/{id} consulta/desativa.',
-      en: 'Creates a reusable payment link with a public slug (pay.banzami.com/pay/{slug}). GET /v1/payment-links lists; GET/DELETE /v1/payment-links/{id} fetches/deactivates.',
+      pt: 'Cria um link de pagamento reutilizável em pay.banzami.com, para partilhar sem criar uma sessão por cliente. O destinatário vem da configuração financeira do projeto.',
+      en: 'Creates a reusable Payment Link on pay.banzami.com, to share without creating a session per customer. The payee comes from the project’s Financial Setup.',
     },
-    credential: {
-      pt: 'Credencial de merchant, ou chave developer com scope payment_links (projeto com configuração financeira concluída)',
-      en: 'Merchant credential, or developer key with the payment_links scope (project with completed financial setup)',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json', 'Idempotency-Key: idem_link_001'],
-    requestFields: [
-      { name: 'wallet_id', note: { pt: 'carteira de destino', en: 'destination wallet' } },
-      { name: 'amount_minor', note: { pt: 'opcional — omitido cria link de montante aberto', en: 'optional — omit for an open-amount link' } },
-      { name: 'currency', note: { pt: 'AOA', en: 'AOA' } },
-      { name: 'description / expires_at', note: { pt: 'opcionais', en: 'optional' } },
-    ],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     response: `{
   "slug": "slug_exemplo",
   "amount_minor": 25000,
@@ -289,9 +268,9 @@ export const ENDPOINTS: EndpointSpec[] = [
   "merchant_name": "Loja Exemplo"
 }`,
     errors: [
-      { code: '400 MISSING_FIELD / INVALID_AMOUNT / INVALID_EXPIRY', note: { pt: 'corrija os campos', en: 'fix the fields' } },
-      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'merchant_id ou wallet_id enviado com uma chave de projeto', en: 'merchant_id or wallet_id sent with a project key' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:write, ou projeto sem configuração financeira concluída', en: 'key without payment_links:write, or project without completed financial setup' } },
+      { code: '400 MISSING_FIELD / INVALID_AMOUNT / INVALID_EXPIRY', note: { pt: 'falta currency, o montante não é positivo ou expires_at não está no futuro', en: 'currency is missing, the amount is not positive, or expires_at is not in the future' } },
+      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'o corpo indica merchant_id ou wallet_id; o destinatário vem da configuração financeira', en: 'the body names merchant_id or wallet_id; the payee comes from Financial Setup' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:write, ou projeto sem configuração financeira concluída', en: 'key without payment_links:write, or project without completed Financial Setup' } },
     ],
     idem: {
       pt: 'Suporta Idempotency-Key como qualquer operação de escrita.',
@@ -304,16 +283,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/wallet-accounts',
     tone: 'ok',
     desc: {
-      pt: 'Abre uma conta do seu projeto para segregar valor por referência de negócio (por exemplo, uma campanha). O titular vem da configuração financeira — não há campo que o possa indicar.',
-      en: 'Opens an account of your project to segregate value by business reference (a campaign, say). The owner comes from financial setup — no field can name it.',
+      pt: 'Abre uma conta segregada no Business do projeto, para separar valores por campanha, loja ou evento.',
+      en: 'Opens a segregated account in the project’s Business, to keep funds apart per campaign, store or event.',
     },
-    credential: { pt: 'Chave de projeto (scope wallet_accounts:create)', en: 'Project key (wallet_accounts:create scope)' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
-    requestFields: [
-      { name: 'purpose', note: { pt: 'finalidade da conta — um de CAMPAIGN, PROJECT, EVENT, STORE, ESCROW, RESERVE, SETTLEMENT, CUSTOM (PRIMARY é criada com a carteira)', en: 'account purpose — one of CAMPAIGN, PROJECT, EVENT, STORE, ESCROW, RESERVE, SETTLEMENT, CUSTOM (PRIMARY is created with the wallet)' } },
-      { name: 'reference_type / reference_id', note: { pt: 'a sua referência de negócio', en: 'your business reference' } },
-      { name: 'label', note: { pt: 'nome legível, opcional', en: 'human-readable label, optional' } },
-    ],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/wallet-accounts \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -336,10 +309,10 @@ export const ENDPOINTS: EndpointSpec[] = [
   "created_at": "2026-07-11T11:45:00Z"
 }`,
     errors: [
-      { code: '400 MISSING_FIELD / INVALID_BODY', note: { pt: 'corrija o pedido', en: 'fix the request' } },
-      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'wallet_id enviado com uma chave de projeto — a carteira vem da configuração financeira', en: 'wallet_id sent with a project key — the wallet comes from financial setup' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem wallet_accounts:create, ou projeto sem configuração financeira concluída', en: 'key without wallet_accounts:create, or project without completed financial setup' } },
-      { code: '422 PRIMARY_NOT_CREATABLE', note: { pt: 'a conta PRIMARY é criada com a carteira', en: 'the PRIMARY account is created with the wallet' } },
+      { code: '400 MISSING_FIELD / INVALID_BODY', note: { pt: 'falta purpose, ou o JSON é inválido', en: 'purpose is missing, or the JSON is invalid' } },
+      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'o pedido indica wallet_id; a carteira vem da configuração financeira', en: 'the request names wallet_id; the wallet comes from Financial Setup' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem wallet_accounts:create, ou projeto sem configuração financeira concluída', en: 'key without wallet_accounts:create, or project without completed Financial Setup' } },
+      { code: '422 PRIMARY_NOT_CREATABLE', note: { pt: 'purpose PRIMARY não pode ser criada: a conta principal já existe', en: 'purpose PRIMARY cannot be created: the main account already exists' } },
     ],
   },
   {
@@ -348,11 +321,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/wallet-accounts',
     tone: 'ok',
     desc: {
-      pt: 'Lista as contas segregadas sob a carteira do titular a que o seu projeto está ligado. Com uma chave de projeto, o âmbito é essa carteira e um parâmetro wallet_id é recusado — a carteira nunca vem do pedido.',
-      en: 'Lists the segregated accounts under the wallet of the owner your project is bound to. With a project key the scope is that wallet and a wallet_id parameter is refused — the wallet never comes from the request.',
+      pt: 'Lista as contas do Business do projeto, com o saldo de cada uma.',
+      en: 'Lists the accounts of the project’s Business, with the balance of each.',
     },
-    credential: { pt: 'Chave de projeto (scope wallet_accounts:read)', en: 'Project key (wallet_accounts:read scope)' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/wallet-accounts \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -371,8 +343,8 @@ export const ENDPOINTS: EndpointSpec[] = [
   ]
 }`,
     errors: [
-      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'wallet_id enviado com uma chave de projeto — a carteira vem da configuração financeira', en: 'wallet_id sent with a project key — the wallet comes from financial setup' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'falta o scope wallet_accounts:read, ou projeto sem configuração financeira concluída', en: 'the wallet_accounts:read scope is missing, or the project has no completed financial setup' } },
+      { code: '400 PAYEE_NOT_ALLOWED', note: { pt: 'o pedido indica wallet_id; a carteira vem da configuração financeira', en: 'the request names wallet_id; the wallet comes from Financial Setup' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem wallet_accounts:read, ou projeto sem configuração financeira concluída', en: 'key without wallet_accounts:read, or project without completed Financial Setup' } },
     ],
   },
   {
@@ -381,11 +353,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/wallet-accounts/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Devolve uma conta sua. Uma conta de outro titular responde 404, não 403: um código que as distinguisse deixaria um projeto enumerar as contas de outro.',
-      en: 'Returns one of your accounts. An account belonging to another owner answers 404, not 403: a status code that distinguished them would let one project enumerate another’s accounts.',
+      pt: 'Devolve uma conta do projeto e o seu saldo. A conta de outro projeto responde 404, tal como uma conta inexistente.',
+      en: 'Returns one of the project’s accounts and its balance. Another project’s account returns 404, like one that does not exist.',
     },
-    credential: { pt: 'Chave de projeto (scope wallet_accounts:read)', en: 'Project key (wallet_accounts:read scope)' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/wallet-accounts/wacc_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -401,8 +372,8 @@ export const ENDPOINTS: EndpointSpec[] = [
   "created_at": "2026-07-11T11:45:00Z"
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'falta o scope wallet_accounts:read, ou projeto sem configuração financeira concluída', en: 'the wallet_accounts:read scope is missing, or the project has no completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'a conta não existe, ou não é sua — indistinguível de propósito', en: 'the account does not exist, or is not yours — deliberately indistinguishable' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem wallet_accounts:read, ou projeto sem configuração financeira concluída', en: 'key without wallet_accounts:read, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'a conta não existe ou pertence a outro projeto', en: 'the account does not exist or belongs to another project' } },
     ],
   },
   {
@@ -411,19 +382,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/wallet-account-transfers',
     tone: 'ok',
     desc: {
-      pt: 'Move valor entre duas contas do mesmo titular do seu projeto. Débito e crédito atómicos: o total do titular não muda, apenas a distribuição.',
-      en: 'Moves value between two accounts of your project’s own owner. Atomic debit and credit: the owner’s total does not change, only its distribution.',
+      pt: 'Move valor entre duas contas do mesmo Business, de forma síncrona e atómica. O total do Business não muda.',
+      en: 'Moves value between two accounts of the same Business, synchronously and atomically. The Business total does not change.',
     },
-    credential: { pt: 'Chave de projeto (scope transfers:write)', en: 'Project key (transfers:write scope)' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
-    requestFields: [
-      { name: 'source_wallet_account_id', note: { pt: 'conta de origem — tem de ser sua', en: 'source account — must be yours' } },
-      { name: 'destination_wallet_account_id', note: { pt: 'conta de destino — tem de ser sua e diferente da origem', en: 'destination account — must be yours and different from the source' } },
-      { name: 'amount_minor', note: { pt: 'montante em unidades menores (AOA), inteiro positivo', en: 'amount in minor units (AOA), a positive integer' } },
-      { name: 'currency', note: { pt: 'moeda (AOA)', en: 'currency (AOA)' } },
-      { name: 'idempotency_key', note: { pt: 'obrigatório — sem ele cada repetição seria uma transferência nova', en: 'required — without it every retry would be a new transfer' } },
-      { name: 'description', note: { pt: 'opcional', en: 'optional' } },
-    ],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/wallet-account-transfers \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -444,14 +406,14 @@ export const ENDPOINTS: EndpointSpec[] = [
   "created_at": "2026-07-11T11:45:00Z"
 }`,
     errors: [
-      { code: '400 INVALID_DESTINATION', note: { pt: 'origem e destino iguais', en: 'source and destination are the same' } },
-      { code: '400 INVALID_AMOUNT', note: { pt: 'amount_minor tem de ser positivo', en: 'amount_minor must be positive' } },
-      { code: '400 MISSING_FIELD', note: { pt: 'idempotency_key ou currency em falta', en: 'idempotency_key or currency missing' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem o scope, ou projeto sem configuração financeira concluída', en: 'key without the scope, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'uma conta que não é sua responde 404, indistinguível de uma que não existe', en: 'an account that is not yours answers 404, indistinguishable from one that does not exist' } },
-      { code: '409 IDEMPOTENCY_KEY_REUSED', note: { pt: 'a mesma idempotency_key com um pedido diferente', en: 'the same idempotency_key with a different request' } },
-      { code: '422 INSUFFICIENT_FUNDS', note: { pt: 'saldo insuficiente — nada se move', en: 'insufficient funds — nothing moves' } },
-      { code: '422 ACCOUNTS_NOT_SAME_WALLET / CURRENCY_MISMATCH', note: { pt: 'as contas não são do mesmo titular, ou não estão na mesma moeda', en: 'the accounts are not of the same owner, or not in the same currency' } },
+      { code: '400 INVALID_DESTINATION', note: { pt: 'a conta de origem e a de destino são a mesma', en: 'the source and destination accounts are the same' } },
+      { code: '400 INVALID_AMOUNT', note: { pt: 'amount_minor tem de ser um inteiro positivo', en: 'amount_minor must be a positive integer' } },
+      { code: '400 MISSING_FIELD', note: { pt: 'falta idempotency_key ou currency', en: 'idempotency_key or currency is missing' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem transfers:write, ou projeto sem configuração financeira concluída', en: 'key without transfers:write, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'uma das contas não existe ou pertence a outro projeto', en: 'one of the accounts does not exist or belongs to another project' } },
+      { code: '409 IDEMPOTENCY_KEY_REUSED', note: { pt: 'a idempotency_key já foi usada com outro pedido', en: 'the idempotency_key was already used with a different request' } },
+      { code: '422 INSUFFICIENT_FUNDS', note: { pt: 'a conta de origem não tem saldo suficiente; nada é movido', en: 'the source account does not hold enough; nothing moves' } },
+      { code: '422 ACCOUNTS_NOT_SAME_WALLET / CURRENCY_MISMATCH', note: { pt: 'as contas não pertencem ao mesmo Business ou não têm a mesma moeda', en: 'the accounts do not belong to the same Business, or do not share a currency' } },
     ],
     idem: {
       pt: 'Repetir o mesmo idempotency_key devolve a transferência original sem mover fundos duas vezes.',
@@ -464,19 +426,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/refunds',
     tone: 'ok',
     desc: {
-      pt: 'Devolve, total ou parcialmente, um pagamento elegível. O reembolso debita a conta que recebeu o pagamento — não o saldo geral do titular.',
-      en: 'Returns an eligible payment, fully or partially. The refund debits the account that received the payment — not the owner’s general balance.',
+      pt: 'Devolve ao pagador a totalidade ou parte de um pagamento confirmado. O valor é debitado da conta que recebeu o pagamento.',
+      en: 'Returns all or part of a confirmed payment to the payer. The amount is debited from the account that received the payment.',
     },
-    credential: { pt: 'Chave de projeto (scope refunds:write) ou credencial de merchant', en: 'Project key (refunds:write scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
-    requestFields: [
-      { name: 'source_type', note: { pt: 'ACQUIRING_PAYMENT ou WALLET_PAYMENT', en: 'ACQUIRING_PAYMENT or WALLET_PAYMENT' } },
-      { name: 'source_id', note: { pt: 'o pagamento a reembolsar', en: 'the payment to refund' } },
-      { name: 'amount_minor', note: { pt: 'montante em unidades menores, até ao limite acumulado da origem', en: 'amount in minor units, up to the source’s accrued cap' } },
-      { name: 'currency', note: { pt: 'confirmada contra a origem', en: 'validated against the source' } },
-      { name: 'idempotency_key', note: { pt: 'obrigatório', en: 'required' } },
-      { name: 'reason', note: { pt: 'opcional', en: 'optional' } },
-    ],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/refunds \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -493,17 +446,17 @@ export const ENDPOINTS: EndpointSpec[] = [
   "source_id": "wpay_exemplo",
   "amount_minor": 50000,
   "currency": "AOA",
-  "status": "COMPLETED",
+  "status": "SUCCEEDED",
   "created_at": "2026-07-11T11:45:00Z"
 }`,
     errors: [
-      { code: '400 MISSING_FIELD / INVALID_AMOUNT / INVALID_CURRENCY / INVALID_SOURCE_TYPE', note: { pt: 'campos em falta ou inválidos', en: 'missing or invalid fields' } },
-      { code: '403 INSUFFICIENT_SCOPE', note: { pt: 'chave sem refunds:write — uma chave de leitura não reembolsa', en: 'key without refunds:write — a read-only key cannot refund' } },
-      { code: '409 IDEMPOTENCY_KEY_CONFLICT', note: { pt: 'já existe um reembolso com esta idempotency_key para este pagamento', en: 'a refund with this idempotency_key already exists for this payment' } },
-      { code: '422 REFUND_EXCEEDS_CAPTURED', note: { pt: 'o montante é maior do que o que resta reembolsar', en: 'the amount is larger than what is left to refund' } },
-      { code: '422 REFUND_NOT_FUNDABLE', note: { pt: 'a conta que recebeu já não tem saldo para devolver', en: 'the receiving account no longer has the balance to return it' } },
-      { code: '422 CURRENCY_MISMATCH / INVALID_PAYMENT_STATUS', note: { pt: 'moeda diferente do pagamento, ou pagamento que não se reembolsa', en: 'currency differs from the payment, or a payment that cannot be refunded' } },
-      { code: '404 NOT_FOUND', note: { pt: 'um pagamento de outro projeto responde 404: conhecer um id não é autoridade sobre ele', en: 'another project’s payment answers 404: knowing an id is not authority over it' } },
+      { code: '400 MISSING_FIELD / INVALID_AMOUNT / INVALID_CURRENCY / INVALID_SOURCE_TYPE', note: { pt: 'falta um campo obrigatório, ou o montante, a moeda ou source_type é inválido', en: 'a required field is missing, or the amount, currency or source_type is invalid' } },
+      { code: '403 INSUFFICIENT_SCOPE', note: { pt: 'chave sem refunds:write', en: 'key without refunds:write' } },
+      { code: '409 IDEMPOTENCY_KEY_CONFLICT', note: { pt: 'a idempotency_key já foi usada neste pagamento com outro montante ou moeda', en: 'the idempotency_key was already used on this payment with a different amount or currency' } },
+      { code: '422 REFUND_EXCEEDS_CAPTURED', note: { pt: 'o montante excede o que falta reembolsar', en: 'the amount exceeds what is left to refund' } },
+      { code: '422 REFUND_NOT_FUNDABLE', note: { pt: 'a conta que recebeu o pagamento não tem saldo suficiente', en: 'the account that received the payment does not hold enough' } },
+      { code: '422 CURRENCY_MISMATCH / INVALID_PAYMENT_STATUS', note: { pt: 'a moeda não é a do pagamento, ou o pagamento não pode ser reembolsado', en: 'the currency is not the payment’s, or the payment cannot be refunded' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o pagamento não existe ou pertence a outro projeto', en: 'the payment does not exist or belongs to another project' } },
     ],
     idem: {
       pt: 'Repetir o mesmo idempotency_key devolve o reembolso original e não devolve valor duas vezes.',
@@ -516,15 +469,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/endpoints',
     tone: 'ok',
     desc: {
-      pt: 'Regista o endpoint HTTPS que recebe os eventos do seu projeto. O segredo de assinatura é devolvido uma única vez, na criação, e nunca mais é legível.',
-      en: 'Registers the HTTPS endpoint that receives your project’s events. The signing secret is returned exactly once, on creation, and is never readable again.',
+      pt: 'Regista o endpoint HTTPS que recebe os eventos do projeto. O segredo de assinatura é devolvido nesta resposta e em mais nenhuma.',
+      en: 'Registers the HTTPS endpoint that receives the project’s events. The signing secret is returned in this response and never again.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:write); leitura com webhooks:read', en: 'Project key (webhooks:write scope); reads with webhooks:read' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
-    requestFields: [
-      { name: 'url', note: { pt: 'destino https público — http, loopback e endereços privados são recusados', en: 'public https destination — http, loopback and private addresses are refused' } },
-      { name: 'events', note: { pt: 'pelo menos um tipo de evento suportado; um nome desconhecido é recusado em vez de aceite em silêncio', en: 'at least one supported event type; an unknown name is refused rather than silently accepted' } },
-    ],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/webhooks/endpoints \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -541,10 +489,10 @@ export const ENDPOINTS: EndpointSpec[] = [
   "created_at": "2026-07-11T11:45:00Z"
 }`,
     errors: [
-      { code: '400 INVALID_WEBHOOK_URL', note: { pt: 'o destino não é um https público', en: 'the destination is not a public https endpoint' } },
-      { code: '400 UNSUPPORTED_EVENT', note: { pt: 'tipo de evento não suportado', en: 'unsupported event type' } },
-      { code: '400 MISSING_FIELD', note: { pt: 'url ou events em falta', en: 'url or events missing' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed financial setup' } },
+      { code: '400 INVALID_WEBHOOK_URL', note: { pt: 'o URL não é HTTPS público', en: 'the URL is not public HTTPS' } },
+      { code: '400 UNSUPPORTED_EVENT', note: { pt: 'um dos eventos não existe no catálogo', en: 'one of the events is not in the catalogue' } },
+      { code: '400 MISSING_FIELD', note: { pt: 'falta url ou events', en: 'url or events is missing' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed Financial Setup' } },
     ],
   },
 
@@ -554,21 +502,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/application-settlements',
     tone: 'ok',
     desc: {
-      pt: 'Liquida uma conta segregada do seu projeto (por exemplo, uma campanha) para um @banza beneficiário. O Banzami lê o saldo disponível da conta como montante bruto, aplica o perfil de preço que atribuiu ao seu negócio, credita a eventual taxa de aplicação no destino indicado e o líquido no beneficiário. O pedido não leva montante nem taxa: um campo de preço no corpo é recusado.',
-      en: 'Settles one of your project’s segregated accounts (a campaign, say) to a beneficiary @banza. Banzami reads the account’s available balance as the gross, applies the pricing profile it assigned to your business, credits any application fee to the destination you name and the net to the beneficiary. The request carries no amount and no rate: a pricing field in the body is refused.',
+      pt: 'Liquida todo o saldo de uma conta segregada para um beneficiário. O Banzami calcula a taxa pelo perfil de preço do Business; o pedido não indica montante nem taxa.',
+      en: 'Settles the whole balance of a segregated account to a beneficiary. Banzami calculates the fee from the Business’s pricing profile; the request names no amount and no fee.',
     },
-    credential: {
-      pt: 'Chave de projeto (scope application_settlements:write, projeto com configuração financeira concluída) ou credencial de merchant',
-      en: 'Project key (application_settlements:write scope, project with completed financial setup) or merchant credential',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
-    requestFields: [
-      { name: 'source_account_id', note: { pt: 'conta segregada de origem — tem de ser sua e não pode ser a PRIMARY; todo o saldo disponível é liquidado', en: 'segregated source account — must be yours and cannot be the PRIMARY; its whole available balance is settled' } },
-      { name: 'beneficiary_banza_name', note: { pt: '@banza que recebe o líquido, com ou sem @; precisa de carteira ativa na moeda da origem', en: '@banza that receives the net, with or without @; needs an active wallet in the source currency' } },
-      { name: 'fee_destination_banza_name', note: { pt: 'o seu próprio @banza de negócio para a taxa de aplicação — obrigatório apenas quando o seu preço resulta numa taxa', en: 'your own business @banza for the application fee — required only when your pricing resolves a fee' } },
-      { name: 'reference_id / reason', note: { pt: 'a sua referência; devolvida como owner_ref (reason só quando não há reference_id)', en: 'your reference; returned as owner_ref (reason only when there is no reference_id)' } },
-      { name: 'idempotency_key', note: { pt: 'obrigatório', en: 'required' } },
-    ],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/application-settlements \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -594,22 +531,22 @@ export const ENDPOINTS: EndpointSpec[] = [
   "failure_reason": null
 }`,
     errors: [
-      { code: '400 MISSING_FIELD / INVALID_BODY', note: { pt: 'idempotency_key, source_account_id ou beneficiary_banza_name em falta, ou corpo inválido', en: 'idempotency_key, source_account_id or beneficiary_banza_name missing, or invalid body' } },
-      { code: '400 PRICING_FIELD_NOT_ACCEPTED', note: { pt: 'o corpo indica uma taxa, perfil, categoria ou montante de taxa — o preço é do Banzami', en: 'the body names a rate, profile, category or fee amount — the price is Banzami’s' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem application_settlements:write, ou projeto sem configuração financeira concluída', en: 'key without application_settlements:write, or project without completed financial setup' } },
-            { code: '403 FEE_DESTINATION_NOT_OWNED', note: { pt: 'o destino da taxa não é a sua conta de negócio', en: 'the fee destination is not your business account' } },
-      { code: '404 NOT_FOUND', note: { pt: 'conta de origem inexistente ou de outro titular — indistinguíveis de propósito', en: 'source account missing or belonging to another owner — deliberately indistinguishable' } },
-      { code: '409 PRICING_NOT_CONFIGURED', note: { pt: 'o seu negócio ainda não tem perfil de preço atribuído', en: 'your business has no pricing profile assigned yet' } },
-      { code: '409 IDEMPOTENCY_CONFLICT', note: { pt: 'a mesma idempotency_key com outra origem ou outro beneficiário', en: 'the same idempotency_key with another source or beneficiary' } },
-      { code: '409 PRICING_CONFIGURATION_ERROR', note: { pt: 'mais do que uma regra de preço se aplica; contacte o suporte', en: 'more than one pricing rule applies; contact support' } },
-      { code: '422 INSUFFICIENT_FUNDS / FEE_EXCEEDS_GROSS', note: { pt: 'o saldo mudou entretanto, ou a taxa excederia o bruto', en: 'the balance changed in the meantime, or the fee would exceed the gross' } },
-      { code: '422 ACCOUNT_FROZEN', note: { pt: 'a conta está bloqueada; contacte o suporte', en: 'the account is frozen; contact support' } },
-      { code: '422 SOURCE_NOT_SEGREGATED', note: { pt: 'a origem é a conta PRIMARY', en: 'the source is the PRIMARY account' } },
+      { code: '400 MISSING_FIELD / INVALID_BODY', note: { pt: 'falta idempotency_key, source_account_id ou beneficiary_banza_name, ou o JSON é inválido', en: 'idempotency_key, source_account_id or beneficiary_banza_name is missing, or the JSON is invalid' } },
+      { code: '400 PRICING_FIELD_NOT_ACCEPTED', note: { pt: 'o pedido indica uma taxa, um perfil de preço ou uma categoria; o preço é definido pelo Banzami', en: 'the request names a rate, pricing profile or category; pricing is set by Banzami' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem application_settlements:write, ou projeto sem configuração financeira concluída', en: 'key without application_settlements:write, or project without completed Financial Setup' } },
+            { code: '403 FEE_DESTINATION_NOT_OWNED', note: { pt: 'o destino da taxa não pertence ao seu Business', en: 'the fee destination does not belong to your Business' } },
+      { code: '404 NOT_FOUND', note: { pt: 'a conta de origem não existe ou pertence a outro projeto', en: 'the source account does not exist or belongs to another project' } },
+      { code: '409 PRICING_NOT_CONFIGURED', note: { pt: 'o Business ainda não tem perfil de preço atribuído pelo Banzami', en: 'the Business has no pricing profile assigned by Banzami yet' } },
+      { code: '409 IDEMPOTENCY_CONFLICT', note: { pt: 'a idempotency_key já foi usada com outra conta de origem ou outro beneficiário', en: 'the idempotency_key was already used with another source account or beneficiary' } },
+      { code: '409 PRICING_CONFIGURATION_ERROR', note: { pt: 'a configuração de preço é ambígua; contacte o suporte com o request_id', en: 'the pricing configuration is ambiguous; contact support with the request_id' } },
+      { code: '422 INSUFFICIENT_FUNDS / FEE_EXCEEDS_GROSS', note: { pt: 'o saldo mudou durante o pedido, ou a taxa excederia o montante bruto', en: 'the balance changed during the request, or the fee would exceed the gross' } },
+      { code: '422 ACCOUNT_FROZEN', note: { pt: 'a conta está bloqueada; contacte o suporte com o request_id', en: 'the account is frozen; contact support with the request_id' } },
+      { code: '422 SOURCE_NOT_SEGREGATED', note: { pt: 'a origem é a conta principal do Business, que não pode ser liquidada', en: 'the source is the Business’s main account, which cannot be settled' } },
       { code: '422 NOTHING_TO_SETTLE', note: { pt: 'a conta de origem não tem saldo disponível', en: 'the source account has no available balance' } },
       { code: '422 BENEFICIARY_NOT_FOUND', note: { pt: 'o @banza não tem carteira ativa nesta moeda', en: 'the @banza has no active wallet in this currency' } },
-      { code: '422 FEE_DESTINATION_*', note: { pt: 'destino da taxa em falta ou não elegível (REQUIRED, NOT_FOUND, NOT_ACTIVE, KYB_NOT_APPROVED, WALLET_UNAVAILABLE, TYPE_NOT_ALLOWED, NOT_BUSINESS_ACCOUNT)', en: 'fee destination missing or not eligible (REQUIRED, NOT_FOUND, NOT_ACTIVE, KYB_NOT_APPROVED, WALLET_UNAVAILABLE, TYPE_NOT_ALLOWED, NOT_BUSINESS_ACCOUNT)' } },
-      { code: '422 SETTLEMENT_NOT_COMPLETED', note: { pt: 'a liquidação foi criada mas não concluída — repita com a mesma idempotency_key para a retomar', en: 'the settlement was created but not completed — retry with the same idempotency_key to resume it' } },
-      { code: '502 UPSTREAM_ERROR / 503 SERVICE_UNAVAILABLE', note: { pt: 'falha temporária — repita com a mesma idempotency_key', en: 'temporary failure — retry with the same idempotency_key' } },
+      { code: '422 FEE_DESTINATION_*', note: { pt: 'falta o destino da taxa, ou não é elegível (REQUIRED, NOT_FOUND, NOT_ACTIVE, KYB_NOT_APPROVED, WALLET_UNAVAILABLE, TYPE_NOT_ALLOWED, NOT_BUSINESS_ACCOUNT)', en: 'the fee destination is missing or not eligible (REQUIRED, NOT_FOUND, NOT_ACTIVE, KYB_NOT_APPROVED, WALLET_UNAVAILABLE, TYPE_NOT_ALLOWED, NOT_BUSINESS_ACCOUNT)' } },
+      { code: '422 SETTLEMENT_NOT_COMPLETED', note: { pt: 'a liquidação foi criada mas não concluída; repita com a mesma idempotency_key para a retomar', en: 'the settlement was created but did not complete; retry with the same idempotency_key to resume it' } },
+      { code: '502 UPSTREAM_ERROR / 503 SERVICE_UNAVAILABLE', note: { pt: 'falha temporária; repita com a mesma idempotency_key', en: 'temporary failure; retry with the same idempotency_key' } },
     ],
     idem: {
       pt: 'Repetir a mesma idempotency_key para a mesma origem e o mesmo beneficiário devolve (200) a liquidação já feita, sem liquidar duas vezes.',
@@ -622,11 +559,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-links',
     tone: 'ok',
     desc: {
-      pt: 'Lista os links do projeto, do mais recente para o mais antigo, uma página de cada vez. ?limit= de 1 a 100 (por omissão 20). Quando há mais, a resposta traz next_cursor: envie-o tal como veio em ?cursor= para a página seguinte. Sem next_cursor, é a última página.',
-      en: 'Lists the project’s links, newest first, one page at a time. ?limit= from 1 to 100 (default 20). When there are more, the response carries next_cursor: send it back unchanged as ?cursor= for the next page. No next_cursor means the last page.',
+      pt: 'Lista os links de pagamento do projeto, do mais recente para o mais antigo, com paginação por cursor.',
+      en: 'Lists the project’s Payment Links, newest first, with cursor pagination.',
     },
-    credential: { pt: 'Chave de projeto (payment_links:read) ou credencial de merchant', en: 'Project key (payment_links:read) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl "https://sandbox-api.banzami.com/v1/payment-links?limit=20" \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -643,7 +579,7 @@ export const ENDPOINTS: EndpointSpec[] = [
 }`,
     errors: [
       { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1–100, ou um cursor que não é um next_cursor', en: 'limit outside 1–100, or a cursor that is not a next_cursor' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:read, ou projeto sem configuração financeira concluída', en: 'key without payment_links:read, or project without completed financial setup' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:read, ou projeto sem configuração financeira concluída', en: 'key without payment_links:read, or project without completed Financial Setup' } },
     ],
   },
   {
@@ -652,14 +588,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-links/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Consulta um link de pagamento pelo id devolvido na criação — não pelo slug público (um slug responde 404). refund_source só é devolvido à sessão do merchant titular, nunca a uma chave de projeto.',
-      en: 'Fetches a payment link by the id returned at creation — not by its public slug (a slug answers 404). refund_source is returned only to the owning merchant session, never to a project key.',
+      pt: 'Devolve um link de pagamento pelo id devolvido na criação (o slug responde 404). Para reembolsar, use o refund_source do evento payment_link.paid.',
+      en: 'Returns a Payment Link by the id returned at creation (a slug returns 404). To refund, use the refund_source from the payment_link.paid event.',
     },
-    credential: {
-      pt: 'Chave de projeto (scope payment_links:read, projeto com configuração financeira concluída) ou credencial de merchant',
-      en: 'Project key (payment_links:read scope, project with completed financial setup) or merchant credential',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/payment-links/plink_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -677,9 +609,9 @@ export const ENDPOINTS: EndpointSpec[] = [
   "updated_at": "2026-07-11T11:45:00Z"
 }`,
     errors: [
-      { code: '401 UNAUTHORIZED', note: { pt: 'credencial inválida', en: 'invalid credential' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:read, ou projeto sem configuração financeira concluída', en: 'key without payment_links:read, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'link inexistente, id mal formado ou link de outro projeto — indistinguíveis', en: 'link missing, malformed id or another project’s link — indistinguishable' } },
+      { code: '401 UNAUTHORIZED', note: { pt: 'a chave falta, é inválida ou foi revogada', en: 'the key is missing, invalid or revoked' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:read, ou projeto sem configuração financeira concluída', en: 'key without payment_links:read, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o link não existe, o id é inválido ou o link pertence a outro projeto', en: 'the link does not exist, the id is invalid, or the link belongs to another project' } },
     ],
   },
   {
@@ -688,14 +620,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-links/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Cancela um link ACTIVE para que deixe de poder ser pago e devolve-o com estado CANCELLED. É assim que se fecha um link por pagar: um link só é marcado como pago por um pagamento (a rota mark-used foi retirada).',
-      en: 'Cancels an ACTIVE link so it can no longer be paid and returns it with status CANCELLED. This is how an unpaid link is closed: a link is marked paid only by a payment (the mark-used route is retired).',
+      pt: 'Cancela um link ACTIVE, que deixa de poder ser pago. É a forma de fechar um link por pagar.',
+      en: 'Cancels an ACTIVE link so it can no longer be paid. This is how you close an unpaid link.',
     },
-    credential: {
-      pt: 'Chave de projeto (scope payment_links:write, projeto com configuração financeira concluída) ou credencial de merchant',
-      en: 'Project key (payment_links:write scope, project with completed financial setup) or merchant credential',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X DELETE https://sandbox-api.banzami.com/v1/payment-links/plink_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -713,9 +641,9 @@ export const ENDPOINTS: EndpointSpec[] = [
   "updated_at": "2026-07-11T12:10:00Z"
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:write — uma chave de leitura não cancela — ou projeto sem configuração financeira concluída', en: 'key without payment_links:write — a read-only key cannot cancel — or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'um link de outro projeto responde 404, indistinguível de um que não existe', en: 'another project’s link answers 404, indistinguishable from one that does not exist' } },
-      { code: '422 LINK_NOT_ACTIVE', note: { pt: 'o link já foi usado, expirou ou foi cancelado', en: 'the link was already used, expired or cancelled' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:write, ou projeto sem configuração financeira concluída', en: 'key without payment_links:write, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o link não existe ou pertence a outro projeto', en: 'the link does not exist or belongs to another project' } },
+      { code: '422 LINK_NOT_ACTIVE', note: { pt: 'o link já foi pago, expirou ou foi cancelado', en: 'the link was already paid, expired or was cancelled' } },
     ],
     idem: {
       pt: 'Suporta Idempotency-Key como qualquer operação de escrita.',
@@ -728,11 +656,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/refunds',
     tone: 'ok',
     desc: {
-      pt: 'Lista os reembolsos do titular do seu projeto, do mais recente para o mais antigo. ?source_id= restringe aos reembolsos de um pagamento; ?limit= de 1 a 100 (por omissão 20). Sem cursor.',
-      en: 'Lists the refunds of your project’s owner, newest first. ?source_id= narrows to one payment’s refunds; ?limit= from 1 to 100 (default 20). No cursor.',
+      pt: 'Lista os reembolsos do Business do projeto, do mais recente para o mais antigo, com filtro por pagamento.',
+      en: 'Lists the refunds of the project’s Business, newest first, with a per-payment filter.',
     },
-    credential: { pt: 'Chave de projeto (scope refunds:read) ou credencial de merchant', en: 'Project key (refunds:read scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl "https://sandbox-api.banzami.com/v1/refunds?source_id=wpay_exemplo&limit=20" \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -751,7 +678,7 @@ export const ENDPOINTS: EndpointSpec[] = [
 }`,
     errors: [
       { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1–100', en: 'limit outside 1–100' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem refunds:read, ou projeto sem titular financeiro', en: 'key without refunds:read, or project without a financial owner' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem refunds:read, ou projeto sem configuração financeira concluída', en: 'key without refunds:read, or project without completed Financial Setup' } },
     ],
   },
   {
@@ -760,16 +687,25 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/refunds/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Consulta um reembolso do titular do seu projeto. A leitura é limitada a esse titular: um reembolso de outro projeto, um id desconhecido e um id mal formado respondem o mesmo 404.',
-      en: 'Fetches a refund of your project’s owner. The read is scoped to that owner: another project’s refund, an unknown id and a malformed id all answer the same 404.',
+      pt: 'Devolve um reembolso do Business do projeto. Um reembolso de outro projeto responde 404.',
+      en: 'Returns a refund of the project’s Business. Another project’s refund returns 404.',
     },
-    credential: { pt: 'Chave de projeto (scope refunds:read) ou credencial de merchant', en: 'Project key (refunds:read scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/refunds/rfnd_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "id": "rfnd_exemplo",
+  "source_type": "WALLET_PAYMENT",
+  "source_id": "wpay_exemplo",
+  "amount_minor": 50000,
+  "currency": "AOA",
+  "status": "SUCCEEDED",
+  "reason": null,
+  "created_at": "2026-07-11T11:45:00Z"
+}`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem refunds:read, ou projeto sem titular financeiro', en: 'key without refunds:read, or project without a financial owner' } },
-      { code: '404 NOT_FOUND', note: { pt: 'reembolso inexistente ou de outro projeto', en: 'refund missing or belonging to another project' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem refunds:read, ou projeto sem configuração financeira concluída', en: 'key without refunds:read, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o reembolso não existe ou pertence a outro projeto', en: 'the refund does not exist or belongs to another project' } },
     ],
   },
   {
@@ -778,14 +714,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/consumers/handle/{handle}',
     tone: 'ok',
     desc: {
-      pt: 'Confirma que um @banza de consumidor existe antes de o indicar como destino. Devolve só o handle e o nome apresentado — nenhum id, carteira ou saldo. Aceita o @ inicial e maiúsculas. Um @banza de negócio responde 404 aqui.',
-      en: 'Confirms a consumer @banza exists before you name it as a destination. Returns only the handle and display name — no id, wallet or balance. Accepts a leading @ and upper case. A business @banza answers 404 here.',
+      pt: 'Confirma que um @banza de consumidor existe antes de o indicar como beneficiário. Devolve apenas o handle e o nome apresentado; um @banza de negócio responde 404.',
+      en: 'Confirms a consumer @banza exists before you name it as a beneficiary. Returns only the handle and display name; a business @banza returns 404.',
     },
-    credential: {
-      pt: 'Chave de projeto (scope customers:read; não exige configuração financeira) ou credencial de merchant',
-      en: 'Project key (customers:read scope; no financial setup required) or merchant credential',
-    },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · não requer configuração financeira', en: 'Project secret key · no Financial Setup required' },
     curl: `curl https://sandbox-api.banzami.com/v1/consumers/handle/cliente_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -794,7 +726,7 @@ export const ENDPOINTS: EndpointSpec[] = [
 }`,
     errors: [
       { code: '403 INSUFFICIENT_SCOPE', note: { pt: 'chave sem customers:read', en: 'key without customers:read' } },
-      { code: '404 NOT_FOUND', note: { pt: 'nenhum consumidor tem este handle', en: 'no consumer holds this handle' } },
+      { code: '404 NOT_FOUND', note: { pt: 'nenhum consumidor tem este @banza', en: 'no consumer holds this @banza' } },
     ],
   },
   {
@@ -803,11 +735,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/endpoints',
     tone: 'ok',
     desc: {
-      pt: 'Lista todos os endpoints do titular do seu projeto, do mais recente para o mais antigo, incluindo os desativados (active: false). O segredo nunca é incluído.',
-      en: 'Lists every endpoint of your project’s owner, newest first, including deactivated ones (active: false). The secret is never included.',
+      pt: 'Lista os endpoints do projeto, incluindo os desativados. O segredo nunca é incluído.',
+      en: 'Lists the project’s endpoints, including disabled ones. The secret is never included.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:read) ou credencial de merchant', en: 'Project key (webhooks:read scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/webhooks/endpoints \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -822,7 +753,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   ]
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed financial setup' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed Financial Setup' } },
     ],
   },
   {
@@ -831,16 +762,22 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/endpoints/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Consulta um endpoint do seu projeto, sem o segredo.',
-      en: 'Fetches one of your project’s endpoints, without its secret.',
+      pt: 'Devolve um endpoint do projeto, sem o segredo.',
+      en: 'Returns one of the project’s endpoints, without its secret.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:read) ou credencial de merchant', en: 'Project key (webhooks:read scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/webhooks/endpoints/whep_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "id": "whep_exemplo",
+  "url": "https://o-seu-servidor.exemplo/webhooks/banzami",
+  "events": ["payment_session.paid"],
+  "active": true,
+  "created_at": "2026-07-11T11:45:00Z"
+}`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'um endpoint de outro projeto responde 404', en: 'another project’s endpoint answers 404' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o endpoint não existe ou pertence a outro projeto', en: 'the endpoint does not exist or belongs to another project' } },
     ],
   },
   {
@@ -849,16 +786,15 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/endpoints/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Desativa um endpoint: deixa de receber eventos, mas é conservado para auditoria e continua listado com active: false. Responde 204 sem corpo, também se já estava desativado.',
-      en: 'Deactivates an endpoint: it stops receiving events but is kept for audit and still listed with active: false. Answers 204 with no body, also when it was already inactive.',
+      pt: 'Desativa um endpoint: deixa de receber eventos e mantém-se listado com active: false. Responde 204, também se já estava desativado.',
+      en: 'Disables an endpoint: it stops receiving events and stays listed with active: false. Returns 204, also when it was already disabled.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:write) ou credencial de merchant', en: 'Project key (webhooks:write scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X DELETE https://sandbox-api.banzami.com/v1/webhooks/endpoints/whep_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'um endpoint de outro projeto responde 404', en: 'another project’s endpoint answers 404' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o endpoint não existe ou pertence a outro projeto', en: 'the endpoint does not exist or belongs to another project' } },
     ],
   },
   {
@@ -867,11 +803,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/endpoints/{id}/health',
     tone: 'ok',
     desc: {
-      pt: 'Entregas ao endpoint criadas nas últimas 24 horas, por resultado, e a taxa de sucesso.',
-      en: 'Deliveries to the endpoint created in the last 24 hours, by outcome, and the success rate.',
+      pt: 'Resume as entregas das últimas 24 horas ao endpoint: total, sucessos, falhas e taxa de sucesso.',
+      en: 'Summarises the endpoint’s deliveries over the last 24 hours: total, successes, failures and success rate.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:read) ou credencial de merchant', en: 'Project key (webhooks:read scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/webhooks/endpoints/whep_exemplo/health \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -884,8 +819,8 @@ export const ENDPOINTS: EndpointSpec[] = [
   "last_failed_at": "2026-07-11T09:12:00Z"
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'um endpoint de outro projeto responde 404', en: 'another project’s endpoint answers 404' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o endpoint não existe ou pertence a outro projeto', en: 'the endpoint does not exist or belongs to another project' } },
     ],
   },
   {
@@ -894,11 +829,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/endpoints/{id}/rotate-secret',
     tone: 'ok',
     desc: {
-      pt: 'Emite um novo segredo de assinatura e devolve-o uma única vez, nesta resposta. A troca é imediata: a entrega seguinte já é assinada com o novo segredo — atualize o recetor antes de rodar. Sem corpo no pedido.',
-      en: 'Issues a new signing secret and returns it exactly once, in this response. The cutover is immediate: the next delivery is signed with the new secret — update your receiver before rotating. No request body.',
+      pt: 'Emite um segredo de assinatura novo e devolve-o apenas nesta resposta. A troca é imediata: prepare o servidor antes de rodar.',
+      en: 'Issues a new signing secret and returns it only in this response. The switch is immediate: prepare your server before rotating.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:write) ou credencial de merchant', en: 'Project key (webhooks:write scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/webhooks/endpoints/whep_exemplo/rotate-secret \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -910,8 +844,8 @@ export const ENDPOINTS: EndpointSpec[] = [
   "created_at": "2026-07-11T11:45:00Z"
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'um endpoint de outro projeto responde 404', en: 'another project’s endpoint answers 404' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o endpoint não existe ou pertence a outro projeto', en: 'the endpoint does not exist or belongs to another project' } },
     ],
   },
   {
@@ -920,11 +854,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/events',
     tone: 'ok',
     desc: {
-      pt: 'Lista os eventos emitidos para o titular do seu projeto, do mais recente para o mais antigo, tenham ou não chegado a um endpoint. ?limit= de 1 a 100 (por omissão 20). Sem cursor.',
-      en: 'Lists the events emitted for your project’s owner, newest first, whether or not they reached an endpoint. ?limit= from 1 to 100 (default 20). No cursor.',
+      pt: 'Lista os eventos emitidos para o projeto, do mais recente para o mais antigo, tenham ou não sido entregues.',
+      en: 'Lists the events emitted for the project, newest first, whether or not they were delivered.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:read) ou credencial de merchant', en: 'Project key (webhooks:read scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl "https://sandbox-api.banzami.com/v1/webhooks/events?limit=20" \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -936,7 +869,7 @@ export const ENDPOINTS: EndpointSpec[] = [
         "id": "whevt_exemplo",
         "type": "payment_session.paid",
         "created_at": "2026-07-11T11:50:00Z",
-        "data": { "session_id": "psess_exemplo", "amount_minor": 25000, "currency": "AOA" }
+        "data": { "payment_session_id": "psess_exemplo", "amount_minor": 25000, "interface": "PAYMENT_LINK", "reference_id": "pedido_123" }
       },
       "created_at": "2026-07-11T11:50:00Z"
     }
@@ -944,7 +877,7 @@ export const ENDPOINTS: EndpointSpec[] = [
 }`,
     errors: [
       { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1–100', en: 'limit outside 1–100' } },
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed financial setup' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed Financial Setup' } },
     ],
   },
   {
@@ -953,11 +886,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/events/{id}/deliveries',
     tone: 'ok',
     desc: {
-      pt: 'Histórico de entrega de um evento: uma entrega por endpoint, com todas as tentativas (a mais antiga primeiro), o código HTTP e a resposta do recetor.',
-      en: 'Delivery history of one event: one delivery per endpoint, with every attempt (oldest first), the HTTP status and the receiver’s response.',
+      pt: 'Devolve o histórico de entrega de um evento: uma entrega por endpoint, com cada tentativa, o código HTTP e a resposta do seu servidor.',
+      en: 'Returns an event’s delivery history: one delivery per endpoint, with each attempt, the HTTP status and your server’s response.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:read) ou credencial de merchant', en: 'Project key (webhooks:read scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/webhooks/events/whevt_exemplo/deliveries \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -980,8 +912,8 @@ export const ENDPOINTS: EndpointSpec[] = [
   ]
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'um evento de outro projeto responde 404, não uma lista vazia', en: 'another project’s event answers 404, not an empty list' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o evento não existe ou pertence a outro projeto', en: 'the event does not exist or belongs to another project' } },
     ],
   },
   {
@@ -990,11 +922,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/deliveries/{id}/replay',
     tone: 'ok',
     desc: {
-      pt: 'Volta a pôr uma entrega na fila como PENDING, com o mesmo id: uma entrega por evento e endpoint, por isso repetir é mais uma tentativa, nunca uma segunda entrega. Para recuperar após uma falha do seu endpoint. Uma entrega que já teve sucesso responde 409 — não é enviada de novo. Sem corpo no pedido.',
-      en: 'Puts a delivery back in the queue as PENDING, keeping its id: one delivery per event and endpoint, so a replay is a further attempt, never a second delivery. For recovery after your endpoint failed. A delivery that already succeeded answers 409 — it is not sent again. No request body.',
+      pt: 'Volta a pôr em fila uma entrega que falhou, com o mesmo id. Uma entrega que já teve sucesso responde 409 e não é reenviada.',
+      en: 'Queues a failed delivery again, with the same id. A delivery that already succeeded returns 409 and is not sent again.',
     },
-    credential: { pt: 'Chave de projeto (scope webhooks:write) ou credencial de merchant', en: 'Project key (webhooks:write scope) or merchant credential' },
-    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/webhooks/deliveries/whdel_exemplo/replay \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
@@ -1007,9 +938,9 @@ export const ENDPOINTS: EndpointSpec[] = [
   "attempts": null
 }`,
     errors: [
-      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed financial setup' } },
-      { code: '404 NOT_FOUND', note: { pt: 'uma entrega de outro projeto responde 404', en: 'another project’s delivery answers 404' } },
-      { code: '409 DELIVERY_ALREADY_SUCCEEDED', note: { pt: 'a entrega já teve sucesso — reentregue só as que falharam', en: 'the delivery already succeeded — replay only failed ones' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed Financial Setup' } },
+      { code: '404 NOT_FOUND', note: { pt: 'a entrega não existe ou pertence a outro projeto', en: 'the delivery does not exist or belongs to another project' } },
+      { code: '409 DELIVERY_ALREADY_SUCCEEDED', note: { pt: 'a entrega já teve sucesso; só as entregas falhadas podem ser reenviadas', en: 'the delivery already succeeded; only failed deliveries can be replayed' } },
     ],
   },
   {
@@ -1018,11 +949,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/public/proofs/{ref}',
     tone: 'ok',
     desc: {
-      pt: 'Verifica um comprovativo pela sua referência pública BZM-…, sem autenticação. É a mesma verificação da página banzami.com/r/{ref}. A referência é exacta, sem normalização: minúsculas, espaços ou um hífen a mais respondem 404. Quem tem a referência vê o montante, os @banza das partes e a descrição — trate-a como o próprio comprovativo. Um 404 responde { exists: false, status: NOT_FOUND } — não existe, ou foi alterada; um 503 responde { exists: false, status: UNAVAILABLE } — tente mais tarde, e não conclua que é falso.',
-      en: 'Verifies a receipt by its public BZM-… reference, with no authentication. It is the same check as the banzami.com/r/{ref} page. The reference is exact, with no normalisation: lower case, spaces or an extra hyphen answer 404. Whoever holds the reference sees the amount, both parties’ @banza and the description — treat it like the receipt itself. A 404 answers { exists: false, status: NOT_FOUND } — it does not exist, or was altered; a 503 answers { exists: false, status: UNAVAILABLE } — try later, and do not conclude it is forged.',
+      pt: 'Verifica um comprovativo pela referência BZM-…, sem autenticação — a mesma verificação de banzami.com/r/{ref}. A referência é exata, sem normalização; um 503 não indica que o comprovativo é falso.',
+      en: 'Verifies a receipt by its BZM-… reference, with no authentication — the same check as banzami.com/r/{ref}. The reference is exact, with no normalisation; a 503 does not mean the receipt is forged.',
     },
     credential: { pt: 'Nenhuma — rota pública, com limite por IP', en: 'None — a public route, rate-limited per IP' },
-    headers: [],
     curl: `curl https://sandbox-api.banzami.com/v1/public/proofs/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`,
     response: `{
   "exists": true,
@@ -1033,71 +963,206 @@ export const ENDPOINTS: EndpointSpec[] = [
   "description": "Pedido #123"
 }`,
     errors: [
-      { code: '429 RATE_LIMITED', note: { pt: 'demasiadas verificações do mesmo IP — espere o Retry-After', en: 'too many checks from the same IP — wait for Retry-After' } },
+      { code: '429 RATE_LIMITED', note: { pt: 'demasiadas verificações a partir do mesmo IP; aguarde os segundos de Retry-After', en: 'too many checks from the same IP; wait the Retry-After seconds' } },
     ],
   },
 ];
 
 // Compact rows for surfaces that exist but are NOT public-key callable today.
 export const RESTRICTED_ROWS: { path: string; status: Bi }[] = [
-  { path: 'GET /v1/application-settlements/{id}', status: { pt: 'Apenas credencial de merchant — uma chave de projeto recebe 401 e não há scope de leitura de liquidações; guarde o corpo devolvido por POST /v1/application-settlements', en: 'Merchant credential only — a project key receives 401 and there is no settlement read scope; keep the body POST /v1/application-settlements returns' } },
-  { path: 'GET /v1/integration', status: { pt: 'Apenas sessão de merchant — uma chave de projeto recebe sempre 403 USE_FINANCIAL_SETUP; um projeto lê a sua prontidão em GET /v1/financial-setup', en: 'Merchant session only — a project key always receives 403 USE_FINANCIAL_SETUP; a project reads its readiness from GET /v1/financial-setup' } },
-  { path: 'POST /v1/payment-links/{id}/mark-used', status: { pt: 'Retirado — responde 410 ROUTE_RETIRED a qualquer credencial. Um link só é marcado como pago por um pagamento; para fechar um link por pagar, use DELETE /v1/payment-links/{id}', en: 'Retired — answers 410 ROUTE_RETIRED to every credential. A link is marked paid only by a payment; to close an unpaid link, DELETE /v1/payment-links/{id}' } },
-  { path: 'POST/GET /v1/transfers', status: { pt: 'Superfície de consumidor apenas — o remetente deriva do token do consumidor; não disponível a credenciais de merchant', en: 'Consumer surface only — the sender derives from the consumer token; not available to merchant credentials' } },
-];
+  { path: 'GET /v1/application-settlements/{id}', status: { pt: 'Não disponível a uma chave de projeto (responde 401). Guarde a resposta de POST /v1/application-settlements e o evento application_settlement.completed.', en: 'Not available to a project key (returns 401). Keep the POST /v1/application-settlements response and the application_settlement.completed event.' } },
+  { path: 'GET /v1/integration', status: { pt: 'Não disponível a uma chave de projeto (responde 403 USE_FINANCIAL_SETUP). Use GET /v1/financial-setup.', en: 'Not available to a project key (returns 403 USE_FINANCIAL_SETUP). Use GET /v1/financial-setup.' } },
+  { path: 'POST /v1/payment-links/{id}/mark-used', status: { pt: 'Retirada: responde 410 ROUTE_RETIRED. Um link só é marcado como pago por um pagamento; para fechar um link por pagar, use DELETE /v1/payment-links/{id}.', en: 'Retired: returns 410 ROUTE_RETIRED. A link is marked paid only by a payment; to close an unpaid link, use DELETE /v1/payment-links/{id}.' } },
+  { path: 'POST/GET /v1/transfers', status: { pt: 'Transferências entre consumidores, na app Banzami. Não disponível a uma chave de projeto; para mover valor entre as suas contas, use POST /v1/wallet-account-transfers.', en: 'Consumer-to-consumer transfers, in the Banzami app. Not available to a project key; to move value between your accounts, use POST /v1/wallet-account-transfers.' } },
+]
 
 const label = (l: 'pt' | 'en', pt: string, en: string) => (l === 'pt' ? pt : en);
+
+/** Resources, in the order a developer meets them. Every endpoint belongs to one. */
+export const RESOURCE_GROUPS: { id: string; title: Bi; ids: string[] }[] = [
+  { id: 'resource-identity', title: { pt: 'Identidade e prontidão', en: 'Identity and readiness' }, ids: ['ref-me', 'ref-financial-setup'] },
+  { id: 'resource-sessions', title: { pt: 'Sessões de pagamento', en: 'Payment Sessions' }, ids: ['ref-ps-create', 'ref-ps-get', 'ref-ps-list', 'ref-ps-link', 'ref-ps-qr'] },
+  { id: 'resource-links', title: { pt: 'Links de pagamento', en: 'Payment Links' }, ids: ['ref-pl-create', 'ref-pl-list', 'ref-pl-get', 'ref-pl-cancel'] },
+  { id: 'resource-accounts', title: { pt: 'Contas e transferências', en: 'Accounts and transfers' }, ids: ['ref-wacc-create', 'ref-wacc-list', 'ref-wacc-get', 'ref-transfer-create'] },
+  { id: 'resource-refunds', title: { pt: 'Reembolsos', en: 'Refunds' }, ids: ['ref-refund-create', 'ref-refund-list', 'ref-refund-get'] },
+  { id: 'resource-settlements', title: { pt: 'Liquidações', en: 'Settlements' }, ids: ['ref-settlement-create', 'ref-handle-resolve'] },
+  { id: 'resource-webhooks', title: { pt: 'Webhooks', en: 'Webhooks' }, ids: ['ref-webhook-register', 'ref-webhook-list', 'ref-webhook-get', 'ref-webhook-deactivate', 'ref-webhook-health', 'ref-webhook-rotate', 'ref-webhook-events', 'ref-webhook-deliveries', 'ref-webhook-replay'] },
+  { id: 'resource-receipts', title: { pt: 'Comprovativos', en: 'Receipts' }, ids: ['ref-public-proof'] },
+];
+
+const GUIDE_LABEL: Record<string, Bi> = {
+  'get-started': { pt: 'Quickstart', en: 'Quickstart' },
+  payments: { pt: 'Aceitar pagamentos', en: 'Accept payments' },
+  webhooks: { pt: 'Webhooks', en: 'Webhooks' },
+  events: { pt: 'Eventos', en: 'Events' },
+  refunds: { pt: 'Reembolsos', en: 'Refunds' },
+  settlements: { pt: 'Liquidações', en: 'Settlements' },
+  receipts: { pt: 'Comprovativos', en: 'Receipts' },
+  transfers: { pt: 'Contas e transferências', en: 'Accounts and transfers' },
+  doa: { pt: 'Construir como o DOA', en: 'Build like DOA' },
+  testing: { pt: 'Testar no Sandbox', en: 'Sandbox testing' },
+  'going-live': { pt: 'Do Sandbox ao Live', en: 'From Sandbox toward Live' },
+  trust: { pt: 'Segurança', en: 'Security' },
+  troubleshooting: { pt: 'Resolução de problemas', en: 'Troubleshooting' },
+};
+
+const IN_LABEL: Record<ParamIn, Bi> = {
+  path: { pt: 'Caminho', en: 'Path' },
+  query: { pt: 'Query', en: 'Query' },
+  header: { pt: 'Headers', en: 'Headers' },
+  body: { pt: 'Corpo (JSON)', en: 'Body (JSON)' },
+};
+
+const docsBase = (lang: 'pt' | 'en') => (lang === 'pt' ? '/docs' : '/docs/en');
+const link: React.CSSProperties = { color: '#9A1B22', fontWeight: 600, textDecoration: 'none' };
+const cell: React.CSSProperties = { padding: '7px 9px', borderBottom: '1px solid #EAE3E3', verticalAlign: 'top', color: '#3f3538' };
+
+/** The error codes inside a reference line such as "403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE". */
+const codesIn = (line: string) => [...line.matchAll(/\b([A-Z][A-Z0-9_]{2,}\*?)\b/g)].map((m) => m[1]);
+
+/** One endpoint joined with its contract; throws for an endpoint without one. */
+export function endpointWithMeta(e: EndpointSpec): EndpointSpec & EndpointMeta {
+  const meta = ENDPOINT_META[e.id];
+  if (!meta) throw new Error('endpoint ' + (e.id) + ' has no entry in endpoint-meta.ts');
+  return { ...e, ...meta };
+}
+
+function Params({ lang, params }: { lang: 'pt' | 'en'; params: Param[] }) {
+  const groups = (['path', 'query', 'header', 'body'] as ParamIn[]).map((where) => ({ where, rows: params.filter((p) => p.in === where) })).filter((g) => g.rows.length);
+  return (
+    <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 12px' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
+        <thead>
+          <tr style={{ textAlign: 'left', color: '#6f6468' }}>
+            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Parâmetro', 'Parameter')}</th>
+            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Tipo', 'Type')}</th>
+            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Obrigatório', 'Required')}</th>
+            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Aceita', 'Accepts')}</th>
+          </tr>
+        </thead>
+        {groups.map((g) => (
+          <tbody key={g.where}>
+            <tr><td colSpan={4} style={{ ...cell, fontSize: 11, fontWeight: 700, letterSpacing: '.05em', color: '#9A1B22', background: '#FFF7F6' }}>{IN_LABEL[g.where][lang].toUpperCase()}</td></tr>
+            {g.rows.map((p) => (
+              <tr key={p.in + p.name}>
+                <td style={{ ...cell, fontFamily: mono, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{p.name}</td>
+                <td style={{ ...cell, fontFamily: mono, whiteSpace: 'nowrap' }}>{p.type}</td>
+                <td style={cell}>{p.required === 'conditional' ? label(lang, 'condicional', 'conditional') : p.required ? label(lang, 'sim', 'yes') : label(lang, 'não', 'no')}</td>
+                <td style={cell}>{p.note[lang]}{p.example ? <> · <span style={{ fontFamily: mono, fontSize: 12 }}>{p.example}</span></> : null}</td>
+              </tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+    </div>
+  );
+}
+
+function Fact({ k, children }: { k: string; children: ReactNode }) {
+  return (
+    <div style={{ display: 'contents' }}>
+      <dt style={{ fontSize: 12.5, fontWeight: 600, color: '#6f6468' }}>{k}</dt>
+      <dd style={{ margin: 0, fontSize: 13, color: '#3f3538', minWidth: 0, overflowWrap: 'anywhere' }}>{children}</dd>
+    </div>
+  );
+}
 
 export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy: (t: string, l: string) => void }) {
   const t = (b: Bi) => b[lang];
   const copyProps = lang === 'en' ? { toastText: 'Copied to clipboard', buttonText: 'Copy' } : {};
+  const byId = new Map(ENDPOINTS.map((e) => [e.id, endpointWithMeta(e)]));
   return (
     <div>
-      {ENDPOINTS.map((e) => (
-        <div key={e.id} id={e.id} style={{ scrollMarginTop: 80 }}>
-          <H3>
-            <span style={{ fontFamily: mono, fontSize: 15 }}>{e.method} {e.path}</span>{' '}
-            <Badge tone={e.tone}>{lang === 'en' ? BADGE_LABELS_EN[e.tone] : undefined}</Badge>
-          </H3>
-          <P>{t(e.desc)}</P>
-          <UL>
-            <LI><strong>{label(lang, 'Credencial', 'Credential')}:</strong> {t(e.credential)}</LI>
-            <LI><strong>Headers:</strong> {e.headers.map((h, i) => (<span key={h}>{i > 0 ? ' · ' : ''}<Code>{h}</Code></span>))}</LI>
-            {e.requestFields ? (
-              <LI>
-                <strong>{label(lang, 'Campos do pedido', 'Request fields')}:</strong>{' '}
-                {e.requestFields.map((f, i) => (
-                  <span key={f.name}>{i > 0 ? ' · ' : ''}<Code>{f.name}</Code> ({t(f.note)})</span>
-                ))}
-              </LI>
-            ) : null}
-            {e.idem ? <LI><strong>{label(lang, 'Idempotência', 'Idempotency')}:</strong> {t(e.idem)}</LI> : null}
-          </UL>
-          {e.curl ? <CodeBlock label={`curl · ${e.method} ${e.path}`} raw={e.curl} onCopy={onCopy} {...copyProps} /> : null}
-          {e.response ? <CodeBlock label={label(lang, 'resposta (exemplo, placeholders)', 'response (example, placeholders)')} raw={e.response} onCopy={onCopy} {...copyProps} /> : null}
-          <P style={{ fontSize: 13, color: '#a89a9e' }}>
-            <strong>{label(lang, 'Erros comuns', 'Common errors')}:</strong>{' '}
-            {e.errors.map((er, i) => (
-              <span key={er.code}>{i > 0 ? ' · ' : ''}<Code>{er.code}</Code> — {t(er.note)}</span>
-            ))}
-          </P>
-        </div>
+      <nav aria-label={label(lang, 'Recursos da API', 'API resources')} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 18px', maxWidth: 760 }}>
+        {RESOURCE_GROUPS.map((g) => (
+          <a key={g.id} href={'#' + (g.id)} style={{ ...link, fontSize: 12.5, background: '#fff', border: '1px solid #EAE3E3', borderRadius: 10, padding: '6px 10px' }}>{t(g.title)}</a>
+        ))}
+      </nav>
+      {RESOURCE_GROUPS.map((g) => (
+        <section key={g.id} aria-labelledby={g.id}>
+          <h3 id={g.id} style={{ scrollMarginTop: 80, margin: '30px 0 4px', fontSize: 19, fontWeight: 700, color: INK }}>{t(g.title)}</h3>
+          {g.ids.map((id) => {
+            const e = byId.get(id)!;
+            const lines = (e.response ?? '').split('\n').length;
+            return (
+              <div key={e.id} id={e.id} style={{ scrollMarginTop: 80, borderTop: '1px solid #EAE3E3', paddingTop: 6, marginTop: 14 }}>
+                <H3>
+                  <span style={{ fontFamily: mono, fontSize: 15 }}>{e.method} {e.path}</span>{' '}
+                  <Badge tone={e.tone}>{lang === 'en' ? BADGE_LABELS_EN[e.tone] : undefined}</Badge>
+                </H3>
+                <P>{t(e.desc)}</P>
+                <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '5px 14px', margin: '0 0 12px', maxWidth: 760 }}>
+                  <Fact k={label(lang, 'Autenticação', 'Authentication')}>{t(e.credential)}</Fact>
+                  <Fact k="Scope">{e.scope ? <Code>{e.scope}</Code> : label(lang, 'nenhum — rota pública', 'none — public route')}</Fact>
+                  <Fact k={label(lang, 'Idempotência', 'Idempotency')}>{e.idem ? t(e.idem) : e.method === 'GET' ? label(lang, 'leitura — repetir é seguro', 'read — safe to repeat') : label(lang, 'Idempotency-Key recomendado', 'Idempotency-Key recommended')}</Fact>
+                  <Fact k="SDK">{e.sdk ? <Code>{e.sdk}()</Code> : null}{e.sdk && e.sdkNote ? ' — ' : null}{e.sdkNote ? t(e.sdkNote) : null}</Fact>
+                  <Fact k={label(lang, 'Eventos', 'Events')}>
+                    {e.events.length
+                      ? e.events.map((ev, i) => <span key={ev}>{i > 0 ? ' · ' : ''}<a href={docsBase(lang) + '/events#event-' + ev.replace('.', '-')} style={link}><Code>{ev}</Code></a></span>)
+                      : label(lang, 'nenhum', 'none')}
+                  </Fact>
+                  <Fact k={label(lang, 'Guias', 'Guides')}>
+                    {e.guides.map((slug, i) => <span key={slug}>{i > 0 ? ' · ' : ''}<a href={docsBase(lang) + '/' + slug} style={link}>{GUIDE_LABEL[slug]?.[lang] ?? slug}</a></span>)}
+                  </Fact>
+                </dl>
+                <Params lang={lang} params={e.params} />
+                {e.refused?.length ? (
+                  <P style={{ fontSize: 13 }}>
+                    <strong>{label(lang, 'Não envie com uma chave de projeto', 'Do not send with a project key')}:</strong>{' '}
+                    {e.refused.map((f, i) => <span key={f}>{i > 0 ? ' · ' : ''}<Code>{f}</Code></span>)} — {label(lang, 'responde 400 PAYEE_NOT_ALLOWED: quem recebe vem da configuração financeira.', 'answers 400 PAYEE_NOT_ALLOWED: who is paid comes from financial setup.')}
+                  </P>
+                ) : null}
+                {e.curl ? <CodeBlock label={'curl · ' + e.method + ' ' + e.path} raw={e.curl} onCopy={onCopy} {...copyProps} /> : null}
+                {e.response ? (
+                  lines > 14 ? (
+                    <details style={{ margin: '0 0 14px' }}>
+                      <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#9A1B22', margin: '0 0 8px' }}>{label(lang, 'Resposta de exemplo (' + (lines) + ' linhas)', 'Example response (' + (lines) + ' lines)')}</summary>
+                      <CodeBlock label={label(lang, 'resposta (exemplo, placeholders)', 'response (example, placeholders)')} raw={e.response} onCopy={onCopy} {...copyProps} />
+                    </details>
+                  ) : <CodeBlock label={label(lang, 'resposta (exemplo, placeholders)', 'response (example, placeholders)')} raw={e.response} onCopy={onCopy} {...copyProps} />
+                ) : null}
+                <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 12px' }}>
+                  <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 12.5 }}>
+                    <thead><tr style={{ textAlign: 'left', color: '#6f6468' }}>
+                      <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Erro', 'Error')}</th>
+                      <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Quando', 'When')}</th>
+                    </tr></thead>
+                    <tbody>
+                      {e.errors.map((er) => {
+                        const status = /^\d{3}/.exec(er.code)?.[0] ?? '';
+                        return (
+                          <tr key={er.code}>
+                            <td style={{ ...cell, fontFamily: mono, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>
+                              {status}{' '}
+                              {codesIn(er.code).map((c, i) => <span key={c}>{i > 0 ? ' / ' : ''}{c.endsWith('*') ? c : <a href={docsBase(lang) + '/errors#error-' + c} style={link}>{c}</a>}</span>)}
+                            </td>
+                            <td style={cell}>{t(er.note)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+        </section>
       ))}
 
-      <H3>{label(lang, 'Superfícies existentes com credencial restrita', 'Existing surfaces with restricted credentials')}</H3>
+      <H3 id="restricted-routes">{label(lang, 'Superfícies existentes com credencial restrita', 'Existing surfaces with restricted credentials')}</H3>
       <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
           <thead>
-            <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-              <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{label(lang, 'Rotas', 'Routes')}</th>
-              <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{label(lang, 'Estado / credencial', 'Status / credential')}</th>
+            <tr style={{ textAlign: 'left', color: '#6f6468' }}>
+              <th style={{ padding: '8px 10px', fontWeight: 600, borderBottom: '1px solid #EAE3E3' }}>{label(lang, 'Rotas', 'Routes')}</th>
+              <th style={{ padding: '8px 10px', fontWeight: 600, borderBottom: '1px solid #EAE3E3' }}>{label(lang, 'Estado / credencial', 'Status / credential')}</th>
             </tr>
           </thead>
           <tbody>
             {RESTRICTED_ROWS.map((r) => (
               <tr key={r.path}>
-                <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, fontWeight: 700, color: INK }}>{r.path}</td>
-                <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r.status[lang]}</td>
+                <td style={{ padding: '9px 10px', borderBottom: '1px solid #EAE3E3', fontFamily: mono, fontSize: 12, fontWeight: 700, color: INK }}>{r.path}</td>
+                <td style={{ padding: '9px 10px', borderBottom: '1px solid #EAE3E3', color: '#3f3538' }}>{r.status[lang]}</td>
               </tr>
             ))}
           </tbody>

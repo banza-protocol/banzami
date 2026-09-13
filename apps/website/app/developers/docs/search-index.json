@@ -4,97 +4,236 @@
    "k": "page",
    "t": "Início",
    "h": "/docs",
-   "d": "Página inicial da documentação."
+   "d": "O que pode construir e por onde começar."
   },
   {
    "k": "page",
-   "t": "Começar",
+   "t": "Quickstart",
    "h": "/docs/get-started",
-   "d": "Visão geral, estado atual e quickstart."
+   "d": "Da conta ao primeiro pagamento confirmado.",
+   "a": "quickstart|getting started|first payment"
+  },
+  {
+   "k": "page",
+   "t": "Como o Banzami funciona",
+   "h": "/docs/concepts",
+   "d": "Modelo, ambientes, montantes e idempotência.",
+   "a": "how it works|sandbox and live|minor units|idempotency|request id"
+  },
+  {
+   "k": "page",
+   "t": "Aceitar pagamentos",
+   "h": "/docs/payments",
+   "d": "Sessões, links e QR.",
+   "a": "payment session|payment link|accept payments|qr code"
+  },
+  {
+   "k": "page",
+   "t": "Webhooks",
+   "h": "/docs/webhooks",
+   "d": "Receber e verificar eventos.",
+   "a": "webhook|signature|verify signature|webhook secret"
+  },
+  {
+   "k": "page",
+   "t": "Reembolsos",
+   "h": "/docs/refunds",
+   "d": "Devolver um pagamento, total ou parcialmente.",
+   "a": "refund|refunds"
+  },
+  {
+   "k": "page",
+   "t": "Liquidações",
+   "h": "/docs/settlements",
+   "d": "Transferir o saldo de uma conta para um beneficiário.",
+   "a": "settlement|settlements|payout|fee"
+  },
+  {
+   "k": "page",
+   "t": "Comprovativos",
+   "h": "/docs/receipts",
+   "d": "Referências públicas e verificação.",
+   "a": "receipt|receipts|proof|verify receipt"
+  },
+  {
+   "k": "page",
+   "t": "Contas e transferências",
+   "h": "/docs/transfers",
+   "d": "Contas segregadas e movimentos entre contas.",
+   "a": "transfer|transfers|wallet account|accounts"
+  },
+  {
+   "k": "page",
+   "t": "Construir como o DOA",
+   "h": "/docs/doa",
+   "d": "Uma integração completa, de referência.",
+   "a": "reference implementation|doa tutorial"
   },
   {
    "k": "page",
    "t": "A Consola",
    "h": "/docs/console",
-   "d": "Conta, workspaces, projetos, configuração financeira, chaves, webhooks e registos."
+   "d": "Workspaces, projetos, chaves, webhooks e registos.",
+   "a": "console|dashboard|api keys|workspace|project"
+  },
+  {
+   "k": "page",
+   "t": "Referência da API",
+   "h": "/docs/reference",
+   "d": "Cada endpoint da API v1.",
+   "a": "api reference|endpoints"
+  },
+  {
+   "k": "page",
+   "t": "Eventos",
+   "h": "/docs/events",
+   "d": "Os eventos de webhook e os seus campos.",
+   "a": "events|event reference"
+  },
+  {
+   "k": "page",
+   "t": "Erros",
+   "h": "/docs/errors",
+   "d": "O envelope de erro e todos os códigos.",
+   "a": "errors|error codes"
   },
   {
    "k": "page",
    "t": "SDKs",
    "h": "/docs/sdk",
-   "d": "Modelo SDK-first, pacotes publicados e onboarding."
-  },
-  {
-   "k": "page",
-   "t": "Guias",
-   "h": "/docs/guides",
-   "d": "Cobranças, transferências, reembolsos e webhooks."
-  },
-  {
-   "k": "page",
-   "t": "Implementação de referência",
-   "h": "/docs/doa",
-   "d": "O DOA — uma aplicação real integrada pelos contratos públicos."
-  },
-  {
-   "k": "page",
-   "t": "Referência API",
-   "h": "/docs/reference",
-   "d": "Credenciais, endpoints, erros e idempotência."
-  },
-  {
-   "k": "page",
-   "t": "Testar no Sandbox",
-   "h": "/docs/testing",
-   "d": "O que o Sandbox é, validação e limites."
-  },
-  {
-   "k": "page",
-   "t": "Segurança",
-   "h": "/docs/trust",
-   "d": "Credenciais, segredos de webhook, e o que o Sandbox garante."
+   "d": "Pacotes publicados e o que cada um trata.",
+   "a": "sdk|sdks|library"
   },
   {
    "k": "page",
    "t": "Artefactos",
    "h": "/docs/artifacts",
-   "d": "OpenAPI, Postman, manifests e exemplos."
+   "d": "OpenAPI, Postman e manifests.",
+   "a": "openapi|postman"
   },
   {
    "k": "page",
-   "t": "Changelog",
-   "h": "/docs/changelog",
-   "d": "Mudanças datadas por categoria."
+   "t": "Testar no Sandbox",
+   "h": "/docs/testing",
+   "d": "Cenários de teste, com resultados esperados.",
+   "a": "testing|sandbox testing|test"
+  },
+  {
+   "k": "page",
+   "t": "Do Sandbox ao Live",
+   "h": "/docs/going-live",
+   "d": "Estado de Live e lista de verificação.",
+   "a": "live|production|go live"
+  },
+  {
+   "k": "page",
+   "t": "Segurança",
+   "h": "/docs/trust",
+   "d": "Chaves, segredos e rotação.",
+   "a": "security|api key|rotate key|key rotation|secret"
   },
   {
    "k": "page",
    "t": "Glossário",
    "h": "/docs/glossary",
-   "d": "Conceitos usados nesta documentação."
+   "d": "Os termos desta documentação.",
+   "a": "glossary|terms"
+  },
+  {
+   "k": "page",
+   "t": "Resolução de problemas",
+   "h": "/docs/troubleshooting",
+   "d": "Por sintoma.",
+   "a": "troubleshooting|debug|problem"
+  },
+  {
+   "k": "page",
+   "t": "Suporte",
+   "h": "/docs/support",
+   "d": "Como pedir ajuda.",
+   "a": "support|help|contact"
+  },
+  {
+   "k": "page",
+   "t": "Changelog",
+   "h": "/docs/changelog",
+   "d": "Alterações, impacto e ação.",
+   "a": "changelog|release notes"
   },
   {
    "k": "section",
-   "t": "Configuração financeira — antes do primeiro pagamento",
-   "h": "/docs/get-started#configuracao-financeira"
+   "t": "Configuração financeira",
+   "h": "/docs/get-started#configuracao-financeira",
+   "a": "financial setup"
   },
   {
    "k": "section",
-   "t": "O seu primeiro pagamento",
+   "t": "Criar o primeiro pagamento",
    "h": "/docs/get-started#primeiro-pagamento"
   },
   {
    "k": "section",
-   "t": "Depois de criar a sessão",
-   "h": "/docs/get-started#depois-do-pagamento"
+   "t": "Entrar na Consola",
+   "h": "/docs/get-started#passo-1"
+  },
+  {
+   "k": "section",
+   "t": "Criar um workspace",
+   "h": "/docs/get-started#passo-2"
+  },
+  {
+   "k": "section",
+   "t": "Criar um projeto",
+   "h": "/docs/get-started#passo-3"
+  },
+  {
+   "k": "section",
+   "t": "Concluir a configuração financeira",
+   "h": "/docs/get-started#passo-4"
+  },
+  {
+   "k": "section",
+   "t": "Criar uma chave secreta",
+   "h": "/docs/get-started#passo-5"
+  },
+  {
+   "k": "section",
+   "t": "Instalar o SDK",
+   "h": "/docs/get-started#passo-6"
+  },
+  {
+   "k": "section",
+   "t": "Fazer a primeira chamada",
+   "h": "/docs/get-started#passo-7"
+  },
+  {
+   "k": "section",
+   "t": "Criar uma sessão de pagamento",
+   "h": "/docs/get-started#passo-8"
+  },
+  {
+   "k": "section",
+   "t": "Abrir a página de pagamento",
+   "h": "/docs/get-started#passo-9"
+  },
+  {
+   "k": "section",
+   "t": "Confirmar o pagamento no servidor",
+   "h": "/docs/get-started#passo-10"
+  },
+  {
+   "k": "section",
+   "t": "Receber o webhook",
+   "h": "/docs/get-started#passo-11"
+  },
+  {
+   "k": "section",
+   "t": "Ver o pagamento na Consola",
+   "h": "/docs/get-started#passo-12"
   },
   {
    "k": "method",
    "t": "getFinancialSetup",
-   "h": "/docs/get-started"
-  },
-  {
-   "k": "method",
-   "t": "createPaymentSession",
    "h": "/docs/get-started"
   },
   {
@@ -104,47 +243,483 @@
   },
   {
    "k": "method",
+   "t": "createPaymentSession",
+   "h": "/docs/get-started"
+  },
+  {
+   "k": "method",
    "t": "getPaymentSession",
    "h": "/docs/get-started"
   },
   {
    "k": "section",
-   "t": "Modelo de integração SDK-first",
-   "h": "/docs/sdk#sdk-first"
+   "t": "Sandbox e Live",
+   "h": "/docs/concepts#sandbox-live",
+   "a": "sandbox and live|live"
   },
   {
    "k": "section",
-   "t": "Matriz de maturidade dos SDKs",
-   "h": "/docs/sdk#sdk-matriz"
+   "t": "O modelo de integração",
+   "h": "/docs/concepts#modelo"
   },
   {
    "k": "section",
-   "t": "Publicação dos SDKs",
-   "h": "/docs/sdk#sdk-preview"
+   "t": "O que é da sua aplicação e o que é do Banzami",
+   "h": "/docs/concepts#responsabilidades"
   },
   {
    "k": "section",
-   "t": "Contrato esperado do SDK",
-   "h": "/docs/sdk#sdk-contrato"
+   "t": "O mesmo padrão em todos os recursos financeiros",
+   "h": "/docs/concepts#padrao"
   },
   {
    "k": "section",
-   "t": "Estado por família de SDK",
-   "h": "/docs/sdk#sdk-familias"
+   "t": "Montantes em unidades menores",
+   "h": "/docs/concepts#unidades-menores"
   },
   {
    "k": "section",
-   "t": "Antes de pôr a integração a sério",
-   "h": "/docs/sdk#antes-de-integrar"
+   "t": "Idempotência",
+   "h": "/docs/concepts#idempotencia",
+   "a": "idempotency"
   },
   {
    "k": "section",
-   "t": "Encontrou um problema?",
-   "h": "/docs/sdk#reportar-problema"
+   "t": "request_id",
+   "h": "/docs/concepts#request-id"
   },
   {
    "k": "section",
-   "t": "O modelo, antes dos ecrãs",
+   "t": "Escolher o recurso",
+   "h": "/docs/payments#escolher"
+  },
+  {
+   "k": "section",
+   "t": "O percurso de um pagamento",
+   "h": "/docs/payments#percurso"
+  },
+  {
+   "k": "section",
+   "t": "Criar uma sessão de pagamento",
+   "h": "/docs/payments#criar-sessao",
+   "a": "payment session|create payment session"
+  },
+  {
+   "k": "section",
+   "t": "Apresentar o link ou o QR",
+   "h": "/docs/payments#apresentar"
+  },
+  {
+   "k": "section",
+   "t": "Confirmar o pagamento",
+   "h": "/docs/payments#confirmar"
+  },
+  {
+   "k": "section",
+   "t": "Criar um link de pagamento",
+   "h": "/docs/payments#links",
+   "a": "payment link|payment links"
+  },
+  {
+   "k": "section",
+   "t": "Erros frequentes",
+   "h": "/docs/payments#erros-pagamentos"
+  },
+  {
+   "k": "section",
+   "t": "Na Consola",
+   "h": "/docs/payments#consola-pagamentos"
+  },
+  {
+   "k": "method",
+   "t": "paymentSessionInterface",
+   "h": "/docs/payments"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/payments"
+  },
+  {
+   "k": "method",
+   "t": "createPaymentSession",
+   "h": "/docs/payments"
+  },
+  {
+   "k": "method",
+   "t": "getPaymentSession",
+   "h": "/docs/payments"
+  },
+  {
+   "k": "section",
+   "t": "O ciclo de uma entrega",
+   "h": "/docs/webhooks#ciclo"
+  },
+  {
+   "k": "section",
+   "t": "Configurar um endpoint, passo a passo",
+   "h": "/docs/webhooks#receita"
+  },
+  {
+   "k": "section",
+   "t": "Tentativas e reentrega",
+   "h": "/docs/webhooks#reentrega"
+  },
+  {
+   "k": "section",
+   "t": "Desativar e reativar um endpoint",
+   "h": "/docs/webhooks#desativar"
+  },
+  {
+   "k": "section",
+   "t": "Formato do envelope",
+   "h": "/docs/webhooks#envelope"
+  },
+  {
+   "k": "section",
+   "t": "Scopes e acesso",
+   "h": "/docs/webhooks#gerir-endpoint"
+  },
+  {
+   "k": "section",
+   "t": "Expor um endpoint HTTPS público",
+   "h": "/docs/webhooks#webhook-passo-1"
+  },
+  {
+   "k": "section",
+   "t": "Registar o endpoint e guardar o segredo",
+   "h": "/docs/webhooks#webhook-passo-2"
+  },
+  {
+   "k": "section",
+   "t": "Ler o corpo em bruto",
+   "h": "/docs/webhooks#webhook-passo-3"
+  },
+  {
+   "k": "section",
+   "t": "Verificar a assinatura antes de interpretar",
+   "h": "/docs/webhooks#webhook-passo-4"
+  },
+  {
+   "k": "section",
+   "t": "Recusar assinaturas inválidas",
+   "h": "/docs/webhooks#webhook-passo-5"
+  },
+  {
+   "k": "section",
+   "t": "Deduplicar pelo id do evento",
+   "h": "/docs/webhooks#webhook-passo-6"
+  },
+  {
+   "k": "section",
+   "t": "Aplicar o efeito de negócio",
+   "h": "/docs/webhooks#webhook-passo-7"
+  },
+  {
+   "k": "section",
+   "t": "Responder 2xx rapidamente",
+   "h": "/docs/webhooks#webhook-passo-8"
+  },
+  {
+   "k": "section",
+   "t": "Recuperar entregas falhadas",
+   "h": "/docs/webhooks#webhook-passo-9"
+  },
+  {
+   "k": "section",
+   "t": "Rodar o segredo sem perder entregas",
+   "h": "/docs/webhooks#webhook-passo-10"
+  },
+  {
+   "k": "method",
+   "t": "constructEvent",
+   "h": "/docs/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "listWebhookDeliveries",
+   "h": "/docs/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "rotateWebhookEndpointSecret",
+   "h": "/docs/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "createWebhookEndpoint",
+   "h": "/docs/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "listWebhookEndpoints",
+   "h": "/docs/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "listWebhookEvents",
+   "h": "/docs/webhooks"
+  },
+  {
+   "k": "section",
+   "t": "Catálogo",
+   "h": "/docs/events#catalogo-eventos"
+  },
+  {
+   "k": "section",
+   "t": "Como funciona",
+   "h": "/docs/refunds#fluxo-reembolso"
+  },
+  {
+   "k": "section",
+   "t": "Reembolsar um pagamento",
+   "h": "/docs/refunds#criar-reembolso"
+  },
+  {
+   "k": "section",
+   "t": "Regras",
+   "h": "/docs/refunds#regras-reembolso"
+  },
+  {
+   "k": "section",
+   "t": "Erros frequentes",
+   "h": "/docs/refunds#erros-reembolso"
+  },
+  {
+   "k": "section",
+   "t": "Na Consola",
+   "h": "/docs/refunds#consola-reembolsos"
+  },
+  {
+   "k": "section",
+   "t": "Obter a origem do pagamento",
+   "h": "/docs/refunds#reembolso-passo-1"
+  },
+  {
+   "k": "section",
+   "t": "Guardar uma chave de idempotência",
+   "h": "/docs/refunds#reembolso-passo-2"
+  },
+  {
+   "k": "section",
+   "t": "Criar o reembolso",
+   "h": "/docs/refunds#reembolso-passo-3"
+  },
+  {
+   "k": "method",
+   "t": "listRefunds",
+   "h": "/docs/refunds"
+  },
+  {
+   "k": "method",
+   "t": "getPaymentSession",
+   "h": "/docs/refunds"
+  },
+  {
+   "k": "method",
+   "t": "createRefund",
+   "h": "/docs/refunds"
+  },
+  {
+   "k": "section",
+   "t": "Pagamento e liquidação",
+   "h": "/docs/settlements#pagamento-vs-liquidacao"
+  },
+  {
+   "k": "section",
+   "t": "Como o valor é dividido",
+   "h": "/docs/settlements#calculo"
+  },
+  {
+   "k": "section",
+   "t": "Pedir uma liquidação",
+   "h": "/docs/settlements#pedir-liquidacao"
+  },
+  {
+   "k": "section",
+   "t": "Destino da taxa",
+   "h": "/docs/settlements#destino-taxa"
+  },
+  {
+   "k": "section",
+   "t": "Erros e repetição",
+   "h": "/docs/settlements#erros-liquidacao"
+  },
+  {
+   "k": "section",
+   "t": "Na Consola",
+   "h": "/docs/settlements#consola-liquidacoes"
+  },
+  {
+   "k": "section",
+   "t": "Confirmar que o projeto pode liquidar",
+   "h": "/docs/settlements#liquidacao-passo-1"
+  },
+  {
+   "k": "section",
+   "t": "Guardar a chave de idempotência",
+   "h": "/docs/settlements#liquidacao-passo-2"
+  },
+  {
+   "k": "section",
+   "t": "Criar a liquidação",
+   "h": "/docs/settlements#liquidacao-passo-3"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/settlements"
+  },
+  {
+   "k": "method",
+   "t": "createBusinessApplicationSettlement",
+   "h": "/docs/settlements"
+  },
+  {
+   "k": "section",
+   "t": "Referência da transação e referência de prova",
+   "h": "/docs/receipts#duas-referencias"
+  },
+  {
+   "k": "section",
+   "t": "Formato SECURE_V1",
+   "h": "/docs/receipts#formato",
+   "a": "secure_v1 format"
+  },
+  {
+   "k": "section",
+   "t": "Verificar um comprovativo",
+   "h": "/docs/receipts#verificar",
+   "a": "verify receipt"
+  },
+  {
+   "k": "section",
+   "t": "Contas segregadas",
+   "h": "/docs/transfers#contas-segregadas"
+  },
+  {
+   "k": "section",
+   "t": "Transferir entre contas",
+   "h": "/docs/transfers#transferencias"
+  },
+  {
+   "k": "method",
+   "t": "createTransfer",
+   "h": "/docs/transfers"
+  },
+  {
+   "k": "section",
+   "t": "O que o DOA demonstra",
+   "h": "/docs/doa#doa-o-que-e"
+  },
+  {
+   "k": "section",
+   "t": "Arquitetura",
+   "h": "/docs/doa#doa-arquitetura"
+  },
+  {
+   "k": "section",
+   "t": "Divisão de responsabilidades",
+   "h": "/docs/doa#doa-fronteira"
+  },
+  {
+   "k": "section",
+   "t": "O percurso da integração",
+   "h": "/docs/doa#doa-fluxo"
+  },
+  {
+   "k": "section",
+   "t": "1. Preparar o projeto",
+   "h": "/docs/doa#doa-preparar"
+  },
+  {
+   "k": "section",
+   "t": "2. Criar a conta da campanha",
+   "h": "/docs/doa#doa-contas"
+  },
+  {
+   "k": "section",
+   "t": "3. Criar o pagamento",
+   "h": "/docs/doa#doa-pagamento"
+  },
+  {
+   "k": "section",
+   "t": "4. Página de pagamento e QR",
+   "h": "/docs/doa#doa-pagina"
+  },
+  {
+   "k": "section",
+   "t": "5. Receber o webhook",
+   "h": "/docs/doa#doa-webhook"
+  },
+  {
+   "k": "section",
+   "t": "6. Atualizar o estado da aplicação",
+   "h": "/docs/doa#doa-estado"
+  },
+  {
+   "k": "section",
+   "t": "7. Comprovativo",
+   "h": "/docs/doa#doa-comprovativo"
+  },
+  {
+   "k": "section",
+   "t": "8. Encerrar a campanha",
+   "h": "/docs/doa#doa-encerrar"
+  },
+  {
+   "k": "section",
+   "t": "9. Liquidar a campanha",
+   "h": "/docs/doa#doa-liquidacao"
+  },
+  {
+   "k": "section",
+   "t": "10. Reconciliar",
+   "h": "/docs/doa#doa-reconciliacao"
+  },
+  {
+   "k": "section",
+   "t": "11. Rodar e revogar credenciais",
+   "h": "/docs/doa#doa-credenciais"
+  },
+  {
+   "k": "section",
+   "t": "O que reutilizar na sua aplicação",
+   "h": "/docs/doa#doa-licoes"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/doa"
+  },
+  {
+   "k": "method",
+   "t": "createWalletAccount",
+   "h": "/docs/doa"
+  },
+  {
+   "k": "method",
+   "t": "createPaymentSession",
+   "h": "/docs/doa"
+  },
+  {
+   "k": "method",
+   "t": "paymentSessionInterface",
+   "h": "/docs/doa"
+  },
+  {
+   "k": "method",
+   "t": "constructEvent",
+   "h": "/docs/doa"
+  },
+  {
+   "k": "method",
+   "t": "createBusinessApplicationSettlement",
+   "h": "/docs/doa"
+  },
+  {
+   "k": "section",
+   "t": "O modelo",
    "h": "/docs/console#modelo"
   },
   {
@@ -175,7 +750,8 @@
   {
    "k": "section",
    "t": "Chaves de API",
-   "h": "/docs/console#chaves"
+   "h": "/docs/console#chaves",
+   "a": "api key|api keys"
   },
   {
    "k": "section",
@@ -189,178 +765,19 @@
   },
   {
    "k": "section",
-   "t": "Onde o dinheiro cai: configuração financeira e contas",
-   "h": "/docs/guides#contas-segregadas"
+   "t": "Autenticação",
+   "h": "/docs/reference#autenticacao"
   },
   {
    "k": "section",
-   "t": "Criar cobrança",
-   "h": "/docs/guides#cobranca"
-  },
-  {
-   "k": "section",
-   "t": "Transferências",
-   "h": "/docs/guides#transferencias"
-  },
-  {
-   "k": "section",
-   "t": "Reembolsos",
-   "h": "/docs/guides#reembolsos"
-  },
-  {
-   "k": "section",
-   "t": "Comprovativos e verificação pública",
-   "h": "/docs/guides#comprovativos"
-  },
-  {
-   "k": "section",
-   "t": "Como funciona",
-   "h": "/docs/guides#como-funciona"
-  },
-  {
-   "k": "section",
-   "t": "Contrato de reentrega",
-   "h": "/docs/guides#reentrega"
-  },
-  {
-   "k": "section",
-   "t": "Gerir o endpoint com a sua chave de projeto",
-   "h": "/docs/guides#gerir-endpoint"
-  },
-  {
-   "k": "section",
-   "t": "Eventos",
-   "h": "/docs/guides#eventos"
-  },
-  {
-   "k": "section",
-   "t": "Resolução de problemas",
-   "h": "/docs/guides#resolucao"
-  },
-  {
-   "k": "method",
-   "t": "constructEvent",
-   "h": "/docs/guides"
-  },
-  {
-   "k": "method",
-   "t": "createWebhookEndpoint",
-   "h": "/docs/guides"
-  },
-  {
-   "k": "method",
-   "t": "listWebhookEndpoints",
-   "h": "/docs/guides"
-  },
-  {
-   "k": "method",
-   "t": "listWebhookEvents",
-   "h": "/docs/guides"
-  },
-  {
-   "k": "method",
-   "t": "listWebhookDeliveries",
-   "h": "/docs/guides"
-  },
-  {
-   "k": "method",
-   "t": "rotateWebhookEndpointSecret",
-   "h": "/docs/guides"
-  },
-  {
-   "k": "section",
-   "t": "O que o DOA é, e porque está aqui",
-   "h": "/docs/doa#doa-o-que-e"
-  },
-  {
-   "k": "section",
-   "t": "A fronteira: o que é seu, e o que é do Banzami",
-   "h": "/docs/doa#doa-fronteira"
-  },
-  {
-   "k": "section",
-   "t": "Preparar o projeto",
-   "h": "/docs/doa#doa-preparar"
-  },
-  {
-   "k": "section",
-   "t": "O percurso completo",
-   "h": "/docs/doa#doa-fluxo"
-  },
-  {
-   "k": "section",
-   "t": "Uma conta por campanha",
-   "h": "/docs/doa#doa-contas"
-  },
-  {
-   "k": "section",
-   "t": "O webhook, como o DOA o processa",
-   "h": "/docs/doa#doa-webhook"
-  },
-  {
-   "k": "section",
-   "t": "O comprovativo do doador",
-   "h": "/docs/doa#doa-comprovativo"
-  },
-  {
-   "k": "section",
-   "t": "A liquidação, e quem decide o quê",
-   "h": "/docs/doa#doa-liquidacao"
-  },
-  {
-   "k": "section",
-   "t": "Rodar e revogar credenciais",
-   "h": "/docs/doa#doa-credenciais"
-  },
-  {
-   "k": "section",
-   "t": "Quando algo não corre como esperado",
-   "h": "/docs/doa#doa-problemas"
-  },
-  {
-   "k": "section",
-   "t": "O que o DOA aprendeu pelo caminho",
-   "h": "/docs/doa#doa-licoes"
-  },
-  {
-   "k": "method",
-   "t": "getFinancialSetup",
-   "h": "/docs/doa"
-  },
-  {
-   "k": "method",
-   "t": "createWalletAccount",
-   "h": "/docs/doa"
-  },
-  {
-   "k": "method",
-   "t": "constructEvent",
-   "h": "/docs/doa"
-  },
-  {
-   "k": "method",
-   "t": "createBusinessApplicationSettlement",
-   "h": "/docs/doa"
-  },
-  {
-   "k": "section",
-   "t": "Gestão pela Console",
-   "h": "/docs/reference#gestao-consola"
-  },
-  {
-   "k": "section",
-   "t": "Credenciais e capacidades",
+   "t": "Capacidades por credencial",
    "h": "/docs/reference#credenciais"
   },
   {
    "k": "section",
    "t": "Idempotência",
-   "h": "/docs/reference#idempotencia"
-  },
-  {
-   "k": "section",
-   "t": "Autenticação e gestão de chaves",
-   "h": "/docs/reference#autenticacao"
+   "h": "/docs/reference#idempotencia",
+   "a": "idempotency"
   },
   {
    "k": "section",
@@ -379,43 +796,215 @@
   },
   {
    "k": "section",
-   "t": "Referência por recurso",
+   "t": "Endpoints",
    "h": "/docs/reference#referencia-recursos"
   },
   {
    "k": "section",
-   "t": "Catálogo de erros",
-   "h": "/docs/reference#catalogo-de-erros"
+   "t": "Por código HTTP",
+   "h": "/docs/errors#por-classe"
   },
   {
    "k": "section",
-   "t": "Console (acesso e chaves)",
-   "h": "/docs/reference#erros-consola"
+   "t": "Por código de erro",
+   "h": "/docs/errors#catalogo-de-erros"
   },
   {
    "k": "section",
-   "t": "Integração",
-   "h": "/docs/reference#erros-integracao"
+   "t": "Erros da Consola",
+   "h": "/docs/errors#erros-consola"
   },
   {
    "k": "section",
-   "t": "A chave secreta é do servidor, e só dele",
-   "h": "/docs/trust#chaves"
+   "t": "SDKs disponíveis",
+   "h": "/docs/sdk#sdk-matriz"
   },
   {
    "k": "section",
-   "t": "Revelada uma vez",
+   "t": "O que o SDK trata por si",
+   "h": "/docs/sdk#sdk-first"
+  },
+  {
+   "k": "section",
+   "t": "Versão atual",
+   "h": "/docs/sdk#sdk-preview"
+  },
+  {
+   "k": "section",
+   "t": "Estado por família",
+   "h": "/docs/sdk#sdk-familias"
+  },
+  {
+   "k": "section",
+   "t": "Referência de implementação",
+   "h": "/docs/sdk#antes-de-integrar"
+  },
+  {
+   "k": "section",
+   "t": "Ficheiros disponíveis",
+   "h": "/docs/artifacts#artefactos"
+  },
+  {
+   "k": "section",
+   "t": "Chaves e prontidão",
+   "h": "/docs/testing#receitas-base"
+  },
+  {
+   "k": "section",
+   "t": "Pagamentos",
+   "h": "/docs/testing#receitas-pagamentos"
+  },
+  {
+   "k": "section",
+   "t": "Webhooks",
+   "h": "/docs/testing#testar-webhook"
+  },
+  {
+   "k": "section",
+   "t": "Reembolsos, transferências e liquidações",
+   "h": "/docs/testing#testar-reembolso"
+  },
+  {
+   "k": "section",
+   "t": "Comprovativos e limites",
+   "h": "/docs/testing#testar-outros"
+  },
+  {
+   "k": "section",
+   "t": "A chave funciona",
+   "h": "/docs/testing#primeira-chamada"
+  },
+  {
+   "k": "section",
+   "t": "Chave inválida ou revogada",
+   "h": "/docs/testing#chave-invalida"
+  },
+  {
+   "k": "section",
+   "t": "Scope em falta",
+   "h": "/docs/testing#scope-em-falta"
+  },
+  {
+   "k": "section",
+   "t": "Projeto sem configuração financeira",
+   "h": "/docs/testing#sem-configuracao"
+  },
+  {
+   "k": "section",
+   "t": "Criar uma sessão",
+   "h": "/docs/testing#criar-sessao"
+  },
+  {
+   "k": "section",
+   "t": "Pagar uma sessão",
+   "h": "/docs/testing#pagar-sessao"
+  },
+  {
+   "k": "section",
+   "t": "Repetir um pedido com segurança",
+   "h": "/docs/testing#testar-idempotencia"
+  },
+  {
+   "k": "section",
+   "t": "Montante inválido",
+   "h": "/docs/testing#montante-invalido"
+  },
+  {
+   "k": "section",
+   "t": "Receber uma entrega",
+   "h": "/docs/testing#webhook-entrega"
+  },
+  {
+   "k": "section",
+   "t": "Falha e reentrega",
+   "h": "/docs/testing#webhook-falha"
+  },
+  {
+   "k": "section",
+   "t": "Assinatura inválida",
+   "h": "/docs/testing#webhook-assinatura"
+  },
+  {
+   "k": "section",
+   "t": "Endpoint desativado",
+   "h": "/docs/testing#webhook-desativado"
+  },
+  {
+   "k": "section",
+   "t": "Reembolso total, parcial e excessivo",
+   "h": "/docs/testing#reembolso-parcial"
+  },
+  {
+   "k": "section",
+   "t": "Transferência sem saldo",
+   "h": "/docs/testing#transferencia-sem-saldo"
+  },
+  {
+   "k": "section",
+   "t": "Liquidação",
+   "h": "/docs/testing#liquidacao-teste"
+  },
+  {
+   "k": "section",
+   "t": "Verificar um comprovativo",
+   "h": "/docs/testing#comprovativo-teste"
+  },
+  {
+   "k": "section",
+   "t": "Limite de pedidos",
+   "h": "/docs/testing#limite-pedidos"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/testing"
+  },
+  {
+   "k": "section",
+   "t": "Estado atual",
+   "h": "/docs/going-live#estado-live"
+  },
+  {
+   "k": "section",
+   "t": "O que o trabalho no Sandbox já garante",
+   "h": "/docs/going-live#o-que-se-mantem"
+  },
+  {
+   "k": "section",
+   "t": "Lista de verificação",
+   "h": "/docs/going-live#lista-verificacao"
+  },
+  {
+   "k": "section",
+   "t": "Acompanhar alterações",
+   "h": "/docs/going-live#acompanhar"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/going-live"
+  },
+  {
+   "k": "section",
+   "t": "Guardar a chave secreta",
+   "h": "/docs/trust#chaves",
+   "a": "api key|api keys"
+  },
+  {
+   "k": "section",
+   "t": "Revelada uma única vez",
    "h": "/docs/trust#reveal-once"
   },
   {
    "k": "section",
-   "t": "Peça só os scopes de que precisa",
+   "t": "Limitar os scopes",
    "h": "/docs/trust#menor-privilegio"
   },
   {
    "k": "section",
-   "t": "Rotação e revogação",
-   "h": "/docs/trust#rotacao"
+   "t": "Rodar e revogar chaves",
+   "h": "/docs/trust#rotacao",
+   "a": "rotate key|key rotation|rotate secret"
   },
   {
    "k": "section",
@@ -429,13 +1018,28 @@
   },
   {
    "k": "section",
-   "t": "O que enviar ao suporte — e o que nunca enviar",
-   "h": "/docs/trust#suporte"
+   "t": "Reportar uma vulnerabilidade",
+   "h": "/docs/trust#vulnerabilidades"
   },
   {
    "k": "section",
-   "t": "Artefactos técnicos de referência",
-   "h": "/docs/artifacts#artefactos"
+   "t": "Antes de escrever",
+   "h": "/docs/support#antes"
+  },
+  {
+   "k": "section",
+   "t": "O que incluir",
+   "h": "/docs/support#incluir"
+  },
+  {
+   "k": "section",
+   "t": "O que nunca enviar",
+   "h": "/docs/support#nunca"
+  },
+  {
+   "k": "section",
+   "t": "Vulnerabilidades",
+   "h": "/docs/support#seguranca-suporte"
   },
   {
    "k": "endpoint",
@@ -590,469 +1194,610 @@
   {
    "k": "error",
    "t": "UNAUTHORIZED",
-   "h": "/docs/reference#error-UNAUTHORIZED",
-   "d": "Falta a chave, está revogada ou rodada, ou não é uma chave Sandbox. Uma chave bz_live_ é recusada."
+   "h": "/docs/errors#error-UNAUTHORIZED",
+   "d": "A chave falta, foi revogada ou rodada, ou não é uma chave Sandbox. As chaves bz_live_ são recusadas."
   },
   {
    "k": "error",
    "t": "INVALID_TOKEN",
-   "h": "/docs/reference#error-INVALID_TOKEN",
+   "h": "/docs/errors#error-INVALID_TOKEN",
    "d": "A credencial é inválida ou expirou."
   },
   {
    "k": "error",
    "t": "AUTHORIZATION_UNAVAILABLE",
-   "h": "/docs/reference#error-AUTHORIZATION_UNAVAILABLE",
-   "d": "Não foi possível verificar a chave neste momento. Não quer dizer que a chave é inválida."
+   "h": "/docs/errors#error-AUTHORIZATION_UNAVAILABLE",
+   "d": "Não foi possível verificar a chave neste momento. A chave não é necessariamente inválida."
   },
   {
    "k": "error",
    "t": "INSUFFICIENT_SCOPE",
-   "h": "/docs/reference#error-INSUFFICIENT_SCOPE",
-   "d": "A chave não tem o scope desta operação; a mensagem diz qual."
+   "h": "/docs/errors#error-INSUFFICIENT_SCOPE",
+   "d": "A chave não tem o scope desta operação; a mensagem indica qual."
   },
   {
    "k": "error",
    "t": "FORBIDDEN",
-   "h": "/docs/reference#error-FORBIDDEN",
-   "d": "A credencial não pode fazer isto: falta-lhe o scope (em GET /v1/me) ou o recurso indicado não é seu."
+   "h": "/docs/errors#error-FORBIDDEN",
+   "d": "A credencial não pode executar esta operação: falta o scope (em GET /v1/me) ou o recurso pertence a outro projeto."
   },
   {
    "k": "error",
    "t": "USE_FINANCIAL_SETUP",
-   "h": "/docs/reference#error-USE_FINANCIAL_SETUP",
-   "d": "Uma chave de projeto não lê o estado da empresa por esta rota."
+   "h": "/docs/errors#error-USE_FINANCIAL_SETUP",
+   "d": "Uma chave de projeto não consulta o estado do Business por esta rota."
   },
   {
    "k": "error",
    "t": "MERCHANT_NOT_ACTIVE",
-   "h": "/docs/reference#error-MERCHANT_NOT_ACTIVE",
-   "d": "A empresa não está activa, por isso não pode criar sessões nem contas."
+   "h": "/docs/errors#error-MERCHANT_NOT_ACTIVE",
+   "d": "O Business não está ativo, por isso não pode criar sessões nem contas."
   },
   {
    "k": "error",
    "t": "PAYMENTS_UNAVAILABLE",
-   "h": "/docs/reference#error-PAYMENTS_UNAVAILABLE",
-   "d": "403: o projeto não tem configuração financeira concluída, por isso não pode receber nem guardar valor. 503: a verificação não pôde ser feita agora."
+   "h": "/docs/errors#error-PAYMENTS_UNAVAILABLE",
+   "d": "403: o projeto não tem a configuração financeira concluída e não pode receber pagamentos. 503: a verificação não pôde ser feita neste momento."
   },
   {
    "k": "error",
    "t": "BINDING_CHANGED",
-   "h": "/docs/reference#error-BINDING_CHANGED",
-   "d": "A configuração financeira do projeto mudou enquanto o pedido estava em curso. Nada foi criado."
+   "h": "/docs/errors#error-BINDING_CHANGED",
+   "d": "A configuração financeira do projeto mudou durante o pedido. Nada foi criado."
   },
   {
    "k": "error",
    "t": "FINANCIAL_SETUP_CONFLICT",
-   "h": "/docs/reference#error-FINANCIAL_SETUP_CONFLICT",
-   "d": "A configuração financeira do projeto não é coerente e não pôde ser avaliada."
+   "h": "/docs/errors#error-FINANCIAL_SETUP_CONFLICT",
+   "d": "A configuração financeira do projeto está inconsistente e não pôde ser avaliada."
   },
   {
    "k": "error",
    "t": "ENVIRONMENT_UNDECLARED",
-   "h": "/docs/reference#error-ENVIRONMENT_UNDECLARED",
-   "d": "O serviço não consegue confirmar o ambiente da credencial. É uma falha de configuração do Banzami."
+   "h": "/docs/errors#error-ENVIRONMENT_UNDECLARED",
+   "d": "O serviço não conseguiu confirmar o ambiente da credencial, por uma falha de configuração do Banzami."
   },
   {
    "k": "error",
    "t": "INVALID_BODY",
-   "h": "/docs/reference#error-INVALID_BODY",
-   "d": "O corpo não é JSON válido ou não se consegue ler."
+   "h": "/docs/errors#error-INVALID_BODY",
+   "d": "O corpo do pedido não é JSON válido."
   },
   {
    "k": "error",
    "t": "BAD_REQUEST",
-   "h": "/docs/reference#error-BAD_REQUEST",
-   "d": "O pedido foi recusado por um campo inválido; a mensagem diz qual."
+   "h": "/docs/errors#error-BAD_REQUEST",
+   "d": "Um campo do pedido é inválido; a mensagem indica qual."
   },
   {
    "k": "error",
    "t": "INVALID_REQUEST",
-   "h": "/docs/reference#error-INVALID_REQUEST",
-   "d": "O pedido foi recusado, sem motivo mais específico."
+   "h": "/docs/errors#error-INVALID_REQUEST",
+   "d": "O pedido foi recusado sem um motivo mais específico."
   },
   {
    "k": "error",
    "t": "MISSING_FIELD",
-   "h": "/docs/reference#error-MISSING_FIELD",
-   "d": "Falta um campo obrigatório; a mensagem diz qual."
+   "h": "/docs/errors#error-MISSING_FIELD",
+   "d": "Falta um campo obrigatório; a mensagem indica qual."
   },
   {
    "k": "error",
    "t": "INVALID_AMOUNT",
-   "h": "/docs/reference#error-INVALID_AMOUNT",
+   "h": "/docs/errors#error-INVALID_AMOUNT",
    "d": "O montante não é um inteiro positivo em unidades menores."
   },
   {
    "k": "error",
    "t": "INVALID_CURRENCY",
-   "h": "/docs/reference#error-INVALID_CURRENCY",
-   "d": "A moeda não é um código ISO-4217 de três letras."
+   "h": "/docs/errors#error-INVALID_CURRENCY",
+   "d": "A moeda não é um código ISO 4217 de três letras."
   },
   {
    "k": "error",
    "t": "INVALID_DESTINATION",
-   "h": "/docs/reference#error-INVALID_DESTINATION",
+   "h": "/docs/errors#error-INVALID_DESTINATION",
    "d": "A conta de origem e a de destino são a mesma."
   },
   {
    "k": "error",
    "t": "INVALID_EXPIRY",
-   "h": "/docs/reference#error-INVALID_EXPIRY",
+   "h": "/docs/errors#error-INVALID_EXPIRY",
    "d": "expires_at não está no futuro."
   },
   {
    "k": "error",
    "t": "INVALID_METADATA",
-   "h": "/docs/reference#error-INVALID_METADATA",
-   "d": "Um campo de metadata está fora do formato ou do tamanho permitido; a mensagem dá os limites."
+   "h": "/docs/errors#error-INVALID_METADATA",
+   "d": "Um campo de metadata excede o formato ou o tamanho permitido; a mensagem indica os limites."
   },
   {
    "k": "error",
    "t": "INVALID_PARAM",
-   "h": "/docs/reference#error-INVALID_PARAM",
-   "d": "Um parâmetro de consulta é inválido — por exemplo limit fora de 1–100."
+   "h": "/docs/errors#error-INVALID_PARAM",
+   "d": "Um parâmetro de query é inválido, por exemplo limit fora de 1 a 100."
   },
   {
    "k": "error",
    "t": "INVALID_SOURCE_TYPE",
-   "h": "/docs/reference#error-INVALID_SOURCE_TYPE",
-   "d": "source_type do reembolso não é ACQUIRING_PAYMENT nem WALLET_PAYMENT."
+   "h": "/docs/errors#error-INVALID_SOURCE_TYPE",
+   "d": "source_type não é ACQUIRING_PAYMENT nem WALLET_PAYMENT."
   },
   {
    "k": "error",
    "t": "INVALID_WEBHOOK_URL",
-   "h": "/docs/reference#error-INVALID_WEBHOOK_URL",
-   "d": "O endereço do webhook não é um endpoint HTTPS público, ou é demasiado longo."
+   "h": "/docs/errors#error-INVALID_WEBHOOK_URL",
+   "d": "O URL do webhook não é um endpoint HTTPS público, ou é demasiado longo."
   },
   {
    "k": "error",
    "t": "UNSUPPORTED_EVENT",
-   "h": "/docs/reference#error-UNSUPPORTED_EVENT",
-   "d": "Pediu um tipo de evento que não existe."
+   "h": "/docs/errors#error-UNSUPPORTED_EVENT",
+   "d": "Um dos eventos pedidos não existe no catálogo."
   },
   {
    "k": "error",
    "t": "PAYEE_NOT_ALLOWED",
-   "h": "/docs/reference#error-PAYEE_NOT_ALLOWED",
-   "d": "O pedido indica quem recebe. Com uma chave de projeto, quem recebe vem da configuração financeira e nunca do pedido."
+   "h": "/docs/errors#error-PAYEE_NOT_ALLOWED",
+   "d": "O pedido indica o destinatário. Com uma chave de projeto, o destinatário vem da configuração financeira."
   },
   {
    "k": "error",
    "t": "PRICING_FIELD_NOT_ACCEPTED",
-   "h": "/docs/reference#error-PRICING_FIELD_NOT_ACCEPTED",
-   "d": "O pedido tenta escolher o preço ou a taxa. O preço é atribuído à empresa pelo Banzami."
+   "h": "/docs/errors#error-PRICING_FIELD_NOT_ACCEPTED",
+   "d": "O pedido indica um preço ou uma taxa. O preço é atribuído ao Business pelo Banzami."
   },
   {
    "k": "error",
    "t": "PDF_NOT_SUPPORTED",
-   "h": "/docs/reference#error-PDF_NOT_SUPPORTED",
-   "d": "O QR ainda não é gerado em PDF."
+   "h": "/docs/errors#error-PDF_NOT_SUPPORTED",
+   "d": "O QR não está disponível em PDF."
   },
   {
    "k": "error",
    "t": "ROUTE_RETIRED",
-   "h": "/docs/reference#error-ROUTE_RETIRED",
-   "d": "A rota foi retirada; a mensagem diz o que usar em vez dela."
+   "h": "/docs/errors#error-ROUTE_RETIRED",
+   "d": "A rota foi retirada; a mensagem indica a alternativa."
   },
   {
    "k": "error",
    "t": "NOT_FOUND",
-   "h": "/docs/reference#error-NOT_FOUND",
-   "d": "O recurso não existe — ou existe e não é do seu projeto. As duas respostas são iguais de propósito."
+   "h": "/docs/errors#error-NOT_FOUND",
+   "d": "O recurso não existe, ou pertence a outro projeto. As duas situações têm a mesma resposta."
   },
   {
    "k": "error",
    "t": "NO_LINK",
-   "h": "/docs/reference#error-NO_LINK",
+   "h": "/docs/errors#error-NO_LINK",
    "d": "A sessão não tem link de pagamento."
   },
   {
    "k": "error",
    "t": "NO_QR",
-   "h": "/docs/reference#error-NO_QR",
+   "h": "/docs/errors#error-NO_QR",
    "d": "A sessão não tem interface QR."
   },
   {
    "k": "error",
    "t": "IDEMPOTENCY_KEY_REUSED",
-   "h": "/docs/reference#error-IDEMPOTENCY_KEY_REUSED",
-   "d": "Esta chave de idempotência já foi usada para um pedido DIFERENTE."
+   "h": "/docs/errors#error-IDEMPOTENCY_KEY_REUSED",
+   "d": "Esta chave de idempotência já foi usada num pedido diferente."
   },
   {
    "k": "error",
    "t": "IDEMPOTENCY_CONFLICT",
-   "h": "/docs/reference#error-IDEMPOTENCY_CONFLICT",
-   "d": "Duas situações. Num pedido qualquer: outro pedido com esta chave ainda está em curso. Numa liquidação: a chave já foi usada para uma liquidação diferente."
+   "h": "/docs/errors#error-IDEMPOTENCY_CONFLICT",
+   "d": "Num pedido: outro pedido com esta chave ainda está em curso. Numa liquidação: a chave já foi usada noutra liquidação."
   },
   {
    "k": "error",
    "t": "IDEMPOTENCY_KEY_CONFLICT",
-   "h": "/docs/reference#error-IDEMPOTENCY_KEY_CONFLICT",
-   "d": "Já existe um reembolso com esta chave de idempotência para este pagamento."
+   "h": "/docs/errors#error-IDEMPOTENCY_KEY_CONFLICT",
+   "d": "A chave de idempotência já foi usada neste pagamento com outro montante ou moeda."
   },
   {
    "k": "error",
    "t": "LINK_NOT_ACTIVE",
-   "h": "/docs/reference#error-LINK_NOT_ACTIVE",
-   "d": "O link de pagamento já não está activo."
+   "h": "/docs/errors#error-LINK_NOT_ACTIVE",
+   "d": "O link de pagamento já não está ativo: foi pago, expirou ou foi cancelado."
   },
   {
    "k": "error",
    "t": "WALLET_ACCOUNT_INACTIVE",
-   "h": "/docs/reference#error-WALLET_ACCOUNT_INACTIVE",
-   "d": "A conta que devia receber não está activa."
+   "h": "/docs/errors#error-WALLET_ACCOUNT_INACTIVE",
+   "d": "A conta que devia receber não está ativa."
   },
   {
    "k": "error",
    "t": "PRIMARY_NOT_CREATABLE",
-   "h": "/docs/reference#error-PRIMARY_NOT_CREATABLE",
-   "d": "Tentou criar uma conta PRIMARY. Essa conta é criada com a carteira."
+   "h": "/docs/errors#error-PRIMARY_NOT_CREATABLE",
+   "d": "Uma conta com purpose PRIMARY não pode ser criada: a conta principal nasce com a carteira."
   },
   {
    "k": "error",
    "t": "DELIVERY_ALREADY_SUCCEEDED",
-   "h": "/docs/reference#error-DELIVERY_ALREADY_SUCCEEDED",
-   "d": "Tentou reentregar uma entrega que já teve sucesso."
+   "h": "/docs/errors#error-DELIVERY_ALREADY_SUCCEEDED",
+   "d": "A entrega já teve sucesso e não é reenviada."
   },
   {
    "k": "error",
    "t": "ACCOUNT_FROZEN",
-   "h": "/docs/reference#error-ACCOUNT_FROZEN",
+   "h": "/docs/errors#error-ACCOUNT_FROZEN",
    "d": "A conta está bloqueada; movimentos a partir dela são recusados."
   },
   {
    "k": "error",
    "t": "ACCOUNTS_NOT_SAME_WALLET",
-   "h": "/docs/reference#error-ACCOUNTS_NOT_SAME_WALLET",
+   "h": "/docs/errors#error-ACCOUNTS_NOT_SAME_WALLET",
    "d": "As duas contas não pertencem à mesma carteira."
   },
   {
    "k": "error",
    "t": "CURRENCY_MISMATCH",
-   "h": "/docs/reference#error-CURRENCY_MISMATCH",
-   "d": "As contas, o pagamento e o pedido não estão na mesma moeda."
+   "h": "/docs/errors#error-CURRENCY_MISMATCH",
+   "d": "As contas, o pagamento e o pedido não usam a mesma moeda."
   },
   {
    "k": "error",
    "t": "INSUFFICIENT_FUNDS",
-   "h": "/docs/reference#error-INSUFFICIENT_FUNDS",
+   "h": "/docs/errors#error-INSUFFICIENT_FUNDS",
    "d": "A conta de origem não tem saldo disponível suficiente."
   },
   {
    "k": "error",
    "t": "NOTHING_TO_SETTLE",
-   "h": "/docs/reference#error-NOTHING_TO_SETTLE",
+   "h": "/docs/errors#error-NOTHING_TO_SETTLE",
    "d": "A conta de origem não tem saldo disponível para liquidar."
   },
   {
    "k": "error",
    "t": "SOURCE_NOT_SEGREGATED",
-   "h": "/docs/reference#error-SOURCE_NOT_SEGREGATED",
-   "d": "Tentou liquidar a partir da conta principal. Liquida-se a partir de uma conta segregada (por exemplo CAMPAIGN)."
+   "h": "/docs/errors#error-SOURCE_NOT_SEGREGATED",
+   "d": "A origem é a conta principal do Business; só uma conta segregada pode ser liquidada."
   },
   {
    "k": "error",
    "t": "BENEFICIARY_NOT_FOUND",
-   "h": "/docs/reference#error-BENEFICIARY_NOT_FOUND",
-   "d": "O @banza do beneficiário não tem carteira activa nesta moeda."
+   "h": "/docs/errors#error-BENEFICIARY_NOT_FOUND",
+   "d": "O @banza do beneficiário não tem carteira ativa nesta moeda."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_FOUND",
-   "h": "/docs/reference#error-FEE_DESTINATION_NOT_FOUND",
-   "d": "O @banza indicado para a taxa não tem carteira activa nesta moeda."
+   "h": "/docs/errors#error-FEE_DESTINATION_NOT_FOUND",
+   "d": "O @banza indicado para a taxa não tem carteira ativa nesta moeda."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_OWNED",
-   "h": "/docs/reference#error-FEE_DESTINATION_NOT_OWNED",
-   "d": "O destino da taxa não é uma conta da sua empresa."
+   "h": "/docs/errors#error-FEE_DESTINATION_NOT_OWNED",
+   "d": "O destino da taxa não pertence ao seu Business."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_REQUIRED",
-   "h": "/docs/reference#error-FEE_DESTINATION_REQUIRED",
-   "d": "O seu perfil de preço aplica uma taxa a esta liquidação, e não indicou para onde vai."
+   "h": "/docs/errors#error-FEE_DESTINATION_REQUIRED",
+   "d": "O perfil de preço aplica uma taxa a esta liquidação e o pedido não indica o destino da taxa."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
-   "h": "/docs/reference#error-FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
-   "d": "O destino da taxa não é uma conta de empresa."
+   "h": "/docs/errors#error-FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
+   "d": "O destino da taxa não é uma conta de Business."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_ACTIVE",
-   "h": "/docs/reference#error-FEE_DESTINATION_NOT_ACTIVE",
-   "d": "A conta de destino da taxa não está activa."
+   "h": "/docs/errors#error-FEE_DESTINATION_NOT_ACTIVE",
+   "d": "A conta de destino da taxa não está ativa."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_KYB_NOT_APPROVED",
-   "h": "/docs/reference#error-FEE_DESTINATION_KYB_NOT_APPROVED",
-   "d": "A conta de destino da taxa ainda não tem a verificação da empresa aprovada."
+   "h": "/docs/errors#error-FEE_DESTINATION_KYB_NOT_APPROVED",
+   "d": "A verificação do Business de destino da taxa ainda não está aprovada."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_WALLET_UNAVAILABLE",
-   "h": "/docs/reference#error-FEE_DESTINATION_WALLET_UNAVAILABLE",
-   "d": "A conta de destino da taxa não tem carteira activa nesta moeda."
+   "h": "/docs/errors#error-FEE_DESTINATION_WALLET_UNAVAILABLE",
+   "d": "A conta de destino da taxa não tem carteira ativa nesta moeda."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_TYPE_NOT_ALLOWED",
-   "h": "/docs/reference#error-FEE_DESTINATION_TYPE_NOT_ALLOWED",
-   "d": "Uma taxa de aplicação só pode ir para uma conta de tipo APPLICATION ou PLATFORM."
+   "h": "/docs/errors#error-FEE_DESTINATION_TYPE_NOT_ALLOWED",
+   "d": "A taxa só pode ir para uma conta do tipo APPLICATION ou PLATFORM."
   },
   {
    "k": "error",
    "t": "FEE_EXCEEDS_GROSS",
-   "h": "/docs/reference#error-FEE_EXCEEDS_GROSS",
-   "d": "A taxa calculada seria maior do que o bruto a liquidar."
+   "h": "/docs/errors#error-FEE_EXCEEDS_GROSS",
+   "d": "A taxa calculada seria superior ao montante bruto a liquidar."
   },
   {
    "k": "error",
    "t": "PRICING_NOT_CONFIGURED",
-   "h": "/docs/reference#error-PRICING_NOT_CONFIGURED",
-   "d": "A sua empresa ainda não tem um perfil de preço, por isso a liquidação não pode ser calculada."
+   "h": "/docs/errors#error-PRICING_NOT_CONFIGURED",
+   "d": "O Business ainda não tem perfil de preço, por isso a liquidação não pode ser calculada."
   },
   {
    "k": "error",
    "t": "PRICING_CONFIGURATION_ERROR",
-   "h": "/docs/reference#error-PRICING_CONFIGURATION_ERROR",
+   "h": "/docs/errors#error-PRICING_CONFIGURATION_ERROR",
    "d": "Mais do que uma regra de preço se aplica a esta liquidação."
   },
   {
    "k": "error",
    "t": "INVALID_STATUS",
-   "h": "/docs/reference#error-INVALID_STATUS",
-   "d": "A liquidação já está num estado que não permite esta mudança."
+   "h": "/docs/errors#error-INVALID_STATUS",
+   "d": "A liquidação está num estado que não permite esta alteração."
   },
   {
    "k": "error",
    "t": "SETTLEMENT_NOT_COMPLETED",
-   "h": "/docs/reference#error-SETTLEMENT_NOT_COMPLETED",
+   "h": "/docs/errors#error-SETTLEMENT_NOT_COMPLETED",
    "d": "A liquidação foi criada mas não pôde ser concluída."
   },
   {
    "k": "error",
    "t": "SETTLEMENT_REJECTED",
-   "h": "/docs/reference#error-SETTLEMENT_REJECTED",
-   "d": "A liquidação foi recusada, sem motivo mais específico."
+   "h": "/docs/errors#error-SETTLEMENT_REJECTED",
+   "d": "A liquidação foi recusada sem um motivo mais específico."
   },
   {
    "k": "error",
    "t": "REFUND_EXCEEDS_CAPTURED",
-   "h": "/docs/reference#error-REFUND_EXCEEDS_CAPTURED",
-   "d": "O reembolso pedido é maior do que o que ainda resta reembolsar do pagamento."
+   "h": "/docs/errors#error-REFUND_EXCEEDS_CAPTURED",
+   "d": "O montante pedido excede o que falta reembolsar neste pagamento."
   },
   {
    "k": "error",
    "t": "REFUND_NOT_FUNDABLE",
-   "h": "/docs/reference#error-REFUND_NOT_FUNDABLE",
-   "d": "A conta que recebeu o pagamento já não tem saldo para o devolver."
+   "h": "/docs/errors#error-REFUND_NOT_FUNDABLE",
+   "d": "A conta que recebeu o pagamento não tem saldo suficiente para o devolver."
   },
   {
    "k": "error",
    "t": "INVALID_PAYMENT_STATUS",
-   "h": "/docs/reference#error-INVALID_PAYMENT_STATUS",
-   "d": "O pagamento está num estado que não se reembolsa."
+   "h": "/docs/errors#error-INVALID_PAYMENT_STATUS",
+   "d": "O pagamento está num estado que não permite reembolso."
   },
   {
    "k": "error",
    "t": "INVALID_TRANSACTION_STATUS",
-   "h": "/docs/reference#error-INVALID_TRANSACTION_STATUS",
-   "d": "A transacção está num estado que não se reembolsa."
+   "h": "/docs/errors#error-INVALID_TRANSACTION_STATUS",
+   "d": "A transação está num estado que não permite reembolso."
   },
   {
    "k": "error",
    "t": "WALLET_NOT_FOUND",
-   "h": "/docs/reference#error-WALLET_NOT_FOUND",
-   "d": "A carteira da empresa que recebeu o pagamento não foi encontrada."
+   "h": "/docs/errors#error-WALLET_NOT_FOUND",
+   "d": "A carteira do Business que recebeu o pagamento não foi encontrada."
   },
   {
    "k": "error",
    "t": "CONSUMER_WALLET_NOT_FOUND",
-   "h": "/docs/reference#error-CONSUMER_WALLET_NOT_FOUND",
-   "d": "A carteira de quem pagou já não existe."
+   "h": "/docs/errors#error-CONSUMER_WALLET_NOT_FOUND",
+   "d": "A carteira do pagador já não existe."
   },
   {
    "k": "error",
    "t": "REFUND_FAILED",
-   "h": "/docs/reference#error-REFUND_FAILED",
-   "d": "O reembolso foi recusado, sem motivo mais específico."
+   "h": "/docs/errors#error-REFUND_FAILED",
+   "d": "O reembolso foi recusado sem um motivo mais específico."
   },
   {
    "k": "error",
    "t": "RATE_LIMITED",
-   "h": "/docs/reference#error-RATE_LIMITED",
-   "d": "Demasiados pedidos."
+   "h": "/docs/errors#error-RATE_LIMITED",
+   "d": "Demasiados pedidos. Nada foi executado."
   },
   {
    "k": "error",
    "t": "INTERNAL_ERROR",
-   "h": "/docs/reference#error-INTERNAL_ERROR",
+   "h": "/docs/errors#error-INTERNAL_ERROR",
    "d": "Falha do lado do Banzami."
   },
   {
    "k": "error",
    "t": "QR_RENDER_FAILED",
-   "h": "/docs/reference#error-QR_RENDER_FAILED",
-   "d": "Não foi possível desenhar o QR."
+   "h": "/docs/errors#error-QR_RENDER_FAILED",
+   "d": "Não foi possível gerar a imagem do QR."
   },
   {
    "k": "error",
    "t": "UPSTREAM_ERROR",
-   "h": "/docs/reference#error-UPSTREAM_ERROR",
-   "d": "Um serviço interno falhou. O pedido pode estar certo."
+   "h": "/docs/errors#error-UPSTREAM_ERROR",
+   "d": "Um serviço do Banzami falhou. O pedido pode estar correto."
   },
   {
    "k": "error",
    "t": "SERVICE_UNAVAILABLE",
-   "h": "/docs/reference#error-SERVICE_UNAVAILABLE",
-   "d": "Temporariamente indisponível."
+   "h": "/docs/errors#error-SERVICE_UNAVAILABLE",
+   "d": "Serviço temporariamente indisponível."
   },
   {
    "k": "error",
    "t": "UNAVAILABLE",
-   "h": "/docs/reference#error-UNAVAILABLE",
-   "d": "Temporariamente indisponível."
+   "h": "/docs/errors#error-UNAVAILABLE",
+   "d": "Serviço temporariamente indisponível."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 400",
+   "h": "/docs/errors#http-400",
+   "d": "O pedido está mal formado ou um campo é inválido."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 401",
+   "h": "/docs/errors#http-401",
+   "d": "A chave falta, está revogada ou não é Sandbox."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 403",
+   "h": "/docs/errors#http-403",
+   "d": "A chave não pode fazer isto: falta um scope, ou o projeto não está pronto."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 404",
+   "h": "/docs/errors#http-404",
+   "d": "Não existe — ou é de outro projeto. As duas respostas são iguais de propósito."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 409",
+   "h": "/docs/errors#http-409",
+   "d": "Conflito: a mesma chave de idempotência noutro pedido, um pedido ainda em curso, ou o estado mudou."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 410",
+   "h": "/docs/errors#http-410",
+   "d": "A rota foi retirada."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 422",
+   "h": "/docs/errors#http-422",
+   "d": "O pedido está bem formado, mas o estado não o permite: saldo, limite, elegibilidade."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 429",
+   "h": "/docs/errors#http-429",
+   "d": "Demasiados pedidos. Nada foi executado."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 5xx",
+   "h": "/docs/errors#http-5xx",
+   "d": "Falha do lado do Banzami, ou temporariamente indisponível."
   },
   {
    "k": "event",
    "t": "payment_session.created",
-   "h": "/docs/guides#eventos"
+   "h": "/docs/events#event-payment_session-created",
+   "d": "Quando uma sessão nova é criada. Não é emitido quando o mesmo purpose + reference devolve uma sessão que já existia."
   },
   {
    "k": "event",
    "t": "payment_session.paid",
-   "h": "/docs/guides#eventos"
+   "h": "/docs/events#event-payment_session-paid",
+   "d": "Quando o pagador paga a sessão e o dinheiro fica na sua conta — no mesmo instante em que a sessão passa a PAID."
   },
   {
    "k": "event",
    "t": "payment_link.paid",
-   "h": "/docs/guides#eventos"
+   "h": "/docs/events#event-payment_link-paid",
+   "d": "Quando um link é pago — um link criado por si, ou o link de uma sessão de pagamento."
   },
   {
    "k": "event",
    "t": "refund.completed",
-   "h": "/docs/guides#eventos"
+   "h": "/docs/events#event-refund-completed",
+   "d": "Quando um reembolso foi feito e o valor voltou ao pagador — no mesmo pedido que createRefund responde 201."
   },
   {
    "k": "event",
    "t": "application_settlement.completed",
-   "h": "/docs/guides#eventos"
+   "h": "/docs/events#event-application_settlement-completed",
+   "d": "Quando uma liquidação que pediu terminou: o líquido está no beneficiário e a taxa, se houver, no seu destino de taxa."
   },
   {
    "k": "event",
    "t": "application_settlement.cancelled",
-   "h": "/docs/guides#eventos"
+   "h": "/docs/events#event-application_settlement-cancelled",
+   "d": "Quando o Banzami cancela uma liquidação que foi criada mas não chegou a concluir. Nenhum dinheiro saiu da conta."
   },
   {
    "k": "event",
    "t": "application_settlement.failed",
-   "h": "/docs/guides#eventos"
+   "h": "/docs/events#event-application_settlement-failed",
+   "d": "Quando o Banzami marca como falhada uma liquidação que não pôde concluir. Nenhum dinheiro saiu da conta."
+  },
+  {
+   "k": "section",
+   "t": "Todas as chamadas respondem 401",
+   "h": "/docs/troubleshooting#symptom-401"
+  },
+  {
+   "k": "section",
+   "t": "403 INSUFFICIENT_SCOPE numa operação",
+   "h": "/docs/troubleshooting#symptom-scope"
+  },
+  {
+   "k": "section",
+   "t": "403 PAYMENTS_UNAVAILABLE ao criar um pagamento",
+   "h": "/docs/troubleshooting#symptom-payments-unavailable"
+  },
+  {
+   "k": "section",
+   "t": "404 num recurso que sabe que existe",
+   "h": "/docs/troubleshooting#symptom-404"
+  },
+  {
+   "k": "section",
+   "t": "400 PAYEE_NOT_ALLOWED",
+   "h": "/docs/troubleshooting#symptom-payee"
+  },
+  {
+   "k": "section",
+   "t": "409 ao repetir um pedido",
+   "h": "/docs/troubleshooting#symptom-idempotency"
+  },
+  {
+   "k": "section",
+   "t": "400 no montante, ou um valor 100 vezes errado",
+   "h": "/docs/troubleshooting#symptom-amount"
+  },
+  {
+   "k": "section",
+   "t": "429 RATE_LIMITED",
+   "h": "/docs/troubleshooting#symptom-429"
+  },
+  {
+   "k": "section",
+   "t": "A sessão continua ACTIVE",
+   "h": "/docs/troubleshooting#symptom-session-active"
+  },
+  {
+   "k": "section",
+   "t": "O webhook não chega",
+   "h": "/docs/troubleshooting#symptom-webhook-missing"
+  },
+  {
+   "k": "section",
+   "t": "A assinatura não bate certo",
+   "h": "/docs/troubleshooting#symptom-signature"
+  },
+  {
+   "k": "section",
+   "t": "O mesmo evento chega duas vezes",
+   "h": "/docs/troubleshooting#symptom-duplicate"
+  },
+  {
+   "k": "section",
+   "t": "Um reembolso é recusado",
+   "h": "/docs/troubleshooting#symptom-refund"
+  },
+  {
+   "k": "section",
+   "t": "O comprovativo não se verifica",
+   "h": "/docs/troubleshooting#symptom-receipt"
+  },
+  {
+   "k": "section",
+   "t": "Uma liquidação é recusada",
+   "h": "/docs/troubleshooting#symptom-settlement"
+  },
+  {
+   "k": "section",
+   "t": "Um 5xx ou um tempo-limite numa escrita que move dinheiro",
+   "h": "/docs/troubleshooting#symptom-5xx"
   },
   {
    "k": "term",
@@ -1062,21 +1807,23 @@
   },
   {
    "k": "term",
-   "t": "Produção",
+   "t": "Financial Live",
    "h": "/docs/glossary#glossario-producao",
-   "d": "Ambiente destinado a operações com dinheiro real quando a plataforma estiver habilitada."
+   "d": "O ambiente de dinheiro real. Não está disponível: o Sandbox é o único ambiente.",
+   "a": "live|production"
   },
   {
    "k": "term",
    "t": "Ledger",
    "h": "/docs/glossary#glossario-ledger",
-   "d": "Registo financeiro que mantém cada débito e crédito associado a uma transação, preservando a integridade do saldo."
+   "d": "O registo contabilístico do Banzami: cada débito e crédito de cada transação, de onde derivam os saldos."
   },
   {
    "k": "term",
    "t": "Idempotência",
    "h": "/docs/glossary#glossario-idempotencia",
-   "d": "Garantia de que repetir o mesmo pedido não cria uma segunda transferência, pagamento ou efeito financeiro."
+   "d": "Garantia de que repetir o mesmo pedido não cria uma segunda transferência, pagamento ou efeito financeiro.",
+   "a": "idempotency"
   },
   {
    "k": "term",
@@ -1088,31 +1835,32 @@
    "k": "term",
    "t": "banza-signature",
    "h": "/docs/glossary#glossario-banza-signature",
-   "d": "Header de assinatura do protocolo BANZA usado pelo Banzami para confirmar que um webhook é autêntico e não foi alterado."
+   "d": "O header com a assinatura de cada entrega de webhook. Verificá-lo confirma que a entrega vem do Banzami e não foi alterada."
   },
   {
    "k": "term",
    "t": "HMAC-SHA256",
    "h": "/docs/glossary#glossario-hmac-sha256",
-   "d": "Método de assinatura usado para verificar a origem e a integridade de um evento recebido."
+   "d": "O algoritmo da assinatura dos webhooks, calculada com o segredo do endpoint."
   },
   {
    "k": "term",
    "t": "OTP",
    "h": "/docs/glossary#glossario-otp",
-   "d": "Código temporário usado para confirmar que controla o email ou contacto utilizado no acesso."
+   "d": "O código de seis dígitos, enviado por email, com que entra na Consola."
   },
   {
    "k": "term",
    "t": "Conta Business",
    "h": "/docs/glossary#glossario-conta-business",
-   "d": "Conta Banzami usada por uma organização para operar integrações, receber valores e gerir a sua atividade na plataforma."
+   "d": "A conta Banzami de uma organização, usada para receber pagamentos e gerir a sua atividade."
   },
   {
    "k": "term",
    "t": "Liquidação",
    "h": "/docs/glossary#glossario-liquidacao",
-   "d": "Processo pelo qual valores confirmados são apurados e tratados segundo as regras do operador."
+   "d": "A transferência do saldo de uma conta para um beneficiário, com a taxa definida pelo Banzami. Só acontece quando a aplicação a pede.",
+   "a": "settlement"
   },
   {
    "k": "term",
@@ -1122,27 +1870,30 @@
   },
   {
    "k": "term",
-   "t": "API key",
+   "t": "Chave de API",
    "h": "/docs/glossary#glossario-api-key",
-   "d": "Credencial usada por uma aplicação para se autenticar perante uma integração Banzami."
+   "d": "A credencial com que uma aplicação se autentica na API do Banzami. Identifica um projeto.",
+   "a": "api key"
   },
   {
    "k": "term",
    "t": "Chave publicável",
    "h": "/docs/glossary#glossario-chave-publicavel",
-   "d": "Identificador que pode ser usado no cliente quando o fluxo o permite; não substitui uma chave secreta."
+   "d": "Uma chave bz_test_pk_ que pode ser usada no cliente, apenas para leitura. Não substitui a chave secreta.",
+   "a": "publishable key"
   },
   {
    "k": "term",
    "t": "Chave secreta",
    "h": "/docs/glossary#glossario-chave-secreta",
-   "d": "Credencial reservada ao servidor da aplicação. Nunca deve ser exposta no browser, app móvel, repositórios, logs ou capturas de ecrã."
+   "d": "Uma chave bz_test_sk_, reservada ao servidor. Nunca deve estar no browser, numa app móvel ou num repositório.",
+   "a": "secret key"
   },
   {
    "k": "term",
    "t": "Replay",
    "h": "/docs/glossary#glossario-replay",
-   "d": "Nova entrega ou repetição de um pedido/evento já recebido. A idempotência impede que produza efeitos duplicados."
+   "d": "Uma nova entrega de um evento ou a repetição de um pedido. A idempotência impede efeitos duplicados."
   },
   {
    "k": "term",
@@ -1154,19 +1905,21 @@
    "k": "term",
    "t": "QR",
    "h": "/docs/glossary#glossario-qr",
-   "d": "Código visual que abre uma jornada de pagamento Banzami ou identifica uma operação de forma rápida."
+   "d": "O código que abre a página de pagamento de uma sessão quando lido com a câmara ou a app Banzami."
   },
   {
    "k": "term",
    "t": "Sessão de pagamento",
    "h": "/docs/glossary#glossario-sessao-pagamento",
-   "d": "Representação de uma tentativa de pagamento associada a uma referência da sua aplicação."
+   "d": "Um pedido de pagamento associado a uma referência da sua aplicação, com link e QR.",
+   "a": "payment session"
   },
   {
    "k": "term",
    "t": "Comprovativo",
    "h": "/docs/glossary#glossario-comprovativo",
-   "d": "Registo emitido após uma operação confirmada, com os dados necessários para consulta e verificação."
+   "d": "O documento de um pagamento confirmado, com uma referência BZM-… verificável publicamente.",
+   "a": "receipt"
   },
   {
    "k": "term",
@@ -1184,43 +1937,53 @@
    "k": "term",
    "t": "Configuração financeira",
    "h": "/docs/glossary#glossario-configuracao-financeira",
-   "d": "A ligação entre um projeto e o Business que recebe o seu dinheiro. Sem ela, o projeto não recebe pagamentos."
+   "d": "A ligação entre um projeto e o Business que recebe os seus pagamentos. Sem ela, o projeto não recebe pagamentos.",
+   "a": "financial setup"
   },
   {
    "k": "term",
    "t": "Business",
    "h": "/docs/glossary#glossario-business",
-   "d": "A entidade legal verificada pelo Banzami que é dona do dinheiro que um projeto recebe."
+   "d": "A entidade verificada pelo Banzami que recebe os pagamentos de um projeto."
   },
   {
    "k": "term",
-   "t": "Wallet account",
+   "t": "Conta (wallet account)",
    "h": "/docs/glossary#glossario-wallet-account",
-   "d": "Uma conta dentro da carteira de um Business, para separar valor — por exemplo uma por campanha."
+   "d": "Uma conta dentro da carteira de um Business, para separar valores — por exemplo, uma por campanha."
   },
   {
    "k": "term",
    "t": "Link de pagamento",
    "h": "/docs/glossary#glossario-link-pagamento",
-   "d": "Um endereço em pay.banzami.com onde o pagador paga; pode ter montante fixo ou aberto."
+   "d": "Um endereço em pay.banzami.com onde o pagador paga; pode ter montante fixo ou aberto.",
+   "a": "payment link"
   },
   {
    "k": "term",
    "t": "Reembolso",
    "h": "/docs/glossary#glossario-reembolso",
-   "d": "A devolução, total ou parcial, de um pagamento confirmado, a partir da conta que o recebeu."
+   "d": "A devolução, total ou parcial, de um pagamento confirmado, a partir da conta que o recebeu.",
+   "a": "refund"
   },
   {
    "k": "term",
    "t": "Transação",
    "h": "/docs/glossary#glossario-transacao",
-   "d": "Um movimento de valor registado no livro-razão — um pagamento, um reembolso ou uma transferência."
+   "d": "Um movimento de valor registado no ledger: um pagamento, um reembolso ou uma transferência."
   },
   {
    "k": "term",
    "t": "Unidades menores",
    "h": "/docs/glossary#glossario-unidades-menores",
-   "d": "A forma como os montantes viajam na API: inteiros, em que 100 unidades menores são 1 Kz. Nunca decimais."
+   "d": "O formato dos montantes na API: inteiros, em que 100 unidades menores são 1 Kz. Nunca decimais.",
+   "a": "minor units"
+  },
+  {
+   "k": "term",
+   "t": "amount_minor",
+   "h": "/docs/glossary#glossario-amount-minor",
+   "d": "O campo de montante da API, em unidades menores: 25000 são 250 Kz."
   }
  ],
  "en": [
@@ -1228,97 +1991,213 @@
    "k": "page",
    "t": "Home",
    "h": "/docs/en",
-   "d": "Documentation home page."
+   "d": "What you can build and where to start."
   },
   {
    "k": "page",
-   "t": "Get started",
+   "t": "Quickstart",
    "h": "/docs/en/get-started",
-   "d": "Overview, current status and quickstart."
+   "d": "From sign-up to your first confirmed payment."
+  },
+  {
+   "k": "page",
+   "t": "How Banzami works",
+   "h": "/docs/en/concepts",
+   "d": "Model, environments, amounts and idempotency."
+  },
+  {
+   "k": "page",
+   "t": "Accept payments",
+   "h": "/docs/en/payments",
+   "d": "Sessions, links and QR."
+  },
+  {
+   "k": "page",
+   "t": "Webhooks",
+   "h": "/docs/en/webhooks",
+   "d": "Receive and verify events."
+  },
+  {
+   "k": "page",
+   "t": "Refunds",
+   "h": "/docs/en/refunds",
+   "d": "Return a payment in full or in part."
+  },
+  {
+   "k": "page",
+   "t": "Settlements",
+   "h": "/docs/en/settlements",
+   "d": "Pay out an account balance to a beneficiary."
+  },
+  {
+   "k": "page",
+   "t": "Receipts",
+   "h": "/docs/en/receipts",
+   "d": "Public references and verification."
+  },
+  {
+   "k": "page",
+   "t": "Accounts and transfers",
+   "h": "/docs/en/transfers",
+   "d": "Segregated accounts and moves between them."
+  },
+  {
+   "k": "page",
+   "t": "Build like DOA",
+   "h": "/docs/en/doa",
+   "d": "A complete reference integration."
   },
   {
    "k": "page",
    "t": "The Console",
    "h": "/docs/en/console",
-   "d": "Account, workspaces, projects, financial setup, keys, webhooks and logs."
+   "d": "Workspaces, projects, keys, webhooks and logs."
+  },
+  {
+   "k": "page",
+   "t": "API reference",
+   "h": "/docs/en/reference",
+   "d": "Every v1 endpoint."
+  },
+  {
+   "k": "page",
+   "t": "Events",
+   "h": "/docs/en/events",
+   "d": "Webhook events and their fields."
+  },
+  {
+   "k": "page",
+   "t": "Errors",
+   "h": "/docs/en/errors",
+   "d": "The error envelope and every code."
   },
   {
    "k": "page",
    "t": "SDKs",
    "h": "/docs/en/sdk",
-   "d": "SDK-first model, published packages, and what each SDK handles."
-  },
-  {
-   "k": "page",
-   "t": "Guides",
-   "h": "/docs/en/guides",
-   "d": "Payments, webhooks and task guides."
-  },
-  {
-   "k": "page",
-   "t": "Reference implementation",
-   "h": "/docs/en/doa",
-   "d": "DOA — a real application integrated through the public contracts."
-  },
-  {
-   "k": "page",
-   "t": "API Reference",
-   "h": "/docs/en/reference",
-   "d": "Credentials, endpoints, errors and idempotency."
-  },
-  {
-   "k": "page",
-   "t": "Sandbox testing",
-   "h": "/docs/en/testing",
-   "d": "What Sandbox means, validation and limits."
-  },
-  {
-   "k": "page",
-   "t": "Security",
-   "h": "/docs/en/trust",
-   "d": "Credentials, webhook secrets, and what the Sandbox guarantees."
+   "d": "Published packages and what each handles."
   },
   {
    "k": "page",
    "t": "Artifacts",
    "h": "/docs/en/artifacts",
-   "d": "OpenAPI, Postman, manifests and examples."
+   "d": "OpenAPI, Postman and manifests."
   },
   {
    "k": "page",
-   "t": "Changelog",
-   "h": "/docs/en/changelog",
-   "d": "Dated changes by category."
+   "t": "Sandbox testing",
+   "h": "/docs/en/testing",
+   "d": "Test scenarios with expected results."
+  },
+  {
+   "k": "page",
+   "t": "From Sandbox toward Live",
+   "h": "/docs/en/going-live",
+   "d": "Live status and a readiness checklist."
+  },
+  {
+   "k": "page",
+   "t": "Security",
+   "h": "/docs/en/trust",
+   "d": "Keys, secrets and rotation."
   },
   {
    "k": "page",
    "t": "Glossary",
    "h": "/docs/en/glossary",
-   "d": "Concepts used across this documentation."
+   "d": "The terms used in these docs."
+  },
+  {
+   "k": "page",
+   "t": "Troubleshooting",
+   "h": "/docs/en/troubleshooting",
+   "d": "By symptom."
+  },
+  {
+   "k": "page",
+   "t": "Support",
+   "h": "/docs/en/support",
+   "d": "How to get help."
+  },
+  {
+   "k": "page",
+   "t": "Changelog",
+   "h": "/docs/en/changelog",
+   "d": "Changes, impact and action."
   },
   {
    "k": "section",
-   "t": "Financial setup — before the first payment",
+   "t": "Financial Setup",
    "h": "/docs/en/get-started#financial-setup"
   },
   {
    "k": "section",
-   "t": "Your first payment",
+   "t": "Create your first payment",
    "h": "/docs/en/get-started#first-payment"
   },
   {
    "k": "section",
-   "t": "After you create the session",
-   "h": "/docs/en/get-started#after-the-payment"
+   "t": "Sign in to the Console",
+   "h": "/docs/en/get-started#step-1"
+  },
+  {
+   "k": "section",
+   "t": "Create a workspace",
+   "h": "/docs/en/get-started#step-2"
+  },
+  {
+   "k": "section",
+   "t": "Create a project",
+   "h": "/docs/en/get-started#step-3"
+  },
+  {
+   "k": "section",
+   "t": "Complete Financial Setup",
+   "h": "/docs/en/get-started#step-4"
+  },
+  {
+   "k": "section",
+   "t": "Create a secret key",
+   "h": "/docs/en/get-started#step-5"
+  },
+  {
+   "k": "section",
+   "t": "Install the SDK",
+   "h": "/docs/en/get-started#step-6"
+  },
+  {
+   "k": "section",
+   "t": "Make your first call",
+   "h": "/docs/en/get-started#step-7"
+  },
+  {
+   "k": "section",
+   "t": "Create a payment session",
+   "h": "/docs/en/get-started#step-8"
+  },
+  {
+   "k": "section",
+   "t": "Open the payment page",
+   "h": "/docs/en/get-started#step-9"
+  },
+  {
+   "k": "section",
+   "t": "Confirm the payment on your server",
+   "h": "/docs/en/get-started#step-10"
+  },
+  {
+   "k": "section",
+   "t": "Receive the webhook",
+   "h": "/docs/en/get-started#step-11"
+  },
+  {
+   "k": "section",
+   "t": "See the payment in the Console",
+   "h": "/docs/en/get-started#step-12"
   },
   {
    "k": "method",
    "t": "getFinancialSetup",
-   "h": "/docs/en/get-started"
-  },
-  {
-   "k": "method",
-   "t": "createPaymentSession",
    "h": "/docs/en/get-started"
   },
   {
@@ -1328,47 +2207,477 @@
   },
   {
    "k": "method",
+   "t": "createPaymentSession",
+   "h": "/docs/en/get-started"
+  },
+  {
+   "k": "method",
    "t": "getPaymentSession",
    "h": "/docs/en/get-started"
   },
   {
    "k": "section",
-   "t": "SDK-first integration model",
-   "h": "/docs/en/sdk#sdk-first"
+   "t": "Sandbox and Live",
+   "h": "/docs/en/concepts#sandbox-live"
   },
   {
    "k": "section",
-   "t": "SDK maturity matrix",
-   "h": "/docs/en/sdk#sdk-maturity"
+   "t": "The integration model",
+   "h": "/docs/en/concepts#model"
   },
   {
    "k": "section",
-   "t": "SDK publication",
-   "h": "/docs/en/sdk#sdk-preview"
+   "t": "What your application owns and what Banzami owns",
+   "h": "/docs/en/concepts#responsibilities"
   },
   {
    "k": "section",
-   "t": "Expected SDK contract",
-   "h": "/docs/en/sdk#sdk-contract"
+   "t": "One pattern for every financial resource",
+   "h": "/docs/en/concepts#pattern"
   },
   {
    "k": "section",
-   "t": "SDK family status",
-   "h": "/docs/en/sdk#sdk-families"
+   "t": "Amounts in minor units",
+   "h": "/docs/en/concepts#minor-units"
   },
   {
    "k": "section",
-   "t": "Before you put the integration in front of anyone",
-   "h": "/docs/en/sdk#before-you-integrate"
+   "t": "Idempotency",
+   "h": "/docs/en/concepts#idempotency"
   },
   {
    "k": "section",
-   "t": "Found a problem?",
-   "h": "/docs/en/sdk#report-a-problem"
+   "t": "request_id",
+   "h": "/docs/en/concepts#request-id"
   },
   {
    "k": "section",
-   "t": "The model, before the screens",
+   "t": "Choose a resource",
+   "h": "/docs/en/payments#choose"
+  },
+  {
+   "k": "section",
+   "t": "How a payment flows",
+   "h": "/docs/en/payments#journey"
+  },
+  {
+   "k": "section",
+   "t": "Create a Payment Session",
+   "h": "/docs/en/payments#create-session"
+  },
+  {
+   "k": "section",
+   "t": "Show the link or QR code",
+   "h": "/docs/en/payments#present"
+  },
+  {
+   "k": "section",
+   "t": "Confirm the payment",
+   "h": "/docs/en/payments#confirm"
+  },
+  {
+   "k": "section",
+   "t": "Create a Payment Link",
+   "h": "/docs/en/payments#links"
+  },
+  {
+   "k": "section",
+   "t": "Common errors",
+   "h": "/docs/en/payments#payment-errors"
+  },
+  {
+   "k": "section",
+   "t": "In the Console",
+   "h": "/docs/en/payments#payment-console"
+  },
+  {
+   "k": "method",
+   "t": "paymentSessionInterface",
+   "h": "/docs/en/payments"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/en/payments"
+  },
+  {
+   "k": "method",
+   "t": "createPaymentSession",
+   "h": "/docs/en/payments"
+  },
+  {
+   "k": "method",
+   "t": "getPaymentSession",
+   "h": "/docs/en/payments"
+  },
+  {
+   "k": "section",
+   "t": "The life of a delivery",
+   "h": "/docs/en/webhooks#lifecycle"
+  },
+  {
+   "k": "section",
+   "t": "Set up an endpoint, step by step",
+   "h": "/docs/en/webhooks#recipe"
+  },
+  {
+   "k": "section",
+   "t": "Retries and replay",
+   "h": "/docs/en/webhooks#redelivery"
+  },
+  {
+   "k": "section",
+   "t": "Disable and re-enable an endpoint",
+   "h": "/docs/en/webhooks#disable"
+  },
+  {
+   "k": "section",
+   "t": "Envelope format",
+   "h": "/docs/en/webhooks#envelope"
+  },
+  {
+   "k": "section",
+   "t": "Scopes and access",
+   "h": "/docs/en/webhooks#manage-endpoint"
+  },
+  {
+   "k": "section",
+   "t": "Expose a public HTTPS endpoint",
+   "h": "/docs/en/webhooks#webhook-step-1"
+  },
+  {
+   "k": "section",
+   "t": "Register the endpoint and store the secret",
+   "h": "/docs/en/webhooks#webhook-step-2"
+  },
+  {
+   "k": "section",
+   "t": "Read the raw body",
+   "h": "/docs/en/webhooks#webhook-step-3"
+  },
+  {
+   "k": "section",
+   "t": "Verify the signature before parsing",
+   "h": "/docs/en/webhooks#webhook-step-4"
+  },
+  {
+   "k": "section",
+   "t": "Reject invalid signatures",
+   "h": "/docs/en/webhooks#webhook-step-5"
+  },
+  {
+   "k": "section",
+   "t": "Deduplicate by event id",
+   "h": "/docs/en/webhooks#webhook-step-6"
+  },
+  {
+   "k": "section",
+   "t": "Apply the business effect",
+   "h": "/docs/en/webhooks#webhook-step-7"
+  },
+  {
+   "k": "section",
+   "t": "Respond 2xx quickly",
+   "h": "/docs/en/webhooks#webhook-step-8"
+  },
+  {
+   "k": "section",
+   "t": "Recover failed deliveries",
+   "h": "/docs/en/webhooks#webhook-step-9"
+  },
+  {
+   "k": "section",
+   "t": "Rotate the secret without losing deliveries",
+   "h": "/docs/en/webhooks#webhook-step-10"
+  },
+  {
+   "k": "method",
+   "t": "constructEvent",
+   "h": "/docs/en/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "listWebhookDeliveries",
+   "h": "/docs/en/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "rotateWebhookEndpointSecret",
+   "h": "/docs/en/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "createWebhookEndpoint",
+   "h": "/docs/en/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "listWebhookEndpoints",
+   "h": "/docs/en/webhooks"
+  },
+  {
+   "k": "method",
+   "t": "listWebhookEvents",
+   "h": "/docs/en/webhooks"
+  },
+  {
+   "k": "section",
+   "t": "Catalogue",
+   "h": "/docs/en/events#event-catalogue"
+  },
+  {
+   "k": "section",
+   "t": "How it works",
+   "h": "/docs/en/refunds#refund-flow"
+  },
+  {
+   "k": "section",
+   "t": "Refund a payment",
+   "h": "/docs/en/refunds#create-refund"
+  },
+  {
+   "k": "section",
+   "t": "Rules",
+   "h": "/docs/en/refunds#refund-rules"
+  },
+  {
+   "k": "section",
+   "t": "Common errors",
+   "h": "/docs/en/refunds#refund-errors"
+  },
+  {
+   "k": "section",
+   "t": "In the Console",
+   "h": "/docs/en/refunds#refund-console"
+  },
+  {
+   "k": "section",
+   "t": "Get the payment source",
+   "h": "/docs/en/refunds#refund-step-1"
+  },
+  {
+   "k": "section",
+   "t": "Store an idempotency key",
+   "h": "/docs/en/refunds#refund-step-2"
+  },
+  {
+   "k": "section",
+   "t": "Create the refund",
+   "h": "/docs/en/refunds#refund-step-3"
+  },
+  {
+   "k": "method",
+   "t": "listRefunds",
+   "h": "/docs/en/refunds"
+  },
+  {
+   "k": "method",
+   "t": "getPaymentSession",
+   "h": "/docs/en/refunds"
+  },
+  {
+   "k": "method",
+   "t": "createRefund",
+   "h": "/docs/en/refunds"
+  },
+  {
+   "k": "section",
+   "t": "Payment and settlement",
+   "h": "/docs/en/settlements#payment-vs-settlement"
+  },
+  {
+   "k": "section",
+   "t": "How the amount is split",
+   "h": "/docs/en/settlements#calculation"
+  },
+  {
+   "k": "section",
+   "t": "Request a settlement",
+   "h": "/docs/en/settlements#request-settlement"
+  },
+  {
+   "k": "section",
+   "t": "Fee destination",
+   "h": "/docs/en/settlements#fee-destination"
+  },
+  {
+   "k": "section",
+   "t": "Errors and retries",
+   "h": "/docs/en/settlements#settlement-errors"
+  },
+  {
+   "k": "section",
+   "t": "In the Console",
+   "h": "/docs/en/settlements#settlement-console"
+  },
+  {
+   "k": "section",
+   "t": "Check the project can settle",
+   "h": "/docs/en/settlements#settlement-step-1"
+  },
+  {
+   "k": "section",
+   "t": "Store the idempotency key",
+   "h": "/docs/en/settlements#settlement-step-2"
+  },
+  {
+   "k": "section",
+   "t": "Create the settlement",
+   "h": "/docs/en/settlements#settlement-step-3"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/en/settlements"
+  },
+  {
+   "k": "method",
+   "t": "createBusinessApplicationSettlement",
+   "h": "/docs/en/settlements"
+  },
+  {
+   "k": "section",
+   "t": "Transaction reference and proof reference",
+   "h": "/docs/en/receipts#two-references"
+  },
+  {
+   "k": "section",
+   "t": "SECURE_V1 format",
+   "h": "/docs/en/receipts#format"
+  },
+  {
+   "k": "section",
+   "t": "Verify a receipt",
+   "h": "/docs/en/receipts#verify"
+  },
+  {
+   "k": "section",
+   "t": "Segregated accounts",
+   "h": "/docs/en/transfers#segregated-accounts"
+  },
+  {
+   "k": "section",
+   "t": "Transfer between accounts",
+   "h": "/docs/en/transfers#transfers"
+  },
+  {
+   "k": "method",
+   "t": "createTransfer",
+   "h": "/docs/en/transfers"
+  },
+  {
+   "k": "section",
+   "t": "What DOA demonstrates",
+   "h": "/docs/en/doa#doa-what"
+  },
+  {
+   "k": "section",
+   "t": "Architecture",
+   "h": "/docs/en/doa#doa-architecture"
+  },
+  {
+   "k": "section",
+   "t": "Responsibilities",
+   "h": "/docs/en/doa#doa-boundary"
+  },
+  {
+   "k": "section",
+   "t": "The integration journey",
+   "h": "/docs/en/doa#doa-flow"
+  },
+  {
+   "k": "section",
+   "t": "1. Prepare the project",
+   "h": "/docs/en/doa#doa-prepare"
+  },
+  {
+   "k": "section",
+   "t": "2. Create the campaign account",
+   "h": "/docs/en/doa#doa-accounts"
+  },
+  {
+   "k": "section",
+   "t": "3. Create the payment",
+   "h": "/docs/en/doa#doa-payment"
+  },
+  {
+   "k": "section",
+   "t": "4. Payment page and QR code",
+   "h": "/docs/en/doa#doa-page"
+  },
+  {
+   "k": "section",
+   "t": "5. Receive the webhook",
+   "h": "/docs/en/doa#doa-webhook"
+  },
+  {
+   "k": "section",
+   "t": "6. Update application state",
+   "h": "/docs/en/doa#doa-state"
+  },
+  {
+   "k": "section",
+   "t": "7. Receipt",
+   "h": "/docs/en/doa#doa-receipt"
+  },
+  {
+   "k": "section",
+   "t": "8. Close the campaign",
+   "h": "/docs/en/doa#doa-close"
+  },
+  {
+   "k": "section",
+   "t": "9. Settle the campaign",
+   "h": "/docs/en/doa#doa-settlement"
+  },
+  {
+   "k": "section",
+   "t": "10. Reconcile",
+   "h": "/docs/en/doa#doa-reconciliation"
+  },
+  {
+   "k": "section",
+   "t": "11. Rotate and revoke credentials",
+   "h": "/docs/en/doa#doa-credentials"
+  },
+  {
+   "k": "section",
+   "t": "What to reuse in your application",
+   "h": "/docs/en/doa#doa-lessons"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/en/doa"
+  },
+  {
+   "k": "method",
+   "t": "createWalletAccount",
+   "h": "/docs/en/doa"
+  },
+  {
+   "k": "method",
+   "t": "createPaymentSession",
+   "h": "/docs/en/doa"
+  },
+  {
+   "k": "method",
+   "t": "paymentSessionInterface",
+   "h": "/docs/en/doa"
+  },
+  {
+   "k": "method",
+   "t": "constructEvent",
+   "h": "/docs/en/doa"
+  },
+  {
+   "k": "method",
+   "t": "createBusinessApplicationSettlement",
+   "h": "/docs/en/doa"
+  },
+  {
+   "k": "section",
+   "t": "The model",
    "h": "/docs/en/console#model"
   },
   {
@@ -1394,7 +2703,7 @@
   {
    "k": "section",
    "t": "Financial Setup",
-   "h": "/docs/en/console#financial-setup"
+   "h": "/docs/en/console#financial"
   },
   {
    "k": "section",
@@ -1413,178 +2722,18 @@
   },
   {
    "k": "section",
-   "t": "Where the money lands: financial setup and accounts",
-   "h": "/docs/en/guides#segregated-accounts"
+   "t": "Authentication",
+   "h": "/docs/en/reference#authentication"
   },
   {
    "k": "section",
-   "t": "Create a charge",
-   "h": "/docs/en/guides#charges"
-  },
-  {
-   "k": "section",
-   "t": "Transfers",
-   "h": "/docs/en/guides#transfers"
-  },
-  {
-   "k": "section",
-   "t": "Refunds",
-   "h": "/docs/en/guides#refunds"
-  },
-  {
-   "k": "section",
-   "t": "Receipts and public verification",
-   "h": "/docs/en/guides#receipts"
-  },
-  {
-   "k": "section",
-   "t": "How it works",
-   "h": "/docs/en/guides#how-it-works"
-  },
-  {
-   "k": "section",
-   "t": "Redelivery contract",
-   "h": "/docs/en/guides#redelivery"
-  },
-  {
-   "k": "section",
-   "t": "Manage the endpoint with your project key",
-   "h": "/docs/en/guides#manage-endpoint"
-  },
-  {
-   "k": "section",
-   "t": "Events",
-   "h": "/docs/en/guides#events"
-  },
-  {
-   "k": "section",
-   "t": "Troubleshooting",
-   "h": "/docs/en/guides#troubleshooting"
-  },
-  {
-   "k": "method",
-   "t": "constructEvent",
-   "h": "/docs/en/guides"
-  },
-  {
-   "k": "method",
-   "t": "createWebhookEndpoint",
-   "h": "/docs/en/guides"
-  },
-  {
-   "k": "method",
-   "t": "listWebhookEndpoints",
-   "h": "/docs/en/guides"
-  },
-  {
-   "k": "method",
-   "t": "listWebhookEvents",
-   "h": "/docs/en/guides"
-  },
-  {
-   "k": "method",
-   "t": "listWebhookDeliveries",
-   "h": "/docs/en/guides"
-  },
-  {
-   "k": "method",
-   "t": "rotateWebhookEndpointSecret",
-   "h": "/docs/en/guides"
-  },
-  {
-   "k": "section",
-   "t": "What DOA is, and why it is here",
-   "h": "/docs/en/doa#doa-what"
-  },
-  {
-   "k": "section",
-   "t": "The boundary: what is yours, and what is Banzami’s",
-   "h": "/docs/en/doa#doa-boundary"
-  },
-  {
-   "k": "section",
-   "t": "Preparing the project",
-   "h": "/docs/en/doa#doa-prepare"
-  },
-  {
-   "k": "section",
-   "t": "The whole journey",
-   "h": "/docs/en/doa#doa-flow"
-  },
-  {
-   "k": "section",
-   "t": "One account per campaign",
-   "h": "/docs/en/doa#doa-accounts"
-  },
-  {
-   "k": "section",
-   "t": "The webhook, the way DOA handles it",
-   "h": "/docs/en/doa#doa-webhook"
-  },
-  {
-   "k": "section",
-   "t": "The donor’s receipt",
-   "h": "/docs/en/doa#doa-receipt"
-  },
-  {
-   "k": "section",
-   "t": "Settlement, and who decides what",
-   "h": "/docs/en/doa#doa-settlement"
-  },
-  {
-   "k": "section",
-   "t": "Rotating and revoking credentials",
-   "h": "/docs/en/doa#doa-credentials"
-  },
-  {
-   "k": "section",
-   "t": "When something does not go as expected",
-   "h": "/docs/en/doa#doa-troubleshooting"
-  },
-  {
-   "k": "section",
-   "t": "What DOA learned along the way",
-   "h": "/docs/en/doa#doa-lessons"
-  },
-  {
-   "k": "method",
-   "t": "getFinancialSetup",
-   "h": "/docs/en/doa"
-  },
-  {
-   "k": "method",
-   "t": "createWalletAccount",
-   "h": "/docs/en/doa"
-  },
-  {
-   "k": "method",
-   "t": "constructEvent",
-   "h": "/docs/en/doa"
-  },
-  {
-   "k": "method",
-   "t": "createBusinessApplicationSettlement",
-   "h": "/docs/en/doa"
-  },
-  {
-   "k": "section",
-   "t": "Managed in the Console",
-   "h": "/docs/en/reference#console-management"
-  },
-  {
-   "k": "section",
-   "t": "Credentials and capabilities",
+   "t": "Capabilities by credential",
    "h": "/docs/en/reference#credentials"
   },
   {
    "k": "section",
    "t": "Idempotency",
    "h": "/docs/en/reference#idempotency"
-  },
-  {
-   "k": "section",
-   "t": "Authentication and key management",
-   "h": "/docs/en/reference#authentication"
   },
   {
    "k": "section",
@@ -1598,32 +2747,202 @@
   },
   {
    "k": "section",
-   "t": "Identifiers to keep",
+   "t": "Identifiers to store",
    "h": "/docs/en/reference#identifiers"
   },
   {
    "k": "section",
-   "t": "Resource reference",
+   "t": "Endpoints",
    "h": "/docs/en/reference#resource-reference"
   },
   {
    "k": "section",
-   "t": "Error catalogue",
-   "h": "/docs/en/reference#error-catalogue"
+   "t": "By HTTP status",
+   "h": "/docs/en/errors#by-status"
   },
   {
    "k": "section",
-   "t": "Console (access and keys)",
-   "h": "/docs/en/reference#console-errors"
+   "t": "By error code",
+   "h": "/docs/en/errors#error-catalogue"
   },
   {
    "k": "section",
-   "t": "Integration",
-   "h": "/docs/en/reference#integration-errors"
+   "t": "Console errors",
+   "h": "/docs/en/errors#console-errors"
   },
   {
    "k": "section",
-   "t": "The secret key belongs to the server, and only there",
+   "t": "Available SDKs",
+   "h": "/docs/en/sdk#sdk-maturity"
+  },
+  {
+   "k": "section",
+   "t": "What the SDK handles for you",
+   "h": "/docs/en/sdk#sdk-first"
+  },
+  {
+   "k": "section",
+   "t": "Current version",
+   "h": "/docs/en/sdk#sdk-preview"
+  },
+  {
+   "k": "section",
+   "t": "Status by family",
+   "h": "/docs/en/sdk#sdk-families"
+  },
+  {
+   "k": "section",
+   "t": "Reference implementation",
+   "h": "/docs/en/sdk#before-you-integrate"
+  },
+  {
+   "k": "section",
+   "t": "Available files",
+   "h": "/docs/en/artifacts#artifacts"
+  },
+  {
+   "k": "section",
+   "t": "Keys and readiness",
+   "h": "/docs/en/testing#recipe-basics"
+  },
+  {
+   "k": "section",
+   "t": "Payments",
+   "h": "/docs/en/testing#recipe-payments"
+  },
+  {
+   "k": "section",
+   "t": "Webhooks",
+   "h": "/docs/en/testing#test-webhooks"
+  },
+  {
+   "k": "section",
+   "t": "Refunds, transfers and settlements",
+   "h": "/docs/en/testing#test-refunds"
+  },
+  {
+   "k": "section",
+   "t": "Receipts and limits",
+   "h": "/docs/en/testing#test-other"
+  },
+  {
+   "k": "section",
+   "t": "The key works",
+   "h": "/docs/en/testing#first-call"
+  },
+  {
+   "k": "section",
+   "t": "Invalid or revoked key",
+   "h": "/docs/en/testing#invalid-key"
+  },
+  {
+   "k": "section",
+   "t": "Missing scope",
+   "h": "/docs/en/testing#missing-scope"
+  },
+  {
+   "k": "section",
+   "t": "Project without Financial Setup",
+   "h": "/docs/en/testing#no-setup"
+  },
+  {
+   "k": "section",
+   "t": "Create a session",
+   "h": "/docs/en/testing#create-session-test"
+  },
+  {
+   "k": "section",
+   "t": "Pay a session",
+   "h": "/docs/en/testing#pay-session"
+  },
+  {
+   "k": "section",
+   "t": "Retry a request safely",
+   "h": "/docs/en/testing#test-idempotency"
+  },
+  {
+   "k": "section",
+   "t": "Invalid amount",
+   "h": "/docs/en/testing#invalid-amount"
+  },
+  {
+   "k": "section",
+   "t": "Receive a delivery",
+   "h": "/docs/en/testing#webhook-delivery"
+  },
+  {
+   "k": "section",
+   "t": "Failure and replay",
+   "h": "/docs/en/testing#webhook-failure"
+  },
+  {
+   "k": "section",
+   "t": "Invalid signature",
+   "h": "/docs/en/testing#webhook-signature"
+  },
+  {
+   "k": "section",
+   "t": "Disabled endpoint",
+   "h": "/docs/en/testing#webhook-disabled"
+  },
+  {
+   "k": "section",
+   "t": "Full, partial and excessive refund",
+   "h": "/docs/en/testing#partial-refund"
+  },
+  {
+   "k": "section",
+   "t": "Transfer without funds",
+   "h": "/docs/en/testing#transfer-no-funds"
+  },
+  {
+   "k": "section",
+   "t": "Settlement",
+   "h": "/docs/en/testing#settlement-test"
+  },
+  {
+   "k": "section",
+   "t": "Verify a receipt",
+   "h": "/docs/en/testing#receipt-test"
+  },
+  {
+   "k": "section",
+   "t": "Rate limit",
+   "h": "/docs/en/testing#rate-limit"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/en/testing"
+  },
+  {
+   "k": "section",
+   "t": "Current status",
+   "h": "/docs/en/going-live#live-status"
+  },
+  {
+   "k": "section",
+   "t": "What your Sandbox work already establishes",
+   "h": "/docs/en/going-live#what-carries"
+  },
+  {
+   "k": "section",
+   "t": "Checklist",
+   "h": "/docs/en/going-live#checklist"
+  },
+  {
+   "k": "section",
+   "t": "Follow changes",
+   "h": "/docs/en/going-live#follow"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/en/going-live"
+  },
+  {
+   "k": "section",
+   "t": "Store the secret key",
    "h": "/docs/en/trust#keys"
   },
   {
@@ -1633,12 +2952,12 @@
   },
   {
    "k": "section",
-   "t": "Ask only for the scopes you need",
+   "t": "Limit scopes",
    "h": "/docs/en/trust#least-privilege"
   },
   {
    "k": "section",
-   "t": "Rotation and revocation",
+   "t": "Rotate and revoke keys",
    "h": "/docs/en/trust#rotation"
   },
   {
@@ -1653,13 +2972,28 @@
   },
   {
    "k": "section",
-   "t": "What to send support — and what never to send",
-   "h": "/docs/en/trust#support"
+   "t": "Report a vulnerability",
+   "h": "/docs/en/trust#vulnerabilities"
   },
   {
    "k": "section",
-   "t": "Technical reference artifacts",
-   "h": "/docs/en/artifacts#artifacts"
+   "t": "Before you write",
+   "h": "/docs/en/support#before"
+  },
+  {
+   "k": "section",
+   "t": "What to include",
+   "h": "/docs/en/support#include"
+  },
+  {
+   "k": "section",
+   "t": "What never to send",
+   "h": "/docs/en/support#never"
+  },
+  {
+   "k": "section",
+   "t": "Vulnerabilities",
+   "h": "/docs/en/support#security-support"
   },
   {
    "k": "endpoint",
@@ -1814,469 +3148,610 @@
   {
    "k": "error",
    "t": "UNAUTHORIZED",
-   "h": "/docs/en/reference#error-UNAUTHORIZED",
-   "d": "The key is missing, revoked or rotated, or is not a Sandbox key. A bz_live_ key is refused."
+   "h": "/docs/en/errors#error-UNAUTHORIZED",
+   "d": "The key is missing, revoked or rotated, or is not a Sandbox key. bz_live_ keys are refused."
   },
   {
    "k": "error",
    "t": "INVALID_TOKEN",
-   "h": "/docs/en/reference#error-INVALID_TOKEN",
+   "h": "/docs/en/errors#error-INVALID_TOKEN",
    "d": "The credential is invalid or has expired."
   },
   {
    "k": "error",
    "t": "AUTHORIZATION_UNAVAILABLE",
-   "h": "/docs/en/reference#error-AUTHORIZATION_UNAVAILABLE",
-   "d": "The key could not be verified right now. It does not mean the key is invalid."
+   "h": "/docs/en/errors#error-AUTHORIZATION_UNAVAILABLE",
+   "d": "The key could not be verified right now. This does not mean the key is invalid."
   },
   {
    "k": "error",
    "t": "INSUFFICIENT_SCOPE",
-   "h": "/docs/en/reference#error-INSUFFICIENT_SCOPE",
-   "d": "The key lacks this operation's scope; the message names it."
+   "h": "/docs/en/errors#error-INSUFFICIENT_SCOPE",
+   "d": "The key lacks the scope for this operation; the message names it."
   },
   {
    "k": "error",
    "t": "FORBIDDEN",
-   "h": "/docs/en/reference#error-FORBIDDEN",
-   "d": "The credential may not do this: it lacks the scope (on GET /v1/me) or the resource you named is not yours."
+   "h": "/docs/en/errors#error-FORBIDDEN",
+   "d": "The credential cannot perform this operation: the scope is missing (on GET /v1/me) or the resource belongs to another project."
   },
   {
    "k": "error",
    "t": "USE_FINANCIAL_SETUP",
-   "h": "/docs/en/reference#error-USE_FINANCIAL_SETUP",
-   "d": "A project key does not read the business state through this route."
+   "h": "/docs/en/errors#error-USE_FINANCIAL_SETUP",
+   "d": "A project key does not read the Business state through this route."
   },
   {
    "k": "error",
    "t": "MERCHANT_NOT_ACTIVE",
-   "h": "/docs/en/reference#error-MERCHANT_NOT_ACTIVE",
-   "d": "The business is not active, so it cannot create sessions or accounts."
+   "h": "/docs/en/errors#error-MERCHANT_NOT_ACTIVE",
+   "d": "The Business is not active, so it cannot create sessions or accounts."
   },
   {
    "k": "error",
    "t": "PAYMENTS_UNAVAILABLE",
-   "h": "/docs/en/reference#error-PAYMENTS_UNAVAILABLE",
-   "d": "403: the project has no completed financial setup, so it cannot receive or hold value. 503: the check could not be made right now."
+   "h": "/docs/en/errors#error-PAYMENTS_UNAVAILABLE",
+   "d": "403: the project has not completed Financial Setup and cannot receive payments. 503: the check could not be made right now."
   },
   {
    "k": "error",
    "t": "BINDING_CHANGED",
-   "h": "/docs/en/reference#error-BINDING_CHANGED",
-   "d": "The project's financial setup changed while the request was in flight. Nothing was created."
+   "h": "/docs/en/errors#error-BINDING_CHANGED",
+   "d": "The project’s Financial Setup changed during the request. Nothing was created."
   },
   {
    "k": "error",
    "t": "FINANCIAL_SETUP_CONFLICT",
-   "h": "/docs/en/reference#error-FINANCIAL_SETUP_CONFLICT",
-   "d": "The project's financial setup is inconsistent and could not be evaluated."
+   "h": "/docs/en/errors#error-FINANCIAL_SETUP_CONFLICT",
+   "d": "The project’s Financial Setup is inconsistent and could not be evaluated."
   },
   {
    "k": "error",
    "t": "ENVIRONMENT_UNDECLARED",
-   "h": "/docs/en/reference#error-ENVIRONMENT_UNDECLARED",
-   "d": "The service cannot confirm the credential's environment. It is a Banzami configuration fault."
+   "h": "/docs/en/errors#error-ENVIRONMENT_UNDECLARED",
+   "d": "The service could not confirm the credential’s environment, because of a Banzami configuration fault."
   },
   {
    "k": "error",
    "t": "INVALID_BODY",
-   "h": "/docs/en/reference#error-INVALID_BODY",
-   "d": "The body is not valid JSON or could not be read."
+   "h": "/docs/en/errors#error-INVALID_BODY",
+   "d": "The request body is not valid JSON."
   },
   {
    "k": "error",
    "t": "BAD_REQUEST",
-   "h": "/docs/en/reference#error-BAD_REQUEST",
-   "d": "The request was refused because of an invalid field; the message names it."
+   "h": "/docs/en/errors#error-BAD_REQUEST",
+   "d": "A request field is invalid; the message names it."
   },
   {
    "k": "error",
    "t": "INVALID_REQUEST",
-   "h": "/docs/en/reference#error-INVALID_REQUEST",
-   "d": "The request was refused, with no more specific reason."
+   "h": "/docs/en/errors#error-INVALID_REQUEST",
+   "d": "The request was refused without a more specific reason."
   },
   {
    "k": "error",
    "t": "MISSING_FIELD",
-   "h": "/docs/en/reference#error-MISSING_FIELD",
+   "h": "/docs/en/errors#error-MISSING_FIELD",
    "d": "A required field is missing; the message names it."
   },
   {
    "k": "error",
    "t": "INVALID_AMOUNT",
-   "h": "/docs/en/reference#error-INVALID_AMOUNT",
+   "h": "/docs/en/errors#error-INVALID_AMOUNT",
    "d": "The amount is not a positive integer in minor units."
   },
   {
    "k": "error",
    "t": "INVALID_CURRENCY",
-   "h": "/docs/en/reference#error-INVALID_CURRENCY",
-   "d": "The currency is not a three-letter ISO-4217 code."
+   "h": "/docs/en/errors#error-INVALID_CURRENCY",
+   "d": "The currency is not a three-letter ISO 4217 code."
   },
   {
    "k": "error",
    "t": "INVALID_DESTINATION",
-   "h": "/docs/en/reference#error-INVALID_DESTINATION",
+   "h": "/docs/en/errors#error-INVALID_DESTINATION",
    "d": "The source and destination accounts are the same."
   },
   {
    "k": "error",
    "t": "INVALID_EXPIRY",
-   "h": "/docs/en/reference#error-INVALID_EXPIRY",
+   "h": "/docs/en/errors#error-INVALID_EXPIRY",
    "d": "expires_at is not in the future."
   },
   {
    "k": "error",
    "t": "INVALID_METADATA",
-   "h": "/docs/en/reference#error-INVALID_METADATA",
-   "d": "A metadata field is outside the allowed format or length; the message gives the limits."
+   "h": "/docs/en/errors#error-INVALID_METADATA",
+   "d": "A metadata field exceeds the allowed format or length; the message gives the limits."
   },
   {
    "k": "error",
    "t": "INVALID_PARAM",
-   "h": "/docs/en/reference#error-INVALID_PARAM",
-   "d": "A query parameter is invalid — for example limit outside 1–100."
+   "h": "/docs/en/errors#error-INVALID_PARAM",
+   "d": "A query parameter is invalid, for example limit outside 1 to 100."
   },
   {
    "k": "error",
    "t": "INVALID_SOURCE_TYPE",
-   "h": "/docs/en/reference#error-INVALID_SOURCE_TYPE",
-   "d": "The refund's source_type is neither ACQUIRING_PAYMENT nor WALLET_PAYMENT."
+   "h": "/docs/en/errors#error-INVALID_SOURCE_TYPE",
+   "d": "source_type is neither ACQUIRING_PAYMENT nor WALLET_PAYMENT."
   },
   {
    "k": "error",
    "t": "INVALID_WEBHOOK_URL",
-   "h": "/docs/en/reference#error-INVALID_WEBHOOK_URL",
+   "h": "/docs/en/errors#error-INVALID_WEBHOOK_URL",
    "d": "The webhook URL is not a public HTTPS endpoint, or is too long."
   },
   {
    "k": "error",
    "t": "UNSUPPORTED_EVENT",
-   "h": "/docs/en/reference#error-UNSUPPORTED_EVENT",
-   "d": "You asked for an event type that does not exist."
+   "h": "/docs/en/errors#error-UNSUPPORTED_EVENT",
+   "d": "One of the requested events is not in the catalogue."
   },
   {
    "k": "error",
    "t": "PAYEE_NOT_ALLOWED",
-   "h": "/docs/en/reference#error-PAYEE_NOT_ALLOWED",
-   "d": "The request names who is paid. With a project key, who is paid comes from financial setup and never from the request."
+   "h": "/docs/en/errors#error-PAYEE_NOT_ALLOWED",
+   "d": "The request names the payee. With a project key, the payee comes from Financial Setup."
   },
   {
    "k": "error",
    "t": "PRICING_FIELD_NOT_ACCEPTED",
-   "h": "/docs/en/reference#error-PRICING_FIELD_NOT_ACCEPTED",
-   "d": "The request tries to choose the price or the fee. Pricing is assigned to the business by Banzami."
+   "h": "/docs/en/errors#error-PRICING_FIELD_NOT_ACCEPTED",
+   "d": "The request names a price or a fee. Pricing is assigned to the Business by Banzami."
   },
   {
    "k": "error",
    "t": "PDF_NOT_SUPPORTED",
-   "h": "/docs/en/reference#error-PDF_NOT_SUPPORTED",
-   "d": "QR rendering to PDF is not available yet."
+   "h": "/docs/en/errors#error-PDF_NOT_SUPPORTED",
+   "d": "The QR code is not available as PDF."
   },
   {
    "k": "error",
    "t": "ROUTE_RETIRED",
-   "h": "/docs/en/reference#error-ROUTE_RETIRED",
-   "d": "The route has been retired; the message says what to use instead."
+   "h": "/docs/en/errors#error-ROUTE_RETIRED",
+   "d": "The route was retired; the message names the alternative."
   },
   {
    "k": "error",
    "t": "NOT_FOUND",
-   "h": "/docs/en/reference#error-NOT_FOUND",
-   "d": "The resource does not exist — or it exists and is not your project’s. The two answers are the same on purpose."
+   "h": "/docs/en/errors#error-NOT_FOUND",
+   "d": "The resource does not exist, or belongs to another project. Both return the same response."
   },
   {
    "k": "error",
    "t": "NO_LINK",
-   "h": "/docs/en/reference#error-NO_LINK",
+   "h": "/docs/en/errors#error-NO_LINK",
    "d": "The session has no payment link."
   },
   {
    "k": "error",
    "t": "NO_QR",
-   "h": "/docs/en/reference#error-NO_QR",
+   "h": "/docs/en/errors#error-NO_QR",
    "d": "The session has no QR interface."
   },
   {
    "k": "error",
    "t": "IDEMPOTENCY_KEY_REUSED",
-   "h": "/docs/en/reference#error-IDEMPOTENCY_KEY_REUSED",
-   "d": "This idempotency key was already used for a DIFFERENT request."
+   "h": "/docs/en/errors#error-IDEMPOTENCY_KEY_REUSED",
+   "d": "This idempotency key was already used for a different request."
   },
   {
    "k": "error",
    "t": "IDEMPOTENCY_CONFLICT",
-   "h": "/docs/en/reference#error-IDEMPOTENCY_CONFLICT",
-   "d": "Two situations. On any request: another request with this key is still in progress. On a settlement: the key was already used for a different settlement."
+   "h": "/docs/en/errors#error-IDEMPOTENCY_CONFLICT",
+   "d": "On a request: another request with this key is still in progress. On a settlement: the key was already used for another settlement."
   },
   {
    "k": "error",
    "t": "IDEMPOTENCY_KEY_CONFLICT",
-   "h": "/docs/en/reference#error-IDEMPOTENCY_KEY_CONFLICT",
-   "d": "A refund with this idempotency key already exists for this payment."
+   "h": "/docs/en/errors#error-IDEMPOTENCY_KEY_CONFLICT",
+   "d": "The idempotency key was already used on this payment with a different amount or currency."
   },
   {
    "k": "error",
    "t": "LINK_NOT_ACTIVE",
-   "h": "/docs/en/reference#error-LINK_NOT_ACTIVE",
-   "d": "The payment link is no longer active."
+   "h": "/docs/en/errors#error-LINK_NOT_ACTIVE",
+   "d": "The payment link is no longer active: it was paid, expired or was cancelled."
   },
   {
    "k": "error",
    "t": "WALLET_ACCOUNT_INACTIVE",
-   "h": "/docs/en/reference#error-WALLET_ACCOUNT_INACTIVE",
-   "d": "The account that should receive is not active."
+   "h": "/docs/en/errors#error-WALLET_ACCOUNT_INACTIVE",
+   "d": "The account that should receive the payment is not active."
   },
   {
    "k": "error",
    "t": "PRIMARY_NOT_CREATABLE",
-   "h": "/docs/en/reference#error-PRIMARY_NOT_CREATABLE",
-   "d": "You tried to create a PRIMARY account. That account is created with the wallet."
+   "h": "/docs/en/errors#error-PRIMARY_NOT_CREATABLE",
+   "d": "An account with purpose PRIMARY cannot be created: the main account comes with the wallet."
   },
   {
    "k": "error",
    "t": "DELIVERY_ALREADY_SUCCEEDED",
-   "h": "/docs/en/reference#error-DELIVERY_ALREADY_SUCCEEDED",
-   "d": "You tried to replay a delivery that already succeeded."
+   "h": "/docs/en/errors#error-DELIVERY_ALREADY_SUCCEEDED",
+   "d": "The delivery already succeeded and is not sent again."
   },
   {
    "k": "error",
    "t": "ACCOUNT_FROZEN",
-   "h": "/docs/en/reference#error-ACCOUNT_FROZEN",
+   "h": "/docs/en/errors#error-ACCOUNT_FROZEN",
    "d": "The account is frozen; movements from it are refused."
   },
   {
    "k": "error",
    "t": "ACCOUNTS_NOT_SAME_WALLET",
-   "h": "/docs/en/reference#error-ACCOUNTS_NOT_SAME_WALLET",
+   "h": "/docs/en/errors#error-ACCOUNTS_NOT_SAME_WALLET",
    "d": "The two accounts do not belong to the same wallet."
   },
   {
    "k": "error",
    "t": "CURRENCY_MISMATCH",
-   "h": "/docs/en/reference#error-CURRENCY_MISMATCH",
-   "d": "The accounts, the payment and the request are not in the same currency."
+   "h": "/docs/en/errors#error-CURRENCY_MISMATCH",
+   "d": "The accounts, the payment and the request do not share a currency."
   },
   {
    "k": "error",
    "t": "INSUFFICIENT_FUNDS",
-   "h": "/docs/en/reference#error-INSUFFICIENT_FUNDS",
+   "h": "/docs/en/errors#error-INSUFFICIENT_FUNDS",
    "d": "The source account does not have enough available balance."
   },
   {
    "k": "error",
    "t": "NOTHING_TO_SETTLE",
-   "h": "/docs/en/reference#error-NOTHING_TO_SETTLE",
+   "h": "/docs/en/errors#error-NOTHING_TO_SETTLE",
    "d": "The source account has no available balance to settle."
   },
   {
    "k": "error",
    "t": "SOURCE_NOT_SEGREGATED",
-   "h": "/docs/en/reference#error-SOURCE_NOT_SEGREGATED",
-   "d": "You tried to settle from the primary account. Settlement is from a segregated account (for example CAMPAIGN)."
+   "h": "/docs/en/errors#error-SOURCE_NOT_SEGREGATED",
+   "d": "The source is the Business’s main account; only a segregated account can be settled."
   },
   {
    "k": "error",
    "t": "BENEFICIARY_NOT_FOUND",
-   "h": "/docs/en/reference#error-BENEFICIARY_NOT_FOUND",
-   "d": "The beneficiary's @banza has no active wallet in this currency."
+   "h": "/docs/en/errors#error-BENEFICIARY_NOT_FOUND",
+   "d": "The beneficiary’s @banza has no active wallet in this currency."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_FOUND",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_NOT_FOUND",
+   "h": "/docs/en/errors#error-FEE_DESTINATION_NOT_FOUND",
    "d": "The @banza named for the fee has no active wallet in this currency."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_OWNED",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_NOT_OWNED",
-   "d": "The fee destination is not an account of your business."
+   "h": "/docs/en/errors#error-FEE_DESTINATION_NOT_OWNED",
+   "d": "The fee destination does not belong to your Business."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_REQUIRED",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_REQUIRED",
-   "d": "Your pricing profile applies a fee to this settlement, and you did not say where it goes."
+   "h": "/docs/en/errors#error-FEE_DESTINATION_REQUIRED",
+   "d": "The pricing profile applies a fee to this settlement and the request names no fee destination."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
-   "d": "The fee destination is not a business account."
+   "h": "/docs/en/errors#error-FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
+   "d": "The fee destination is not a Business account."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_NOT_ACTIVE",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_NOT_ACTIVE",
+   "h": "/docs/en/errors#error-FEE_DESTINATION_NOT_ACTIVE",
    "d": "The fee destination account is not active."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_KYB_NOT_APPROVED",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_KYB_NOT_APPROVED",
-   "d": "The fee destination account does not have its business verification approved yet."
+   "h": "/docs/en/errors#error-FEE_DESTINATION_KYB_NOT_APPROVED",
+   "d": "The fee destination Business’s verification is not approved yet."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_WALLET_UNAVAILABLE",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_WALLET_UNAVAILABLE",
+   "h": "/docs/en/errors#error-FEE_DESTINATION_WALLET_UNAVAILABLE",
    "d": "The fee destination account has no active wallet in this currency."
   },
   {
    "k": "error",
    "t": "FEE_DESTINATION_TYPE_NOT_ALLOWED",
-   "h": "/docs/en/reference#error-FEE_DESTINATION_TYPE_NOT_ALLOWED",
-   "d": "An application fee may only go to an APPLICATION or PLATFORM account."
+   "h": "/docs/en/errors#error-FEE_DESTINATION_TYPE_NOT_ALLOWED",
+   "d": "The fee can only go to an APPLICATION or PLATFORM account."
   },
   {
    "k": "error",
    "t": "FEE_EXCEEDS_GROSS",
-   "h": "/docs/en/reference#error-FEE_EXCEEDS_GROSS",
-   "d": "The computed fee would be larger than the gross being settled."
+   "h": "/docs/en/errors#error-FEE_EXCEEDS_GROSS",
+   "d": "The calculated fee would exceed the gross being settled."
   },
   {
    "k": "error",
    "t": "PRICING_NOT_CONFIGURED",
-   "h": "/docs/en/reference#error-PRICING_NOT_CONFIGURED",
-   "d": "Your business has no pricing profile yet, so the settlement cannot be priced."
+   "h": "/docs/en/errors#error-PRICING_NOT_CONFIGURED",
+   "d": "The Business has no pricing profile yet, so the settlement cannot be calculated."
   },
   {
    "k": "error",
    "t": "PRICING_CONFIGURATION_ERROR",
-   "h": "/docs/en/reference#error-PRICING_CONFIGURATION_ERROR",
+   "h": "/docs/en/errors#error-PRICING_CONFIGURATION_ERROR",
    "d": "More than one pricing rule applies to this settlement."
   },
   {
    "k": "error",
    "t": "INVALID_STATUS",
-   "h": "/docs/en/reference#error-INVALID_STATUS",
-   "d": "The settlement is already in a state that does not allow this change."
+   "h": "/docs/en/errors#error-INVALID_STATUS",
+   "d": "The settlement is in a state that does not allow this change."
   },
   {
    "k": "error",
    "t": "SETTLEMENT_NOT_COMPLETED",
-   "h": "/docs/en/reference#error-SETTLEMENT_NOT_COMPLETED",
+   "h": "/docs/en/errors#error-SETTLEMENT_NOT_COMPLETED",
    "d": "The settlement was created but could not be completed."
   },
   {
    "k": "error",
    "t": "SETTLEMENT_REJECTED",
-   "h": "/docs/en/reference#error-SETTLEMENT_REJECTED",
-   "d": "The settlement was refused, with no more specific reason."
+   "h": "/docs/en/errors#error-SETTLEMENT_REJECTED",
+   "d": "The settlement was refused without a more specific reason."
   },
   {
    "k": "error",
    "t": "REFUND_EXCEEDS_CAPTURED",
-   "h": "/docs/en/reference#error-REFUND_EXCEEDS_CAPTURED",
-   "d": "The requested refund is larger than what is left to refund on the payment."
+   "h": "/docs/en/errors#error-REFUND_EXCEEDS_CAPTURED",
+   "d": "The requested amount exceeds what is left to refund on this payment."
   },
   {
    "k": "error",
    "t": "REFUND_NOT_FUNDABLE",
-   "h": "/docs/en/reference#error-REFUND_NOT_FUNDABLE",
-   "d": "The account that received the payment no longer has the balance to return it."
+   "h": "/docs/en/errors#error-REFUND_NOT_FUNDABLE",
+   "d": "The account that received the payment does not hold enough to return it."
   },
   {
    "k": "error",
    "t": "INVALID_PAYMENT_STATUS",
-   "h": "/docs/en/reference#error-INVALID_PAYMENT_STATUS",
+   "h": "/docs/en/errors#error-INVALID_PAYMENT_STATUS",
    "d": "The payment is in a state that cannot be refunded."
   },
   {
    "k": "error",
    "t": "INVALID_TRANSACTION_STATUS",
-   "h": "/docs/en/reference#error-INVALID_TRANSACTION_STATUS",
+   "h": "/docs/en/errors#error-INVALID_TRANSACTION_STATUS",
    "d": "The transaction is in a state that cannot be refunded."
   },
   {
    "k": "error",
    "t": "WALLET_NOT_FOUND",
-   "h": "/docs/en/reference#error-WALLET_NOT_FOUND",
-   "d": "The wallet of the business that received the payment was not found."
+   "h": "/docs/en/errors#error-WALLET_NOT_FOUND",
+   "d": "The wallet of the Business that received the payment was not found."
   },
   {
    "k": "error",
    "t": "CONSUMER_WALLET_NOT_FOUND",
-   "h": "/docs/en/reference#error-CONSUMER_WALLET_NOT_FOUND",
+   "h": "/docs/en/errors#error-CONSUMER_WALLET_NOT_FOUND",
    "d": "The payer’s wallet no longer exists."
   },
   {
    "k": "error",
    "t": "REFUND_FAILED",
-   "h": "/docs/en/reference#error-REFUND_FAILED",
-   "d": "The refund was refused, with no more specific reason."
+   "h": "/docs/en/errors#error-REFUND_FAILED",
+   "d": "The refund was refused without a more specific reason."
   },
   {
    "k": "error",
    "t": "RATE_LIMITED",
-   "h": "/docs/en/reference#error-RATE_LIMITED",
-   "d": "Too many requests."
+   "h": "/docs/en/errors#error-RATE_LIMITED",
+   "d": "Too many requests. Nothing was executed."
   },
   {
    "k": "error",
    "t": "INTERNAL_ERROR",
-   "h": "/docs/en/reference#error-INTERNAL_ERROR",
-   "d": "A failure on the Banzami side."
+   "h": "/docs/en/errors#error-INTERNAL_ERROR",
+   "d": "A failure on Banzami’s side."
   },
   {
    "k": "error",
    "t": "QR_RENDER_FAILED",
-   "h": "/docs/en/reference#error-QR_RENDER_FAILED",
-   "d": "The QR could not be rendered."
+   "h": "/docs/en/errors#error-QR_RENDER_FAILED",
+   "d": "The QR image could not be generated."
   },
   {
    "k": "error",
    "t": "UPSTREAM_ERROR",
-   "h": "/docs/en/reference#error-UPSTREAM_ERROR",
-   "d": "An internal service failed. Your request may be perfectly valid."
+   "h": "/docs/en/errors#error-UPSTREAM_ERROR",
+   "d": "A Banzami service failed. Your request may be valid."
   },
   {
    "k": "error",
    "t": "SERVICE_UNAVAILABLE",
-   "h": "/docs/en/reference#error-SERVICE_UNAVAILABLE",
-   "d": "Temporarily unavailable."
+   "h": "/docs/en/errors#error-SERVICE_UNAVAILABLE",
+   "d": "The service is temporarily unavailable."
   },
   {
    "k": "error",
    "t": "UNAVAILABLE",
-   "h": "/docs/en/reference#error-UNAVAILABLE",
-   "d": "Temporarily unavailable."
+   "h": "/docs/en/errors#error-UNAVAILABLE",
+   "d": "The service is temporarily unavailable."
   },
   {
-   "k": "event",
-   "t": "payment_session.paid",
-   "h": "/docs/en/guides#events"
+   "k": "error",
+   "t": "HTTP 400",
+   "h": "/docs/en/errors#http-400",
+   "d": "The request is malformed or a field is invalid."
   },
   {
-   "k": "event",
-   "t": "application_settlement.completed",
-   "h": "/docs/en/guides#events"
+   "k": "error",
+   "t": "HTTP 401",
+   "h": "/docs/en/errors#http-401",
+   "d": "The key is missing, revoked or not a Sandbox key."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 403",
+   "h": "/docs/en/errors#http-403",
+   "d": "The key may not do this: a scope is missing, or the Project is not ready."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 404",
+   "h": "/docs/en/errors#http-404",
+   "d": "It does not exist — or belongs to another Project. The two answers are the same on purpose."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 409",
+   "h": "/docs/en/errors#http-409",
+   "d": "Conflict: the same idempotency key on another request, a request still in flight, or the state changed."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 410",
+   "h": "/docs/en/errors#http-410",
+   "d": "The route was retired."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 422",
+   "h": "/docs/en/errors#http-422",
+   "d": "The request is well formed, but the state does not allow it: balance, limit, eligibility."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 429",
+   "h": "/docs/en/errors#http-429",
+   "d": "Too many requests. Nothing was executed."
+  },
+  {
+   "k": "error",
+   "t": "HTTP 5xx",
+   "h": "/docs/en/errors#http-5xx",
+   "d": "A failure on Banzami’s side, or temporarily unavailable."
   },
   {
    "k": "event",
    "t": "payment_session.created",
-   "h": "/docs/en/guides#events"
+   "h": "/docs/en/events#event-payment_session-created",
+   "d": "When a new session is created. Not emitted when the same purpose + reference returns a session that already existed."
+  },
+  {
+   "k": "event",
+   "t": "payment_session.paid",
+   "h": "/docs/en/events#event-payment_session-paid",
+   "d": "When the payer pays the session and the money is in your account — at the same moment the session becomes PAID."
   },
   {
    "k": "event",
    "t": "payment_link.paid",
-   "h": "/docs/en/guides#events"
+   "h": "/docs/en/events#event-payment_link-paid",
+   "d": "When a link is paid — a link you created, or the link behind a Payment Session."
   },
   {
    "k": "event",
    "t": "refund.completed",
-   "h": "/docs/en/guides#events"
+   "h": "/docs/en/events#event-refund-completed",
+   "d": "When a refund was made and the value is back with the payer — in the same request that createRefund answers 201."
+  },
+  {
+   "k": "event",
+   "t": "application_settlement.completed",
+   "h": "/docs/en/events#event-application_settlement-completed",
+   "d": "When a settlement you requested finished: the net is with the beneficiary and the fee, if any, in your fee destination."
   },
   {
    "k": "event",
    "t": "application_settlement.cancelled",
-   "h": "/docs/en/guides#events"
+   "h": "/docs/en/events#event-application_settlement-cancelled",
+   "d": "When Banzami cancels a settlement that was created but never completed. No money left the account."
   },
   {
    "k": "event",
    "t": "application_settlement.failed",
-   "h": "/docs/en/guides#events"
+   "h": "/docs/en/events#event-application_settlement-failed",
+   "d": "When Banzami marks as failed a settlement that could not complete. No money left the account."
+  },
+  {
+   "k": "section",
+   "t": "Every call answers 401",
+   "h": "/docs/en/troubleshooting#symptom-401"
+  },
+  {
+   "k": "section",
+   "t": "403 INSUFFICIENT_SCOPE on one operation",
+   "h": "/docs/en/troubleshooting#symptom-scope"
+  },
+  {
+   "k": "section",
+   "t": "403 PAYMENTS_UNAVAILABLE when creating a payment",
+   "h": "/docs/en/troubleshooting#symptom-payments-unavailable"
+  },
+  {
+   "k": "section",
+   "t": "404 on a resource you know exists",
+   "h": "/docs/en/troubleshooting#symptom-404"
+  },
+  {
+   "k": "section",
+   "t": "400 PAYEE_NOT_ALLOWED",
+   "h": "/docs/en/troubleshooting#symptom-payee"
+  },
+  {
+   "k": "section",
+   "t": "409 when retrying a request",
+   "h": "/docs/en/troubleshooting#symptom-idempotency"
+  },
+  {
+   "k": "section",
+   "t": "400 on the amount, or a value 100 times off",
+   "h": "/docs/en/troubleshooting#symptom-amount"
+  },
+  {
+   "k": "section",
+   "t": "429 RATE_LIMITED",
+   "h": "/docs/en/troubleshooting#symptom-429"
+  },
+  {
+   "k": "section",
+   "t": "The session stays ACTIVE",
+   "h": "/docs/en/troubleshooting#symptom-session-active"
+  },
+  {
+   "k": "section",
+   "t": "The webhook does not arrive",
+   "h": "/docs/en/troubleshooting#symptom-webhook-missing"
+  },
+  {
+   "k": "section",
+   "t": "The signature does not verify",
+   "h": "/docs/en/troubleshooting#symptom-signature"
+  },
+  {
+   "k": "section",
+   "t": "The same event arrives twice",
+   "h": "/docs/en/troubleshooting#symptom-duplicate"
+  },
+  {
+   "k": "section",
+   "t": "A refund is refused",
+   "h": "/docs/en/troubleshooting#symptom-refund"
+  },
+  {
+   "k": "section",
+   "t": "The receipt does not verify",
+   "h": "/docs/en/troubleshooting#symptom-receipt"
+  },
+  {
+   "k": "section",
+   "t": "A settlement is refused",
+   "h": "/docs/en/troubleshooting#symptom-settlement"
+  },
+  {
+   "k": "section",
+   "t": "A 5xx or a timeout on a write that moves money",
+   "h": "/docs/en/troubleshooting#symptom-5xx"
   },
   {
    "k": "term",
@@ -2286,15 +3761,15 @@
   },
   {
    "k": "term",
-   "t": "Production",
+   "t": "Financial Live",
    "h": "/docs/en/glossary#concepts",
-   "d": "Environment for real-money operations, once the platform is enabled. Currently in preparation."
+   "d": "The real-money environment. It is not available; the Sandbox is the only environment."
   },
   {
    "k": "term",
    "t": "Ledger",
    "h": "/docs/en/glossary#concepts",
-   "d": "Financial record keeping every debit and credit of a transaction, preserving balance integrity."
+   "d": "Banzami’s accounting record: every debit and credit of every transaction, from which balances derive."
   },
   {
    "k": "term",
@@ -2312,31 +3787,31 @@
    "k": "term",
    "t": "banza-signature",
    "h": "/docs/en/glossary#concepts",
-   "d": "BANZA-protocol signature header used by Banzami to prove a webhook is authentic and unmodified."
+   "d": "The header carrying each webhook delivery’s signature. Verifying it confirms the delivery comes from Banzami, unaltered."
   },
   {
    "k": "term",
    "t": "HMAC-SHA256",
    "h": "/docs/en/glossary#concepts",
-   "d": "Signature method used to verify the origin and integrity of a received event."
+   "d": "The webhook signature algorithm, computed with the endpoint secret."
   },
   {
    "k": "term",
    "t": "OTP",
    "h": "/docs/en/glossary#concepts",
-   "d": "Temporary code confirming you control the email or contact used to sign in."
+   "d": "The six-digit code, sent by email, that signs you in to the Console."
   },
   {
    "k": "term",
    "t": "Business account",
    "h": "/docs/en/glossary#concepts",
-   "d": "Banzami account used by an organisation to run integrations, receive value and manage its activity."
+   "d": "The Banzami account of an organisation, used to receive payments and manage its activity."
   },
   {
    "k": "term",
    "t": "Settlement",
    "h": "/docs/en/glossary#concepts",
-   "d": "Process by which confirmed value is calculated and handled under the operator’s rules."
+   "d": "Paying out an account balance to a beneficiary, with the fee set by Banzami’s pricing. It happens only when you request it."
   },
   {
    "k": "term",
@@ -2348,25 +3823,25 @@
    "k": "term",
    "t": "API key",
    "h": "/docs/en/glossary#concepts",
-   "d": "Credential an application uses to authenticate against a Banzami integration."
+   "d": "The credential an application uses to authenticate to the Banzami API. It identifies a project."
   },
   {
    "k": "term",
    "t": "Publishable key",
    "h": "/docs/en/glossary#concepts",
-   "d": "Identifier that may be used client-side when the flow allows it; never a substitute for a secret key."
+   "d": "A bz_test_pk_ key that may be used client-side, read-only. It never replaces the secret key."
   },
   {
    "k": "term",
    "t": "Secret key",
    "h": "/docs/en/glossary#concepts",
-   "d": "Server-only credential. Never expose it in a browser, mobile app, repository, logs or screenshots."
+   "d": "A bz_test_sk_ key, reserved for the server. Never put it in a browser, a mobile app or a repository."
   },
   {
    "k": "term",
    "t": "Replay",
    "h": "/docs/en/glossary#concepts",
-   "d": "Re-delivery or repetition of an already-received request/event. Idempotency prevents duplicated effects."
+   "d": "A new delivery of an event, or a repeat of a request. Idempotency prevents duplicate effects."
   },
   {
    "k": "term",
@@ -2378,19 +3853,19 @@
    "k": "term",
    "t": "QR",
    "h": "/docs/en/glossary#concepts",
-   "d": "Visual code that opens a Banzami payment journey or identifies an operation quickly."
+   "d": "The code that opens a session’s payment page when read with a camera or the Banzami app."
   },
   {
    "k": "term",
    "t": "Payment session",
    "h": "/docs/en/glossary#concepts",
-   "d": "Representation of a payment attempt tied to a reference from your application."
+   "d": "A payment request tied to a reference from your application, with a link and a QR code."
   },
   {
    "k": "term",
    "t": "Receipt",
    "h": "/docs/en/glossary#concepts",
-   "d": "Record issued after a confirmed operation, with the data needed for lookup and verification."
+   "d": "The document of a confirmed payment, with a publicly verifiable BZM-… reference."
   },
   {
    "k": "term",
@@ -2406,21 +3881,21 @@
   },
   {
    "k": "term",
-   "t": "Financial setup",
+   "t": "Financial Setup",
    "h": "/docs/en/glossary#concepts",
-   "d": "The link between a project and the Business that receives its money. Without it, the project cannot be paid."
+   "d": "The connection between a project and the Business that receives its payments. Without it, the project cannot be paid."
   },
   {
    "k": "term",
    "t": "Business",
    "h": "/docs/en/glossary#concepts",
-   "d": "The legal entity, verified by Banzami, that owns the money a project receives."
+   "d": "The entity, verified by Banzami, that receives a project’s payments."
   },
   {
    "k": "term",
    "t": "Wallet account",
    "h": "/docs/en/glossary#concepts",
-   "d": "An account inside a Business wallet, to keep value apart — one per campaign, for example."
+   "d": "An account inside a Business wallet, to keep funds apart — one per campaign, for example."
   },
   {
    "k": "term",
@@ -2444,7 +3919,13 @@
    "k": "term",
    "t": "Minor units",
    "h": "/docs/en/glossary#concepts",
-   "d": "How amounts travel in the API: integers, where 100 minor units are 1 Kz. Never decimals."
+   "d": "The format of amounts in the API: integers, where 100 minor units are 1 Kz. Never decimals."
+  },
+  {
+   "k": "term",
+   "t": "amount_minor",
+   "h": "/docs/en/glossary#concepts",
+   "d": "The API’s amount field, in minor units: 25000 is 250 Kz."
   }
  ]
 }

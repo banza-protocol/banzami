@@ -523,6 +523,14 @@ jobs:
       - name: Retired-surface gate
         run: node tools/check-retired-surfaces.mjs
 
+      # The documentation gates import the docs data modules (.ts) directly,
+      # which needs a Node that strips TypeScript types (23.6 or later). The SDK
+      # steps above keep testing on the SDK's oldest supported Node.
+      - name: Set up Node.js for the documentation gates
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
       # The published documentation and the product it describes. This is the
       # source-side half — the endpoint/OpenAPI/registry claims that can be
       # checked without a deployment. The deployed half (tools/e2e/docs/audit.mjs
@@ -553,6 +561,19 @@ jobs:
           npx --yes @apidevtools/swagger-cli@4.0.4 validate docs/developer/openapi/banzami-sandbox.openapi.json
           node tools/e2e/docs/doa-tutorial-e2e.selftest.mjs
           node tools/e2e/docs/quickstart-e2e.selftest.mjs
+
+      # DOCS-DX-001: the reference held to the gateway field by field, the
+      # developer-experience properties (links, next steps, money, webhook and
+      # testing truths), search task success, editorial quality and the
+      # machine-readable index.
+      - name: Documentation developer experience
+        run: |
+          node tools/check-docs-api-reference.mjs
+          node tools/check-docs-api-reference.selftest.mjs
+          node tools/check-docs-dx.mjs
+          node tools/check-docs-search.mjs
+          node tools/check-docs-editorial.mjs
+          node tools/docs/build-llms-txt.mjs --check
 
       # Every TypeScript example on the docs and the landing page, compiled
       # against @banzami/sdk as installed from the public registry.

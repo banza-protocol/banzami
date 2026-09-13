@@ -251,17 +251,17 @@ describe('P2A — machine-readable availability matrix', () => {
 
 describe('P2A — docs integration (PT/EN)', () => {
   it('PT and EN docs both reference the technical artifacts', () => {
-    expect(PT).toContain('Artefactos técnicos');
-    expect(EN).toContain('Technical reference artifacts');
+    expect(PT).toContain('A mesma API em formatos para ferramentas');
+    expect(EN).toContain('The same API in formats for tooling');
     for (const src of [PT, EN]) {
       expect(src).toContain('banzami-sandbox.openapi.json');
       expect(src).toContain('banzami-sandbox.postman_collection.json');
       expect(src).toContain('banzami-developers-availability.json');
-      expect(src).toContain('docs/developer/examples/');
+      expect(src).toContain('get-me.sh');
     }
   });
   it('artifact wording stays Sandbox/Preview-scoped and non-Production', () => {
-    expect(PT).toContain('não são contratos de Produção');
-    expect(EN).toContain('not Production contracts');
+    expect(PT).toContain('Os artefactos não descrevem Financial Live');
+    expect(EN).toContain('The artifacts do not describe Financial Live');
   });
 });
