@@ -80,7 +80,7 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
   });
   it('states Sandbox and Live truthfully: fictitious money, Live unavailable, live keys refused', () => {
     render(<PtConceptsPage />);
-    expect(screen.getByRole('heading', { level: 3, name: 'Sandbox e Live' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Sandbox e Live' })).toBeTruthy();
     expect(PT).toContain('usam dinheiro fictício');
     expect(PT).toContain('bz_live_ é recusada; não são emitidas');
     expect(PT).toMatch(/O DOA é uma implementação de referência, não um tenant privilegiado/);

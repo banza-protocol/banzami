@@ -111,7 +111,7 @@ export function OnThisPage({ lang, variant }: { lang: Lang; variant: 'rail' | 'i
     const root = document.getElementById('docs-content');
     if (!root) return;
     const read = () => {
-      const next = Array.from(root.querySelectorAll<HTMLHeadingElement>('h3[id]'))
+      const next = Array.from(root.querySelectorAll<HTMLHeadingElement>('h2[id]'))
         .map((h) => ({ id: h.id, text: (h.textContent ?? '').replace(/\s+/g, ' ').trim() }))
         .filter((x) => x.text);
       setItems((prev) => (prev.length === next.length && prev.every((p, i) => p.id === next[i].id && p.text === next[i].text) ? prev : next));

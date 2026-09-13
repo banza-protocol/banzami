@@ -14,7 +14,7 @@ import { GlossaryTerm } from './GlossaryTerm';
 import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import { GLOSSARY } from './glossary';
-import { Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H3, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
+import { Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
 import { ResourceReference } from './reference';
 import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
 import { EventReference } from './EventReference';
@@ -326,6 +326,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
               <PathDiagram title="Do registo ao primeiro pagamento" desc="Conta, workspace, projeto, configuração financeira, chave de API, SDK e pagamento, por esta ordem. A configuração financeira é o passo que depende de uma revisão do Banzami." steps={['Conta', 'Workspace', 'Projeto', 'Config. financeira', 'Chave de API', 'SDK', 'Pagamento']} highlight={3} />
               <StageBar lang="pt" stages={QS_STAGES} anchor={(n) => 'passo-' + n} />
 
+              <H2 id="conta-e-projeto">Conta e projeto</H2>
               <StepCard lang="pt" n={1} of={12} id="passo-1" title="Entrar na Consola"
                 what={<>A sua conta de developer em <Code>developers.banzami.com</Code>.</>}
                 why="Workspaces, projetos e chaves pertencem a uma pessoa autenticada."
@@ -350,7 +351,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 No workspace, selecione <strong>Novo projeto</strong>. Crie um projeto por aplicação.
               </StepCard>
 
-              <H3 id="configuracao-financeira">Configuração financeira</H3>
+              <H2 id="configuracao-financeira">Configuração financeira</H2>
               <P>
                 A configuração financeira liga o projeto a um <strong>Business</strong>: a entidade verificada que recebe os pagamentos.
                 Sem ela, o projeto pode usar chaves, webhooks e a API, mas não pode receber — criar uma sessão responde <Code>403 PAYMENTS_UNAVAILABLE</Code>.
@@ -391,6 +392,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
               </StepCard>
               <Callout>Nenhum campo, pedido ou chave torna um projeto financeiramente pronto. O preço também é atribuído pelo Banzami ao Business.</Callout>
 
+              <H2 id="chave-e-sdk">Chave e SDK</H2>
               <StepCard lang="pt" n={5} of={12} id="passo-5" title="Criar uma chave secreta"
                 what={<>Uma <GlossaryTerm id="chave-secreta">chave secreta</GlossaryTerm> <Code>bz_test_sk_…</Code> com os scopes deste guia.</>}
                 why="A chave autentica a sua aplicação. Os scopes definem-se na criação e não podem ser alterados."
@@ -419,7 +421,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 Com o SDK: <Code>await banzami.me()</Code>.
               </StepCard>
 
-              <H3 id="primeiro-pagamento">Criar o primeiro pagamento</H3>
+              <H2 id="primeiro-pagamento">Criar o primeiro pagamento</H2>
               <Callout>
                 <strong>Montantes em unidades menores:</strong> <Code>amount_minor: 25000</Code> são 250 Kz (100 unidades menores = 1 Kz). <a href="/docs/concepts#unidades-menores" style={a}>Montantes em unidades menores</a>
               </Callout>
@@ -488,7 +490,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Como o Banzami funciona</h1>
               <PageLede>O modelo de integração, os ambientes e as regras que se aplicam a todos os recursos financeiros.</PageLede>
 
-              <H3 id="sandbox-live">Sandbox e Live</H3>
+              <H2 id="sandbox-live">Sandbox e Live</H2>
               <P>
                 O <strong>Sandbox</strong> é o ambiente de integração disponível. Os pagamentos, saldos, reembolsos e liquidações seguem as mesmas regras
                 que seguirão em produção, mas usam dinheiro fictício: nenhum valor entra ou sai de uma conta bancária.
@@ -519,7 +521,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
               <P><a href="/docs/going-live" style={a}>Preparar a integração para Live</a></P>
               <CapabilityCards lang="pt" />
 
-              <H3 id="modelo">O modelo de integração</H3>
+              <H2 id="modelo">O modelo de integração</H2>
               <ConceptModelDiagram l={{
                 title: 'Pessoa, workspace, projeto e o que cada projeto contém',
                 desc: 'Uma pessoa pertence a workspaces. Cada workspace contém projetos. Cada projeto tem uma configuração financeira que o liga a um Business, com carteira e contas, e tem chaves de API e endpoints de webhook.',
@@ -552,7 +554,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
                 <strong>A autoridade vem da chave.</strong> A chave identifica o projeto, e o projeto determina o Business. Os ids que envia selecionam recursos seus; nunca dão acesso a recursos de outro projeto.
               </Callout>
 
-              <H3 id="responsabilidades">O que é da sua aplicação e o que é do Banzami</H3>
+              <H2 id="responsabilidades">O que é da sua aplicação e o que é do Banzami</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>A sua aplicação</th><th style={TH}>O Banzami</th></tr></thead>
@@ -570,7 +572,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="padrao">O mesmo padrão em todos os recursos financeiros</H3>
+              <H2 id="padrao">O mesmo padrão em todos os recursos financeiros</H2>
               <P>Todos os recursos financeiros se criam no servidor, se confirmam no servidor e se consultam na Consola.</P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ ...TABLE, minWidth: 640 }}>
@@ -596,19 +598,19 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="unidades-menores">Montantes em unidades menores</H3>
+              <H2 id="unidades-menores">Montantes em unidades menores</H2>
               <P>
                 Todos os montantes são inteiros em unidades menores: <Code>amount_minor: 25000</Code> representa 250 Kz, porque 100 unidades menores equivalem a 1 Kz.
                 Os inteiros evitam os erros de arredondamento dos números decimais. Para apresentar um montante, divida por 100 ou use <Code>formatMinor</Code> do SDK.
               </P>
 
-              <H3 id="idempotencia">Idempotência</H3>
+              <H2 id="idempotencia">Idempotência</H2>
               <P>
                 Um pedido que move dinheiro pode perder a resposta por um timeout. Enviado com a mesma chave de idempotência, a repetição devolve o resultado
                 original em vez de criar um segundo efeito. <a href="/docs/reference#idempotencia" style={a}>Regras de idempotência</a>
               </P>
 
-              <H3 id="request-id">request_id</H3>
+              <H2 id="request-id">request_id</H2>
               <P>
                 Cada resposta inclui um <Code>request_id</Code>. Registe-o sempre que uma resposta não for a esperada: permite encontrar o pedido em
                 <strong> Consola → Registos</strong> (retidos durante 30 dias) e é a primeira informação pedida pelo suporte.
@@ -633,7 +635,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Aceitar pagamentos</h1>
               <PageLede>Cobre com uma sessão de pagamento, um link reutilizável ou um QR. O pagador paga numa página do Banzami e a sua aplicação recebe a confirmação no servidor.</PageLede>
 
-              <H3 id="escolher">Escolher o recurso</H3>
+              <H2 id="escolher">Escolher o recurso</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Sessão de pagamento</th><th style={TH}>Link de pagamento</th></tr></thead>
@@ -653,7 +655,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
               </div>
               <P>Na maioria das integrações, a sessão de pagamento é a escolha certa: associa o pagamento à sua referência e já inclui o link e o QR.</P>
 
-              <H3 id="percurso">O percurso de um pagamento</H3>
+              <H2 id="percurso">O percurso de um pagamento</H2>
               <ResponsibilityDiagram
                 title="O percurso de um pagamento"
                 desc="A aplicação cria a sessão e apresenta o link ou o QR. O pagador paga na página do Banzami. O Banzami regista o pagamento e envia o webhook. A aplicação verifica o webhook e atualiza o seu estado."
@@ -667,7 +669,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                   { side: 'app', text: 'Verifica e confirma' },
                 ]} />
 
-              <H3 id="criar-sessao">Criar uma sessão de pagamento</H3>
+              <H2 id="criar-sessao">Criar uma sessão de pagamento</H2>
               <Callout><strong>Unidades menores:</strong> <Code>amountMinor: 25000</Code> são 250 Kz (100 = 1 Kz).</Callout>
               <CodeBlock label="ts · criar sessão de pagamento (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} />
               <UL>
@@ -678,14 +680,14 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
               </UL>
               <P style={{ fontSize: 13, color: MUT }}><strong>Resultado esperado:</strong> <Code>201</Code>, <Code>status: &quot;ACTIVE&quot;</Code> e <Code>interfaces</Code> com <Code>PAYMENT_LINK</Code> (e <Code>DYNAMIC_QR</Code>, com montante fixo).</P>
 
-              <H3 id="apresentar">Apresentar o link ou o QR</H3>
+              <H2 id="apresentar">Apresentar o link ou o QR</H2>
               <UL>
                 <LI><strong>Link:</strong> <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code> — um URL <Code>https://pay.banzami.com/pay/…</Code>.</LI>
                 <LI><strong>QR:</strong> <Code>paymentSessionInterface(session, &apos;DYNAMIC_QR&apos;).value</Code> (ou <Code>STATIC_QR</Code>, com montante aberto) contém o mesmo URL. Para a imagem, use <Code>GET /v1/payment-sessions/{'{'}id{'}'}/qr?format=svg</Code>.</LI>
                 <LI>Qualquer câmara de telemóvel abre a página a partir do QR. A página indica «SANDBOX — ambiente de testes».</LI>
               </UL>
 
-              <H3 id="confirmar">Confirmar o pagamento</H3>
+              <H2 id="confirmar">Confirmar o pagamento</H2>
               <P>
                 Confirme sempre no servidor: pelo webhook <Code>payment_session.paid</Code> ou consultando a sessão até <Code>status</Code> ser <Code>PAID</Code>.
                 O regresso do pagador à sua página não é uma confirmação.
@@ -705,7 +707,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="links">Criar um link de pagamento</H3>
+              <H2 id="links">Criar um link de pagamento</H2>
               <P>
                 Um link de pagamento é um endereço reutilizável que pode partilhar sem criar uma sessão por cliente. Com uma chave de projeto, o pedido não indica o destinatário.
               </P>
@@ -719,7 +721,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                 <LI><strong>Listar:</strong> <Code>GET /v1/payment-links?limit=20</Code>, com <Code>next_cursor</Code> para a página seguinte.</LI>
               </UL>
 
-              <H3 id="erros-pagamentos">Erros frequentes</H3>
+              <H2 id="erros-pagamentos">Erros frequentes</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Resposta</th><th style={TH}>Causa</th><th style={TH}>Resolução</th></tr></thead>
@@ -737,7 +739,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="consola-pagamentos">Na Consola</H3>
+              <H2 id="consola-pagamentos">Na Consola</H2>
               <P>Os pagamentos aparecem em <strong>Transações</strong>, com montante e estado. Cada pedido da chave aparece em <strong>Registos</strong>, com o <Code>request_id</Code>.</P>
 
               <NextStepCards lang="pt" items={[
@@ -759,10 +761,10 @@ export function PtWebhooks({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Webhooks</h1>
               <PageLede>O Banzami envia eventos assinados para um endpoint HTTPS seu quando um pagamento, reembolso ou liquidação muda de estado.</PageLede>
 
-              <H3 id="ciclo">O ciclo de uma entrega</H3>
+              <H2 id="ciclo">O ciclo de uma entrega</H2>
               <PathDiagram title="O ciclo de uma entrega de webhook" desc="O Banzami regista o evento e envia-o ao endpoint. O endpoint verifica a assinatura, deduplica pelo id, aplica o efeito e responde 2xx. Sem 2xx, o Banzami tenta novamente até cinco vezes." steps={['Evento', 'Entrega assinada', 'Verificar', 'Deduplicar', 'Aplicar', 'Responder 2xx']} highlight={2} />
 
-              <H3 id="receita">Configurar um endpoint, passo a passo</H3>
+              <H2 id="receita">Configurar um endpoint, passo a passo</H2>
               <StepCard lang="pt" n={1} of={10} id="webhook-passo-1" title="Expor um endpoint HTTPS público"
                 what="Uma rota POST no seu servidor, acessível pela internet."
                 why="O Banzami entrega a partir da internet pública. HTTP, localhost e endereços privados são recusados no registo."
@@ -836,7 +838,7 @@ export function PtWebhooks({ copy }: { copy: CopyFn }) {
                 Prepare o servidor para o segredo novo antes de rodar. Uma entrega recusada durante a troca é repetida pelo Banzami.
               </StepCard>
 
-              <H3 id="reentrega">Tentativas e reentrega</H3>
+              <H2 id="reentrega">Tentativas e reentrega</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Tentativa</th><th style={TH}>Quando</th></tr></thead>
@@ -855,17 +857,17 @@ export function PtWebhooks({ copy }: { copy: CopyFn }) {
               </div>
               <P>Depois da quinta falha, a entrega fica <Code>FAILED</Code> e pode ser reenviada. A ordem de entrega não é garantida.</P>
 
-              <H3 id="desativar">Desativar e reativar um endpoint</H3>
+              <H2 id="desativar">Desativar e reativar um endpoint</H2>
               <P>
                 Um endpoint desativado deixa de receber eventos. <strong>Os eventos emitidos enquanto está desativado nunca lhe são entregues</strong>, mesmo depois de o reativar;
                 continuam visíveis em <strong>Eventos</strong>. A reativação aplica-se aos eventos seguintes.
               </P>
 
-              <H3 id="envelope">Formato do envelope</H3>
+              <H2 id="envelope">Formato do envelope</H2>
               <CodeBlock label="json · envelope do evento" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} />
               <P style={{ fontSize: 13, color: MUT }}><Code>id</Code> (deduplicação), <Code>type</Code> (um dos eventos), <Code>created_at</Code> (UTC) e <Code>data</Code>. <a href="/docs/events" style={a}>Campos de cada evento</a></P>
 
-              <H3 id="gerir-endpoint">Scopes e acesso</H3>
+              <H2 id="gerir-endpoint">Scopes e acesso</H2>
               <UL>
                 <LI><Code>webhooks:read</Code> consulta endpoints, eventos e entregas. <Code>webhooks:write</Code> regista, desativa, reenvia e roda o segredo.</LI>
                 <LI>Um endpoint, evento ou entrega de outro projeto responde <Code>404</Code>.</LI>
@@ -894,7 +896,7 @@ export function PtEvents({ copy }: { copy: CopyFn }) {
                 <LI>Os campos listados são o contrato. Um payload pode incluir outros campos de auditoria interna; não dependa deles.</LI>
                 <LI>Montantes em unidades menores (100 = 1 Kz); datas em UTC.</LI>
               </UL>
-              <H3 id="catalogo-eventos">Catálogo</H3>
+              <H2 id="catalogo-eventos">Catálogo</H2>
               <EventReference lang="pt" onCopy={copy} />
               <NextStepCards lang="pt" items={[
                 { href: '/docs/webhooks', title: 'Configurar webhooks', desc: 'Verificar, deduplicar e responder.' },
@@ -914,10 +916,10 @@ export function PtRefunds({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Reembolsos</h1>
               <PageLede>Devolva ao pagador a totalidade ou parte de um pagamento confirmado. O valor é debitado da conta que recebeu o pagamento.</PageLede>
 
-              <H3 id="fluxo-reembolso">Como funciona</H3>
+              <H2 id="fluxo-reembolso">Como funciona</H2>
               <PathDiagram title="O percurso de um reembolso" desc="Um pagamento confirmado traz refund_source. A aplicação cria o reembolso com esse refund_source e uma idempotency_key. O Banzami debita a conta que recebeu e devolve o valor ao pagador, emitindo refund.completed." steps={['Pagamento PAID', 'refund_source', 'createRefund', 'Débito na conta', 'refund.completed']} highlight={2} />
 
-              <H3 id="criar-reembolso">Reembolsar um pagamento</H3>
+              <H2 id="criar-reembolso">Reembolsar um pagamento</H2>
               <Callout><strong>Unidades menores:</strong> <Code>amount_minor: 5000</Code> são 50 Kz (100 = 1 Kz).</Callout>
               <StepCard lang="pt" n={1} of={3} id="reembolso-passo-1" title="Obter a origem do pagamento"
                 what={<>O <Code>refund_source</Code> do pagamento: <Code>{'{'} source_type, source_id {'}'}</Code>.</>}
@@ -941,7 +943,7 @@ export function PtRefunds({ copy }: { copy: CopyFn }) {
                 <CodeBlock label="ts · reembolsar um pagamento (@banzami/sdk)" raw={SAMPLE_REFUND} onCopy={copy} />
               </StepCard>
 
-              <H3 id="regras-reembolso">Regras</H3>
+              <H2 id="regras-reembolso">Regras</H2>
               <UL>
                 <LI><strong>Origens:</strong> <Code>WALLET_PAYMENT</Code>, para pagamentos de sessões e links, e <Code>ACQUIRING_PAYMENT</Code>, para pagamentos por trilho externo.</LI>
                 <LI><strong>Parciais:</strong> pode fazer vários reembolsos sobre o mesmo pagamento, até ao total recebido.</LI>
@@ -951,7 +953,7 @@ export function PtRefunds({ copy }: { copy: CopyFn }) {
                 <LI><strong>Acesso:</strong> scope <Code>refunds:write</Code>, em <Code>POST /v1/refunds</Code>. Um pagamento de outro projeto responde <Code>404</Code>.</LI>
               </UL>
 
-              <H3 id="erros-reembolso">Erros frequentes</H3>
+              <H2 id="erros-reembolso">Erros frequentes</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Resposta</th><th style={TH}>Causa</th><th style={TH}>Repetir</th></tr></thead>
@@ -969,7 +971,7 @@ export function PtRefunds({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="consola-reembolsos">Na Consola</H3>
+              <H2 id="consola-reembolsos">Na Consola</H2>
               <P>Em <strong>Transações</strong>, o filtro <strong>Reembolsos</strong> mostra cada reembolso. Por API, <Code>listRefunds({'{'} sourceId {'}'})</Code> lista os de um pagamento.</P>
 
               <NextStepCards lang="pt" items={[
@@ -990,7 +992,7 @@ export function PtSettlements({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Liquidações</h1>
               <PageLede>Transfira o saldo de uma conta segregada para um beneficiário. O Banzami calcula a taxa, credita o valor líquido e emite o resultado.</PageLede>
 
-              <H3 id="pagamento-vs-liquidacao">Pagamento e liquidação</H3>
+              <H2 id="pagamento-vs-liquidacao">Pagamento e liquidação</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Pagamento</th><th style={TH}>Liquidação</th></tr></thead>
@@ -1008,7 +1010,7 @@ export function PtSettlements({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="calculo">Como o valor é dividido</H3>
+              <H2 id="calculo">Como o valor é dividido</H2>
               <Callout><strong>Unidades menores:</strong> <Code>100000</Code> são 1 000 Kz (100 = 1 Kz).</Callout>
               <SettlementSplitDiagram l={{
                 title: 'Liquidação de 1 000 Kz com uma taxa de 200 bps',
@@ -1024,7 +1026,7 @@ export function PtSettlements({ copy }: { copy: CopyFn }) {
                 <LI><strong>Líquido:</strong> bruto menos taxa, creditado ao beneficiário.</LI>
               </UL>
 
-              <H3 id="pedir-liquidacao">Pedir uma liquidação</H3>
+              <H2 id="pedir-liquidacao">Pedir uma liquidação</H2>
               <StepCard lang="pt" n={1} of={3} id="liquidacao-passo-1" title="Confirmar que o projeto pode liquidar"
                 what={<><Code>getFinancialSetup()</Code> → <Code>settlement.ready</Code> e <Code>settlement.blockers</Code>.</>}
                 why="Cada bloqueio corresponde à recusa que a liquidação devolveria."
@@ -1047,14 +1049,14 @@ export function PtSettlements({ copy }: { copy: CopyFn }) {
                 <CodeBlock label="ts · liquidar uma conta (@banzami/sdk)" raw={SAMPLE_SETTLE} onCopy={copy} />
               </StepCard>
 
-              <H3 id="destino-taxa">Destino da taxa</H3>
+              <H2 id="destino-taxa">Destino da taxa</H2>
               <P>
                 Quando o perfil de preço resulta numa taxa, indique <Code>feeDestinationBanzaName</Code>: um @banza do seu próprio Business, do tipo
                 <Code> APPLICATION</Code> ou <Code>PLATFORM</Code>, com verificação aprovada e carteira ativa. Sem ele, a liquidação responde <Code>422 FEE_DESTINATION_REQUIRED</Code>.
                 A classificação da conta como APPLICATION é atribuída pelo Banzami.
               </P>
 
-              <H3 id="erros-liquidacao">Erros e repetição</H3>
+              <H2 id="erros-liquidacao">Erros e repetição</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Resposta</th><th style={TH}>Causa</th><th style={TH}>Chave de idempotência</th></tr></thead>
@@ -1074,7 +1076,7 @@ export function PtSettlements({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="consola-liquidacoes">Na Consola</H3>
+              <H2 id="consola-liquidacoes">Na Consola</H2>
               <UL>
                 <LI><strong>Configuração financeira</strong> mostra a prontidão para liquidar, o perfil de preço e o destino da taxa.</LI>
                 <LI><strong>Saldos</strong> mostra o saldo da conta, que passa a zero depois da liquidação.</LI>
@@ -1099,7 +1101,7 @@ export function PtReceipts({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Comprovativos</h1>
               <PageLede>Cada pagamento confirmado tem um comprovativo com uma referência pública. Qualquer pessoa com a referência pode verificar o pagamento, sem conta nem chave.</PageLede>
 
-              <H3 id="duas-referencias">Referência da transação e referência de prova</H3>
+              <H2 id="duas-referencias">Referência da transação e referência de prova</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Referência da transação</th><th style={TH}>Referência de prova (SECURE_V1)</th></tr></thead>
@@ -1117,7 +1119,7 @@ export function PtReceipts({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="formato">Formato SECURE_V1</H3>
+              <H2 id="formato">Formato SECURE_V1</H2>
               <UL>
                 <LI><Code>BZM-</Code> seguido de 24 símbolos em seis grupos de quatro.</LI>
                 <LI>Alfabeto: dígitos e letras maiúsculas, sem I, L, O e U, para evitar confusão com dígitos.</LI>
@@ -1126,7 +1128,7 @@ export function PtReceipts({ copy }: { copy: CopyFn }) {
               </UL>
               <Callout>Quem tem a referência vê o montante, os @banza das partes e a descrição. Partilhe-a com o mesmo cuidado com que partilharia o comprovativo.</Callout>
 
-              <H3 id="verificar">Verificar um comprovativo</H3>
+              <H2 id="verificar">Verificar um comprovativo</H2>
               <P>O QR do comprovativo abre <Code>banzami.com/r/&#123;referência&#125;</Code>, a página pública de verificação. A API pública faz a mesma verificação, sem autenticação.</P>
               <PathDiagram title="Verificação de um comprovativo" desc="O comprovativo tem uma referência e um QR. O QR abre banzami.com/r/{referência}. A mesma verificação existe na API pública, que responde 200, 404 ou 503." steps={['Comprovativo', 'Referência BZM-…', 'banzami.com/r/… ou API', 'Resultado']} highlight={2} />
               <CodeBlock label="curl · verificar um comprovativo" onCopy={copy} raw={`curl https://sandbox-api.banzami.com/v1/public/proofs/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`} />
@@ -1167,7 +1169,7 @@ export function PtTransfers({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Contas e transferências</h1>
               <PageLede>Separe valores por campanha, loja ou evento em contas segregadas, e mova valor entre contas do mesmo Business.</PageLede>
 
-              <H3 id="contas-segregadas">Contas segregadas</H3>
+              <H2 id="contas-segregadas">Contas segregadas</H2>
               <SegregatedAccountsDiagram l={{
                 title: 'Um Business, uma conta por campanha',
                 desc: 'O projeto está ligado a um Business pela configuração financeira. Dentro da carteira desse Business, cada campanha tem uma conta própria.',
@@ -1184,7 +1186,7 @@ export function PtTransfers({ copy }: { copy: CopyFn }) {
               </UL>
               <P style={{ fontSize: 13, color: MUT }}>Uma conta de outro projeto responde <Code>404</Code>, tal como uma conta inexistente. Indicar a carteira responde <Code>400 PAYEE_NOT_ALLOWED</Code>.</P>
 
-              <H3 id="transferencias">Transferir entre contas</H3>
+              <H2 id="transferencias">Transferir entre contas</H2>
               <Callout><strong>Unidades menores:</strong> <Code>amountMinor: 50000</Code> são 500 Kz (100 = 1 Kz).</Callout>
               <CodeBlock label="ts · transferir entre contas (@banzami/sdk)" raw={SAMPLE_TRANSFER} onCopy={copy} />
               <P style={{ fontSize: 13, color: MUT }}><strong>Resultado esperado:</strong> <Code>201</Code> com <Code>status: &quot;COMPLETED&quot;</Code>. O débito e o crédito são atómicos; o total do Business não muda.</P>
@@ -1229,7 +1231,7 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 os mesmos webhooks e o mesmo modelo de liquidação disponíveis a qualquer developer.
               </Callout>
 
-              <H3 id="doa-o-que-e">O que o DOA demonstra</H3>
+              <H2 id="doa-o-que-e">O que o DOA demonstra</H2>
               <UL>
                 <LI>Uma conta segregada por campanha, para que o valor de cada campanha nunca se misture com o de outra.</LI>
                 <LI>Pagamentos através de uma sessão, com a página de pagamento e o QR do Banzami.</LI>
@@ -1238,10 +1240,10 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 <LI>Reconciliação sem manter saldos próprios.</LI>
               </UL>
 
-              <H3 id="doa-arquitetura">Arquitetura</H3>
+              <H2 id="doa-arquitetura">Arquitetura</H2>
               <PathDiagram title="Arquitetura da integração do DOA" desc="O doador usa a aplicação DOA. O servidor do DOA chama a API do Banzami através do @banzami/sdk. O doador paga em pay.banzami.com. O Banzami envia webhooks assinados para o servidor do DOA." steps={['Doador', 'Aplicação DOA', '@banzami/sdk', 'API Banzami', 'pay.banzami.com', 'Webhook ao DOA']} highlight={3} />
 
-              <H3 id="doa-fronteira">Divisão de responsabilidades</H3>
+              <H2 id="doa-fronteira">Divisão de responsabilidades</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>O DOA é responsável por</th><th style={TH}>O Banzami é responsável por</th></tr></thead>
@@ -1261,7 +1263,7 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
               </div>
               <P>O DOA nunca guarda um saldo. Quando precisa de saber quanto uma campanha recebeu, consulta o Banzami.</P>
 
-              <H3 id="doa-fluxo">O percurso da integração</H3>
+              <H2 id="doa-fluxo">O percurso da integração</H2>
               <ResponsibilityDiagram
                 title="Do doador à liquidação: o que faz o DOA e o que faz o Banzami"
                 desc="O DOA cria a conta da campanha e a sessão de pagamento. O Banzami devolve o link e o QR, recebe o pagamento, emite o comprovativo e envia o webhook. O DOA confirma a doação e, no fecho, pede a liquidação. O Banzami calcula a taxa e liquida."
@@ -1277,7 +1279,7 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                   { side: 'banzami', text: 'Taxa e liquidação' },
                 ]} />
 
-              <H3 id="doa-preparar">1. Preparar o projeto</H3>
+              <H2 id="doa-preparar">1. Preparar o projeto</H2>
               <ChapterFacts lang="pt" appLabel="DOA"
                 goal="Um projeto com configuração financeira concluída e uma chave com os scopes necessários."
                 app="Cria o workspace e o projeto na Consola, conclui a configuração financeira e guarda a chave e o segredo do webhook no servidor."
@@ -1303,7 +1305,7 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 <LI>Antes de ativar uma campanha, confirme com <Code>getFinancialSetup()</Code> que o projeto pode receber.</LI>
               </ol>
 
-              <H3 id="doa-contas">2. Criar a conta da campanha</H3>
+              <H2 id="doa-contas">2. Criar a conta da campanha</H2>
               <ChapterFacts lang="pt" appLabel="DOA"
                 goal="Uma conta segregada por campanha."
                 app="Cria a conta quando a campanha é ativada e guarda o id junto da campanha."
@@ -1321,7 +1323,7 @@ const conta = await banzami.createWalletAccount({
 // Guardar o id: é a origem da liquidação.
 await db.campanhas.update(campanha.id, { banzami_wallet_account_id: conta.id });`} />
 
-              <H3 id="doa-pagamento">3. Criar o pagamento</H3>
+              <H2 id="doa-pagamento">3. Criar o pagamento</H2>
               <Callout><strong>Unidades menores:</strong> <Code>amountMinor: 500000</Code> são 5 000 Kz (100 = 1 Kz).</Callout>
               <ChapterFacts lang="pt" appLabel="DOA"
                 goal="Uma sessão de pagamento por doação, creditada na conta da campanha."
@@ -1340,13 +1342,13 @@ await db.campanhas.update(campanha.id, { banzami_wallet_account_id: conta.id });
 });
 const link = banzami.paymentSessionInterface(sessao, 'PAYMENT_LINK');`} />
 
-              <H3 id="doa-pagina">4. Página de pagamento e QR</H3>
+              <H2 id="doa-pagina">4. Página de pagamento e QR</H2>
               <P>
                 O doador paga numa página do Banzami. A sessão devolve um link para <Code>pay.banzami.com/pay/…</Code> e um QR que codifica o mesmo endereço;
                 o DOA mostra um dos dois. O regresso do doador à página do DOA não confirma o pagamento: a confirmação chega pelo webhook, ou lendo a sessão no servidor.
               </P>
 
-              <H3 id="doa-webhook">5. Receber o webhook</H3>
+              <H2 id="doa-webhook">5. Receber o webhook</H2>
               <ChapterFacts lang="pt" appLabel="DOA"
                 goal="Confirmar cada doação uma única vez, a partir de um evento verificado."
                 app="Verifica a assinatura sobre o corpo em bruto, deduplica pelo id do evento e confirma a doação."
@@ -1380,14 +1382,14 @@ const link = banzami.paymentSessionInterface(sessao, 'PAYMENT_LINK');`} />
   return new Response('ok');
 }`} />
 
-              <H3 id="doa-estado">6. Atualizar o estado da aplicação</H3>
+              <H2 id="doa-estado">6. Atualizar o estado da aplicação</H2>
               <UL>
                 <LI><strong>A doação</strong> passa a confirmada quando o evento é aplicado. O DOA confirma pela intenção de doação, uma única vez, venha a confirmação por <Code>payment_session.paid</Code> ou por <Code>payment_link.paid</Code>.</LI>
                 <LI><strong>O total da campanha</strong> não é um saldo guardado pelo DOA: consulta-se no Banzami com <Code>getWalletAccount</Code>.</LI>
                 <LI><strong>O estado da campanha</strong> (ativa, encerrada, liquidada) é do DOA. O estado do dinheiro é do Banzami.</LI>
               </UL>
 
-              <H3 id="doa-comprovativo">7. Comprovativo</H3>
+              <H2 id="doa-comprovativo">7. Comprovativo</H2>
               <P>
                 O comprovativo do pagamento é emitido pelo Banzami, com uma referência pública <Code>BZM-…</Code> e um QR que abre <Code>https://banzami.com/r/&#123;referência&#125;</Code>.
                 O recibo da doação enviado pelo DOA é um documento da aplicação, que pode citar essa referência.
@@ -1397,13 +1399,13 @@ const link = banzami.paymentSessionInterface(sessao, 'PAYMENT_LINK');`} />
                 <a href="/docs/receipts" style={a}>Comprovativos</a>
               </P>
 
-              <H3 id="doa-encerrar">8. Encerrar a campanha</H3>
+              <H2 id="doa-encerrar">8. Encerrar a campanha</H2>
               <P>
                 Encerrar a campanha é uma decisão do DOA e é o momento em que pede a liquidação. Até lá, o saldo mantém-se na conta da campanha.
                 Uma campanha encerrada com liquidação pendente é um estado normal, que a aplicação deve apresentar como tal.
               </P>
 
-              <H3 id="doa-liquidacao">9. Liquidar a campanha</H3>
+              <H2 id="doa-liquidacao">9. Liquidar a campanha</H2>
               <ChapterFacts lang="pt" appLabel="DOA"
                 goal="Transferir o saldo da campanha para o beneficiário."
                 app="Pede a liquidação da conta da campanha, com uma chave de idempotência por campanha, e guarda o id da liquidação."
@@ -1433,7 +1435,7 @@ const link = banzami.paymentSessionInterface(sessao, 'PAYMENT_LINK');`} />
                 <a href="/docs/settlements" style={a}>Liquidações</a>
               </P>
 
-              <H3 id="doa-reconciliacao">10. Reconciliar</H3>
+              <H2 id="doa-reconciliacao">10. Reconciliar</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Verificação</th><th style={TH}>Fonte no Banzami</th></tr></thead>
@@ -1450,14 +1452,14 @@ const link = banzami.paymentSessionInterface(sessao, 'PAYMENT_LINK');`} />
                 </table>
               </div>
 
-              <H3 id="doa-credenciais">11. Rodar e revogar credenciais</H3>
+              <H2 id="doa-credenciais">11. Rodar e revogar credenciais</H2>
               <UL>
                 <LI><strong>Chave de API:</strong> crie uma chave nova com os mesmos scopes, coloque-a no servidor, confirme <Code>GET /v1/me</Code> e revogue a anterior. A revogação é imediata: a chave antiga passa a responder <Code>401</Code>.</LI>
                 <LI><strong>Segredo do webhook:</strong> <Code>rotateWebhookEndpointSecret</Code> devolve um segredo novo, uma vez. A troca é imediata; prepare o servidor antes de rodar.</LI>
                 <LI><strong>Suspeita de exposição:</strong> revogue primeiro e investigue depois. Uma chave revogada não pode ser reativada.</LI>
               </UL>
 
-              <H3 id="doa-licoes">O que reutilizar na sua aplicação</H3>
+              <H2 id="doa-licoes">O que reutilizar na sua aplicação</H2>
               <UL>
                 <LI><strong>Uma conta por unidade de negócio desde o início.</strong> Separar valores depois de misturados é muito mais difícil.</LI>
                 <LI><strong>Nenhum saldo duplicado.</strong> Mostre o valor que o Banzami devolve.</LI>
@@ -1485,10 +1487,10 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>A Consola</h1>
               <PageLede>A Consola, em <Code>developers.banzami.com</Code>, é onde gere workspaces, projetos, configuração financeira, chaves, webhooks e registos.</PageLede>
 
-              <H3 id="modelo">O modelo</H3>
+              <H2 id="modelo">O modelo</H2>
               <P>Pessoa, workspace, projeto e Business são conceitos distintos. <a href="/docs/concepts#modelo" style={a}>O modelo de integração</a></P>
 
-              <H3 id="conta">Conta</H3>
+              <H2 id="conta">Conta</H2>
               <P>A conta pessoal fica em <Code>/conta</Code>. A autenticação é feita com email e um código de seis dígitos; não há palavra-passe.</P>
               <UL>
                 <LI><strong>Perfil</strong> — o nome apresentado aos membros dos seus workspaces. O email é o identificador e não pode ser alterado.</LI>
@@ -1497,7 +1499,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Sair</strong> — pede confirmação e termina a sessão atual.</LI>
               </UL>
 
-              <H3 id="workspace">Workspaces, membros e papéis</H3>
+              <H2 id="workspace">Workspaces, membros e papéis</H2>
               <P>O workspace define quem tem acesso. Criá-lo é imediato.</P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
@@ -1523,7 +1525,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Eliminar</strong> só é possível num workspace sem histórico. Um workspace com histórico arquiva-se.</LI>
               </UL>
 
-              <H3 id="atividade">Atividade do workspace</H3>
+              <H2 id="atividade">Atividade do workspace</H2>
               <P>
                 Em <Code>Configurações · Atividade</Code>, o registo administrativo do workspace: convites, entradas e saídas, alterações de papel, e alterações ao workspace,
                 aos projetos e às chaves. Uma alteração de papel mostra o papel anterior e o novo.
@@ -1546,7 +1548,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               </div>
               <P style={{ fontSize: 13, color: MUT }}>Sessões pessoais, códigos de entrada e definições de conta não aparecem na Atividade; pertencem a <Code>/conta</Code>.</P>
 
-              <H3 id="projeto">Projetos</H3>
+              <H2 id="projeto">Projetos</H2>
               <UL>
                 <LI><strong>Project ID</strong> — não muda quando altera o nome.</LI>
                 <LI><strong>Eliminar</strong> — possível enquanto o projeto não tiver histórico: nenhuma chave emitida, nenhum pedido registado, nenhuma configuração financeira.</LI>
@@ -1554,14 +1556,14 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 <LI>Os projetos arquivados aparecem em <strong>Mostrar arquivados</strong>.</LI>
               </UL>
 
-              <H3 id="financeiro">Configuração financeira</H3>
+              <H2 id="financeiro">Configuração financeira</H2>
               <P>
                 Liga o projeto ao Business que recebe os pagamentos, por candidatura ou por código de consentimento. Mostra o estado da candidatura, a prontidão para liquidar,
                 o perfil de preço e o destino da taxa. <a href="/docs/get-started#configuracao-financeira" style={a}>Os dois caminhos</a>
               </P>
               <P style={{ fontSize: 13, color: MUT }}>O mesmo estado está disponível por API em <Code>GET /v1/financial-setup</Code>.</P>
 
-              <H3 id="chaves">Chaves de API</H3>
+              <H2 id="chaves">Chaves de API</H2>
               <UL>
                 <LI><strong>Nome</strong> — identifica a chave na lista e na Atividade; não altera permissões.</LI>
                 <LI><strong>Scopes</strong> — definidos na criação e imutáveis.</LI>
@@ -1572,7 +1574,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               </UL>
               <P><a href="/docs/trust#chaves" style={a}>Onde guardar chaves</a></P>
 
-              <H3 id="webhooks-console">Webhooks</H3>
+              <H2 id="webhooks-console">Webhooks</H2>
               <UL>
                 <LI><strong>Registar</strong> um endpoint HTTPS devolve o segredo de assinatura uma única vez.</LI>
                 <LI><strong>Eventos</strong> lista os eventos do projeto; cada evento mostra as entregas, com estado e código de resposta.</LI>
@@ -1582,7 +1584,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               </UL>
               <P><a href="/docs/webhooks" style={a}>Configurar webhooks</a></P>
 
-              <H3 id="registos">Saldos, transações e registos</H3>
+              <H2 id="registos">Saldos, transações e registos</H2>
               <UL>
                 <LI><strong>Saldos</strong> — as contas do Business ligado ao projeto e o saldo de cada uma.</LI>
                 <LI><strong>Transações</strong> — pagamentos, reembolsos e transferências entre contas do Business ligado ao projeto, incluindo as que outros projetos do mesmo Business iniciaram.</LI>
@@ -1624,7 +1626,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="autenticacao">Autenticação</H3>
+              <H2 id="autenticacao">Autenticação</H2>
               <UL>
                 <LI>Envie a chave secreta no header <Code>Authorization: Bearer bz_test_sk_…</Code>. Não há token a trocar.</LI>
                 <LI>As chaves <Code>bz_live_</Code> são recusadas. <a href="/docs/concepts#sandbox-live" style={a}>Sandbox e Live</a></LI>
@@ -1632,7 +1634,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 <LI>Workspaces, projetos, membros e chaves geem-se na Consola; não fazem parte desta API.</LI>
               </UL>
 
-              <H3 id="credenciais">Capacidades por credencial</H3>
+              <H2 id="credenciais">Capacidades por credencial</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Capacidade</th><th style={TH}>Credencial</th><th style={TH}>Estado</th></tr></thead>
@@ -1654,7 +1656,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="idempotencia">Idempotência <Badge tone="ok" /></H3>
+              <H2 id="idempotencia">Idempotência <Badge tone="ok" /></H2>
               <UL>
                 <LI><strong>Header <Code>Idempotency-Key</Code>:</strong> em qualquer escrita, a resposta original (2xx ou 4xx) é reproduzida para a mesma chave durante 24 horas, por credencial, método e caminho.</LI>
                 <LI><strong>5xx:</strong> nunca é reproduzido; o pedido pode ser repetido com a mesma chave.</LI>
@@ -1664,17 +1666,17 @@ export function PtReference({ copy }: { copy: CopyFn }) {
               </UL>
               <CodeBlock label="curl · repetição segura com Idempotency-Key" raw={SAMPLE_IDEM_RETRY} onCopy={copy} />
 
-              <H3 id="limites">Limites de pedidos</H3>
+              <H2 id="limites">Limites de pedidos</H2>
               <P>
                 Há limites por endereço IP e por chave. Ao excedê-los, a API responde <Code>429 RATE_LIMITED</Code> com o header <Code>Retry-After</Code>, em segundos, e não executa o pedido.
                 Os valores dos limites podem mudar; este comportamento não.
               </P>
-              <H3 id="datas">Datas e horas</H3>
+              <H2 id="datas">Datas e horas</H2>
               <P>
                 Todas as datas são UTC, em RFC 3339 (<Code>2026-07-11T11:45:00Z</Code>). A Consola apresenta-as no fuso horário do browser e a página pública de verificação
                 de comprovativos no fuso horário de Luanda.
               </P>
-              <H3 id="identificadores">Identificadores a guardar</H3>
+              <H2 id="identificadores">Identificadores a guardar</H2>
               <UL>
                 <LI><strong>Project ID</strong> — não muda com o nome do projeto.</LI>
                 <LI><strong>Ids dos recursos</strong> — <Code>session_id</Code>, conta, reembolso, endpoint — para os consultar.</LI>
@@ -1685,7 +1687,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
               </UL>
               <P style={{ fontSize: 13, color: MUT }}>Um id não confere acesso: um recurso de outro projeto responde <Code>404</Code>.</P>
 
-              <H3 id="referencia-recursos">Endpoints</H3>
+              <H2 id="referencia-recursos">Endpoints</H2>
               <ResourceReference lang="pt" onCopy={copy} />
 
               <NextStepCards lang="pt" items={[
@@ -1712,14 +1714,14 @@ export function PtErrors({ copy }: { copy: CopyFn }) {
                 <LI><Code>request_id</Code> — encontra o pedido em <strong>Consola → Registos</strong> durante 30 dias. Os registos nunca guardam o header <Code>Authorization</Code>, chaves, segredos, cookies, códigos OTP nem corpos de pedido.</LI>
               </UL>
 
-              <H3 id="por-classe">Por código HTTP</H3>
+              <H2 id="por-classe">Por código HTTP</H2>
               <HttpClassTable lang="pt" />
 
-              <H3 id="catalogo-de-erros">Por código de erro</H3>
+              <H2 id="catalogo-de-erros">Por código de erro</H2>
               <P>Todos os códigos que uma chave de projeto pode receber no Sandbox, e apenas esses. Pesquise por código ou palavra, ou filtre por HTTP e domínio.</P>
               <ErrorCatalogue lang="pt" />
 
-              <H3 id="erros-consola">Erros da Consola</H3>
+              <H2 id="erros-consola">Erros da Consola</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Código</th><th style={TH}>O que fazer</th></tr></thead>
@@ -1758,7 +1760,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>SDKs</h1>
               <PageLede>Os SDKs oficiais tratam da autenticação, idempotência, repetições e verificação de webhooks. São o caminho recomendado; a API HTTP serve para diagnóstico e integrações específicas.</PageLede>
 
-              <H3 id="sdk-matriz">SDKs disponíveis</H3>
+              <H2 id="sdk-matriz">SDKs disponíveis</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ ...TABLE, minWidth: 560 }}>
                   <thead><tr style={THEAD}><th style={TH}>Pacote</th><th style={TH}>Linguagem</th><th style={TH}>Estado</th><th style={TH}>Instalação</th></tr></thead>
@@ -1775,7 +1777,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 <LI>Os SDKs de Python, PHP e Go não estão publicados; esta documentação não mostra comandos de instalação para pacotes que nenhum registo disponibiliza.</LI>
               </UL>
 
-              <H3 id="sdk-first">O que o SDK trata por si</H3>
+              <H2 id="sdk-first">O que o SDK trata por si</H2>
               <UL>
                 <LI>Autenticação com a chave e separação de ambientes.</LI>
                 <LI>Uma <Code>Idempotency-Key</Code> por pedido de escrita, e repetição em <Code>429</Code>, <Code>502</Code>, <Code>503</Code> e <Code>504</Code>.</LI>
@@ -1786,7 +1788,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 Reembolsos, transferências e liquidações exigem uma chave de idempotência sua: o SDK não a gera, porque uma chave nova em cada tentativa anularia a proteção.
               </P>
 
-              <H3 id="sdk-preview">Versão atual</H3>
+              <H2 id="sdk-preview">Versão atual</H2>
               <P>
                 <Code>@banzami/sdk</Code> 0.13.0. Em 0.13.0, <Code>createPaymentLink</Code> e <Code>listPaymentLinks</Code> ainda exigem <Code>merchantId</Code> no tipo; com uma chave de projeto,
                 use HTTP para links de pagamento. <a href="/docs/payments#links" style={a}>Links de pagamento</a>
@@ -1796,7 +1798,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 são compilados contra o pacote publicado.
               </P>
 
-              <H3 id="sdk-familias">Estado por família</H3>
+              <H2 id="sdk-familias">Estado por família</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ ...TABLE, minWidth: 560 }}>
                   <thead><tr style={THEAD}><th style={TH}>Família</th><th style={TH}>Estado</th><th style={TH}>Pacote público</th><th style={TH}>Utilização</th></tr></thead>
@@ -1818,7 +1820,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 <a href="/developers/artifacts/sdk-first-manifest.json" style={a}>sdk-first-manifest.json</a>.
               </P>
 
-              <H3 id="antes-de-integrar">Referência de implementação</H3>
+              <H2 id="antes-de-integrar">Referência de implementação</H2>
               <P>
                 O <strong>DOA</strong> usa o <Code>@banzami/sdk</Code> para criar contas e sessões, resolver <Code>@banza</Code>, verificar webhooks e pedir liquidações, sem chamadas HTTP diretas.{' '}
                 <a href="/docs/doa" style={a}>Construir como o DOA</a>
@@ -1841,7 +1843,7 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
 <Section id="artefactos-page">
               <h1 style={H1_STYLE}>Artefactos</h1>
               <PageLede>A mesma API em formatos para ferramentas: OpenAPI, Postman, exemplos e manifests. Descrevem o Sandbox.</PageLede>
-<H3 id="artefactos">Ficheiros disponíveis</H3>
+<H2 id="artefactos">Ficheiros disponíveis</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}>Artefacto</th><th style={TH}>Para</th></tr></thead>
@@ -1877,7 +1879,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               <Callout>O Sandbox não tem montantes, cartões nem referências especiais que provoquem resultados. Cada cenário usa o comportamento real da API.</Callout>
               <P style={{ fontSize: 13, color: MUT }}>{RECIPES_NOTE}</P>
 
-              <H3 id="receitas-base">Chaves e prontidão</H3>
+              <H2 id="receitas-base">Chaves e prontidão</H2>
               <RecipeCard lang="pt" r={{ id: 'primeira-chamada', title: 'A chave funciona',
                 trigger: <><Code>GET /v1/me</Code> com a chave.</>,
                 api: <><Code>200</Code> com <Code>environment: &quot;SANDBOX&quot;</Code> e os scopes.</>,
@@ -1895,7 +1897,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 api: <><Code>403 PAYMENTS_UNAVAILABLE</Code>; <Code>getFinancialSetup()</Code> devolve <Code>UNCONFIGURED</Code>.</>,
                 event: 'Nenhum.', console: 'Configuração financeira: por configurar.', cleanup: 'Elimine o projeto, se não tiver outro histórico.' }} />
 
-              <H3 id="receitas-pagamentos">Pagamentos</H3>
+              <H2 id="receitas-pagamentos">Pagamentos</H2>
               <RecipeCard lang="pt" r={{ id: 'criar-sessao', title: 'Criar uma sessão',
                 trigger: <><Code>createPaymentSession</Code> com <Code>amountMinor: 25000</Code> (250 Kz).</>,
                 api: <><Code>201</Code>, <Code>status: &quot;ACTIVE&quot;</Code>, interfaces <Code>PAYMENT_LINK</Code> e <Code>DYNAMIC_QR</Code>.</>,
@@ -1919,8 +1921,12 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 trigger: <><Code>amount_minor: 0</Code>. (Omitir o montante não é um erro: cria uma sessão de montante aberto.)</>,
                 api: <><Code>400 BAD_REQUEST</Code>.</>,
                 event: 'Nenhum.', console: 'Registos: o pedido recusado.', cleanup: 'Nenhuma.' }} />
+              <RecipeCard lang="pt" r={{ id: 'cursor-invalido', title: 'Cursor de paginação inválido',
+                trigger: <><Code>GET /v1/payment-links?cursor=abc</Code>, ou <Code>limit=500</Code>. O cursor válido é o <Code>next_cursor</Code> da página anterior, sem alterações.</>,
+                api: <><Code>400 INVALID_PARAM</Code>, com a mensagem a indicar o parâmetro.</>,
+                event: 'Nenhum.', console: 'Registos: o pedido recusado.', cleanup: 'Nenhuma.' }} />
 
-              <H3 id="testar-webhook">Webhooks</H3>
+              <H2 id="testar-webhook">Webhooks</H2>
               <RecipeCard lang="pt" r={{ id: 'webhook-entrega', title: 'Receber uma entrega',
                 trigger: <>Registe um endpoint HTTPS público para <Code>payment_session.created</Code> e crie uma sessão. Não precisa de pagador.</>,
                 api: <><Code>createWebhookEndpoint</Code> responde <Code>201</Code> com <Code>secret</Code>.</>,
@@ -1945,7 +1951,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 console: 'Webhooks → Eventos: o evento sem entrega.',
                 cleanup: 'Reative o endpoint na Consola, se o quiser manter.' }} />
 
-              <H3 id="testar-reembolso">Reembolsos, transferências e liquidações</H3>
+              <H2 id="testar-reembolso">Reembolsos, transferências e liquidações</H2>
               <RecipeCard lang="pt" r={{ id: 'reembolso-parcial', title: 'Reembolso total, parcial e excessivo',
                 trigger: <>Depois de <a href="#pagar-sessao" style={a}>pagar uma sessão</a>, reembolse parte, depois o resto, depois mais um.</>,
                 api: <><Code>201</Code> com <Code>SUCCEEDED</Code> duas vezes; o terceiro responde <Code>422 REFUND_EXCEEDS_CAPTURED</Code>.</>,
@@ -1963,7 +1969,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 cleanup: 'Nenhuma.',
                 limits: <>Os eventos <Code>application_settlement.cancelled</Code> e <Code>.failed</Code> resultam de decisões do Banzami e não podem ser provocados para teste.</> }} />
 
-              <H3 id="testar-outros">Comprovativos e limites</H3>
+              <H2 id="testar-outros">Comprovativos e limites</H2>
               <RecipeCard lang="pt" r={{ id: 'comprovativo-teste', title: 'Verificar um comprovativo',
                 trigger: <>Verifique a referência <Code>BZM-…</Code> de um pagamento de teste; depois, a mesma referência com um carácter alterado.</>,
                 api: <><Code>200</Code> com <Code>CONFIRMED</Code>; alterada: <Code>404</Code>.</>,
@@ -1992,17 +1998,17 @@ export function PtGoingLive({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Do Sandbox ao Live</h1>
               <PageLede>Financial Live não está disponível. O que o trabalho no Sandbox já garante e o que verificar antes de a integração entrar em uso.</PageLede>
 
-              <H3 id="estado-live">Estado atual</H3>
+              <H2 id="estado-live">Estado atual</H2>
               <UL>
                 <LI>Não há trilhos de dinheiro real ativos e as chaves <Code>bz_live_</Code> não são emitidas.</LI>
                 <LI>Não existe candidatura nem lista de espera para Live.</LI>
                 <LI>Não há migração automática do Sandbox para Live.</LI>
               </UL>
 
-              <H3 id="o-que-se-mantem">O que o trabalho no Sandbox já garante</H3>
+              <H2 id="o-que-se-mantem">O que o trabalho no Sandbox já garante</H2>
               <P>A integração, o tratamento de webhooks, a idempotência, o tratamento de erros e a reconciliação seguem os contratos da API v1, que são os mesmos documentados aqui.</P>
 
-              <H3 id="lista-verificacao">Lista de verificação</H3>
+              <H2 id="lista-verificacao">Lista de verificação</H2>
               <UL>
                 <LI><strong>Identidade:</strong> <Code>GET /v1/me</Code> responde com a chave que a aplicação usa.</LI>
                 <LI><strong>Prontidão:</strong> a aplicação consulta <Code>getFinancialSetup()</Code> e sabe o que mostrar quando o projeto não pode receber.</LI>
@@ -2014,7 +2020,7 @@ export function PtGoingLive({ copy }: { copy: CopyFn }) {
                 <LI><strong>Reconciliação:</strong> os seus registos coincidem com Transações e Saldos na Consola.</LI>
               </UL>
 
-              <H3 id="acompanhar">Acompanhar alterações</H3>
+              <H2 id="acompanhar">Acompanhar alterações</H2>
               <P>As alterações ao contrato da API e ao Sandbox são publicadas no <a href="/docs/changelog" style={a}>changelog</a>, com o impacto e a ação necessária.</P>
 
               <NextStepCards lang="pt" items={[
@@ -2034,7 +2040,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Segurança</h1>
               <PageLede>Onde guardar chaves e segredos, como limitar permissões e como rodar credenciais.</PageLede>
 
-              <H3 id="chaves">Guardar a chave secreta</H3>
+              <H2 id="chaves">Guardar a chave secreta</H2>
               <P>Uma chave <Code>bz_test_sk_…</Code> autoriza tudo o que o projeto pode fazer, incluindo reembolsos e liquidações. Guarde-a numa variável de ambiente do servidor, fornecida pelo gestor de segredos da sua plataforma.</P>
               <DoDont lang="pt"
                 dos={[
@@ -2050,10 +2056,10 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                   'Enviá-la por email, chat, ticket ou captura de ecrã.',
                 ]} />
 
-              <H3 id="reveal-once">Revelada uma única vez</H3>
+              <H2 id="reveal-once">Revelada uma única vez</H2>
               <P>O valor completo da chave aparece uma vez, no diálogo de criação. Depois, a Consola mostra apenas o prefixo e uma máscara. Se perder a chave, revogue-a e crie outra.</P>
 
-              <H3 id="menor-privilegio">Limitar os scopes</H3>
+              <H2 id="menor-privilegio">Limitar os scopes</H2>
               <P>Os scopes definem-se na criação e não mudam. Uma chave de leitura nunca pode escrever, mesmo que o código que a usa tenha um erro.</P>
               <UL>
                 <LI>Uma chave por sistema que integra.</LI>
@@ -2061,7 +2067,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                 <LI>Uma chave comprometida revoga-se sem afetar os outros sistemas.</LI>
               </UL>
 
-              <H3 id="rotacao">Rodar e revogar chaves</H3>
+              <H2 id="rotacao">Rodar e revogar chaves</H2>
               <PathDiagram title="Rodar uma chave sem interrupção" desc="Criar uma chave nova com os mesmos scopes, colocá-la em uso no servidor, confirmar com GET /v1/me e só depois revogar a chave anterior." steps={['Criar chave nova', 'Colocar em uso', 'Confirmar /v1/me', 'Revogar a anterior']} highlight={3} />
               <UL>
                 <LI><strong>Rodar na Consola</strong> cria a sucessora e revoga a anterior no mesmo passo; para evitar falhas, siga a sequência acima.</LI>
@@ -2069,7 +2075,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                 <LI><strong>Suspeita de exposição:</strong> revogue de imediato, depois investigue.</LI>
               </UL>
 
-              <H3 id="segredo-webhook">O segredo do webhook</H3>
+              <H2 id="segredo-webhook">O segredo do webhook</H2>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Chave secreta</th><th style={TH}>Segredo do webhook</th></tr></thead>
@@ -2087,7 +2093,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
               </div>
               <P>Verifique a assinatura sobre o corpo em bruto, antes de interpretar o evento, com o verificador do SDK. <a href="/docs/webhooks#receita" style={a}>Configurar webhooks</a></P>
 
-              <H3 id="sandbox-garante">O que o Sandbox garante</H3>
+              <H2 id="sandbox-garante">O que o Sandbox garante</H2>
               <UL>
                 <LI>Os fluxos de pagamento, reembolso, liquidação e webhook seguem as mesmas regras que em produção, com dinheiro fictício.</LI>
                 <LI>A entrega de webhooks é real, sobre a internet pública.</LI>
@@ -2095,7 +2101,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                 <LI>Trate os dados de teste como dados de clientes: não use dados pessoais de pessoas reais.</LI>
               </UL>
 
-              <H3 id="vulnerabilidades">Reportar uma vulnerabilidade</H3>
+              <H2 id="vulnerabilidades">Reportar uma vulnerabilidade</H2>
               <P>Escreva para <MailLink to="security@banzami.com" style={a} />. Para outras questões, use o <a href="/docs/support" style={a}>suporte</a>.</P>
 
               <NextStepCards lang="pt" items={[
@@ -2132,14 +2138,14 @@ export function PtSupport({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Suporte</h1>
               <PageLede>Escreva para <MailLink to="developers@banzami.com" style={a} /> a partir do email da sua conta. A mensagem é lida e respondida por uma pessoa; não há sistema de tickets.</PageLede>
 
-              <H3 id="antes">Antes de escrever</H3>
+              <H2 id="antes">Antes de escrever</H2>
               <UL>
                 <LI><a href="/docs/troubleshooting" style={a}>Resolução de problemas</a>, a partir do sintoma.</LI>
                 <LI><a href="/docs/errors" style={a}>Catálogo de erros</a>, a partir do código.</LI>
                 <LI><strong>Consola → Registos</strong>, a partir do <Code>request_id</Code>.</LI>
               </UL>
 
-              <H3 id="incluir">O que incluir</H3>
+              <H2 id="incluir">O que incluir</H2>
               <UL>
                 <LI>O <Code>request_id</Code> da resposta.</LI>
                 <LI>A data e a hora, com fuso horário.</LI>
@@ -2148,10 +2154,10 @@ export function PtSupport({ copy }: { copy: CopyFn }) {
                 <LI>O corpo do pedido sem credenciais, se for relevante.</LI>
               </UL>
 
-              <H3 id="nunca">O que nunca enviar</H3>
+              <H2 id="nunca">O que nunca enviar</H2>
               <Callout tone="warn">Nunca envie chaves de API, segredos de webhook, códigos OTP ou tokens de sessão, a ninguém. O suporte não precisa de segredos.</Callout>
 
-              <H3 id="seguranca-suporte">Vulnerabilidades</H3>
+              <H2 id="seguranca-suporte">Vulnerabilidades</H2>
               <P>Reporte vulnerabilidades para <MailLink to="security@banzami.com" style={a} />.</P>
 
               <NextStepCards lang="pt" items={[

@@ -3578,6 +3578,41 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nenhuma."
   },
+  "pt:Testing:71527acb38": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "GET /v1/payment-links?cursor=abc, ou limit=500. O cursor válido é o next_cursor da página anterior, sem alterações."
+  },
+  "pt:Testing:c0684a95b0": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "400 INVALID_PARAM, com a mensagem a indicar o parâmetro."
+  },
+  "pt:Testing:cf7188580e": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhum."
+  },
+  "pt:Testing:9c8fdc9f44": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Registos: o pedido recusado."
+  },
+  "pt:Testing:d8d25f85a9": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhuma."
+  },
   "pt:Testing:8f4e2e6313": {
    "page": "Testing",
    "kind": "recipe-trigger",
@@ -3683,7 +3718,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nada: o teste é local."
   },
-  "pt:Testing:d8d25f85a9": {
+  "pt:Testing:2a75de6f3a": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3774,7 +3809,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 INSUFFICIENT_FUNDS; nada se move."
   },
-  "pt:Testing:cf7188580e": {
+  "pt:Testing:c1ccb7e372": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -3788,7 +3823,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Saldos: as duas contas, a zero."
   },
-  "pt:Testing:2a75de6f3a": {
+  "pt:Testing:09c6cb4689": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3823,7 +3858,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Saldos: a conta a zero; Configuração financeira: a prontidão."
   },
-  "pt:Testing:09c6cb4689": {
+  "pt:Testing:b15aa44544": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3851,7 +3886,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "200 com CONFIRMED; alterada: 404."
   },
-  "pt:Testing:c1ccb7e372": {
+  "pt:Testing:d21ef2f102": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -3865,7 +3900,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Transações: o pagamento correspondente."
   },
-  "pt:Testing:b15aa44544": {
+  "pt:Testing:2c0310c664": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3893,7 +3928,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "429 RATE_LIMITED com Retry-After."
   },
-  "pt:Testing:d21ef2f102": {
+  "pt:Testing:307474ad41": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -3907,7 +3942,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Registos."
   },
-  "pt:Testing:2c0310c664": {
+  "pt:Testing:ec5a6fc282": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -7918,6 +7953,41 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "None."
   },
+  "en:Testing:ec389c6b1c": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "GET /v1/payment-links?cursor=abc, or limit=500. A valid cursor is the previous page’s next_cursor, unchanged."
+  },
+  "en:Testing:910cbea77d": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "400 INVALID_PARAM, with a message naming the parameter."
+  },
+  "en:Testing:8e7f73c5dd": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:dd33fb1e7d": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Logs: the refused request."
+  },
+  "en:Testing:b4b3c89b28": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
   "en:Testing:af63706ea7": {
    "page": "Testing",
    "kind": "recipe-trigger",
@@ -8023,7 +8093,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nothing: the test is local."
   },
-  "en:Testing:8e7f73c5dd": {
+  "en:Testing:53c27c588f": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8114,7 +8184,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 INSUFFICIENT_FUNDS; nothing moves."
   },
-  "en:Testing:b4b3c89b28": {
+  "en:Testing:9dd32c3c5b": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8128,7 +8198,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Balances: both accounts at zero."
   },
-  "en:Testing:53c27c588f": {
+  "en:Testing:6ff3a4367f": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8163,7 +8233,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Balances: the account at zero; Financial Setup: readiness."
   },
-  "en:Testing:9dd32c3c5b": {
+  "en:Testing:ec3216080f": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8191,7 +8261,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "200 with CONFIRMED; changed: 404."
   },
-  "en:Testing:6ff3a4367f": {
+  "en:Testing:116b8badfa": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8205,7 +8275,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Transactions: the matching payment."
   },
-  "en:Testing:ec3216080f": {
+  "en:Testing:056950ebd4": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8233,7 +8303,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "429 RATE_LIMITED with Retry-After."
   },
-  "en:Testing:116b8badfa": {
+  "en:Testing:97e4232ef6": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8247,7 +8317,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs."
   },
-  "en:Testing:056950ebd4": {
+  "en:Testing:719501c74d": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",

@@ -128,8 +128,8 @@ function mentions(file) {
   // The Console list documents the Console's own backend, not the Developer API.
   const consoleRanges = [];
   const consoleRows = [];
-  for (const m of src.matchAll(/<H3(?: id="[^"]*")?>(?:Console \((?:acesso e chaves|access and keys)\)|Erros da Consola|Console errors)<\/H3>/g)) {
-    const next = [src.indexOf('<H3', m.index + 5), src.indexOf('<NextStepCards', m.index)].filter((x) => x > 0);
+  for (const m of src.matchAll(/<H[23](?: id="[^"]*")?>(?:Console \((?:acesso e chaves|access and keys)\)|Erros da Consola|Console errors)<\/H3>/g)) {
+    const next = [src.indexOf('<H2', m.index + 5), src.indexOf('<NextStepCards', m.index)].filter((x) => x > 0);
     const end = next.length ? Math.min(...next) : src.length;
     consoleRanges.push([m.index, end]);
     // The Console table lists codes as row labels: 'INVALID_EMAIL / INVALID_CODE'.

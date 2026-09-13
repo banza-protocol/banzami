@@ -80,7 +80,7 @@ const CASES = [
   {
     name: 'B — prose names an internal code',
     mutate: (d) => edit(d, 'apps/website/app/developers/docs/content-pt.tsx', (s) => s.replace(
-      '<H3 id="catalogo-de-erros">', '<P><Code>403 KYB_DECIDED_BY_REVIEW</Code></P>\n              <H3 id="catalogo-de-erros">')),
+      '<H2 id="catalogo-de-erros">', '<P><Code>403 KYB_DECIDED_BY_REVIEW</Code></P>\n              <H2 id="catalogo-de-erros">')),
     expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_NOT_PUBLIC) >= 1 && /INTERNAL code/.test(c.out),
   },
   {
@@ -131,7 +131,7 @@ const CASES = [
   {
     name: 'PT/EN — English prose names a code Portuguese does not',
     mutate: (d) => edit(d, 'apps/website/app/developers/docs/content-en.tsx', (s) => s.replace(
-      '<H3 id="error-catalogue">', '<P><Code>409 BINDING_CHANGED</Code></P>\n              <H3 id="error-catalogue">')),
+      '<H2 id="error-catalogue">', '<P><Code>409 BINDING_CHANGED</Code></P>\n              <H2 id="error-catalogue">')),
     expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERROR_CATALOGUE_PT_EN_DRIFT) >= 1,
   },
   {

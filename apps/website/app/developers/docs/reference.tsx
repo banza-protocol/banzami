@@ -10,7 +10,7 @@
 // available to a credential that would be rejected today.
 
 import type { ReactNode } from 'react';
-import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H3, INK, P, mono, type Tone } from './ui';
+import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H2, H3, INK, P, mono, type Tone } from './ui';
 import { ENDPOINT_META, type EndpointMeta, type Param, type ParamIn } from './endpoint-meta';
 
 type Bi = { pt: string; en: string };
@@ -1081,7 +1081,7 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
       </nav>
       {RESOURCE_GROUPS.map((g) => (
         <section key={g.id} aria-labelledby={g.id}>
-          <h3 id={g.id} style={{ scrollMarginTop: 80, margin: '30px 0 4px', fontSize: 19, fontWeight: 700, color: INK }}>{t(g.title)}</h3>
+          <h2 id={g.id} style={{ scrollMarginTop: 80, margin: '30px 0 4px', fontSize: 19, fontWeight: 700, color: INK }}>{t(g.title)}</h2>
           {g.ids.map((id) => {
             const e = byId.get(id)!;
             const lines = (e.response ?? '').split('\n').length;
@@ -1150,7 +1150,7 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
         </section>
       ))}
 
-      <H3 id="restricted-routes">{label(lang, 'Superfícies existentes com credencial restrita', 'Existing surfaces with restricted credentials')}</H3>
+      <H2 id="restricted-routes">{label(lang, 'Superfícies existentes com credencial restrita', 'Existing surfaces with restricted credentials')}</H2>
       <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
           <thead>

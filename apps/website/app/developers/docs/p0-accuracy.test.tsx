@@ -131,7 +131,7 @@ describe('P0 — no invented endpoints', () => {
 describe('P0 — /docs content contracts (rendered)', () => {
   it('shows the Sandbox/Preview status section with the non-operational Console wording', () => {
     render(<PtConceptsPage />);
-    expect(screen.getByRole('heading', { level: 3, name: 'Sandbox e Live' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Sandbox e Live' })).toBeTruthy();
     expect(DOCS).toContain('Financial Live não está disponível');
     expect(DOCS).toContain('Indisponível (fail-closed)');
     // The Console left preview entirely: no page renders illustrative data

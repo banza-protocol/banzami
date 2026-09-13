@@ -91,7 +91,7 @@ function build() {
       if (!slug) return;
       const body = src.slice(f.index, i + 1 < fns.length ? fns[i + 1].index : src.length);
       const href = `${base}/${slug}`;
-      for (const h of body.matchAll(/<H3 id="([^"]+)">([\s\S]*?)<\/H3>/g)) add(lang, 'section', plain(h[2].replace(/<Badge[^>]*\/>|<Badge[\s\S]*?<\/Badge>/g, '')), `${href}#${h[1]}`, '', lang === 'pt' ? PT_SECTION_ALIASES[h[1]] ?? '' : '');
+      for (const h of body.matchAll(/<H[23] id="([^"]+)">([\s\S]*?)<\/H[23]>/g)) add(lang, 'section', plain(h[2].replace(/<Badge[^>]*\/>|<Badge[\s\S]*?<\/Badge>/g, '')), `${href}#${h[1]}`, '', lang === 'pt' ? PT_SECTION_ALIASES[h[1]] ?? '' : '');
       // Steps and test scenarios are sections too: "Verify the signature before parsing" is what a reader searches for.
       for (const c of body.matchAll(/<StepCard[^>]*?\bid="([^"]+)"\s+title="([^"]+)"/g)) add(lang, 'section', c[2], `${href}#${c[1]}`);
       for (const c of body.matchAll(/<RecipeCard[^>]*?r=\{\{\s*id: '([^']+)', title: '([^']+)'/g)) add(lang, 'section', c[2], `${href}#${c[1]}`);

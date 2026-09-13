@@ -162,9 +162,19 @@
   },
   {
    "k": "section",
+   "t": "Conta e projeto",
+   "h": "/docs/get-started#conta-e-projeto"
+  },
+  {
+   "k": "section",
    "t": "Configuração financeira",
    "h": "/docs/get-started#configuracao-financeira",
    "a": "financial setup"
+  },
+  {
+   "k": "section",
+   "t": "Chave e SDK",
+   "h": "/docs/get-started#chave-e-sdk"
   },
   {
    "k": "section",
@@ -908,6 +918,11 @@
    "k": "section",
    "t": "Montante inválido",
    "h": "/docs/testing#montante-invalido"
+  },
+  {
+   "k": "section",
+   "t": "Cursor de paginação inválido",
+   "h": "/docs/testing#cursor-invalido"
   },
   {
    "k": "section",
@@ -2127,8 +2142,18 @@
   },
   {
    "k": "section",
+   "t": "Account and project",
+   "h": "/docs/en/get-started#account-and-project"
+  },
+  {
+   "k": "section",
    "t": "Financial Setup",
    "h": "/docs/en/get-started#financial-setup"
+  },
+  {
+   "k": "section",
+   "t": "Key and SDK",
+   "h": "/docs/en/get-started#key-and-sdk"
   },
   {
    "k": "section",
@@ -2864,6 +2889,11 @@
    "k": "section",
    "t": "Invalid amount",
    "h": "/docs/en/testing#invalid-amount"
+  },
+  {
+   "k": "section",
+   "t": "Invalid pagination cursor",
+   "h": "/docs/en/testing#invalid-cursor"
   },
   {
    "k": "section",

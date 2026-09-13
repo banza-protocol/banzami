@@ -70,11 +70,13 @@ export const LI = ({ children }: { children: ReactNode }) => (
 export const Code = ({ children }: { children: ReactNode }) => (
   <code style={{ fontFamily: mono, fontSize: '0.86em', background: '#F4EFEF', color: INK, padding: '1px 5px', borderRadius: 5, fontWeight: 500, overflowWrap: 'break-word' }}>{children}</code>
 );
-export const H2 = ({ children }: { children: ReactNode }) => (
-  <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700, letterSpacing: '-.01em', color: INK }}>{children}</h2>
+/** A page section: the level under the page's h1, and what "On this page" lists. */
+export const H2 = ({ id, children }: { id?: string; children: ReactNode }) => (
+  <h2 id={id} style={{ scrollMarginTop: 80, margin: '34px 0 10px', fontSize: 19, fontWeight: 650, letterSpacing: '-.005em', color: INK }}>{children}</h2>
 );
+/** A subsection inside an H2 section — an endpoint, an error family. */
 export const H3 = ({ id, children }: { id?: string; children: ReactNode }) => (
-  <h3 id={id} style={{ scrollMarginTop: 80, margin: '34px 0 10px', fontSize: 19, fontWeight: 650, letterSpacing: '-.005em', color: INK }}>{children}</h3>
+  <h3 id={id} style={{ scrollMarginTop: 80, margin: '24px 0 8px', fontSize: 17, fontWeight: 650, color: INK }}>{children}</h3>
 );
 
 export function Section({ id, children }: { id: string; children: ReactNode }) {

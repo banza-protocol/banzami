@@ -97,7 +97,7 @@ const QUESTIONS = [
       [/(corpo em bruto|raw body|req\.text\(\)|raw)/i],
       [/(verif)/i],
       // Verify BEFORE parsing — the rule, not just the verb.
-      [/(antes de|before).{0,80}(parse|analisar|interpret|olhar|trust|confiar)/i],
+      [/(antes de|before).{0,80}(pars(?:e|ing)|analisar|interpret|olhar|trust|confiar)/i],
     ],
   },
   {
@@ -146,13 +146,21 @@ const QUESTIONS = [
   },
 ];
 
+// A page that fails to load must fail the run as a load failure, not quietly turn
+// into an empty page that then "does not answer" a question it does answer.
+const unreachable = [];
 const fetchText = async (path) => {
-  try {
-    const r = await fetch(BASE + path, { headers: { 'user-agent': 'banzami-cold-reader' } });
-    return r.ok ? await r.text() : '';
-  } catch {
-    return '';
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const r = await fetch(BASE + path, { headers: { 'user-agent': 'banzami-cold-reader' } });
+      if (r.ok) return await r.text();
+      if (attempt === 3) unreachable.push(`${path} → ${r.status}`);
+    } catch (e) {
+      if (attempt === 3) unreachable.push(`${path} → ${e.message}`);
+    }
+    await new Promise((res) => setTimeout(res, 1000 * attempt));
   }
+  return '';
 };
 
 console.log(`the twelve questions, asked of ${BASE}\n`);
@@ -175,6 +183,11 @@ function ask(corpus, label) {
     console.log(`  ${answered ? '✓' : '✗'} ${label} Q${String(n).padStart(2)} ${q}${answered ? '' : `\n        the documentation does not say: ${missing.map((a) => a[0]).join(' · ')}`}`);
   }
   return results;
+}
+
+if (unreachable.length) {
+  console.error(`✗ ${unreachable.length} page(s) could not be fetched — the questions were not asked:\n  ${unreachable.join('\n  ')}`);
+  process.exit(2);
 }
 
 const ptCorpus = ROUTES.map((r) => pages[r]).join('\n');

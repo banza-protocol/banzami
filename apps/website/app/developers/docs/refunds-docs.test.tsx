@@ -47,7 +47,7 @@ describe('Refunds docs — typed-source public contract (ADR-017)', () => {
   });
 
   it('the Refunds docs section names every public typed-source field', () => {
-    // scope to the reembolsos section (from its anchor to the next H2/H3)
+    // scope to the reembolsos section (from its anchor to the next section)
     const start = DOCS.indexOf('export function PtRefunds(');
     const rest = DOCS.slice(start);
     const end = rest.indexOf('export function PtSettlements(');
