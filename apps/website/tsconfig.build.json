@@ -7,5 +7,5 @@
   // and only apps/website/ is synced into the build context. Typechecking them
   // during `next build` made the image build depend on files that are not there.
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx", "app/developers/docs/assurance-manifest.ts"]
+  "exclude": ["node_modules", "public", "**/*.test.ts", "**/*.test.tsx", "app/developers/docs/assurance-manifest.ts"]
 }
