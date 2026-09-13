@@ -81,7 +81,12 @@ describe('P3C — PT/EN guides parity', () => {
     expect(EN).toContain('<Code>POST /v1/wallet-account-transfers</Code>');
     // The boundary is the product: EN must say so as plainly as PT does.
     expect(EN.replace(/\s+/g, ' ')).toContain('same owner');
-    expect(EN.replace(/\s+/g, ' ')).toContain('The owner comes from the binding');
+    // The boundary, in the public term. "binding" was internal vocabulary: the
+    // developer meets this concept as Financial setup (GET /v1/financial-setup,
+    // getFinancialSetup(), the Console page of that name) and DOCS-PROD-001 §8
+    // keeps binding-table internals out of the docs. The rule survives the rename.
+    expect(EN.replace(/\s+/g, ' ')).toContain('The owner comes from the financial setup');
+    expect(EN.replace(/\s+/g, ' ').includes('comes from the binding'), 'internal "binding" vocabulary').toBe(false);
   });
 });
 

@@ -117,21 +117,29 @@ const SAMPLE_SESSION = `import { BanzamiClient } from '@banzami/sdk';
 // A chave secreta bz_test_sk_ vive apenas no servidor.
 const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
 
+// 0. O projeto tem de estar financeiramente pronto — senão: 403 PAYMENTS_UNAVAILABLE.
+const setup = await banzami.getFinancialSetup();
+
 // 1. Criar uma sessão de pagamento.
 //    Não indique a conta de destino: com uma chave da Consola, o destinatário
-//    vem do binding do projeto. Enviá-la é recusado pela API.
+//    vem da configuração financeira do projeto. Enviá-la é recusado pela API.
 const session = await banzami.createPaymentSession({
   purpose: 'ORDER',
   referenceType: 'PEDIDO',
-  referenceId: 'pedido_123',
-  amountMinor: 25000,      // 250,00 Kz (menor unidade)
+  referenceId: 'order_123',
+  amountMinor: 25000,      // 250 Kz — 100 unidades menores = 1 Kz
   currency: 'AOA',
   description: 'Pedido #123',
 });
 
-// 2. Apresentar o link ou o QR ao pagador
+// 2. Apresentar o link ou o QR ao pagador.
 const link = banzami.paymentSessionInterface(session, 'PAYMENT_LINK');
-// link.value  ->  https://pay.banzami.com/pay/{slug}`;
+// link.value  ->  https://pay.banzami.com/pay/{slug}
+
+// 3. Saber se pagou. A fonte de verdade é o Banzami, não o browser do pagador:
+//    confirme no servidor, pelo webhook ou lendo a sessão.
+const agora = await banzami.getPaymentSession(session.session_id);
+// agora.status  ->  'PAID' depois de o pagador pagar`;
 
 // curl-first — a primeira chamada bem-sucedida não exige nenhum SDK.
 // Chaves e identificadores são SEMPRE placeholders; tudo é Sandbox-only.
@@ -153,7 +161,7 @@ curl https://sandbox-api.banzami.com/v1/me \\
 
 const SAMPLE_CURL_SESSION = `# Criar uma sessão de pagamento no Sandbox (valores placeholder).
 # Com uma chave developer NÃO se envia wallet_account_id: o destinatário vem
-# do binding do projeto e a API recusa um destinatário indicado pelo cliente.
+# da configuração financeira do projeto e a API recusa um destinatário indicado pelo cliente.
 curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -235,7 +243,7 @@ switch (event.type) {
 const SAMPLE_WEBHOOK_MANAGE = `import { BanzamiClient } from '@banzami/sdk';
 const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
 
-// Registar o endpoint. Sem merchant, sem wallet: o dono vem do binding do projeto.
+// Registar o endpoint. Sem merchant, sem wallet: o dono vem da configuração financeira do projeto.
 const ep = await banzami.createWebhookEndpoint({
   url:    'https://www.exemplo.com/api/webhooks/banzami',
   events: ['payment_session.paid'],
@@ -375,19 +383,27 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <Code>npm install @banzami/sdk</Code>. O curl serve para validar o protocolo,
                 diagnosticar o Sandbox ou auditar chamadas de baixo nível — não é o caminho de implementação.
               </Callout>
-              <P>Do primeiro acesso à validação de uma jornada de pagamento, no Sandbox:</P>
+              <P>Do primeiro acesso ao primeiro pagamento confirmado, no Sandbox — doze passos:</P>
               <ol style={{ margin: '0 0 16px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <LI>Entre na Consola em <Code>developers.banzami.com/login</Code> com email e código (OTP).</LI>
                 <LI>Crie ou escolha um <strong>workspace</strong>.</LI>
                 <LI>Crie um <strong>projeto Sandbox</strong>.</LI>
-                <LI>Crie uma <strong>chave de teste</strong>.</LI>
-                <LI>Guarde a chave <strong>secreta</strong> quando ela aparece — é mostrada uma única vez.</LI>
-                <LI><strong>Verifique a chave</strong> contra a API Sandbox com <Code>curl</Code>: <Code>GET /v1/me</Code> devolve o ambiente, projeto, scopes e estado da chave. Esta é a sua primeira chamada bem-sucedida — <strong>não precisa de nenhum SDK</strong>.</LI>
-                <LI>Instale o SDK — <Code>npm install @banzami/sdk</Code> — e crie o cliente com a sua chave e <Code>environment: &apos;sandbox&apos;</Code>. Este é o caminho de implementação; o <Code>curl</Code> acima serviu para confirmar a chave.</LI>
-                <LI>Crie uma <GlossaryTerm id="sessao-pagamento">sessão de pagamento</GlossaryTerm> e apresente o link/QR.</LI>
-                <LI>Acompanhe a confirmação e emita o comprovativo.</LI>
-                <LI>Valide webhooks assinados quando aplicável.</LI>
+                <LI>Faça a <a href="#configuracao-financeira" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>configuração financeira</a> do projeto — candidate um Business, ou ligue um que já existe com o código de consentimento do seu dono. <strong>Sem este passo o projeto não recebe pagamentos.</strong></LI>
+                <LI>Crie uma <strong>chave secreta de teste</strong> e guarde-a quando aparece — é mostrada uma única vez.</LI>
+                <LI>Instale o SDK: <Code>npm install @banzami/sdk</Code>.</LI>
+                <LI>Faça a primeira chamada: <Code>GET /v1/me</Code> confirma o ambiente, o projeto, os scopes e o estado da chave.</LI>
+                <LI>Crie uma <GlossaryTerm id="sessao-pagamento">sessão de pagamento</GlossaryTerm>.</LI>
+                <LI>Abra o link que a sessão devolve — é a página do pagador em <Code>pay.banzami.com</Code>.</LI>
+                <LI>Confirme o resultado: <Code>getPaymentSession</Code> passa a <Code>PAID</Code> quando o pagador paga.</LI>
+                <LI>Receba o webhook <Code>payment_session.paid</Code> e <strong>verifique a assinatura antes de o ler</strong>.</LI>
+                <LI>Veja o pagamento na Consola, em <strong>Transações</strong>.</LI>
               </ol>
+              <Callout>
+                Os passos 1–3 e 5–7 fazem-se em minutos. O passo 4 não: um Business novo é{' '}
+                <strong>revisto pelo Banzami</strong> antes de poder receber, e ligar um Business existente
+                precisa do código do seu dono. É por isso que a configuração financeira vem antes do primeiro
+                pagamento — e não depois de ele falhar.
+              </Callout>
               <CodeBlock label="curl · primeira chamada (GET /v1/me)" raw={SAMPLE_CURL_ME} onCopy={copy} />
               <Callout>
                 Todos os exemplos usam <strong>chaves e identificadores placeholder</strong> e são <strong>Sandbox-only</strong> —
@@ -411,22 +427,67 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <a href="/docs/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
               </P>
 
+              <H3 id="configuracao-financeira">Configuração financeira — antes do primeiro pagamento</H3>
+              <P>
+                Um projeto acabado de criar pode fazer tudo menos receber dinheiro. Chaves, webhooks e
+                chamadas à API funcionam; criar uma sessão de pagamento responde{' '}
+                <Code>403 PAYMENTS_UNAVAILABLE</Code>. O que falta é saber <strong>quem recebe</strong>: o
+                dinheiro vai para um <strong>Business</strong>, uma entidade verificada, e é a configuração
+                financeira que liga o projeto a esse Business.
+              </P>
+              <P>Há dois caminhos, e a diferença é quem já existe:</P>
+              <UL>
+                <LI>
+                  <strong>Business novo.</strong> Na Consola, em <strong>Configuração financeira</strong>,
+                  candidate o Business: entidade, representante, documentos. O Banzami revê a candidatura —
+                  é uma decisão humana e não é imediata, também no Sandbox. Quando é aprovada, o projeto
+                  fica ligado e passa a poder receber.
+                </LI>
+                <LI>
+                  <strong>Business que já existe.</strong> Se a entidade já está verificada no Banzami, o seu
+                  dono gera um <strong>código de consentimento</strong> na app Banzami Business. Cole-o na
+                  Consola e o projeto liga-se a esse Business sem repetir a verificação. O código é de uso
+                  único.
+                </LI>
+              </UL>
+              <P>
+                Para saber se o projeto já está pronto, veja o estado em{' '}
+                <strong>Configuração financeira</strong> na Consola, ou pergunte à API com{' '}
+                <Code>getFinancialSetup()</Code> — é o que a sua aplicação deve consultar para decidir se
+                mostra a opção de pagar.
+              </P>
+              <Callout tone="warn">
+                Não há atalho: nenhum pedido seu, nenhum campo, nenhuma chave torna um projeto financeiramente
+                pronto. É a verificação do Business que dá ao projeto autoridade para receber, e é por isso
+                que a sua chave nunca escolhe o destinatário.
+              </Callout>
+
                             <H3 id="primeiro-pagamento">O seu primeiro pagamento</H3>
               <P>
                 A sessão de pagamento é o fluxo principal: cria-a, o Banzami devolve um link e um
                 QR, e o pagador usa um dos dois. Com uma chave de projeto <strong>não</strong> indica
-                a conta de destino — o destinatário vem do binding do projeto, e a API recusa um
+                a conta de destino — o destinatário vem da configuração financeira do projeto, e a API recusa um
                 destinatário indicado pelo cliente.
               </P>
               <CodeBlock label="curl · criar sessão de pagamento (pedido + resposta)" raw={SAMPLE_CURL_SESSION} onCopy={copy} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Falhas que vale a pena esperar: <Code>401</Code> (chave em falta, revogada ou live),{' '}
-                <Code>403</Code> (scope insuficiente, ou projeto sem binding),{' '}
+                <Code>403 PAYMENTS_UNAVAILABLE</Code> (o projeto ainda não tem configuração financeira — ver{' '}
+                <a href="#configuracao-financeira" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>acima</a>),{' '}
+                <Code>403</Code> por scope insuficiente,{' '}
                 <Code>400 MISSING_FIELD / INVALID_BODY</Code> e <Code>409 CONFLICT</Code> (uma
                 Idempotency-Key já em curso). Ver{' '}
                 <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
               </P>
               <CodeBlock label="ts · criar sessão de pagamento (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} />
+              <H3 id="depois-do-pagamento">Depois de criar a sessão</H3>
+              <UL>
+                <LI><strong>Abrir o pagamento.</strong> O link da sessão é a página do pagador em <Code>pay.banzami.com</Code>; o QR codifica o mesmo endereço, e qualquer câmara o abre.</LI>
+                <LI><strong>Confirmar.</strong> Quando o pagador paga, <Code>getPaymentSession</Code> passa a <Code>PAID</Code>. Não conclua que pagou porque o pagador voltou à sua página — confirme no servidor.</LI>
+                <LI><strong>Receber o webhook.</strong> Registe o seu endpoint com <Code>createWebhookEndpoint</Code> e guarde o segredo, que aparece uma vez. Ao receber <Code>payment_session.paid</Code>, <strong>verifique a assinatura antes de ler o evento</strong> e trate-o de forma idempotente pelo <Code>id</Code> — a entrega é at-least-once. Ver{' '}
+                  <a href="/docs/guides#webhooks" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Webhooks</a>.</LI>
+                <LI><strong>Ver na Consola.</strong> O pagamento aparece em <strong>Transações</strong> do projeto, com o valor e o estado.</LI>
+              </UL>
 
               </Section>
     </>
@@ -783,13 +844,13 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <H2>Guias</H2>
               <PageLede>Guias práticos de integração — cobranças, transferências, reembolsos e webhooks. O enquadramento é <strong>SDK-first</strong>; onde surge curl/HTTP, é material de referência do protocolo.</PageLede>
               <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/sdk', text: 'SDKs' }]} />
-<H3 id="contas-segregadas">Onde o dinheiro cai: binding e contas <Badge tone="ok" /></H3>
+<H3 id="contas-segregadas">Onde o dinheiro cai: configuração financeira e contas <Badge tone="ok" /></H3>
               <P>
                 Duas perguntas diferentes, respondidas em sítios diferentes — e é a distinção
                 que torna a plataforma segura de usar:
               </P>
               <UL>
-                <LI><strong>Quem</strong> é o dono do dinheiro? — responde o <strong>binding do projeto</strong>. É estabelecido pelo operador, é imutável, e a sua aplicação nunca o indica num pedido.</LI>
+                <LI><strong>Quem</strong> é o dono do dinheiro? — responde a <strong>configuração financeira do projeto</strong>. É estabelecido pelo operador, é imutável, e a sua aplicação nunca o indica num pedido.</LI>
                 <LI><strong>Qual</strong> conta desse dono recebe? — responde a <strong>wallet account</strong>. Essa a sua aplicação escolhe, entre as suas.</LI>
               </UL>
               <P>
@@ -800,8 +861,8 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <SegregatedAccountsDiagram l={{
                 title: 'Contas segregadas: um dono financeiro, uma conta por campanha',
                 project: 'O seu projeto',
-                owner: 'dono financeiro (vem do binding)',
-                ownerNote: 'nunca do seu pedido',
+                owner: 'dono financeiro',
+                ownerNote: 'vem da configuração financeira — nunca do seu pedido',
                 accounts: ['Campanha A', 'Campanha B', 'Campanha C'],
                 accountNote: 'uma wallet account cada',
               }} />
@@ -848,7 +909,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               </P>
               <Callout tone="warn">
                 <strong>O que Transferências é, e o que não é.</strong> Move valor entre duas
-                contas do <strong>mesmo titular</strong> que o binding do seu projeto fixa —
+                contas do <strong>mesmo titular</strong> que a configuração financeira do seu projeto fixa —
                 por exemplo, da Campanha A para a Campanha B da mesma organização. Nada
                 atravessa a fronteira do titular: não é payout, não é liquidação de aplicação
                 (ADR-029), não é transferência P2P entre consumidores. Indicar uma conta que
@@ -857,7 +918,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Credencial: chave de projeto com o scope <Code>transfers:write</Code>, em{' '}
                 <Code>POST /v1/wallet-account-transfers</Code>. O
-                titular vem do binding — não existe campo no pedido que o possa indicar. Ver a
+                titular vem da configuração financeira — não existe campo no pedido que o possa indicar. Ver a
                 matriz de{' '}
                 <a href="/docs/reference#credenciais" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
               </P>
@@ -944,7 +1005,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <P>
                 O endpoint que recebe os <strong>seus</strong> eventos gere-se com a
                 <strong> chave do projeto</strong> — não é preciso (nem possível) usar uma
-                credencial de merchant. O dono vem do binding do projeto; nenhum destes
+                credencial de merchant. O dono vem da configuração financeira do projeto; nenhum destes
                 pedidos aceita um <Code>merchant_id</Code>, porque não existe campo para isso.
               </P>
               <CodeBlock label="ts · registar e rodar o segredo" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} />
@@ -1224,17 +1285,16 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                   </thead>
                   <tbody>
                     {([
-                      ['Console — entrar, workspaces, projetos, membros, chaves', 'Sessão OTP (email + código)', 'Disponível em Sandbox controlado'],
-                      ['Consola — Webhooks e Actividade', 'Sessão OTP (email + código)', 'Dados reais do projeto'],
-                      ['Consola — dashboard', '—', 'Demo / pré-visualização — não operacional'],
-                      ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox controlado'],
-                      ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
-                      ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
+                      ['Consola — entrar, workspaces, projetos, membros, chaves', 'Sessão OTP (email + código)', 'Operacional em Sandbox'],
+                      ['Consola — Transações, Webhooks, Registos e Atividade do workspace', 'Sessão OTP (email + código)', 'Dados reais do projeto e do workspace'],
+                      ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox'],
+                      ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com configuração financeira concluída)', 'Disponível em Sandbox'],
+                      ['Payment links', 'Chave developer (scope payment_links, projeto com configuração financeira concluída)', 'Disponível em Sandbox'],
                       ['Registo de endpoints de webhooks (POST /v1/webhooks/endpoints)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
-                      ['Entrega outbound de webhooks', '—', 'Verificada em Sandbox — assinatura confirmada de forma independente e entrega aceite por um recetor público'],
-                      ['Reembolsos (POST /v1/refunds)', 'Chave de projeto (refunds:write) ou credencial de merchant', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
+                      ['Entrega outbound de webhooks', '—', 'Disponível em Sandbox — entregas reais, assinadas, para o seu endpoint HTTPS'],
+                      ['Reembolsos (POST /v1/refunds)', 'Chave de projeto (refunds:write)', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
                       ['Transferências (POST /v1/wallet-account-transfers)', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox — entre contas do mesmo titular do projeto'],
-                      ['Produção / trilhos live / fornecedores externos', '—', 'Não disponível · Não aprovado'],
+                      ['Financial LIVE / trilhos bancários / fornecedores externos', '—', 'Indisponível · fail-closed'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}>
                         <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>

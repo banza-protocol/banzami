@@ -138,7 +138,11 @@ describe('P3B — credential-scoped badge clarity', () => {
     // false claim as overstating it, so the weaker wording must not come back.
     expect(PT.includes('outbound simulado'), 'must not re-assert simulated outbound').toBe(false);
     expect(PT).toContain('Entrega outbound de webhooks');
-    expect(PT).toContain('assinatura confirmada de forma independente');
+    // The claim a developer relies on is that deliveries are REAL and SIGNED. The
+    // previous wording described how Banzami verified it ("assinatura confirmada
+    // de forma independente…"), which is assurance language DOCS-PROD-001 §72
+    // keeps out of beginner docs. The meaning is pinned; the audit phrasing is not.
+    expect(PT).toContain('entregas reais, assinadas');
   });
   it('the docs-claims gate still sees the released-capability tone (transfers tone ok kept)', () => {
     // href → tone adjacency preserved for the manifest-disposition gate.

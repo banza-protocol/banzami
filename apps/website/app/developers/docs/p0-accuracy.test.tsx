@@ -154,12 +154,20 @@ describe('P0 — /docs content contracts (rendered)', () => {
   it('has the credential↔capability matrix, and it still refuses Production', () => {
     render(<PtReferencePage />);
     expect(screen.getByText('Credenciais e capacidades')).toBeTruthy();
-    // Whatever the Sandbox evidence says, this row does not move.
-    expect(DOCS).toContain('Não disponível · Não aprovado');
+    // Whatever the Sandbox evidence says, this row does not move: Financial LIVE
+    // is unavailable and fail-closed, in the canonical words (DOCS-PROD-001 §31).
+    expect(DOCS).toContain('Financial LIVE / trilhos bancários / fornecedores externos');
+    expect(DOCS).toContain('Indisponível · fail-closed');
+    // An unreleased capability must never be presented as usable. The old test
+    // demanded the literal "Pendente E2E" for it — a phrase §2 lists as stale.
+    // What it has to be is absent from the "available" column, not tagged.
     for (const { id } of CARD_CAPABILITIES) {
       if (isReleased(id)) continue;
-      expect(DOCS).toContain('Pendente E2E para chave developer');
+      expect(DOCS.includes(`${id}', 'Disponível`), `${id} is unreleased and must not read as available`).toBe(false);
     }
+    // The retired claim this table used to carry, which no automated sweep caught.
+    expect(DOCS.includes('Demo / pré-visualização — não operacional'), 'the Console is operational, not a demo').toBe(false);
+    expect(DOCS.includes('Sandbox controlado'), 'preview-era "controlled Sandbox" wording').toBe(false);
   });
   it('refunds/transfers name their project scope and never claim Production', () => {
     // Both are released in Sandbox under a project key, so the docs must say
