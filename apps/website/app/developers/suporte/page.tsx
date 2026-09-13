@@ -1,5 +1,6 @@
 'use client';
 
+import { MailLink } from '@/components/MailLink';
 import Link from 'next/link';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card, DocsLink } from '@/components/developers/portal/ui';
@@ -57,16 +58,14 @@ export default function SuportePage() {
             cada linha da página <Link href="/logs" style={{ color: '#B5101F', fontWeight: 800 }}>Registos</Link> e
             é o que permite encontrar exactamente o que aconteceu do nosso lado.
           </p>
-          <a
-            href="mailto:developers@banzami.com"
+          <MailLink
+            to="developers@banzami.com"
             style={{
               display: 'inline-block', padding: '12px 20px', borderRadius: 12,
               border: '1.5px solid #EBDBD9', background: '#fff',
               fontSize: 14, fontWeight: 800, color: '#B5101F', textDecoration: 'none',
             }}
-          >
-            developers@banzami.com
-          </a>
+          />
           <ProjectFacts />
         </Card>
 

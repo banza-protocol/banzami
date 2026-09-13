@@ -1018,7 +1018,8 @@ const link: React.CSSProperties = { color: '#9A1B22', fontWeight: 600, textDecor
 const cell: React.CSSProperties = { padding: '7px 9px', borderBottom: '1px solid #EAE3E3', verticalAlign: 'top', color: '#3f3538' };
 
 /** The error codes inside a reference line such as "403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE". */
-const codesIn = (line: string) => [...line.matchAll(/\b([A-Z][A-Z0-9_]{2,}\*?)\b/g)].map((m) => m[1]);
+// A trailing * names a family (FEE_DESTINATION_*): kept whole and not linked, since no single entry has that id.
+const codesIn = (line: string) => [...line.matchAll(/\b[A-Z][A-Z0-9_]{2,}(?:\*|\b)/g)].map((m) => m[0]);
 
 /** One endpoint joined with its contract; throws for an endpoint without one. */
 export function endpointWithMeta(e: EndpointSpec): EndpointSpec & EndpointMeta {
@@ -1116,7 +1117,7 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
                 {e.response ? (
                   lines > 14 ? (
                     <details style={{ margin: '0 0 14px' }}>
-                      <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#9A1B22', margin: '0 0 8px' }}>{label(lang, 'Resposta de exemplo (' + (lines) + ' linhas)', 'Example response (' + (lines) + ' lines)')}</summary>
+                      <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#9A1B22', margin: '0 0 8px', padding: '4px 0', lineHeight: '20px' }}>{label(lang, 'Resposta de exemplo (' + (lines) + ' linhas)', 'Example response (' + (lines) + ' lines)')}</summary>
                       <CodeBlock label={label(lang, 'resposta (exemplo, placeholders)', 'response (example, placeholders)')} raw={e.response} onCopy={onCopy} {...copyProps} />
                     </details>
                   ) : <CodeBlock label={label(lang, 'resposta (exemplo, placeholders)', 'response (example, placeholders)')} raw={e.response} onCopy={onCopy} {...copyProps} />

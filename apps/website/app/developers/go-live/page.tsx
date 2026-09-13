@@ -1,5 +1,6 @@
 'use client';
 
+import { MailLink } from '@/components/MailLink';
 import Link from 'next/link';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card, DocsLink } from '@/components/developers/portal/ui';
@@ -62,16 +63,15 @@ export default function GoLivePage() {
             uma fila que não existe. Escreva-nos a partir do email da sua conta e responderemos
             quando houver algo concreto a dizer.
           </p>
-          <a
-            href="mailto:developers@banzami.com?subject=Interesse%20em%20produ%C3%A7%C3%A3o"
+          <MailLink
+            to="developers@banzami.com"
+            subject="Interesse em produção"
             style={{
               display: 'inline-block', padding: '12px 20px', borderRadius: 12,
               border: '1.5px solid #EBDBD9', background: '#fff',
               fontSize: 14, fontWeight: 800, color: '#B5101F', textDecoration: 'none',
             }}
-          >
-            developers@banzami.com
-          </a>
+          />
           <p style={{ margin: '18px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600 }}>
             Entretanto,{' '}
             <Link href="/dashboard" style={{ color: '#B5101F', fontWeight: 800 }}>a sua actividade em Sandbox</Link>

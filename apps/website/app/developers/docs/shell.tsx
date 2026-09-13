@@ -75,7 +75,7 @@ export const NAV_GROUPS: { id: string; title: { pt: string; en: string }; slugs:
 ];
 
 /** Pages long enough to need an "on this page" box. */
-export const TOC_PAGES = ['get-started', 'concepts', 'payments', 'webhooks', 'refunds', 'settlements', 'receipts', 'transfers', 'doa', 'console', 'reference', 'errors', 'sdk', 'testing', 'going-live', 'trust'];
+export const TOC_PAGES = ['get-started', 'concepts', 'payments', 'webhooks', 'events', 'refunds', 'settlements', 'receipts', 'transfers', 'doa', 'console', 'reference', 'errors', 'sdk', 'testing', 'going-live', 'trust'];
 
 const base = (lang: 'pt' | 'en') => (lang === 'pt' ? '/docs' : '/docs/en');
 export const areaHref = (lang: 'pt' | 'en', slug: string) => (slug ? `${base(lang)}/${slug}` : base(lang));

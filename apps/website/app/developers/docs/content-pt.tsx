@@ -8,6 +8,7 @@
 // endpoints, events, errors, symptoms — live in data modules both languages
 // render, so a fact cannot be true in one language and stale in the other.
 
+import { MailLink } from '@/components/MailLink';
 import type { ReactNode } from 'react';
 import { GlossaryTerm } from './GlossaryTerm';
 import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram } from './diagrams';
@@ -2095,7 +2096,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
               </UL>
 
               <H3 id="vulnerabilidades">Reportar uma vulnerabilidade</H3>
-              <P>Escreva para <a href="mailto:security@banzami.com" style={a}>security@banzami.com</a>. Para outras questões, use o <a href="/docs/support" style={a}>suporte</a>.</P>
+              <P>Escreva para <MailLink to="security@banzami.com" style={a} />. Para outras questões, use o <a href="/docs/support" style={a}>suporte</a>.</P>
 
               <NextStepCards lang="pt" items={[
                 { href: '/docs/webhooks', title: 'Configurar webhooks', desc: 'Verificação e rotação do segredo.' },
@@ -2129,7 +2130,7 @@ export function PtSupport({ copy }: { copy: CopyFn }) {
     <>
 <Section id="suporte">
               <h1 style={H1_STYLE}>Suporte</h1>
-              <PageLede>Escreva para <a href="mailto:developers@banzami.com" style={a}>developers@banzami.com</a> a partir do email da sua conta. A mensagem é lida e respondida por uma pessoa; não há sistema de tickets.</PageLede>
+              <PageLede>Escreva para <MailLink to="developers@banzami.com" style={a} /> a partir do email da sua conta. A mensagem é lida e respondida por uma pessoa; não há sistema de tickets.</PageLede>
 
               <H3 id="antes">Antes de escrever</H3>
               <UL>
@@ -2151,7 +2152,7 @@ export function PtSupport({ copy }: { copy: CopyFn }) {
               <Callout tone="warn">Nunca envie chaves de API, segredos de webhook, códigos OTP ou tokens de sessão, a ninguém. O suporte não precisa de segredos.</Callout>
 
               <H3 id="seguranca-suporte">Vulnerabilidades</H3>
-              <P>Reporte vulnerabilidades para <a href="mailto:security@banzami.com" style={a}>security@banzami.com</a>.</P>
+              <P>Reporte vulnerabilidades para <MailLink to="security@banzami.com" style={a} />.</P>
 
               <NextStepCards lang="pt" items={[
                 { href: '/docs/troubleshooting', title: 'Resolução de problemas', desc: 'Por sintoma.' },

@@ -91,7 +91,7 @@ export const COVERAGE = {
   DOCS_PAYMENT_SESSIONS_COMPLETE: {
     section: 25, heading: null,
     items: [
-      { spec: 'Payment Session', pt: /method: 'POST',\s*path: '\/v1\/payment-sessions'/, en: /method: 'POST',\s*path: '\/v1\/payment-sessions'/ },
+      { spec: 'Payment Session', pt: /POST \/v1\/payment-sessions|method: 'POST',\s*path: '\/v1\/payment-sessions'/, en: /POST \/v1\/payment-sessions|method: 'POST',\s*path: '\/v1\/payment-sessions'/ },
       { spec: 'Use current canonical vocabulary only', pt: /code: 'ACTIVE'[\s\S]{0,200}code: 'PAID'|"status": "ACTIVE"/, en: /"status": "ACTIVE"/ },
       { spec: 'Do not invent\ngeneric CREATED→PAID state\nnames', pt: /getPaymentSession passa a[\s\S]{0,30}PAID|getPaymentSession/, en: /getPaymentSession/ },
     ],

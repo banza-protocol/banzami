@@ -97,7 +97,7 @@ const QUESTIONS = [
       [/(corpo em bruto|raw body|req\.text\(\)|raw)/i],
       [/(verif)/i],
       // Verify BEFORE parsing — the rule, not just the verb.
-      [/(antes de|before).{0,80}(parse|analisar|olhar|trust|confiar)/i],
+      [/(antes de|before).{0,80}(parse|analisar|interpret|olhar|trust|confiar)/i],
     ],
   },
   {

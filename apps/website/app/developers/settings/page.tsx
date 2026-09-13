@@ -1,5 +1,6 @@
 'use client';
 
+import { MailLink } from '@/components/MailLink';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
@@ -261,9 +262,7 @@ function ProjectSettings() {
         <p style={{ margin: 0, fontSize: 12, color: '#a08a8c', fontWeight: 600, lineHeight: 1.6 }}>
           Um projeto arquivado não volta a ficar ativo a partir da consola. Se precisar de reverter
           um arquivo, escreva para{' '}
-          <a href="mailto:developers@banzami.com" style={{ color: '#B5101F', fontWeight: 800 }}>
-            developers@banzami.com
-          </a>{' '}
+          <MailLink to="developers@banzami.com" style={{ color: '#B5101F', fontWeight: 800 }} />{' '}
           a partir do email da sua conta.
         </p>
       </DangerZone>

@@ -94,8 +94,9 @@ for (const vp of VIEWPORTS) {
         tooSmall: controls
           .filter((el) => { const r = el.getBoundingClientRect(); return r.height < min || r.width < min; })
           // A link inside a paragraph is exempt: WCAG excludes targets whose
-          // position is determined by the flow of the text around them.
-          .filter((el) => !el.closest('p, li, td'))
+          // position is determined by the flow of the text around them. A <dd> is
+          // running text too: the value of a fact, a step or a symptom.
+          .filter((el) => !el.closest('p, li, td, dd'))
           .map((el) => {
             const r = el.getBoundingClientRect();
             return `${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 40)} ${Math.round(r.width)}x${Math.round(r.height)}`;

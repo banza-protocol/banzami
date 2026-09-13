@@ -10,6 +10,8 @@ import { join } from 'node:path';
 
 export const plain = (s) => s
   .replace(/raw=\{`([\s\S]*?)`\}/g, ' ')
+  // <MailLink to="x@banzami.com" /> renders its address; keep it in the sentence.
+  .replace(/<MailLink[^>]*\bto="([^"]+)"[^>]*\/>/g, '$1')
   .replace(/\{' '\}/g, ' ').replace(/<[^>]+>/g, '').replace(/&rsquo;/g, '’').replace(/&apos;|&#39;/g, "'")
   .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#123;/g, '{').replace(/&#125;/g, '}')
   .replace(/\s+/g, ' ').trim();

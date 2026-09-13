@@ -92,7 +92,7 @@ export function EventReference({ lang, onCopy }: { lang: Lang; onCopy: (t: strin
             </div>
           </dl>
           <details style={{ margin: '0 0 8px' }}>
-            <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#9A1B22', margin: '0 0 8px' }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#9A1B22', margin: '0 0 8px', padding: '4px 0', lineHeight: '20px' }}>
               {t('Exemplo de entrega', 'Example delivery')} — <Code>{e.name}</Code>
             </summary>
             <CodeBlock label={`json · ${e.name}`} raw={e.sample} onCopy={onCopy} {...copyProps} />
