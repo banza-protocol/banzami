@@ -70,7 +70,7 @@ export function EventReference({ lang, onCopy }: { lang: Lang; onCopy: (t: strin
               </tbody>
             </table>
           </div>
-          <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '6px 14px', margin: '0 0 12px', maxWidth: 760 }}>
+          <dl className="bz-factgrid" style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '6px 14px', margin: '0 0 12px', maxWidth: 760 }}>
             {([
               [t('O que fazer', 'What to do'), e.action[lang]],
               [t('Duplicados', 'Duplicates'), e.dedupe[lang]],

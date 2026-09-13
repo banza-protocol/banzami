@@ -36,7 +36,7 @@ export function Troubleshooting({ lang }: { lang: Lang }) {
       {SYMPTOMS.map((s) => (
         <details key={s.id} id={s.id} style={{ scrollMarginTop: 80, background: '#fff', border: '1px solid #EAE3E3', borderRadius: 14, padding: '12px 16px', margin: '0 0 10px', maxWidth: 760 }}>
           <summary style={{ cursor: 'pointer', fontSize: 15, fontWeight: 700, color: INK }}>{s.symptom[lang]}</summary>
-          <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) 1fr', gap: '6px 14px', margin: '10px 0 0' }}>
+          <dl className="bz-factgrid" style={{ display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) 1fr', gap: '6px 14px', margin: '10px 0 0' }}>
             {([
               [t('Costuma ser', 'Usually'), s.causes[lang]],
               [t('Verifique', 'Check'), s.check[lang]],

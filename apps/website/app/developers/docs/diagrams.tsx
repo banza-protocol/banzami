@@ -39,16 +39,21 @@ function Frame({
   title,
   desc,
   viewBox,
+  className,
+  scrollOnPhone = true,
   children,
 }: {
   title: string;
   desc?: string;
   viewBox: string;
+  className?: string;
+  /** Fixed layouts keep a readable width on a phone and scroll sideways instead of shrinking. */
+  scrollOnPhone?: boolean;
   children: React.ReactNode;
 }) {
   const id = useId().replace(/:/g, '');
   return (
-    <figure style={{ margin: '4px 0 20px', maxWidth: 760 }}>
+    <figure className={[className, scrollOnPhone ? 'bz-diag-scroll' : ''].filter(Boolean).join(' ') || undefined} style={{ margin: '4px 0 20px', maxWidth: 760 }}>
       <svg
         viewBox={viewBox}
         role="img"
@@ -205,27 +210,41 @@ export function SegregatedAccountsDiagram({ l }: { l: SegregatedLabels }) {
  * shows it at under half size, so a 15px label would read as 6px.
  */
 export function PathDiagram({ title, desc, steps, highlight = -1 }: { title: string; desc?: string; steps: string[]; highlight?: number }) {
-  const W = 250;
-  const H = 66;
+  // Two drawings of the same path: rows of three for a wide column, one step per
+  // row for a phone, where three boxes across would shrink the labels below a
+  // readable size. CSS shows exactly one (.bz-diag-wide / .bz-diag-narrow).
+  return (
+    <>
+      <PathDrawing className="bz-diag-wide" title={title} desc={desc} steps={steps} highlight={highlight} perRow={3} canvas={900} W={250} />
+      <PathDrawing className="bz-diag-narrow" title={title} desc={desc} steps={steps} highlight={highlight} perRow={1} canvas={420} W={370} />
+    </>
+  );
+}
+
+function PathDrawing({ className, title, desc, steps, highlight, perRow, canvas, W }: {
+  className: string; title: string; desc?: string; steps: string[]; highlight: number; perRow: number; canvas: number; W: number;
+}) {
+  const H = perRow === 1 ? 58 : 66;
   const GAPX = 50;
-  const GAPY = 44;
-  const perRow = 3;
+  const GAPY = perRow === 1 ? 26 : 44;
   const rows = Math.ceil(steps.length / perRow);
   const height = 28 + rows * H + (rows - 1) * GAPY + 28;
+  const left = (canvas - (perRow * W + (perRow - 1) * GAPX)) / 2;
   const pos = (i: number) => {
     const row = Math.floor(i / perRow);
     // Boustrophedon: the second row runs right to left, so every arrow is short.
     const col = row % 2 === 0 ? i % perRow : perRow - 1 - (i % perRow);
-    return { x: 25 + col * (W + GAPX), y: 28 + row * (H + GAPY) };
+    return { x: left + col * (W + GAPX), y: 28 + row * (H + GAPY) };
   };
+  const marker = `bz-path-arrow-${useId().replace(/:/g, '')}`;
   return (
-    <Frame title={title} desc={desc} viewBox={`0 0 900 ${height}`}>
+    <Frame title={title} desc={desc} viewBox={`0 0 ${canvas} ${height}`} className={className} scrollOnPhone={false}>
       <defs>
-        <marker id="bz-path-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <marker id={marker} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M0 0 L10 5 L0 10 z" fill={RED} />
         </marker>
       </defs>
-      <rect width="900" height={height} fill={GROUND} rx={14} />
+      <rect width={canvas} height={height} fill={GROUND} rx={14} />
       {steps.map((s, i) => {
         const { x, y } = pos(i);
         const next = i < steps.length - 1 ? pos(i + 1) : null;
@@ -238,11 +257,11 @@ export function PathDiagram({ title, desc, steps, highlight = -1 }: { title: str
             <text x={x + 56} y={y + H / 2 + 7} fontFamily={SANS} fontSize={fitFont(s, W - 70, 20)} fontWeight={700} fill={strong ? '#FFFFFF' : INK}>{s}</text>
             {next && next.y === y ? (
               next.x > x
-                ? <line x1={x + W + 4} y1={y + H / 2} x2={next.x - 4} y2={y + H / 2} stroke={RED} strokeWidth={2.4} markerEnd="url(#bz-path-arrow)" />
-                : <line x1={x - 4} y1={y + H / 2} x2={next.x + W + 4} y2={y + H / 2} stroke={RED} strokeWidth={2.4} markerEnd="url(#bz-path-arrow)" />
+                ? <line x1={x + W + 4} y1={y + H / 2} x2={next.x - 4} y2={y + H / 2} stroke={RED} strokeWidth={2.4} markerEnd={`url(#${marker})`} />
+                : <line x1={x - 4} y1={y + H / 2} x2={next.x + W + 4} y2={y + H / 2} stroke={RED} strokeWidth={2.4} markerEnd={`url(#${marker})`} />
             ) : null}
             {next && next.y !== y ? (
-              <line x1={x + W / 2} y1={y + H + 4} x2={x + W / 2} y2={next.y - 4} stroke={RED} strokeWidth={2.4} markerEnd="url(#bz-path-arrow)" />
+              <line x1={x + W / 2} y1={y + H + 4} x2={x + W / 2} y2={next.y - 4} stroke={RED} strokeWidth={2.4} markerEnd={`url(#${marker})`} />
             ) : null}
           </g>
         );
@@ -356,8 +375,50 @@ export type SettlementSplitLabels = {
 };
 
 export function SettlementSplitDiagram({ l }: { l: SettlementSplitLabels }) {
+  // The amounts are the lesson, so a phone gets its own vertical drawing rather
+  // than a wide one to scroll across.
   return (
-    <Frame title={l.title} desc={l.desc} viewBox="0 0 900 340">
+    <>
+      <SettlementSplitWide l={l} />
+      <SettlementSplitNarrow l={l} />
+    </>
+  );
+}
+
+function SettlementSplitNarrow({ l }: { l: SettlementSplitLabels }) {
+  const marker = `bz-split-arrow-${useId().replace(/:/g, '')}`;
+  const box = (y: number, label: string, amount: string, soft: boolean) => (
+    <g>
+      <rect x={56} y={y} width={344} height={88} rx={12} fill={soft ? BLUSH : '#FFFFFF'} stroke={soft ? RED_SOFT : BLUSH} strokeWidth={2} />
+      <text x={228} y={y + 36} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(label, 320, 20)} fontWeight={700} fill={soft ? RED_DEEP : INK}>{label}</text>
+      <text x={228} y={y + 70} textAnchor="middle" fontFamily={MONO} fontSize={24} fontWeight={700} fill={soft ? RED_DEEP : INK}>{amount}</text>
+    </g>
+  );
+  return (
+    <Frame title={l.title} desc={l.desc} viewBox="0 0 420 440" className="bz-diag-narrow" scrollOnPhone={false}>
+      <defs>
+        <marker id={marker} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill={RED} />
+        </marker>
+      </defs>
+      <rect width="420" height="440" fill={GROUND} rx={14} />
+      <rect x={20} y={20} width={380} height={88} rx={12} fill={RED} stroke={RED_DEEP} strokeWidth={2} />
+      <text x={210} y={56} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.source, 350, 20)} fontWeight={700} fill="#FFFFFF">{l.source}</text>
+      <text x={210} y={90} textAnchor="middle" fontFamily={MONO} fontSize={24} fontWeight={700} fill="#FFFFFF">{l.gross}</text>
+
+      <path d="M34 108 V178 H50" fill="none" stroke={RED} strokeWidth={2.4} markerEnd={`url(#${marker})`} />
+      <path d="M34 178 V290 H50" fill="none" stroke={RED} strokeWidth={2.4} markerEnd={`url(#${marker})`} />
+      {box(134, l.beneficiary, l.net, false)}
+      {box(246, l.fee, l.feeAmount, true)}
+
+      <text x={210} y={404} textAnchor="middle" fontFamily={MONO} fontSize={fitFont(l.sum, 380, 20)} fontWeight={700} fill={INK}>{l.sum}</text>
+    </Frame>
+  );
+}
+
+function SettlementSplitWide({ l }: { l: SettlementSplitLabels }) {
+  return (
+    <Frame title={l.title} desc={l.desc} viewBox="0 0 900 340" className="bz-diag-wide">
       <defs>
         <marker id="bz-split-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M0 0 L10 5 L0 10 z" fill={RED} />

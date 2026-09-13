@@ -94,34 +94,55 @@ export function DocsSearch({ lang }: { lang: Lang }) {
 
 /**
  * "On this page": the sections of the current page, read from the rendered
- * headings so it can never list one that is not there. Collapsed by default,
- * which is what makes the same element usable on a phone and out of the way on
- * a desktop.
+ * headings so it can never list one that is not there. On a wide screen it is a
+ * sticky rail beside the article; on a narrow one it is a collapsed list above
+ * it. The CSS shows exactly one of the two.
+ *
+ * Neither variant can move the article: the rail sits in its own grid column,
+ * and the inline box is drawn collapsed at its final height before the headings
+ * are read. (A first version appeared only after mount and pushed the page down
+ * — a layout shift of 0.2 on the reference, measured.)
  */
-export function OnThisPage({ lang }: { lang: Lang }) {
+export function OnThisPage({ lang, variant }: { lang: Lang; variant: 'rail' | 'inline' }) {
   const [items, setItems] = useState<{ id: string; text: string }[]>([]);
   useEffect(() => {
-    const hs = Array.from(document.querySelectorAll<HTMLHeadingElement>('article h3[id]'));
-    setItems(hs.map((h) => ({ id: h.id, text: (h.textContent ?? '').replace(/\s+/g, ' ').trim() })).filter((x) => x.text));
+    // The page body can render after this component mounts, so read the headings
+    // again whenever the article changes, not once.
+    const root = document.getElementById('docs-content');
+    if (!root) return;
+    const read = () => {
+      const next = Array.from(root.querySelectorAll<HTMLHeadingElement>('h3[id]'))
+        .map((h) => ({ id: h.id, text: (h.textContent ?? '').replace(/\s+/g, ' ').trim() }))
+        .filter((x) => x.text);
+      setItems((prev) => (prev.length === next.length && prev.every((p, i) => p.id === next[i].id && p.text === next[i].text) ? prev : next));
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, []);
-  // The box is drawn before the headings are read, at its final height, so
-  // filling it in moves nothing below it. A first version appeared only after
-  // mount and pushed the whole page down — a layout shift of 0.2 on the
-  // reference, measured.
-  return (
-    <details style={{ margin: '0 0 18px', background: '#fff', border: '1px solid #EAE3E3', borderRadius: 14, padding: '10px 14px' }}>
-      <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700, color: INK, minHeight: 24 }}>
-        {lang === 'pt' ? 'Nesta página' : 'On this page'}
-      </summary>
-      <nav aria-label={lang === 'pt' ? 'Nesta página' : 'On this page'}>
-        <ul style={{ listStyle: 'none', margin: '8px 0 2px', padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {items.map((i) => (
-            <li key={i.id}>
-              <a href={`#${i.id}`} className="bz-toplink" style={{ display: 'block', padding: '5px 4px', fontSize: 13, fontWeight: 700, color: '#6a5a5e', textDecoration: 'none', minHeight: 24 }}>{i.text}</a>
-            </li>
-          ))}
-        </ul>
+  const label = lang === 'pt' ? 'Nesta página' : 'On this page';
+  const list = (
+    <ul style={{ listStyle: 'none', margin: variant === 'rail' ? 0 : '8px 0 2px', padding: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+      {items.map((i) => (
+        <li key={i.id}>
+          <a href={`#${i.id}`} className="bz-toplink" style={{ display: 'block', padding: variant === 'rail' ? '4px 0 4px 10px' : '5px 4px', borderLeft: variant === 'rail' ? '1px solid #EAE3E3' : undefined, fontSize: 13, fontWeight: 400, lineHeight: 1.4, color: '#5b4f53', textDecoration: 'none', minHeight: 24 }}>{i.text}</a>
+        </li>
+      ))}
+    </ul>
+  );
+  if (variant === 'rail') {
+    return (
+      <nav aria-label={label}>
+        <p style={{ margin: '0 0 8px', fontSize: 11.5, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase', color: '#6f6468' }}>{label}</p>
+        {list}
       </nav>
+    );
+  }
+  return (
+    <details className="bz-toc-inline" style={{ margin: '0 0 18px', background: '#fff', border: '1px solid #EAE3E3', borderRadius: 12, padding: '10px 14px' }}>
+      <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: INK, minHeight: 24 }}>{label}</summary>
+      <nav aria-label={label}>{list}</nav>
     </details>
   );
 }

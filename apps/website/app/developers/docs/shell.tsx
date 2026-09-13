@@ -117,12 +117,13 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
   const idx = areas.findIndex((a) => a.slug === active);
   const prev = idx > 0 ? areas[idx - 1] : null;
   const next = idx >= 0 && idx < areas.length - 1 ? areas[idx + 1] : null;
+  const hasToc = TOC_PAGES.includes(active);
   const chapterKicker = { prev: lang === 'pt' ? 'Capítulo anterior' : 'Previous chapter', next: lang === 'pt' ? 'Próximo capítulo' : 'Next chapter' };
 
   return (
     <div style={{ minHeight: '100vh', background: '#FCFAFA', display: 'flex', flexDirection: 'column', fontFamily: DOCS_SANS }}>
       <a href="#docs-content" className="bz-skip">{lang === 'pt' ? 'Saltar para o conteúdo' : 'Skip to content'}</a>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1200, width: '100%', margin: '0 auto' }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1320, width: '100%', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
           <a href="https://banzami.com" aria-label={lang === 'pt' ? 'Voltar ao Banzami' : 'Back to Banzami'} className="bz-toplink" style={backLinkStyle}>
             <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
@@ -146,8 +147,8 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
         </span>
       </header>
 
-      <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '10px 26px 72px' }}>
-        <div className="bz-docsgrid" style={{ display: 'grid', gridTemplateColumns: '232px 1fr', gap: 36, alignItems: 'start' }}>
+      <main style={{ flex: 1, maxWidth: 1320, width: '100%', margin: '0 auto', padding: '10px 26px 72px' }}>
+        <div className={`bz-docsgrid${hasToc ? ' has-toc' : ''}`}>
           <aside className="bz-docsnav">
             <DocsSearch lang={lang} />
             <button type="button" className="bz-docsmenu-toggle" aria-expanded={menuOpen} aria-controls="docs-nav-list" onClick={() => setMenuOpen((o) => !o)}
@@ -185,8 +186,8 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
           </aside>
 
           <article id="docs-content" className="bz-docarticle" tabIndex={-1} style={{ minWidth: 0, outline: 'none' }}>
-            {/* Only pages long enough to need one; the others have no sections. */}
-            {TOC_PAGES.includes(active) ? <OnThisPage lang={lang} /> : null}
+            {/* Narrow screens: a collapsed list above the content. Wide screens use the rail. */}
+            {hasToc ? <OnThisPage lang={lang} variant="inline" /> : null}
             {children(copy)}
 
             {/* Chapter navigation — prev/next, reusing the doccard visual style */}
@@ -227,6 +228,9 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
               </a>
             </p>
           </article>
+
+          {/* Only pages long enough to need one; the others have no sections. */}
+          {hasToc ? <aside className="bz-toc-rail"><OnThisPage lang={lang} variant="rail" /></aside> : null}
         </div>
       </main>
 

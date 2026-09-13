@@ -56,7 +56,7 @@ export function StepCard({
     <section id={id} aria-labelledby={`${id}-title`} style={{ ...card, scrollMarginTop: 80 }}>
       <p style={kicker}>{tr(lang, 'PASSO', 'STEP')} {n} {tr(lang, 'DE', 'OF')} {of}</p>
       <h3 id={`${id}-title`} style={{ margin: '2px 0 10px', fontSize: 17, fontWeight: 700, color: INK }}>{title}</h3>
-      <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(78px, max-content) 1fr', gap: '6px 14px', margin: 0 }}>
+      <dl className="bz-factgrid" style={{ display: 'grid', gridTemplateColumns: 'minmax(78px, max-content) 1fr', gap: '6px 14px', margin: 0 }}>
         {label(tr(lang, 'O quê', 'What'))}<dd style={rowText}>{what}</dd>
         {label(tr(lang, 'Porquê', 'Why'))}<dd style={rowText}>{why}</dd>
         {label(tr(lang, 'Fazer', 'Do'))}<dd style={{ ...rowText, minWidth: 0 }}>{children}</dd>
@@ -122,7 +122,7 @@ export function RecipeCard({ lang, r }: { lang: Lang; r: RecipeFields }) {
   return (
     <section id={r.id} aria-labelledby={`${r.id}-title`} style={{ ...card, scrollMarginTop: 80 }}>
       <h3 id={`${r.id}-title`} style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 700, color: INK }}>{r.title}</h3>
-      <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) 1fr', gap: '6px 14px', margin: 0 }}>
+      <dl className="bz-factgrid" style={{ display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) 1fr', gap: '6px 14px', margin: 0 }}>
         {rows.map(([k, v]) => (
           <div key={k} style={{ display: 'contents' }}>
             <dt style={{ fontSize: 12, fontWeight: 700, color: '#6f6468', paddingTop: 2 }}>{k}</dt>
@@ -147,7 +147,7 @@ export function ChapterFacts({
     [tr(lang, 'Falha comum', 'Common failure'), failure],
   ];
   return (
-    <dl style={{ ...card, display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) 1fr', gap: '6px 14px' }}>
+    <dl className="bz-factgrid" style={{ ...card, display: 'grid', gridTemplateColumns: 'minmax(96px, max-content) 1fr', gap: '6px 14px' }}>
       {rows.map(([k, v, color]) => (
         <div key={k} style={{ display: 'contents' }}>
           <dt style={{ fontSize: 12, fontWeight: 700, color: '#6f6468', paddingTop: 2 }}>{k}</dt>
