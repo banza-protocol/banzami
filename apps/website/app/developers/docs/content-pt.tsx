@@ -1151,9 +1151,11 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 </LI>
                 <LI>Instale o SDK no servidor: <Code>npm install @banzami/sdk</Code>.</LI>
                 <LI>
-                  Configure o servidor com duas variáveis, e nenhuma outra que o Banzami exija:{' '}
-                  <Code>BANZAMI_API_KEY</Code> (a chave <Code>bz_test_sk_</Code>) e{' '}
-                  <Code>BANZAMI_WEBHOOK_SECRET</Code> (o segredo do endpoint, que aparece uma vez quando o regista).
+                  Configure o servidor com <Code>BANZAMI_API_KEY</Code> (a chave <Code>bz_test_sk_</Code>) e{' '}
+                  <Code>BANZAMI_WEBHOOK_SECRET</Code> (o segredo do endpoint, que aparece uma vez quando o regista). Se o
+                  perfil de preço da sua empresa aplicar uma taxa às liquidações, também{' '}
+                  <Code>BANZAMI_FEE_DESTINATION</Code>: o @banza da conta da sua empresa que a recebe. Nenhum merchant_id,
+                  nenhum wallet_id.
                 </LI>
                 <LI>
                   Antes de deixar activar uma campanha, pergunte se o projeto já pode receber:{' '}
@@ -1240,6 +1242,21 @@ await db.campanhas.update(campanha.id, { banzami_wallet_account_id: conta.id });
                 uma reentrega normal duplica a doação.
               </Callout>
 
+              <H3 id="doa-comprovativo">O comprovativo do doador</H3>
+              <P>
+                Quando o doador paga, o Banzami emite o <strong>comprovativo</strong> do pagamento — não o DOA. O doador
+                recebe-o na app Banzami, com uma referência pública <Code>BZM-…</Code> e um QR que abre{' '}
+                <Code>https://banzami.com/r/&#123;referência&#125;</Code>. O recibo da doação que o DOA envia é outra coisa: é
+                do DOA, diz que campanha recebeu, e pode citar essa referência.
+              </P>
+              <P>
+                Qualquer pessoa confirma o comprovativo, sem conta e sem chave, com{' '}
+                <Code>GET /v1/public/proofs/&#123;referência&#125;</Code>: <Code>200</Code> com o estado e o montante, ou{' '}
+                <Code>404</Code> se não existe ou foi alterada. Quem tem a referência vê o montante e os @banza das partes —
+                partilhe-a como partilharia o próprio comprovativo. Ver{' '}
+                <a href="/docs/guides#comprovativos" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Comprovativos e verificação pública</a>.
+              </P>
+
               <H3 id="doa-liquidacao">A liquidação, e quem decide o quê</H3>
               <P>
                 Quando uma campanha encerra, o DOA pede a liquidação da conta dessa campanha. O
@@ -1249,6 +1266,10 @@ await db.campanhas.update(campanha.id, { banzami_wallet_account_id: conta.id });
               <CodeBlock label="liquidação" onCopy={copy} raw={`const liquidacao = await banzami.createBusinessApplicationSettlement({
   sourceAccountId:      campanha.banzami_wallet_account_id,
   beneficiaryBanzaName: campanha.destino_banza,     // o @banza de quem recebe
+  // Para onde vai a taxa, quando o seu perfil de preço aplica uma. Tem de ser uma
+  // conta da SUA empresa, de tipo APPLICATION ou PLATFORM. Sem ela, uma
+  // liquidação com taxa é recusada com 422 FEE_DESTINATION_REQUIRED.
+  feeDestinationBanzaName: process.env.BANZAMI_FEE_DESTINATION,
   referenceType:        'CAMPANHA',
   referenceId:          campanha.id,                // a sua referência, devolvida no webhook
   // Uma liquidação move dinheiro: a chave de idempotência é obrigatória e
@@ -1266,7 +1287,9 @@ await db.campanhas.update(campanha.id, { banzami_wallet_account_id: conta.id });
 // -100000 + 2000 + 98000 = 0`} />
               <P>
                 E as três parcelas somam zero contra o movimento, que é a propriedade que torna
-                isto auditável: <Code>-10000000 + 200000 + 9800000 = 0</Code>.
+                isto auditável: <Code>-100000 + 2000 + 98000 = 0</Code>. O montante bruto é o saldo
+                da conta no momento do pedido; a taxa é a do perfil de preço que o Banzami atribuiu à sua
+                empresa, e não um campo que possa enviar.
               </P>
               <Callout>
                 <strong>Pagamento não é liquidação.</strong> Um pagamento confirmado põe dinheiro

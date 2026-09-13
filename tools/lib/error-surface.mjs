@@ -265,7 +265,7 @@ export function consoleCodes(root) {
       const p = join(d, e.name);
       if (e.isDirectory()) walk(p);
       else if (e.name.endsWith('.go') && !e.name.endsWith('_test.go')) {
-        for (const m of readFileSync(p, 'utf8').matchAll(/Error\(\s*\w+,\s*[^,]+,\s*"([A-Z][A-Z0-9_]{2,})"/g)) out.add(m[1]);
+        for (const m of readFileSync(p, 'utf8').matchAll(/Error\w*\(\s*\w+,\s*[^,]+,\s*"([A-Z][A-Z0-9_]{2,})"/g)) out.add(m[1]);
       }
     }
   };

@@ -66,7 +66,7 @@ DOA_MERCHANTS="SELECT b.merchant_id FROM developer.dev_project_sandbox_binding b
 # and setup-probe projects were created inside the owner's own workspaces during
 # assurance runs: the projects are retired, the workspaces and identities stay.
 WSFIX="^(DevPlatform [0-9]+ workspace|Synthetic Platform [0-9]+ workspace|gj-[ab]-[0-9a-f]{8} workspace|readiness-[ab]-[0-9]+ workspace|webhook-retry-[0-9]+ workspace|onb-ws-|onbui-ws-|rcpt-ws-)"
-PFIX="^(DevPlatform |Synthetic Platform |Phase0 |adr055-|wa-unbound-|wa-other-|wh-unbound-|wh-other-|rt[0-9]{2}-|seal-test|gj-[ab]-|refund-other-|rfpub-b-|tr-other-|e2e-|dp-|sdk-|k-[0-9]+$|onbui?-[ab]-|readiness-|webhook-retry-|isolation-|Cleanroom (Sandbox|Setup Probe|Control [0-9]+)$|External Cleanroom (Sandbox|Settlement)$|Final Cleanroom [0-9a-f]{8}$|Setup Probe Two$)"
+PFIX="^(docs-(qs|doa)-[a-z0-9]+$|DevPlatform |Synthetic Platform |Phase0 |adr055-|wa-unbound-|wa-other-|wh-unbound-|wh-other-|rt[0-9]{2}-|seal-test|gj-[ab]-|refund-other-|rfpub-b-|tr-other-|e2e-|dp-|sdk-|k-[0-9]+$|onbui?-[ab]-|readiness-|webhook-retry-|isolation-|Cleanroom (Sandbox|Setup Probe|Control [0-9]+)$|External Cleanroom (Sandbox|Settlement)$|Final Cleanroom [0-9a-f]{8}$|Setup Probe Two$)"
 P_SHAPE="dp.workspace_id NOT IN ($DOA_WS) AND (dp.name ~ '$PFIX' OR dp.workspace_id IN (SELECT id FROM developer.dev_workspaces WHERE name ~ '$WSFIX'))"
 P_SEL="p.status = 'ACTIVE' AND EXISTS (SELECT 1 FROM developer.dev_projects dp WHERE dp.id = p.id AND $P_SHAPE)"
 # Merchants: a harness name shape, a test email domain (never the Console's
@@ -81,6 +81,10 @@ M_SEL="m.id NOT IN ($DOA_MERCHANTS)
 # Consumers: a machine-numbered handle with no display name, or the two harness
 # families that set one (receipt-assurance ra<run>s<n>; the receipt E2E payers
 # rc[ab]m<run>). Real users choose a handle and a name.
+# The documentation journeys (tools/e2e/docs/quickstart-e2e.mjs and
+# doa-tutorial-e2e.mjs, DOCS-PROD-001 §45/§46) register their payers, donors and
+# beneficiaries as qspayer<run>, doatutdonor<run> and doatutbenef<run>; their
+# Businesses carry @banzami-e2e.test emails and their projects docs-qs-/docs-doa-.
 # The APP-001 acceptance run (2026-09-12) added three machine shapes and one
 # account that has to be named outright. @fidel was created on a real iPhone for
 # the APP-001 device ceremony and has real financial history — a registration
@@ -94,6 +98,7 @@ C_SEL="((c.handle ~ '^[a-z]{1,4}[0-9]{4,}[a-z0-9]*\$' AND c.display_name IS NULL
         OR c.handle ~ '^e2e(send|rcv)[a-z0-9]+\$'
         OR c.handle ~ '^shapeprobe[a-z0-9]+\$'
         OR c.handle ~ '^app001recv[a-z0-9]+\$'
+        OR c.handle ~ '^(qspayer|doatutdonor|doatutbenef)[a-z0-9]+\$'
         OR c.id = 'd6fbc4d2-e913-447c-84f8-3d3b7df677eb')
        AND c.handle NOT IN ('fm65','oxfannio','priscila')"
 # The demo campaign accounts tests/phase0/campaign-payment-segregation.sh opened

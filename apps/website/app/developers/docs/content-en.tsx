@@ -1141,9 +1141,11 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
                 </LI>
                 <LI>Install the SDK on the server: <Code>npm install @banzami/sdk</Code>.</LI>
                 <LI>
-                  Configure the server with two variables, and no others Banzami requires:{' '}
-                  <Code>BANZAMI_API_KEY</Code> (the <Code>bz_test_sk_</Code> key) and{' '}
-                  <Code>BANZAMI_WEBHOOK_SECRET</Code> (the endpoint&rsquo;s secret, shown once when you register it).
+                  Configure the server with <Code>BANZAMI_API_KEY</Code> (the <Code>bz_test_sk_</Code> key) and{' '}
+                  <Code>BANZAMI_WEBHOOK_SECRET</Code> (the endpoint&rsquo;s secret, shown once when you register it). If
+                  your business&rsquo;s pricing profile applies a fee to settlements, also{' '}
+                  <Code>BANZAMI_FEE_DESTINATION</Code>: the @banza of your business&rsquo;s account that receives it. No
+                  merchant_id, no wallet_id.
                 </LI>
                 <LI>
                   Before letting a campaign go live, ask whether the project can receive yet:{' '}
@@ -1230,6 +1232,21 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
                 an ordinary redelivery duplicates the donation.
               </Callout>
 
+              <H3 id="doa-receipt">The donor&rsquo;s receipt</H3>
+              <P>
+                When the donor pays, Banzami issues the payment&rsquo;s <strong>receipt</strong> — not DOA. The donor
+                receives it in the Banzami app, with a public <Code>BZM-…</Code> reference and a QR that opens{' '}
+                <Code>https://banzami.com/r/&#123;reference&#125;</Code>. The donation receipt DOA sends is something else: it is
+                DOA&rsquo;s, it says which campaign received, and it may quote that reference.
+              </P>
+              <P>
+                Anyone can confirm the receipt, with no account and no key, with{' '}
+                <Code>GET /v1/public/proofs/&#123;reference&#125;</Code>: <Code>200</Code> with the status and the amount, or{' '}
+                <Code>404</Code> if it does not exist or was altered. Whoever holds the reference sees the amount and both
+                parties&rsquo; @banza — share it the way you would share the receipt itself. See{' '}
+                <a href="/docs/en/guides#receipts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Receipts and public verification</a>.
+              </P>
+
               <H3 id="doa-settlement">Settlement, and who decides what</H3>
               <P>
                 When a campaign closes, DOA requests settlement of that campaign&rsquo;s account.
@@ -1239,6 +1256,10 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
               <CodeBlock label="settlement" onCopy={copy} raw={`const settlement = await banzami.createBusinessApplicationSettlement({
   sourceAccountId:      campaign.banzami_wallet_account_id,
   beneficiaryBanzaName: campaign.payout_banza,     // the @banza receiving it
+  // Where the fee goes, when your pricing profile applies one. It must be an
+  // account of YOUR business, of type APPLICATION or PLATFORM. Without it, a
+  // settlement that carries a fee is refused with 422 FEE_DESTINATION_REQUIRED.
+  feeDestinationBanzaName: process.env.BANZAMI_FEE_DESTINATION,
   referenceType:        'CAMPAIGN',
   referenceId:          campaign.id,               // your reference, returned on the webhook
   // A settlement moves money: the idempotency key is required, and it has to
@@ -1256,7 +1277,9 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
 // -100000 + 2000 + 98000 = 0`} />
               <P>
                 And the three parts sum to zero against the movement, which is the property that
-                makes this auditable: <Code>-10000000 + 200000 + 9800000 = 0</Code>.
+                makes this auditable: <Code>-100000 + 2000 + 98000 = 0</Code>. The gross is the account&rsquo;s
+                balance at the moment of the request; the fee is the one in the pricing profile Banzami assigned to
+                your business, not a field you can send.
               </P>
               <Callout>
                 <strong>A payment is not a settlement.</strong> A confirmed payment puts money in

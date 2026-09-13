@@ -351,8 +351,10 @@ async function complete() {
 
   // Step 4, re-asked: is the Project actually able to receive now?
   const fs = await call(`/projects/${state.created.project}/financial-setup`);
-  const ready = fs.status === 200 && (fs.body?.state === 'CONFIGURED' || fs.body?.sealed === true || fs.body?.readiness?.ready === true);
-  ready ? mark(4, 'PASS', `financial setup ${fs.body?.state}${fs.body?.sealed ? ', sealed' : ''}`) : mark(4, 'FAIL', `still ${fs.body?.state ?? fs.status} — the review has not provisioned the Project`);
+  // READY or SEALED are the only receiving states (developer-api financial_setup.go).
+  // An earlier draft looked for "CONFIGURED", which the Console never returns.
+  const ready = fs.status === 200 && ['READY', 'SEALED'].includes(fs.body?.state);
+  ready ? mark(4, 'PASS', `financial setup ${fs.body.state}`) : mark(4, 'FAIL', `still ${fs.body?.state ?? fs.status} — the review has not provisioned the Project`);
 
   const sdk = state.sdk?.name;
   const env = { BANZAMI_API_KEY: state.secret };
@@ -482,6 +484,21 @@ async function complete() {
     mark(12, 'NOT_RUN', 'nothing to view');
   }
 
+  // Cleanup through the Console the reader has: endpoint, key, project,
+  // workspace. The payer and the Business are retired by
+  // tools/ops/retire-synthetic-residue.sh through the operator's own APIs;
+  // residue below counts them until that has happened.
+  const cleanup = [];
+  if (state.created.webhookEndpoint) cleanup.push(`endpoint: ${(await call(`/projects/${state.created.project}/webhooks/endpoints/${state.created.webhookEndpoint}`, 'DELETE')).status}`);
+  const keys = (await call(`/projects/${state.created.project}/keys`)).body?.keys ?? [];
+  for (const k of keys.filter((x) => x.status === 'ACTIVE')) cleanup.push(`key ${k.id}: ${(await call(`/keys/${k.id}`, 'DELETE')).status}`);
+  const proj = await call(`/projects/${state.created.project}`);
+  cleanup.push(`project: ${(await call(`/projects/${state.created.project}/archive`, 'POST', { name: proj.body?.name })).status}`);
+  const ws = await call(`/workspaces/${state.created.workspace}`);
+  cleanup.push(`workspace: ${(await call(`/workspaces/${state.created.workspace}/archive`, 'POST', { name: ws.body?.name })).status}`);
+  state.cleanup = cleanup;
+  console.log(`  cleanup — ${cleanup.join(' · ')}`);
+
   saveState({ ...state, steps });
   return finish(state, { phase: 'complete' });
 }
@@ -498,8 +515,11 @@ function measureResidue(state) {
       + `PW=$(docker exec $CORE sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); `
       + `docker exec -e PGPASSWORD=$PW -e PGOPTIONS='-c default_transaction_read_only=on' $PG psql -U bl_app_runtime -d banzami_staging -At -c "`
       + `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE name LIKE 'docs-qs-${state.stamp}%' AND status='ACTIVE')`
-      + ` + (SELECT count(*) FROM consumers WHERE handle LIKE 'qspayer${state.stamp}%' AND status='ACTIVE')"`], { encoding: 'utf8', timeout: 60000 });
-    return { count: Number(out.trim()) || 0, detail: 'active workspaces and payers from this run' };
+      + ` + (SELECT count(*) FROM developer.dev_projects WHERE name LIKE 'docs-qs-${state.stamp}%' AND status='ACTIVE')`
+      + ` + (SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id = k.project_id WHERE p.name LIKE 'docs-qs-${state.stamp}%' AND k.status='ACTIVE')`
+      + ` + (SELECT count(*) FROM consumers WHERE handle LIKE 'qspayer${state.stamp}%' AND status='ACTIVE')`
+      + ` + (SELECT count(*) FROM merchants m JOIN handle_registry h ON h.owner_id = m.id AND h.owner_type = 'MERCHANT' WHERE h.handle = 'qs${state.stamp}' AND m.status='ACTIVE')"`], { encoding: 'utf8', timeout: 60000 });
+    return { count: Number(out.trim()) || 0, detail: 'active workspace, project, keys, payer and Business from this run' };
   } catch (e) {
     return { count: -1, detail: `could not measure: ${String(e.message).slice(0, 80)}` };
   }
