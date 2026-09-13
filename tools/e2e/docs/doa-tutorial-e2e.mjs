@@ -235,7 +235,15 @@ async function complete() {
   const fs = await call(`/projects/${state.created.project}/financial-setup`);
   // READY or SEALED are the Console's only receiving states (developer-api financial_setup.go).
   const ready = fs.status === 200 && ['READY', 'SEALED'].includes(fs.body?.state);
-  ready ? mark(2, 'PASS', `financial setup ${fs.body.state}`) : mark(2, 'FAIL', `not ready: ${fs.body?.state ?? fs.status}`);
+  if (!ready) {
+    // Stop before anything is created or archived: the pending review binds this
+    // Project, and cleanup would archive it (see quickstart-e2e.mjs).
+    mark(2, 'PENDING', `not ready: ${fs.body?.state ?? fs.status} (application ${fs.body?.onboarding?.application?.status ?? 'unknown'}) — fixture preserved; run "complete" again after the review`);
+    state.steps = J.steps;
+    saveState(state);
+    return finish(state, 'awaiting-review');
+  }
+  mark(2, 'PASS', `financial setup ${fs.body.state}`);
 
   // 5 — the readiness gate the tutorial asks for, through the SDK.
   if (pageSays(5, pages)) {

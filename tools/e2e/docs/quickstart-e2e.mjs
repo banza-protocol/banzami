@@ -152,12 +152,12 @@ function runInReaderDir(dir, source, env) {
 /** What the reader's own webhook endpoint received. The sink stands in for their server. */
 function sinkRequests(cap) {
   const out = execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
-    `docker exec banzami-webhook-sink wget -qO- 'http://localhost:8090/admin/requests?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
+    `docker exec banzami-webhook-sink wget -qO- 'http://127.0.0.1:8090/admin/requests?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
   return JSON.parse(out);
 }
 function sinkConfigure(cap) {
   execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
-    `docker exec banzami-webhook-sink wget -qO- --post-data='{}' --header='content-type: application/json' 'http://localhost:8090/admin/configure?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
+    `docker exec banzami-webhook-sink wget -qO- --post-data='{}' --header='content-type: application/json' 'http://127.0.0.1:8090/admin/configure?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
 }
 
 
@@ -354,7 +354,16 @@ async function complete() {
   // READY or SEALED are the only receiving states (developer-api financial_setup.go).
   // An earlier draft looked for "CONFIGURED", which the Console never returns.
   const ready = fs.status === 200 && ['READY', 'SEALED'].includes(fs.body?.state);
-  ready ? mark(4, 'PASS', `financial setup ${fs.body.state}`) : mark(4, 'FAIL', `still ${fs.body?.state ?? fs.status} — the review has not provisioned the Project`);
+  if (!ready) {
+    // Nothing after this point may run: steps 8–12 need a receiving Project, and
+    // cleanup would archive the very Project the pending review is about to bind.
+    // An earlier version fell through to cleanup and archived an approved-to-be
+    // fixture, so a later approval had nothing live to bind.
+    mark(4, 'PENDING', `still ${fs.body?.state ?? fs.status} (application ${fs.body?.onboarding?.application?.status ?? 'unknown'}) — fixture preserved; run "complete" again after the review`);
+    saveState({ ...state, steps });
+    return finish(state, { phase: 'awaiting-review' });
+  }
+  mark(4, 'PASS', `financial setup ${fs.body.state}`);
 
   const sdk = state.sdk?.name;
   const env = { BANZAMI_API_KEY: state.secret };

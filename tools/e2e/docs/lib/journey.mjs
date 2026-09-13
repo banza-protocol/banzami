@@ -94,12 +94,12 @@ export function runInReaderDir(dir, source, env) {
 /** What the reader's own webhook endpoint received. The sink stands in for their server. */
 export function sinkRequests(cap) {
   const out = execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
-    `docker exec banzami-webhook-sink wget -qO- 'http://localhost:8090/admin/requests?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
+    `docker exec banzami-webhook-sink wget -qO- 'http://127.0.0.1:8090/admin/requests?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
   return JSON.parse(out);
 }
 export function sinkConfigure(cap) {
   execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
-    `docker exec banzami-webhook-sink wget -qO- --post-data='{}' --header='content-type: application/json' 'http://localhost:8090/admin/configure?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
+    `docker exec banzami-webhook-sink wget -qO- --post-data='{}' --header='content-type: application/json' 'http://127.0.0.1:8090/admin/configure?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
 }
 
 /**
