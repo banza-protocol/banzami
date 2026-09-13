@@ -239,6 +239,29 @@ for (const p of PAGES) {
     : pass('parity', `/docs${p}: same ${a.size} endpoint(s) in both languages`);
 }
 
+{
+  const bad = findings.filter((f) => f.area === 'parity' && f.verdict === 'FAIL').length;
+  console.log(`  DOCS_PT_EN_CONTRACT_PARITY=${bad ? 'FAIL' : 'PASS'}`);
+}
+
+// ── API version ──────────────────────────────────────────────────────────────
+// Public API = v1 only. A /v2 path, or prose promising a v2, on any published
+// page — in either language — is a claim about a contract that does not exist.
+console.log('\n── API version ──');
+{
+  let v2 = 0;
+  const versions = new Set();
+  for (const [path, v] of fetched) {
+    for (const m of v.text.matchAll(/\/v(\d+)\//g)) versions.add(`v${m[1]}`);
+    const hits = v.text.match(/\/v2\/|\bAPI v2\b|\bv2 (da|of the) API\b/gi) ?? [];
+    if (hits.length) { v2 += hits.length; fail('version', `${path}: ${hits.length} v2 reference(s)`, hits.slice(0, 3).join(', ')); }
+  }
+  const current = [...versions].sort().join(',');
+  current === 'v1' ? pass('version', `DOCS_CURRENT_API_VERSION = v1 (every versioned path on ${fetched.size} pages)`) : fail('version', `API versions on the pages: ${current}`);
+  if (v2 === 0) pass('version', 'DOCS_V2_REFERENCES = 0');
+  console.log(`  DOCS_CURRENT_API_VERSION=${current}\n  DOCS_V2_REFERENCES=${v2}`);
+}
+
 // ── links and anchors ────────────────────────────────────────────────────────
 console.log('\n── links and anchors ──');
 const links = [];

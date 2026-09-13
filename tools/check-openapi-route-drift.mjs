@@ -196,5 +196,7 @@ readFileSync(SPEC, 'utf8') === readFileSync(MIRROR, 'utf8')
   ? pass('the published copy on the website is byte-identical to docs/')
   : fail('apps/website/public/developers/openapi/ has drifted from docs/developer/openapi/');
 
+// Routes ↔ OpenAPI ↔ the copy the documentation site publishes, in one number.
+console.log(`\nROUTE_OPENAPI_DOC_DRIFT=${failures}`);
 if (failures) { console.error('\n✗ OpenAPI route drift'); process.exit(1); }
 console.log('\n✓ the published contract and the reachable surface are the same set');

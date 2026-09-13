@@ -36,6 +36,8 @@ for (const d of drift) console.error(`  ✗ DRIFT ${d}`);
 
 console.log(`\nDOCS_CLAIMS_TOTAL=${claims.length}`);
 console.log(`UNCLASSIFIED_CLAIMS=${unclassified.length}`);
+// A claim with no ledger class has no evidence behind it: unsupported.
+console.log(`PUBLIC_DOC_UNSUPPORTED_CLAIMS=${unclassified.length}`);
 console.log(`STALE_LEDGER_ENTRIES=${stale.length}`);
 console.log(`LEDGER_PT_EN_DRIFT=${drift.length}`);
 const ok = unclassified.length === 0 && stale.length === 0 && drift.length === 0;

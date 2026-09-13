@@ -155,5 +155,7 @@ liveUses.length
   ? fail('the documentation uses a live key, which is issued to nobody', liveUses.join(', '))
   : pass(`no live key is used anywhere (${(DOCS.match(/bz_live_/g) ?? []).length} mention(s), all saying it is refused)`);
 
+// A drift failure is a published statement the product no longer makes true.
+console.log(`\nPUBLIC_DOC_STALE_CLAIMS=${failures}`);
 if (failures) { console.error(`\n✗ ${failures} documentation drift failure(s)`); process.exit(1); }
 console.log('\n✓ the documentation and the product it describes still agree');
