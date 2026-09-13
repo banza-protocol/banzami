@@ -17,7 +17,7 @@ const spec = readFileSync(join(ROOT, 'docs/quality/DOCS_PROD_001_SPEC.md'), 'utf
 const matrix = readFileSync(join(ROOT, 'docs/quality/DOCS_PROD_001_CONFORMANCE.md'), 'utf8');
 const sections = [...spec.matchAll(/^## (\d+)\. (.+)$/gm)].map((m) => ({ n: Number(m[1]), t: m[2].trim() }));
 const rows = [...matrix.matchAll(/^\| (\d+) \| (.+?) \| ([A-Z_]+) \| (.*) \|$/gm)].map((m) => ({ n: Number(m[1]), t: m[2].trim(), v: m[3], e: m[4].trim() }));
-const VERDICTS = new Set(['PASS', 'NOT_APPLICABLE', 'PENDING_REVIEW_CEREMONY', 'FAIL']);
+const VERDICTS = new Set(['PASS', 'NOT_APPLICABLE', 'PENDING_REVIEW_CEREMONY', 'PENDING_RETIREMENT', 'FAIL']);
 const problems = [];
 
 if (sections.length !== 82) problems.push(`the spec has ${sections.length} sections, not 82`);

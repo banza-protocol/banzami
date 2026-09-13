@@ -5,19 +5,20 @@ Version 1.0 · audited 2026-09-13 · spec [DOCS_PROD_001_SPEC.md](DOCS_PROD_001_
 One row per spec section, generated against the spec's own headings and checked
 by `tools/check-docs-prod-001-matrix.mjs`: the rows must be exactly the 82
 sections, in order, each with evidence; the only verdicts are PASS,
-NOT_APPLICABLE (with a reason) and PENDING_REVIEW_CEREMONY. The gate reports
+NOT_APPLICABLE (with a reason), PENDING_REVIEW_CEREMONY and PENDING_RETIREMENT
+(a journey proved, its synthetic residue not yet retired). The gate reports
 `DOCS_PROD_001_GAPS` as every row that is not PASS or NOT_APPLICABLE, so the
 matrix cannot read complete while a journey is still waiting.
 
 | § | Section | Verdict | Evidence |
 |---|---|---|---|
 | 0 | PRECONDITION | PASS | Public API v1 only (`DOCS_V2_REFERENCES=0`, check-docs-drift); Financial LIVE fail-closed on every page; SDK 0.13.0 from npm. |
-| 1 | AUDIT THE COMPLETE DEPLOYED PUBLIC DOCUMENTATION | PASS | Deployed crawl `tools/e2e/docs/audit.mjs` 50/50; claim-by-claim ledger 908 claims, `UNCLASSIFIED_CLAIMS=0` ([DEVELOPER_DOCUMENTATION_AUDIT.md](DEVELOPER_DOCUMENTATION_AUDIT.md)). |
+| 1 | AUDIT THE COMPLETE DEPLOYED PUBLIC DOCUMENTATION | PASS | Deployed crawl `tools/e2e/docs/audit.mjs` 85/0 across 46 pages; claim-by-claim ledger 2150 claims, `UNCLASSIFIED_CLAIMS=0` ([DEVELOPER_DOCUMENTATION_AUDIT.md](DEVELOPER_DOCUMENTATION_AUDIT.md)). |
 | 2 | REMOVE ALL STALE PUBLIC CLAIMS | PASS | `PUBLIC_DOC_STALE_CLAIMS=0`, `PUBLIC_DOC_LEGACY_CONTRACTS=0` (audit.mjs, check-docs-drift); stale landing page, preview wording and pseudo-SDK example files removed. |
 | 3 | DOCUMENTATION MUST BE SELF-SUFFICIENT | PASS | Cold reader 12/12 PT+EN on deployed pages; coverage gate derives every *_COMPLETE item from the spec. |
 | 4 | INFORMATION ARCHITECTURE | PASS | IA: Início, Começar, Consola, SDKs, Guias, DOA, Referência (erros, eventos, limites), Testar, Segurança, Artefactos, Changelog, Glossário — PT/EN structure gate. |
 | 5 | DOCUMENTATION HOMEPAGE | PASS | Docs home: capability paths, quickstart, DOA, Sandbox available / LIVE unavailable (docs/page.tsx). |
-| 6 | QUICKSTART — REAL AND RUNNABLE | PENDING_REVIEW_CEREMONY | Harness `tools/e2e/docs/quickstart-e2e.mjs`: steps 1–3, 5–7 PASS; step 4 awaits operator review of application 98e69d17…; 8–12 run in `complete`. |
+| 6 | QUICKSTART — REAL AND RUNNABLE | PASS | `tools/e2e/docs/quickstart-e2e.mjs` 12/12 on the deployed Sandbox after BANZADMIN approval of application 920b07c8…: Financial Setup READY, session → pay.banzami.com → PAID, `payment_session.paid` verified by the SDK (duplicate → one effect, tampered refused), Console · Transações lists it. |
 | 7 | COMPLETE DEVELOPER CONSOLE DOCUMENTATION | PASS | `DOCS_CONSOLE/WORKSPACE/PROJECT/FINANCIAL_SETUP/API_KEYS/WEBHOOKS_COMPLETE=PASS` derived by `tools/check-docs-coverage.mjs`. |
 | 8 | CANONICAL CONCEPT MODEL | PASS | ConceptModelDiagram (SVG) + “A autoridade desce, nunca sobe” in both languages. |
 | 9 | DOA — CANONICAL REFERENCE IMPLEMENTATION | PASS | DOA page; `DOA_DOC_SPECIAL_CASES=0` counted from the harness source; DOA uses only public contracts. |
@@ -56,8 +57,8 @@ matrix cannot read complete while a journey is still waiting.
 | 42 | OPENAPI ARTIFACT | PASS | OpenAPI v1 validates (`swagger-cli validate` in CI); no internal routes (route drift gate). |
 | 43 | POSTMAN / OTHER ARTIFACTS | PASS | Postman: 9 requests all valid OpenAPI operations; manifest lists purpose/owner; stale Python/PHP pseudo-examples removed; TS example compiled in CI. |
 | 44 | DOCUMENTATION EXAMPLES ARE CODE | PASS | `DOC_CODE_EXAMPLES_TESTED=PASS` (23 TypeScript samples + published example file); curl/JSON checked; `DOC_CODE_EXAMPLES_PT_EN_DRIFT=0`. |
-| 45 | LIVE SANDBOX QUICKSTART SMOKE | PENDING_REVIEW_CEREMONY | Same harness as §6; residue measured after `complete` and retirement. |
-| 46 | DOA DOCUMENTATION ACCEPTANCE — BUILD THE MISSING HARNESS | PENDING_REVIEW_CEREMONY | `tools/e2e/docs/doa-tutorial-e2e.mjs` prepared: steps 1,3,4 PASS; step 2 awaits operator review of application 0f373e3f…; 5–13 in `complete`. |
+| 45 | LIVE SANDBOX QUICKSTART SMOKE | PENDING_RETIREMENT | `DOC_QUICKSTART_E2E=PASS` (12/12). `DOC_QUICKSTART_RESIDUE=2` (payer qspayermtzyhbx2, Business @qsmtzyhbx2) until `tools/ops/retire-synthetic-residue.sh --apply`; re-measure with `quickstart-e2e.mjs residue`. |
+| 46 | DOA DOCUMENTATION ACCEPTANCE — BUILD THE MISSING HARNESS | PENDING_RETIREMENT | `DOA_DOC_TUTORIAL_E2E=PASS` (13/13) on @doatutmu0esuv8 classified APPLICATION with `sandbox-reference` (200 bps): fee 5000 on 250000, net 245000, signed `application_settlement.completed` reconciled; `DOA_DOC_SPECIAL_CASES=0`. `DOA_DOC_TUTORIAL_RESIDUE=6` (two runs' donors, beneficiaries, Businesses) until retirement. |
 | 47 | SECURITY OF THE DOCUMENTATION ITSELF | PASS | `PUBLIC_DOC_REAL_SECRETS=0`, `PUBLIC_DOC_PRIVATE_IDENTIFIERS=0` (audit.mjs); gitleaks with repo config 0 findings on apps/website. |
 | 48 | CLAIM SAFETY | PASS | `PUBLIC_DOC_UNSUPPORTED_CLAIMS=0` via check-docs-claims + claim ledger; settlement never described as automatic. |
 | 49 | API VERSION POLICY | PASS | `DOCS_CURRENT_API_VERSION=v1`, `DOCS_V2_REFERENCES=0`. |
@@ -86,10 +87,10 @@ matrix cannot read complete while a journey is still waiting.
 | 72 | WRITING STYLE | PASS | Plain PT-first prose, callouts sparing; reviewed during the claim audit. |
 | 73 | CODE STYLE | PASS | Real method/field/package names (compile gate); placeholders `bz_test_sk_XXXX…`, `order_123`, `idem_…`. |
 | 74 | DOA GUIDE — EXPECTED READER UNDERSTANDING | PASS | Tutorial covers state ownership, hosted payment, webhook idempotency, receipt, closure, pricing, beneficiary net and fee destination (contract 13/13). |
-| 75 | FINAL QUICKSTART ACCEPTANCE | PENDING_REVIEW_CEREMONY | Depends on §6 `complete`. |
-| 76 | FINAL DOCUMENTATION REGRESSION | PENDING_REVIEW_CEREMONY | Static regression green (website 1081 tests, typecheck, build, gates); runtime quickstart and DOA E2E pending the review ceremony. |
+| 75 | FINAL QUICKSTART ACCEPTANCE | PENDING_RETIREMENT | Journey 12/12 PASS; residue 0 required after retirement. |
+| 76 | FINAL DOCUMENTATION REGRESSION | PENDING_RETIREMENT | Website typecheck, 1067 tests, build, every docs gate, security check, deployed audit 85/0, cold reader 12/12, task harness 20/20, both E2E journeys PASS; closes with the residue re-measure. |
 | 77 | DEPLOYMENT | PASS | website-frontend and api-gateway-staging deployed from the committed SHA; deployed pages verified (audit, sweep, cold reader, contract). |
-| 78 | FINAL ACCEPTANCE MATRIX | PENDING_REVIEW_CEREMONY | Assembled in the final report after §6/§46 complete. |
-| 79 | FINAL REPORT | PENDING_REVIEW_CEREMONY | One final report after the ceremony. |
-| 80 | VERDICT | PENDING_REVIEW_CEREMONY | Verdict only when DOCS_PROD_001_GAPS=0. |
+| 78 | FINAL ACCEPTANCE MATRIX | PENDING_RETIREMENT | Every counter green except the residue counters, which need retirement. |
+| 79 | FINAL REPORT | PENDING_RETIREMENT | One final report after retirement and the residue re-measure. |
+| 80 | VERDICT | PENDING_RETIREMENT | Verdict only when DOCS_PROD_001_GAPS=0. |
 | 81 | FINAL PRINCIPLE | PASS | The self-sufficiency questions are answered by the published pages (cold reader 12/12, coverage gate). |
