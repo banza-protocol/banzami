@@ -57,8 +57,8 @@ matrix cannot read complete while a journey is still waiting.
 | 42 | OPENAPI ARTIFACT | PASS | OpenAPI v1 validates (`swagger-cli validate` in CI); no internal routes (route drift gate). |
 | 43 | POSTMAN / OTHER ARTIFACTS | PASS | Postman: 9 requests all valid OpenAPI operations; manifest lists purpose/owner; stale Python/PHP pseudo-examples removed; TS example compiled in CI. |
 | 44 | DOCUMENTATION EXAMPLES ARE CODE | PASS | `DOC_CODE_EXAMPLES_TESTED=PASS` (23 TypeScript samples + published example file); curl/JSON checked; `DOC_CODE_EXAMPLES_PT_EN_DRIFT=0`. |
-| 45 | LIVE SANDBOX QUICKSTART SMOKE | PENDING_RETIREMENT | `DOC_QUICKSTART_E2E=PASS` (12/12). `DOC_QUICKSTART_RESIDUE=2` (payer qspayermtzyhbx2, Business @qsmtzyhbx2) until `tools/ops/retire-synthetic-residue.sh --apply`; re-measure with `quickstart-e2e.mjs residue`. |
-| 46 | DOA DOCUMENTATION ACCEPTANCE — BUILD THE MISSING HARNESS | PENDING_RETIREMENT | `DOA_DOC_TUTORIAL_E2E=PASS` (13/13) on @doatutmu0esuv8 classified APPLICATION with `sandbox-reference` (200 bps): fee 5000 on 250000, net 245000, signed `application_settlement.completed` reconciled; `DOA_DOC_SPECIAL_CASES=0`. `DOA_DOC_TUTORIAL_RESIDUE=6` (two runs' donors, beneficiaries, Businesses) until retirement. |
+| 45 | LIVE SANDBOX QUICKSTART SMOKE | PASS | `DOC_QUICKSTART_E2E=PASS` (12/12, fresh fixture, documentation followed as published). After `retire-synthetic-residue.sh --apply` (payer and Business suspended, value retired by balanced posting) and the Console fixture sweep: `quickstart-e2e.mjs residue` → `DOC_QUICKSTART_RESIDUE=0` for both Quickstart runs. |
+| 46 | DOA DOCUMENTATION ACCEPTANCE — BUILD THE MISSING HARNESS | PASS | `DOA_DOC_TUTORIAL_E2E=PASS` (13/13) on @doatutmu0esuv8 classified APPLICATION with `sandbox-reference` (200 bps): fee 5000 on 250000, net 245000, signed `application_settlement.completed` reconciled; `DOA_DOC_SPECIAL_CASES=0`; after retirement `DOA_DOC_TUTORIAL_RESIDUE=0` for both tutorial runs. |
 | 47 | SECURITY OF THE DOCUMENTATION ITSELF | PASS | `PUBLIC_DOC_REAL_SECRETS=0`, `PUBLIC_DOC_PRIVATE_IDENTIFIERS=0` (audit.mjs); gitleaks with repo config 0 findings on apps/website. |
 | 48 | CLAIM SAFETY | PASS | `PUBLIC_DOC_UNSUPPORTED_CLAIMS=0` via check-docs-claims + claim ledger; settlement never described as automatic. |
 | 49 | API VERSION POLICY | PASS | `DOCS_CURRENT_API_VERSION=v1`, `DOCS_V2_REFERENCES=0`. |
@@ -87,10 +87,10 @@ matrix cannot read complete while a journey is still waiting.
 | 72 | WRITING STYLE | PASS | Plain PT-first prose, callouts sparing; reviewed during the claim audit. |
 | 73 | CODE STYLE | PASS | Real method/field/package names (compile gate); placeholders `bz_test_sk_XXXX…`, `order_123`, `idem_…`. |
 | 74 | DOA GUIDE — EXPECTED READER UNDERSTANDING | PASS | Tutorial covers state ownership, hosted payment, webhook idempotency, receipt, closure, pricing, beneficiary net and fee destination (contract 13/13). |
-| 75 | FINAL QUICKSTART ACCEPTANCE | PENDING_RETIREMENT | Journey 12/12 PASS; residue 0 required after retirement. |
-| 76 | FINAL DOCUMENTATION REGRESSION | PENDING_RETIREMENT | Website typecheck, 1067 tests, build, every docs gate, security check, deployed audit 85/0, cold reader 12/12, task harness 20/20, both E2E journeys PASS; closes with the residue re-measure. |
+| 75 | FINAL QUICKSTART ACCEPTANCE | PASS | Quickstart 12/12 on the deployed Sandbox; `DOC_QUICKSTART_RESIDUE=0` measured after retirement. |
+| 76 | FINAL DOCUMENTATION REGRESSION | PASS | After the last documentation change: website typecheck, 1067 tests, build; every docs gate (drift, claims, coverage, ledger, API reference + selftest, errors + selftest, events, PT/EN structure, illustrations, code examples, search, editorial, DX, llms.txt, OpenAPI route drift); security check; deployed audit 85/0, sweep 600/0, cold reader 12/12, task harness 20/20; both E2E journeys PASS; residue 0. |
 | 77 | DEPLOYMENT | PASS | website-frontend and api-gateway-staging deployed from the committed SHA; deployed pages verified (audit, sweep, cold reader, contract). |
-| 78 | FINAL ACCEPTANCE MATRIX | PENDING_RETIREMENT | Every counter green except the residue counters, which need retirement. |
-| 79 | FINAL REPORT | PENDING_RETIREMENT | One final report after retirement and the residue re-measure. |
-| 80 | VERDICT | PENDING_RETIREMENT | Verdict only when DOCS_PROD_001_GAPS=0. |
+| 78 | FINAL ACCEPTANCE MATRIX | PASS | Every counter of §78 evaluated by a gate or harness in the final report; residue counters measured at 0 after retirement. |
+| 79 | FINAL REPORT | PASS | One combined DOCS-PROD-001 / DOCS-DX-001 closure report issued after retirement. |
+| 80 | VERDICT | PASS | `DOCS_PROD_001_GAPS=0`; verdict issued with the exact wording, Financial LIVE NOT READY / FAIL-CLOSED, no freeze, no tag. |
 | 81 | FINAL PRINCIPLE | PASS | The self-sufficiency questions are answered by the published pages (cold reader 12/12, coverage gate). |

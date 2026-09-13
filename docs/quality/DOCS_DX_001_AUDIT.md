@@ -80,7 +80,7 @@ SELF-SERVICE · ACTION · STATUS.
 - **NEXT STEP** Accept payments, Webhooks, Sandbox testing.
 - **MOBILE** Path diagram in one column; step cards stack.
 - **SELF-SERVICE** Full, except two constraints stated where they occur: the Financial Setup review (step 4), and paying a test session needs a Banzami wallet in the Sandbox (step 10 links the Testing recipe, which says so and routes to support).
-- **ACTION** Done. Runtime proof: the Quickstart end-to-end run completes after the Financial Setup approval ceremony.
+- **ACTION** Done. Runtime proof: `quickstart-e2e.mjs` 12/12 on the deployed Sandbox (2026-09-13), residue 0 after retirement.
 - **STATUS** GOOD — the two waits are product constraints, documented where they occur.
 
 ### J2 — Financial Setup
@@ -250,7 +250,7 @@ SELF-SERVICE · ACTION · STATUS.
 - **DEAD ENDS** None. **UNNECESSARY CONCEPTS** None.
 - **COPY/PASTE** SDK calls DOA uses. **ERROR RECOVERY** Common failure per chapter.
 - **NEXT STEP** Settlements, Webhooks. **MOBILE** Good. **SELF-SERVICE** Full.
-- **ACTION** Done. Runtime proof: contract run 13/13 against the deployed API; the full run completes after the approval ceremony.
+- **ACTION** Done. Runtime proof: contract run 13/13 against the deployed pages, and the full tutorial 13/13 on an APPLICATION Business at 200 bps (fee 5000 on 250000, settlement event reconciled), residue 0 after retirement.
 - **STATUS** EXCELLENT.
 
 ### J15 — Console ↔ documentation
@@ -382,7 +382,8 @@ Quickstart can no longer be found (disabling aliases produces 8 failures).
 | DOCS_DIAGRAM_NODE_COUNT=PASS | `tools/check-docs-dx.mjs` (caught the 9-node concept model and the 8-step DOA diagram; both redrawn) | PASS |
 | DOCS_EDITORIAL_LINT=PASS | `tools/check-docs-editorial.mjs` | PASS |
 | DOCS_COLD_READER_ACCEPTANCE=12/12 | `tools/e2e/docs/cold-reader.mjs` (deployed) | PASS |
-| DOCS_AUDIT | `tools/e2e/docs/audit.mjs` (deployed) | 83/0 |
+| DOCS_AUDIT | `tools/e2e/docs/audit.mjs` (deployed) | 85/0 |
+| DOCS_PAYMENT_LINK_LIST_CONTRACT_LIVE=PASS | `tools/e2e/docs/payment-links-live.mjs` (deployed Sandbox, project key) | 9/9 |
 
 **No visual overengineering (§48):** no animation beyond hover states, no
 gradients in the article, no hero artwork, no dashboards inside the docs, no
