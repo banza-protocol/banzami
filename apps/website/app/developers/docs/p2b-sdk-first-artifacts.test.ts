@@ -26,7 +26,9 @@ describe('P2B — SDK-first wording in PT and EN', () => {
     expect(PT).toContain('Modelo de integração SDK-first');
     expect(PT).toContain('A filosofia de integração do Banzami é');
     expect(PT).toContain('camada de referência técnica do protocolo');
-    expect(PT).toContain('pré-visualização controlada até publicação oficial');
+    // The controlled-preview programme is retired (189ad786); unpublished packages are simply source-only.
+    expect(PT).toContain('consomem-se por código-fonte');
+    expect(PT).not.toContain('pré-visualização controlada');
   });
   it('EN contains the SDK-first integration model with the required wording', () => {
     expect(EN).toContain('SDK-first integration model');
@@ -147,7 +149,7 @@ describe('P2B — public artifact manifest and parity', () => {
       expect(a.production_contract).toBe(false);
       // Only the SDK contract (recommended-path guidance) may be flagged true;
       // every HTTP-level artifact stays secondary protocol reference.
-      expect(a.recommended_integration_path).toBe(a.type === 'sdk_contract');
+      expect(a.recommended_integration_path).toBe(a.type === 'sdk_contract' || a.type === 'sdk_example');
       expect(['protocol_reference', 'integration_guidance', 'preview_onboarding', 'trust_readiness']).toContain(a.role);
     }
     const roles = Object.fromEntries(ART_MANIFEST.artifacts.map((a: { path: string; role: string }) => [a.path, a.role]));

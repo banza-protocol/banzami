@@ -65,34 +65,14 @@
       "description": "EXPECTED SDK contract and publication status — SDKs are the recommended integration path; @banzami/sdk (npm) and banzami_client (pub.dev) are published, the Python and PHP packages are not."
     },
     {
-      "name": "SDK preview example (TypeScript)",
-      "type": "sdk_preview_example",
+      "name": "SDK example (TypeScript)",
+      "type": "sdk_example",
       "role": "integration_guidance",
       "scope": "sandbox",
       "production_contract": false,
-      "recommended_integration_path": false,
+      "recommended_integration_path": true,
       "path": "/developers/examples/sdk/typescript-payment-session.example.ts",
-      "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
-    },
-    {
-      "name": "SDK preview example (Python)",
-      "type": "sdk_preview_example",
-      "role": "integration_guidance",
-      "scope": "sandbox",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/examples/sdk/python-payment-session.example.py",
-      "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
-    },
-    {
-      "name": "SDK preview example (PHP)",
-      "type": "sdk_preview_example",
-      "role": "integration_guidance",
-      "scope": "sandbox",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/examples/sdk/php-payment-session.example.php",
-      "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
+      "description": "Create a payment session with the published @banzami/sdk — compiled against the npm package in CI."
     }
   ]
 }

@@ -47,6 +47,8 @@ const SOURCES = {
   // worst of it: five SDK methods that do not exist.
   LANDING: 'apps/website/app/developers/landing-samples.ts',
 };
+// Published example files are whole programs, compiled as they are.
+const EXAMPLE_FILES = ['apps/website/public/developers/examples/sdk/typescript-payment-session.example.ts'];
 
 /** The errors that mean "this example misuses the SDK". */
 const SDK_MISUSE = new Set(['2339', '2551', '2345', '2353', '2554', '2741', '2322', '2559']);
@@ -76,7 +78,8 @@ function extract(lang, file) {
   return out.filter((s) => /@banzami\/sdk|\bbanzami\.|BanzamiClient/.test(s.code) && !/^\s*(curl|#|\{|\$ )/m.test(s.code.trimStart().slice(0, 6)));
 }
 
-const samples = [...extract('PT', SOURCES.PT), ...extract('EN', SOURCES.EN), ...extract('LANDING', SOURCES.LANDING)];
+const samples = [...extract('PT', SOURCES.PT), ...extract('EN', SOURCES.EN), ...extract('LANDING', SOURCES.LANDING),
+  ...EXAMPLE_FILES.map((f) => ({ lang: 'FILE', id: f.split('/').pop(), code: readFileSync(join(ROOT, f), 'utf8') }))];
 
 // ── the reader's environment ─────────────────────────────────────────────────
 

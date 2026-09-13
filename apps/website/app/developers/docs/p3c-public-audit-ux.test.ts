@@ -105,7 +105,7 @@ describe('P3C — claim safety preserved', () => {
   it('SDK-first, published packages, HTTP secondary, curl diagnostic-only', () => {
     expect(PT).toContain('Caminho recomendado: o SDK TypeScript');
     expect(EN).toContain('Recommended path: the TypeScript SDK');
-    expect(PT).toContain('pré-visualização controlada');
+    expect(PT).not.toContain('pré-visualização controlada');
     expect(EN).toContain('npm install @banzami/sdk');
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');

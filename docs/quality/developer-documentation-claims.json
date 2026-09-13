@@ -442,19 +442,19 @@
    "evidence": "reader guidance",
    "text": "Nunca: expor chaves secretas no cliente, ativar trilhos live automaticamente, ou emitir chaves de Produção (não disponível)."
   },
-  "pt:Sdk:4048f27842": {
+  "pt:Sdk:446feeba18": {
    "page": "Sdk",
    "kind": "P",
    "class": "SOURCE",
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
-   "text": "Contrato machine-readable: sdk-contract.json · sdk-first-manifest.json. Exemplos SDK-style (ergonomia prevista): TypeScript · Python · PHP."
+   "text": "Contrato machine-readable: sdk-contract.json · sdk-first-manifest.json. Exemplo completo com o SDK publicado: TypeScript."
   },
-  "pt:Sdk:e7298a9c53": {
+  "pt:Sdk:2bf19f42b2": {
    "page": "Sdk",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
-   "text": "Os exemplos abaixo mostram a ergonomia que cada SDK oferece. Para TypeScript e Dart são instruções reais: os pacotes estão publicados e instalam-se com os coman"
+   "text": "Os exemplos desta documentação são em TypeScript e são instruções reais: o pacote está publicado e cada exemplo é compilado contra ele. Para Python e PHP não há"
   },
   "pt:Sdk:10ad4ba2c6": {
    "page": "Sdk",
@@ -2983,19 +2983,19 @@
    "evidence": "reader guidance",
    "text": "Never: client-side exposure of secret keys, automatic live-rails activation, or Production key issuance (not available)."
   },
-  "en:Sdk:ead515b777": {
+  "en:Sdk:0aa494ef87": {
    "page": "Sdk",
    "kind": "P",
    "class": "SOURCE",
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
-   "text": "Machine-readable contract: sdk-contract.json · sdk-first-manifest.json. SDK-style examples (intended ergonomics): TypeScript · Python · PHP."
+   "text": "Machine-readable contract: sdk-contract.json · sdk-first-manifest.json. A complete example with the published SDK: TypeScript."
   },
-  "en:Sdk:47bb04f13e": {
+  "en:Sdk:bd3eaaf819": {
    "page": "Sdk",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
-   "text": "The examples below show the ergonomics each SDK offers. For TypeScript and Dart they are real instructions: the packages are published and install with the comm"
+   "text": "The examples in this documentation are TypeScript and they are real instructions: the package is published and every example is compiled against it. Python and "
   },
   "en:Sdk:de7e2e0e10": {
    "page": "Sdk",

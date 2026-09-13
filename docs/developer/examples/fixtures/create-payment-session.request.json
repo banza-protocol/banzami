@@ -1,5 +1,4 @@
 {
-  "wallet_account_id": "wacc_xxx",
   "purpose": "ORDER",
   "reference_type": "PEDIDO",
   "reference_id": "order_123",

@@ -189,7 +189,7 @@ describe('P3B — page intros / next steps', () => {
 
 describe('P3B — claim safety preserved across the polished corpus', () => {
   it('published SDKs install from their registries; HTTP stays secondary; no fake installs', () => {
-    expect(PT).toContain('pré-visualização controlada');
+    expect(PT).not.toContain('pré-visualização controlada');
     expect(EN).toContain('npm install @banzami/sdk');
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');

@@ -20,8 +20,6 @@ const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/
 const CONTRACT = JSON.parse(read(`${PUB}/artifacts/sdk-contract.json`));
 const MANIFEST = JSON.parse(read(`${PUB}/artifacts/manifest.json`));
 const TS_EX = read(`${PUB}/examples/sdk/typescript-payment-session.example.ts`);
-const PY_EX = read(`${PUB}/examples/sdk/python-payment-session.example.py`);
-const PHP_EX = read(`${PUB}/examples/sdk/php-payment-session.example.php`);
 
 // Was "controlled preview sections". The preview is now the exception, not the
 // rule: two packages are on public registries with clean-room install evidence,
@@ -37,7 +35,7 @@ describe('P2C — SDK publication sections (PT/EN)', () => {
     expect(PT).toContain('Contrato esperado do SDK');
     // The callout says which examples are real instructions and which are not,
     // instead of disclaiming all of them.
-    expect(PT).toContain('Para\n                TypeScript e Dart são instruções reais');
+    expect(PT).toContain('Os exemplos desta documentação são em TypeScript e são instruções reais');
     expect(PT).toContain('ainda não há pacote em registo público para instalar');
   });
   it('EN names the published packages and keeps the contract section', () => {
@@ -45,7 +43,7 @@ describe('P2C — SDK publication sections (PT/EN)', () => {
     expect(EN).toContain('npm install @banzami/sdk');
     expect(EN).toContain('dart pub add banzami_client');
     expect(EN).toContain('Expected SDK contract');
-    expect(EN).toContain('For TypeScript\n                and Dart they are real instructions');
+    expect(EN).toContain('The examples in this documentation are TypeScript and they are real');
     expect(EN).toContain('no install command for them');
   });
   it('the SDK family table distinguishes published from source-only, and forbids the blanket warning', () => {
@@ -116,33 +114,25 @@ describe('P2C — sdk-contract.json', () => {
   });
 });
 
-describe('P2C — SDK-style preview examples', () => {
-  it('all three examples exist and carry the preview warning + anti-install line', () => {
-    for (const [ex, anti] of [
-      [TS_EX, 'npm install @banzami/sdk'],
-      [PY_EX, 'Do not run pip install banzami until official packages are published'],
-      [PHP_EX, 'Do not run composer require banzami/sdk until official packages are published'],
-    ] as [string, string][]) {
-      expect(ex).toContain('Banzami SDK preview example');
-      expect(ex).toContain('not a public install path');
-      expect(ex).toContain(anti);
-      expect(ex).toContain('illustrative SDK-style API');
-    }
+describe('P2C — published SDK example', () => {
+  // The three "preview" files told readers not to run npm install @banzami/sdk
+  // (it is published) and showed BanzamiClient.preview(), paymentSessions.create
+  // and a VALIDATION_ERROR code — none of which exists. What remains is one real
+  // program, compiled against the npm package by tools/check-docs-code-examples.mjs.
+  it('the TypeScript example is a real program against the published package', () => {
+    expect(TS_EX).toContain("from '@banzami/sdk'");
+    expect(TS_EX).toContain('npm install @banzami/sdk');
+    expect(TS_EX).toContain('createPaymentSession(');
+    expect(TS_EX).not.toMatch(/preview|Do not run npm install|@ts-nocheck|VALIDATION_ERROR|paymentSessions\.create/);
+    expect(/bz_(test|live)_(pk|sk)_(?!X{2,}|…)[A-Za-z0-9]{8,}/.test(TS_EX)).toBe(false);
   });
-  it('examples use preview markers, placeholders only, and no real import paths', () => {
-    for (const ex of [TS_EX, PY_EX, PHP_EX]) {
-      expect(ex.includes('.preview(') || ex.includes('::preview(')).toBe(true);
-      expect(/from ['"]@banzami\/sdk['"]/.test(ex)).toBe(false);
-      expect(/require\(['"]banzami/.test(ex)).toBe(false);
-      expect(/import banzami\b/.test(ex)).toBe(false);
-      expect(/bz_(test|live)_(pk|sk)_(?!X{2,})[A-Za-z0-9]{8,}/.test(ex)).toBe(false);
-    }
+  it('no pseudo-SDK example for an unpublished package is published', () => {
+    const files = readdirSync(join(REPO, `${PUB}/examples/sdk`));
+    expect(files).toEqual(['typescript-payment-session.example.ts']);
+    expect(JSON.stringify(MANIFEST)).not.toMatch(/python-payment-session|php-payment-session|sdk_preview_example/);
   });
-  it('no runnable fake install instruction anywhere (anti-instructions only)', () => {
-    const all = [PT, EN, TS_EX, PY_EX, PHP_EX, JSON.stringify(CONTRACT), JSON.stringify(MANIFEST)].join('\n');
-    // Every occurrence of an install command must be inside an anti-instruction line.
-    // @banzami/sdk is published, so its install command is a real instruction.
-    // The unpublished families must still appear only as anti-instructions.
+  it('no runnable install instruction for an unpublished package anywhere', () => {
+    const all = [PT, EN, TS_EX, JSON.stringify(CONTRACT), JSON.stringify(MANIFEST)].join('\n');
     for (const cmd of FAKE_INSTALL_COMMANDS) {
       for (const line of all.split('\n')) {
         if (!line.includes(cmd)) continue;

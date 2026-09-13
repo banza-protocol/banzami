@@ -539,18 +539,13 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                 <a href="/developers/artifacts/sdk-contract.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-contract.json</a>
                 {' '}·{' '}
                 <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a>.
-                SDK-style examples (intended ergonomics):{' '}
-                <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
-                {' '}·{' '}
-                <a href="/developers/examples/sdk/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
-                {' '}·{' '}
-                <a href="/developers/examples/sdk/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
+                A complete example with the published SDK:{' '}
+                <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>.
               </P>
               <Callout>
-                The examples below show the ergonomics each SDK offers. For TypeScript
-                and Dart they are real instructions: the packages are published and
-                install with the commands given above. For Python and PHP they show the
-                intended ergonomics — with no install command, because there is not yet
+                The examples in this documentation are TypeScript and they are real
+                instructions: the package is published and every example is compiled against
+                it. Python and PHP have no examples here — and no install command, because there is not yet
                 a package in a public registry to install.
               </Callout>
 

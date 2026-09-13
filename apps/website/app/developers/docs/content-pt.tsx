@@ -536,18 +536,13 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 <a href="/developers/artifacts/sdk-contract.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-contract.json</a>
                 {' '}·{' '}
                 <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a>.
-                Exemplos SDK-style (ergonomia prevista):{' '}
-                <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
-                {' '}·{' '}
-                <a href="/developers/examples/sdk/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
-                {' '}·{' '}
-                <a href="/developers/examples/sdk/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
+                Exemplo completo com o SDK publicado:{' '}
+                <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>.
               </P>
               <Callout>
-                Os exemplos abaixo mostram a ergonomia que cada SDK oferece. Para
-                TypeScript e Dart são instruções reais: os pacotes estão publicados
-                e instalam-se com os comandos indicados acima. Para Python e PHP são
-                exemplos da ergonomia prevista — sem comando de instalação, porque
+                Os exemplos desta documentação são em TypeScript e são instruções reais: o
+                pacote está publicado e cada exemplo é compilado contra ele. Para Python e PHP
+                não há exemplos — sem comando de instalação, porque
                 ainda não há pacote em registo público para instalar.
               </Callout>
 
