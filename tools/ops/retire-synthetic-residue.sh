@@ -134,6 +134,24 @@ echo "synthetic residue on the Sandbox — $(date -u +%FT%TZ)"
 [ "$APPLY" -eq 1 ] && echo "mode: APPLY ($RUN)" || echo "mode: dry run"
 echo; echo "BEFORE"; inventory
 echo
+# What --apply would act on, item by item, so the selection is reviewed before
+# anything changes — not only counted.
+echo "SELECTED merchants (active or holding value) — name, @handle, email domain, status, value"
+q "SELECT '  ' || rpad(m.name, 34) || ' @' || COALESCE((SELECT h.handle FROM handle_registry h WHERE h.owner_id = m.id AND h.owner_type='MERCHANT' LIMIT 1), '-')
+          || ' <' || split_part(m.email,'@',2) || '> ' || m.status || ' ' || COALESCE((SELECT SUM($(printf "$bal" 'w.available_account_id')) FROM wallets w WHERE w.merchant_id = m.id), 0)
+     FROM merchants m WHERE $M_SEL AND (m.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM wallets w WHERE w.merchant_id = m.id AND $(printf "$bal" 'w.available_account_id') <> 0)) ORDER BY m.created_at"
+echo "SELECTED segregated accounts not closed — merchant, label, status, value"
+q "SELECT '  ' || rpad(m.name, 34) || ' ' || COALESCE(wa.label, wa.purpose) || ' ' || wa.status || ' ' || $(printf "$bal" 'wa.account_id')
+     FROM wallet_accounts wa JOIN merchants m ON m.id=wa.merchant_id WHERE wa.purpose<>'PRIMARY' AND wa.status<>'CLOSED' AND $M_SEL ORDER BY wa.created_at"
+echo "SELECTED live API keys / active webhooks — merchant"
+q "SELECT '  key ' || m.name FROM api_keys k JOIN merchants m ON m.id=k.merchant_id WHERE k.revoked_at IS NULL AND $M_SEL
+   UNION ALL SELECT '  webhook ' || m.name FROM webhook_endpoints h JOIN merchants m ON m.id=h.merchant_id WHERE h.active AND $M_SEL"
+echo "SELECTED consumers (active or holding value) — handle, status, value"
+q "SELECT '  ' || rpad(c.handle, 28) || ' ' || c.status || ' ' || COALESCE((SELECT SUM($(printf "$bal" 'cw.available_account_id')) FROM consumer_wallets cw WHERE cw.consumer_id = c.id), 0)
+     FROM consumers c WHERE $C_SEL AND (c.status='ACTIVE' OR EXISTS (SELECT 1 FROM consumer_wallets cw WHERE cw.consumer_id=c.id AND $(printf "$bal" 'cw.available_account_id') <> 0)) ORDER BY c.created_at"
+echo "SELECTED projects active — name"
+q "SELECT '  ' || p.name FROM developer.dev_projects p WHERE $P_SEL ORDER BY p.created_at"
+echo
 echo "merchants that SURVIVE active or holding value (no shape matched) — name, email domain"
 q "SELECT '  ' || rpad(m.name, 34) || ' @' || split_part(m.email,'@',2) || ' ' || m.status FROM merchants m
     WHERE NOT ($M_SEL) AND (m.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM wallets w WHERE w.merchant_id = m.id
