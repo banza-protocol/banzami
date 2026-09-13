@@ -326,6 +326,29 @@ describe('createPaymentLink', () => {
   });
 });
 
+describe('createPaymentLink with a project key', () => {
+  // A project key has no merchant or wallet to name, and the gateway refuses a
+  // request that names one (400 PAYEE_NOT_ALLOWED). 0.13.0 made both required
+  // and always sent them, so a project key could not create a link at all.
+  it('sends no payee field when none is given', async () => {
+    mockFetch(201, { id: 'pl-1', slug: 'abc', currency: 'AOA', status: 'ACTIVE', created_at: '', updated_at: '' });
+    await client.createPaymentLink({ amountMinor: 25000, description: 'Pedido #123' });
+    const body = JSON.parse(lastFetchCall().init.body as string);
+    expect(body).not.toHaveProperty('merchant_id');
+    expect(body).not.toHaveProperty('wallet_id');
+    expect(body.amount_minor).toBe(25000);
+  });
+
+  it('lists without a merchant_id query parameter', async () => {
+    mockFetch(200, { data: [], next_cursor: undefined });
+    await client.listPaymentLinks({ limit: 20 });
+    expect(lastFetchCall().url).not.toContain('merchant_id');
+    mockFetch(200, { data: [], next_cursor: undefined });
+    await client.listPaymentLinks();
+    expect(lastFetchCall().url).toBe('https://api.test.ao/v1/payment-links');
+  });
+});
+
 describe('listPaymentLinks', () => {
   it('GETs /v1/payment-links with merchant_id query param', async () => {
     mockFetch(200, { data: [], next_cursor: undefined });

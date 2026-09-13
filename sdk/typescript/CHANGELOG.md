@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — payment links with a project key
+`createPaymentLink` required `merchantId` and `walletId` and always sent them, and
+`listPaymentLinks` required `merchantId`. A project key has neither, and the API
+refuses a request that names a payee (`400 PAYEE_NOT_ALLOWED`), so a project key
+could not create or list payment links through the SDK. Both fields are now
+optional, meant for a merchant credential only, and sent only when given. No
+change for a merchant credential that passes them.
+
 ## [0.13.0] — 2026-09-12
 
 Released to get the `formatMinor` fix below onto npm: 0.12.1 is published and

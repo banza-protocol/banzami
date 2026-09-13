@@ -938,9 +938,19 @@ export class BanzamiClient {
   // Payment links
   // ---------------------------------------------------------------------------
 
+  /**
+   * Create a payment link.
+   *
+   * With a project key (`bz_test_sk_…`) send no `merchantId` and no `walletId`:
+   * who is paid comes from the Project's financial setup, and the API refuses a
+   * request that names a payee with 400 PAYEE_NOT_ALLOWED. Both fields are for a
+   * merchant credential only, and are sent only when given.
+   */
   createPaymentLink(params: {
-    merchantId:   string;
-    walletId:     string;
+    /** Merchant credential only — never with a project key. */
+    merchantId?:  string;
+    /** Merchant credential only — never with a project key. */
+    walletId?:    string;
     currency?:    string;
     amountMinor?: number;
     description?: string;
@@ -949,8 +959,8 @@ export class BanzamiClient {
     return this.request<PaymentLink>('/payment-links', {
       method: 'POST',
       body:   JSON.stringify({
-        merchant_id:  params.merchantId,
-        wallet_id:    params.walletId,
+        ...(params.merchantId ? { merchant_id: params.merchantId } : {}),
+        ...(params.walletId ? { wallet_id: params.walletId } : {}),
         currency:     params.currency ?? 'AOA',
         amount_minor: params.amountMinor ?? null,
         description:  params.description ?? null,
@@ -959,11 +969,15 @@ export class BanzamiClient {
     });
   }
 
+  /**
+   * List your payment links, newest first. `merchantId` is for a merchant
+   * credential only: a project key lists its own Project's links and sends none.
+   */
   listPaymentLinks(params: {
-    merchantId: string;
-    limit?:     number;
-    cursor?:    string;
-  }): Promise<Page<PaymentLink>> {
+    merchantId?: string;
+    limit?:      number;
+    cursor?:     string;
+  } = {}): Promise<Page<PaymentLink>> {
     return this.request<Page<PaymentLink>>(
       `/payment-links${this.qs({ merchant_id: params.merchantId, limit: params.limit, cursor: params.cursor })}`,
     );
