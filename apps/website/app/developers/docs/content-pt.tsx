@@ -488,7 +488,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="conceitos-banzami">
               <h1 style={H1_STYLE}>Como o Banzami funciona</h1>
-              <PageLede>O modelo de integração, os ambientes e as regras que se aplicam a todos os recursos financeiros.</PageLede>
+              <PageLede>Como o Banzami organiza uma integração — workspace, projeto, Business — e as regras que todos os recursos financeiros seguem. Leia antes da primeira integração, ou quando um termo de outro guia não for claro.</PageLede>
 
               <H2 id="sandbox-live">Sandbox e Live</H2>
               <P>
@@ -523,11 +523,11 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
 
               <H2 id="modelo">O modelo de integração</H2>
               <ConceptModelDiagram l={{
-                title: 'Pessoa, workspace, projeto e o que cada projeto contém',
-                desc: 'Uma pessoa pertence a workspaces. Cada workspace contém projetos. Cada projeto tem uma configuração financeira que o liga a um Business, com carteira e contas, e tem chaves de API e endpoints de webhook.',
-                person: 'Pessoa (email + código)', workspace: 'Workspace', project: 'Projeto',
+                title: 'Workspace, projeto e o que cada projeto contém',
+                desc: 'Cada workspace contém projetos. Cada projeto tem uma configuração financeira que o liga a um Business e às suas contas, e tem chaves de API e endpoints de webhook.',
+                workspace: 'Workspace', project: 'Projeto',
                 financialSetup: 'Configuração financeira', business: 'Business',
-                wallet: 'Carteira', accounts: 'Contas',
+                accounts: 'Contas',
                 apiKeys: 'Chaves de API', webhooks: 'Endpoints de webhook',
                 noteWorkspace: 'quem tem acesso',
                 noteProject: 'a unidade de integração',
@@ -1271,9 +1271,8 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 steps={[
                   { side: 'app', text: 'Conta da campanha' },
                   { side: 'app', text: 'Sessão de pagamento' },
-                  { side: 'banzami', text: 'Link e QR' },
-                  { side: 'banzami', text: 'Pagamento e comprovativo' },
-                  { side: 'banzami', text: 'payment_session.paid' },
+                  { side: 'banzami', text: 'Link, QR e pagamento' },
+                  { side: 'banzami', text: 'Comprovativo e webhook' },
                   { side: 'app', text: 'Confirma a doação' },
                   { side: 'app', text: 'Pede a liquidação' },
                   { side: 'banzami', text: 'Taxa e liquidação' },

@@ -491,12 +491,12 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "O pagamento em Transações e os pedidos da chave em Registos.} why={<>É onde investiga uma resposta inesperada, a partir do request_id.} success=\"O pagamento apa"
   },
-  "pt:Concepts:9a5e2592e5": {
+  "pt:Concepts:9dfde612aa": {
    "page": "Concepts",
    "kind": "PageLede",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
-   "text": "O modelo de integração, os ambientes e as regras que se aplicam a todos os recursos financeiros."
+   "text": "Como o Banzami organiza uma integração — workspace, projeto, Business — e as regras que todos os recursos financeiros seguem. Leia antes da primeira integração,"
   },
   "pt:Concepts:8d3b0dc574": {
    "page": "Concepts",
@@ -4880,12 +4880,12 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "The payment in Transactions, and the key’s requests in Logs.} why={<>This is where you investigate an unexpected response, starting from the request_id.} succes"
   },
-  "en:Concepts:4689e25d3e": {
+  "en:Concepts:b14f2c70cf": {
    "page": "Concepts",
    "kind": "PageLede",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
-   "text": "The integration model, the environments, and the rules that apply to every financial resource."
+   "text": "How Banzami organises an integration — workspace, project, Business — and the rules every financial resource follows. Read it before your first integration, or "
   },
   "en:Concepts:dcc19c296a": {
    "page": "Concepts",

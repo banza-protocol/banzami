@@ -252,6 +252,27 @@ function resolveLink(href) {
   set('DOCS_DIAGRAM_ACCESSIBILITY_PROBLEMS', problems);
 }
 
+// ── diagrams: 3–7 nodes, or the drawing stops teaching ───────────────────────
+{
+  const problems = [];
+  const within = (where, n) => { if (n < 3 || n > 7) problems.push(`${where}: ${n} nodes (3–7)`); };
+  for (const f of ['content-pt.tsx', 'content-en.tsx']) {
+    const src = read(f);
+    for (const m of src.matchAll(/<PathDiagram\b[\s\S]*?steps=\{\[([\s\S]*?)\]\}/g)) within(`${f} PathDiagram`, [...m[1].matchAll(/'[^']*'/g)].length);
+    for (const m of src.matchAll(/<ResponsibilityDiagram\b[\s\S]*?steps=\{\[([\s\S]*?)\]\}/g)) within(`${f} ResponsibilityDiagram`, [...m[1].matchAll(/side:/g)].length);
+  }
+  for (const m of read('HomePage.tsx').matchAll(/path: \[([^\]]*)\]/g)) within('HomePage.tsx path', [...m[1].matchAll(/'[^']*'/g)].length);
+  // Fixed drawings: count the boxes each one draws.
+  const diagrams = read('diagrams.tsx');
+  for (const name of ['ConceptModelDiagram', 'SegregatedAccountsDiagram', 'FinancialSetupDiagram']) {
+    const at = diagrams.indexOf(`export function ${name}(`);
+    const body = diagrams.slice(at, diagrams.indexOf('\n}\n', at));
+    const boxes = [...body.matchAll(/<Node\b/g)].length + [...body.matchAll(/<rect x=/g)].length + ([...body.matchAll(/\]\.map\(\(b\)/g)].length ? 2 : 0);
+    within(`diagrams.tsx ${name}`, boxes);
+  }
+  set('DOCS_DIAGRAM_NODE_COUNT_PROBLEMS', problems);
+}
+
 // ── quickstart, financial setup, DOA ────────────────────────────────────────
 {
   const problems = [];
@@ -317,6 +338,7 @@ SANDBOX_TEST_RECIPES_VALID=${pass('SANDBOX_TEST_RECIPES_INVALID')}
 SANDBOX_TESTING_COOKBOOK=${pass('SANDBOX_TEST_RECIPES_INVALID')}
 SANDBOX_UNDOCUMENTED_TEST_MAGIC=${results.SANDBOX_UNDOCUMENTED_TEST_MAGIC.length}
 DOCS_DIAGRAM_ACCESSIBILITY=${pass('DOCS_DIAGRAM_ACCESSIBILITY_PROBLEMS')}
+DOCS_DIAGRAM_NODE_COUNT=${pass('DOCS_DIAGRAM_NODE_COUNT_PROBLEMS')}
 FINANCIAL_SETUP_BEGINNER_COMPREHENSION=${pass('QUICKSTART_FINANCIAL_SETUP_PROBLEMS')}
 DOA_TUTORIAL_CONTRACT_FLOW=${pass('DOA_TUTORIAL_CONTRACT_PROBLEMS')}
 DOA_TUTORIAL_HUMAN_FLOW=${pass('DOA_TUTORIAL_HUMAN_FLOW_PROBLEMS')}`);

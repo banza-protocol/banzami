@@ -503,7 +503,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="concepts-banzami">
               <h1 style={H1_STYLE}>How Banzami works</h1>
-              <PageLede>The integration model, the environments, and the rules that apply to every financial resource.</PageLede>
+              <PageLede>How Banzami organises an integration — workspace, project, Business — and the rules every financial resource follows. Read it before your first integration, or when a term in another guide is unclear.</PageLede>
 
               <H2 id="sandbox-live">Sandbox and Live</H2>
               <P>
@@ -538,11 +538,11 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
 
               <H2 id="model">The integration model</H2>
               <ConceptModelDiagram l={{
-                title: 'Person, workspace, project, and what each project contains',
-                desc: 'A person belongs to workspaces. Each workspace contains projects. Each project has a Financial Setup that connects it to a Business, with a wallet and accounts, and has API keys and webhook endpoints.',
-                person: 'Person (email + code)', workspace: 'Workspace', project: 'Project',
+                title: 'Workspace, project, and what each project contains',
+                desc: 'Each workspace contains projects. Each project has a Financial Setup that connects it to a Business and its accounts, and has API keys and webhook endpoints.',
+                workspace: 'Workspace', project: 'Project',
                 financialSetup: 'Financial Setup', business: 'Business',
-                wallet: 'Wallet', accounts: 'Accounts',
+                accounts: 'Accounts',
                 apiKeys: 'API keys', webhooks: 'Webhook endpoints',
                 noteWorkspace: 'who has access',
                 noteProject: 'the unit of integration',
@@ -1284,10 +1284,9 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
                 appLabel="DOA" banzamiLabel="Banzami"
                 steps={[
                   { side: 'app', text: 'Campaign account' },
-                  { side: 'app', text: 'Payment session' },
-                  { side: 'banzami', text: 'Link and QR code' },
-                  { side: 'banzami', text: 'Payment and receipt' },
-                  { side: 'banzami', text: 'payment_session.paid' },
+                  { side: 'app', text: 'Payment Session' },
+                  { side: 'banzami', text: 'Link, QR code and payment' },
+                  { side: 'banzami', text: 'Receipt and webhook' },
                   { side: 'app', text: 'Confirms the donation' },
                   { side: 'app', text: 'Requests settlement' },
                   { side: 'banzami', text: 'Fee and settlement' },

@@ -127,8 +127,8 @@ function Elbow({ x, y1, y2, x2 }: { x: number; y1: number; y2: number; x2: numbe
 export type ConceptModelLabels = {
   title: string;
   desc?: string;
-  person: string; workspace: string; project: string;
-  financialSetup: string; business: string; wallet: string; accounts: string;
+  workspace: string; project: string;
+  financialSetup: string; business: string; accounts: string;
   apiKeys: string; webhooks: string;
   noteWorkspace: string; noteProject: string; noteBusiness: string;
   noteKeys: string; noteWebhooks: string;
@@ -136,39 +136,34 @@ export type ConceptModelLabels = {
 
 export function ConceptModelDiagram({ l }: { l: ConceptModelLabels }) {
   return (
-    <Frame title={l.title} desc={l.desc} viewBox="0 0 900 430">
-      <rect width="900" height="430" fill={GROUND} rx={14} />
+    <Frame title={l.title} desc={l.desc} viewBox="0 0 900 366">
+      <rect width="900" height="366" fill={GROUND} rx={14} />
 
-      <Node x={40} y={26} w={230} h={46} label={l.person} />
+      <Node x={40} y={26} w={200} h={46} label={l.workspace} tone="strong" />
+      <Note x={260} y={56}>{l.noteWorkspace}</Note>
+
       <Elbow x={60} y1={72} y2={112} x2={120} />
-      <Node x={120} y={90} w={200} h={46} label={l.workspace} tone="strong" />
-      <Note x={340} y={120}>{l.noteWorkspace}</Note>
-
-      <Elbow x={140} y1={136} y2={176} x2={200} />
-      <Node x={200} y={154} w={190} h={46} label={l.project} tone="strong" />
-      <Note x={410} y={184}>{l.noteProject}</Note>
+      <Node x={120} y={90} w={190} h={46} label={l.project} tone="strong" />
+      <Note x={330} y={120}>{l.noteProject}</Note>
 
       {/* three things a project holds */}
-      <Elbow x={220} y1={200} y2={244} x2={280} />
-      <Node x={280} y={222} w={250} h={44} label={l.financialSetup} tone="soft" />
-      <path d={`M530 244 H568`} stroke={RED_SOFT} strokeWidth={1.8} strokeLinecap="round" />
-      <path d={`M562 239 L570 244 L562 249`} fill="none" stroke={RED} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-      <Node x={572} y={222} w={150} h={44} label={l.business} />
-      <Note x={738} y={248}>{l.noteBusiness}</Note>
+      <Elbow x={140} y1={136} y2={180} x2={200} />
+      <Node x={200} y={158} w={250} h={44} label={l.financialSetup} tone="soft" />
+      <path d={`M450 180 H488`} stroke={RED_SOFT} strokeWidth={1.8} strokeLinecap="round" />
+      <path d={`M482 175 L490 180 L482 185`} fill="none" stroke={RED} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Node x={492} y={158} w={150} h={44} label={l.business} />
+      <Note x={658} y={184}>{l.noteBusiness}</Note>
 
-      <Elbow x={600} y1={266} y2={302} x2={640} />
-      <Node x={640} y={282} w={120} h={38} label={l.wallet} mono />
-      <path d={`M760 301 H790`} stroke={RED_SOFT} strokeWidth={1.8} strokeLinecap="round" />
-      <path d={`M784 296 L792 301 L784 306`} fill="none" stroke={RED} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-      <Node x={794} y={282} w={86} h={38} label={l.accounts} mono />
+      <Elbow x={520} y1={202} y2={238} x2={560} />
+      <Node x={560} y={218} w={150} h={38} label={l.accounts} />
 
-      <Elbow x={220} y1={266} y2={346} x2={280} />
-      <Node x={280} y={324} w={250} h={44} label={l.apiKeys} />
-      <Note x={548} y={350}>{l.noteKeys}</Note>
+      <Elbow x={140} y1={202} y2={282} x2={200} />
+      <Node x={200} y={260} w={250} h={44} label={l.apiKeys} />
+      <Note x={468} y={286}>{l.noteKeys}</Note>
 
-      <Elbow x={220} y1={368} y2={404} x2={280} />
-      <Node x={280} y={382} w={250} h={44} label={l.webhooks} />
-      <Note x={548} y={408}>{l.noteWebhooks}</Note>
+      <Elbow x={140} y1={304} y2={340} x2={200} />
+      <Node x={200} y={318} w={250} h={44} label={l.webhooks} />
+      <Note x={468} y={344}>{l.noteWebhooks}</Note>
     </Frame>
   );
 }
