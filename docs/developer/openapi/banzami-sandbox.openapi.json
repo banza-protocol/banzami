@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "https://sandbox-api.banzami.com",
-      "description": "Banzami Sandbox (no real money, controlled test flows)"
+      "description": "Banzami Sandbox — operational for integration; money is fictitious"
     }
   ],
   "security": [
@@ -44,6 +44,10 @@
     {
       "name": "handles",
       "description": "@banza lookup — confirm a destination exists before naming it"
+    },
+    {
+      "name": "receipts",
+      "description": "Public verification of a payment receipt by its proof reference. No credential."
     }
   ],
   "paths": {
@@ -2190,6 +2194,72 @@
           }
         }
       }
+    },
+    "/v1/public/proofs/{ref}": {
+      "get": {
+        "tags": [
+          "receipts"
+        ],
+        "operationId": "verifyPublicProof",
+        "summary": "Verify a receipt by its public proof reference",
+        "description": "Public and unauthenticated: the reference is the capability. The current format is SECURE_V1 — BZM- followed by six groups of four symbols from 0-9 and A-Z without I, L, O and U (120 bits). Older eight-symbol references (BZM-XXXX-XXXX) still verify. Matching is EXACT: there is no normalisation, so lower-case letters, spaces or an extra hyphen answer 404 exactly like a reference that does not exist, on purpose. The same verification is the page https://banzami.com/r/{ref} that a receipt QR opens. Rate-limited per client. This is not the eight-character reference the Banzami app shows on a transfer, which is a display aid and does not verify.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^BZM(-[0-9A-HJKMNP-TV-Z]{4}){6}$|^BZM(-[0-9A-F]{4}){2}$"
+            },
+            "example": "BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verified. Read `status`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProof"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such receipt, or the reference was altered. Indistinguishable by design.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProofMissing"
+                },
+                "example": {
+                  "exists": false,
+                  "status": "NOT_FOUND"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many verifications from this client. Honour Retry-After."
+          },
+          "503": {
+            "description": "Verification is temporarily unavailable. Do not conclude the receipt is forged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProofMissing"
+                },
+                "example": {
+                  "exists": false,
+                  "status": "UNAVAILABLE"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3470,6 +3540,134 @@
           "status",
           "created_at"
         ]
+      },
+      "PublicProof": {
+        "type": "object",
+        "description": "The public projection of a verified receipt. Holding the reference is the only authority this read needs, so treat a proof reference as a bearer capability.",
+        "required": [
+          "exists",
+          "status"
+        ],
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "const": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "PENDING",
+              "REVERSED",
+              "CANCELLED",
+              "FAILED",
+              "EXPIRED"
+            ],
+            "description": "A refunded or reversed payment keeps its receipt and becomes REVERSED; receipts are never deleted."
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Amount in minor units (100 = 1 Kz)."
+          },
+          "currency": {
+            "type": "string",
+            "example": "AOA"
+          },
+          "payer_handle": {
+            "type": "string",
+            "nullable": true
+          },
+          "payer_display": {
+            "type": "string",
+            "nullable": true
+          },
+          "payee_handle": {
+            "type": "string",
+            "nullable": true
+          },
+          "payee_display": {
+            "type": "string",
+            "nullable": true
+          },
+          "payee_kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "operation_kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "channel": {
+            "type": "string",
+            "nullable": true
+          },
+          "funding_source": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchant_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_context": {
+            "type": "string",
+            "nullable": true
+          },
+          "method": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC."
+          },
+          "verification_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://banzami.com/r/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+          },
+          "network": {
+            "type": "string",
+            "nullable": true
+          },
+          "operator": {
+            "type": "string",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "example": "SANDBOX"
+          }
+        }
+      },
+      "PublicProofMissing": {
+        "type": "object",
+        "required": [
+          "exists",
+          "status"
+        ],
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "const": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NOT_FOUND",
+              "UNAVAILABLE",
+              "ERROR"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
       }
     }
   }

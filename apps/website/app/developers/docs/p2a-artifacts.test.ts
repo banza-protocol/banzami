@@ -52,6 +52,10 @@ const ALLOWED_PATHS = [
   '/v1/webhooks/events',
   '/v1/webhooks/events/{id}/deliveries',
   '/v1/webhooks/deliveries/{id}/replay',
+  // Public receipt verification — no credential; the reference is the capability.
+  // It was live and absent from the spec, so a documented receipt had no
+  // contract behind it (DOCS-PROD-001 §28, §42).
+  '/v1/public/proofs/{ref}',
 ];
 
 // Retired routes are never described as operations (410 ROUTE_RETIRED).

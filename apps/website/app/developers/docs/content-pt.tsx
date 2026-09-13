@@ -969,6 +969,57 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 projeto responde <Code>404</Code>. Ver a matriz de{' '}
                 <a href="/docs/reference#credenciais" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
               </P>
+              <H3 id="comprovativos">Comprovativos e verificação pública</H3>
+              <P>
+                Cada pagamento confirmado tem um <strong>comprovativo</strong>: um documento com uma{' '}
+                <strong>referência de prova pública</strong> e um QR. Quem tiver essa referência pode confirmar,
+                sem conta nem chave, que o pagamento existe e em que estado está. O comprovativo em PDF é emitido
+                ao Business que recebeu, na app Banzami Business — uma chave de projeto não descarrega comprovativos.
+              </P>
+              <P><strong>A referência.</strong> O formato actual chama-se <Code>SECURE_V1</Code>:</P>
+              <CodeBlock label="formato SECURE_V1" onCopy={copy} raw={`BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+
+# 24 símbolos em seis grupos de quatro, depois de BZM-.
+# Alfabeto: 0-9 e A-Z sem I, L, O e U — nenhuma letra se confunde com um dígito.
+# 120 bits: não se adivinha nem se enumera.`} />
+              <UL>
+                <LI><strong>É uma capacidade ao portador.</strong> Quem tem a referência vê o montante, os @banza das duas partes e a descrição. Partilhe-a como partilharia o próprio comprovativo.</LI>
+                <LI><strong>É exacta.</strong> Não há normalização: letras minúsculas, espaços ou um hífen a mais dão <Code>404</Code>, tal como uma referência que não existe. Copie-a, não a reescreva.</LI>
+                <LI>Referências antigas de oito símbolos (<Code>BZM-XXXX-XXXX</Code>) continuam verificáveis; as novas são sempre <Code>SECURE_V1</Code>.</LI>
+              </UL>
+              <P><strong>Verificar.</strong> O QR do comprovativo abre <Code>https://banzami.com/r/&#123;referência&#125;</Code>, a página pública de verificação. A mesma verificação existe como API pública, sem autenticação:</P>
+              <CodeBlock label="curl · verificar um comprovativo" onCopy={copy} raw={`curl https://sandbox-api.banzami.com/v1/public/proofs/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`} />
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>HTTP</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Resposta</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Significa</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['200', 'status do comprovativo + montante, partes, data', 'Verificado. Leia status: CONFIRMED, PENDING, REVERSED, CANCELLED, FAILED ou EXPIRED.'],
+                      ['404', 'exists: false, status NOT_FOUND', 'Não existe — ou a referência foi alterada. As duas respostas são iguais de propósito.'],
+                      ['503', 'exists: false, status UNAVAILABLE', 'A verificação está temporariamente indisponível. Tente mais tarde; não conclua que é falso.'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700 }}><Code>{r[0]}</Code></td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>Reembolsado ou revertido</strong>, o comprovativo não desaparece: passa a <Code>REVERSED</Code>. A prova de que o pagamento existiu continua, e diz que foi desfeito.</LI>
+                <LI>
+                  <strong>Não confunda com a referência curta da app.</strong> A app Banzami mostra uma referência de
+                  oito caracteres em cada transferência (por exemplo <Code>5AD6BEA0</Code>): é o início do id da
+                  transferência, serve para a pessoa a reconhecer na lista, e <strong>não se verifica</strong> em{' '}
+                  <Code>/r/</Code>. Só a referência <Code>BZM-…</Code> do comprovativo é uma prova pública.
+                </LI>
+              </UL>
             </Section>
 <Section id="webhooks">
               <H2>Webhooks <Badge tone="ok" /></H2>
@@ -1148,6 +1199,41 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 divergem, e nesse dia um deles está errado sem que ninguém saiba qual.
               </P>
 
+              <H3 id="doa-preparar">Preparar o projeto</H3>
+              <P>
+                Tudo o que o DOA faz começa como qualquer outra integração — uma conta de developer, um
+                workspace e um projeto. O DOA não recebeu nenhum destes passos de forma diferente.
+              </P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>Entre na <a href="/docs/console" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Consola</a>, crie um <strong>workspace</strong> e, dentro dele, um <strong>projeto</strong> para a aplicação.</LI>
+                <LI>
+                  Faça a <strong>configuração financeira</strong>. O DOA recebe doações para beneficiários,
+                  por isso precisa de um Business. Há dois caminhos: <strong>candidatar um Business novo</strong>,
+                  que o Banzami revê antes de o projeto poder receber; ou <strong>ligar um Business que já
+                  existe</strong> com o código de consentimento que o seu dono gera na app Banzami Business.
+                  Ver <a href="/docs/get-started#configuracao-financeira" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Configuração financeira</a>.
+                </LI>
+                <LI>
+                  Crie uma <strong>chave secreta</strong> com os scopes que este padrão usa, e só esses:{' '}
+                  <Code>identity:read</Code>, <Code>wallet_accounts:create</Code>, <Code>wallet_accounts:read</Code>,{' '}
+                  <Code>payment_sessions:write</Code>, <Code>payment_sessions:read</Code>,{' '}
+                  <Code>webhooks:write</Code>, <Code>webhooks:read</Code> e{' '}
+                  <Code>application_settlements:write</Code>. A liquidação tem um scope próprio: poder
+                  receber pagamentos nunca dá, por arrasto, poder pagar dinheiro para fora.
+                </LI>
+                <LI>Instale o SDK no servidor: <Code>npm install @banzami/sdk</Code>.</LI>
+                <LI>
+                  Configure o servidor com duas variáveis, e nenhuma outra que o Banzami exija:{' '}
+                  <Code>BANZAMI_API_KEY</Code> (a chave <Code>bz_test_sk_</Code>) e{' '}
+                  <Code>BANZAMI_WEBHOOK_SECRET</Code> (o segredo do endpoint, que aparece uma vez quando o regista).
+                </LI>
+                <LI>
+                  Antes de deixar activar uma campanha, pergunte se o projeto já pode receber:{' '}
+                  <Code>getFinancialSetup()</Code>. É assim que o DOA deixa criar campanhas e não as deixa
+                  activar enquanto a configuração financeira não está concluída.
+                </LI>
+              </ol>
+
               <H3 id="doa-fluxo">O percurso completo</H3>
               <DonationFlowDiagram title="Do doador à liquidação: quem faz o quê, e com que chamada" steps={[
                 { actor: 'Doador', what: 'escolhe a campanha e indica o montante', how: 'lógica de negócio do DOA' },
@@ -1160,6 +1246,12 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 { actor: 'DOA', what: 'fecha a campanha e pede a liquidação', how: 'POST /v1/application-settlements' },
                 { actor: 'webhook', what: 'application_settlement.completed — bruto, taxa e líquido' },
               ]} />
+              <P>
+                O doador paga numa página do Banzami, não do DOA. A sessão devolve um link para{' '}
+                <Code>pay.banzami.com/pay/…</Code> e um QR que codifica esse mesmo endereço; o DOA mostra
+                um ou outro e não constrói nenhum pedido financeiro. Quando o doador volta à página do DOA,
+                isso não prova nada — a confirmação chega pelo webhook, ou lendo a sessão no servidor.
+              </P>
 
               <H3 id="doa-contas">Uma conta por campanha</H3>
               <P>
@@ -1253,6 +1345,24 @@ await db.campanhas.update(campanha.id, { banzami_wallet_account_id: conta.id });
                 na conta da campanha. A liquidação é um segundo acto, pedido por si, que tira o
                 dinheiro de lá. O DOA pede-a depois de a campanha encerrar — não acontece sozinha.
               </Callout>
+
+              <H3 id="doa-credenciais">Rodar e revogar credenciais</H3>
+              <UL>
+                <LI><strong>Rodar a chave.</strong> Crie uma chave nova com os mesmos scopes, ponha-a no servidor, confirme que <Code>GET /v1/me</Code> responde, e só então revogue a antiga. A revogação é imediata: a chamada seguinte com a chave antiga responde <Code>401</Code>.</LI>
+                <LI><strong>Rodar o segredo do webhook.</strong> <Code>rotateWebhookEndpointSecret</Code> devolve um segredo novo, uma vez. A troca é imediata, não sobreposta: actualize <Code>BANZAMI_WEBHOOK_SECRET</Code> no servidor antes de rodar, ou as entregas seguintes falham a verificação.</LI>
+                <LI><strong>Suspeita de fuga.</strong> Revogue primeiro e investigue depois. Uma chave revogada não se reactiva; cria-se outra.</LI>
+              </UL>
+
+              <H3 id="doa-problemas">Quando algo não corre como esperado</H3>
+              <UL>
+                <LI><Code>403 PAYMENTS_UNAVAILABLE</Code> ao criar a sessão — o projeto ainda não tem configuração financeira concluída. Veja o estado na Consola ou com <Code>getFinancialSetup()</Code>. Repetir não ajuda.</LI>
+                <LI><Code>403 INSUFFICIENT_SCOPE</Code> — a chave não tem o scope da operação; a mensagem diz qual. Crie uma chave com esse scope. Os scopes não se acrescentam a uma chave existente.</LI>
+                <LI><strong>O webhook não chega.</strong> Veja as entregas do endpoint na Consola: o código de resposta do seu servidor e a hora da tentativa. Um endpoint que responde fora de <Code>2xx</Code> recebe a entrega outra vez.</LI>
+                <LI><strong>A assinatura não verifica.</strong> Quase sempre é o corpo: foi lido como JSON e voltou a ser serializado. Verifique sobre o corpo em bruto, com o segredo actual do endpoint.</LI>
+                <LI><strong>O mesmo evento duas vezes.</strong> É o comportamento esperado — a entrega é at-least-once. Trate pelo <Code>id</Code> do evento e ignore o que já processou.</LI>
+                <LI><strong>A liquidação é recusada.</strong> A conta de origem tem de ser uma conta sua com saldo, e o beneficiário um <Code>@banza</Code> existente. Repita com a <strong>mesma</strong> chave de idempotência: uma liquidação que chegou a acontecer não acontece duas vezes.</LI>
+                <LI><strong>Ao pedir ajuda</strong>, envie o <Code>request_id</Code> da resposta, a hora e a operação. Nunca envie a chave, o segredo do webhook nem um código de entrada. Ver <a href="/docs/trust#suporte" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Suporte</a>.</LI>
+              </UL>
 
               <H3 id="doa-licoes">O que o DOA aprendeu pelo caminho</H3>
               <UL>

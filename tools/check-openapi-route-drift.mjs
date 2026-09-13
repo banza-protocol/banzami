@@ -104,9 +104,24 @@ if (failures) process.exit(1);
 
 // The DeveloperKeyAuth group is mounted on the ROOT router and writes absolute
 // paths; the DualAuth group lives inside r.Route("/v1", …) and writes relative ones.
+// The PUBLIC surface — routes that take no credential at all. The receipt
+// verifier GET /v1/public/proofs/{ref} is mounted by its own function rather
+// than inside a group, so a gate that only read the credentialed groups could
+// not see it: the route was live, public, documented in no spec, and the gate
+// reported the contract complete. Read explicitly, and kept separate, so the
+// check below can hold its security declaration too.
+const publicRoutes = new Set();
+for (const fn of ['mountPublicProofVerify']) {
+  const at = src.indexOf(`func ${fn}(`);
+  if (at === -1) { fail(`${fn} is not in server.go — the public surface could not be read`); continue; }
+  const { body } = blockAt(openBraceAfter(at));
+  for (const m of body.matchAll(/\.(Get|Post|Put|Patch|Delete)\(\s*"([^"]*)"/g)) publicRoutes.add(`${m[1].toUpperCase()} ${m[2]}`);
+}
+
 const reachable = new Set([
   ...routesIn(devKeyGroup, ''),
   ...routesIn(dualGroup, '/v1'),
+  ...publicRoutes,
 ]);
 
 const spec = JSON.parse(readFileSync(SPEC, 'utf8'));
@@ -122,6 +137,30 @@ for (const [p, ops] of Object.entries(spec.paths)) {
 // not part of the contract and must not be in the spec — so the exemption is
 // earned from the source, not from a list here: the handler the route names must
 // answer 410 ROUTE_RETIRED, and the docs must say so where an integrator reads.
+// ── the security declaration matches the mount ─────────────────────────────
+//
+// A public route documented as needing a key sends integrators to create a
+// credential they do not need; a credentialed route documented as public tells
+// them a request will work that will answer 401. Either is a contract that
+// contradicts the runtime.
+{
+  const wrong = [];
+  for (const [p, ops] of Object.entries(spec.paths)) {
+    for (const [method, op] of Object.entries(ops)) {
+      if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
+      const key = `${method.toUpperCase()} ${p}`;
+      const declaredPublic = Array.isArray(op.security) && op.security.length === 0;
+      const mountedPublic = publicRoutes.has(key);
+      if (declaredPublic !== mountedPublic && reachable.has(key)) {
+        wrong.push(`${key}: spec says ${declaredPublic ? 'public' : 'credentialed'}, server mounts it ${mountedPublic ? 'public' : 'credentialed'}`);
+      }
+    }
+  }
+  wrong.length
+    ? fail(`security declarations contradict the mounts:\n      ${wrong.join('\n      ')}`)
+    : pass(`every operation's security declaration matches how it is mounted (${publicRoutes.size} public)`);
+}
+
 const handlers = readFileSync(resolve(ROOT, 'services/api-gateway/internal/handler/payment_links.go'), 'utf8');
 const docsRef = readFileSync(resolve(ROOT, 'apps/website/app/developers/docs/reference.tsx'), 'utf8');
 const retiredHandlers = new Set();
@@ -144,7 +183,7 @@ const undocumented = [...reachable].filter(r => !documented.has(r) && !retiredRo
 const absent = [...documented].filter(r => !reachable.has(r)).sort();
 
 undocumented.length
-  ? fail(`reachable with a developer key but not published:\n      ${undocumented.join('\n      ')}`)
+  ? fail(`reachable but not published (a developer-key, dual-credential or public route):\n      ${undocumented.join('\n      ')}`)
   : pass(`every developer-key route is published (${reachable.size} operations)`);
 
 absent.length

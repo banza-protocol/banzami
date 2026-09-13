@@ -898,7 +898,60 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 environment and the operation. <strong>Never send the key, the webhook secret, an
                 OTP code or a session token</strong> — nothing we need in order to help is a secret.
               </Callout>
-              </Section>
+                <H3 id="receipts">Receipts and public verification</H3>
+              <P>
+                Every confirmed payment has a <strong>receipt</strong>: a document carrying a{' '}
+                <strong>public proof reference</strong> and a QR. Whoever holds that reference can confirm, with no
+                account and no key, that the payment exists and what state it is in. The PDF receipt is issued to the
+                Business that received the payment, in the Banzami Business app — a project key does not download
+                receipts.
+              </P>
+              <P><strong>The reference.</strong> The current format is called <Code>SECURE_V1</Code>:</P>
+              <CodeBlock label="SECURE_V1 format" onCopy={copy} {...enCopy} raw={`BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+
+# 24 symbols in six groups of four, after BZM-.
+# Alphabet: 0-9 and A-Z without I, L, O and U — no letter reads as a digit.
+# 120 bits: it cannot be guessed or enumerated.`} />
+              <UL>
+                <LI><strong>It is a bearer capability.</strong> Whoever holds the reference sees the amount, both parties&rsquo; @banza and the description. Share it the way you would share the receipt itself.</LI>
+                <LI><strong>It is exact.</strong> There is no normalisation: lower-case letters, spaces or an extra hyphen answer <Code>404</Code>, exactly like a reference that does not exist. Copy it; do not retype it.</LI>
+                <LI>Older eight-symbol references (<Code>BZM-XXXX-XXXX</Code>) still verify; new ones are always <Code>SECURE_V1</Code>.</LI>
+              </UL>
+              <P><strong>Verifying.</strong> The receipt&rsquo;s QR opens <Code>https://banzami.com/r/&#123;reference&#125;</Code>, the public verification page. The same check exists as a public API, with no authentication:</P>
+              <CodeBlock label="curl · verify a receipt" onCopy={copy} {...enCopy} raw={`curl https://sandbox-api.banzami.com/v1/public/proofs/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`} />
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>HTTP</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Response</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Means</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['200', 'the receipt status + amount, parties, date', 'Verified. Read status: CONFIRMED, PENDING, REVERSED, CANCELLED, FAILED or EXPIRED.'],
+                      ['404', 'exists: false, status NOT_FOUND', 'It does not exist — or the reference was altered. The two answers are the same on purpose.'],
+                      ['503', 'exists: false, status UNAVAILABLE', 'Verification is temporarily unavailable. Try again later; do not conclude it is forged.'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700 }}><Code>{r[0]}</Code></td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>Refunded or reversed</strong>, a receipt does not disappear: it becomes <Code>REVERSED</Code>. The proof that the payment existed remains, and says it was undone.</LI>
+                <LI>
+                  <strong>Do not confuse it with the app&rsquo;s short reference.</strong> The Banzami app shows an
+                  eight-character reference on every transfer (for example <Code>5AD6BEA0</Code>): it is the start of the
+                  transfer&rsquo;s id, it helps the person recognise the entry in their list, and it{' '}
+                  <strong>does not verify</strong> at <Code>/r/</Code>. Only the receipt&rsquo;s <Code>BZM-…</Code>{' '}
+                  reference is a public proof.
+                </LI>
+              </UL>
+            </Section>
     </>
   );
 }
@@ -967,6 +1020,41 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
                 diverge, and on that day one of them is wrong and nobody knows which.
               </P>
 
+              <H3 id="doa-prepare">Preparing the project</H3>
+              <P>
+                Everything DOA does starts like any other integration — a developer account, a
+                workspace and a project. DOA received none of these steps differently.
+              </P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>Sign in to the <a href="/docs/en/console" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Console</a>, create a <strong>workspace</strong> and, inside it, a <strong>project</strong> for the application.</LI>
+                <LI>
+                  Complete the <strong>financial setup</strong>. DOA receives donations for beneficiaries, so it
+                  needs a Business. There are two paths: <strong>apply for a new Business</strong>, which Banzami
+                  reviews before the project can receive; or <strong>connect a Business that already exists</strong>{' '}
+                  with the consent code its owner generates in the Banzami Business app. See{' '}
+                  <a href="/docs/en/get-started#financial-setup" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Financial setup</a>.
+                </LI>
+                <LI>
+                  Create a <strong>secret key</strong> with the scopes this pattern uses, and only those:{' '}
+                  <Code>identity:read</Code>, <Code>wallet_accounts:create</Code>, <Code>wallet_accounts:read</Code>,{' '}
+                  <Code>payment_sessions:write</Code>, <Code>payment_sessions:read</Code>,{' '}
+                  <Code>webhooks:write</Code>, <Code>webhooks:read</Code> and{' '}
+                  <Code>application_settlements:write</Code>. Settlement has a scope of its own: being able to
+                  take payments never carries, by accident, the ability to pay money out.
+                </LI>
+                <LI>Install the SDK on the server: <Code>npm install @banzami/sdk</Code>.</LI>
+                <LI>
+                  Configure the server with two variables, and no others Banzami requires:{' '}
+                  <Code>BANZAMI_API_KEY</Code> (the <Code>bz_test_sk_</Code> key) and{' '}
+                  <Code>BANZAMI_WEBHOOK_SECRET</Code> (the endpoint&rsquo;s secret, shown once when you register it).
+                </LI>
+                <LI>
+                  Before letting a campaign go live, ask whether the project can receive yet:{' '}
+                  <Code>getFinancialSetup()</Code>. That is how DOA lets people create campaigns and does not let
+                  them activate one until financial setup is complete.
+                </LI>
+              </ol>
+
               <H3 id="doa-flow">The whole journey</H3>
               <DonationFlowDiagram title="From donor to settlement: who does what, and with which call" steps={[
                 { actor: 'Donor', what: 'picks a campaign and names an amount', how: "DOA's own business logic" },
@@ -979,6 +1067,12 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
                 { actor: 'DOA', what: 'closes the campaign and asks for settlement', how: 'POST /v1/application-settlements' },
                 { actor: 'webhook', what: 'application_settlement.completed — gross, fee and net' },
               ]} />
+              <P>
+                The donor pays on a Banzami page, not a DOA one. The session returns a link to{' '}
+                <Code>pay.banzami.com/pay/…</Code> and a QR that encodes the same address; DOA shows one or the
+                other and never builds a financial request itself. The donor coming back to DOA&rsquo;s page
+                proves nothing — confirmation arrives on the webhook, or by reading the session on the server.
+              </P>
 
               <H3 id="doa-accounts">One account per campaign</H3>
               <P>
@@ -1073,6 +1167,24 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
                 takes the money out. DOA requests it after the campaign closes — it does not
                 happen on its own.
               </Callout>
+
+              <H3 id="doa-credentials">Rotating and revoking credentials</H3>
+              <UL>
+                <LI><strong>Rotating the key.</strong> Create a new key with the same scopes, put it on the server, confirm <Code>GET /v1/me</Code> answers, and only then revoke the old one. Revocation is immediate: the next call with the old key answers <Code>401</Code>.</LI>
+                <LI><strong>Rotating the webhook secret.</strong> <Code>rotateWebhookEndpointSecret</Code> returns a new secret, once. The cutover is immediate, not overlapping: update <Code>BANZAMI_WEBHOOK_SECRET</Code> on the server before you rotate, or the next deliveries fail verification.</LI>
+                <LI><strong>A suspected leak.</strong> Revoke first, investigate after. A revoked key is not reactivated; you create another.</LI>
+              </UL>
+
+              <H3 id="doa-troubleshooting">When something does not go as expected</H3>
+              <UL>
+                <LI><Code>403 PAYMENTS_UNAVAILABLE</Code> when creating the session — the project has no completed financial setup yet. Check the state in the Console or with <Code>getFinancialSetup()</Code>. Retrying does not help.</LI>
+                <LI><Code>403 INSUFFICIENT_SCOPE</Code> — the key lacks the operation&rsquo;s scope; the message names it. Create a key with that scope. Scopes are not added to an existing key.</LI>
+                <LI><strong>The webhook does not arrive.</strong> Look at the endpoint&rsquo;s deliveries in the Console: your server&rsquo;s response code and the time of the attempt. An endpoint that answers outside <Code>2xx</Code> gets the delivery again.</LI>
+                <LI><strong>The signature does not verify.</strong> It is almost always the body: it was read as JSON and serialised again. Verify over the raw body, with the endpoint&rsquo;s current secret.</LI>
+                <LI><strong>The same event twice.</strong> That is expected — delivery is at-least-once. Handle it by the event&rsquo;s <Code>id</Code> and ignore what you have already processed.</LI>
+                <LI><strong>The settlement is refused.</strong> The source account has to be your own account with a balance, and the beneficiary an existing <Code>@banza</Code>. Retry with the <strong>same</strong> idempotency key: a settlement that did happen does not happen twice.</LI>
+                <LI><strong>When you ask for help</strong>, send the response&rsquo;s <Code>request_id</Code>, the time and the operation. Never send the key, the webhook secret or a sign-in code. See <a href="/docs/en/trust#support" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Support</a>.</LI>
+              </UL>
 
               <H3 id="doa-lessons">What DOA learned along the way</H3>
               <UL>
