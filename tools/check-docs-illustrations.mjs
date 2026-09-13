@@ -65,6 +65,28 @@ console.log('developer documentation — illustrations\n');
     : pass('DOCS_ASCII_ILLUSTRATIONS = 0 — no box-drawing art in either language');
 }
 
+// ── no diagrams drawn with text characters in HTML either ───────────────────
+//
+// The Get started page had a seven-stage flow drawn as HTML chips joined by a
+// "→" character between each pair. No box-drawing, so the check above passed —
+// but it is the same thing: a picture made of text, which wraps wherever the
+// width happens to fall and reads to a screen reader as a list of words.
+let chipHits = 0;
+{
+  const files = [...CONTENT, 'apps/website/app/developers/page.tsx', 'apps/website/app/developers/docs/shell.tsx'];
+  const hits = [];
+  for (const file of files) {
+    const src = readFileSync(join(ROOT, file), 'utf8');
+    for (const m of src.matchAll(/length\s*-\s*1\s*\?\s*<span[^>]*>\s*(?:→|->|⟶|➜)\s*<\/span>/g)) {
+      hits.push(`${file}:${src.slice(0, m.index).split('\n').length} — a chip strip joined by an arrow character`);
+    }
+  }
+  chipHits = hits.length;
+  hits.length
+    ? fail(`DOCS_TEXT_ARROW_DIAGRAMS = ${hits.length}`, `${hits.join('\n      ')}\n      → draw it in ${DIAGRAMS} instead`)
+    : pass('DOCS_TEXT_ARROW_DIAGRAMS = 0 — no flow drawn as text chips and arrow characters');
+}
+
 // ── the SVG illustrations exist and are real SVG ─────────────────────────────
 {
   let src = '';
@@ -105,6 +127,7 @@ console.log('developer documentation — illustrations\n');
 // 0 here, so the summary said zero while the checks above said otherwise — a
 // gate that contradicts itself is worse than no gate.
 console.log(`\nDOCS_ASCII_ILLUSTRATIONS=${asciiHits}`);
+console.log(`DOCS_ASCII_CONCEPT_DIAGRAMS=${asciiHits + chipHits}`);
 console.log(`DOCS_ILLUSTRATION_PT_EN_DRIFT=${driftHits}`);
 
 if (failures) { console.error(`\n✗ ${failures} illustration failure(s)`); process.exit(1); }

@@ -19,6 +19,7 @@ const PT_HOME = read(`${D}/page.tsx`);
 const EN_HOME = read(`${D}/en/page.tsx`);
 const SHELL = read(`${D}/shell.tsx`);
 const PT = read(`${D}/content-pt.tsx`);
+const CARDS_SRC = read(`${D}/CapabilityCards.tsx`);
 const EN = read(`${D}/content-en.tsx`);
 const CORPUS = PT + EN + PT_HOME + EN_HOME + SHELL;
 
@@ -117,12 +118,14 @@ describe('P3B — credential-scoped badge clarity', () => {
     // while its capability is released with deployed E2E evidence behind it;
     // short of that it must read "Pendente E2E para chave developer". Asserting
     // both directions catches an over-claim and a stale under-claim alike.
+    // The cards live in CapabilityCards.tsx, one definition for both languages.
     for (const { card, id } of CARD_CAPABILITIES) {
-      const start = PT.indexOf(`title: '${card}'`);
+      const start = CARDS_SRC.indexOf(`title: { pt: '${card}'`);
       expect(start, `card ${card} is missing`).toBeGreaterThan(-1);
-      const block = PT.slice(start, start + 900);
-      const badge = (block.match(/badgeText: '([^']+)'/) || [])[1];
-      expect(badge, `card ${card} has no badge`).toBeDefined();
+      const block = CARDS_SRC.slice(start, start + 900);
+      const ref = (block.match(/badgeText: (\w+|\{ pt: '[^']+')/) || [])[1];
+      expect(ref, `card ${card} has no badge`).toBeDefined();
+      const badge = ref === 'AVAILABLE' ? 'Disponível em Sandbox' : (ref.match(/pt: '([^']+)'/) || [])[1];
       expect(badge === 'Disponível em Sandbox', `${card} badge vs ${id}`).toBe(isReleased(id));
       if (!isReleased(id)) expect(badge).toBe('Pendente E2E para chave developer');
     }
@@ -146,7 +149,7 @@ describe('P3B — credential-scoped badge clarity', () => {
   });
   it('the docs-claims gate still sees the released-capability tone (transfers tone ok kept)', () => {
     // href → tone adjacency preserved for the manifest-disposition gate.
-    expect(/href: '\/docs\/guides#transferencias',\s*\n\s*tone: 'ok'/.test(PT)).toBe(true);
+    expect(/href: \{ pt: '\/docs\/guides#transferencias'[^}]*\},\s*\n\s*tone: 'ok'/.test(CARDS_SRC)).toBe(true);
   });
 });
 

@@ -41,7 +41,7 @@ undocumented.length
 
 // Every path the reference documents must be published. A path may also be named
 // in order to say it is NOT part of the contract; that has to be said next to it.
-const referenced = [...new Set((REF.match(/\/v1\/[a-z0-9/_{}-]+/g) ?? []).map((p) => p.replace(/[.,;:)]+$/, '')))];
+const referenced = [...new Set((REF.match(/\/v1\/[A-Za-z0-9/_{}-]+/g) ?? []).map((p) => p.replace(/[.,;:)]+$/, '')))];
 const templates = specPaths.map((p) => new RegExp(`^${p.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{[^}]+\}/g, '[^/]+')}$`));
 const DISCLAIMED = /(retirad|retired|410|apenas credencial|apenas sess[ãa]o|merchant credential only|merchant session only|consumer surface only|superf[íi]cie de consumidor)/i;
 const stray = referenced.filter((p) => {

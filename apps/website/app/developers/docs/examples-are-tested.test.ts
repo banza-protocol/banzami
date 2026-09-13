@@ -132,6 +132,12 @@ describe('JSON examples parse, and money is money', () => {
               expect(typeof v === 'number' && Number.isInteger(v),
                 `${j.path}: ${at}.${k} = ${String(v)} is named _minor but is not a whole number`).toBe(true);
             } else if (typeof v === 'number'
+              // One named exception, and it is the product, not the docs: the
+              // public proof (GET /v1/public/proofs/{ref}, ProofService.Public)
+              // has always returned `amount`, in minor units, beside `exists`.
+              // Documenting it as amount_minor would describe a field that
+              // does not exist; the example shows what a verifier receives.
+              && !(k === 'amount' && typeof (node as Record<string, unknown>).exists === 'boolean' && Number.isInteger(v))
               && /(amount|balance|\bfee\b|_fee)/i.test(k)
               && !/(bps|rate|pct|percent|count|destination|profile|currency|last_\d+h)/i.test(k)) {
               expect(false, `${j.path}: ${at}.${k} looks like money and is not named _minor`).toBe(true);

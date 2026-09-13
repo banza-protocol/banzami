@@ -226,3 +226,55 @@ export function DonationFlowDiagram({ title, steps }: { title: string; steps: Fl
     </Frame>
   );
 }
+
+// ── the integration journey at a glance ─────────────────────────────────────
+
+/**
+ * The seven stages from a user to settlement, in two rows. It was a strip of
+ * HTML chips joined by "→" characters, which wrapped wherever the width
+ * happened to fall and read to a screen reader as seven unrelated words.
+ */
+export function JourneyStripDiagram({ title, steps }: { title: string; steps: string[] }) {
+  const W = 190;
+  const H = 50;
+  const GAP = 34;
+  const perRow = 4;
+  const rows = Math.ceil(steps.length / perRow);
+  const height = 30 + rows * H + (rows - 1) * 46 + 30;
+  const pos = (i: number) => {
+    const row = Math.floor(i / perRow);
+    const col = i % perRow;
+    return { x: 30 + col * (W + GAP), y: 30 + row * (H + 46) };
+  };
+  return (
+    <Frame title={title} viewBox={`0 0 900 ${height}`}>
+      <defs>
+        <marker id="bz-journey-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill={RED} />
+        </marker>
+      </defs>
+      <rect width="900" height={height} fill={GROUND} rx={14} />
+      {steps.map((s, i) => {
+        const { x, y } = pos(i);
+        const next = i < steps.length - 1 ? pos(i + 1) : null;
+        return (
+          <g key={s}>
+            <rect x={x} y={y} width={W} height={H} rx={10} fill={i === 2 ? RED : '#FFFFFF'} stroke={i === 2 ? RED_DEEP : BLUSH} strokeWidth={1.5} />
+            <text x={x + W / 2} y={y + H / 2 + 5} textAnchor="middle" fontFamily={SANS} fontSize={15} fontWeight={800} fill={i === 2 ? '#FFFFFF' : INK}>
+              {s}
+            </text>
+            {next && next.y === y ? (
+              <line x1={x + W + 4} y1={y + H / 2} x2={next.x - 4} y2={y + H / 2} stroke={RED} strokeWidth={2} markerEnd="url(#bz-journey-arrow)" />
+            ) : null}
+            {next && next.y !== y ? (
+              <path
+                d={`M ${x + W / 2} ${y + H + 4} V ${y + H + 23} H ${next.x + W / 2} V ${next.y - 4}`}
+                fill="none" stroke={RED} strokeWidth={2} markerEnd="url(#bz-journey-arrow)"
+              />
+            ) : null}
+          </g>
+        );
+      })}
+    </Frame>
+  );
+}

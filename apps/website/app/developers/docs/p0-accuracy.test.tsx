@@ -140,16 +140,22 @@ describe('P0 — /docs content contracts (rendered)', () => {
     expect(DOCS).toContain('nenhuma página da Consola apresenta dados ilustrativos');
     expect(DOCS).not.toContain('pré-visualização demo, não operacional');
   });
-  it('documents the canonical error envelope and the status↔code table', () => {
+  it('documents the canonical error envelope and renders the error catalogue', () => {
     expect(DOCS).toContain('"request_id"');
-    expect(DOCS).toContain('VALIDATION_ERROR');
-    expect(DOCS).toContain('RATE_LIMITED');
-    expect(DOCS).toContain('Códigos por status HTTP');
+    // The envelope sample uses a code the API really returns. VALIDATION_ERROR
+    // and 409 CONFLICT used to be here; no developer route returns either
+    // (tools/check-docs-error-catalogue.mjs derives what does).
+    expect(DOCS).toContain('"code": "INVALID_AMOUNT"');
+    expect(DOCS).not.toContain('VALIDATION_ERROR');
+    expect(DOCS).toContain('<ErrorCatalogue lang="pt" />');
+    expect(DOCS).toContain('Catálogo de erros');
   });
   it('shows Idempotency-Key in code with the real Sandbox semantics', () => {
     expect(DOCS).toContain('Idempotency-Key: idem_');
     expect(DOCS).toContain('24 horas');
-    expect(DOCS).toContain('409 CONFLICT');
+    expect(DOCS).toContain('409 IDEMPOTENCY_CONFLICT');
+    expect(DOCS).toContain('409 IDEMPOTENCY_KEY_REUSED');
+    expect(DOCS).not.toContain('409 CONFLICT');
   });
   it('has the credential↔capability matrix, and it still refuses Production', () => {
     render(<PtReferencePage />);

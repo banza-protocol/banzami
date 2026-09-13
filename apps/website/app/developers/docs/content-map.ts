@@ -22,7 +22,7 @@ export const CONTENT_MAP: ContentGroup[] = [
   { group: 'resource-reference', ptRoute: '/docs/reference', enRoute: '/docs/en/reference', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Referência por recurso', enToken: 'Resource reference' },
   { group: 'sandbox-testing', ptRoute: '/docs/testing', enRoute: '/docs/en/testing', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Testar no Sandbox', enToken: 'Sandbox testing' },
   { group: 'webhooks', ptRoute: '/docs/guides', enRoute: '/docs/en/guides', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Contrato de reentrega', enToken: 'Redelivery contract' },
-  { group: 'errors', ptRoute: '/docs/reference', enRoute: '/docs/en/reference', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Códigos por status HTTP', enToken: 'Codes by HTTP status' },
+  { group: 'errors', ptRoute: '/docs/reference', enRoute: '/docs/en/reference', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Catálogo de erros', enToken: 'Error catalogue' },
   { group: 'idempotency', ptRoute: '/docs/reference', enRoute: '/docs/en/reference', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Idempotency-Key: idem_', enToken: 'Idempotency-Key: idem_' },
   { group: 'authentication', ptRoute: '/docs/reference', enRoute: '/docs/en/reference', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Autenticação e gestão de chaves', enToken: 'Authentication and key management' },
   { group: 'changelog', ptRoute: '/docs/changelog', enRoute: '/docs/en/changelog', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: '[Breaking]', enToken: '[Breaking]' },

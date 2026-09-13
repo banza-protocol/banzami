@@ -8,74 +8,14 @@
 
 import type { ReactNode } from 'react';
 import { GlossaryTerm } from './GlossaryTerm';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram } from './diagrams';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram, JourneyStripDiagram } from './diagrams';
+import { CapabilityCards } from './CapabilityCards';
 import { GLOSSARY } from './glossary';
 import { BADGES, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, NextSteps, P, PageLede, RED, Section, UL, mono, type Tone } from './ui';
 import { ResourceReference } from './reference';
+import { ErrorCatalogue } from './ErrorCatalogue';
 
 export type CopyFn = (text: string, label: string) => void;
-
-// -- Intro capability cards (real links to sub-anchors) -------------------------
-const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone: Tone; badgeText: string; icon: ReactNode }[] = [
-  {
-    title: 'Criar cobrança',
-    desc: 'Links de pagamento, sessões e QR.',
-    href: '/docs/guides#cobranca',
-    tone: 'ok',
-    badgeTone: 'ok',
-    badgeText: 'Disponível em Sandbox',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M4 8h13l-3-3M20 16H7l3 3" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Transferências',
-    // Precise on purpose. The capability moves money between accounts of the
-    // SAME project-bound owner and cannot leave it; "entre contas" alone invites
-    // a reader to expect arbitrary external transfer.
-    desc: 'Movimente valor entre contas do seu projeto.',
-    href: '/docs/guides#transferencias',
-    tone: 'ok',
-    badgeTone: 'ok',
-    badgeText: 'Disponível em Sandbox',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M4 12h13l-3-3M20 12H7" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Webhooks',
-    desc: 'Eventos assinados no seu servidor.',
-    href: '/docs/guides#webhooks',
-    tone: 'ok',
-    badgeTone: 'ok',
-    badgeText: 'Disponível em Sandbox',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="7" r="2.6" stroke={RED} strokeWidth="1.8" />
-        <circle cx="6" cy="17" r="2.2" stroke={RED} strokeWidth="1.8" />
-        <circle cx="18" cy="17" r="2.2" stroke={RED} strokeWidth="1.8" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Reembolsos',
-    desc: 'Devolva pagamentos processados.',
-    href: '/docs/guides#reembolsos',
-    tone: 'ok',
-    badgeTone: 'ok',
-    badgeText: 'Disponível em Sandbox',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M20 11a8 8 0 10-1 5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M20 5v5h-5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-];
 
 // -- SDK maturity matrix (verified: complete source, none published) ------------
 const SDKS: { name: string; lang: string; state: string; tone: Tone; consume: string }[] = [
@@ -220,7 +160,7 @@ curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \
 
 const SAMPLE_ERROR = `# Envelope canónico de erro (Sandbox)
 {
-  "code": "VALIDATION_ERROR",
+  "code": "INVALID_AMOUNT",
   "message": "amount_minor must be a positive integer",
   "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
 }`;
@@ -289,22 +229,6 @@ function ProducaoCard() {
 }
 
 
-// -- Simple, faithful flow diagram (verified DOA flow) --------------------------
-function FlowDiagram() {
-  const steps = ['Utilizador', 'App DOA', 'Banzami', 'Link / QR / Sessão', 'Confirmação', 'Webhook / Comprovativo', 'Liquidação'];
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-      {steps.map((s, i) => (
-        <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#6a5a5e', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 9, padding: '5px 10px' }}>{s}</span>
-          {i < steps.length - 1 ? <span aria-hidden="true" style={{ color: RED, fontWeight: 900 }}>→</span> : null}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-
 export function PtGetStarted({ copy }: { copy: CopyFn }) {
   return (
     <>
@@ -331,24 +255,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 </UL>
               </div>
 
-              {/* Interactive capability cards */}
-              <div className="bz-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '18px 0 26px' }}>
-                {CARDS.map((c) => (
-                  <a
-                    key={c.title}
-                    href={c.href}
-                    className="bz-doccard"
-                    style={{ position: 'relative', display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 16, padding: 18, boxShadow: '0 14px 40px -34px rgba(181,16,31,.35)' }}
-                  >
-                    <span style={{ position: 'absolute', top: 13, right: 13 }}><Badge tone={c.badgeTone}>{c.badgeText}</Badge></span>
-                    <span style={{ width: 34, height: 34, borderRadius: 10, background: '#FFF1F0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, color: RED }}>
-                      {c.icon}
-                    </span>
-                    <p style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: INK }}>{c.title}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600 }}>{c.desc}</p>
-                  </a>
-                ))}
-              </div>
+              <CapabilityCards lang="pt" />
 
               {/* h2, not h3: it follows the page h1 directly, and a skipped
                   heading level is a screen reader announcing a subsection of
@@ -382,7 +289,10 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                   o modelo de integração Banzami.
                 </P>
                 <div style={{ marginTop: 14 }}>
-                  <FlowDiagram />
+                  <JourneyStripDiagram
+                    title="O percurso de uma integração, do utilizador à liquidação"
+                    steps={['Utilizador', 'App DOA', 'Banzami', 'Link / QR / Sessão', 'Confirmação', 'Webhook / Comprovativo', 'Liquidação']}
+                  />
                 </div>
               </div>
 
@@ -486,9 +396,10 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 Falhas que vale a pena esperar: <Code>401</Code> (chave em falta, revogada ou live),{' '}
                 <Code>403 PAYMENTS_UNAVAILABLE</Code> (o projeto ainda não tem configuração financeira — ver{' '}
                 <a href="#configuracao-financeira" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>acima</a>),{' '}
-                <Code>403</Code> por scope insuficiente,{' '}
-                <Code>400 MISSING_FIELD / INVALID_BODY</Code> e <Code>409 CONFLICT</Code> (uma
-                Idempotency-Key já em curso). Ver{' '}
+                <Code>403 INSUFFICIENT_SCOPE</Code>,{' '}
+                <Code>400 INVALID_BODY / BAD_REQUEST</Code>, <Code>409 IDEMPOTENCY_CONFLICT</Code> (um pedido com a
+                mesma Idempotency-Key ainda em curso) e <Code>409 IDEMPOTENCY_KEY_REUSED</Code> (a mesma chave com outro
+                corpo). Ver{' '}
                 <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
               </P>
               <CodeBlock label="ts · criar sessão de pagamento (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} />
@@ -856,6 +767,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <H2>Guias</H2>
               <PageLede>Guias práticos de integração — cobranças, transferências, reembolsos e webhooks. O enquadramento é <strong>SDK-first</strong>; onde surge curl/HTTP, é material de referência do protocolo.</PageLede>
               <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/sdk', text: 'SDKs' }]} />
+              <P>Guias por tarefa para as superfícies verificadas no Sandbox. Onde surge HTTP/curl, é material de referência do protocolo ou de diagnóstico — o Banzami é SDK-first.</P>
 <H3 id="contas-segregadas">Onde o dinheiro cai: configuração financeira e contas <Badge tone="ok" /></H3>
               <P>
                 Duas perguntas diferentes, respondidas em sítios diferentes — e é a distinção
@@ -1049,6 +961,14 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 <LI>A assinatura é <GlossaryTerm id="hmac-sha256">HMAC-SHA256</GlossaryTerm> sobre <Code>&quot;{'{'}t{'}'}.{'{'}corpo{'}'}&quot;</Code>, com uma janela de repetição de <strong>5 minutos</strong>.</LI>
                 <LI>Processe de forma <strong>idempotente</strong> e responda <Code>2xx</Code> rapidamente; a entrega é <GlossaryTerm id="at-least-once" code>at-least-once</GlossaryTerm>, sem garantia de ordem, com <GlossaryTerm id="replay">reentrega</GlossaryTerm> em caso de falha.</LI>
               </UL>
+              <Callout tone="warn">
+                <strong>Verifique a assinatura antes de analisar o evento.</strong> Leia o corpo em bruto,
+                confirme-o contra o <Code>banza-signature</Code>, e só depois trate o JSON como algo que
+                veio do Banzami. Qualquer pessoa na internet pública pode fazer POST ao seu endpoint; até a
+                assinatura bater certo, o corpo é a afirmação de um desconhecido sobre o seu dinheiro.
+                Reserializar o JSON antes de verificar muda os bytes e a assinatura deixa de bater certo — leia-o
+                uma vez, como texto.
+              </Callout>
               <CodeBlock label="ts · verificar e tratar um evento" raw={SAMPLE_WEBHOOK} onCopy={copy} />
               <CodeBlock label="json · envelope do evento (implementado no Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
@@ -1112,12 +1032,12 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                   </tr></thead>
                   <tbody>
                     {[
-                      ['401 UNAUTHORIZED', 'A chave foi revogada, rodada, ou é de outro projeto.', 'Veja a chave em Chaves de API: se diz Revogada, use a sucessora. Se a criou há segundos, confirme que copiou o segredo inteiro.'],
-                      ['403 FORBIDDEN', 'Falta o scope. Os scopes fixam-se na criação e não mudam.', 'Compare os scopes da chave com os que a rota exige na referência. Se faltar um, crie uma chave nova — a existente nunca o ganhará.'],
-                      ['403 numa rota de pagamento', 'O projeto não tem titular financeiro.', 'GET /v1/financial-setup diz o estado. Complete a Configuração financeira; até lá o projeto pode tudo menos receber.'],
+                      ['401 UNAUTHORIZED', 'A chave falta, foi revogada ou rodada, ou não é uma chave Sandbox.', 'Veja a chave em Chaves de API: se diz Revogada, use a sucessora. Se a criou há segundos, confirme que copiou o segredo inteiro.'],
+                      ['403 INSUFFICIENT_SCOPE', 'Falta o scope. Os scopes fixam-se na criação e não mudam.', 'Compare os scopes da chave com os que a rota exige na referência. Se faltar um, crie uma chave nova — a existente nunca o ganhará.'],
+                      ['403 PAYMENTS_UNAVAILABLE', 'O projeto não tem configuração financeira concluída.', 'GET /v1/financial-setup diz o estado. Complete a Configuração financeira; até lá o projeto pode tudo menos receber.'],
                       ['404 num recurso que existe', 'Existe, mas é de outro projeto.', 'É deliberado: um 403 aqui deixaria enumerar os recursos alheios. Confirme que está a usar a chave do projeto que criou o recurso.'],
-                      ['409 CONFLICT numa criação', 'A mesma Idempotency-Key com um corpo diferente.', 'Uma chave de idempotência pertence a um pedido. Se o corpo mudou, é outro pedido: use outra chave.'],
-                      ['422 VALIDATION_ERROR', 'Um campo em falta ou com o tipo errado.', 'A mensagem nomeia o campo. Montantes são inteiros em unidades menores — 250 Kz são 25000, não 250.'],
+                      ['409 IDEMPOTENCY_KEY_REUSED', 'A mesma Idempotency-Key com um corpo diferente.', 'Uma chave de idempotência pertence a um pedido. Se o corpo mudou, é outro pedido: use outra chave.'],
+                      ['400 MISSING_FIELD · INVALID_AMOUNT', 'Um campo em falta ou com o tipo errado.', 'A mensagem nomeia o campo. Montantes são inteiros em unidades menores — 250 Kz são 25000, não 250.'],
                       ['429 RATE_LIMITED', 'Demasiados pedidos, ou demasiados códigos pedidos.', 'Abrande e repita com backoff. Repetir imediatamente prolonga a janela em vez de a encurtar.'],
                       ['Um pagamento fica pendente', 'O pagador ainda não concluiu.', 'Um pagamento pendente é um estado normal, não um erro. Espere pelo webhook; não confirme nada a partir de um tempo-limite.'],
                       ['O webhook não chega', 'O endpoint não é HTTPS público, ou responde lento.', 'Veja as entregas do evento na Consola: mostram o código devolvido pelo seu servidor. Um 2xx lento é tratado como falha.'],
@@ -1193,6 +1113,14 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
+              <SegregatedAccountsDiagram l={{
+                title: 'Contas segregadas: um dono financeiro, uma conta por campanha',
+                project: 'O seu projeto',
+                owner: 'dono financeiro',
+                ownerNote: 'vem da configuração financeira — nunca do seu pedido',
+                accounts: ['Campanha A', 'Campanha B', 'Campanha C'],
+                accountNote: 'uma wallet account cada',
+              }} />
               <P>
                 O DOA nunca guarda um saldo seu. Quando precisa de saber quanto uma campanha
                 recebeu, pergunta ao Banzami — porque a alternativa é ter dois números que um dia
@@ -1390,6 +1318,11 @@ export function PtReference({ copy }: { copy: CopyFn }) {
               <PageLede>Camada de <strong>referência do protocolo</strong> (API/OpenAPI). <strong>Não é o caminho de implementação recomendado</strong> — o Banzami é SDK-first; use esta referência para diagnóstico, auditoria e integradores avançados.</PageLede>
               <NextSteps label="A seguir:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/guides', text: 'Guias' }, { href: '/docs/sdk', text: 'SDKs' }]} />
               <P>A referência separa-se em duas áreas: o que gere na <strong>Console</strong> e o que a sua aplicação chama na <strong>camada de integração</strong>.</P>
+              <P>
+                A sua aplicação autentica-se enviando a chave Sandbox <Code>bz_test_</Code> directamente no header{' '}
+                <Code>Authorization: Bearer …</Code> e chama a camada de integração em <Code>sandbox-api.banzami.com</Code>.
+                As chaves <Code>bz_live_</Code> são <strong>recusadas fail-closed</strong> — não há emissão de chaves de Produção.
+              </P>
 
               <H3>Gestão pela Console</H3>
               <P>
@@ -1442,8 +1375,9 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 segurança</strong> um pedido que falhou por rede/timeout, sem risco de duplicar o efeito. O comportamento no
                 Sandbox: a resposta original (2xx ou 4xx) é reproduzida para a mesma chave durante <strong>24 horas</strong>,
                 por credencial, método e caminho; respostas <Code>5xx</Code> nunca são reproduzidas (o pedido pode ser repetido);
-                dois pedidos <strong>simultâneos</strong> com a mesma chave recebem <Code>409 CONFLICT</Code> até o primeiro
-                terminar — nesse caso, aguarde e repita com a <em>mesma</em> chave.
+                dois pedidos <strong>simultâneos</strong> com a mesma chave recebem <Code>409 IDEMPOTENCY_CONFLICT</Code> até o
+                primeiro terminar — nesse caso, aguarde e repita com a <em>mesma</em> chave. A mesma chave com um corpo
+                diferente recebe <Code>409 IDEMPOTENCY_KEY_REUSED</Code>: é outro pedido e precisa de outra chave.
               </P>
               <CodeBlock label="curl · repetição segura com Idempotency-Key" raw={SAMPLE_IDEM_RETRY} onCopy={copy} />
 
@@ -1463,6 +1397,14 @@ export function PtReference({ copy }: { copy: CopyFn }) {
               </P>
               <ResourceReference lang="pt" onCopy={copy} />
 
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Nota sobre credenciais: reembolsos e transferências fazem-se com uma chave de projeto com
+                {' '}<Code>refunds:write</Code> e <Code>transfers:write</Code>, em <Code>/v1/refunds</Code> e
+                {' '}<Code>/v1/wallet-account-transfers</Code>. Ambos foram verificados ponta a ponta contra o Sandbox publicado, incluindo
+                as recusas: uma chave de leitura não escreve, e o pagamento ou a conta de outro projeto respondem <Code>404</Code>.
+                Apenas Sandbox — nunca apresente nenhum dos dois como disponível em Produção.
+              </P>
+
               </Section>
 <Section id="errors">
               <H2>Errors</H2>
@@ -1478,39 +1420,14 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 só do seu projeto, e são guardados durante <strong>30 dias</strong>. O que nunca é guardado: cabeçalho{' '}
                 <Code>Authorization</Code>, chaves de API, segredos de webhook, cookies, OTP ou corpo do pedido.
               </P>
-              <H3>Códigos por status HTTP (observados no Sandbox)</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 480, fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Status</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Códigos típicos</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>O que fazer</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['400', 'INVALID_BODY · MISSING_FIELD · VALIDATION_ERROR · INVALID_PARAM · INVALID_AMOUNT', 'Corrija o pedido; não repita sem alterar.'],
-                      ['401', 'UNAUTHORIZED', 'Chave em falta/inválida/revogada — verifique a chave bz_test_.'],
-                      ['403', 'FORBIDDEN', 'Scope insuficiente ou projeto sem binding ativo.'],
-                      ['404', 'NOT_FOUND', 'Recurso inexistente ou fora do seu âmbito.'],
-                      ['409', 'CONFLICT', 'Idempotency-Key em curso ou conflito de estado — aguarde e repita com a mesma chave.'],
-                      ['429', 'RATE_LIMITED', 'Abrande e repita com backoff.'],
-                      ['5xx', 'INTERNAL_ERROR · UPSTREAM_ERROR · UNAVAILABLE', 'Transitório — repita com a mesma Idempotency-Key.'],
-                    ] as [string, string, string][]).map(([st, codes, act]) => (
-                      <tr key={st}>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontWeight: 700, color: INK }}>{st}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{codes}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{act}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Esta tabela descreve o comportamento observado no <strong>Sandbox</strong>; o comportamento exato de Produção
-                não é reivindicado (Produção em preparação).
+              <H3 id="catalogo-de-erros">Catálogo de erros</H3>
+              <P>
+                Todos os códigos que uma chave de projeto pode receber, e só esses. A lista é gerada a partir do código do
+                gateway e verificada contra ele: um código novo que não esteja aqui, ou um código aqui que já não exista,
+                falha a verificação. Descreve o <strong>Sandbox</strong>; o comportamento de Financial LIVE não é
+                reivindicado.
               </P>
+              <ErrorCatalogue lang="pt" />
               <H3>Console (acesso e chaves)</H3>
               <UL>
                 <LI><Code>INVALID_EMAIL</Code> / <Code>INVALID_CODE</Code> — corrija o email ou peça um novo código OTP.</LI>
@@ -1523,9 +1440,9 @@ export function PtReference({ copy }: { copy: CopyFn }) {
               </UL>
               <H3>Integração</H3>
               <UL>
-                <LI><Code>401</Code> — sem token ou chave inválida; troque a sua chave <Code>bz_test_</Code> por um token válido.</LI>
+                <LI><Code>401 UNAUTHORIZED</Code> — a chave falta, foi revogada ou não é Sandbox. A chave <Code>bz_test_sk_</Code> vai directamente em <Code>Authorization: Bearer</Code>; não há token a trocar.</LI>
                 <LI>Após uma <strong>rotação</strong>, use a nova chave; a anterior deixa de ser aceite.</LI>
-                <LI>Não repita uma operação sensível sem proteção de <strong>idempotência</strong>.</LI>
+                <LI>Não repita uma operação que move valor sem <strong>chave de idempotência</strong>.</LI>
               </UL>
             </Section>
     </>
@@ -1544,8 +1461,8 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>1. Primeira chamada:</strong> <Code>GET /v1/me</Code> com a sua chave — sucesso é <Code>200</Code> com <Code>environment: SANDBOX</Code>; falha típica é <Code>401 UNAUTHORIZED</Code> (chave errada/revogada).</LI>
                 <LI><strong>2. Criar uma sessão:</strong> <Code>POST /v1/payment-sessions</Code> — sucesso é <Code>201</Code> com <Code>status: ACTIVE</Code> e as interfaces link/QR.</LI>
-                <LI><strong>3. Testar idempotência:</strong> repita o mesmo POST com a mesma <Code>Idempotency-Key</Code> — deve receber a resposta original, sem efeito duplicado; envie duas em simultâneo e uma recebe <Code>409 CONFLICT</Code>.</LI>
-                <LI><strong>4. Testar erros:</strong> omita <Code>amount_minor</Code> para ver <Code>400 MISSING_FIELD</Code>; use uma chave inválida para ver <Code>401</Code>; guarde sempre o <Code>request_id</Code> da resposta.</LI>
+                <LI><strong>3. Testar idempotência:</strong> repita o mesmo POST com a mesma <Code>Idempotency-Key</Code> — deve receber a resposta original, sem efeito duplicado; envie duas em simultâneo e uma recebe <Code>409 IDEMPOTENCY_CONFLICT</Code>.</LI>
+                <LI><strong>4. Testar erros:</strong> envie <Code>amount_minor: 0</Code> para ver <Code>400 BAD_REQUEST</Code> (omitir o montante não é um erro: cria uma sessão de montante aberto); use uma chave inválida para ver <Code>401</Code>; guarde sempre o <Code>request_id</Code> da resposta.</LI>
                 <LI><strong>5. Interpretar resultados:</strong> qualquer resposta com o envelope de erro (ver <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) é acionável pelo <Code>code</Code>.</LI>
               </UL>
               <Callout tone="warn">

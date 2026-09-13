@@ -43,6 +43,9 @@ const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SOURCES = {
   PT: 'apps/website/app/developers/docs/content-pt.tsx',
   EN: 'apps/website/app/developers/docs/content-en.tsx',
+  // banzami.com/developers — the landing page carries code too, and it was the
+  // worst of it: five SDK methods that do not exist.
+  LANDING: 'apps/website/app/developers/landing-samples.ts',
 };
 
 /** The errors that mean "this example misuses the SDK". */
@@ -59,8 +62,8 @@ function extract(lang, file) {
   const src = readFileSync(join(ROOT, file), 'utf8');
   const out = [];
 
-  // const SAMPLE_X = `…`;
-  for (const m of src.matchAll(/const (SAMPLE_[A-Z0-9_]+)\s*=\s*`((?:\\`|[^`])*)`/g)) {
+  // const SAMPLE_X = `…`;  /  export const LANDING_SAMPLE_X = `…`;
+  for (const m of src.matchAll(/const ((?:LANDING_)?SAMPLE_[A-Z0-9_]+)\s*=\s*`((?:\\`|[^`])*)`/g)) {
     out.push({ lang, id: m[1], code: unescape(m[2]) });
   }
   // <CodeBlock label="…" raw={`…`} />
@@ -73,7 +76,7 @@ function extract(lang, file) {
   return out.filter((s) => /@banzami\/sdk|\bbanzami\.|BanzamiClient/.test(s.code) && !/^\s*(curl|#|\{|\$ )/m.test(s.code.trimStart().slice(0, 6)));
 }
 
-const samples = [...extract('PT', SOURCES.PT), ...extract('EN', SOURCES.EN)];
+const samples = [...extract('PT', SOURCES.PT), ...extract('EN', SOURCES.EN), ...extract('LANDING', SOURCES.LANDING)];
 
 // ── the reader's environment ─────────────────────────────────────────────────
 
@@ -191,7 +194,8 @@ try {
       if (!secretInClient && !secretArg && !statedClient) why.push('constructEvent is called with no webhook secret — it throws on the first delivery');
     }
     if (/payment_session\.paid/.test(f.code) && paidPayloadKeys.size) {
-      for (const m of f.code.matchAll(/\b(?:evento|event)\.data\.([a-z_]+)/g)) {
+      // event.data.x, or a narrowed copy of it: `const data = event.data as …; data.x`.
+      for (const m of f.code.matchAll(/\b(?:(?:evento|event)\.)?data\.([a-z_]+)/g)) {
         if (!paidPayloadKeys.has(m[1])) why.push(`reads data.${m[1]}, which payment_session.paid does not carry (it has ${[...paidPayloadKeys].join(', ')})`);
       }
     }
@@ -211,7 +215,7 @@ try {
 
   console.log(`\nDOC_CODE_EXAMPLES_TS_TOTAL=${samples.length}`);
   console.log(`DOC_CODE_EXAMPLES_TS_FAILING=${failures}`);
-  console.log(`DOC_CODE_EXAMPLES_PT=${ptN} DOC_CODE_EXAMPLES_EN=${enN}`);
+  console.log(`DOC_CODE_EXAMPLES_PT=${ptN} DOC_CODE_EXAMPLES_EN=${enN} DOC_CODE_EXAMPLES_LANDING=${report.filter((r) => r.lang === 'LANDING').length}`);
   console.log(`DOC_CODE_EXAMPLES_SDK_VERSION=${sdkVersion}`);
   console.log(`DOC_CODE_EXAMPLES_TESTED=${failures === 0 && samples.length > 0 ? 'PASS' : 'FAIL'}`);
   void ids;

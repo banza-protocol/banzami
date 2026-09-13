@@ -384,6 +384,18 @@ check-retired-surfaces:
 check-docs-drift:
 	node tools/check-docs-drift.mjs
 
+# DOCS-PROD-001 source-side gates (docs/quality/DOCS_PROD_001_SPEC.md).
+.PHONY: check-docs-prod
+check-docs-prod: check-docs-drift check-docs-claims
+	node tools/check-docs-prod-001-spec.mjs
+	node tools/check-docs-error-catalogue.mjs
+	node tools/check-docs-error-catalogue.selftest.mjs
+	node tools/check-docs-pt-en-structure.mjs
+	node tools/check-docs-illustrations.mjs
+	node tools/check-webhook-event-catalogue.mjs
+	node tools/check-openapi-route-drift.mjs
+	node tools/check-docs-code-examples.mjs
+
 .PHONY: check-implementation-matrix
 check-implementation-matrix:
 	node tools/check-implementation-matrix.mjs

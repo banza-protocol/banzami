@@ -530,6 +530,29 @@ jobs:
       - name: Documentation drift gate
         run: node tools/check-docs-drift.mjs
 
+      # Every error code a developer key can receive — derived from the gateway
+      # routes, their helpers and middleware, and the core codes the gateway
+      # forwards — is in the public catalogue, and nothing else is; route by
+      # route, in both languages. The selftest breaks it fourteen ways.
+      - name: Error catalogue gate
+        run: |
+          node tools/check-docs-error-catalogue.mjs
+          node tools/check-docs-error-catalogue.selftest.mjs
+
+      # Portuguese and English: the same sections, examples and illustrations on
+      # every page — and illustrations are SVG, never text drawn in a code block.
+      - name: Documentation language parity and illustrations
+        run: |
+          node tools/check-docs-pt-en-structure.mjs
+          node tools/check-docs-illustrations.mjs
+          node tools/check-webhook-event-catalogue.mjs
+          node tools/check-docs-prod-001-spec.mjs
+
+      # Every TypeScript example on the docs and the landing page, compiled
+      # against @banzami/sdk as installed from the public registry.
+      - name: Documentation code examples compile
+        run: node tools/check-docs-code-examples.mjs
+
       # An item can read VALIDATED while the files behind it have been deleted.
       # Four did, for months, because nothing had ever opened an evidence
       # reference to see whether it still resolved.

@@ -15,6 +15,12 @@ import { DevToc } from '@/components/developers/DevToc';
 import { TheoryCard } from '@/components/developers/TheoryCard';
 import { DocTable } from '@/components/developers/DocTable';
 import { RetryFlow } from '@/components/developers/RetryFlow';
+import {
+  LANDING_SAMPLE_ACCOUNTS, LANDING_SAMPLE_CHECKOUT, LANDING_SAMPLE_DELIVERY, LANDING_SAMPLE_ENV,
+  LANDING_SAMPLE_ENV_MISMATCH, LANDING_SAMPLE_ENV_OK, LANDING_SAMPLE_ERROR, LANDING_SAMPLE_HERO,
+  LANDING_SAMPLE_HTTP_REQUEST, LANDING_SAMPLE_HTTP_RESPONSE, LANDING_SAMPLE_MARKETPLACE, LANDING_SAMPLE_METADATA,
+  LANDING_SAMPLE_PAYLOAD, LANDING_SAMPLE_QR, LANDING_SAMPLE_SANDBOX, LANDING_SAMPLE_TAXI, LANDING_SAMPLE_VERIFY,
+} from './landing-samples';
 
 export const metadata: Metadata = { title: 'Developers' };
 
@@ -31,10 +37,10 @@ const C = ({ children }: { children: ReactNode }) => (
 
 /* ---------- Quickstart steps ---------- */
 const QUICKSTART_STEPS = [
-  { n: '1', title: 'Criar chave sandbox', desc: 'Gere uma chave bz_test_sk_… para o ambiente de teste.' },
-  { n: '2', title: 'Instalar SDK', desc: 'Adicione o SDK oficial @banzami/sdk ao seu projeto.' },
-  { n: '3', title: 'Criar pagamento', desc: 'Inicie um pagamento com idempotência por defeito.' },
-  { n: '4', title: 'Receber eventos', desc: 'Receba webhooks assinados quando o estado muda.' },
+  { n: '1', title: 'Projeto e chave', desc: 'Na Consola, crie um projeto Sandbox e uma chave bz_test_sk_… — aparece uma única vez.' },
+  { n: '2', title: 'Configuração financeira', desc: 'Candidate um Business ou ligue um existente. Sem isto o projeto não recebe: 403 PAYMENTS_UNAVAILABLE.' },
+  { n: '3', title: 'Criar pagamento', desc: 'npm install @banzami/sdk e createPaymentSession — o SDK envia a Idempotency-Key por si.' },
+  { n: '4', title: 'Receber eventos', desc: 'Verifique a assinatura de payment_session.paid sobre o corpo em bruto, antes de confiar nele.' },
 ];
 
 /* ---------- Foundations (theory cards) ---------- */
@@ -156,7 +162,7 @@ const ENDPOINTS: { method: 'POST' | 'GET'; path: string; desc: string }[] = [
   { method: 'POST', path: '/v1/payment-sessions', desc: 'Criar uma sessão de pagamento.' },
   { method: 'GET', path: '/v1/payment-sessions/{id}', desc: 'Consultar o estado de um pagamento.' },
   { method: 'POST', path: '/v1/refunds', desc: 'Reembolsar um pagamento confirmado.' },
-  { method: 'GET', path: '/v1/wallets/{id}/balance', desc: 'Consultar o saldo de uma carteira.' },
+  { method: 'GET', path: '/v1/wallet-accounts/{id}', desc: 'Consultar uma conta e o seu saldo disponível.' },
   { method: 'POST', path: '/v1/webhooks/endpoints', desc: 'Registar um endpoint de webhook.' },
 ];
 
@@ -170,7 +176,7 @@ const ENDPOINT_TABLE: {
   { endpoint: 'POST /v1/payment-sessions', purpose: 'Criar uma sessão de pagamento', user: 'Comerciante / app', when: 'Quando se quer pedir um pagamento.' },
   { endpoint: 'GET /v1/payment-sessions/{id}', purpose: 'Consultar estado', user: 'App / backend', when: 'Quando uma app precisa de verificar o estado.' },
   { endpoint: 'POST /v1/refunds', purpose: 'Reembolsar', user: 'Comerciante', when: 'Quando é preciso devolver dinheiro.' },
-  { endpoint: 'GET /v1/wallets/{id}/balance', purpose: 'Consultar saldo', user: 'Sistema', when: 'Quando é preciso mostrar o saldo disponível.' },
+  { endpoint: 'GET /v1/wallet-accounts/{id}', purpose: 'Consultar saldo', user: 'Sistema', when: 'Quando é preciso mostrar o saldo disponível.' },
   { endpoint: 'POST /v1/webhooks/endpoints', purpose: 'Registar endpoint', user: 'Comerciante', when: 'Quando se quer receber eventos automaticamente.' },
 ];
 
@@ -189,9 +195,9 @@ const ENDPOINT_DETAILS: {
     path: '/v1/payment-sessions',
     does: 'Cria uma sessão de pagamento e devolve o id, o estado e as interfaces (link/QR).',
     when: 'Quando o comerciante ou a app querem pedir um pagamento ao cliente.',
-    fields: 'wallet_account_id, purpose, reference_type, reference_id, amount_minor, currency (e o header Idempotency-Key).',
+    fields: 'purpose, reference_type, reference_id, amount_minor, currency (e o header Idempotency-Key). Com uma chave de projeto, quem recebe vem da configuração financeira.',
     typical: 'Uma cantina cria um pagamento de 2500 AOA para @cantina-alex.',
-    failures: 'MISSING_FIELD, VALIDATION_ERROR, CONFLICT (Idempotency-Key), UNAUTHORIZED.',
+    failures: 'PAYMENTS_UNAVAILABLE, INSUFFICIENT_SCOPE, BAD_REQUEST, IDEMPOTENCY_KEY_REUSED, UNAUTHORIZED.',
   },
   {
     method: 'GET',
@@ -209,16 +215,16 @@ const ENDPOINT_DETAILS: {
     when: 'Quando é preciso reverter uma venda ou corrigir um valor.',
     fields: 'source_type (ACQUIRING_PAYMENT | WALLET_PAYMENT), source_id, amount_minor, currency, idempotency_key.',
     typical: 'O comerciante reembolsa um cliente que devolveu o produto.',
-    failures: 'INVALID_SOURCE_TYPE, CURRENCY_MISMATCH, REFUND_EXCEEDS_CAPTURED.',
+    failures: 'INVALID_SOURCE_TYPE, CURRENCY_MISMATCH, REFUND_EXCEEDS_CAPTURED, REFUND_NOT_FUNDABLE.',
   },
   {
     method: 'GET',
-    path: '/v1/wallets/{id}/balance',
-    does: 'Devolve o saldo disponível de uma carteira.',
+    path: '/v1/wallet-accounts/{id}',
+    does: 'Devolve uma conta do projeto, com o saldo disponível em unidades menores.',
     when: 'Quando é preciso mostrar quanto saldo existe disponível.',
-    fields: 'O id da carteira no caminho do URL.',
+    fields: 'O id da conta no caminho do URL.',
     typical: 'O dashboard mostra o saldo atual do comerciante.',
-    failures: 'invalid_api_key, rate_limit_exceeded.',
+    failures: 'NOT_FOUND, INSUFFICIENT_SCOPE, UNAUTHORIZED.',
   },
   {
     method: 'POST',
@@ -227,18 +233,18 @@ const ENDPOINT_DETAILS: {
     when: 'Quando se quer ser notificado automaticamente das mudanças de estado.',
     fields: 'url do endpoint e os tipos de evento a subscrever.',
     typical: 'O backend regista um endpoint para receber payment_session.paid.',
-    failures: 'invalid_api_key, rate_limit_exceeded.',
+    failures: 'INVALID_WEBHOOK_URL, UNSUPPORTED_EVENT, INSUFFICIENT_SCOPE.',
   },
 ];
 
 /* ---------- Payment states ---------- */
 const PAYMENT_STATES: { code: string; label: string; tone: 'neutral' | 'pending' | 'ok' | 'bad' }[] = [
-  { code: 'created', label: 'Objeto criado.', tone: 'neutral' },
-  { code: 'pending_confirmation', label: 'Falta o pagador confirmar.', tone: 'pending' },
-  { code: 'confirmed', label: 'O pagador confirmou.', tone: 'ok' },
-  { code: 'failed', label: 'Não foi possível concluir.', tone: 'bad' },
-  { code: 'refunded', label: 'Foi devolvido.', tone: 'neutral' },
-  { code: 'expired', label: 'Não confirmado a tempo.', tone: 'bad' },
+  // The statuses a payment session actually has, as GET /v1/payment-sessions/{id}
+  // returns them. The lower-case list this replaced (pending_confirmation,
+  // confirmed, refunded…) was never a status of anything.
+  { code: 'ACTIVE', label: 'Criada e à espera de pagamento — o link e o QR aceitam pagar.', tone: 'pending' },
+  { code: 'PAID', label: 'Paga. payment_session.paid é emitido na mesma transacção.', tone: 'ok' },
+  { code: 'CANCELLED', label: 'Cancelada — já não aceita pagamento.', tone: 'bad' },
 ];
 
 /* ---------- SDK integration table ---------- */
@@ -255,7 +261,7 @@ const USE_CASES: { title: string; today: string; flow: string; integration: stri
     title: 'Cantina / restaurante',
     today: 'Cliente paga em dinheiro ou mostra um comprovativo manual.',
     flow: 'Cliente paga por QR, comerciante recebe webhook, recibo gerado.',
-    integration: 'createQr → payment_session.paid → recibo.',
+    integration: 'createPaymentSession → interface DYNAMIC_QR → payment_session.paid → recibo.',
   },
   {
     title: 'Loja de bairro',
@@ -266,8 +272,8 @@ const USE_CASES: { title: string; today: string; flow: string; integration: stri
   {
     title: 'Táxi / moto-táxi',
     today: 'Pagamento em dinheiro, troco e risco de manuseio.',
-    flow: 'Passageiro paga a um @banza ou QR, condutor vê confirmação instantânea.',
-    integration: 'transfers.create → webhook no app do condutor.',
+    flow: 'A app cria a sessão da corrida, o passageiro paga pelo link ou QR, o condutor vê a confirmação.',
+    integration: 'createPaymentSession (reference_id = corrida) → payment_session.paid.',
   },
   {
     title: 'E-commerce local',
@@ -284,14 +290,14 @@ const USE_CASES: { title: string; today: string; flow: string; integration: stri
   {
     title: 'Marketplaces e plataformas multi-vendedor',
     today: 'A plataforma segue manualmente quem pagou, quem recebe e que comissão se aplica.',
-    flow: 'Associar pagamentos a vendedores, guardar referências, gerar recibos e reconciliar. Esta arquitetura prepara o caminho para divisão de pagamentos e liquidação entre participantes quando os módulos correspondentes forem ativados.',
-    integration: 'metadata.seller_id, metadata.marketplace_order_id, payment_session.paid (split futuro).',
+    flow: 'Associar cada pagamento à encomenda com reference_id e guardar o vendedor do seu lado. A divisão de pagamentos entre vendedores não existe como produto.',
+    integration: 'reference_id = encomenda, metadata.merchant_reference, payment_session.paid.',
   },
   {
     title: 'Serviços, reservas e marcações',
     today: 'Reservas confirmadas à mão após o cliente enviar comprovativo.',
     flow: 'Cliente reserva → app cria pagamento → cliente confirma → webhook confirma → reserva fica confirmada automaticamente.',
-    integration: 'metadata.booking_id → payment_session.paid → booking status = confirmed.',
+    integration: 'reference_id = marcação → payment_session.paid → marcação confirmada.',
   },
 ];
 
@@ -338,7 +344,7 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
     desc: 'Cliente PHP (+ Laravel) para plataformas web e e-commerce server-side.',
     snippet: (
       <>
-        <K>$client</K> = <K>new</K> <F>BanzamiClient</F>(<S>getenv(&quot;BANZAMI_API_KEY&quot;)</S>);
+        <K>$client</K> = <K>new</K> <F>BanzamiClient</F>(<S>getenv(&quot;BANZAMI_API_KEY&quot;)</S>, <S>&quot;sandbox&quot;</S>);
       </>
     ),
   },
@@ -358,19 +364,21 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
 
 /* ---------- Sandbox capabilities ---------- */
 const SANDBOX_CAPS = [
-  'Pagamentos simulados',
-  'Confirmações simuladas',
-  'Falhas simuladas',
-  'Reembolsos simulados',
-  'Webhooks simulados',
-  'Testes de idempotência',
+  'Dinheiro fictício — nada sai de um banco',
+  'Pagamentos reais como mecânica, na página pay.banzami.com',
+  'Reembolsos totais e parciais',
+  'Webhooks assinados, entregues de verdade',
+  'Idempotência e repetição segura',
+  'Comprovativos verificáveis em /r/',
 ];
 
 /* ---------- Webhook events ---------- */
 // Verified event catalogue only (same closed set enforced by the /docs tests).
 const WEBHOOK_EVENTS = [
+  'payment_session.created',
   'payment_session.paid',
   'payment_link.paid',
+  'refund.completed',
   'application_settlement.completed',
   'application_settlement.cancelled',
   'application_settlement.failed',
@@ -388,8 +396,12 @@ const SECURITY: { title: string; desc: ReactNode }[] = [
     ),
   },
   {
-    title: 'Production keys',
-    desc: 'Chaves de produção apenas no backend — nunca em browser ou mobile.',
+    title: 'Financial LIVE',
+    desc: (
+      <>
+        Indisponível · fail-closed. Uma chave <span className="bz-mono text-[12px]">bz_live_</span> é recusada com 401 antes de qualquer pedido.
+      </>
+    ),
   },
   {
     title: 'Webhook signatures',
@@ -400,7 +412,7 @@ const SECURITY: { title: string; desc: ReactNode }[] = [
       </>
     ),
   },
-  { title: 'Idempotency', desc: 'Cada operação mutante aceita uma chave; repetir é sempre seguro.' },
+  { title: 'Idempotency', desc: 'Um POST com a mesma Idempotency-Key devolve a resposta original durante 24 horas, sem repetir o efeito.' },
   {
     title: 'Double-entry ledger',
     desc: 'O saldo deriva do ledger de dupla entrada, nunca de ajustes diretos.',
@@ -410,13 +422,16 @@ const SECURITY: { title: string; desc: ReactNode }[] = [
 
 /* ---------- Error codes ---------- */
 const ERROR_CODES: { code: string; desc: string }[] = [
-  { code: 'invalid_api_key', desc: 'A chave de API é inválida ou não corresponde ao ambiente.' },
-  { code: 'idempotency_conflict', desc: 'A chave de idempotência foi usada com um corpo diferente.' },
-  { code: 'insufficient_balance', desc: 'A carteira de origem não tem saldo suficiente.' },
-  { code: 'payment_not_found', desc: 'Não existe nenhum pagamento com este identificador.' },
-  { code: 'payment_expired', desc: 'O pagamento expirou antes de ser confirmado.' },
-  { code: 'webhook_signature_invalid', desc: 'A assinatura do webhook não pôde ser verificada.' },
-  { code: 'rate_limit_exceeded', desc: 'Foram feitos demasiados pedidos num curto intervalo.' },
+  // Real codes, from the public error catalogue (app/developers/docs/error-catalogue.json) —
+  // checked against the gateway by tools/check-docs-error-catalogue.mjs. The
+  // lower-case names this list used to show were never returned by any route.
+  { code: 'UNAUTHORIZED', desc: 'A chave falta, foi revogada, ou não é uma chave Sandbox.' },
+  { code: 'INSUFFICIENT_SCOPE', desc: 'A chave não tem o scope desta operação.' },
+  { code: 'PAYMENTS_UNAVAILABLE', desc: 'O projeto ainda não tem configuração financeira concluída.' },
+  { code: 'IDEMPOTENCY_KEY_REUSED', desc: 'A chave de idempotência já foi usada com um pedido diferente.' },
+  { code: 'INSUFFICIENT_FUNDS', desc: 'A conta de origem não tem saldo disponível suficiente.' },
+  { code: 'NOT_FOUND', desc: 'O recurso não existe, ou não é do seu projeto.' },
+  { code: 'RATE_LIMITED', desc: 'Foram feitos demasiados pedidos num curto intervalo.' },
 ];
 
 /* ---------- Examples ---------- */
@@ -426,158 +441,83 @@ const EXAMPLES: {
   point: ReactNode;
   event: string;
   sees: string;
-  snippet: ReactNode;
+  snippet: string;
 }[] = [
   {
     title: 'E-commerce checkout',
     problem: 'Encomenda confirmada por screenshot enviado por WhatsApp.',
     point: (
       <>
-        <span className="bz-mono text-cherry-dark">payments.create</span> com{' '}
-        <span className="bz-mono text-cherry-dark">metadata.order_id</span>.
+        <span className="bz-mono text-cherry-dark">createPaymentSession</span> com{' '}
+        <span className="bz-mono text-cherry-dark">reference_id</span> = encomenda.
       </>
     ),
     event: 'payment_session.paid',
-    sees: 'A encomenda só é despachada depois de confirmada — sem comprovativos manuais.',
-    snippet: (
-      <>
-        <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
-        {'  '}amount: cart.total, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'  '}recipient: <S>&quot;@loja-kilamba&quot;</S>,{'\n'}
-        {'  '}description: <S>&quot;Compra online&quot;</S>,{'\n'}
-        {'  '}metadata: {'{'} order_id: order.id {'}'},{'\n'}
-        {'}, { idempotencyKey: `order_${order.id}` });'}
-        {'\n\n'}
-        <C>{'// NÃO enviar enquanto created / pending_confirmation —'}</C>
-        {'\n'}
-        <C>{'// esperar pelo estado confirmed.'}</C>
-      </>
-    ),
+    sees: 'A encomenda só é despachada depois de paga — sem comprovativos manuais.',
+    snippet: LANDING_SAMPLE_CHECKOUT,
   },
   {
     title: 'Táxi / moto-táxi',
     problem: 'Pagamento em dinheiro, troco e risco de manuseio no fim da corrida.',
     point: (
       <>
-        <span className="bz-mono text-cherry-dark">payments.create</span> +{' '}
-        <span className="bz-mono text-cherry-dark">metadata.trip_id</span> e handler de webhook.
+        <span className="bz-mono text-cherry-dark">createPaymentSession</span> por corrida e um handler de webhook.
       </>
     ),
     event: 'payment_session.paid',
-    sees: 'O condutor vê a corrida marcada como paga assim que o passageiro confirma.',
-    snippet: (
-      <>
-        <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
-        {'  '}amount: trip.total, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'  '}recipient: driver.banza,{'\n'}
-        {'  '}description: `Corrida ${'{'}trip.id{'}'}`,{'\n'}
-        {'  '}metadata: {'{'} trip_id: trip.id, passenger_id: trip.passengerId {'}'},{'\n'}
-        {'}, { idempotencyKey: `trip_${trip.id}` });'}
-        {'\n\n'}
-        <C>{'// no handler de webhook:'}</C>
-        {'\n'}
-        <K>if</K> (event.type === <S>&quot;payment_session.paid&quot;</S>) {'{\n'}
-        {'  '}<K>await</K> trips.<F>markPaid</F>(event.data.metadata.trip_id);{'\n'}
-        {'}'}
-      </>
-    ),
+    sees: 'O condutor vê a corrida marcada como paga assim que o passageiro paga.',
+    snippet: LANDING_SAMPLE_TAXI,
   },
   {
     title: 'Delivery',
     problem: 'Estafeta cobra à porta, sem garantia de pagamento antes da recolha.',
     point: (
       <>
-        <span className="bz-mono text-cherry-dark">payments.create</span> com{' '}
-        <span className="bz-mono text-cherry-dark">metadata.delivery_id</span>; reembolso opcional.
+        <span className="bz-mono text-cherry-dark">createPaymentSession</span>; se cancelar,{' '}
+        <span className="bz-mono text-cherry-dark">createRefund</span> a partir de <span className="bz-mono text-cherry-dark">refund_source</span>.
       </>
     ),
-    event: 'payment_session.paid',
-    sees: 'A recolha só avança depois de confirmado; se for cancelado, faz-se o reembolso.',
-    snippet: (
-      <>
-        <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
-        {'  '}amount: delivery.amount, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'  '}recipient: restaurant.banza,{'\n'}
-        {'  '}description: `Delivery ${'{'}delivery.id{'}'}`,{'\n'}
-        {'  '}metadata: {'{'} delivery_id: delivery.id {'}'},{'\n'}
-        {'}, { idempotencyKey: `delivery_${delivery.id}` });'}
-        {'\n\n'}
-        <C>{'// se a entrega for cancelada:'}</C>
-        {'\n'}
-        <K>await</K> client.refunds.<F>create</F>({'{\n'}
-        {'  '}source_type: <S>&quot;ACQUIRING_PAYMENT&quot;</S>, source_id: payment.id,{'\n'}
-        {'  '}amount_minor: payment.amount_minor, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'  '}idempotency_key: `refund_${'{'}payment.id{'}'}`,{'\n'}
-        {'}'});
-      </>
-    ),
+    event: 'payment_session.paid · refund.completed',
+    sees: 'A recolha só avança depois de pago; se for cancelado, faz-se o reembolso.',
+    snippet: LANDING_SAMPLE_DELIVERY,
   },
   {
     title: 'Merchant QR',
     problem: 'Cliente paga em dinheiro ou mostra um comprovativo manual no balcão.',
     point: (
       <>
-        <span className="bz-mono text-cherry-dark">payments.createQr</span> — o cliente lê e confirma
-        na app.
+        A interface <span className="bz-mono text-cherry-dark">DYNAMIC_QR</span> da sessão — o cliente lê e paga na app.
       </>
     ),
     event: 'payment_session.paid',
-    sees: 'O comerciante imprime um QR e recebe a confirmação sem terminal dedicado.',
-    snippet: (
-      <>
-        <K>const</K> qr = <K>await</K> client.payments.<F>createQr</F>({'{\n'}
-        {'  '}amount: <F>1500</F>, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'  '}description: <S>&quot;1 Kg de Arroz&quot;</S>,{'\n'}
-        {'});'}
-      </>
-    ),
+    sees: 'O comerciante mostra um QR e recebe a confirmação sem terminal dedicado.',
+    snippet: LANDING_SAMPLE_QR,
   },
   {
-    title: 'Wallet transfer',
-    problem: 'Transferência entre pessoas depende de IBAN, screenshot e confirmação manual.',
+    title: 'Contas por campanha',
+    problem: 'Tudo cai no mesmo saldo e ninguém sabe quanto é de cada campanha.',
     point: (
       <>
-        <span className="bz-mono text-cherry-dark">transfers.create</span> para um{' '}
-        <span className="bz-mono text-cherry-dark">@banza</span>.
+        <span className="bz-mono text-cherry-dark">createWalletAccount</span> e{' '}
+        <span className="bz-mono text-cherry-dark">createTransfer</span> entre contas do mesmo titular.
       </>
     ),
     event: 'COMPLETED (síncrono)',
-    sees: 'O destinatário recebe o valor e o recibo na carteira, em tempo real.',
-    snippet: (
-      <>
-        <K>const</K> transfer = <K>await</K> client.transfers.<F>create</F>({'{\n'}
-        {'  '}to: <S>&quot;@maria&quot;</S>, amount: <F>5000</F>, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'}, { idempotencyKey: ref });'}
-      </>
-    ),
+    sees: 'Cada campanha tem o seu saldo; mover valor entre elas nunca sai do projeto.',
+    snippet: LANDING_SAMPLE_ACCOUNTS,
   },
   {
     title: 'Marketplace readiness',
-    problem: 'A plataforma segue à mão quem pagou, quem recebe e que comissão se aplica.',
+    problem: 'A plataforma segue à mão quem pagou e a que encomenda corresponde.',
     point: (
       <>
-        <span className="bz-mono text-cherry-dark">metadata.seller_id</span> +{' '}
-        <span className="bz-mono text-cherry-dark">metadata.marketplace_order_id</span>.
+        <span className="bz-mono text-cherry-dark">reference_id</span> +{' '}
+        <span className="bz-mono text-cherry-dark">metadata.merchant_reference</span>.
       </>
     ),
     event: 'payment_session.paid',
-    sees: 'Cada pagamento fica associado ao vendedor e à encomenda, pronto a reconciliar.',
-    snippet: (
-      <>
-        <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
-        {'  '}amount: order.total, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'  '}recipient: <S>&quot;@marketplace&quot;</S>,{'\n'}
-        {'  '}metadata: {'{\n'}
-        {'    '}seller_id: seller.id,{'\n'}
-        {'    '}marketplace_order_id: order.id,{'\n'}
-        {'  }'},{'\n'}
-        {'}, { idempotencyKey: `mkt_${order.id}` });'}
-        {'\n\n'}
-        <C>{'// A divisão de pagamentos e a liquidação entre'}</C>
-        {'\n'}
-        <C>{'// participantes serão ativadas num módulo futuro.'}</C>
-      </>
-    ),
+    sees: 'Cada pagamento fica associado à encomenda, pronto a reconciliar.',
+    snippet: LANDING_SAMPLE_MARKETPLACE,
   },
 ];
 
@@ -745,19 +685,7 @@ export default function DevelopersPage() {
 
           <div>
             <CodeBlock title="pagamento.ts" lang="sandbox" className="anim-floaty-7">
-              <K>import</K> {'{ BanzamiClient } '}
-              <K>from</K> <S>&quot;@banzami/sdk&quot;</S>;{'\n\n'}
-              <K>const</K> client = <K>new</K> <F>BanzamiClient</F>({'{\n'}
-              {'  '}apiKey: process.env.<F>BANZAMI_API_KEY</F>,{'\n'}
-              {'  '}environment: <S>&quot;sandbox&quot;</S>,{'\n'}
-              {'});\n\n'}
-              <C>{'// criar um pagamento (sandbox)'}</C>
-              {'\n'}
-              <K>const</K> payment = <K>await</K> client.payments.<F>create</F>(
-              {'{\n'}
-              {'  '}amount: <F>2500</F>, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-              {'  '}recipient: <S>&quot;@cantina-alex&quot;</S>,{'\n'}
-              {'}, { idempotencyKey: order.id });'}
+              {LANDING_SAMPLE_HERO}
             </CodeBlock>
           </div>
         </div>
@@ -1030,8 +958,8 @@ export default function DevelopersPage() {
             className="mb-4 max-w-[680px]"
           />
           <p className="m-0 mb-8 max-w-[680px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
-            Os exemplos usam nomes e endpoints previstos para integração técnica. A disponibilidade
-            pública dos pacotes e chaves de produção acompanha a ativação da plataforma.
+            Os exemplos usam o SDK publicado e os endpoints do Sandbox. Não há chaves de produção: Financial LIVE está
+            indisponível e fail-closed.
           </p>
           <Reveal className="mb-8 overflow-hidden rounded-card border border-border-soft bg-white shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
             {ENDPOINTS.map((e, i) => (
@@ -1075,27 +1003,12 @@ export default function DevelopersPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Reveal>
               <CodeBlock title="request" lang="POST /v1/payment-sessions">
-                <K>POST</K> /v1/payment-sessions{'\n'}
-                Authorization: Bearer <S>bz_test_sk_xxx</S>
-                {'\n'}
-                Idempotency-Key: <S>order_123</S>
-                {'\n\n'}
-                {'{\n'}
-                {'  '}<F>&quot;amount&quot;</F>: <F>2500</F>,{'\n'}
-                {'  '}<F>&quot;currency&quot;</F>: <S>&quot;AOA&quot;</S>,{'\n'}
-                {'  '}<F>&quot;recipient&quot;</F>: <S>&quot;@cantina-alex&quot;</S>,{'\n'}
-                {'  '}<F>&quot;description&quot;</F>: <S>&quot;1 Kg de Arroz&quot;</S>
-                {'\n}'}
+                {LANDING_SAMPLE_HTTP_REQUEST}
               </CodeBlock>
             </Reveal>
             <Reveal delay={80}>
               <CodeBlock title="response" lang="201 Created">
-                {'{\n'}
-                {'  '}<F>&quot;id&quot;</F>: <S>&quot;pay_01HX...&quot;</S>,{'\n'}
-                {'  '}<F>&quot;status&quot;</F>: <S>&quot;pending_confirmation&quot;</S>,{'\n'}
-                {'  '}<F>&quot;amount&quot;</F>: <F>2500</F>,{'\n'}
-                {'  '}<F>&quot;currency&quot;</F>: <S>&quot;AOA&quot;</S>
-                {'\n}'}
+                {LANDING_SAMPLE_HTTP_RESPONSE}
               </CodeBlock>
             </Reveal>
           </div>
@@ -1151,8 +1064,8 @@ export default function DevelopersPage() {
             className="mb-4 max-w-[680px]"
           />
           <p className="m-0 mb-8 max-w-[680px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
-            Os exemplos usam nomes e endpoints previstos para integração técnica. A disponibilidade
-            pública dos pacotes e chaves de produção acompanha a ativação da plataforma.
+            Os exemplos usam o SDK publicado e os endpoints do Sandbox. Não há chaves de produção: Financial LIVE está
+            indisponível e fail-closed.
           </p>
           <Reveal className="mb-8 rounded-card border border-border-soft bg-white p-[clamp(24px,4vw,40px)] shadow-[0_30px_70px_-44px_rgba(181,16,31,.35)]">
             <SdkEcosystemDiagram />
@@ -1210,40 +1123,37 @@ export default function DevelopersPage() {
           <SectionHeading
             eyebrow="CHAVES & AMBIENTES"
             title="Chaves de API e ambientes"
-            lead="Dois ambientes, chaves com prefixo por ambiente. Como no modelo Stripe — sandbox para desenvolver, live para produção."
+            lead="Um ambiente existe: o Sandbox. Financial LIVE está indisponível e fechado — uma chave bz_live_ é recusada antes de qualquer pedido."
             className="mb-4 max-w-[700px]"
           />
           <p className="m-0 mb-8 max-w-[700px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
-            <strong className="text-cherry-dark">Sandbox</strong> é para desenvolvimento;{' '}
-            <strong className="text-cherry-dark">live</strong> é para produção. O live move dinheiro
-            real e só fica disponível após onboarding e ativação dos rails aprovados — não está
-            ativo por omissão.
+            <strong className="text-cherry-dark">Sandbox</strong> é o ambiente onde integra: pagamentos, reembolsos,
+            webhooks e liquidações funcionam de verdade como mecânica, e o dinheiro é fictício.{' '}
+            <strong className="text-cherry-dark">Financial LIVE</strong> não está disponível — não há chaves de produção
+            para pedir, e nada nesta página as usa.
           </p>
 
-          {/* Sandbox vs Live */}
+          {/* Environments — what exists */}
           <DocTable
             className="mb-8"
             columns={[
               { key: 'env', header: 'Ambiente' },
-              { key: 'use', header: 'Para quê' },
+              { key: 'state', header: 'Estado' },
               { key: 'money', header: 'Dinheiro' },
               { key: 'sk', header: 'Chave secreta', mono: true },
-              { key: 'whsec', header: 'Webhook secret', mono: true },
             ]}
             rows={[
               {
                 env: <strong className="text-ink">Sandbox</strong>,
-                use: 'Desenvolvimento e testes',
-                money: 'Virtual — confirmações, falhas e reembolsos simulados',
+                state: 'Operacional em Sandbox',
+                money: 'Fictício — nenhum kwanza entra ou sai de um banco',
                 sk: 'bz_test_sk_…',
-                whsec: 'whsec_test_…',
               },
               {
-                env: <strong className="text-ink">Live</strong>,
-                use: 'Produção',
-                money: 'Kwanza real (requer ativação)',
-                sk: 'bz_live_sk_…',
-                whsec: 'whsec_live_…',
+                env: <strong className="text-ink">Financial LIVE</strong>,
+                state: 'Indisponível · fail-closed',
+                money: '—',
+                sk: 'recusada (401)',
               },
             ]}
           />
@@ -1253,67 +1163,49 @@ export default function DevelopersPage() {
           <DocTable
             className="mb-8"
             columns={[
-              { key: 'type', header: 'Tipo de chave' },
-              { key: 'sandbox', header: 'Sandbox', mono: true },
-              { key: 'live', header: 'Live', mono: true },
+              { key: 'type', header: 'Tipo' },
+              { key: 'prefix', header: 'Prefixo', mono: true },
               { key: 'where', header: 'Onde usar' },
             ]}
             rows={[
-              {
-                type: 'Chave secreta (Secret)',
-                sandbox: 'bz_test_sk_…',
-                live: 'bz_live_sk_…',
-                where: 'Apenas backend',
-              },
-              {
-                type: 'Chave publicável (Publishable)',
-                sandbox: 'bz_test_pk_…',
-                live: 'bz_live_pk_…',
-                where: 'Frontend / mobile (planeado)',
-              },
-              {
-                type: 'Webhook signing secret',
-                sandbox: 'whsec_test_…',
-                live: 'whsec_live_…',
-                where: 'Apenas backend',
-              },
+              { type: 'Chave secreta', prefix: 'bz_test_sk_…', where: 'Apenas no servidor. Aparece uma única vez na Consola.' },
+              { type: 'Chave publicável', prefix: 'bz_test_pk_…', where: 'Cliente (browser, app) — só leitura, nunca move dinheiro.' },
+              { type: 'Segredo de webhook', prefix: 'whsec_…', where: 'Apenas no servidor. Devolvido uma única vez, ao registar ou rodar.' },
             ]}
           />
           <p className="m-0 mb-10 max-w-[760px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
-            Compatibilidade: chaves legadas sem o segmento{' '}
-            <span className="bz-mono text-cherry-dark">_sk_</span> (
-            <span className="bz-mono">bz_test_…</span>, <span className="bz-mono">bz_live_…</span>)
-            continuam a funcionar — o prefixo do ambiente é o que conta. As chaves publicáveis são
-            um tipo planeado para fluxos client-side; até lá, use chaves secretas apenas no backend.
+            Uma chave sem <span className="bz-mono text-cherry-dark">_sk_</span> ou{' '}
+            <span className="bz-mono text-cherry-dark">_pk_</span> não é aceite, e uma chave{' '}
+            <span className="bz-mono">bz_live_</span> é recusada com <span className="bz-mono">401 UNAUTHORIZED</span>.
           </p>
 
           {/* Key types */}
-          <h3 className="mb-4 mt-2 text-[18px] font-black text-ink">Tipos de chave e identificadores</h3>
+          <h3 className="mb-4 mt-2 text-[18px] font-black text-ink">Chaves e identificadores</h3>
           <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <TheoryCard
               title="Chave secreta"
-              definition="Autentica chamadas que movem dinheiro — criar pagamentos, reembolsos, gerir webhooks."
-              matters="Apenas no backend. Nunca expor em browser ou apps móveis."
+              definition="Autentica as chamadas do seu servidor — criar pagamentos, reembolsos, gerir webhooks."
+              matters="Apenas no backend. Nunca em browser, app móvel, repositório ou registos."
             />
             <TheoryCard
               title="Chave publicável"
-              definition="Chave segura para frontend/mobile, para iniciar fluxos client-side (planeado)."
-              matters="Não move dinheiro por si só. Não substitui a chave secreta."
+              definition="Para o cliente apresentar um pagamento que o seu servidor criou."
+              matters="Só leitura. Não move dinheiro e não substitui a chave secreta."
             />
             <TheoryCard
-              title="Webhook secret"
-              definition="Verifica a assinatura dos webhooks que o Banzami envia ao seu backend."
-              matters="Diferente por ambiente. Nunca exposto no frontend."
+              title="Segredo de webhook"
+              definition="Verifica a assinatura banza-signature dos eventos que o Banzami envia ao seu backend."
+              matters="Um por endpoint. Rodá-lo é imediato — actualize primeiro o receptor."
             />
             <TheoryCard
-              title="Merchant ID"
-              definition="Identifica o comerciante ou a aplicação."
-              matters="Não é segredo, mas identifica a sua conta."
+              title="Configuração financeira"
+              definition="Diz quem recebe o dinheiro do projeto. É fixada pelo Banzami, não pelo pedido."
+              matters="Por isso nenhum pedido leva merchant_id ou wallet_id: é recusado com 400 PAYEE_NOT_ALLOWED."
             />
             <TheoryCard
-              title="Wallet ID"
-              definition="Identifica a carteira que recebe os pagamentos."
-              matters="Não é necessariamente segredo, mas não deve ser exposto ao utilizador final."
+              title="Wallet account"
+              definition="Uma conta do titular do projeto — por exemplo uma por campanha."
+              matters="O seu servidor escolhe qual; uma conta de outro projeto responde 404."
             />
           </div>
 
@@ -1322,33 +1214,15 @@ export default function DevelopersPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Reveal>
               <CodeBlock title=".env.local" lang="sandbox">
-                <F>BANZAMI_ENV</F>=<S>sandbox</S>
-                {'\n'}
-                <F>BANZAMI_GATEWAY_URL</F>=<S>https://sandbox-api.banzami.com</S>
-                {'\n'}
-                <F>BANZAMI_API_KEY</F>=<S>bz_test_sk_xxx</S>
-                {'\n'}
-                <F>BANZAMI_MERCHANT_ID</F>=<S>…</S>
-                {'\n'}
-                <F>BANZAMI_WALLET_ID</F>=<S>…</S>
-                {'\n'}
-                <F>BANZAMI_WEBHOOK_SECRET</F>=<S>whsec_test_xxx</S>
+                {LANDING_SAMPLE_ENV}
               </CodeBlock>
             </Reveal>
-            <Reveal delay={80}>
-              <CodeBlock title=".env.local" lang="live">
-                <F>BANZAMI_ENV</F>=<S>live</S>
-                {'\n'}
-                <F>BANZAMI_GATEWAY_URL</F>=<S>https://api.banzami.com</S>
-                {'\n'}
-                <F>BANZAMI_API_KEY</F>=<S>bz_live_sk_xxx</S>
-                {'\n'}
-                <F>BANZAMI_MERCHANT_ID</F>=<S>…</S>
-                {'\n'}
-                <F>BANZAMI_WALLET_ID</F>=<S>…</S>
-                {'\n'}
-                <F>BANZAMI_WEBHOOK_SECRET</F>=<S>whsec_live_xxx</S>
-              </CodeBlock>
+            <Reveal delay={80} className="rounded-card border border-pink-200 bg-pink-100 px-6 py-[20px]">
+              <p className="m-0 mb-2 text-[14px] font-black text-cherry-dark">Não há bloco live</p>
+              <p className="m-0 text-[13.5px] font-semibold leading-[1.55] text-ink-secondary">
+                Financial LIVE está indisponível e fail-closed. O URL do Sandbox é o predefinido do SDK, e o projeto não
+                precisa de merchant_id nem de wallet_id: quem recebe vem da configuração financeira.
+              </p>
             </Reveal>
           </div>
 
@@ -1361,22 +1235,12 @@ export default function DevelopersPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Reveal>
               <CodeBlock title="ok.ts" lang="inferido da chave">
-                <K>new</K> <F>BanzamiClient</F>({'{'}
-                {'\n'}
-                {'  '}apiKey: process.env.<F>BANZAMI_API_KEY</F>,{'\n'}
-                {'}'}); <span className="text-ink-muted">{'// bz_test_sk_… → sandbox'}</span>
+                {LANDING_SAMPLE_ENV_OK}
               </CodeBlock>
             </Reveal>
             <Reveal delay={80}>
               <CodeBlock title="erro.ts" lang="mismatch">
-                <K>new</K> <F>BanzamiClient</F>({'{'}
-                {'\n'}
-                {'  '}environment: <S>&quot;live&quot;</S>,{'\n'}
-                {'  '}apiKey: <S>&quot;bz_test_sk_…&quot;</S>,{'\n'}
-                {'}'});{'\n\n'}
-                <span className="text-cherry-dark">{'// throws BanzamiConfigError:'}</span>
-                {'\n'}
-                <span className="text-cherry-dark">{'// environment/key mismatch'}</span>
+                {LANDING_SAMPLE_ENV_MISMATCH}
               </CodeBlock>
             </Reveal>
           </div>
@@ -1402,12 +1266,12 @@ export default function DevelopersPage() {
           <SectionHeading
             eyebrow="SANDBOX"
             title="Teste tudo em sandbox"
-            lead="Um ambiente simulado e isolado da produção, para integrar sem risco."
+            lead="O ambiente onde se integra: a mecânica é real, o dinheiro é fictício."
             className="mb-4 max-w-[680px]"
           />
           <p className="m-0 mb-8 max-w-[680px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
-            Os exemplos usam nomes e endpoints previstos para integração técnica. A disponibilidade
-            pública dos pacotes e chaves de produção acompanha a ativação da plataforma.
+            Os exemplos usam o SDK publicado e os endpoints do Sandbox. Não há chaves de produção: Financial LIVE está
+            indisponível e fail-closed.
           </p>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1fr] lg:items-start">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1431,12 +1295,11 @@ export default function DevelopersPage() {
             </div>
             <Reveal delay={60}>
               <CodeBlock title="sandbox.ts" lang="sandbox">
-                <K>const</K> payment ={'\n'}
-                {'  '}<K>await</K> client.sandbox.payments.<F>confirm</F>(<S>&quot;pay_01HX&quot;</S>);
+                {LANDING_SAMPLE_SANDBOX}
               </CodeBlock>
               <p className="m-0 mt-5 rounded-card bg-cream-100 px-6 py-[18px] text-[14px] font-semibold leading-[1.6] text-ink-secondary">
-                <strong className="text-cherry-dark">Estado.</strong> Sandbox técnico disponível.
-                Produção depende da ativação dos rails externos aprovados.
+                <strong className="text-cherry-dark">Estado.</strong> Operacional em Sandbox. Financial LIVE
+                indisponível · fail-closed.
               </p>
             </Reveal>
           </div>
@@ -1501,23 +1364,11 @@ export default function DevelopersPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
             <Reveal>
               <CodeBlock title="payload.json" lang="payment_session.paid">
-                {'{\n'}
-                {'  '}<F>&quot;type&quot;</F>: <S>&quot;payment_session.paid&quot;</S>,{'\n'}
-                {'  '}<F>&quot;data&quot;</F>: {'{\n'}
-                {'    '}<F>&quot;id&quot;</F>: <S>&quot;pay_01HX...&quot;</S>,{'\n'}
-                {'    '}<F>&quot;status&quot;</F>: <S>&quot;confirmed&quot;</S>,{'\n'}
-                {'    '}<F>&quot;amount&quot;</F>: <F>2500</F>,{'\n'}
-                {'    '}<F>&quot;currency&quot;</F>: <S>&quot;AOA&quot;</S>
-                {'\n  }'}
-                {'\n}'}
+                {LANDING_SAMPLE_PAYLOAD}
               </CodeBlock>
               <div className="mt-6">
                 <CodeBlock title="verify.ts" lang="signature">
-                  <K>const</K> event = client.webhooks.<F>verify</F>({'{\n'}
-                  {'  '}payload,{'\n'}
-                  {'  '}signature: headers[<S>&quot;banza-signature&quot;</S>],{'\n'}
-                  {'  '}secret: process.env.<F>BANZA_WEBHOOK_SECRET</F>,{'\n'}
-                  {'});'}
+                  {LANDING_SAMPLE_VERIFY}
                 </CodeBlock>
               </div>
             </Reveal>
@@ -1615,18 +1466,13 @@ export default function DevelopersPage() {
             </Reveal>
             <Reveal delay={70}>
               <CodeBlock title="metadata" lang="POST /v1/payment-sessions">
-                {'{\n'}
-                {'  '}<F>&quot;amount&quot;</F>: <F>2500</F>, <F>&quot;currency&quot;</F>: <S>&quot;AOA&quot;</S>,{'\n'}
-                {'  '}<F>&quot;recipient&quot;</F>: <S>&quot;@cantina-alex&quot;</S>,{'\n'}
-                {'  '}<F>&quot;metadata&quot;</F>: {'{\n'}
-                {'    '}<F>&quot;order_id&quot;</F>: <S>&quot;order_123&quot;</S>
-                {'\n  }'}
-                {'\n}'}
+                {LANDING_SAMPLE_METADATA}
               </CodeBlock>
               <p className="m-0 mt-5 rounded-card bg-cream-100 px-6 py-[16px] text-[13.5px] font-semibold leading-[1.6] text-ink-secondary">
                 O comerciante envia{' '}
-                <span className="bz-mono text-cherry-dark">metadata.order_id = &quot;order_123&quot;</span>{' '}
-                e depois cruza, num só passo, o pagamento, o recibo e a encomenda interna.
+                <span className="bz-mono text-cherry-dark">reference_id = &quot;order_123&quot;</span>{' '}
+                e recebe-o de volta em <span className="bz-mono text-cherry-dark">payment_session.paid</span> — cruza, num só passo,
+                o pagamento, o comprovativo e a encomenda interna.
               </p>
             </Reveal>
           </div>
@@ -1668,13 +1514,8 @@ export default function DevelopersPage() {
           />
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1fr] lg:items-start">
             <Reveal>
-              <CodeBlock title="error.json" lang="response">
-                {'{\n'}
-                {'  '}<F>&quot;error&quot;</F>: {'{\n'}
-                {'    '}<F>&quot;code&quot;</F>: <S>&quot;payment_not_confirmed&quot;</S>,{'\n'}
-                {'    '}<F>&quot;message&quot;</F>: <S>&quot;The payment has not been confirmed yet.&quot;</S>
-                {'\n  }'}
-                {'\n}'}
+              <CodeBlock title="error.json" lang="403 · response">
+                {LANDING_SAMPLE_ERROR}
               </CodeBlock>
             </Reveal>
             <Reveal delay={70} className="overflow-hidden rounded-card border border-border-soft bg-white shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
@@ -1837,7 +1678,7 @@ export default function DevelopersPage() {
           <SectionHeading
             eyebrow="DISPONIBILIDADE & ESTADO"
             title="Estado atual e limitações"
-            lead="O que está validado hoje, o que é simulado e o que ainda não faz parte do âmbito testado — sem exageros."
+            lead="O que está validado hoje, o que é fictício e o que não existe — sem exageros."
             className="mb-10 max-w-[720px]"
           />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -1846,10 +1687,10 @@ export default function DevelopersPage() {
                 Validado no Sandbox
               </span>
               <p className="m-0 mt-3 text-[14px] font-semibold leading-[1.55] text-ink-soft">
-                Os fluxos de API/SDK da Developer Platform foram validados no Sandbox interno:
-                autenticação, workspace e projeto, chaves e âmbitos, links e intents de
-                pagamento, checkout online, verificação de recibo, reconciliação, revogação de
-                chave e rejeição de acessos inválidos.
+                Validados contra o Sandbox publicado: início de sessão na Consola, workspaces, projetos e
+                chaves com scopes, configuração financeira, sessões e links de pagamento, pagamento na página
+                pay.banzami.com, reembolsos, contas por campanha, webhooks assinados, verificação pública de
+                comprovativos e liquidações.
               </p>
             </Reveal>
             <Reveal
@@ -1857,13 +1698,12 @@ export default function DevelopersPage() {
               className="rounded-card border border-pink-200 bg-white p-[24px] shadow-[0_16px_40px_-30px_rgba(181,16,31,.3)]"
             >
               <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-cherry-dark">
-                Simulado
+                Fictício
               </span>
               <p className="m-0 mt-3 text-[14px] font-semibold leading-[1.55] text-ink-soft">
-                A entrega de webhooks para um endpoint HTTPS público está fora do âmbito do
-                Sandbox. A assinatura{' '}
-                <span className="bz-mono text-[12.5px]">banza-signature</span>, o retry/backoff e
-                a idempotência estão verificados; a entrega externa é simulada.
+                O dinheiro. Os webhooks são entregues de verdade a um endpoint HTTPS público, assinados com{' '}
+                <span className="bz-mono text-[12.5px]">banza-signature</span> e com reentrega — mas nenhum kwanza entra
+                ou sai de um banco, e nada no Sandbox tem efeito financeiro no mundo.
               </p>
             </Reveal>
             <Reveal
@@ -1871,19 +1711,19 @@ export default function DevelopersPage() {
               className="rounded-card border border-border-soft bg-cream-50 p-[24px] shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]"
             >
               <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink-muted">
-                Ainda não no âmbito testado
+                Indisponível
               </span>
               <p className="m-0 mt-3 text-[14px] font-semibold leading-[1.55] text-ink-soft">
-                Um Developer Console visual ainda não faz parte do âmbito testado. É planeado em
-                separado e não é reivindicado como disponível nesta documentação.
+                Financial LIVE, trilhos bancários e fornecedores externos. Indisponível · fail-closed: uma chave{' '}
+                <span className="bz-mono text-[12.5px]">bz_live_</span> é recusada antes de qualquer pedido.
               </p>
             </Reveal>
           </div>
           <Reveal className="mt-6 rounded-card bg-cream-100 px-6 py-[18px]">
             <p className="m-0 text-[14px] font-semibold leading-[1.6] text-ink-secondary">
-              O Banzami Developers está atualmente documentado para fins de Sandbox controlado e
-              preparação regulatória. A disponibilidade pública com dinheiro real depende das
-              condições aplicáveis de ativação regulatória, operacional e dos rails de pagamento.
+              A documentação completa, com a referência da API e o catálogo de erros, está em{' '}
+              <a href="https://developers.banzami.com/docs" className="font-bold text-cherry-dark no-underline">developers.banzami.com/docs</a>.
+              A disponibilidade com dinheiro real depende da ativação regulatória, operacional e dos trilhos de pagamento.
             </p>
           </Reveal>
         </div>

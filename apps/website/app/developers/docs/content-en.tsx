@@ -7,7 +7,9 @@
 
 import { BADGE_LABELS_EN, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, NextSteps, P, PageLede, RED, Section, UL, mono } from './ui';
 import { ResourceReference } from './reference';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram } from './diagrams';
+import { ErrorCatalogue } from './ErrorCatalogue';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram, JourneyStripDiagram } from './diagrams';
+import { CapabilityCards } from './CapabilityCards';
 import type { CopyFn } from './content-pt';
 
 // English concepts (translations of the canonical PT glossary — same 19 terms).
@@ -162,7 +164,7 @@ bz_test_sk_XXXXXXXXXXXXXXXX   # secret — server only, revealed exactly once`;
 
 const SAMPLE_ERROR = `# Canonical error envelope (Sandbox)
 {
-  "code": "VALIDATION_ERROR",
+  "code": "INVALID_AMOUNT",
   "message": "amount_minor must be a positive integer",
   "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
 }`;
@@ -230,26 +232,51 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 </div>
                 <UL>
                   <LI>This documents the <strong>Sandbox</strong>, which is the only environment that exists. The SDKs install from public registries and the Console is operational; what is missing is real money, not capability.</LI>
+                  <LI><strong>Money in the Sandbox is fictitious.</strong> Balances, payments and settlements are real as mechanics and behave the way they will in production — but no kwanza leaves or enters a bank account, and nothing that happens here has any financial effect in the world. That is why you can test freely.</LI>
                   <LI><strong>Production and real-money rails are not available.</strong> Public pay/checkout, live rails and external providers are not available.</LI>
                   <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. The Overview, Balances, Transactions, Webhooks and Logs derive from the project&rsquo;s own data — no Console page renders illustrative data, and nothing is shown that the platform cannot answer for.</LI>
                 </UL>
               </div>
 
+              <CapabilityCards lang="en" />
+
               {/* h2, not h3: it follows the page h1 directly, and a skipped
                   heading level is a screen reader announcing a subsection of
                   something that is not there. */}
               <H2>Three layers</H2>
+              <P>When integrating Banzami, always tell three layers apart:</P>
               <UL>
                 <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly. The Overview, Balances, Transactions, Webhooks and Logs show your project&rsquo;s real data: Balances the accounts of the payee the project is bound to, Transactions the payments, refunds and transfers that happened, and Logs every request made with one of the project&rsquo;s keys. There is no customer directory and no status page — neither exists as a product.</LI>
                 <LI><strong>Banzami integration layer</strong> — what your application uses for payments: payment links, sessions, QR, confirmation, receipts, signed webhooks and operator-controlled settlement.</LI>
-                <LI><strong>Banzami Operator / Core</strong> — the financial layer: it executes payments and owns balances and integrity. Your application never creates or manages its own financial ledger.</LI>
+                <LI><strong>Banzami Operator / Core</strong> — Banzami&rsquo;s financial layer: it executes the payment, keeps balances and integrity, and calculates and controls settlement. Your application never creates or manages its own financial ledger.</LI>
               </UL>
 
-              <P>
-                <strong>DOA is the reference integration.</strong> A real application that runs its own business logic
-                (campaigns and donations) while delegating everything financial to Banzami. It is currently operational in
-                the Sandbox environment and is used to continuously validate the integration model.
-              </P>
+              <div id="doa" style={{ scrollMarginTop: 72, margin: '24px 0', borderRadius: 18, border: '1px solid #F2E2E0', background: 'linear-gradient(135deg,#fff,#FFF4F3)', padding: 22, boxShadow: '0 18px 44px -38px rgba(181,16,31,.4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '.04em', color: RED }}>DOA · REFERENCE INTEGRATION</span>
+                  <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge>
+                </div>
+                <P style={{ marginBottom: 8 }}>
+                  <strong>DOA is the reference implementation of the Banzami integration.</strong> It shows how an application
+                  runs its own business logic — campaigns and donations — while delegating everything financial to Banzami.
+                </P>
+                <UL>
+                  <LI>It creates a Banzami payment journey and shows the donor a link and a QR.</LI>
+                  <LI>It follows the confirmation and verifies signed webhooks on its server.</LI>
+                  <LI>It issues receipts and requests settlement within the operator&rsquo;s model.</LI>
+                  <LI>It creates no ledger, financial balance or payment infrastructure of its own.</LI>
+                </UL>
+                <P style={{ margin: 0 }}>
+                  The DOA integration is currently operational in the Sandbox environment and is used to continuously validate
+                  the Banzami integration model.
+                </P>
+                <div style={{ marginTop: 14 }}>
+                  <JourneyStripDiagram
+                    title="An integration's journey, from the user to settlement"
+                    steps={['User', 'DOA app', 'Banzami', 'Link / QR / Session', 'Confirmation', 'Webhook / Receipt', 'Settlement']}
+                  />
+                </div>
+              </div>
 
               <div id="production" style={{ scrollMarginTop: 72, marginTop: 8, borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '18px 20px', maxWidth: 660 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -297,6 +324,11 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 no real money ever moves. Replace the values with your own Sandbox project’s.
               </Callout>
               <CodeBlock label="test keys" raw={SAMPLE_KEYS} onCopy={copy} {...enCopy} />
+              <UL>
+                <LI><Code>bz_test_pk_</Code> — publishable key (may live client-side).</LI>
+                <LI><Code>bz_test_sk_</Code> — secret key (server only).</LI>
+                <LI>The secret key appears <strong>exactly once</strong>; you can <strong>rotate</strong> or <strong>revoke</strong> keys at any time.</LI>
+              </UL>
               <Callout>Never expose secret keys in a browser, mobile app, repository, logs, screenshots or analytics.</Callout>
               <P>
                 Banzami is <strong>SDK-first</strong>. The TypeScript SDK is{' '}
@@ -353,9 +385,10 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 Failures worth expecting: <Code>401</Code> (key missing, revoked or live),{' '}
                 <Code>403 PAYMENTS_UNAVAILABLE</Code> (the project has no financial setup yet — see{' '}
                 <a href="#financial-setup" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>above</a>),{' '}
-                <Code>403</Code> for insufficient scope,{' '}
-                <Code>400 MISSING_FIELD / INVALID_BODY</Code>, and <Code>409 CONFLICT</Code> (an
-                Idempotency-Key already in flight). See{' '}
+                <Code>403 INSUFFICIENT_SCOPE</Code>,{' '}
+                <Code>400 INVALID_BODY / BAD_REQUEST</Code>, <Code>409 IDEMPOTENCY_CONFLICT</Code> (a request with the
+                same Idempotency-Key still in flight) and <Code>409 IDEMPOTENCY_KEY_REUSED</Code> (the same key with a
+                different body). See{' '}
                 <a href="/docs/en/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
               </P>
               <CodeBlock label="ts · create a payment session (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} {...enCopy} />
@@ -427,6 +460,10 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
+              <P>
+                <strong>DOA</strong> is the real proof of SDK-first consumption: it uses <Code>@banzami/sdk</Code> to create sessions and links,
+                produce QR, resolve <Code>@banza</Code>, verify webhooks and request settlement — with no direct HTTP calls.
+              </P>
 
               {/* The anchor keeps its old id so links written when this section was
    called "SDK preview" still land on it. The section is not a preview. */}
@@ -724,7 +761,44 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
               <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/sdk', text: 'SDKs' }]} />
               <P>Task-oriented guides for the verified Sandbox surfaces. Where HTTP/curl appears, it is protocol reference / diagnostic material — Banzami is SDK-first.</P>
 
-              <H3 id="charges">Create a charge <Badge tone="val">Under continuous validation in Sandbox</Badge></H3>
+<H3 id="segregated-accounts">Where the money lands: financial setup and accounts <Badge tone="ok">Available in Sandbox</Badge></H3>
+              <P>
+                Two different questions, answered in different places — and the distinction is what
+                makes the platform safe to use:
+              </P>
+              <UL>
+                <LI><strong>Who</strong> owns the money? — the <strong>project&rsquo;s financial setup</strong> answers. It is established by the operator, it does not change, and your application never names it in a request.</LI>
+                <LI><strong>Which</strong> of that owner&rsquo;s accounts receives? — the <strong>wallet account</strong> answers. That one your application chooses, among its own.</LI>
+              </UL>
+              <P>
+                A donation platform needs exactly this: each campaign accumulates in its own account,
+                without mixing with the others, and settlement happens from that account at close.
+              </P>
+              <SegregatedAccountsDiagram l={{
+                title: 'Segregated accounts: one financial owner, one account per campaign',
+                project: 'Your project',
+                owner: 'financial owner',
+                ownerNote: 'from financial setup — never from your request',
+                accounts: ['Campaign A', 'Campaign B', 'Campaign C'],
+                accountNote: 'one wallet account each',
+              }} />
+              <P>
+                In practice, with your developer key:
+              </P>
+              <UL>
+                <LI>Open one account per campaign with <Code>createWalletAccount</Code> — give the purpose and your reference, <strong>never</strong> a wallet or a merchant.</LI>
+                <LI>Create the payment with <Code>createPaymentSession</Code>, passing that campaign&rsquo;s <Code>walletAccountId</Code>.</LI>
+                <LI>If you omit <Code>walletAccountId</Code>, the payment lands in the project&rsquo;s default account — enough when you do not need to segregate.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                The server always checks that the account you name is yours. Another owner&rsquo;s account
+                answers <Code>404</Code> — not <Code>403</Code> — so nobody can discover other people&rsquo;s
+                accounts from the status code. And naming <Code>merchant_id</Code> or <Code>wallet_id</Code> is
+                refused with <Code>400 PAYEE_NOT_ALLOWED</Code>: choosing an account is selection, choosing an
+                owner would be authority.
+              </P>
+
+              <H3 id="charges">Create a charge <Badge tone="ok">Available in Sandbox</Badge></H3>
               <P>
                 A charge starts from a <strong>payment link</strong> or a <strong>payment session</strong>: create the intent,
                 present the link/QR to the payer and track the confirmation (by polling and/or webhook). In the Banzami model,
@@ -773,12 +847,20 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 <LI>The currency is validated against the original source.</LI>
                 <LI>Partial refunds are allowed up to the payment&rsquo;s accrued cap.</LI>
                 <LI>Reusing the same <Code>idempotency_key</Code> does not refund twice.</LI>
+                <LI>Production remains <em>Production in preparation</em>.</LI>
               </UL>
               <P>
                 <strong>Request fields:</strong> <Code>source_type</Code> (<Code>ACQUIRING_PAYMENT</Code> or
                 {' '}<Code>WALLET_PAYMENT</Code>), <Code>source_id</Code>, <Code>amount_minor</Code>, <Code>currency</Code>
                 {' '}and <Code>idempotency_key</Code>.
               </P>
+              <Callout>
+                <strong>Path verified in Sandbox.</strong> Refunds were validated end to end through the public gateway
+                (<Code>POST /v1/refunds</Code>): acquiring and wallet sources, full and partial refunds, the cumulative cap per
+                source, currency validation against the source, idempotent replay and <Code>idempotency_key</Code> conflict,
+                request authorisation and correction of the receipt&rsquo;s state. There is never real money — <em>Production in preparation</em>.
+              </Callout>
+
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Technical reference: the payment source is typed per BANZA ADR-017. Credential: a project key with the
                 {' '}<Code>refunds:write</Code> scope, on <Code>POST /v1/refunds</Code>. The refund debits the account
@@ -787,118 +869,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
                 Never real money — <em>Production in preparation</em>.
               </P>
-</Section>
-<Section id="webhooks">
-              <H2>Webhooks <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H2>
-              <P>
-                Use webhooks to confirm events on your server without relying on the browser or polling alone. Banzami signs
-                every event; your endpoint verifies the signature and reacts idempotently.
-              </P>
-              <Callout>
-                <strong>Honest scope.</strong> Outbound delivery is real and verified end to end: Banzami emits{' '}
-                <Code>payment_session.paid</Code> because money moved, its outbox delivers over the public internet to the
-                registered HTTPS endpoint, and the reference application accepts it. This section used to say delivery to an
-                external sink remained simulated — true when written, and no longer. What still does not exist is{' '}
-                <strong>Production</strong>: this is the Sandbox, and no real money ever moves.
-              </Callout>
-              <H3>How it works</H3>
-              <UL>
-                <LI>Banzami sends a <Code>POST</Code> to your endpoint with the event body as JSON.</LI>
-                <LI>The signature travels in the <Code>banza-signature</Code> header, formatted <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
-                <LI>The signature is HMAC-SHA256 over <Code>&quot;{'{'}t{'}'}.{'{'}body{'}'}&quot;</Code>, with a <strong>5-minute</strong> replay tolerance.</LI>
-                <LI>Process <strong>idempotently</strong> and answer <Code>2xx</Code> fast; delivery is at-least-once, unordered, with redelivery on failure.</LI>
-              </UL>
-              <Callout tone="warn">
-                <strong>Verify the signature before you parse the event.</strong> Read the raw body,
-                check it against <Code>banza-signature</Code>, and only then treat the JSON as
-                something that came from Banzami. Anything on the public internet can POST to your
-                endpoint; until the signature checks out, the body is a stranger&apos;s claim about
-                your money. Re-serialising the JSON before verifying changes the bytes and the
-                signature stops matching — read it once, as text.
-              </Callout>
-              <CodeBlock label="ts · verify and handle an event" raw={SAMPLE_WEBHOOK} onCopy={copy} {...enCopy} />
-              <CodeBlock label="json · event envelope (implemented in Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} {...enCopy} />
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                The envelope above is the shape implemented in the Sandbox: <Code>id</Code> (dedupe on it), <Code>type</Code>{' '}
-                (one of the verified catalogue below), <Code>created_at</Code> and <Code>data</Code> with the event object.
-              </P>
-              <H3 id="redelivery">Redelivery contract</H3>
-              <UL>
-                <LI>At-least-once delivery, no ordering guarantee — handle every event <strong>idempotently</strong> (dedupe by event id).</LI>
-                <LI>Signature in <Code>banza-signature</Code> with a <strong>5-minute</strong> timestamp (replay) tolerance.</LI>
-                <LI>Implemented in the Sandbox: up to <strong>5 attempts</strong> per delivery, with growing backoff of{' '}
-                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code> → <Code>8&nbsp;h</Code> after each failure.</LI>
-                <LI>Any <Code>2xx</Code> from your endpoint counts as delivered; answer fast and process asynchronously.</LI>
-                <LI><em>Note:</em> this is the contract implemented and verified in the Sandbox; Production behaviour is not claimed (Production in preparation).</LI>
-              </UL>
-              <H3 id="manage-endpoint">Manage the endpoint with your project key <Badge tone="ok" /></H3>
-              <P>
-                The endpoint that receives <strong>your</strong> events is managed with the
-                <strong> project key</strong> — no merchant credential is needed, or possible.
-                The owner comes from the project&rsquo;s financial setup; none of these requests accepts a{' '}
-                <Code>merchant_id</Code>, because there is no field for one.
-              </P>
-              <CodeBlock label="ts · register and rotate the secret" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} {...enCopy} />
-              <UL>
-                <LI>The <Code>secret</Code> is returned <strong>exactly once</strong>, on registration and on rotation. No later read brings it back — store it immediately.</LI>
-                <LI><Code>webhooks:read</Code> sees endpoints, events and deliveries. <Code>webhooks:write</Code> registers, disables, redelivers and rotates the secret. A read scope never authorises a write.</LI>
-                <LI>Another project&rsquo;s endpoint answers <Code>404</Code> — never <Code>403</Code> — so an id cannot be used to discover other people&rsquo;s integrations.</LI>
-              </UL>
-
-              <H3>Events</H3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
-                {EVENTS.map((e) => (
-                  <span key={e} style={{ fontFamily: mono, fontSize: 12.5, fontWeight: 700, color: '#9A1B22', background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 8, padding: '4px 9px' }}>{e}</span>
-                ))}
-              </div>
-              <P>
-                This is the <strong>verified event catalogue</strong> — only events whose emission and contract are verified
-                in the current Sandbox are listed; nothing outside it is a contractual event name. Payment confirmation and
-                settlement are <strong>distinct</strong> events with distinct business effects: <Code>payment_session.paid</Code>{' '}
-                confirms the payment; <Code>application_settlement.completed</Code> concludes the settlement.
-              </P>
-            
-              <H3 id="troubleshooting">Troubleshooting</H3>
-              <P>
-                The eleven problems that actually come up, and what to do about each. In every
-                case, keep the <Code>request_id</Code> from the response before doing anything else.
-              </P>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
-                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What you see</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What it usually is</th>
-                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What to do</th>
-                  </tr></thead>
-                  <tbody>
-                    {[
-                      ['401 UNAUTHORIZED', 'The key was revoked, rotated, or belongs to another project.', 'Check it under API keys: if it reads Revoked, use the successor. If you created it seconds ago, confirm you copied the whole secret.'],
-                      ['403 FORBIDDEN', 'A missing scope. Scopes are fixed at creation and never change.', 'Compare the key’s scopes with what the route requires in the reference. If one is missing, create a new key — the existing one will never gain it.'],
-                      ['403 on a payment route', 'The project has no financial owner.', 'GET /v1/financial-setup reports the state. Complete Financial Setup; until then the project can do everything except get paid.'],
-                      ['404 on a resource that exists', 'It exists, and belongs to another project.', 'That is deliberate: a 403 here would let you enumerate other people’s resources. Check you are using the key of the project that created it.'],
-                      ['409 CONFLICT on a create', 'The same Idempotency-Key with a different body.', 'An idempotency key belongs to one request. If the body changed, it is a different request: use a different key.'],
-                      ['422 VALIDATION_ERROR', 'A missing field, or one with the wrong type.', 'The message names the field. Amounts are integers in minor units — 250 Kz is 25000, not 250.'],
-                      ['429 RATE_LIMITED', 'Too many requests, or too many codes requested.', 'Slow down and retry with backoff. Retrying immediately extends the window rather than shortening it.'],
-                      ['A payment stays pending', 'The payer has not finished.', 'A pending payment is a normal state, not an error. Wait for the webhook; never confirm anything from a timeout.'],
-                      ['The webhook never arrives', 'The endpoint is not public HTTPS, or it answers slowly.', 'Open the event’s deliveries in the Console: they show the code your server returned. A slow 2xx is treated as a failure.'],
-                      ['The signature does not match', 'The body was re-serialised before verifying.', 'Verify over the RAW body. Parsing the JSON and serialising it again changes the bytes, and the signature is over the bytes.'],
-                      ['A settlement does not proceed', 'The account has no balance, or the beneficiary is not eligible.', 'GET /v1/financial-setup shows what is blocking. Gross is read from the account: an empty account has nothing to settle.'],
-                    ].map((r, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700, whiteSpace: 'nowrap' }}>{r[0]}</td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
-                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Callout tone="warn">
-                When you ask for help, send the <Code>request_id</Code>, the timestamp, the
-                environment and the operation. <strong>Never send the key, the webhook secret, an
-                OTP code or a session token</strong> — nothing we need in order to help is a secret.
-              </Callout>
-                <H3 id="receipts">Receipts and public verification</H3>
+              <H3 id="receipts">Receipts and public verification</H3>
               <P>
                 Every confirmed payment has a <strong>receipt</strong>: a document carrying a{' '}
                 <strong>public proof reference</strong> and a QR. Whoever holds that reference can confirm, with no
@@ -951,6 +922,132 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                   reference is a public proof.
                 </LI>
               </UL>
+</Section>
+<Section id="webhooks">
+              <H2>Webhooks <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H2>
+              <P>
+                Use webhooks to confirm events on your server without relying on the browser or polling alone. Banzami signs
+                every event; your endpoint verifies the signature and reacts idempotently.
+              </P>
+              <Callout>
+                <strong>Full journey verified in Sandbox.</strong> End-to-end delivery was confirmed against the implemented DOA
+                endpoint: a real <Code>payment_session.paid</Code> emitted by the operator was delivered by the outbox, the canonical{' '}
+                <Code>banza-signature</Code> header was accepted, the donation was confirmed <strong>exactly once</strong> and the
+                receipt was recorded. In the controlled test no external email was sent; in normal flows with an email contact, DOA
+                delivers the receipt to the donor. Redelivery of the same event was <strong>deduplicated</strong> (no duplicated
+                effect). There is never real money — <em>Production in preparation</em>.
+              </Callout>
+              <Callout>
+                <strong>Honest scope.</strong> Outbound delivery is real and verified end to end: Banzami emits{' '}
+                <Code>payment_session.paid</Code> because money moved, its outbox delivers over the public internet to the
+                registered HTTPS endpoint, and the reference application accepts it. This section used to say delivery to an
+                external sink remained simulated — true when written, and no longer. What still does not exist is{' '}
+                <strong>Production</strong>: this is the Sandbox, and no real money ever moves.
+              </Callout>
+              <H3>How it works</H3>
+              <UL>
+                <LI>Banzami sends a <Code>POST</Code> to your endpoint with the event body as JSON.</LI>
+                <LI>The signature travels in the <Code>banza-signature</Code> header, formatted <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
+                <LI>The signature is HMAC-SHA256 over <Code>&quot;{'{'}t{'}'}.{'{'}body{'}'}&quot;</Code>, with a <strong>5-minute</strong> replay tolerance.</LI>
+                <LI>Process <strong>idempotently</strong> and answer <Code>2xx</Code> fast; delivery is at-least-once, unordered, with redelivery on failure.</LI>
+              </UL>
+              <Callout tone="warn">
+                <strong>Verify the signature before you parse the event.</strong> Read the raw body,
+                check it against <Code>banza-signature</Code>, and only then treat the JSON as
+                something that came from Banzami. Anything on the public internet can POST to your
+                endpoint; until the signature checks out, the body is a stranger&apos;s claim about
+                your money. Re-serialising the JSON before verifying changes the bytes and the
+                signature stops matching — read it once, as text.
+              </Callout>
+              <CodeBlock label="ts · verify and handle an event" raw={SAMPLE_WEBHOOK} onCopy={copy} {...enCopy} />
+              <CodeBlock label="json · event envelope (implemented in Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} {...enCopy} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                The envelope above is the shape implemented in the Sandbox: <Code>id</Code> (dedupe on it), <Code>type</Code>{' '}
+                (one of the verified catalogue below), <Code>created_at</Code> and <Code>data</Code> with the event object.
+              </P>
+              <H3 id="redelivery">Redelivery contract</H3>
+              <UL>
+                <LI>At-least-once delivery, no ordering guarantee — handle every event <strong>idempotently</strong> (dedupe by event id).</LI>
+                <LI>Signature in <Code>banza-signature</Code> with a <strong>5-minute</strong> timestamp (replay) tolerance.</LI>
+                <LI>Implemented in the Sandbox: up to <strong>5 attempts</strong> per delivery, with growing backoff of{' '}
+                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code> → <Code>8&nbsp;h</Code> after each failure.</LI>
+                <LI>Any <Code>2xx</Code> from your endpoint counts as delivered; answer fast and process asynchronously.</LI>
+                <LI><em>Note:</em> this is the contract implemented and verified in the Sandbox; Production behaviour is not claimed (Production in preparation).</LI>
+              </UL>
+              <H3 id="manage-endpoint">Manage the endpoint with your project key <Badge tone="ok" /></H3>
+              <P>
+                The endpoint that receives <strong>your</strong> events is managed with the
+                <strong> project key</strong> — no merchant credential is needed, or possible.
+                The owner comes from the project&rsquo;s financial setup; none of these requests accepts a{' '}
+                <Code>merchant_id</Code>, because there is no field for one.
+              </P>
+              <CodeBlock label="ts · register and rotate the secret" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} {...enCopy} />
+              <UL>
+                <LI>The <Code>secret</Code> is returned <strong>exactly once</strong>, on registration and on rotation. No later read brings it back — store it immediately.</LI>
+                <LI><Code>webhooks:read</Code> sees endpoints, events and deliveries. <Code>webhooks:write</Code> registers, disables, redelivers and rotates the secret. A read scope never authorises a write.</LI>
+                <LI>Another project&rsquo;s endpoint answers <Code>404</Code> — never <Code>403</Code> — so an id cannot be used to discover other people&rsquo;s integrations.</LI>
+              </UL>
+              <Callout tone="warn">
+                <strong>Rotation is immediate, not overlapping.</strong> The signature is checked
+                against <em>one</em> secret. Update your receiver first and rotate afterwards —
+                or rotate at a moment when a short window of refused deliveries is acceptable.
+                Because delivery is <Code>at-least-once</Code> with retries, a delivery refused in
+                that window is <strong>not</strong> a lost event: it is tried again.
+              </Callout>
+
+              <H3>Events</H3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
+                {EVENTS.map((e) => (
+                  <span key={e} style={{ fontFamily: mono, fontSize: 12.5, fontWeight: 700, color: '#9A1B22', background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 8, padding: '4px 9px' }}>{e}</span>
+                ))}
+              </div>
+              <P>
+                This is the <strong>verified event catalogue</strong> — only events whose emission and contract are verified
+                in the current Sandbox are listed; nothing outside it is a contractual event name. Payment confirmation and
+                settlement are <strong>distinct</strong> events with distinct business effects: <Code>payment_session.paid</Code>{' '}
+                confirms the payment; <Code>application_settlement.completed</Code> concludes the settlement.
+              </P>
+            
+              <H3 id="troubleshooting">Troubleshooting</H3>
+              <P>
+                The eleven problems that actually come up, and what to do about each. In every
+                case, keep the <Code>request_id</Code> from the response before doing anything else.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What you see</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What it usually is</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What to do</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['401 UNAUTHORIZED', 'The key is missing, was revoked or rotated, or is not a Sandbox key.', 'Check it under API keys: if it reads Revoked, use the successor. If you created it seconds ago, confirm you copied the whole secret.'],
+                      ['403 INSUFFICIENT_SCOPE', 'A missing scope. Scopes are fixed at creation and never change.', 'Compare the key’s scopes with what the route requires in the reference. If one is missing, create a new key — the existing one will never gain it.'],
+                      ['403 PAYMENTS_UNAVAILABLE', 'The project has no completed financial setup.', 'GET /v1/financial-setup reports the state. Complete Financial Setup; until then the project can do everything except get paid.'],
+                      ['404 on a resource that exists', 'It exists, and belongs to another project.', 'That is deliberate: a 403 here would let you enumerate other people’s resources. Check you are using the key of the project that created it.'],
+                      ['409 IDEMPOTENCY_KEY_REUSED', 'The same Idempotency-Key with a different body.', 'An idempotency key belongs to one request. If the body changed, it is a different request: use a different key.'],
+                      ['400 MISSING_FIELD · INVALID_AMOUNT', 'A missing field, or one with the wrong type.', 'The message names the field. Amounts are integers in minor units — 250 Kz is 25000, not 250.'],
+                      ['429 RATE_LIMITED', 'Too many requests, or too many codes requested.', 'Slow down and retry with backoff. Retrying immediately extends the window rather than shortening it.'],
+                      ['A payment stays pending', 'The payer has not finished.', 'A pending payment is a normal state, not an error. Wait for the webhook; never confirm anything from a timeout.'],
+                      ['The webhook never arrives', 'The endpoint is not public HTTPS, or it answers slowly.', 'Open the event’s deliveries in the Console: they show the code your server returned. A slow 2xx is treated as a failure.'],
+                      ['The signature does not match', 'The body was re-serialised before verifying.', 'Verify over the RAW body. Parsing the JSON and serialising it again changes the bytes, and the signature is over the bytes.'],
+                      ['A settlement does not proceed', 'The account has no balance, or the beneficiary is not eligible.', 'GET /v1/financial-setup shows what is blocking. Gross is read from the account: an empty account has nothing to settle.'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700, whiteSpace: 'nowrap' }}>{r[0]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="warn">
+                When you ask for help, send the <Code>request_id</Code>, the timestamp, the
+                environment and the operation. <strong>Never send the key, the webhook secret, an
+                OTP code or a session token</strong> — nothing we need in order to help is a secret.
+              </Callout>
             </Section>
     </>
   );
@@ -1211,10 +1308,19 @@ export function EnReference({ copy }: { copy: CopyFn }) {
               <H2>API Reference</H2>
               <PageLede>The <strong>protocol reference</strong> layer (API/OpenAPI). <strong>It is not the recommended implementation path</strong> — Banzami is SDK-first; use this reference for diagnostics, audits and advanced integrators.</PageLede>
               <NextSteps label="Next:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/sdk', text: 'SDKs' }]} />
+              <P>The reference splits into two areas: what you manage in the <strong>Console</strong> and what your application calls in the <strong>integration layer</strong>.</P>
               <P>
                 Your application authenticates by sending the Sandbox <Code>bz_test_</Code> API key directly in the{' '}
                 <Code>Authorization: Bearer …</Code> header and calls the integration layer at <Code>sandbox-api.banzami.com</Code>.
                 <Code>bz_live_</Code> keys are <strong>rejected fail-closed</strong> — there is no Production key issuance.
+              </P>
+
+              <H3>Managed in the Console</H3>
+              <P>
+                Workspaces, projects, members and <strong>keys</strong> are managed in the Banzami Developers portal — through the
+                interface, with a session and role-based permissions. It is not a public API to call directly, so its internal
+                endpoints are not exposed here. The Overview, Webhooks and Logs show the project&rsquo;s real data —
+                requests, latencies, errors and emitted events, correlatable by <Code>request_id</Code>.
               </P>
 
               <H3 id="credentials">Credentials and capabilities</H3>
@@ -1260,8 +1366,9 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                 network failure or timeout without duplicating the effect. Sandbox behaviour: the original response (2xx or
                 4xx) is replayed for the same key for <strong>24 hours</strong>, scoped per credential, method and path;
                 <Code>5xx</Code> responses are never replayed (the request may be retried); two <strong>concurrent</strong>{' '}
-                requests with the same key get <Code>409 CONFLICT</Code> until the first finishes — wait and retry with the{' '}
-                <em>same</em> key.
+                requests with the same key get <Code>409 IDEMPOTENCY_CONFLICT</Code> until the first finishes — wait and retry
+                with the <em>same</em> key. The same key with a different body gets <Code>409 IDEMPOTENCY_KEY_REUSED</Code>:
+                it is a different request and needs a different key.
               </P>
               <CodeBlock label="curl · safe retry with Idempotency-Key" raw={SAMPLE_IDEM_RETRY} onCopy={copy} {...enCopy} />
 
@@ -1304,39 +1411,29 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                 your project&rsquo;s, and are kept for <strong>30 days</strong>. What is never stored: the{' '}
                 <Code>Authorization</Code> header, API keys, webhook secrets, cookies, OTPs or the request body.
               </P>
-              <H3>Codes by HTTP status (observed in the Sandbox)</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 480, fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Status</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Typical codes</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>What to do</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['400', 'INVALID_BODY · MISSING_FIELD · VALIDATION_ERROR · INVALID_PARAM · INVALID_AMOUNT', 'Fix the request; do not retry unchanged.'],
-                      ['401', 'UNAUTHORIZED', 'Missing/invalid/revoked key — check your bz_test_ key.'],
-                      ['403', 'FORBIDDEN', 'Insufficient scope or project without an active binding.'],
-                      ['404', 'NOT_FOUND', 'Resource missing or outside your scope.'],
-                      ['409', 'CONFLICT', 'Idempotency-Key in flight or state conflict — wait and retry with the same key.'],
-                      ['429', 'RATE_LIMITED', 'Slow down and retry with backoff.'],
-                      ['5xx', 'INTERNAL_ERROR · UPSTREAM_ERROR · UNAVAILABLE', 'Transient — retry with the same Idempotency-Key.'],
-                    ] as [string, string, string][]).map(([st, codes, act]) => (
-                      <tr key={st}>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontWeight: 700, color: INK }}>{st}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{codes}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{act}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                This table describes behaviour observed in the <strong>Sandbox</strong>; exact Production behaviour is not
-                claimed (Production in preparation).
+              <H3 id="error-catalogue">Error catalogue</H3>
+              <P>
+                Every code a project key can receive, and only those. The list is generated from the gateway source and
+                checked against it: a new code missing from here, or a code here that no longer exists, fails the check.
+                It describes the <strong>Sandbox</strong>; Financial LIVE behaviour is not claimed.
               </P>
+              <ErrorCatalogue lang="en" />
+              <H3>Console (access and keys)</H3>
+              <UL>
+                <LI><Code>INVALID_EMAIL</Code> / <Code>INVALID_CODE</Code> — fix the email, or ask for a new one-time code.</LI>
+                <LI><Code>RATE_LIMITED</Code> — too many requests; wait before retrying.</LI>
+                <LI><Code>UNAUTHENTICATED</Code> — the session expired; sign in again.</LI>
+                <LI><Code>FORBIDDEN</Code> — no permission for the action (role, or the origin/CSRF check).</LI>
+                <LI><Code>CONFLICT</Code> / <Code>LAST_OWNER</Code> — a state conflict; includes the last-Owner protection.</LI>
+                <LI><Code>INVITE_INVALID</Code> — the invitation expired, was revoked or was already used; ask for a new one.</LI>
+                <LI><Code>VALIDATION</Code> — invalid data; fix the fields.</LI>
+              </UL>
+              <H3>Integration</H3>
+              <UL>
+                <LI><Code>401 UNAUTHORIZED</Code> — the key is missing, revoked, or not a Sandbox key. The <Code>bz_test_sk_</Code> key goes straight into <Code>Authorization: Bearer</Code>; there is no token to exchange.</LI>
+                <LI>After a <strong>rotation</strong>, use the new key; the previous one stops being accepted.</LI>
+                <LI>Never repeat an operation that moves value without an <strong>idempotency key</strong>.</LI>
+              </UL>
             </Section>
     </>
   );
@@ -1354,8 +1451,8 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>1. First call:</strong> <Code>GET /v1/me</Code> with your key — success is <Code>200</Code> with <Code>environment: SANDBOX</Code>; the typical failure is <Code>401 UNAUTHORIZED</Code> (wrong/revoked key).</LI>
                 <LI><strong>2. Create a session:</strong> <Code>POST /v1/payment-sessions</Code> — success is <Code>201</Code> with <Code>status: ACTIVE</Code> and the link/QR interfaces.</LI>
-                <LI><strong>3. Test idempotency:</strong> repeat the same POST with the same <Code>Idempotency-Key</Code> — you should receive the original response with no duplicated effect; send two concurrently and one gets <Code>409 CONFLICT</Code>.</LI>
-                <LI><strong>4. Test errors:</strong> omit <Code>amount_minor</Code> to see <Code>400 MISSING_FIELD</Code>; use an invalid key to see <Code>401</Code>; always keep the <Code>request_id</Code> from the response.</LI>
+                <LI><strong>3. Test idempotency:</strong> repeat the same POST with the same <Code>Idempotency-Key</Code> — you should receive the original response with no duplicated effect; send two concurrently and one gets <Code>409 IDEMPOTENCY_CONFLICT</Code>.</LI>
+                <LI><strong>4. Test errors:</strong> send <Code>amount_minor: 0</Code> to see <Code>400 BAD_REQUEST</Code> (omitting the amount is not an error: it creates an open-amount session); use an invalid key to see <Code>401</Code>; always keep the <Code>request_id</Code> from the response.</LI>
                 <LI><strong>5. Interpreting results:</strong> any response carrying the error envelope (see <a href="/docs/en/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) is actionable via its <Code>code</Code>.</LI>
               </UL>
               <Callout tone="warn">
