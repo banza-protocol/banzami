@@ -116,6 +116,51 @@ export const GLOSSARY: GlossaryEntry[] = [
     term: 'Comprovativo',
     def: 'Registo emitido após uma operação confirmada, com os dados necessários para consulta e verificação.',
   },
+  {
+    id: 'workspace',
+    term: 'Workspace',
+    def: 'O grupo de pessoas com acesso a um conjunto de projetos, com papéis (Owner, Admin, Developer, Finance, Viewer).',
+  },
+  {
+    id: 'projeto',
+    term: 'Projeto',
+    def: 'Uma aplicação integrada: as suas chaves, webhooks e registos. O Project ID não muda quando o nome muda.',
+  },
+  {
+    id: 'configuracao-financeira',
+    term: 'Configuração financeira',
+    def: 'A ligação entre um projeto e o Business que recebe o seu dinheiro. Sem ela, o projeto não recebe pagamentos.',
+  },
+  {
+    id: 'business',
+    term: 'Business',
+    def: 'A entidade legal verificada pelo Banzami que é dona do dinheiro que um projeto recebe.',
+  },
+  {
+    id: 'wallet-account',
+    term: 'Wallet account',
+    def: 'Uma conta dentro da carteira de um Business, para separar valor — por exemplo uma por campanha.',
+  },
+  {
+    id: 'link-pagamento',
+    term: 'Link de pagamento',
+    def: 'Um endereço em pay.banzami.com onde o pagador paga; pode ter montante fixo ou aberto.',
+  },
+  {
+    id: 'reembolso',
+    term: 'Reembolso',
+    def: 'A devolução, total ou parcial, de um pagamento confirmado, a partir da conta que o recebeu.',
+  },
+  {
+    id: 'transacao',
+    term: 'Transação',
+    def: 'Um movimento de valor registado no livro-razão — um pagamento, um reembolso ou uma transferência.',
+  },
+  {
+    id: 'unidades-menores',
+    term: 'Unidades menores',
+    def: 'A forma como os montantes viajam na API: inteiros, em que 100 unidades menores são 1 Kz. Nunca decimais.',
+  },
 ];
 
 export const GLOSSARY_BY_ID: Record<string, GlossaryEntry> = Object.fromEntries(

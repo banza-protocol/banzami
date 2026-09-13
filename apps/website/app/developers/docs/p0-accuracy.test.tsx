@@ -159,7 +159,7 @@ describe('P0 — /docs content contracts (rendered)', () => {
   });
   it('has the credential↔capability matrix, and it still refuses Production', () => {
     render(<PtReferencePage />);
-    expect(screen.getByText('Credenciais e capacidades')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Credenciais e capacidades' })).toBeTruthy();
     // Whatever the Sandbox evidence says, this row does not move: Financial LIVE
     // is unavailable and fail-closed, in the canonical words (DOCS-PROD-001 §31).
     expect(DOCS).toContain('Financial LIVE / trilhos bancários / fornecedores externos');

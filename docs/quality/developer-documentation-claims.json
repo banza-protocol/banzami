@@ -1324,12 +1324,12 @@
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
    "text": "A confirmação de pagamento e a liquidação são eventos distintos, com efeitos de negócio distintos: payment_session.paid confirma a doação; application_settlemen"
   },
-  "pt:Guides:8b3c13b123": {
+  "pt:Guides:3048215faf": {
    "page": "Guides",
    "kind": "P",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/service/{postgres_webhooks.go,proof.go}; services/api-gateway/internal/handler/{payment_authz.go,wallet_account_transfers.go,refunds.go}; core/api/src/routes/{refunds.rs,wallet_account_transfers.rs,payment_sessions.rs}; sdk/typescript/src/webhooks.ts (tolerance 300 s)",
-   "text": "Os onze problemas que aparecem a sério, e o que fazer com cada um. Em todos, guarde o request_id da resposta antes de fazer mais nada."
+   "text": "Os treze problemas que aparecem a sério, e o que fazer com cada um. Em todos, guarde o request_id da resposta antes de fazer mais nada."
   },
   "pt:Guides:cc3f531ec2": {
    "page": "Guides",
@@ -1435,6 +1435,20 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/service/{postgres_webhooks.go,proof.go}; services/api-gateway/internal/handler/{payment_authz.go,wallet_account_transfers.go,refunds.go}; core/api/src/routes/{refunds.rs,wallet_account_transfers.rs,payment_sessions.rs}; sdk/typescript/src/webhooks.ts (tolerance 300 s)",
    "text": "A assinatura não bate certo | O corpo foi reserializado antes de verificar. | Verifique sobre o corpo EM BRUTO. Ler o JSON e voltar a serializá-lo muda os bytes"
+  },
+  "pt:Guides:2546aa631f": {
+   "page": "Guides",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Um reembolso é recusado | O montante excede o que resta, a conta que recebeu já não tem saldo, ou o pagamento não é reembolsável. | A mensagem e o código dizem "
+  },
+  "pt:Guides:5633337991": {
+   "page": "Guides",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/service/{postgres_webhooks.go,proof.go}; services/api-gateway/internal/handler/{payment_authz.go,wallet_account_transfers.go,refunds.go}; core/api/src/routes/{refunds.rs,wallet_account_transfers.rs,payment_sessions.rs}; sdk/typescript/src/webhooks.ts (tolerance 300 s)",
+   "text": "O comprovativo não se verifica | 404: a referência não existe ou foi alterada. 503: a verificação está indisponível. | Copie a referência BZM-… sem a reescrever"
   },
   "pt:Guides:e032b10b08": {
    "page": "Guides",
@@ -1820,6 +1834,69 @@
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Revogação (comportamento verificado): uma chave revogada recebe 401 UNAUTHORIZED em qualquer chamada — verificado no E2E do Sandbox."
+  },
+  "pt:Reference:98d7340f1c": {
+   "page": "Reference",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Há limites por endereço IP e por chave. Quem os excede recebe 429 RATE_LIMITED com o cabeçalho Retry-After, em segundos: espere esse tempo e repita com a mesma "
+  },
+  "pt:Reference:e7e6130332": {
+   "page": "Reference",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Todas as datas na API são UTC, em RFC 3339 (2026-07-11T11:45:00Z). Guarde-as assim e converta só para mostrar. A Consola mostra-as na hora local do seu browser,"
+  },
+  "pt:Reference:0297b53e20": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Project ID — o seu projeto; não muda quando o nome muda."
+  },
+  "pt:Reference:567dd26126": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Os ids dos recursos que cria — session_id, o id da conta, do reembolso, do endpoint — para os consultar depois."
+  },
+  "pt:Reference:2294cd2cad": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "O seu reference_id — o Banzami guarda-o e devolve-o, nos recursos e nos eventos; é assim que liga um pagamento à sua encomenda."
+  },
+  "pt:Reference:a6f6e7daec": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "O id de cada evento — para deduplicar entregas repetidas."
+  },
+  "pt:Reference:c65bddbc3d": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "A referência BZM-… do comprovativo, quando a tiver — é ela que se verifica publicamente."
+  },
+  "pt:Reference:a626f345b3": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "O request_id de cada resposta que correu mal — é o que o suporte pede."
+  },
+  "pt:Reference:f07bd5777e": {
+   "page": "Reference",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Um id não é autoridade. Conhecer o id de um recurso de outro projeto não dá acesso a ele — responde 404 — e nenhum pedido seu leva o id do Business ou da cartei"
   },
   "pt:Reference:fbb5347f1f": {
    "page": "Reference",
@@ -3788,12 +3865,12 @@
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
    "text": "This is the verified event catalogue — only events whose emission and contract are verified in the current Sandbox are listed; nothing outside it is a contractu"
   },
-  "en:Guides:9fc0f7da46": {
+  "en:Guides:f8a64c9d5f": {
    "page": "Guides",
    "kind": "P",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/service/{postgres_webhooks.go,proof.go}; services/api-gateway/internal/handler/{payment_authz.go,wallet_account_transfers.go,refunds.go}; core/api/src/routes/{refunds.rs,wallet_account_transfers.rs,payment_sessions.rs}; sdk/typescript/src/webhooks.ts (tolerance 300 s)",
-   "text": "The eleven problems that actually come up, and what to do about each. In every case, keep the request_id from the response before doing anything else."
+   "text": "The thirteen problems that actually come up, and what to do about each. In every case, keep the request_id from the response before doing anything else."
   },
   "en:Guides:2beaa82dfc": {
    "page": "Guides",
@@ -3899,6 +3976,20 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/service/{postgres_webhooks.go,proof.go}; services/api-gateway/internal/handler/{payment_authz.go,wallet_account_transfers.go,refunds.go}; core/api/src/routes/{refunds.rs,wallet_account_transfers.rs,payment_sessions.rs}; sdk/typescript/src/webhooks.ts (tolerance 300 s)",
    "text": "The signature does not match | The body was re-serialised before verifying. | Verify over the RAW body. Parsing the JSON and serialising it again changes the by"
+  },
+  "en:Guides:919c953cc2": {
+   "page": "Guides",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "A refund is refused | The amount exceeds what is left, the receiving account no longer has the balance, or the payment is not refundable. | The message and the "
+  },
+  "en:Guides:864ea97284": {
+   "page": "Guides",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/service/{postgres_webhooks.go,proof.go}; services/api-gateway/internal/handler/{payment_authz.go,wallet_account_transfers.go,refunds.go}; core/api/src/routes/{refunds.rs,wallet_account_transfers.rs,payment_sessions.rs}; sdk/typescript/src/webhooks.ts (tolerance 300 s)",
+   "text": "The receipt does not verify | 404: the reference does not exist or was altered. 503: verification is unavailable. | Copy the BZM-… reference without retyping it"
   },
   "en:Guides:533457f483": {
    "page": "Guides",
@@ -4284,6 +4375,69 @@
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Revocation (verified behaviour): a revoked key receives 401 UNAUTHORIZED on any call — verified in the Sandbox E2E."
+  },
+  "en:Reference:9640d92677": {
+   "page": "Reference",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "There are limits per IP address and per key. Exceeding them returns 429 RATE_LIMITED with a Retry-After header, in seconds: wait that long and retry with the sa"
+  },
+  "en:Reference:d636ff5613": {
+   "page": "Reference",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Every date in the API is UTC, in RFC 3339 (2026-07-11T11:45:00Z). Store them that way and convert only for display. The Console shows them in your browser’s loc"
+  },
+  "en:Reference:d7a0b82d22": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Project ID — your project; it does not change when the name does."
+  },
+  "en:Reference:43207ea59e": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "The ids of the resources you create — session_id, the account, refund and endpoint ids — to read them later."
+  },
+  "en:Reference:df079bc830": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Your own reference_id — Banzami stores it and returns it, on resources and events; it is how a payment is tied to your order."
+  },
+  "en:Reference:36a366cc95": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Each event’s id — to deduplicate repeated deliveries."
+  },
+  "en:Reference:71607385f6": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "The receipt’s BZM-… reference, when you have it — it is what verifies publicly."
+  },
+  "en:Reference:0c122fdd53": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "The request_id of every response that went wrong — it is what support asks for."
+  },
+  "en:Reference:62e4f1f74f": {
+   "page": "Reference",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "An id is not authority. Knowing the id of another project’s resource gives no access to it — it answers 404 — and no request of yours carries the Business or wa"
   },
   "en:Reference:51be433d3a": {
    "page": "Reference",
@@ -5138,6 +5292,34 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "session missing or outside your scope"
+  },
+  "pt:Reference-spec:5b29c71042": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "Chave de projeto (payment_sessions:read) ou credencial de merchant"
+  },
+  "en:Reference-spec:3af61009d2": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "Project key (payment_sessions:read) or merchant credential"
+  },
+  "pt:Reference-spec:83782e7fd8": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem payment_sessions:read, ou projeto sem configuração financeira concluída"
+  },
+  "en:Reference-spec:3dbee0b634": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without payment_sessions:read, or project without completed financial setup"
   },
   "pt:Reference-spec:24286c4694": {
    "page": "Reference-spec",
@@ -6034,6 +6216,34 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "temporary failure — retry with the same idempotency_key"
+  },
+  "pt:Reference-spec:258fff82c4": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "Chave de projeto (payment_links:read) ou credencial de merchant"
+  },
+  "en:Reference-spec:a5e4adc4b6": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "Project key (payment_links:read) or merchant credential"
+  },
+  "pt:Reference-spec:e87fc1a85f": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "limit fora de 1–100, ou um cursor que não é um next_cursor"
+  },
+  "en:Reference-spec:60ecb5484a": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "limit outside 1–100, or a cursor that is not a next_cursor"
   },
   "pt:Reference-spec:6cb7e4ef66": {
    "page": "Reference-spec",

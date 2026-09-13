@@ -960,7 +960,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 simulada — era verdade quando foi escrita e deixou de o ser. O que continua a não existir é <strong>Produção</strong>:
                 isto é o Sandbox, e nunca há dinheiro real.
               </Callout>
-              <H3>Como funciona</H3>
+              <H3 id="como-funciona">Como funciona</H3>
               <UL>
                 <LI>O Banzami envia um <Code>POST</Code> para o seu endpoint com o corpo do evento em JSON.</LI>
                 <LI>A assinatura vai no header <GlossaryTerm id="banza-signature" code>banza-signature</GlossaryTerm>, no formato <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
@@ -1011,7 +1011,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 nessa janela <strong>não</strong> é um evento perdido: volta a ser tentada.
               </Callout>
 
-              <H3>Eventos</H3>
+              <H3 id="eventos">Eventos</H3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
                 {EVENTS.map((e) => (
                   <span key={e} style={{ fontFamily: mono, fontSize: 12.5, fontWeight: 700, color: '#9A1B22', background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 8, padding: '4px 9px' }}>{e}</span>
@@ -1026,7 +1026,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
             
               <H3 id="resolucao">Resolução de problemas</H3>
               <P>
-                Os onze problemas que aparecem a sério, e o que fazer com cada um. Em todos,
+                Os treze problemas que aparecem a sério, e o que fazer com cada um. Em todos,
                 guarde o <Code>request_id</Code> da resposta antes de fazer mais nada.
               </P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
@@ -1048,6 +1048,8 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                       ['Um pagamento fica pendente', 'O pagador ainda não concluiu.', 'Um pagamento pendente é um estado normal, não um erro. Espere pelo webhook; não confirme nada a partir de um tempo-limite.'],
                       ['O webhook não chega', 'O endpoint não é HTTPS público, ou responde lento.', 'Veja as entregas do evento na Consola: mostram o código devolvido pelo seu servidor. Um 2xx lento é tratado como falha.'],
                       ['A assinatura não bate certo', 'O corpo foi reserializado antes de verificar.', 'Verifique sobre o corpo EM BRUTO. Ler o JSON e voltar a serializá-lo muda os bytes, e a assinatura é sobre os bytes.'],
+                      ['Um reembolso é recusado', 'O montante excede o que resta, a conta que recebeu já não tem saldo, ou o pagamento não é reembolsável.', 'A mensagem e o código dizem qual (REFUND_EXCEEDS_CAPTURED, REFUND_NOT_FUNDABLE, INVALID_PAYMENT_STATUS). Nada foi devolvido: corrija e repita com uma chave de idempotência nova.'],
+                      ['O comprovativo não se verifica', '404: a referência não existe ou foi alterada. 503: a verificação está indisponível.', 'Copie a referência BZM-… sem a reescrever — não há normalização. Um 503 repete-se mais tarde e não quer dizer que o comprovativo é falso.'],
                       ['Uma liquidação não avança', 'A conta não tem saldo, ou o beneficiário não é elegível.', 'GET /v1/financial-setup mostra o que bloqueia. O bruto é lido da conta: uma conta vazia não tem nada para liquidar.'],
                     ].map((r, i) => (
                       <tr key={i}>
@@ -1353,7 +1355,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 As chaves <Code>bz_live_</Code> são <strong>recusadas fail-closed</strong> — não há emissão de chaves de Produção.
               </P>
 
-              <H3>Gestão pela Console</H3>
+              <H3 id="gestao-consola">Gestão pela Console</H3>
               <P>
                 Workspaces, projetos, membros e <strong>chaves</strong> são geridos no portal Banzami Developers — pela interface,
                 com sessão e permissões por papel. Não é uma API pública para chamar diretamente, por isso não expomos aqui os
@@ -1419,6 +1421,34 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 <LI><strong>Revogação (comportamento verificado):</strong> uma chave revogada recebe <Code>401 UNAUTHORIZED</Code> em qualquer chamada — verificado no E2E do Sandbox.</LI>
               </UL>
 
+              <H3 id="limites">Limites de pedidos</H3>
+              <P>
+                Há limites por endereço IP e por chave. Quem os excede recebe <Code>429 RATE_LIMITED</Code> com o
+                cabeçalho <Code>Retry-After</Code>, em segundos: espere esse tempo e repita com a mesma chave de
+                idempotência. Os valores dos limites não fazem parte do contrato e podem mudar; o comportamento — 429,
+                Retry-After, nada executado — faz.
+              </P>
+              <H3 id="datas">Datas e horas</H3>
+              <P>
+                Todas as datas na API são UTC, em RFC 3339 (<Code>2026-07-11T11:45:00Z</Code>). Guarde-as assim e
+                converta só para mostrar. A Consola mostra-as na hora local do seu browser, e a página pública de
+                verificação de comprovativos na hora de Luanda — a hora do acontecimento é sempre a UTC da API.
+              </P>
+              <H3 id="identificadores">Identificadores a guardar</H3>
+              <UL>
+                <LI><strong>Project ID</strong> — o seu projeto; não muda quando o nome muda.</LI>
+                <LI><strong>Os ids dos recursos</strong> que cria — <Code>session_id</Code>, o id da conta, do reembolso, do endpoint — para os consultar depois.</LI>
+                <LI><strong>O seu <Code>reference_id</Code></strong> — o Banzami guarda-o e devolve-o, nos recursos e nos eventos; é assim que liga um pagamento à sua encomenda.</LI>
+                <LI><strong>O <Code>id</Code> de cada evento</strong> — para deduplicar entregas repetidas.</LI>
+                <LI><strong>A referência <Code>BZM-…</Code> do comprovativo</strong>, quando a tiver — é ela que se verifica publicamente.</LI>
+                <LI><strong>O <Code>request_id</Code></strong> de cada resposta que correu mal — é o que o suporte pede.</LI>
+              </UL>
+              <P>
+                Um id não é autoridade. Conhecer o id de um recurso de outro projeto não dá acesso a ele — responde{' '}
+                <Code>404</Code> — e nenhum pedido seu leva o id do Business ou da carteira: esses vêm da configuração
+                financeira.
+              </P>
+
               <H3 id="referencia-recursos">Referência por recurso</H3>
               <P>
                 Referência endpoint a endpoint da superfície pública verificada no Sandbox — método, credencial, headers, corpo do
@@ -1457,7 +1487,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 reivindicado.
               </P>
               <ErrorCatalogue lang="pt" />
-              <H3>Console (acesso e chaves)</H3>
+              <H3 id="erros-consola">Console (acesso e chaves)</H3>
               <UL>
                 <LI><Code>INVALID_EMAIL</Code> / <Code>INVALID_CODE</Code> — corrija o email ou peça um novo código OTP.</LI>
                 <LI><Code>RATE_LIMITED</Code> — demasiados pedidos; aguarde antes de repetir.</LI>
@@ -1467,7 +1497,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 <LI><Code>INVITE_INVALID</Code> — convite expirado, revogado ou já usado; peça um novo.</LI>
                 <LI><Code>VALIDATION</Code> — dados inválidos; corrija os campos.</LI>
               </UL>
-              <H3>Integração</H3>
+              <H3 id="erros-integracao">Integração</H3>
               <UL>
                 <LI><Code>401 UNAUTHORIZED</Code> — a chave falta, foi revogada ou não é Sandbox. A chave <Code>bz_test_sk_</Code> vai directamente em <Code>Authorization: Bearer</Code>; não há token a trocar.</LI>
                 <LI>Após uma <strong>rotação</strong>, use a nova chave; a anterior deixa de ser aceite.</LI>
@@ -1681,7 +1711,7 @@ export function PtChangelog({ copy }: { copy: CopyFn }) {
                   <li key={i} style={{ display: 'flex', gap: 12 }}>
                     <span style={{ flex: 'none', width: 92, fontSize: 12, fontWeight: 800, color: '#a89a9e', fontFamily: mono, paddingTop: 2 }}>{when}</span>
                     <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: '#9A1B22', fontFamily: mono, paddingTop: 3 }}>[{cat}]</span>
-                    <span style={{ fontSize: 14, lineHeight: 1.55, color: '#5a4a4e', fontWeight: 500 }}>{what}</span>
+                    <span style={{ fontSize: 14, lineHeight: 1.55, color: '#5a4a4e', fontWeight: 500, minWidth: 0, overflowWrap: 'anywhere' }}>{what}</span>
                   </li>
                 ))}
               </ul>

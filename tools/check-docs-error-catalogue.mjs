@@ -126,7 +126,7 @@ function mentions(file) {
   const out = [];
   // The Console list documents the Console's own backend, not the Developer API.
   const consoleRanges = [];
-  for (const m of src.matchAll(/<H3>Console \((?:acesso e chaves|access and keys)\)<\/H3>/g)) {
+  for (const m of src.matchAll(/<H3(?: id="[^"]*")?>Console \((?:acesso e chaves|access and keys)\)<\/H3>/g)) {
     const end = src.indexOf('<H3', m.index + 5);
     consoleRanges.push([m.index, end < 0 ? src.length : end]);
   }

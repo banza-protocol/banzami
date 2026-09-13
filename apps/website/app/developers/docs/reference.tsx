@@ -175,8 +175,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-sessions/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Consulta uma sessão (o mesmo corpo da criação, com o estado atual). GET /v1/payment-sessions lista as sessões do projeto/merchant, com filtro opcional ?status=.',
-      en: 'Fetches one session (same body as creation, with the current status). GET /v1/payment-sessions lists the project/merchant sessions, with an optional ?status= filter.',
+      pt: 'Consulta uma sessão (o mesmo corpo da criação, com o estado atual).',
+      en: 'Fetches one session (same body as creation, with the current status).',
     },
     credential: {
       pt: 'Como na criação',
@@ -187,6 +187,37 @@ export const ENDPOINTS: EndpointSpec[] = [
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     errors: [
       { code: '404 NOT_FOUND', note: { pt: 'sessão inexistente ou fora do seu âmbito', en: 'session missing or outside your scope' } },
+      { code: '401 UNAUTHORIZED', note: { pt: 'credencial inválida', en: 'invalid credential' } },
+    ],
+  },
+  {
+    id: 'ref-ps-list',
+    method: 'GET',
+    path: '/v1/payment-sessions',
+    tone: 'ok',
+    desc: {
+      pt: 'Lista as sessões do projeto, da mais recente para a mais antiga. ?status= filtra por estado (por exemplo ACTIVE ou PAID); ?limit= de 1 a 200 (por omissão 50) — um valor fora desse intervalo é substituído pelo predefinido. Sem cursor: devolve as sessões mais recentes até ao limite.',
+      en: 'Lists the project’s sessions, newest first. ?status= filters by status (ACTIVE or PAID, for example); ?limit= from 1 to 200 (default 50) — a value outside that range is replaced by the default. No cursor: it returns the most recent sessions up to the limit.',
+    },
+    credential: { pt: 'Chave de projeto (payment_sessions:read) ou credencial de merchant', en: 'Project key (payment_sessions:read) or merchant credential' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    curl: `curl "https://sandbox-api.banzami.com/v1/payment-sessions?status=PAID&limit=20" \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "data": [
+    {
+      "session_id": "psess_exemplo",
+      "status": "PAID",
+      "amount_minor": 25000,
+      "currency": "AOA",
+      "reference_type": "PEDIDO",
+      "reference_id": "pedido_123",
+      "created_at": "2026-07-11T11:45:00Z"
+    }
+  ]
+}`,
+    errors: [
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_sessions:read, ou projeto sem configuração financeira concluída', en: 'key without payment_sessions:read, or project without completed financial setup' } },
       { code: '401 UNAUTHORIZED', note: { pt: 'credencial inválida', en: 'invalid credential' } },
     ],
   },
@@ -584,6 +615,36 @@ export const ENDPOINTS: EndpointSpec[] = [
       pt: 'Repetir a mesma idempotency_key para a mesma origem e o mesmo beneficiário devolve (200) a liquidação já feita, sem liquidar duas vezes.',
       en: 'Replaying the same idempotency_key for the same source and beneficiary returns (200) the settlement already made, without settling twice.',
     },
+  },
+  {
+    id: 'ref-pl-list',
+    method: 'GET',
+    path: '/v1/payment-links',
+    tone: 'ok',
+    desc: {
+      pt: 'Lista os links do projeto, do mais recente para o mais antigo, uma página de cada vez. ?limit= de 1 a 100 (por omissão 20). Quando há mais, a resposta traz next_cursor: envie-o tal como veio em ?cursor= para a página seguinte. Sem next_cursor, é a última página.',
+      en: 'Lists the project’s links, newest first, one page at a time. ?limit= from 1 to 100 (default 20). When there are more, the response carries next_cursor: send it back unchanged as ?cursor= for the next page. No next_cursor means the last page.',
+    },
+    credential: { pt: 'Chave de projeto (payment_links:read) ou credencial de merchant', en: 'Project key (payment_links:read) or merchant credential' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    curl: `curl "https://sandbox-api.banzami.com/v1/payment-links?limit=20" \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "data": [
+    {
+      "slug": "slug_exemplo",
+      "amount_minor": 25000,
+      "currency": "AOA",
+      "description": "Pedido #123",
+      "status": "ACTIVE"
+    }
+  ],
+  "next_cursor": "6f1c2d3e-0000-4000-8000-000000000000"
+}`,
+    errors: [
+      { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1–100, ou um cursor que não é um next_cursor', en: 'limit outside 1–100, or a cursor that is not a next_cursor' } },
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:read, ou projeto sem configuração financeira concluída', en: 'key without payment_links:read, or project without completed financial setup' } },
+    ],
   },
   {
     id: 'ref-pl-get',

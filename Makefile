@@ -390,6 +390,8 @@ check-docs-prod: check-docs-drift check-docs-claims
 	node tools/check-docs-prod-001-spec.mjs
 	node tools/check-docs-coverage.mjs
 	node tools/check-docs-claims-ledger.mjs
+	node tools/docs/build-search-index.mjs --check
+	npx --yes @apidevtools/swagger-cli@4.0.4 validate docs/developer/openapi/banzami-sandbox.openapi.json
 	node tools/e2e/docs/doa-tutorial-e2e.selftest.mjs
 	node tools/e2e/docs/quickstart-e2e.selftest.mjs
 	node tools/check-docs-error-catalogue.mjs

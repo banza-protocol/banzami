@@ -207,18 +207,29 @@ try {
     }
   }
 
-  // Parity: an example that exists in one language and not the other is a
-  // defect the endpoint check cannot see.
-  const ids = (l) => new Set(report.filter((r) => r.lang === l).map((r) => r.id.replace(/CodeBlock ".*"/, 'CodeBlock')));
+  // Parity: the same example must call the same SDK methods in both languages.
+  // The English webhook-management sample stopped before the rotation the
+  // Portuguese one showed; nothing compared them, because both compiled.
+  const methodsOf = (code) => [...new Set(code.match(/\b(?:banzami|c|client)\.(?:webhooks\.)?(\w+)\(/g) ?? [])].map((m) => m.replace(/^.*\.(\w+)\($/, '$1')).sort().join(',');
+  const ptSamples = files.filter((f) => f.lang === 'PT');
+  const enSamples = files.filter((f) => f.lang === 'EN');
+  let parityDrift = 0;
+  ptSamples.forEach((p, i) => {
+    const e = enSamples.find((x) => x.id === p.id) ?? (p.id.startsWith('CodeBlock') ? enSamples.filter((x) => x.id.startsWith('CodeBlock'))[ptSamples.filter((x) => x.id.startsWith('CodeBlock')).indexOf(p)] : null);
+    if (!e) { parityDrift += 1; console.error(`  ✗ PT ${p.id} has no English counterpart`); return; }
+    if (methodsOf(p.code) !== methodsOf(e.code)) { parityDrift += 1; console.error(`  ✗ ${p.id}: PT calls [${methodsOf(p.code)}], EN calls [${methodsOf(e.code)}]`); }
+    void i;
+  });
+  if (parityDrift) failures += parityDrift;
   const ptN = report.filter((r) => r.lang === 'PT').length;
   const enN = report.filter((r) => r.lang === 'EN').length;
+  console.log(`DOC_CODE_EXAMPLES_PT_EN_DRIFT=${parityDrift}`);
 
   console.log(`\nDOC_CODE_EXAMPLES_TS_TOTAL=${samples.length}`);
   console.log(`DOC_CODE_EXAMPLES_TS_FAILING=${failures}`);
   console.log(`DOC_CODE_EXAMPLES_PT=${ptN} DOC_CODE_EXAMPLES_EN=${enN} DOC_CODE_EXAMPLES_LANDING=${report.filter((r) => r.lang === 'LANDING').length}`);
   console.log(`DOC_CODE_EXAMPLES_SDK_VERSION=${sdkVersion}`);
   console.log(`DOC_CODE_EXAMPLES_TESTED=${failures === 0 && samples.length > 0 ? 'PASS' : 'FAIL'}`);
-  void ids;
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

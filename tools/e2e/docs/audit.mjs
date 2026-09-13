@@ -158,7 +158,7 @@ console.log('\n── API reference vs OpenAPI ──');
 const spec = JSON.parse(readFileSync(join(ROOT, 'docs/developer/openapi/banzami-sandbox.openapi.json'), 'utf8'));
 const specPaths = new Set(Object.keys(spec.paths));
 const refText = (await page('/docs/reference')).text;
-const documented = new Set((refText.match(/\/v1\/[a-z0-9/_{}-]+/g) ?? [])
+const documented = new Set((refText.match(/\/v1\/[A-Za-z0-9/_{}-]+/g) ?? [])
   .map((p) => p.replace(/[.,;:)]+$/, ''))
   .filter((p) => !/\{[^}]*\{/.test(p)));
 
@@ -227,7 +227,7 @@ for (const p of PAGES) {
   // is prose: psess_exemplo and psess_example are the same route, and comparing
   // the raw strings reported a translated placeholder as a contract gap. Each
   // path is reduced to the spec template it matches before comparing.
-  const eps = (t) => new Set((t.match(/\/v1\/[a-z0-9/_{}-]+/g) ?? [])
+  const eps = (t) => new Set((t.match(/\/v1\/[A-Za-z0-9/_{}-]+/g) ?? [])
     .map((x) => x.replace(/[.,;:)]+$/, ''))
     .map((x) => (specPaths.has(x) ? x : ([...specPaths].find((sp) =>
       new RegExp(`^${sp.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{[^}]+\}/g, '[^/]+')}$`).test(x)) ?? x))));

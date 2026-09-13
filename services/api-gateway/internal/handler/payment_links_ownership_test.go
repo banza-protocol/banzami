@@ -309,3 +309,25 @@ func TestPaymentLink_NoPrincipalIsRefused(t *testing.T) {
 		t.Fatalf("no principal listed links: %d", w.Code)
 	}
 }
+
+// A malformed page request is the caller's to fix, and says so. An unparsable
+// cursor used to travel to core and come back as a 500; a limit had no ceiling.
+func TestPaymentLink_ListValidatesLimitAndCursor(t *testing.T) {
+	spy := ownedLinkSpy()
+	h := handler.NewPaymentLinkHandler(spy, nil, nil)
+	for _, q := range []string{"limit=0", "limit=101", "limit=abc", "cursor=not-a-link-id"} {
+		w := httptest.NewRecorder()
+		h.List(w, withMerchant(httptest.NewRequest(http.MethodGet, "/v1/payment-links?"+q, nil), ownerID))
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "INVALID_PARAM") {
+			t.Errorf("%s: want 400 INVALID_PARAM, got %d %s", q, w.Code, w.Body.String())
+		}
+	}
+	if len(spy.listedFor) != 0 {
+		t.Fatalf("the service was queried for a malformed page: %v", spy.listedFor)
+	}
+	w := httptest.NewRecorder()
+	h.List(w, withMerchant(httptest.NewRequest(http.MethodGet, "/v1/payment-links?limit=100&cursor="+linkID, nil), ownerID))
+	if w.Code != http.StatusOK {
+		t.Fatalf("a well-formed page must list, got %d %s", w.Code, w.Body.String())
+	}
+}

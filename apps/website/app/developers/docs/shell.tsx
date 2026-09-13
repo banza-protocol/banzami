@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BrandTile } from '@/components/developers/portal/icons';
 import { INK, RED, backLinkStyle } from './ui';
+import { DocsSearch, OnThisPage } from './DocsSearch';
 
 export type CopyFn = (text: string, label: string) => void;
 
@@ -136,6 +137,7 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
       <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '10px 26px 72px' }}>
         <div className="bz-docsgrid" style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: 26, alignItems: 'start' }}>
           <aside className="bz-docsnav">
+            <DocsSearch lang={lang} />
             <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', color: '#a89a9e' }}>
               {lang === 'pt' ? 'DOCUMENTAÇÃO' : 'DOCUMENTATION'}
             </p>
@@ -158,6 +160,7 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
           </aside>
 
           <article style={{ minWidth: 0 }}>
+            {active ? <OnThisPage lang={lang} /> : null}
             {children(copy)}
 
             {/* Chapter navigation — prev/next, reusing the doccard visual style */}

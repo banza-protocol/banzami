@@ -317,16 +317,36 @@
         ],
         "operationId": "listPaymentSessions",
         "summary": "List payment sessions",
-        "description": "Lists the project/merchant payment sessions, optionally filtered by status.",
+        "description": "Lists the project's payment sessions, newest first, optionally filtered by status. There is no cursor: the response is the most recent sessions up to limit. A limit outside 1–200 is replaced by the default.",
         "parameters": [
           {
             "name": "status",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "CREATED",
+                "ACTIVE",
+                "PAID",
+                "PARTIALLY_PAID",
+                "EXPIRED",
+                "CANCELLED",
+                "FAILED"
+              ]
             },
-            "description": "Optional status filter (e.g. ACTIVE)"
+            "description": "Only sessions in this status."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
           }
         ],
         "responses": {
@@ -581,10 +601,33 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PaymentLink"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PaymentLink"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Present when another page may follow."
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "limit outside 1–100, or a cursor that is not a previous next_cursor (INVALID_PARAM)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -592,7 +635,31 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           }
-        }
+        },
+        "description": "Lists the project's payment links, newest first, a page at a time. Pass next_cursor back as cursor for the next page; its absence means the last page.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The next_cursor of the previous page, unchanged."
+          }
+        ]
       }
     },
     "/v1/wallet-accounts": {
@@ -1160,6 +1227,16 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "Idempotent replay: the settlement this idempotency_key already produced for the same source and beneficiary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationSettlement"
+                }
+              }
+            }
+          },
           "201": {
             "description": "Settlement executed (ledger posted). The response carries amounts and status only — never ledger account ids.",
             "content": {
@@ -1184,16 +1261,6 @@
                   "created_at": "2026-07-11T11:45:00Z",
                   "completed_at": "2026-07-11T11:45:01Z",
                   "failure_reason": null
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Idempotent replay: the settlement this idempotency_key already produced for the same source and beneficiary",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationSettlement"
                 }
               }
             }
@@ -3551,7 +3618,9 @@
         "properties": {
           "exists": {
             "type": "boolean",
-            "const": true
+            "enum": [
+              true
+            ]
           },
           "status": {
             "type": "string",
@@ -3654,7 +3723,9 @@
         "properties": {
           "exists": {
             "type": "boolean",
-            "const": false
+            "enum": [
+              false
+            ]
           },
           "status": {
             "type": "string",

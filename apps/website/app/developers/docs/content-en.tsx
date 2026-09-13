@@ -12,7 +12,7 @@ import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram, Jo
 import { CapabilityCards } from './CapabilityCards';
 import type { CopyFn } from './content-pt';
 
-// English concepts (translations of the canonical PT glossary — same 19 terms).
+// English concepts (translations of the canonical PT glossary — same 28 terms).
 const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
   { term: 'Sandbox', def: 'Test environment for validating Banzami integrations without moving real money.' },
   { term: 'Production', def: 'Environment for real-money operations, once the platform is enabled. Currently in preparation.' },
@@ -33,6 +33,15 @@ const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
   { term: 'QR', def: 'Visual code that opens a Banzami payment journey or identifies an operation quickly.' },
   { term: 'Payment session', def: 'Representation of a payment attempt tied to a reference from your application.' },
   { term: 'Receipt', def: 'Record issued after a confirmed operation, with the data needed for lookup and verification.' },
+  { term: 'Workspace', def: 'The group of people with access to a set of projects, with roles (Owner, Admin, Developer, Finance, Viewer).' },
+  { term: 'Project', def: 'One integrated application: its keys, webhooks and logs. The Project ID does not change when its name does.' },
+  { term: 'Financial setup', def: 'The link between a project and the Business that receives its money. Without it, the project cannot be paid.' },
+  { term: 'Business', def: 'The legal entity, verified by Banzami, that owns the money a project receives.' },
+  { term: 'Wallet account', def: 'An account inside a Business wallet, to keep value apart — one per campaign, for example.' },
+  { term: 'Payment link', def: 'An address on pay.banzami.com where the payer pays; with a fixed or an open amount.' },
+  { term: 'Refund', def: 'Returning a confirmed payment, fully or partially, from the account that received it.' },
+  { term: 'Transaction', def: 'A movement of value recorded in the ledger — a payment, a refund or a transfer.' },
+  { term: 'Minor units', def: 'How amounts travel in the API: integers, where 100 minor units are 1 Kz. Never decimals.' },
 ];
 
 // -- Code samples (placeholders only, Sandbox-only) ------------------------------
@@ -141,7 +150,11 @@ storeSecret(ep.secret);   // returned ONCE — no later read brings it back
 // See what happened
 const { data: endpoints } = await banzami.listWebhookEndpoints();
 const { data: events }    = await banzami.listWebhookEvents(20);
-const { data: deliveries } = await banzami.listWebhookDeliveries(events[0].id);`;
+const { data: deliveries } = await banzami.listWebhookDeliveries(events[0].id);
+
+// Rotate the secret. Update the receiver FIRST: the swap is immediate, not overlapping.
+const rotated = await banzami.rotateWebhookEndpointSecret(ep.id);
+storeSecret(rotated.secret);`;
 
 const SAMPLE_CURL_ME = `# Verify your test key (placeholder) against the Sandbox API
 curl https://sandbox-api.banzami.com/v1/me \\
@@ -950,7 +963,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 external sink remained simulated — true when written, and no longer. What still does not exist is{' '}
                 <strong>Production</strong>: this is the Sandbox, and no real money ever moves.
               </Callout>
-              <H3>How it works</H3>
+              <H3 id="how-it-works">How it works</H3>
               <UL>
                 <LI>Banzami sends a <Code>POST</Code> to your endpoint with the event body as JSON.</LI>
                 <LI>The signature travels in the <Code>banza-signature</Code> header, formatted <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
@@ -1001,7 +1014,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 that window is <strong>not</strong> a lost event: it is tried again.
               </Callout>
 
-              <H3>Events</H3>
+              <H3 id="events">Events</H3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
                 {EVENTS.map((e) => (
                   <span key={e} style={{ fontFamily: mono, fontSize: 12.5, fontWeight: 700, color: '#9A1B22', background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 8, padding: '4px 9px' }}>{e}</span>
@@ -1016,7 +1029,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
             
               <H3 id="troubleshooting">Troubleshooting</H3>
               <P>
-                The eleven problems that actually come up, and what to do about each. In every
+                The thirteen problems that actually come up, and what to do about each. In every
                 case, keep the <Code>request_id</Code> from the response before doing anything else.
               </P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
@@ -1038,6 +1051,8 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                       ['A payment stays pending', 'The payer has not finished.', 'A pending payment is a normal state, not an error. Wait for the webhook; never confirm anything from a timeout.'],
                       ['The webhook never arrives', 'The endpoint is not public HTTPS, or it answers slowly.', 'Open the event’s deliveries in the Console: they show the code your server returned. A slow 2xx is treated as a failure.'],
                       ['The signature does not match', 'The body was re-serialised before verifying.', 'Verify over the RAW body. Parsing the JSON and serialising it again changes the bytes, and the signature is over the bytes.'],
+                      ['A refund is refused', 'The amount exceeds what is left, the receiving account no longer has the balance, or the payment is not refundable.', 'The message and the code say which (REFUND_EXCEEDS_CAPTURED, REFUND_NOT_FUNDABLE, INVALID_PAYMENT_STATUS). Nothing was returned: fix it and retry with a new idempotency key.'],
+                      ['The receipt does not verify', '404: the reference does not exist or was altered. 503: verification is unavailable.', 'Copy the BZM-… reference without retyping it — there is no normalisation. A 503 is retried later and does not mean the receipt is forged.'],
                       ['A settlement does not proceed', 'The account has no balance, or the beneficiary is not eligible.', 'GET /v1/financial-setup shows what is blocking. Gross is read from the account: an empty account has nothing to settle.'],
                     ].map((r, i) => (
                       <tr key={i}>
@@ -1344,7 +1359,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                 <Code>bz_live_</Code> keys are <strong>rejected fail-closed</strong> — there is no Production key issuance.
               </P>
 
-              <H3>Managed in the Console</H3>
+              <H3 id="console-management">Managed in the Console</H3>
               <P>
                 Workspaces, projects, members and <strong>keys</strong> are managed in the Banzami Developers portal — through the
                 interface, with a session and role-based permissions. It is not a public API to call directly, so its internal
@@ -1410,6 +1425,33 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                 <LI><strong>Revocation (verified behaviour):</strong> a revoked key receives <Code>401 UNAUTHORIZED</Code> on any call — verified in the Sandbox E2E.</LI>
               </UL>
 
+              <H3 id="rate-limits">Rate limits</H3>
+              <P>
+                There are limits per IP address and per key. Exceeding them returns <Code>429 RATE_LIMITED</Code> with a{' '}
+                <Code>Retry-After</Code> header, in seconds: wait that long and retry with the same idempotency key. The
+                limit values are not part of the contract and may change; the behaviour — 429, Retry-After, nothing
+                executed — is.
+              </P>
+              <H3 id="time">Dates and times</H3>
+              <P>
+                Every date in the API is UTC, in RFC 3339 (<Code>2026-07-11T11:45:00Z</Code>). Store them that way and
+                convert only for display. The Console shows them in your browser&rsquo;s local time, and the public receipt
+                verification page in Luanda time — the time of the event is always the API&rsquo;s UTC.
+              </P>
+              <H3 id="identifiers">Identifiers to keep</H3>
+              <UL>
+                <LI><strong>Project ID</strong> — your project; it does not change when the name does.</LI>
+                <LI><strong>The ids of the resources</strong> you create — <Code>session_id</Code>, the account, refund and endpoint ids — to read them later.</LI>
+                <LI><strong>Your own <Code>reference_id</Code></strong> — Banzami stores it and returns it, on resources and events; it is how a payment is tied to your order.</LI>
+                <LI><strong>Each event&rsquo;s <Code>id</Code></strong> — to deduplicate repeated deliveries.</LI>
+                <LI><strong>The receipt&rsquo;s <Code>BZM-…</Code> reference</strong>, when you have it — it is what verifies publicly.</LI>
+                <LI><strong>The <Code>request_id</Code></strong> of every response that went wrong — it is what support asks for.</LI>
+              </UL>
+              <P>
+                An id is not authority. Knowing the id of another project&rsquo;s resource gives no access to it — it answers{' '}
+                <Code>404</Code> — and no request of yours carries the Business or wallet id: those come from financial setup.
+              </P>
+
               <H3 id="resource-reference">Resource reference</H3>
               <P>
                 Endpoint-by-endpoint reference of the public surface verified in the Sandbox — method, credential, headers,
@@ -1447,7 +1489,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                 It describes the <strong>Sandbox</strong>; Financial LIVE behaviour is not claimed.
               </P>
               <ErrorCatalogue lang="en" />
-              <H3>Console (access and keys)</H3>
+              <H3 id="console-errors">Console (access and keys)</H3>
               <UL>
                 <LI><Code>INVALID_EMAIL</Code> / <Code>INVALID_CODE</Code> — fix the email, or ask for a new one-time code.</LI>
                 <LI><Code>RATE_LIMITED</Code> — too many requests; wait before retrying.</LI>
@@ -1457,7 +1499,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                 <LI><Code>INVITE_INVALID</Code> — the invitation expired, was revoked or was already used; ask for a new one.</LI>
                 <LI><Code>VALIDATION</Code> — invalid data; fix the fields.</LI>
               </UL>
-              <H3>Integration</H3>
+              <H3 id="integration-errors">Integration</H3>
               <UL>
                 <LI><Code>401 UNAUTHORIZED</Code> — the key is missing, revoked, or not a Sandbox key. The <Code>bz_test_sk_</Code> key goes straight into <Code>Authorization: Bearer</Code>; there is no token to exchange.</LI>
                 <LI>After a <strong>rotation</strong>, use the new key; the previous one stops being accepted.</LI>
@@ -1672,7 +1714,7 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
                   <li key={i} style={{ display: 'flex', gap: 12 }}>
                     <span style={{ flex: 'none', width: 92, fontSize: 12, fontWeight: 800, color: '#a89a9e', fontFamily: mono, paddingTop: 2 }}>{when}</span>
                     <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: '#9A1B22', fontFamily: mono, paddingTop: 3 }}>[{cat}]</span>
-                    <span style={{ fontSize: 14, lineHeight: 1.55, color: '#5a4a4e', fontWeight: 500 }}>{what}</span>
+                    <span style={{ fontSize: 14, lineHeight: 1.55, color: '#5a4a4e', fontWeight: 500, minWidth: 0, overflowWrap: 'anywhere' }}>{what}</span>
                   </li>
                 ))}
               </ul>

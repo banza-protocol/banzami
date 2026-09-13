@@ -39,6 +39,22 @@ undocumented.length
   ? fail(`OPENAPI_ENDPOINTS_UNDOCUMENTED = ${undocumented.length}`, undocumented.join('\n      '))
   : pass(`every one of the ${specPaths.length} published paths appears in the resource reference`);
 
+// The same, per OPERATION. A path check alone let GET /v1/payment-links go
+// undocumented for as long as POST /v1/payment-links was documented: the path
+// string was on the page, the operation a developer would call was not. An
+// operation may instead be named in the reference's "not callable with a project
+// key" list, as "METHOD /path", with the reason beside it.
+const refOps = new Set([...REF.matchAll(/method: '(GET|POST|DELETE|PATCH|PUT)',\s*path: '([^']+)'/g)].map((m) => `${m[1]} ${m[2]}`));
+const disclaimedOps = new Set([...REF.matchAll(/\{ path: '((?:GET|POST|DELETE)(?:\/(?:GET|POST|DELETE))? [^']+)', status:/g)]
+  .flatMap((m) => { const [methods, path] = m[1].split(' '); return methods.split('/').map((x) => `${x} ${path}`); }));
+const undocumentedOps = Object.entries(spec.paths).flatMap(([path, ops]) => Object.keys(ops)
+  .filter((k) => ['get', 'post', 'delete', 'patch', 'put'].includes(k))
+  .map((k) => `${k.toUpperCase()} ${path}`))
+  .filter((op) => !refOps.has(op) && !disclaimedOps.has(op));
+undocumentedOps.length
+  ? fail(`OPENAPI_OPERATIONS_UNDOCUMENTED = ${undocumentedOps.length}`, undocumentedOps.join('\n      '))
+  : pass(`every published operation has its own reference entry, or is named as not callable with a project key (${refOps.size} documented)`);
+
 // Every path the reference documents must be published. A path may also be named
 // in order to say it is NOT part of the contract; that has to be said next to it.
 const referenced = [...new Set((REF.match(/\/v1\/[A-Za-z0-9/_{}-]+/g) ?? []).map((p) => p.replace(/[.,;:)]+$/, '')))];

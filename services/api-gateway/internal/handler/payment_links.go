@@ -245,16 +245,30 @@ func (h *PaymentLinkHandler) List(w http.ResponseWriter, r *http.Request) {
 			"payment links can only be listed for your own merchant")
 		return
 	}
+	// Both are checked here, where the caller can be told what is wrong. An
+	// unparsable cursor used to reach core, come back as a 400 and leave this
+	// handler as a 500 — a caller's typo reported as the server's failure — and
+	// a limit had no upper bound at all.
 	limit := int64(20)
 	if l := r.URL.Query().Get("limit"); l != "" {
-		if v, err := strconv.ParseInt(l, 10, 64); err == nil && v > 0 {
-			limit = v
+		v, err := strconv.ParseInt(l, 10, 64)
+		if err != nil || v < 1 || v > 100 {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "limit must be between 1 and 100")
+			return
+		}
+		limit = v
+	}
+	cursor := r.URL.Query().Get("cursor")
+	if cursor != "" {
+		if _, err := uuid.Parse(cursor); err != nil {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "cursor must be the next_cursor of a previous page")
+			return
 		}
 	}
 	page, err := h.svc.List(r.Context(), service.ListPaymentLinksRequest{
 		MerchantID: merchantID,
 		Limit:      limit,
-		Cursor:     r.URL.Query().Get("cursor"),
+		Cursor:     cursor,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not list payment links")
