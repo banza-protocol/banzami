@@ -41,6 +41,14 @@ It is a **strategic positioning and communication reference — target positioni
 financial infrastructure — the ledger, wallets, pricing, settlement, compliance,
 proofs and webhooks — that applications consume through APIs and SDKs.
 
+> **Integrating with Banzami?** The public developer documentation at
+> [developers.banzami.com/docs](https://developers.banzami.com/docs) is the
+> canonical contract — quickstart, `@banzami/sdk`, API reference v1, error
+> catalogue, webhooks and the DOA reference implementation. This repository is
+> the operator's source; where the two seem to differ, the public docs and the
+> OpenAPI document are the integration truth, and the gates in `make check-docs-prod`
+> keep them tied to this source.
+
 What Banzami **is not**:
 
 - ❌ a payments application

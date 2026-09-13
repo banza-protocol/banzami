@@ -438,8 +438,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
               <P>
                 Dois SDKs estão publicados em registos públicos e instalam-se sem contacto comercial:{' '}
                 <Code>npm install @banzami/sdk</Code> (servidor) e <Code>dart pub add banzami_client</Code> (cliente).
-                Os pacotes Python e PHP ainda não foram publicados e consomem-se por código-fonte; para esses, e só
-                para esses, o acesso continua em pré-visualização controlada até publicação oficial.
+                Os pacotes Python e PHP ainda não foram publicados e consomem-se por código-fonte.
               </P>
 
               <H3 id="sdk-matriz">Matriz de maturidade dos SDKs</H3>
@@ -484,7 +483,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 recomendado. Instalam-se a partir do registo público, sem convite e sem contacto comercial.
               </P>
               <P>
-                Os pacotes Python e PHP ainda não foram publicados e permanecem em pré-visualização controlada: esta
+                Os pacotes Python e PHP ainda não foram publicados: esta
                 documentação não apresenta comandos de instalação para eles, porque um comando que aponta para um pacote
                 que nenhum registo tem devolve um erro que parece culpa de quem integra.
               </P>

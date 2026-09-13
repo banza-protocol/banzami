@@ -358,7 +358,7 @@
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
    "text": "A API HTTP e o OpenAPI existem como camada de referência técnica do protocolo. O uso HTTP direto é secundário e deve ser reservado para diagnóstico, auditoria, "
   },
-  "pt:Sdk:6b463f0f81": {
+  "pt:Sdk:bc4ce87107": {
    "page": "Sdk",
    "kind": "P",
    "class": "GATE",
@@ -386,12 +386,12 @@
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
    "text": "O @banzami/sdk (npm) e o banzami_client (pub.dev) estão publicados e são o caminho recomendado. Instalam-se a partir do registo público, sem convite e sem conta"
   },
-  "pt:Sdk:c797d0139a": {
+  "pt:Sdk:7dfb7cde6e": {
    "page": "Sdk",
    "kind": "P",
    "class": "SOURCE",
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
-   "text": "Os pacotes Python e PHP ainda não foram publicados e permanecem em pré-visualização controlada: esta documentação não apresenta comandos de instalação para eles"
+   "text": "Os pacotes Python e PHP ainda não foram publicados: esta documentação não apresenta comandos de instalação para eles, porque um comando que aponta para um pacot"
   },
   "pt:Sdk:ebefca7ed9": {
    "page": "Sdk",
