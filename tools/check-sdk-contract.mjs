@@ -133,10 +133,14 @@ if (existsSync(gwServer)) {
 
 // 2c. Docs↔distribution: while the SDK is not released, docs must NOT present an
 //     external `npm install @banzami/sdk` as available.
-const docs = join(ROOT, 'apps/website/app/developers/docs/page.tsx');
-if (existsSync(docs) && sdkCap) {
-  const d = readFileSync(docs, 'utf-8');
-  const claimsInstall = /npm install @banzami\/sdk/.test(d);
+//     The pages a reader sees are rendered from content-pt.tsx and
+//     content-en.tsx (page.tsx is now a thin shell around the home page), so the
+//     install claim is judged there, and in BOTH languages.
+const docFiles = ['content-pt.tsx', 'content-en.tsx'].map((f) => join(ROOT, 'apps/website/app/developers/docs', f));
+if (docFiles.every((f) => existsSync(f)) && sdkCap) {
+  const texts = docFiles.map((f) => readFileSync(f, 'utf-8'));
+  const d = texts.join('\n');
+  const claimsInstall = texts.every((t) => /npm install @banzami\/sdk/.test(t));
   if (sdkCap.disposition === 'released') {
     // Symmetry matters: understating a shipped capability is as much a false
     // claim as overstating an unshipped one. Once the package is installable,
@@ -147,7 +151,7 @@ if (existsSync(docs) && sdkCap) {
       fail('docs still describe the TypeScript SDK as unpublished');
     }
   } else {
-    if (claimsInstall) fail('docs present `npm install @banzami/sdk` as available while SDK is not released');
+    if (texts.some((t) => /npm install @banzami\/sdk/.test(t))) fail('docs present `npm install @banzami/sdk` as available while SDK is not released');
     else pass('docs do not present external npm install as available (SDK not released)');
   }
 }
