@@ -711,21 +711,21 @@ export interface RefundSource {
 
 export interface CreatePaymentSessionParams {
   /**
-   * The segregated wallet account the session credits (e.g. a CAMPAIGN account).
+   * The wallet account the session credits.
    *
-   * Which credential you hold decides whether you send this at all:
+   * Which credential you hold decides what it means:
    *
    * - **Developer Platform key** (`bz_test_sk_…`, issued by the Developer
-   *   Console) — OMIT it. The payee is derived server-side from the project's
-   *   Banzami binding, and the API rejects a client-supplied payee outright.
-   *   A client that could name its own payee could name someone else's.
-   * - **Merchant credential** — supply it. The server requires it on that route
-   *   and independently re-validates that the account is owned by the merchant.
+   *   Console) — optional. Omitted, the session credits the project's default
+   *   account. Given, it must be one of the project's own accounts (a campaign
+   *   account, say); another owner's account answers 404. It selects an account
+   *   within the owner the project's Financial Setup fixes — it never names the
+   *   owner, and a request that does (merchant_id, wallet_id, payee) is refused
+   *   with 400 PAYEE_NOT_ALLOWED.
+   * - **Merchant credential** — required on that route; the server re-validates
+   *   that the account belongs to the merchant.
    *
-   * Optional in the type because the developer path — the documented one — must
-   * not send it. That does not make it optional on the merchant route: the
-   * server still requires it there, and this SDK never infers or substitutes a
-   * value.
+   * This SDK never infers or substitutes a value.
    */
   walletAccountId?: string;
   purpose?: string;
