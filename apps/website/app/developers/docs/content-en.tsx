@@ -37,7 +37,9 @@ const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
 const SAMPLE_SESSION = `import { BanzamiClient } from '@banzami/sdk';
 
 // The bz_test_sk_ secret key lives on the server and nowhere else.
-const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
+const apiKey = process.env.BANZAMI_API_KEY;
+if (!apiKey) throw new Error('BANZAMI_API_KEY is not set');
+const banzami = new BanzamiClient({ apiKey });
 
 // 0. The project must be financially ready — otherwise: 403 PAYMENTS_UNAVAILABLE.
 const setup = await banzami.getFinancialSetup();
@@ -101,11 +103,19 @@ curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
 }`;
 
 const SAMPLE_WEBHOOK = `import { BanzamiClient } from '@banzami/sdk';
-const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
 
-// In your webhook endpoint (server)
-const sig = req.headers['banza-signature'];          // signature header
-const event = banzami.webhooks.constructEvent(rawBody, sig);
+// The endpoint's secret comes with the client — without it, constructEvent refuses.
+const apiKey = process.env.BANZAMI_API_KEY;
+const webhookSecret = process.env.BANZAMI_WEBHOOK_SECRET;
+if (!apiKey || !webhookSecret) throw new Error('API key or webhook secret is not set');
+const banzami = new BanzamiClient({ apiKey, webhookSecret });
+
+// In your webhook endpoint (server): the RAW body, and the header.
+const raw = await req.text();
+const sig = req.headers.get('banza-signature') ?? '';
+// constructEvent verifies the signature and ONLY THEN returns the event.
+// If the signature does not match, it throws — and nothing was read.
+const event = banzami.webhooks.constructEvent(raw, sig);
 
 switch (event.type) {
   case 'payment_session.paid':             /* confirm the order (idempotently) */ break;
@@ -115,7 +125,9 @@ switch (event.type) {
 // Answer 2xx quickly; delivery is at-least-once, with no ordering guarantee.`;
 
 const SAMPLE_WEBHOOK_MANAGE = `import { BanzamiClient } from '@banzami/sdk';
-const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
+const apiKey = process.env.BANZAMI_API_KEY;
+if (!apiKey) throw new Error('BANZAMI_API_KEY is not set');
+const banzami = new BanzamiClient({ apiKey });
 
 // Register the endpoint. No merchant, no wallet: the owner comes from the project's financial setup.
 const ep = await banzami.createWebhookEndpoint({
@@ -975,11 +987,11 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
                 total the application has to maintain.
               </P>
               <CodeBlock label="account per campaign" onCopy={copy} raw={`// When the campaign is activated, DOA opens the account that will receive it.
-const account = await banzami.walletAccounts.create({
-  purpose:        'CAMPAIGN',
-  reference_type: 'CAMPAIGN',
-  reference_id:   campaign.id,      // YOUR reference, not ours
-  label:          campaign.title,
+const account = await banzami.createWalletAccount({
+  purpose:       'CAMPAIGN',
+  referenceType: 'CAMPAIGN',
+  referenceId:   campaign.id,      // YOUR reference, not ours
+  label:         campaign.title,
 });
 
 // Keep the id. It is how settlement knows where to take the money from.
@@ -996,14 +1008,16 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
   //    and the signature stops matching.
   const raw = await req.text();
 
-  // 2. Verify BEFORE looking at the contents.
+  // 2. Verify BEFORE looking at the contents. constructEvent does both in the
+  //    right order: it checks the signature, and only then returns the event.
+  //    Do not JSON.parse(raw) separately — that is reading before verifying.
+  //    (the client was created with { apiKey, webhookSecret })
+  let event;
   try {
-    banzami.webhooks.verify(raw, req.headers.get('banza-signature'), process.env.BANZAMI_WEBHOOK_SECRET);
+    event = banzami.webhooks.constructEvent(raw, req.headers.get('banza-signature') ?? '');
   } catch {
     return new Response('invalid signature', { status: 400 });
   }
-
-  const event = JSON.parse(raw);
 
   // 3. Idempotent on the event id. Delivery is at-least-once:
   //    this same event WILL arrive again, sooner or later.
@@ -1012,7 +1026,8 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
 
   // 4. Only now the business effect.
   if (event.type === 'payment_session.paid') {
-    await confirmDonation(event.data.reference);
+    // reference_id is the reference DOA gave the session when it created it.
+    await confirmDonation(event.data.reference_id);
   }
 
   // 5. 2xx quickly. Slow work goes on a queue, not in here.
@@ -1030,19 +1045,24 @@ await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id }
                 The request carries neither an amount nor a rate — and that is not an omission for
                 convenience, it is the design.
               </P>
-              <CodeBlock label="settlement" onCopy={copy} raw={`const settlement = await banzami.applicationSettlements.create({
-  wallet_account_id: campaign.banzami_wallet_account_id,
-  beneficiary:       campaign.payout_banza,   // the @banza receiving it
-  owner_ref:         campaign.id,             // your reference, returned on the webhook
+              <CodeBlock label="settlement" onCopy={copy} raw={`const settlement = await banzami.createBusinessApplicationSettlement({
+  sourceAccountId:      campaign.banzami_wallet_account_id,
+  beneficiaryBanzaName: campaign.payout_banza,     // the @banza receiving it
+  referenceType:        'CAMPAIGN',
+  referenceId:          campaign.id,               // your reference, returned on the webhook
+  // A settlement moves money: the idempotency key is required, and it has to
+  // survive a timeout. Store it before you make the request.
+  idempotencyKey:       'idem_settlement_' + campaign.id,
 });
 
 // What comes back is already the result, computed by Banzami:
 // {
-//   gross_amount_minor:         10000000,   // read from the account balance, not sent by you
-//   application_fee_minor:        200000,   // the pricing assigned to the Business (200 bps)
-//   net_amount_minor:            9800000,   // what goes to the beneficiary
+//   gross_amount_minor:     100000,   // read from the account balance, not sent by you
+//   application_fee_minor:    2000,   // the pricing assigned to the Business (200 bps)
+//   net_amount_minor:        98000,   // what goes to the beneficiary
 //   currency: "AOA", status: "COMPLETED"
-// }`} />
+// }
+// -100000 + 2000 + 98000 = 0`} />
               <P>
                 And the three parts sum to zero against the movement, which is the property that
                 makes this auditable: <Code>-10000000 + 200000 + 9800000 = 0</Code>.

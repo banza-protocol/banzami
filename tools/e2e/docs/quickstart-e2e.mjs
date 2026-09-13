@@ -160,6 +160,57 @@ function sinkConfigure(cap) {
     `docker exec banzami-webhook-sink wget -qO- --post-data='{}' --header='content-type: application/json' 'http://localhost:8090/admin/configure?run=${cap}'`], { encoding: 'utf8', timeout: 60000 });
 }
 
+
+/**
+ * A synthetic KYB document. A minimal, valid PDF that says in its own text what
+ * it is: a Sandbox test document, not a registration and not an identity. The
+ * gateway sniffs magic bytes, so it has to be a real PDF — and it has to be
+ * unmistakably fake to whoever opens it in review.
+ */
+function syntheticPdf(label) {
+  const text = `SANDBOX TEST DOCUMENT - ${label} - NOT A REAL DOCUMENT - Banzami public quickstart`;
+  const stream = `BT /F1 10 Tf 40 780 Td (${text}) Tj ET`;
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let body = '%PDF-1.4\n';
+  const offsets = [];
+  objs.forEach((o, i) => { offsets.push(body.length); body += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xref = body.length;
+  body += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
+  body += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(body, 'latin1');
+}
+
+/**
+ * Upload the documents an application currently needs, through the same public
+ * path the Console's own form uses: signed URL, PUT to storage, confirm.
+ * Returns the codes that were uploaded and any that could not be.
+ */
+export async function uploadDueDocuments(applicationId, due) {
+  const done = [], failed = [];
+  for (const d of due.filter((x) => x.kind === 'document')) {
+    const bytes = syntheticPdf(d.code);
+    const up = await fetch(`${GW}/v1/merchant/applications/${applicationId}/documents/upload-url`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ document_type: d.code, filename: `${d.code.toLowerCase()}-sandbox-test.pdf`, mime_type: 'application/pdf', size_bytes: bytes.length }),
+    });
+    const u = await up.json().catch(() => ({}));
+    if (!up.ok || !u.upload_url) { failed.push(`${d.code}: upload-url http ${up.status} ${u.error?.code ?? u.code ?? ''}`); continue; }
+    const put = await fetch(u.upload_url, { method: u.method ?? 'PUT', headers: u.headers ?? { 'content-type': 'application/pdf' }, body: bytes });
+    if (!put.ok) { failed.push(`${d.code}: storage PUT http ${put.status}`); continue; }
+    const conf = await fetch(`${GW}/v1/merchant/applications/${applicationId}/documents/${u.document_id}/confirm`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
+    });
+    conf.ok ? done.push(d.code) : failed.push(`${d.code}: confirm http ${conf.status}`);
+  }
+  return { done, failed };
+}
+
 async function readPage() {
   const res = await fetch(`${DOCS}/docs/get-started`);
   if (!res.ok) throw new Error(`the quickstart page answered http ${res.status}`);
@@ -218,7 +269,18 @@ async function prepare() {
     });
     if (app.status === 201) {
       state.created.application = app.body?.application_id;
-      mark(4, 'PENDING', `application ${app.body?.application_id} submitted — awaiting operator review, which is a human decision`);
+      // The page says an application carries documents; the application says
+      // which ones it still needs. Read that, rather than assuming a list.
+      const fsRead = await call(`/projects/${pr.body?.id}/financial-setup`);
+      const due = fsRead.body?.onboarding?.application?.requirements?.currently_due ?? [];
+      const up = await uploadDueDocuments(app.body?.application_id, due);
+      const after = (await call(`/projects/${pr.body?.id}/financial-setup`)).body?.onboarding?.application?.requirements;
+      const stillDue = (after?.currently_due ?? []).filter((x) => x.kind === 'document');
+      if (up.failed.length || stillDue.length) {
+        mark(4, 'FAIL', `documents could not be supplied: ${[...up.failed, ...stillDue.map((x) => `${x.code} still due`)].join('; ')}`);
+      } else {
+        mark(4, 'PENDING', `application ${app.body?.application_id} submitted with ${up.done.join(', ')} — awaiting operator review, which is a human decision`);
+      }
     } else {
       mark(4, 'FAIL', `the application was refused: http ${app.status} ${JSON.stringify(app.body)?.slice(0, 120)}`);
     }
