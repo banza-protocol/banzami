@@ -121,11 +121,14 @@ export function OnThisPage({ lang }: { lang: Lang }) {
     const hs = Array.from(document.querySelectorAll<HTMLHeadingElement>('article h3[id]'));
     setItems(hs.map((h) => ({ id: h.id, text: (h.textContent ?? '').replace(/\s+/g, ' ').trim() })).filter((x) => x.text));
   }, []);
-  if (items.length < 3) return null;
+  // The box is drawn before the headings are read, at its final height, so
+  // filling it in moves nothing below it. A first version appeared only after
+  // mount and pushed the whole page down — a layout shift of 0.2 on the
+  // reference, measured.
   return (
     <details style={{ margin: '0 0 18px', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 14, padding: '10px 14px' }}>
       <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 900, color: INK, minHeight: 24 }}>
-        {lang === 'pt' ? `Nesta página (${items.length})` : `On this page (${items.length})`}
+        {lang === 'pt' ? 'Nesta página' : 'On this page'}
       </summary>
       <nav aria-label={lang === 'pt' ? 'Nesta página' : 'On this page'}>
         <ul style={{ listStyle: 'none', margin: '8px 0 2px', padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>

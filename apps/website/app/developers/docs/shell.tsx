@@ -160,7 +160,8 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
           </aside>
 
           <article style={{ minWidth: 0 }}>
-            {active ? <OnThisPage lang={lang} /> : null}
+            {/* Only pages long enough to need one; the others have no sections. */}
+            {['get-started', 'console', 'sdk', 'guides', 'doa', 'reference', 'trust'].includes(active) ? <OnThisPage lang={lang} /> : null}
             {children(copy)}
 
             {/* Chapter navigation — prev/next, reusing the doccard visual style */}
