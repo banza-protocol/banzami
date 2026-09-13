@@ -566,5 +566,19 @@ if (process.argv[1] && process.argv[1].endsWith('quickstart-e2e.mjs')) {
   const phase = process.argv[2] ?? 'prepare';
   if (phase === 'prepare') await prepare();
   else if (phase === 'complete') await complete();
-  else { console.error('usage: quickstart-e2e.mjs prepare | complete'); process.exit(2); }
+  else if (phase === 'residue') {
+    // Re-measure after retirement, for this run or earlier ones:
+    //   quickstart-e2e.mjs residue [state.json ...]   (default: the current run's state)
+    const files = process.argv.slice(3).length ? process.argv.slice(3) : [STATE];
+    let total = 0;
+    for (const f of files) {
+      const st = JSON.parse(readFileSync(f, 'utf8'));
+      const r = measureResidue(st);
+      console.log(`  run ${st.stamp}: ${r.count < 0 ? 'UNMEASURED' : r.count} — ${r.detail}`);
+      total = r.count < 0 || total < 0 ? -1 : total + r.count;
+    }
+    console.log(`DOC_QUICKSTART_RESIDUE=${total < 0 ? 'UNMEASURED' : total}`);
+    process.exitCode = total === 0 ? 0 : 1;
+  }
+  else { console.error('usage: quickstart-e2e.mjs prepare | complete | residue [state.json ...]'); process.exit(2); }
 }
