@@ -272,7 +272,7 @@ export const EVENT_DOCS: EventDoc[] = [
       { name: 'id', type: 'string (uuid)', note: { pt: 'o id da liquidação', en: 'the settlement id' } },
       { name: 'owner_ref', type: 'string', note: { pt: 'o seu reference_id (ou reason)', en: 'your reference_id (or reason)' } },
       { name: 'status', type: 'string', note: { pt: 'COMPLETED', en: 'COMPLETED' } },
-      { name: 'gross_amount', type: '{ amount_minor, currency }', note: { pt: 'o bruto — objecto, não o gross_amount_minor da resposta REST', en: 'the gross — an object, not the REST response’s gross_amount_minor' } },
+      { name: 'gross_amount', type: '{ amount_minor, currency }', note: { pt: 'o bruto — objeto, não o gross_amount_minor da resposta REST', en: 'the gross — an object, not the REST response’s gross_amount_minor' } },
       { name: 'application_fee', type: '{ amount_minor, currency }', note: { pt: 'a taxa', en: 'the fee' } },
       { name: 'net_amount', type: '{ amount_minor, currency }', note: { pt: 'o líquido do beneficiário', en: 'the beneficiary’s net' } },
       { name: 'currency', type: 'string', note: { pt: 'AOA', en: 'AOA' } },

@@ -250,7 +250,10 @@ async function complete() {
     try {
       const r = read(`${sdkClient(sdk)}console.log(JSON.stringify(await c.getFinancialSetup()));\n`);
       const canReceive = ['READY', 'SEALED'].includes(r?.financial_setup?.state) && r?.wallet?.ready === true;
-      state.settlementReadiness = { ready: r?.settlement?.ready, blockers: (r?.settlement?.blockers ?? []).map((b) => b.code ?? b), fee_required: r?.fee_destination?.required };
+      state.settlementReadiness = {
+        ready: r?.settlement?.ready, blockers: (r?.settlement?.blockers ?? []).map((b) => b.code ?? b), fee_required: r?.fee_destination?.required,
+        profile: r?.pricing?.profile, settlement_bps: r?.pricing?.settlement_bps, fee_destination_eligible: r?.fee_destination?.eligible,
+      };
       canReceive
         ? mark(5, 'PASS', `getFinancialSetup() → ${r.financial_setup.state}, wallet ready; settlement ${r.settlement?.ready ? 'ready' : `blocked by ${state.settlementReadiness.blockers.join(', ')}`}`)
         : mark(5, 'FAIL', `getFinancialSetup() → ${JSON.stringify({ fs: r?.financial_setup, wallet: r?.wallet }).slice(0, 140)}`);
@@ -374,9 +377,36 @@ async function complete() {
       else {
         const s = r.s;
         const sums = -s.gross_amount_minor + s.application_fee_minor + s.net_amount_minor === 0;
-        s.status === 'COMPLETED' && s.gross_amount_minor === r.gross_before && sums && r.replayId === s.id && r.after === 0
-          ? mark(12, 'PASS', `gross ${s.gross_amount_minor} = balance; -${s.gross_amount_minor} + ${s.application_fee_minor} + ${s.net_amount_minor} = 0; replay → same ${s.id}; account 0`)
-          : mark(12, 'FAIL', JSON.stringify(r).slice(0, 200));
+        // The tutorial's application is a priced APPLICATION Business: the fee must
+        // be the profile's rate on the gross, and it must not be zero. A first
+        // version accepted a 0 fee from the default profile and called that the
+        // tutorial's settlement, which it is not.
+        const rd = state.settlementReadiness ?? {};
+        const exact = (s.gross_amount_minor * (rd.settlement_bps ?? 0)) / 10000;
+        const feeOK = (rd.settlement_bps ?? 0) > 0 && rd.fee_destination_eligible === true && s.application_fee_minor > 0
+          && (s.application_fee_minor === Math.floor(exact) || s.application_fee_minor === Math.ceil(exact));
+        state.settlement = { id: s.id, gross: s.gross_amount_minor, fee: s.application_fee_minor, net: s.net_amount_minor, bps: rd.settlement_bps, profile: rd.profile };
+        // The tutorial reconciles on the event, not on the response alone: the
+        // signed application_settlement.completed delivery must name this
+        // settlement and carry the same three amounts.
+        let event = null;
+        for (let i = 0; i < 20 && !event; i += 1) {
+          event = (sinkRequests(cap).requests ?? []).find((q) => /application_settlement\.completed/.test(q.raw_body) && q.raw_body.includes(s.id));
+          if (!event) await new Promise((res) => setTimeout(res, 3000));
+        }
+        let reconciled = false;
+        if (event && state.webhookSecret) {
+          const ev = read(`${sdkClient(sdk, ', webhookSecret: process.env.WH_SECRET')}const e = c.webhooks.constructEvent(process.env.WH_RAW, process.env.WH_SIG);\n`
+            + `const m = (x) => (typeof x === 'object' && x !== null ? x.amount_minor : x);\n`
+            + `console.log(JSON.stringify({ type: e.type, id: e.data.id, gross: m(e.data.gross_amount), fee: m(e.data.application_fee), net: m(e.data.net_amount) }));\n`,
+          { WH_SECRET: state.webhookSecret, WH_RAW: event.raw_body, WH_SIG: event.headers['banza-signature'] });
+          reconciled = ev.type === 'application_settlement.completed' && ev.id === s.id && ev.gross === s.gross_amount_minor && ev.fee === s.application_fee_minor && ev.net === s.net_amount_minor;
+          state.settlementEvent = ev;
+        }
+        state.settlementReconciled = reconciled;
+        s.status === 'COMPLETED' && s.gross_amount_minor === r.gross_before && sums && feeOK && reconciled && r.replayId === s.id && r.after === 0
+          ? mark(12, 'PASS', `profile ${rd.profile} ${rd.settlement_bps} bps: gross ${s.gross_amount_minor} = balance; -${s.gross_amount_minor} + ${s.application_fee_minor} + ${s.net_amount_minor} = 0; signed application_settlement.completed names ${s.id} with the same amounts; replay → same id; account 0`)
+          : mark(12, 'FAIL', `${reconciled ? '' : `event reconciled: ${reconciled} (${event ? 'delivered' : 'no delivery in 60s'}); `}${feeOK ? '' : `fee ${s.application_fee_minor} is not ${rd.settlement_bps} bps of ${s.gross_amount_minor} on an eligible fee destination (profile ${rd.profile}, eligible ${rd.fee_destination_eligible}); `}${JSON.stringify(r).slice(0, 160)}`);
       }
     } catch (e) { mark(12, 'FAIL', String(e.stderr ?? e.message).slice(0, 160)); }
   } else if (J.verdict(12) === 'NOT_RUN') mark(12, 'NOT_RUN', 'nothing to settle');
@@ -403,7 +433,12 @@ async function complete() {
   // evidence is immutable and is not residue.
   const cleanup = [];
   for (const k of [state.created.rotatedKeyId]) if (k) cleanup.push(`revoke key: ${(await call(`/keys/${k}`, 'DELETE')).status}`);
-  if (state.created.endpoint) cleanup.push(`deactivate endpoint: ${(await call(`/projects/${state.created.project}/webhooks/endpoints/${state.created.endpoint}`, 'DELETE')).status}`);
+  if (state.created.endpoint) {
+    // With delivery history the endpoint is disabled, not deleted (409 ENDPOINT_HAS_DELIVERIES).
+    const epPath = `/projects/${state.created.project}/webhooks/endpoints/${state.created.endpoint}`;
+    const del = await call(epPath, 'DELETE');
+    cleanup.push(del.status === 409 ? `disable endpoint: ${(await call(epPath, 'PATCH', { active: false })).status}` : `delete endpoint: ${del.status}`);
+  }
   if (state.created.project) cleanup.push(`archive project: ${(await call(`/projects/${state.created.project}/archive`, 'POST', { name: state.created.projectName })).status}`);
   if (state.created.workspace) cleanup.push(`archive workspace: ${(await call(`/workspaces/${state.created.workspace}/archive`, 'POST', { name: state.created.workspaceName })).status}`);
   state.cleanup = cleanup;

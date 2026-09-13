@@ -12825,12 +12825,12 @@
    "evidence": "tools/check-webhook-event-catalogue.mjs (fields against core emitters)",
    "text": "your reference_id (or reason)"
   },
-  "pt:Events-spec:17060b5abe": {
+  "pt:Events-spec:5dac5f30d9": {
    "page": "Events-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-webhook-event-catalogue.mjs (fields against core emitters)",
-   "text": "o bruto — objecto, não o gross_amount_minor da resposta REST"
+   "text": "o bruto — objeto, não o gross_amount_minor da resposta REST"
   },
   "en:Events-spec:b6a1c7e681": {
    "page": "Events-spec",

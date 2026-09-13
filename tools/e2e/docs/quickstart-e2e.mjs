@@ -498,7 +498,13 @@ async function complete() {
   // tools/ops/retire-synthetic-residue.sh through the operator's own APIs;
   // residue below counts them until that has happened.
   const cleanup = [];
-  if (state.created.webhookEndpoint) cleanup.push(`endpoint: ${(await call(`/projects/${state.created.project}/webhooks/endpoints/${state.created.webhookEndpoint}`, 'DELETE')).status}`);
+  if (state.created.webhookEndpoint) {
+    // An endpoint with delivery history cannot be deleted (409 ENDPOINT_HAS_DELIVERIES):
+    // the Console disables it, as the webhooks guide says.
+    const epPath = `/projects/${state.created.project}/webhooks/endpoints/${state.created.webhookEndpoint}`;
+    const del = await call(epPath, 'DELETE');
+    cleanup.push(del.status === 409 ? `endpoint disabled: ${(await call(epPath, 'PATCH', { active: false })).status}` : `endpoint: ${del.status}`);
+  }
   const keys = (await call(`/projects/${state.created.project}/keys`)).body?.keys ?? [];
   for (const k of keys.filter((x) => x.status === 'ACTIVE')) cleanup.push(`key ${k.id}: ${(await call(`/keys/${k.id}`, 'DELETE')).status}`);
   const proj = await call(`/projects/${state.created.project}`);
