@@ -50,7 +50,8 @@ describe('FinancialSetupPointer', () => {
     render(<FinancialSetupPointer setup={{ ...unconfigured, state: 'UNAVAILABLE', can_configure: false }} />);
     expect(screen.getByText('Indisponível')).not.toBeNull();
     expect(document.body.textContent).toMatch(/Nada do que faça aqui pode alterar isso/);
-    expect(screen.queryByRole('link')).toBeNull();
+    // No way in: the only link left is to the documentation that explains why.
+    expect(screen.queryAllByRole('link').filter((a) => !a.hasAttribute('data-docs-link'))).toHaveLength(0);
   });
 });
 

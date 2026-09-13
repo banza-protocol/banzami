@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { developerApi, type ApiKey, type NewKey } from '@/lib/developer-api';
 import { useDeveloperData } from './DeveloperData';
 import { useToast, copyText } from './Toast';
-import { Card, Pill, type PillKind } from './ui';
+import { Card, DocsLink, Pill, type PillKind } from './ui';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useDialogFocus } from './use-dialog-focus';
 import { ScopeDrawer, domainLabel, scopeDomain } from './ScopeDrawer';
@@ -393,6 +393,10 @@ export function ApiKeysManager() {
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Chaves de API</h1>
           <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
             Projeto <strong>{activeProject.name}</strong> · apenas chaves de teste (Sandbox). Não há acesso a produção.
+          </p>
+          <p style={{ margin: '4px 0 0' }}>
+            <DocsLink href="/docs/console#chaves">Scopes, rotação e revogação</DocsLink>{' · '}
+            <DocsLink href="/docs/trust#rotacao">Onde guardar a chave</DocsLink>
           </p>
         </div>
         <button

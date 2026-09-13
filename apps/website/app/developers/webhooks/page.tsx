@@ -2,6 +2,7 @@
 
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { WebhooksManager } from '@/components/developers/portal/WebhooksManager';
+import { DocsLink } from '@/components/developers/portal/ui';
 
 // Webhooks — dossier ecrã 7.
 //
@@ -25,6 +26,10 @@ export default function WebhooksPage() {
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Webhooks</h1>
           <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
             Os endpoints, eventos e entregas reais do seu projecto.
+          </p>
+          <p style={{ margin: '4px 0 0' }}>
+            <DocsLink href="/docs/guides#webhooks">Verificar a assinatura e reentregas</DocsLink>{' · '}
+            <DocsLink href="/docs/guides#resolucao">Quando o webhook não chega</DocsLink>
           </p>
         </div>
         <WebhooksManager />

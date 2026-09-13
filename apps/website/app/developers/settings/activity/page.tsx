@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
-import { Card } from '@/components/developers/portal/ui';
+import { Card, DocsLink } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { developerApi, type ActivityEvent, type Member } from '@/lib/developer-api';
 import { isManager } from '@/lib/developer-roles';
@@ -127,7 +127,8 @@ function WorkspaceActivity() {
         <Link href="/logs" style={{ color: '#B5101F', fontWeight: 800 }}>
           Registos
         </Link>
-        .
+        .{' '}
+        <DocsLink href="/docs/console#atividade">O que a Atividade regista</DocsLink>
       </p>
 
       <SettingsTabs active="activity" />

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { developerApi, ApiError, type FinancialSetupState, type ProjectReadiness } from '@/lib/developer-api';
 import { ONBOARDING_LABEL, blockerText, onboardingViewOf } from '@/lib/financial-onboarding';
-import { Card } from './ui';
+import { Card, DocsLink } from './ui';
 import { accountStatusLabel, kybStatusLabel } from '@/lib/status-labels';
 
 const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -69,6 +69,7 @@ export function FinancialSetupPointer({ setup }: { setup: FinancialSetupState })
     <Card style={{ padding: 26, maxWidth: 620 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>Configuração financeira</h2>
+        <DocsLink href="/docs/console#financeiro">Como funciona</DocsLink>
         <span
           style={{
             padding: '3px 10px', borderRadius: 30, fontSize: 11.5, fontWeight: 800,

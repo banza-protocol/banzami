@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { ActivityLog } from '@/components/developers/portal/ActivityLog';
 import { RequestLog } from '@/components/developers/portal/RequestLog';
+import { DocsLink } from '@/components/developers/portal/ui';
 
 // Registos — two real records, neither invented.
 //
@@ -40,6 +41,10 @@ export default function LogsPage() {
           {tab === 'requests'
             ? 'Cada pedido feito à API com uma chave deste projeto — método, caminho, estado, latência e request_id.'
             : 'Os eventos emitidos por este projeto e cada tentativa de entrega, com o código que o seu servidor respondeu.'}
+        </p>
+        <p style={{ margin: '-10px 0 18px' }}>
+          <DocsLink href="/docs/reference#catalogo-de-erros">Catálogo de erros</DocsLink>{' · '}
+          <DocsLink href="/docs/guides#resolucao">Resolução de problemas</DocsLink>
         </p>
 
         <div

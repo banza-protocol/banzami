@@ -71,7 +71,13 @@ export function middleware(req: NextRequest): NextResponse {
     // 2) Clean host-root URL → internal rewrite to the physical console page.
     const dest = url.clone();
     dest.pathname = cleanToInternal(url.pathname);
-    return harden(NextResponse.rewrite(dest, { request: { headers: reqHeaders } }), nonce);
+    const res = harden(NextResponse.rewrite(dest, { request: { headers: reqHeaders } }), nonce);
+    // The documentation is public product material and is indexed. Everything
+    // else on this host is the signed-in Console — sign-in, keys, balances —
+    // and a search engine has no business listing it.
+    const isDocs = url.pathname === '/docs' || url.pathname.startsWith('/docs/');
+    if (!isDocs) res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    return res;
   }
 
   // Marketing hosts (banzami.com / www): the Console and the documentation are

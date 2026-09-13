@@ -87,3 +87,17 @@ export const SECONDARY_BUTTON: CSSProperties = {
   padding: '10px 16px', border: '1.5px solid #EBDBD9', borderRadius: 11, background: '#fff',
   fontSize: 13.5, fontWeight: 800, color: '#B5101F', cursor: 'pointer',
 };
+
+/**
+ * A contextual link from a Console screen to the documentation that explains
+ * it (DOCS-PROD-001 §62). Same origin, same tab: the docs are part of the
+ * product, not a destination somewhere else.
+ */
+export function DocsLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a href={href} data-docs-link style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 24, color: '#B5101F', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}>
+      {children}
+      <span aria-hidden="true">↗</span>
+    </a>
+  );
+}
