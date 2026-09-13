@@ -15,7 +15,7 @@ import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialS
 import { CapabilityCards } from './CapabilityCards';
 import { GLOSSARY } from './glossary';
 import { Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
-import { ResourceReference } from './reference';
+import { ResourceReference, ScopeTable } from './reference';
 import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
 import { EventReference } from './EventReference';
 import { Troubleshooting } from './Troubleshooting';
@@ -1227,7 +1227,7 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
                 Este guia mostra, com o DOA como exemplo, como uma aplicação externa integra o Banzami através dos contratos públicos.
               </PageLede>
               <Callout>
-                <strong>O DOA é uma implementação de referência, não um tenant privilegiado.</strong> Usa a mesma API pública, o mesmo SDK, o mesmo modelo de autorização,
+                <strong>O DOA é uma implementação de referência, não um cliente privilegiado do Banzami.</strong> Usa a mesma API pública, o mesmo SDK, o mesmo modelo de autorização,
                 os mesmos webhooks e o mesmo modelo de liquidação disponíveis a qualquer developer.
               </Callout>
 
@@ -1567,11 +1567,13 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>Nome</strong> — identifica a chave na lista e na Atividade; não altera permissões.</LI>
                 <LI><strong>Scopes</strong> — definidos na criação e imutáveis.</LI>
-                <LI><strong>Segredo</strong> — mostrado uma única vez, no diálogo de criação. Depois, a lista mostra apenas o prefixo e uma máscara.</LI>
+                <LI><strong>Segredo</strong> — começa por <Code>bz_test_sk_</Code> e é mostrado uma única vez, no diálogo de criação. Depois, a lista mostra apenas o prefixo e uma máscara.</LI>
                 <LI><strong>Rodar</strong> — cria a chave sucessora e revoga a anterior no mesmo passo. Para trocar sem interrupção, crie primeiro uma chave nova, coloque-a em uso e só depois revogue a anterior.</LI>
                 <LI><strong>Revogar</strong> — imediato: o pedido seguinte com essa chave responde <Code>401</Code>.</LI>
                 <LI><strong>Última utilização</strong> — permite identificar chaves que já não são usadas.</LI>
               </UL>
+              <P>Cada endpoint exige um scope. Crie cada chave só com os scopes de que o servidor precisa:</P>
+              <ScopeTable lang="pt" />
               <P><a href="/docs/trust#chaves" style={a}>Onde guardar chaves</a></P>
 
               <H2 id="webhooks-console">Webhooks</H2>
@@ -1588,7 +1590,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>Saldos</strong> — as contas do Business ligado ao projeto e o saldo de cada uma.</LI>
                 <LI><strong>Transações</strong> — pagamentos, reembolsos e transferências entre contas do Business ligado ao projeto, incluindo as que outros projetos do mesmo Business iniciaram.</LI>
-                <LI><strong>Registos</strong> — cada pedido feito com as chaves do projeto, com <Code>request_id</Code>, estado e latência.</LI>
+                <LI><strong>Registos</strong> — cada pedido feito com as chaves do projeto, com <Code>request_id</Code>, estado e latência, retido durante 30 dias.</LI>
               </UL>
               <P style={{ fontSize: 13, color: MUT }}>Nenhuma página da Consola apresenta dados ilustrativos. Uma lista vazia significa que ainda não há registos.</P>
 
@@ -1658,6 +1660,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
 
               <H2 id="idempotencia">Idempotência <Badge tone="ok" /></H2>
               <UL>
+                <LI><strong>Timeout ou erro de rede:</strong> repita com a mesma chave e o mesmo corpo. Uma chave nova faz dele um segundo pedido.</LI>
                 <LI><strong>Header <Code>Idempotency-Key</Code>:</strong> em qualquer escrita, a resposta original (2xx ou 4xx) é reproduzida para a mesma chave durante 24 horas, por credencial, método e caminho.</LI>
                 <LI><strong>5xx:</strong> nunca é reproduzido; o pedido pode ser repetido com a mesma chave.</LI>
                 <LI><strong>Pedidos simultâneos</strong> com a mesma chave: o segundo recebe <Code>409 IDEMPOTENCY_CONFLICT</Code>. Aguarde e repita com a mesma chave.</LI>

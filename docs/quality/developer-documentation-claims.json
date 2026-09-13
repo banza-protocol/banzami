@@ -2045,12 +2045,12 @@
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
    "text": "O DOA é uma aplicação angolana de angariação de fundos que usa o Sandbox do Banzami para os seus fluxos financeiros. Este guia mostra, com o DOA como exemplo, c"
   },
-  "pt:Doa:607283a7dc": {
+  "pt:Doa:fde8f00057": {
    "page": "Doa",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
-   "text": "O DOA é uma implementação de referência, não um tenant privilegiado. Usa a mesma API pública, o mesmo SDK, o mesmo modelo de autorização, os mesmos webhooks e o"
+   "text": "O DOA é uma implementação de referência, não um cliente privilegiado do Banzami. Usa a mesma API pública, o mesmo SDK, o mesmo modelo de autorização, os mesmos "
   },
   "pt:Doa:cc57702b20": {
    "page": "Doa",
@@ -2661,12 +2661,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Scopes — definidos na criação e imutáveis."
   },
-  "pt:Console:61f7be0736": {
+  "pt:Console:d3da76c95f": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Segredo — mostrado uma única vez, no diálogo de criação. Depois, a lista mostra apenas o prefixo e uma máscara."
+   "text": "Segredo — começa por bz_test_sk_ e é mostrado uma única vez, no diálogo de criação. Depois, a lista mostra apenas o prefixo e uma máscara."
   },
   "pt:Console:734e35875f": {
    "page": "Console",
@@ -2688,6 +2688,13 @@
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Última utilização — permite identificar chaves que já não são usadas."
+  },
+  "pt:Console:1b0bda9a93": {
+   "page": "Console",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Cada endpoint exige um scope. Crie cada chave só com os scopes de que o servidor precisa:"
   },
   "pt:Console:a9a1b163f8": {
    "page": "Console",
@@ -2738,12 +2745,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Transações — pagamentos, reembolsos e transferências entre contas do Business ligado ao projeto, incluindo as que outros projetos do mesmo Business iniciaram."
   },
-  "pt:Console:999faa61bc": {
+  "pt:Console:144597b23d": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Registos — cada pedido feito com as chaves do projeto, com request_id, estado e latência."
+   "text": "Registos — cada pedido feito com as chaves do projeto, com request_id, estado e latência, retido durante 30 dias."
   },
   "pt:Console:d88ca82e09": {
    "page": "Console",
@@ -2856,6 +2863,13 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
    "text": "Workspaces, projetos, membros e chaves geem-se na Consola; não fazem parte desta API."
+  },
+  "pt:Reference:e2d8c13dbb": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Timeout ou erro de rede: repita com a mesma chave e o mesmo corpo. Uma chave nova faz dele um segundo pedido."
   },
   "pt:Reference:0d1a0e56fa": {
    "page": "Reference",
@@ -6420,12 +6434,12 @@
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
    "text": "DOA is an Angolan fundraising application that uses the Banzami Sandbox for its financial flows. This guide uses DOA to show how an external application integra"
   },
-  "en:Doa:e86d92eea6": {
+  "en:Doa:e56d525361": {
    "page": "Doa",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
-   "text": "DOA is a reference implementation, not a privileged tenant. It uses the same public API, SDK, authorisation model, webhooks and settlement model available to ev"
+   "text": "DOA is a reference implementation, not a privileged Banzami tenant. It uses the same public API, SDK, authorisation model, webhooks and settlement model availab"
   },
   "en:Doa:2d002e88d6": {
    "page": "Doa",
@@ -7036,12 +7050,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Scopes — set at creation and immutable."
   },
-  "en:Console:f016a437cf": {
+  "en:Console:69d2f4e9cd": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Secret — shown once, in the creation dialog. Afterwards the list shows only the prefix and a mask."
+   "text": "Secret — starts with bz_test_sk_ and is shown once, in the creation dialog. Afterwards the list shows only the prefix and a mask."
   },
   "en:Console:228d54e621": {
    "page": "Console",
@@ -7063,6 +7077,13 @@
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Last used — shows which keys are no longer in use."
+  },
+  "en:Console:bbe5bffa7f": {
+   "page": "Console",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Each endpoint requires one scope. Give each key only the scopes its server needs:"
   },
   "en:Console:eab6641ddc": {
    "page": "Console",
@@ -7113,12 +7134,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Transactions — payments, refunds and transfers between accounts of the Business connected to the project, including those started by other projects of the same "
   },
-  "en:Console:0ae2c48257": {
+  "en:Console:eb3b38b3f2": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Logs — every request made with the project’s keys, with request_id, status and latency."
+   "text": "Logs — every request made with the project’s keys, with request_id, status and latency, kept for 30 days."
   },
   "en:Console:03c94906b6": {
    "page": "Console",
@@ -7231,6 +7252,13 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
    "text": "Workspaces, projects, members and keys are managed in the Console; they are not part of this API."
+  },
+  "en:Reference:b92efbeb2c": {
+   "page": "Reference",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/{developer_auth.go,idempotency.go}; services/developer-api/internal/developer/store.go (RequestLogRetentionDays = 30); tools/lib/error-surface.mjs route derivation",
+   "text": "Timeout or network error: retry with the same key and the same body. A new key makes it a second request."
   },
   "en:Reference:5a859d5378": {
    "page": "Reference",
@@ -11158,6 +11186,160 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "Troubleshooting"
+  },
+  "pt:Reference-spec:d3b99d9006": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Confirmar a chave e ler a configuração financeira"
+  },
+  "en:Reference-spec:2e0d9b3630": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Confirm the key and read the Financial Setup"
+  },
+  "pt:Reference-spec:d3c1749a7f": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Consultar pagamentos, o link e o QR"
+  },
+  "en:Reference-spec:8743ae6b37": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Read payments, their link and QR"
+  },
+  "pt:Reference-spec:bfdf0a30f7": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Criar e cancelar links de pagamento"
+  },
+  "en:Reference-spec:c5b425ef0a": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Create and cancel Payment Links"
+  },
+  "pt:Reference-spec:a549998d50": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Consultar links de pagamento"
+  },
+  "en:Reference-spec:9bbc2d26fc": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Read Payment Links"
+  },
+  "pt:Reference-spec:73c33448bb": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Consultar contas e saldos"
+  },
+  "en:Reference-spec:7ba9cabebe": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Read accounts and balances"
+  },
+  "pt:Reference-spec:3eee262bd7": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Transferir entre contas do projeto"
+  },
+  "en:Reference-spec:51d2664031": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Transfer between the project’s accounts"
+  },
+  "pt:Reference-spec:eb90a3eda6": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Reembolsar pagamentos"
+  },
+  "en:Reference-spec:8a38eb40af": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Refund payments"
+  },
+  "pt:Reference-spec:0eff31dfe0": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Consultar reembolsos"
+  },
+  "en:Reference-spec:63ac1b4979": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Read refunds"
+  },
+  "pt:Reference-spec:e0922eade2": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Registar, desativar, rodar o segredo e reenviar"
+  },
+  "en:Reference-spec:d16432d825": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Register, deactivate, rotate the secret and replay"
+  },
+  "pt:Reference-spec:b5b6094a72": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Consultar endpoints, eventos e entregas"
+  },
+  "en:Reference-spec:42f3cf5c6e": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Read endpoints, events and deliveries"
+  },
+  "pt:Reference-spec:994e1f1719": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Resolver um @banza"
+  },
+  "en:Reference-spec:a706b5e452": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Resolve an @banza handle"
   },
   "pt:Endpoint-spec:d0aef4a3a2": {
    "page": "Endpoint-spec",

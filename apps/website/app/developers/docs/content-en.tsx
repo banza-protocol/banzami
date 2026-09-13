@@ -8,7 +8,7 @@
 import { MailLink } from '@/components/MailLink';
 import type { ReactNode } from 'react';
 import { BADGE_LABELS_EN, Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono } from './ui';
-import { ResourceReference } from './reference';
+import { ResourceReference, ScopeTable } from './reference';
 import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
 import { EventReference } from './EventReference';
 import { Troubleshooting } from './Troubleshooting';
@@ -1241,7 +1241,7 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
                 This guide uses DOA to show how an external application integrates Banzami through the public contracts.
               </PageLede>
               <Callout>
-                <strong>DOA is a reference implementation, not a privileged tenant.</strong> It uses the same public API, SDK, authorisation model,
+                <strong>DOA is a reference implementation, not a privileged Banzami tenant.</strong> It uses the same public API, SDK, authorisation model,
                 webhooks and settlement model available to every developer.
               </Callout>
 
@@ -1581,11 +1581,13 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>Name</strong> — identifies the key in the list and in Activity; it does not change permissions.</LI>
                 <LI><strong>Scopes</strong> — set at creation and immutable.</LI>
-                <LI><strong>Secret</strong> — shown once, in the creation dialog. Afterwards the list shows only the prefix and a mask.</LI>
+                <LI><strong>Secret</strong> — starts with <Code>bz_test_sk_</Code> and is shown once, in the creation dialog. Afterwards the list shows only the prefix and a mask.</LI>
                 <LI><strong>Rotate</strong> — creates the successor and revokes the previous key in one step. For a switch without downtime, create a new key first, deploy it, then revoke the old one.</LI>
                 <LI><strong>Revoke</strong> — immediate: the next request with that key returns <Code>401</Code>.</LI>
                 <LI><strong>Last used</strong> — shows which keys are no longer in use.</LI>
               </UL>
+              <P>Each endpoint requires one scope. Give each key only the scopes its server needs:</P>
+              <ScopeTable lang="en" />
               <P><a href="/docs/en/trust#keys" style={a}>Where to store keys</a></P>
 
               <H2 id="console-webhooks">Webhooks</H2>
@@ -1602,7 +1604,7 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>Balances</strong> — the accounts of the Business connected to the project, and the balance of each.</LI>
                 <LI><strong>Transactions</strong> — payments, refunds and transfers between accounts of the Business connected to the project, including those started by other projects of the same Business.</LI>
-                <LI><strong>Logs</strong> — every request made with the project’s keys, with <Code>request_id</Code>, status and latency.</LI>
+                <LI><strong>Logs</strong> — every request made with the project’s keys, with <Code>request_id</Code>, status and latency, kept for 30 days.</LI>
               </UL>
               <P style={{ fontSize: 13, color: MUT }}>No Console page shows illustrative data. An empty list means there is nothing recorded yet.</P>
 
@@ -1672,6 +1674,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
 
               <H2 id="idempotency">Idempotency <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H2>
               <UL>
+                <LI><strong>Timeout or network error:</strong> retry with the same key and the same body. A new key makes it a second request.</LI>
                 <LI><strong><Code>Idempotency-Key</Code> header:</strong> on any write, the original response (2xx or 4xx) is replayed for the same key for 24 hours, per credential, method and path.</LI>
                 <LI><strong>5xx:</strong> never replayed; the request can be retried with the same key.</LI>
                 <LI><strong>Concurrent requests</strong> with the same key: the second gets <Code>409 IDEMPOTENCY_CONFLICT</Code>. Wait, then retry with the same key.</LI>

@@ -83,7 +83,7 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Sandbox e Live' })).toBeTruthy();
     expect(PT).toContain('usam dinheiro fictício');
     expect(PT).toContain('bz_live_ é recusada; não são emitidas');
-    expect(PT).toMatch(/O DOA é uma implementação de referência, não um tenant privilegiado/);
+    expect(PT).toMatch(/O DOA é uma implementação de referência, não um cliente privilegiado do Banzami/);
   });
   it('API Reference uses the real payment-session model, never /v1/charges', () => {
     expect(PT).toContain('createPaymentSession');

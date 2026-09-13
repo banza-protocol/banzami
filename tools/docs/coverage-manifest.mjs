@@ -52,7 +52,7 @@ export const COVERAGE = {
     items: [
       { spec: 'name', pt: /Nome — identifica a chave/, en: /Name — identifies the key/ },
       { spec: 'scopes', pt: /Scopes — definidos na criação e imutáveis/, en: /Scopes — set at creation and immutable/ },
-      { spec: 'reveal once', pt: /Segredo — mostrado uma única vez/, en: /Secret — shown once/ },
+      { spec: 'reveal once', pt: /Segredo — (começa por bz_test_sk_ e é )?mostrado uma única vez/, en: /Secret — (starts with bz_test_sk_ and is )?shown once/ },
       { spec: 'rotation', pt: /Rodar — cria a chave sucessora e revoga a anterior/, en: /Rotate — creates the successor and revokes the previous key/ },
       { spec: 'revocation', pt: /Revogar — imediato/, en: /Revoke — immediate/ },
       { spec: 'last use', pt: /Última utilização/, en: /Last used/ },

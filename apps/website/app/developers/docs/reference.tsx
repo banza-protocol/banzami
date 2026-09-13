@@ -1177,3 +1177,60 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
 export function LangBadge({ tone, lang }: { tone: Tone; lang: 'pt' | 'en' }): ReactNode {
   return <Badge tone={tone}>{lang === 'en' ? BADGE_LABELS_EN[tone] : undefined}</Badge>;
 }
+
+// ── scopes by task ───────────────────────────────────────────────────────────
+//
+// Which scope a key needs, answered from the same endpoint contracts the
+// reference renders — so a scope cannot be listed here for an endpoint that does
+// not require it. Only the one-line purpose is written by hand.
+
+export const SCOPE_PURPOSE: Record<string, Bi> = {
+  'identity:read': { pt: 'Confirmar a chave e ler a configuração financeira', en: 'Confirm the key and read the Financial Setup' },
+  'payment_sessions:write': { pt: 'Criar pagamentos', en: 'Create payments' },
+  'payment_sessions:read': { pt: 'Consultar pagamentos, o link e o QR', en: 'Read payments, their link and QR' },
+  'payment_links:write': { pt: 'Criar e cancelar links de pagamento', en: 'Create and cancel Payment Links' },
+  'payment_links:read': { pt: 'Consultar links de pagamento', en: 'Read Payment Links' },
+  'wallet_accounts:create': { pt: 'Criar contas', en: 'Create accounts' },
+  'wallet_accounts:read': { pt: 'Consultar contas e saldos', en: 'Read accounts and balances' },
+  'transfers:write': { pt: 'Transferir entre contas do projeto', en: 'Transfer between the project’s accounts' },
+  'refunds:write': { pt: 'Reembolsar pagamentos', en: 'Refund payments' },
+  'refunds:read': { pt: 'Consultar reembolsos', en: 'Read refunds' },
+  'application_settlements:write': { pt: 'Pedir liquidações', en: 'Request settlements' },
+  'webhooks:write': { pt: 'Registar, desativar, rodar o segredo e reenviar', en: 'Register, deactivate, rotate the secret and replay' },
+  'webhooks:read': { pt: 'Consultar endpoints, eventos e entregas', en: 'Read endpoints, events and deliveries' },
+  'customers:read': { pt: 'Resolver um @banza', en: 'Resolve an @banza handle' },
+};
+
+export function ScopeTable({ lang }: { lang: 'pt' | 'en' }) {
+  const t = (b: Bi) => b[lang];
+  const scopes = new Map<string, EndpointSpec[]>();
+  for (const e of ENDPOINTS) {
+    const scope = ENDPOINT_META[e.id]?.scope;
+    if (scope) scopes.set(scope, [...(scopes.get(scope) ?? []), e]);
+  }
+  const cell: React.CSSProperties = { padding: '7px 9px', borderBottom: '1px solid #EAE3E3', verticalAlign: 'top', color: '#3f3538' };
+  return (
+    <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+        <thead>
+          <tr style={{ textAlign: 'left', color: '#6f6468' }}>
+            <th style={{ ...cell, fontWeight: 600 }}>Scope</th>
+            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Para', 'For')}</th>
+            <th style={{ ...cell, fontWeight: 600 }}>Endpoints</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[...scopes].map(([scope, eps]) => (
+            <tr key={scope}>
+              <td style={{ ...cell, fontFamily: mono, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{scope}</td>
+              <td style={cell}>{SCOPE_PURPOSE[scope] ? t(SCOPE_PURPOSE[scope]) : null}</td>
+              <td style={{ ...cell, fontFamily: mono, fontSize: 12 }}>
+                {eps.map((e, i) => <span key={e.id}>{i > 0 ? ', ' : ''}<a href={docsBase(lang) + '/reference#' + e.id} style={{ color: '#9A1B22', textDecoration: 'none', whiteSpace: 'nowrap' }}>{e.method + ' ' + e.path}</a></span>)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

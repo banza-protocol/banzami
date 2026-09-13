@@ -16,6 +16,8 @@ import { GUIDES_MOVED } from './GuidesMoved';
 import { PRESERVED_ARTIFACT_URLS } from './content-map';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 import { FAKE_INSTALL_COMMANDS } from './published-packages';
+import { ENDPOINT_META } from './endpoint-meta';
+import { SCOPE_PURPOSE } from './reference';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const DIR = 'app/developers/docs';
@@ -140,5 +142,13 @@ describe('DX — claim safety across the corpus', () => {
         expect(body.includes('<NextStepCards'), `${lang} ${m[1]} next steps`).toBe(true);
       });
     }
+  });
+});
+
+describe('scopes by task', () => {
+  it('describes exactly the scopes the endpoint contracts require', () => {
+    const required = new Set(Object.values(ENDPOINT_META).map((m) => m.scope).filter(Boolean));
+    expect([...required].filter((s) => !SCOPE_PURPOSE[s as string]), 'scope with no purpose').toEqual([]);
+    expect(Object.keys(SCOPE_PURPOSE).filter((s) => !required.has(s)), 'purpose for a scope no endpoint requires').toEqual([]);
   });
 });

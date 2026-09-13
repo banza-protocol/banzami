@@ -87,7 +87,7 @@ const RULES = {
     en: [/\bjust\b/i, /\bsimply\b/i, /\bobviously\b/i, /\bbasically\b/i, /\breal app\b/i, /\breal users\b/i, /\ball you need to do\b/i, /\beasy\b/i, /\beasily\b/i, /\bdon'?t worry\b/i, /\bfor real\b/i],
   },
   AWKWARD_TRANSLATION: {
-    pt: [/\binquilino\b/i, /\bbinding\b/i, /\bowner\b(?! |s\b)/, /\bmerchant\b/i, /\bruntime\b/i, /\breadiness\b/i, /\bworkflow\b/i, /(?<![.\w])settlement(?![.\w])/, /\bretry\b(?!-after)/i, /\bfinancial setup\b/i, /\bpayment session\b/i, /\bpayment link\b/i, /\bwallet account\b(?!\))/i, /\bprojeto sem titular\b/i],
+    pt: [/\binquilino\b/i, /\btenants?\b/i, /\bbinding\b/i, /\bowner\b(?! |s\b)/, /\bmerchant\b/i, /\bruntime\b/i, /\breadiness\b/i, /\bworkflow\b/i, /(?<![.\w])settlement(?![.\w])/, /\bretry\b(?!-after)/i, /\bfinancial setup\b/i, /\bpayment session\b/i, /\bpayment link\b/i, /\bwallet account\b(?!\))/i, /\bprojeto sem titular\b/i],
     en: [/\bcobrança\b/i, /\bconfiguração\b/i],
   },
   MARKETING: {
