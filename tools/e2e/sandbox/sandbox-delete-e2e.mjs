@@ -215,9 +215,9 @@ export const PREDICATES = {
   // lifecycle
   DELETE_WITH_RAIL_DOWN: (e) => e.rail === 'UNAVAILABLE' && [200, 202].includes(e.status) && e.activeKeys === 0,
   CONCURRENT_DELETES: (e) => e.statuses.every((s) => [200, 202].includes(s)) && e.requested === 1,
-  KEY_RACE: (e) => e.activeKeys === 0 && e.outcomes.every((s) => [201, 404, 409].includes(s)),
-  SESSION_RACE: (e) => e.outcomes.every((s) => [201, 401, 409].includes(s)) && e.openAfterFinish === 0,
-  FUNDING_PAYMENT_RACE: (e) => e.outcomes.every((s) => [200, 401, 409, 422].includes(s)) && e.unretired === 0 && e.funded === 0,
+  KEY_RACE: (e) => e.activeKeys === 0 && e.outcomes.every((s) => [201, 404, 409].includes(s)) && e.outcomes.includes(201) && e.outcomes.some((s) => s !== 201),
+  SESSION_RACE: (e) => e.outcomes.every((s) => [201, 401, 409].includes(s)) && e.outcomes.includes(201) && e.outcomes.some((s) => s !== 201) && e.openAfterFinish === 0,
+  FUNDING_PAYMENT_RACE: (e) => e.outcomes.every((s) => [200, 401, 409, 422].includes(s)) && e.outcomes.includes(200) && e.outcomes.some((s) => s !== 200) && e.unretired === 0 && e.funded === 0,
   ARCHIVED_PROJECT_DELETED: (e) => e.archive === 200 && [200, 202].includes(e.delete) && e.gone === true,
   ARCHIVE_REGRESSION: (e) => e.archive === 200 && e.key === 401 && e.listedArchived === true && e.status === 'ARCHIVED' && e.payerRetired === false
     && e.business === 'ACTIVE' && e.workspaceArchive === 409 && e.deleteAfter === 202,
@@ -458,19 +458,22 @@ async function lifecycleSuite() {
 
     // §35: keys created while the deletion wins.
     const K = await dev.project(`${dev.like}-keys`);
+    // Staggered from before the delete is sent to well after it has committed, so
+    // some land first and some meet the deletion.
+    const RACERS = 14; const STEP = 120;
     const keyRace = await Promise.all([
-      ...Array.from({ length: 8 }, (_, i) => dev.call(`/projects/${K.id}/keys`, 'POST', { kind: 'SECRET', name: `race-${i}`, scopes: ['identity:read'] })),
-      sleep(30).then(() => dev.call(`/projects/${K.id}`, 'DELETE', { name: K.name })),
+      ...Array.from({ length: RACERS }, (_, i) => sleep(i * STEP).then(() => dev.call(`/projects/${K.id}/keys`, 'POST', { kind: 'SECRET', name: `race-${i}`, scopes: ['identity:read'] }))),
+      sleep(STEP).then(() => dev.call(`/projects/${K.id}`, 'DELETE', { name: K.name })),
     ]);
-    j.mark('KEY_RACE', 'Keys created racing the deletion: none is left ACTIVE', { activeKeys: activeKeys(K.id), outcomes: keyRace.slice(0, 8).map((r) => r.status), delete: keyRace[8].status });
+    j.mark('KEY_RACE', 'Keys created racing the deletion: each lands first or is refused, and none is left ACTIVE', { activeKeys: activeKeys(K.id), outcomes: keyRace.slice(0, RACERS).map((r) => r.status), delete: keyRace[RACERS].status });
     finished.push(K.id);
 
     // §35: sessions created racing the deletion.
     const S = await dev.project(`${dev.like}-sessions`, 'STANDARD');
     const MS = merchantOf(S.id);
     const sessionRace = await Promise.all([
-      ...Array.from({ length: 8 }, (_, i) => session(S.api, `${s}_race_${i}`, 1000 + i)),
-      sleep(80).then(() => dev.call(`/projects/${S.id}`, 'DELETE', { name: S.name })),
+      ...Array.from({ length: RACERS }, (_, i) => sleep(i * STEP).then(() => session(S.api, `${s}_race_${i}`, 1000 + i))),
+      sleep(STEP).then(() => dev.call(`/projects/${S.id}`, 'DELETE', { name: S.name })),
     ]);
     finished.push(S.id);
 
@@ -479,9 +482,9 @@ async function lifecycleSuite() {
     const fp = await F.api('/v1/sandbox/test-payers', 'POST', { label: 'F' }, { 'Idempotency-Key': `del_${s}_fp` });
     const fs = await session(F.api, `${s}_fs`, 20000);
     const fundRace = await Promise.all([
-      ...Array.from({ length: 5 }, (_, i) => F.api(`/v1/sandbox/test-payers/${fp.body?.id}/fund`, 'POST', { amount_minor: 10000 }, { 'Idempotency-Key': `del_${s}_f${i}` })),
-      F.api(`/v1/sandbox/test-payers/${fp.body?.id}/payments`, 'POST', { payment_session_id: fs.body?.session_id }, { 'Idempotency-Key': `del_${s}_fpay` }),
-      sleep(60).then(() => dev.call(`/projects/${F.id}`, 'DELETE', { name: F.name })),
+      ...Array.from({ length: RACERS - 1 }, (_, i) => sleep(i * STEP).then(() => F.api(`/v1/sandbox/test-payers/${fp.body?.id}/fund`, 'POST', { amount_minor: 10000 }, { 'Idempotency-Key': `del_${s}_f${i}` }))),
+      sleep(STEP).then(() => F.api(`/v1/sandbox/test-payers/${fp.body?.id}/payments`, 'POST', { payment_session_id: fs.body?.session_id }, { 'Idempotency-Key': `del_${s}_fpay` })),
+      sleep(STEP).then(() => dev.call(`/projects/${F.id}`, 'DELETE', { name: F.name })),
     ]);
     finished.push(F.id);
 
@@ -522,11 +525,11 @@ async function lifecycleSuite() {
     // Everything above finishes; then the races are judged on the final state.
     await until(() => finished.every((p) => projectRow(p).status === 'DELETED'), FINISH_WITHIN_MS + 60000);
     j.mark('SESSION_RACE', 'Sessions created racing the deletion: each is created or refused, and none is left payable', {
-      outcomes: sessionRace.slice(0, 8).map((r) => r.status), delete: sessionRace[8].status, openAfterFinish: businessState(MS).sessions,
+      outcomes: sessionRace.slice(0, RACERS).map((r) => r.status), delete: sessionRace[RACERS].status, openAfterFinish: businessState(MS).sessions,
     });
     const [, unretired, , funded] = payerState(F.id);
     j.mark('FUNDING_PAYMENT_RACE', 'Funding and a payment racing the deletion: committed or refused, and the payer ends retired at zero', {
-      outcomes: fundRace.slice(0, 6).map((r) => r.status), delete: fundRace[6].status, unretired, funded,
+      outcomes: fundRace.slice(0, RACERS).map((r) => r.status), delete: fundRace[RACERS].status, unretired, funded,
     });
     const sp = await P2.api('/v1/sandbox/test-payers', 'POST', { label: 'P2' }, { 'Idempotency-Key': `del_${s}_p2p` });
     const ss = await session(P2.api, `${s}_p2`, 5000);
@@ -585,6 +588,7 @@ const GOOD = {
   KEY_RACE: { activeKeys: 0, outcomes: [201, 409, 404] },
   SESSION_RACE: { outcomes: [201, 401, 409], openAfterFinish: 0 },
   FUNDING_PAYMENT_RACE: { outcomes: [200, 401], unretired: 0, funded: 0 },
+  // (mutations below also include a race that never interleaved)
   ARCHIVED_PROJECT_DELETED: { archive: 200, delete: 202, gone: true },
   ARCHIVE_REGRESSION: { archive: 200, key: 401, listedArchived: true, status: 'ARCHIVED', payerRetired: false, business: 'ACTIVE', workspaceArchive: 409, deleteAfter: 202 },
   SHARED_BUSINESS_KEPT: { linked: 200, deleteOwner: 202, business: 'ACTIVE', partnerPays: 200 },
@@ -600,7 +604,7 @@ const MUTATIONS = {
   WORKSPACE_SETUP: { archivedB: 409 }, WORKSPACE_RBAC: { memberDeletesProject: 202 }, WORKSPACE_DELETE_ACCEPTED: { noArchiveFirst: false },
   WORKSPACE_AUTHORITY_ENDED: { keyC: 200 }, WORKSPACE_GONE_FOR_EVERYONE: { memberProject: 200 }, PENDING_INVITE_INVALID: { accept: 200 },
   WORKSPACE_TEST_RESOURCES_RETIRED: { businesses: ['SUSPENDED', 'ACTIVE'] }, OTHER_TENANT_UNTOUCHED: { key: 401 }, WORKSPACE_TOMBSTONE: { members: 1 },
-  DELETE_WITH_RAIL_DOWN: { status: 503 }, CONCURRENT_DELETES: { requested: 2 }, KEY_RACE: { activeKeys: 1 }, SESSION_RACE: { openAfterFinish: 1 },
+  DELETE_WITH_RAIL_DOWN: { status: 503 }, CONCURRENT_DELETES: { requested: 2 }, KEY_RACE: { outcomes: [201, 201, 201] }, SESSION_RACE: { openAfterFinish: 1 },
   FUNDING_PAYMENT_RACE: { funded: 1 }, ARCHIVED_PROJECT_DELETED: { gone: false }, ARCHIVE_REGRESSION: { payerRetired: true },
   SHARED_BUSINESS_KEPT: { business: 'SUSPENDED' }, RESIDUE_ZERO: { residue: 1 },
 };
