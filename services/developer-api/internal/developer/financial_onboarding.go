@@ -62,6 +62,41 @@ type BusinessOnboarding interface {
 	RedeemLinkCode(ctx context.Context, code, projectID string) (*gatewayclient.LinkTarget, error)
 }
 
+// ProjectLinkCodes issues consent codes for a Project's own synthetic Sandbox
+// Business. Optional: a BusinessOnboarding that does not offer it shares nothing.
+type ProjectLinkCodes interface {
+	IssueProjectLinkCode(ctx context.Context, projectID string) (*gatewayclient.IssuedLinkCode, error)
+}
+
+// ShareSandboxBusiness issues a consent code another of the developer's
+// Projects can redeem to receive into this Project's synthetic Sandbox
+// Business (ADR-060) — the Sandbox counterpart of a real Business issuing a
+// code from its own session. Sandbox only; the Gateway confirms the Business
+// is SANDBOX_SYNTHETIC and owned by this Project.
+func (s *Service) ShareSandboxBusiness(ctx context.Context, actor, projectID, ip, reqID string) (*gatewayclient.IssuedLinkCode, error) {
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canConfigureFinancialSandbox(role) {
+		return nil, ErrForbidden
+	}
+	if !s.sandboxEnv {
+		return nil, ErrWrongEnvironment
+	}
+	issuer, ok := s.onboarding.(ProjectLinkCodes)
+	if !ok {
+		return nil, ErrOnboardingUnavailable
+	}
+	code, err := issuer.IssueProjectLinkCode(ctx, p.ID)
+	if err != nil {
+		return nil, err
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "project.sandbox_business_shared", "PROJECT:"+p.ID, ip, reqID,
+		map[string]any{"expires_at": code.ExpiresAt}) // never the code
+	return code, nil
+}
+
 // BusinessNamer reads a Business's display name.
 type BusinessNamer interface {
 	MerchantName(ctx context.Context, merchantID string) (string, error)
@@ -286,5 +321,6 @@ func (s *Service) LinkExistingBusiness(ctx context.Context, actor, projectID, co
 			name = ""
 		}
 	}
-	return &OnboardingBusiness{Name: name, Handle: "@" + strings.TrimPrefix(t.Handle, "@"), KybStatus: t.KybStatus, Verified: t.KybStatus == "APPROVED"}, nil
+	return &OnboardingBusiness{Name: name, Handle: "@" + strings.TrimPrefix(t.Handle, "@"), KybStatus: t.KybStatus,
+		Verified: t.KybStatus == "APPROVED", Synthetic: t.KybStatus == "SANDBOX_SYNTHETIC"}, nil
 }

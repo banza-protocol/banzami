@@ -211,3 +211,46 @@ func TestApprove_BindsTheProjectThatAskedAndRetriesWhenBindingFailed(t *testing.
 		t.Fatalf("a bound Project was bound again (%d calls)", binder.calls)
 	}
 }
+
+// ADR-060: a Project shares the synthetic Sandbox Business it owns by issuing a
+// consent code; another Project redeems it. The issuing Project is read from
+// sandbox_businesses, a real Business can never be shared this way, and a
+// Project cannot redeem its own code.
+func TestLinkCode_AProjectSharesOnlyItsOwnSyntheticBusiness(t *testing.T) {
+	f := newLinkFixture(t)
+	var reg *string
+	_ = f.pool.QueryRow(f.ctx, `SELECT to_regclass('public.sandbox_businesses')::text`).Scan(&reg)
+	if reg == nil {
+		t.Skip("migration 0142 not applied")
+	}
+	svc := NewPostgresBusinessLinkCodeService(f.pool)
+	owner, other := uuid.NewString(), uuid.NewString()
+
+	// Approved (real) Business: a Project cannot issue for it.
+	if _, err := svc.IssueForProject(f.ctx, owner); !errors.Is(err, ErrLinkCodeNotSynthetic) {
+		t.Fatalf("no Sandbox Business owned: %v", err)
+	}
+	f.exec(`INSERT INTO sandbox_businesses (merchant_id, project_id, use_case) VALUES ($1, $2, 'STANDARD')`, f.merchant, owner)
+	t.Cleanup(func() { _, _ = f.pool.Exec(context.Background(), `DELETE FROM sandbox_businesses WHERE merchant_id=$1`, f.merchant) })
+	if _, err := svc.IssueForProject(f.ctx, owner); !errors.Is(err, ErrLinkCodeNotSynthetic) {
+		t.Fatalf("a Business whose KYB is not SANDBOX_SYNTHETIC must not be shareable by a Project: %v", err)
+	}
+	f.exec(`UPDATE merchant_compliance SET kyb_status='SANDBOX_SYNTHETIC' WHERE merchant_id=$1`, f.merchant)
+
+	issued, err := svc.IssueForProject(f.ctx, owner)
+	if err != nil {
+		t.Fatalf("issue: %v", err)
+	}
+	var by string
+	_ = f.pool.QueryRow(f.ctx, `SELECT issued_by_project_id::text FROM business_link_codes WHERE merchant_id=$1 AND redeemed_at IS NULL ORDER BY created_at DESC LIMIT 1`, f.merchant).Scan(&by)
+	if by != owner {
+		t.Fatalf("issued_by_project_id = %q", by)
+	}
+	if _, err := svc.Redeem(f.ctx, issued.Code, owner); !errors.Is(err, ErrLinkCodeInvalid) {
+		t.Fatalf("the issuing Project redeemed its own code: %v", err)
+	}
+	target, err := svc.Redeem(f.ctx, issued.Code, other)
+	if err != nil || target.MerchantID != f.merchant || target.KybStatus != "SANDBOX_SYNTHETIC" {
+		t.Fatalf("another Project redeems: %+v %v", target, err)
+	}
+}

@@ -245,6 +245,7 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | GET | /internal/v1/businesses/{merchantID}/state | Business state |
 | POST | /internal/v1/businesses/{merchantID}/app-pin-reset | Fresh activation link (when configured) |
 | POST | /internal/v1/business-link-codes/redeem | Spend a Business consent code for a Project |
+| POST | /internal/v1/business-link-codes/issue-for-project | Sandbox: a consent code for the synthetic Business a Project owns (ADR-060) |
 | GET | /internal/v1/merchant-applications | Review queue |
 | GET | /internal/v1/merchant-applications/{id} | Review queue |
 | POST | /internal/v1/merchant-applications/{id}/approve | Review decisions |

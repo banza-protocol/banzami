@@ -287,6 +287,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Put("/projects/{projID}/financial-setup/use-case", h.changeSandboxUseCase)
 		r.Post("/projects/{projID}/financial-onboarding/applications", h.submitFinancialApplication)
 		r.Post("/projects/{projID}/financial-onboarding/link", h.linkExistingBusiness)
+		r.Post("/projects/{projID}/financial-setup/share-code", h.shareSandboxBusiness)
 		r.Post("/projects/{projID}/wallet-accounts", h.createWalletAccount)
 		r.Post("/projects/{projID}/webhooks/endpoints", h.createWebhookEndpoint)
 		r.Post("/projects/{projID}/webhooks/endpoints/{epID}/rotate-secret", h.rotateWebhookSecret)
@@ -580,6 +581,28 @@ func (h *Handlers) linkExistingBusiness(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"business": b})
+}
+
+// POST /projects/{projID}/financial-setup/share-code
+// A consent code for this Project's synthetic Sandbox Business, for another
+// Project to redeem (ADR-060). Shown once; expires in ten minutes.
+func (h *Handlers) shareSandboxBusiness(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	code, err := h.svc.ShareSandboxBusiness(r.Context(), u.ID, chi.URLParam(r, "projID"), ip, reqID)
+	if errors.Is(err, ErrWrongEnvironment) {
+		httpx.Error(w, http.StatusForbidden, "SANDBOX_ONLY", "a Project shares a Business only in the Sandbox")
+		return
+	}
+	if err != nil {
+		onboardingErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, code)
 }
 
 // GET /projects/{projID}/refund-capability

@@ -160,6 +160,40 @@ func (h *BusinessOnboardingHandler) IssueLinkCode(w http.ResponseWriter, r *http
 	writeJSON(w, http.StatusCreated, code)
 }
 
+// POST /internal/v1/business-link-codes/issue-for-project {project_id}
+// developer-api asks for a consent code for the synthetic Sandbox Business the
+// Project owns, so another of the developer's Projects can connect to it
+// (ADR-060). Sandbox only; the gateway reads ownership itself.
+func (h *BusinessOnboardingHandler) IssueProjectLinkCode(w http.ResponseWriter, r *http.Request) {
+	issuer, ok := h.links.(service.ProjectLinkCodeIssuer)
+	if h.links == nil || !ok {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "connecting a Project is not available")
+		return
+	}
+	if h.gate.StackEnv() != "SANDBOX" {
+		apierror.Respond(w, r, http.StatusForbidden, "SANDBOX_ONLY", "a Project shares a Business only in the Sandbox")
+		return
+	}
+	var body struct {
+		ProjectID string `json:"project_id"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body); err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body")
+		return
+	}
+	code, err := issuer.IssueForProject(r.Context(), body.ProjectID)
+	switch {
+	case errors.Is(err, service.ErrLinkCodeNotSynthetic):
+		apierror.Respond(w, r, http.StatusConflict, "NO_SANDBOX_BUSINESS", err.Error())
+	case err != nil:
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "could not create a code; try again")
+	default:
+		businessLinkCodes.WithLabelValues(linkResultIssued).Inc()
+		slog.InfoContext(r.Context(), "business.link_code.issued_by_project", "project_id", body.ProjectID)
+		writeJSON(w, http.StatusCreated, code)
+	}
+}
+
 // POST /internal/v1/business-link-codes/redeem {code, project_id}
 // developer-api spends a code for a Project it has authorised the developer
 // on, and binds the Project to the Business it names.

@@ -290,6 +290,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		r.Post("/internal/v1/proofs/reverse", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Reverse)
 		// developer-api spends a Business's consent code for a Project.
 		r.Post("/internal/v1/business-link-codes/redeem", businessOnboardingHandler.RedeemLinkCode)
+		r.Post("/internal/v1/business-link-codes/issue-for-project", businessOnboardingHandler.IssueProjectLinkCode)
 		r.Get("/internal/v1/businesses/{merchantID}/state", merchantAppAdminHandler.BusinessStateForMerchant)
 		// An operator gives a Business that forgot its PIN a fresh activation link.
 		if deps.BusinessPinResetSvc != nil {

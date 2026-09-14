@@ -155,6 +155,49 @@ func (s *PostgresBusinessLinkCodeService) Issue(ctx context.Context, merchantID,
 	return IssuedLinkCode{Code: FormatLinkCode(code), ExpiresAt: expires}, nil
 }
 
+// ErrLinkCodeNotSynthetic: a Project may issue a code only for the synthetic
+// Sandbox Business it owns (ADR-060). A real Business consents from its own
+// signed-in session, never through a Project.
+var ErrLinkCodeNotSynthetic = errors.New("this Project owns no Sandbox Business to share")
+
+// ProjectLinkCodeIssuer issues consent codes on behalf of a Project's own
+// synthetic Sandbox Business.
+type ProjectLinkCodeIssuer interface {
+	IssueForProject(ctx context.Context, projectID string) (IssuedLinkCode, error)
+}
+
+// IssueForProject issues a code for the synthetic Sandbox Business that
+// projectID owns, so another Project can connect to it. Ownership is read here
+// from sandbox_businesses, not taken from the caller; a Business that is not
+// SANDBOX_SYNTHETIC is refused whatever the caller says.
+func (s *PostgresBusinessLinkCodeService) IssueForProject(ctx context.Context, projectID string) (IssuedLinkCode, error) {
+	if _, err := uuid.Parse(projectID); err != nil {
+		return IssuedLinkCode{}, ErrLinkCodeNotSynthetic
+	}
+	var merchantID string
+	err := s.pool.QueryRow(ctx,
+		`SELECT sb.merchant_id::text
+		   FROM sandbox_businesses sb
+		   JOIN merchant_compliance c ON c.merchant_id = sb.merchant_id
+		  WHERE sb.project_id = $1 AND c.kyb_status = 'SANDBOX_SYNTHETIC'`, projectID).Scan(&merchantID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return IssuedLinkCode{}, ErrLinkCodeNotSynthetic
+	}
+	if err != nil {
+		return IssuedLinkCode{}, err
+	}
+	issued, err := s.Issue(ctx, merchantID, "SANDBOX")
+	if err != nil {
+		return IssuedLinkCode{}, err
+	}
+	if _, err := s.pool.Exec(ctx,
+		`UPDATE business_link_codes SET issued_by_project_id = $1
+		  WHERE code_hash = $2`, projectID, hashLinkCode(normaliseLinkCode(issued.Code))); err != nil {
+		return IssuedLinkCode{}, err
+	}
+	return issued, nil
+}
+
 // Redeem spends a code for a Project and returns the Business it names. The
 // same Project redeeming the same code again gets the same answer (a retried
 // request); any other Project gets ErrLinkCodeInvalid.
@@ -170,12 +213,12 @@ func (s *PostgresBusinessLinkCodeService) Redeem(ctx context.Context, code, proj
 	var (
 		id, merchantID, environment string
 		expires                     time.Time
-		redeemedFor                 *string
+		redeemedFor, issuedBy       *string
 	)
 	err = tx.QueryRow(ctx,
-		`SELECT id, merchant_id, environment, expires_at, redeemed_project_id::text
+		`SELECT id, merchant_id, environment, expires_at, redeemed_project_id::text, issued_by_project_id::text
 		   FROM business_link_codes WHERE code_hash = $1 FOR UPDATE`, hashLinkCode(code)).
-		Scan(&id, &merchantID, &environment, &expires, &redeemedFor)
+		Scan(&id, &merchantID, &environment, &expires, &redeemedFor, &issuedBy)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return BusinessLinkTarget{}, ErrLinkCodeInvalid
 	}
@@ -183,6 +226,9 @@ func (s *PostgresBusinessLinkCodeService) Redeem(ctx context.Context, code, proj
 		return BusinessLinkTarget{}, err
 	}
 	switch {
+	case issuedBy != nil && *issuedBy == projectID:
+		// A Project already owns the Business it issued a code for.
+		return BusinessLinkTarget{}, ErrLinkCodeInvalid
 	case redeemedFor != nil && *redeemedFor != projectID:
 		return BusinessLinkTarget{}, ErrLinkCodeInvalid
 	case redeemedFor == nil && !s.now().Before(expires):

@@ -188,6 +188,23 @@ func (c *Client) RedeemLinkCode(ctx context.Context, code, projectID string) (*L
 	return &out, nil
 }
 
+// IssuedLinkCode is a consent code and when it stops working.
+type IssuedLinkCode struct {
+	Code      string    `json:"code"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// IssueProjectLinkCode asks for a consent code for the synthetic Sandbox
+// Business projectID owns (ADR-060). The Gateway reads the ownership itself.
+func (c *Client) IssueProjectLinkCode(ctx context.Context, projectID string) (*IssuedLinkCode, error) {
+	var out IssuedLinkCode
+	if err := c.do(ctx, http.MethodPost, "/internal/v1/business-link-codes/issue-for-project",
+		map[string]string{"project_id": projectID}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // BusinessIdentity is a Business's public identity as receipts, proofs and the
 // payer's screens name it (the Gateway's business_public_identities): the name it
 // presents and the @banza it owns (without "@"). Never its account name.

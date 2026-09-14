@@ -3,9 +3,10 @@ package developer
 import (
 	"context"
 	"errors"
-	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 	"testing"
+	"time"
 
+	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 	"github.com/banzami/banzami/services/developer-api/internal/gatewayclient"
 )
 
@@ -346,5 +347,44 @@ func TestOnboarding_AConnectedBusinessIsNamedByItsPublicIdentity(t *testing.T) {
 	}
 	if b.Name != "Doa" || b.Handle != "@doa" {
 		t.Fatalf("connected business %+v", b)
+	}
+}
+
+type sharingOnboarding struct {
+	fakeOnboarding
+	issuedFor []string
+}
+
+func (f *sharingOnboarding) IssueProjectLinkCode(_ context.Context, projectID string) (*gatewayclient.IssuedLinkCode, error) {
+	f.issuedFor = append(f.issuedFor, projectID)
+	return &gatewayclient.IssuedLinkCode{Code: "ABCD-EFGH-JKMN", ExpiresAt: time.Now().Add(10 * time.Minute)}, nil
+}
+
+// ADR-060: a Project shares its synthetic Sandbox Business by issuing a
+// consent code — Sandbox only, by a member who may configure Financial Setup,
+// for the Project the session authorised (never one named in a body).
+func TestShareSandboxBusiness_IssuesForTheAuthorisedProjectOnly(t *testing.T) {
+	s, _, pid := setupSvc(t)
+	o := &sharingOnboarding{}
+	s.SetBusinessOnboarding(o)
+
+	if _, err := s.ShareSandboxBusiness(bg, "u_view", pid, "", ""); err != ErrForbidden {
+		t.Fatalf("viewer: %v", err)
+	}
+	if _, err := s.ShareSandboxBusiness(bg, "u_outsider", pid, "", ""); err != ErrNotFound {
+		t.Fatalf("outsider: %v", err)
+	}
+	code, err := s.ShareSandboxBusiness(bg, "u_owner", pid, "", "")
+	if err != nil || code.Code == "" || len(o.issuedFor) != 1 || o.issuedFor[0] != pid {
+		t.Fatalf("owner shares: %+v %v %v", code, err, o.issuedFor)
+	}
+	s.SetSandboxEnvironment(false)
+	if _, err := s.ShareSandboxBusiness(bg, "u_owner", pid, "", ""); err != ErrWrongEnvironment {
+		t.Fatalf("outside the Sandbox: %v", err)
+	}
+	s.SetSandboxEnvironment(true)
+	s.SetBusinessOnboarding(&fakeOnboarding{})
+	if _, err := s.ShareSandboxBusiness(bg, "u_owner", pid, "", ""); err != ErrOnboardingUnavailable {
+		t.Fatalf("no issuer: %v", err)
 	}
 }
