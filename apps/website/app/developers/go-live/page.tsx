@@ -4,6 +4,7 @@ import { MailLink } from '@/components/MailLink';
 import Link from 'next/link';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card, DocsLink } from '@/components/developers/portal/ui';
+import { EnvironmentCards } from '@/components/developers/portal/EnvironmentCards';
 
 // Go Live — the truthful state of an environment that does not exist yet.
 //
@@ -33,13 +34,17 @@ export default function GoLivePage() {
           Live ainda não está disponível
         </h1>
         <p style={{ margin: '14px 0 26px', fontSize: 15, lineHeight: 1.6, color: '#7a6a6e', fontWeight: 600 }}>
-          O Banzami está em Sandbox. Os trilhos financeiros de produção não estão activados para
-          nenhuma conta, não há candidaturas em curso, e nada nesta consola — nenhum botão, nenhuma
-          definição, nenhuma chave — os pode activar.
+          Uma plataforma, dois ambientes financeiros. A Sandbox está disponível e é self-service. O
+          Live é a mesma plataforma, com valor real, e requer aprovação institucional: não está pronto,
+          os trilhos financeiros de produção não estão activados para nenhuma conta, e nada nesta
+          consola — nenhum botão, nenhuma definição, nenhuma chave — os pode activar.
         </p>
         <p style={{ margin: '-16px 0 22px' }}>
           <DocsLink href="/docs/going-live">Preparar a integração para Live</DocsLink>
         </p>
+        <div style={{ marginBottom: 16 }}>
+          <EnvironmentCards compact />
+        </div>
 
         <Card style={{ padding: 24, marginBottom: 16 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 900 }}>O que isto significa em concreto</h3>
@@ -74,7 +79,7 @@ export default function GoLivePage() {
           />
           <p style={{ margin: '18px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600 }}>
             Entretanto,{' '}
-            <Link href="/dashboard" style={{ color: '#B5101F', fontWeight: 800 }}>a sua actividade em Sandbox</Link>
+            <Link href="/" style={{ color: '#B5101F', fontWeight: 800 }}>a sua actividade em Sandbox</Link>
             {' '}é real e mostra-lhe exactamente o que a integração está a fazer.
           </p>
         </Card>

@@ -84,7 +84,9 @@ export function FinancialSetupPointer({ setup }: { setup: FinancialSetupState })
       <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: '#6a5a5e', fontWeight: 600 }}>
         {unavailable
           ? 'Esta instalação não consegue ligar projetos a um negócio. Nada do que faça aqui pode alterar isso.'
-          : 'Este projeto ainda não recebe pagamentos. Para receber pagamentos, liquidações ou taxas de aplicação, o Banzami tem de verificar a entidade legal responsável por este projeto.'}
+          : setup.self_service
+            ? 'Este projeto ainda não recebe pagamentos. Na Sandbox basta escolher o tipo de uso: o Banzami cria um negócio de teste para o projeto, sem candidatura.'
+            : 'Este projeto ainda não recebe pagamentos. Para receber pagamentos, liquidações ou taxas de aplicação, o Banzami tem de verificar a entidade legal responsável por este projeto.'}
       </p>
       <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.6, color: '#8a7a7e', fontWeight: 600 }}>
         Chaves de API e integração funcionam sem isto.
@@ -172,7 +174,11 @@ export function FinancialReadinessPanel({
       </div>
       <div style={{ marginTop: 12 }}>
         <Row label="Identidade financeira" value={r.financial_identity.handle ?? '—'} />
-        <Row label="Verificação (KYB)" value={r.kyb.status ? capitalised(kybStatusLabel(r.kyb.status)) : '—'} ok={r.kyb.status === 'APPROVED'} />
+        <Row
+          label="Verificação (KYB)"
+          value={r.kyb.status ? capitalised(kybStatusLabel(r.kyb.status)) : '—'}
+          ok={r.kyb.status === 'SANDBOX_SYNTHETIC' ? undefined : r.kyb.status === 'APPROVED'}
+        />
         <Row label="Carteira" value={`${accountStatusLabel(r.wallet.status)} · ${r.wallet.currency}`} ok={r.wallet.ready} />
         <Row label="Preço atribuído" value={r.pricing.profile ?? 'Não atribuído'} ok={r.pricing.profile !== null} />
         <Row label="Taxa de liquidação · levantamento" value={`${bps(r.pricing.settlement_bps)} · ${bps(r.pricing.payout_bps)}`} />

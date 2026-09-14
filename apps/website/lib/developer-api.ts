@@ -329,7 +329,16 @@ export type FinancialSetupState = {
    * from a server that predates financial onboarding.
    */
   onboarding?: FinancialOnboarding | null;
+  /** STANDARD or APPLICATION: the use case this Project's Sandbox Business follows. Null when unbound. */
+  sandbox_use_case?: SandboxUseCase | null;
+  /**
+   * True where Financial Setup provisions a synthetic Sandbox Business on
+   * request (ADR-060) — the Sandbox. No review is involved and no KYB is claimed.
+   */
+  self_service?: boolean;
 };
+
+export type SandboxUseCase = 'STANDARD' | 'APPLICATION';
 
 /**
  * The Project's onboarding, one level above the tables (developer-api
@@ -362,6 +371,8 @@ export type OnboardingBusiness = {
   handle: string;
   kyb_status: string;
   verified: boolean;
+  /** A Sandbox test entity provisioned by Financial Setup (SANDBOX_SYNTHETIC) — never verified. */
+  synthetic?: boolean;
 };
 
 /** The Project's latest application for a new Business, as the Gateway reports it. */
@@ -474,6 +485,8 @@ export interface WebhookEvent {
   id: string;
   event_type: string;
   created_at: string;
+  /** A Sandbox test event (webhook.test): no payment behind it; its delivery may be replayed after success. */
+  synthetic?: boolean;
 }
 
 /** One attempt to deliver a webhook, as it happened (migration 0119). */
@@ -515,6 +528,8 @@ export interface ApiRequestLog {
   latency_ms?: number | null;
   environment: string;
   created_at: string;
+  /** API for a request made with one of the Project's keys; API_EXPLORER for one the Console ran. */
+  source?: 'API' | 'API_EXPLORER';
 }
 
 /** Aggregated over the same window, in SQL — not over the returned page, which
@@ -528,8 +543,51 @@ export interface ApiRequestSummary {
   window_start?: string | null;
 }
 
+/** One operation the API Explorer can run, generated from the published OpenAPI. */
+export type ExplorerOperation = {
+  operation_id: string;
+  tag: string;
+  summary: string;
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT' | 'PATCH';
+  path: string;
+  scope: string;
+  path_params: { name: string; example?: string }[];
+  query_params: { name: string; type?: string }[];
+  idempotency: boolean;
+  idempotency_required: boolean;
+  body: boolean;
+  example_body: unknown;
+};
+
+/** The Sandbox API's answer to an Explorer request. Never carries a key. */
+export type ExplorerResponse = {
+  operation_id: string;
+  method: string;
+  path: string;
+  status: number;
+  request_id: string;
+  latency_ms: number;
+  idempotency_key?: string;
+  headers: Record<string, string>;
+  body?: unknown;
+  text?: string;
+  redacted?: string[];
+};
+
+export type SandboxResetResult = {
+  test_payers_retired: number;
+  business_reset: boolean;
+  payment_sessions_cancelled: number;
+  payment_links_cancelled: number;
+  accounts_closed: number;
+  retired_minor: number;
+};
+
 export interface RequestLogQuery {
   limit?: number;
+  /** API (an integration's key) or API_EXPLORER (the Console's API Explorer). */
+  source?: 'API' | 'API_EXPLORER';
+  method?: string;
   request_id?: string;
   status?: number;
   path?: string;
@@ -679,13 +737,36 @@ export const developerApi = {
   // Where the project stands: whether it receives into a Business, and how it
   // is getting one.
   //
-  // There is deliberately no client for POST /financial-setup. That was the
-  // one-click setup, which created a synthetic Business and wrote its KYB as
-  // approved with nobody reviewing anything; the server now answers it 410
-  // FINANCIAL_SETUP_BY_REVIEW. A Project gets a Business in exactly two ways,
-  // both below.
+  // The retired one-click setup created a synthetic Business and wrote its KYB
+  // as APPROVED with nobody reviewing anything. What replaced it in the Sandbox
+  // (ADR-060) names a use case, and Core provisions a Business marked
+  // SANDBOX_SYNTHETIC — a test entity, never verified — classified and priced
+  // by policy. Outside the Sandbox the server refuses it (SANDBOX_ONLY).
   financialSetup: (projectID: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup`),
+
+  setUpSandboxBusiness: (projectID: string, useCase: SandboxUseCase, csrf: string) =>
+    req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, { method: 'POST', body: { use_case: useCase }, csrf }),
+  changeSandboxUseCase: (projectID: string, useCase: SandboxUseCase, csrf: string) =>
+    req<FinancialSetupState>(`/projects/${projectID}/financial-setup/use-case`, { method: 'PUT', body: { use_case: useCase }, csrf }),
+  // A consent code for this Project's synthetic Business, for another of the
+  // developer's Projects to connect with (linkExistingBusiness). Shown once.
+  shareSandboxBusiness: (projectID: string, csrf: string) =>
+    req<{ code: string; expires_at: string }>(`/projects/${projectID}/financial-setup/share-code`, { method: 'POST', csrf }),
+  // Retire this Project's live test data. Nothing is deleted. Typed confirmation.
+  resetSandbox: (projectID: string, csrf: string) =>
+    req<SandboxResetResult>(`/projects/${projectID}/sandbox/reset`, { method: 'POST', body: { confirm: 'RESET' }, csrf }),
+
+  // ── API Explorer (ADR-060 §7) ──────────────────────────────────────────────
+  // developer-api runs the request with a 60-second key scoped to the one
+  // operation and revokes it; the browser never holds a key.
+  explorerOperations: (projectID: string) =>
+    req<{ spec_version: string; key_ttl_seconds: number; operations: ExplorerOperation[] }>(`/projects/${projectID}/explorer/operations`),
+  runExplorerRequest: (
+    projectID: string,
+    body: { operation_id: string; path_params?: Record<string, string>; query?: Record<string, string>; body?: unknown; idempotency_key?: string },
+    csrf: string,
+  ) => req<ExplorerResponse>(`/projects/${projectID}/explorer/requests`, { method: 'POST', body, csrf }),
 
   // A. Apply for a NEW Business — the same application the public form sends,
   // reviewed by an operator in BANZADMIN. One idempotency key per form session:
@@ -805,6 +886,8 @@ export const developerApi = {
     if (q.request_id) p.set('request_id', q.request_id);
     if (q.status) p.set('status', String(q.status));
     if (q.path) p.set('path', q.path);
+    if (q.source) p.set('source', q.source);
+    if (q.method) p.set('method', q.method);
     if (q.since) p.set('since', q.since);
     if (q.until) p.set('until', q.until);
     const qs = p.toString();

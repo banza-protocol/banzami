@@ -59,6 +59,8 @@ export function RequestLog() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [win, setWin] = useState<Window>('24h');
+  const [source, setSource] = useState<'' | 'API' | 'API_EXPLORER'>('');
+  const [method, setMethod] = useState('');
 
   const load = useCallback(async () => {
     if (!projectId) return;
@@ -75,6 +77,8 @@ export function RequestLog() {
         // prefixed string, so the shape is what decides.
         ...(q ? (isRequestId(q) ? { request_id: q } : { path: q }) : {}),
         ...(status ? { status: Number(status) } : {}),
+        ...(source ? { source } : {}),
+        ...(method ? { method } : {}),
         ...(hours ? { since: new Date(Date.now() - hours * 3600_000).toISOString() } : {}),
       });
       setLogs(res.logs);
@@ -84,7 +88,7 @@ export function RequestLog() {
       setError(e instanceof Error ? e.message : 'erro desconhecido');
       setState('error');
     }
-  }, [projectId, query, status, win]);
+  }, [projectId, query, status, win, source, method]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -130,6 +134,28 @@ export function RequestLog() {
             fontSize: 13.5, fontWeight: 600, color: '#2a2024', background: '#fff', outline: 'none',
           }}
         />
+        <select
+          aria-label="Método"
+          value={method}
+          onChange={(e) => setMethod(e.target.value)}
+          style={{ padding: '11px 12px', border: '1.5px solid #EBDBD9', borderRadius: 12, fontSize: 13.5, fontWeight: 700, color: '#2a2024', background: '#fff' }}
+        >
+          <option value="">Todos os métodos</option>
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="DELETE">DELETE</option>
+        </select>
+        <select
+          aria-label="Origem"
+          data-testid="log-source"
+          value={source}
+          onChange={(e) => setSource(e.target.value as '' | 'API' | 'API_EXPLORER')}
+          style={{ padding: '11px 12px', border: '1.5px solid #EBDBD9', borderRadius: 12, fontSize: 13.5, fontWeight: 700, color: '#2a2024', background: '#fff' }}
+        >
+          <option value="">Todas as origens</option>
+          <option value="API">Chaves da integração</option>
+          <option value="API_EXPLORER">API Explorer</option>
+        </select>
         <div style={{ display: 'flex', gap: 4, background: '#fff', border: '1.5px solid #EBDBD9', borderRadius: 12, padding: 3 }}>
           {WINDOWS.map((w) => (
             <button
@@ -197,7 +223,10 @@ export function RequestLog() {
                   {logs.map((l) => (
                     <tr key={l.id} className="bz-row" style={{ borderTop: '1px solid #F7EDEB' }}>
                       <td style={{ ...td, padding: '13px 22px', color: '#8a7a7e' }}>{when(l.created_at)}</td>
-                      <td style={{ ...td, fontWeight: 700 }}>{l.method}</td>
+                      <td style={{ ...td, fontWeight: 700 }}>
+                        {l.method}
+                        {l.source === 'API_EXPLORER' ? <span style={{ marginLeft: 6 }}><Pill kind="neutral">Explorer</Pill></span> : null}
+                      </td>
                       <td style={{ ...td, color: '#2a2024' }} title={l.route || l.path}>{l.path}</td>
                       <td style={{ padding: '13px 12px' }}>
                         <Pill kind={statusTone(l.status)}>{l.status}</Pill>

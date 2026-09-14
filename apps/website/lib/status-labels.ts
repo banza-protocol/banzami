@@ -11,6 +11,8 @@ const KYB: Record<string, string> = {
   APPROVED: 'aprovada',
   REJECTED: 'recusada',
   SUSPENDED: 'suspensa',
+  // A Sandbox test entity (ADR-060): not verified, and not waiting to be.
+  SANDBOX_SYNTHETIC: 'não aplicável — negócio de teste da Sandbox',
 };
 
 /** A Business's KYB verification, lower-case to follow "Verificação:". */

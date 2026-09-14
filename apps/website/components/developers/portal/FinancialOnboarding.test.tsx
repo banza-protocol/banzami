@@ -12,6 +12,8 @@ import type {
 
 const submit = vi.fn();
 const link = vi.fn();
+const setUpSandbox = vi.fn();
+const share = vi.fn();
 vi.mock('@/lib/developer-api', async (orig) => {
   const real = await orig<typeof import('@/lib/developer-api')>();
   return {
@@ -19,6 +21,9 @@ vi.mock('@/lib/developer-api', async (orig) => {
     developerApi: {
       submitFinancialApplication: (...a: unknown[]) => submit(...a),
       linkExistingBusiness: (...a: unknown[]) => link(...a),
+      setUpSandboxBusiness: (...a: unknown[]) => setUpSandbox(...a),
+      shareSandboxBusiness: (...a: unknown[]) => share(...a),
+      changeSandboxUseCase: async () => ({}),
     },
   };
 });
@@ -335,5 +340,48 @@ describe('who may act', () => {
     expect(container().getAttribute('data-state')).toBe('UNAVAILABLE');
     expect(screen.queryAllByRole('button')).toEqual([]);
     expect(document.body.textContent).toMatch(/Nada do que faça aqui pode alterar isso/);
+  });
+});
+
+
+// ── ADR-060: the Sandbox needs no review ─────────────────────────────────────
+describe('Sandbox self-service Financial Setup', () => {
+  afterEach(() => { cleanup(); setUpSandbox.mockReset(); share.mockReset(); });
+
+  it('offers a use case, never a classification, a profile or a rate — and no application form', async () => {
+    const setup = { ...setupFor('NOT_CONFIGURED'), self_service: true };
+    const onChanged = vi.fn();
+    setUpSandbox.mockResolvedValue(setup);
+    render(<FinancialOnboardingPanel setup={setup} projectId="p1" csrf="c" onChanged={onChanged} />);
+    expect(screen.getByTestId('sandbox-setup-start')).toBeTruthy();
+    expect(screen.queryByTestId('onboarding-path-new')).toBeNull();
+    expect(screen.queryByText('Iniciar verificação')).toBeNull();
+    const text = screen.getByTestId('financial-onboarding').textContent ?? '';
+    expect(text).not.toMatch(/\bbps\b|pricing_profile|business_account_type/);
+
+    const go = screen.getByTestId('sandbox-setup-go') as HTMLButtonElement;
+    expect(go.disabled).toBe(true);
+    fireEvent.click(within(screen.getByTestId('use-case-APPLICATION')).getByRole('radio'));
+    fireEvent.click(go);
+    await waitFor(() => expect(setUpSandbox).toHaveBeenCalledWith('p1', 'APPLICATION', 'c'));
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+  });
+
+  it('names a synthetic Business as a test entity, not as a verification in progress', () => {
+    const setup = {
+      ...setupFor('READY', 'OWNER', { business: { name: 'Loja', handle: '@p0a1b2c3d4e5', kyb_status: 'SANDBOX_SYNTHETIC', verified: false, synthetic: true } }),
+      self_service: true,
+      sandbox_use_case: 'STANDARD' as const,
+    };
+    render(<FinancialOnboardingPanel setup={setup} projectId="p1" csrf="c" onChanged={() => {}} />);
+    expect(screen.getByTestId('business-synthetic').textContent).toContain('não verificado');
+    expect(screen.getByTestId('business-card').textContent).not.toMatch(/Verificação: pendente|Verificado/);
+    expect(screen.getByTestId('sandbox-business-panel')).toBeTruthy();
+  });
+
+  it('a viewer reads the choice and cannot act', () => {
+    const setup = { ...setupFor('NOT_CONFIGURED', 'VIEWER'), self_service: true };
+    render(<FinancialOnboardingPanel setup={setup} projectId="p1" csrf="c" onChanged={() => {}} />);
+    expect(screen.queryByTestId('sandbox-setup-go')).toBeNull();
   });
 });

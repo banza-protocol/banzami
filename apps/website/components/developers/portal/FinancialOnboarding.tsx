@@ -21,6 +21,7 @@ import { ApplicationDocuments } from './ApplicationDocuments';
 import { BusinessApplicationForm } from './BusinessApplicationForm';
 import { ConnectBusinessForm } from './ConnectBusinessForm';
 import { FinancialReadinessPanel, FinancialSetupStatus } from './FinancialSetup';
+import { SandboxBusinessPanel, SandboxSetupStart } from './SandboxSetup';
 import { Card, FIELD_ERROR, FIELD_HINT, SECONDARY_BUTTON, primaryButton } from './ui';
 
 /**
@@ -148,9 +149,15 @@ export function BusinessCard({ business }: { business: OnboardingBusiness }) {
       <span aria-hidden="true" style={{ color: '#b8a4a6' }}>·</span>
       <span style={{ fontSize: 14, fontWeight: 800, color: '#6a5a5e' }}>{business.handle || '—'}</span>
       <span aria-hidden="true" style={{ color: '#b8a4a6' }}>·</span>
-      <span style={{ fontSize: 13, fontWeight: 800, color: verified ? '#1E6B34' : '#B5101F' }}>
-        {verified ? 'Verificado' : `Verificação: ${kybStatusLabel(business.kyb_status)}`}
-      </span>
+      {business.synthetic ? (
+        <span data-testid="business-synthetic" style={{ fontSize: 13, fontWeight: 800, color: '#6a5a5e' }}>
+          Negócio de teste da Sandbox · não verificado
+        </span>
+      ) : (
+        <span style={{ fontSize: 13, fontWeight: 800, color: verified ? '#1E6B34' : '#B5101F' }}>
+          {verified ? 'Verificado' : `Verificação: ${kybStatusLabel(business.kyb_status)}`}
+        </span>
+      )}
     </div>
   );
 }
@@ -275,6 +282,9 @@ export function FinancialOnboardingPanel({
     ? (
       <>
         <FinancialSetupStatus setup={setup} />
+        {setup.self_service && (
+          <SandboxBusinessPanel setup={setup} projectId={projectId} csrf={csrf} canAct={actor} onChanged={(m) => reload(m)} />
+        )}
         <FinancialReadinessPanel setup={setup} showBlockers={false} />
       </>
     )
@@ -295,7 +305,17 @@ export function FinancialOnboardingPanel({
         </p>
       )}
 
-      {(view === 'NOT_CONFIGURED' || view === 'REJECTED') && (
+      {setup.self_service && view === 'NOT_CONFIGURED' && (
+        <SandboxSetupStart
+          projectId={projectId}
+          csrf={csrf}
+          canAct={Boolean(canStart)}
+          onDone={(m) => reload(m)}
+          onConnectExisting={() => setMode('connect')}
+        />
+      )}
+
+      {!(setup.self_service && view === 'NOT_CONFIGURED') && (view === 'NOT_CONFIGURED' || view === 'REJECTED') && (
         <>
           {view === 'REJECTED' ? (
             <>

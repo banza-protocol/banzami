@@ -30,6 +30,10 @@ export const CONSOLE_SURFACES: ConsoleSurface[] = [
   { key: 'transactions', route: '/transacoes', state: 'RELEASED' },
   { key: 'financial_setup', route: '/financeiro', state: 'RELEASED' },
   { key: 'api_keys', route: '/api-keys', state: 'RELEASED' },
+  // ADR-060: the API Explorer (server-side broker, no key in the browser) and
+  // the Project's Sandbox test data (payers, scenarios, reset).
+  { key: 'api_explorer', route: '/explorer', state: 'RELEASED' },
+  { key: 'test_data', route: '/dados-de-teste', state: 'RELEASED' },
   { key: 'webhooks', route: '/webhooks', state: 'RELEASED' },
   { key: 'logs_events', route: '/logs', state: 'RELEASED' },
   { key: 'docs', route: '/docs', state: 'RELEASED' },

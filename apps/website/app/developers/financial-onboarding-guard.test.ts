@@ -5,10 +5,12 @@
  * "One Business identity. Multiple onboarding surfaces. One KYB authority." The
  * Console must not send a developer to the public Business application to
  * onboard a Project (the Project would never be bound to what that creates),
- * and nothing may reach the retired one-click setup — POST
+ * and nothing may reach the retired one-click setup — a bare POST
  * /projects/{id}/financial-setup, which created a synthetic Business and wrote
- * its KYB as approved with nobody reviewing anything. The server answers it 410
- * FINANCIAL_SETUP_BY_REVIEW; this guard keeps the client from calling it again.
+ * its KYB as approved with nobody reviewing anything. What replaced it in the
+ * Sandbox (ADR-060) always names a use case, and Core marks the Business
+ * SANDBOX_SYNTHETIC, never APPROVED; this guard keeps the client from making the
+ * bare call again.
  *
  * Node-only (fs), no jsdom, no network. Each predicate is shown to fire on the
  * code it exists to catch, below — a guard never observed failing is decoration.
@@ -49,7 +51,7 @@ const predicates = {
   /** A client for, or a call to, the retired one-click setup. */
   callsRetiredSetup: (src: string) =>
     /configureFinancialSetup/.test(src) ||
-    /financial-setup[`'"]\s*,\s*\{[^}]*method:\s*['"]POST['"]/.test(src),
+    [...src.matchAll(/financial-setup[`'"]\s*,\s*\{([^\n]*)/g)].some((m) => /method:\s*['"]POST['"]/.test(m[1]) && !/use_case/.test(m[1])),
 };
 
 describe('Console financial onboarding', () => {
@@ -84,5 +86,9 @@ describe('the guard predicates fire on what they exist to catch', () => {
 
   it('does not fire on the read that stays', () => {
     expect(predicates.callsRetiredSetup('financialSetup: (projectID: string) => req(`/projects/${projectID}/financial-setup`),')).toBe(false);
+  });
+
+  it('does not fire on the Sandbox setup that names a use case (ADR-060)', () => {
+    expect(predicates.callsRetiredSetup("req(`/projects/${projectID}/financial-setup`, { method: 'POST', body: { use_case: useCase }, csrf }),")).toBe(false);
   });
 });

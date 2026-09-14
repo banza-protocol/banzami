@@ -13,6 +13,8 @@ import {
 import {
   IconChart, IconCheck, IconCode, IconFlask, IconSwap, IconWebhookNodes,
 } from '@/components/developers/portal/icons';
+import { EnvironmentCards } from '@/components/developers/portal/EnvironmentCards';
+import { SandboxChecklist } from '@/components/developers/portal/SandboxChecklist';
 
 // Visão geral — this project's real activity.
 //
@@ -27,7 +29,6 @@ import {
 // events. Where there is nothing to show, the page says so — an empty state is
 // true, and a plausible fake is not.
 
-const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 const th = { padding: '10px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.04em' } as const;
 
@@ -122,6 +123,8 @@ export function Overview() {
         <p style={{ margin: '6px 0 20px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           Actividade real do projeto {activeProject?.name ? `“${activeProject.name}”` : ''} em Sandbox — últimos 7 dias.
         </p>
+
+        {projectId && <SandboxChecklist projectId={projectId} />}
 
         {state === 'loading' && <Card style={{ padding: 18, fontSize: 13.5, color: '#8a7a7e' }}>A carregar…</Card>}
         {state === 'error' && (
@@ -262,25 +265,7 @@ export function Overview() {
                   )}
                 </Card>
 
-                <div style={{ background: 'linear-gradient(155deg,#FFF6E9,#FFF0EE)', border: '1px solid #F7E4CB', borderRadius: 18, padding: 22 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 9, background: '#FDF0D8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#C77A0A' }}>
-                      <IconFlask size={17} />
-                    </span>
-                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#2a2024' }}>Ambiente atual</h3>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#B8770A' }}>Sandbox</p>
-                  <p style={{ margin: '8px 0 16px', fontSize: 13, lineHeight: 1.55, color: '#8a6a4e', fontWeight: 600 }}>
-                    Está num ambiente de testes. Conclua a verificação KYB para processar pagamentos reais.
-                  </p>
-                  <Link href="/go-live" className="bz-cta" style={{
-                    display: 'block', textAlign: 'center', width: '100%', padding: 11, borderRadius: 12,
-                    background: ctaGradient, color: '#fff', fontWeight: 800, fontSize: 13.5,
-                    textDecoration: 'none', boxShadow: '0 12px 24px -12px rgba(181,16,31,.5)',
-                  }}>
-                    Saiba mais sobre Go Live
-                  </Link>
-                </div>
+                <EnvironmentCards compact />
               </div>
             </div>
           </>

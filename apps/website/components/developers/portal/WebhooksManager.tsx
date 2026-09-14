@@ -193,6 +193,31 @@ export function WebhooksManager() {
     }
   };
 
+  // A Sandbox test event (webhook.test), through the API Explorer's broker: the
+  // published POST /v1/webhooks/endpoints/{id}/test, signed like any event,
+  // moving nothing. The event appears below with its delivery.
+  const [testing, setTesting] = useState<string | null>(null);
+  const [testNotice, setTestNotice] = useState('');
+  const sendTest = async (ep: WebhookEndpoint) => {
+    if (!projectId) return;
+    setTesting(ep.id);
+    setTestNotice('');
+    try {
+      const r = await developerApi.runExplorerRequest(projectId, { operation_id: 'sendWebhookTestEvent', path_params: { id: ep.id } }, csrf);
+      if (r.status === 202) {
+        setTestNotice('Evento de teste enviado. A entrega aparece em “Eventos e entregas” dentro de segundos.');
+        setTimeout(() => void load(), 1500);
+      } else {
+        const code = (r.body as { code?: string } | undefined)?.code;
+        setTestNotice(code === 'ENDPOINT_DISABLED' ? 'O endpoint está desativado: reative-o primeiro.' : `A API respondeu ${r.status}${code ? ` ${code}` : ''}.`);
+      }
+    } catch (e) {
+      setTestNotice(onApiError(e));
+    } finally {
+      setTesting(null);
+    }
+  };
+
   const rotate = async (ep: WebhookEndpoint) => {
     if (!projectId) return;
     try {
@@ -387,6 +412,11 @@ export function WebhooksManager() {
                           </p>
 
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {e.active && (
+                              <button data-testid="webhook-send-test" onClick={() => void sendTest(e)} disabled={testing === e.id} style={ghostButton}>
+                                {testing === e.id ? 'A enviar…' : 'Enviar evento de teste'}
+                              </button>
+                            )}
                             <button onClick={() => setConfirming({ action: 'rotate', ep: e })} style={ghostButton}>
                               Rodar segredo
                             </button>
@@ -413,6 +443,12 @@ export function WebhooksManager() {
           </table>
         )}
       </Card>
+
+      {testNotice && (
+        <p role="status" data-testid="webhook-test-notice" style={{ margin: '0 0 12px', padding: '10px 14px', borderRadius: 11, background: '#F3EDEC', color: '#2a2024', fontWeight: 700, fontSize: 13.5 }}>
+          {testNotice}
+        </p>
+      )}
 
       <Card style={{ overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 22px', borderBottom: '1px solid #F5E9E7' }}>
@@ -493,7 +529,10 @@ export function WebhooksManager() {
                         style={{ display: 'flex', width: '100%', gap: 12, alignItems: 'center', padding: '13px 22px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
                         aria-expanded={open === ev.id}
                       >
-                        <span style={{ fontFamily: mono, fontWeight: 700, flex: '0 0 220px' }}>{ev.event_type}</span>
+                        <span style={{ fontFamily: mono, fontWeight: 700, flex: '0 0 220px' }}>
+                          {ev.event_type}
+                          {ev.synthetic ? <span style={{ marginLeft: 8 }}><Pill kind="neutral">teste</Pill></span> : null}
+                        </span>
                         <span style={{ fontFamily: mono, fontSize: 11, color: '#a89a9e', flex: 1 }}>{ev.id}</span>
                         <span style={{ color: '#a89a9e', fontWeight: 700, fontSize: 12 }}>{when(ev.created_at)}</span>
                         <span aria-hidden style={{ color: '#B5101F', fontWeight: 900 }}>{open === ev.id ? '−' : '+'}</span>
@@ -532,8 +571,10 @@ export function WebhooksManager() {
                                           {/* Only on a delivery that failed. A delivery
                                               that was accepted is not re-sent — the
                                               integrator acted on that event — and one
-                                              still pending is already in the queue. */}
-                                          {d.status.toUpperCase() === 'FAILED' ? (
+                                              still pending is already in the queue. A
+                                              Sandbox test event is the exception: it
+                                              moves nothing and exists to be sent again. */}
+                                          {d.status.toUpperCase() === 'FAILED' || (ev.synthetic && d.status.toUpperCase() === 'SUCCESS') ? (
                                             <button
                                               onClick={() => setReplaying({ eventId: ev.id, delivery: d })}
                                               style={{ ...ghostButton, padding: '5px 11px', fontSize: 12 }}

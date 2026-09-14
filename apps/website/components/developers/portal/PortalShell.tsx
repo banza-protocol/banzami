@@ -15,6 +15,7 @@ import {
   IconArrowRight,
   IconBolt,
   IconBriefcase,
+  IconCode,
   IconDoc,
   IconFlask,
   IconGear,
@@ -39,6 +40,8 @@ type PortalKey =
   | 'transacoes'
   | 'financeiro'
   | 'apikeys'
+  | 'explorer'
+  | 'dados'
   | 'webhooks'
   | 'logs'
   | 'docs'
@@ -53,6 +56,8 @@ const NAV: { key: PortalKey; label: string; href: string; icon: (p: { size?: num
   { key: 'transacoes', label: 'Transações', href: '/transacoes', icon: IconSwap },
   { key: 'financeiro', label: 'Configuração financeira', href: '/financeiro', icon: IconShield },
   { key: 'apikeys', label: 'API Keys', href: '/api-keys', icon: IconKey },
+  { key: 'explorer', label: 'API Explorer', href: '/explorer', icon: IconCode },
+  { key: 'dados', label: 'Dados de teste', href: '/dados-de-teste', icon: IconFlask },
   { key: 'webhooks', label: 'Webhooks', href: '/webhooks', icon: IconWebhook },
   { key: 'logs', label: 'Logs / Eventos', href: '/logs', icon: IconList },
   { key: 'docs', label: 'Documentação', href: '/docs', icon: IconDoc },
