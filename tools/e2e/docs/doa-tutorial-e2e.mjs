@@ -5,8 +5,9 @@
  *
  * DOA may be special as an application. It must never be special as a Banzami
  * tenant. So this does not touch DOA at all: it builds a FRESH equivalent — a
- * new developer, workspace, project and Business, applied for and reviewed like
- * any other — and does, step by step, only what /docs/doa tells a reader to do.
+ * new developer, workspace, project and a test Business set up for the
+ * Application use case like any other Project's (ADR-060) — and does, step by
+ * step, only what /docs/doa tells a reader to do.
  * Nothing here names DOA's tenant, key, account or handle, and nothing could.
  *
  * Two things are checked at every step, and both must hold:
@@ -20,11 +21,12 @@
  *      @banzami/sdk from the public registry, in an empty directory.
  *
  * Rules (§46): fresh fixture; no DOA branch; no database write; no private
- * endpoint; no unpublished SDK; no invented credentials. Operator review is the
- * canonical BANZADMIN workflow, done by a person. Residue is measured, read-only.
+ * endpoint; no unpublished SDK; no invented credentials; no operator step — the
+ * Public Sandbox needs none. The donor and the beneficiary are test payers made
+ * from the Console, so a reset retires them. Residue is measured, read-only.
  *
- *   node tools/e2e/docs/doa-tutorial-e2e.mjs prepare    # 1–4, submits the application
- *   … the application is reviewed in BANZADMIN …
+ *   node tools/e2e/docs/doa-tutorial-e2e.mjs run        # 1–13, cleanup
+ *   node tools/e2e/docs/doa-tutorial-e2e.mjs prepare    # 1–4
  *   node tools/e2e/docs/doa-tutorial-e2e.mjs complete   # 2 again, 5–13, cleanup
  *   node tools/e2e/docs/doa-tutorial-e2e.mjs contract   # page checks only, no Sandbox writes
  */
@@ -35,8 +37,8 @@ import { dirname, join } from 'node:path';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 import { mintSession } from '../console/lib/mint.mjs';
 import {
-  CONSUMER, DOCS, GW, consoleCaller, journey, readDeployedPage, runInReaderDir,
-  sandboxCount, sinkConfigure, sinkRequests, uploadDueDocuments,
+  DOCS, GW, consoleCaller, journey, readDeployedPage, runInReaderDir,
+  sandboxCount, sinkConfigure, sinkRequests,
 } from './lib/journey.mjs';
 
 const STATE = join(tmpdir(), 'banzami-docs-doa-tutorial.json');
@@ -45,7 +47,7 @@ const STATE = join(tmpdir(), 'banzami-docs-doa-tutorial.json');
 
 export const RUBRIC = [
   'Sign in, create a workspace and a project',
-  'Financial Setup — a Business applied for and reviewed',
+  'Financial Setup — a test Business for the Application use case, no review',
   'Secret key with exactly the scopes the tutorial lists',
   'Install the SDK the tutorial names',
   'Readiness gate: getFinancialSetup before activating a campaign',
@@ -124,7 +126,7 @@ const sdkClient = (sdk, extra = '') => `import { BanzamiClient } from '${sdk}';\
 
 // ── prepare ──────────────────────────────────────────────────────────────────
 
-async function prepare() {
+async function prepare({ thenComplete = false } = {}) {
   console.log(`DOA tutorial — prepare · ${DOCS}/docs/doa\n`);
   const pages = await readTutorial();
   const stamp = Date.now().toString(36);
@@ -149,28 +151,14 @@ async function prepare() {
   const call = state.token ? consoleCaller(state.token) : null;
 
   if (J.verdict(1) === 'PASS' && pageSays(2, pages)) {
-    const app = await call(`/projects/${state.created.project}/financial-onboarding/applications`, 'POST', {
-      desired_handle: `doatut${stamp}`,
-      business_name: `Docs DOA Tutorial ${stamp}`,
-      category: 'donations',
-      email: identity, phone: '+244900000000', nif: `5${stamp.replace(/\D/g, '').padEnd(9, '1').slice(0, 9)}`,
-      province: 'Luanda', municipality: 'Luanda', address: 'Rua de Teste, 2',
-      legal_representative: 'Tutorial Reader', representative_role: 'Director',
-      business_activity: 'Sandbox fixture for the public DOA reference tutorial (donation platform pattern)',
-      terms_accepted: true, idempotency_key: `idem_docs_doa_${stamp}`,
-    });
-    if (app.status === 201) {
-      state.created.application = app.body?.application_id;
-      state.created.handle = `doatut${stamp}`;
-      const due = (await call(`/projects/${state.created.project}/financial-setup`)).body?.onboarding?.application?.requirements?.currently_due ?? [];
-      const up = await uploadDueDocuments(app.body.application_id, due, 'Banzami public DOA tutorial');
-      const still = ((await call(`/projects/${state.created.project}/financial-setup`)).body?.onboarding?.application?.requirements?.currently_due ?? []).filter((x) => x.kind === 'document');
-      up.failed.length || still.length
-        ? mark(2, 'FAIL', `documents could not be supplied: ${[...up.failed, ...still.map((x) => `${x.code} still due`)].join('; ')}`)
-        : mark(2, 'PENDING', `application ${app.body.application_id} (@doatut${stamp}) submitted with ${up.done.join(', ')} — awaiting operator review`);
-    } else {
-      mark(2, 'FAIL', `the application was refused: http ${app.status} ${JSON.stringify(app.body)?.slice(0, 120)}`);
-    }
+    // The page's path for an application: the Application or platform use case.
+    const setup = await call(`/projects/${state.created.project}/financial-setup`, 'POST', { use_case: 'APPLICATION' });
+    const b = setup.body?.onboarding?.business;
+    const handle = setup.body?.readiness?.financial_identity?.handle ?? b?.handle ?? '';
+    state.created.handle = handle.replace(/^@/, '');
+    setup.status === 200 && ['READY', 'SEALED'].includes(setup.body?.state) && b?.synthetic === true && setup.body?.sandbox_use_case === 'APPLICATION'
+      ? mark(2, 'PASS', `test Business ${handle} for the Application use case — no application, no review`)
+      : mark(2, 'FAIL', `setup http ${setup.status} state ${setup.body?.state} use_case ${setup.body?.sandbox_use_case}`);
   }
 
   // Step 3 — the scopes are READ FROM THE PAGE, not written here, so a page that
@@ -215,6 +203,7 @@ async function prepare() {
   }
 
   saveState(state);
+  if (thenComplete && J.verdict(2) === 'PASS') return null;
   return finish(state, 'prepare');
 }
 
@@ -303,16 +292,15 @@ async function complete() {
   if (J.verdict(8) === 'PASS' && pageSays(9, pages)) {
     const slug = session.link.split('/').filter(Boolean).pop();
     const hosted = await fetch(`https://pay.banzami.com/pay/${slug}`);
-    const donor = `doatutdonor${state.stamp}`;
-    const reg = await fetch(`${CONSUMER}/v1/auth/register`, { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ handle: donor, display_name: 'Tutorial donor', pin: String(100000 + Math.floor(Math.random() * 899999)) }) });
-    const payer = await reg.json().catch(() => null);
-    state.created.donor = donor;
-    const pay = await fetch(`${CONSUMER}/v1/payment-links/${slug}/pay`, { method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${payer?.token}`, 'Idempotency-Key': `idem_doa_tut_pay_${state.stamp}` },
-      body: JSON.stringify({ amount_minor: AMOUNT }) });
-    const paid = await pay.json().catch(() => null);
-    proofRef = paid?.receipt?.proof_reference ?? paid?.receipt?.ProofReference ?? null;
+    // The donor is a Sandbox test payer, made and paying from the Console's
+    // Dados de teste — the page's way to pay in the Sandbox.
+    const ex = (body) => call(`/projects/${state.created.project}/explorer/requests`, 'POST', body);
+    const donor = await ex({ operation_id: 'createTestPayer', body: { label: 'Tutorial donor' } });
+    state.created.donor = donor.body?.body?.id;
+    const payRes = await ex({ operation_id: 'payAsTestPayer', path_params: { id: state.created.donor }, body: { payment_session_id: session.session_id, via: 'LINK' }, idempotency_key: `idem_doa_tut_pay_${state.stamp}` });
+    const pay = { ok: payRes.body?.status === 200, status: payRes.body?.status };
+    const paid = payRes.body?.body;
+    proofRef = paid?.proof_reference ?? null;
     const after = read(`${sdkClient(sdk)}console.log(JSON.stringify(await c.getPaymentSession('${session.session_id}')));\n`);
     hosted.status === 200 && pay.ok && after?.status === 'PAID'
       ? mark(9, 'PASS', `hosted page 200; donor paid (http ${pay.status}); getPaymentSession → PAID`)
@@ -360,9 +348,9 @@ async function complete() {
   // 12 — settlement exactly as the page writes it. The beneficiary is a separate
   // person; the fee destination is the reader's own business, as the page says.
   if (J.verdict(9) === 'PASS' && pageSays(12, pages)) {
-    const beneficiary = `doatutbenef${state.stamp}`;
-    await fetch(`${CONSUMER}/v1/auth/register`, { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ handle: beneficiary, display_name: 'Tutorial beneficiary', pin: String(100000 + Math.floor(Math.random() * 899999)) }) });
+    // The beneficiary is a separate person: a second test payer, by its @banza.
+    const benef = await call(`/projects/${state.created.project}/explorer/requests`, 'POST', { operation_id: 'createTestPayer', body: { label: 'Tutorial beneficiary' } });
+    const beneficiary = benef.body?.body?.handle ?? '';
     state.created.beneficiary = beneficiary;
     try {
       const idem = `idem_liquidacao_${campaignId}`;
@@ -432,6 +420,7 @@ async function complete() {
   // the project and the workspace. Money already moved stays moved — ledger
   // evidence is immutable and is not residue.
   const cleanup = [];
+  if (state.created.project) cleanup.push(`sandbox reset: ${(await call(`/projects/${state.created.project}/sandbox/reset`, 'POST', { confirm: 'RESET' })).status}`);
   for (const k of [state.created.rotatedKeyId]) if (k) cleanup.push(`revoke key: ${(await call(`/keys/${k}`, 'DELETE')).status}`);
   if (state.created.endpoint) {
     // With delivery history the endpoint is disabled, not deleted (409 ENDPOINT_HAS_DELIVERIES).
@@ -474,9 +463,8 @@ function measureResidue(state) {
       `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE name = 'docs-doa-${state.stamp}' AND status = 'ACTIVE')`
       + ` + (SELECT count(*) FROM developer.dev_projects WHERE name LIKE 'docs-doa-${state.stamp}%' AND status = 'ACTIVE')`
       + ` + (SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id = k.project_id WHERE p.name LIKE 'docs-doa-${state.stamp}%' AND k.status = 'ACTIVE')`
-      + ` + (SELECT count(*) FROM consumers WHERE handle IN ('doatutdonor${state.stamp}', 'doatutbenef${state.stamp}') AND status = 'ACTIVE')`
-      + ` + (SELECT count(*) FROM merchants m JOIN handle_registry h ON h.owner_id = m.id AND h.owner_type = 'MERCHANT' WHERE h.handle = 'doatut${state.stamp}' AND m.status = 'ACTIVE')`);
-    return { count, detail: 'active workspace, project, keys, donor, beneficiary and Business from this run' };
+      + ` + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id = t.project_id WHERE p.name LIKE 'docs-doa-${state.stamp}%' AND t.retired_at IS NULL)`);
+    return { count, detail: 'active workspace, project, keys and unretired test payers (donor, beneficiary) from this run' };
   } catch (e) {
     return { count: -1, detail: `could not measure: ${String(e.message).slice(0, 80)}` };
   }
@@ -519,7 +507,8 @@ function finish(state, phase) {
 
 if (process.argv[1]?.endsWith('doa-tutorial-e2e.mjs')) {
   const phase = process.argv[2] ?? 'contract';
-  if (phase === 'prepare') await prepare();
+  if (phase === 'run') { await prepare({ thenComplete: true }); if (J.verdict(2) === 'PASS') await complete(); }
+  else if (phase === 'prepare') await prepare();
   else if (phase === 'complete') await complete();
   else if (phase === 'residue') {
     // Re-measure after retirement, for this run or earlier ones:
@@ -536,5 +525,5 @@ if (process.argv[1]?.endsWith('doa-tutorial-e2e.mjs')) {
     process.exitCode = total === 0 ? 0 : 1;
   }
   else if (phase === 'contract') await contractOnly();
-  else { console.error('usage: doa-tutorial-e2e.mjs prepare | complete | contract | residue [state.json ...]'); process.exit(2); }
+  else { console.error('usage: doa-tutorial-e2e.mjs run | prepare | complete | contract | residue [state.json ...]'); process.exit(2); }
 }

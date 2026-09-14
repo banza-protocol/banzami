@@ -31,19 +31,19 @@
  *   · no fixture route, no internal key, no database write, no operator bypass.
  *     The SDK comes from the public registry, into an empty directory outside
  *     every Banzami checkout;
- *   · Financial Setup goes through the real contract. A Business is applied for
- *     and REVIEWED, or connected with its owner's consent code. There is no
- *     Sandbox auto-approval and this file will not invent one: step 4 waits for
- *     the review, which is a human decision, and says so.
+ *   · Financial Setup goes through the real contract. In the Public Sandbox
+ *     (ADR-060) that is the self-service setup the page describes: the reader
+ *     chooses a use case and Core provisions a test Business marked
+ *     SANDBOX_SYNTHETIC — never APPROVED. Nobody reviews it and nobody is waited
+ *     for; the harness does not invent a review either.
  *
- * Two phases, because step 4 has a human in it:
- *
- *   node tools/e2e/docs/quickstart-e2e.mjs prepare    # steps 1–7, submits the application
- *   … the application is reviewed in BANZADMIN …
+ *   node tools/e2e/docs/quickstart-e2e.mjs run        # all twelve, then cleanup
+ *   node tools/e2e/docs/quickstart-e2e.mjs prepare    # steps 1–7
  *   node tools/e2e/docs/quickstart-e2e.mjs complete   # re-checks 4, runs 8–12, cleans up
  *
- * `prepare` alone ends with DOC_QUICKSTART_E2E=FAIL and step 4 PENDING. That is
- * the correct answer until the review happens.
+ * The payment in step 10 is made the way the page says: a test payer created
+ * and paying the session from the Console's Dados de teste, which runs the
+ * published API through the API Explorer's broker.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -219,7 +219,7 @@ async function readPage() {
 
 // ── phase: prepare (steps 1–7, and the application for step 4) ───────────────
 
-async function prepare() {
+async function prepare({ thenComplete = false } = {}) {
   console.log(`quickstart — prepare · ${DOCS}/docs/get-started\n`);
   const page = await readPage();
 
@@ -254,36 +254,17 @@ async function prepare() {
   // Step 4 — driven by the page first. If the quickstart never mentions
   // Financial Setup, a reader cannot know the step exists, and that is the
   // finding regardless of whether the API would have let them do it.
+  const saysUseCase = /tipo de uso|use case/i.test(page);
   if (!saysFinancialSetup) {
     mark(4, 'FAIL', 'the page does not tell the reader Financial Setup exists — they reach 403 PAYMENTS_UNAVAILABLE with no way to learn why');
+  } else if (!saysUseCase) {
+    mark(4, 'FAIL', 'the page does not tell the reader to choose a use case — the Sandbox setup has no other input');
   } else {
-    const app = await call(`/projects/${pr.body?.id}/financial-onboarding/applications`, 'POST', {
-      desired_handle: `qs${stamp}`,
-      business_name: `Docs Quickstart ${stamp}`,
-      category: 'ecommerce',
-      email: identity, phone: '+244900000000', nif: `5${stamp.replace(/\D/g, '').padEnd(9, '0').slice(0, 9)}`,
-      province: 'Luanda', municipality: 'Luanda', address: 'Rua de Teste, 1',
-      legal_representative: 'Quickstart Reader', representative_role: 'Director',
-      business_activity: 'Sandbox integration test for the public quickstart',
-      terms_accepted: true, idempotency_key: `idem_docs_qs_${stamp}`,
-    });
-    if (app.status === 201) {
-      state.created.application = app.body?.application_id;
-      // The page says an application carries documents; the application says
-      // which ones it still needs. Read that, rather than assuming a list.
-      const fsRead = await call(`/projects/${pr.body?.id}/financial-setup`);
-      const due = fsRead.body?.onboarding?.application?.requirements?.currently_due ?? [];
-      const up = await uploadDueDocuments(app.body?.application_id, due);
-      const after = (await call(`/projects/${pr.body?.id}/financial-setup`)).body?.onboarding?.application?.requirements;
-      const stillDue = (after?.currently_due ?? []).filter((x) => x.kind === 'document');
-      if (up.failed.length || stillDue.length) {
-        mark(4, 'FAIL', `documents could not be supplied: ${[...up.failed, ...stillDue.map((x) => `${x.code} still due`)].join('; ')}`);
-      } else {
-        mark(4, 'PENDING', `application ${app.body?.application_id} submitted with ${up.done.join(', ')} — awaiting operator review, which is a human decision`);
-      }
-    } else {
-      mark(4, 'FAIL', `the application was refused: http ${app.status} ${JSON.stringify(app.body)?.slice(0, 120)}`);
-    }
+    const setup = await call(`/projects/${pr.body?.id}/financial-setup`, 'POST', { use_case: 'STANDARD' });
+    const b = setup.body?.onboarding?.business;
+    setup.status === 200 && ['READY', 'SEALED'].includes(setup.body?.state) && b?.synthetic === true && b?.verified === false
+      ? mark(4, 'PASS', `test Business ${b?.handle} — SANDBOX_SYNTHETIC, not verified, no review`)
+      : mark(4, 'FAIL', `setup http ${setup.status} state ${setup.body?.state} synthetic=${b?.synthetic} verified=${b?.verified}`);
   }
 
   const key = await call(`/projects/${pr.body?.id}/keys`, 'POST', {
@@ -333,6 +314,9 @@ async function prepare() {
   }
 
   saveState({ ...state, steps });
+  // In a full run the summary is printed once, after step 12 — a 7/12 FAIL
+  // printed half-way is not a result.
+  if (thenComplete && steps[3].verdict === 'PASS') return null;
   return finish(state, { phase: 'prepare' });
 }
 
@@ -421,28 +405,23 @@ async function complete() {
       : mark(9, 'FAIL', `http ${hosted.status}`);
   }
 
-  // Step 10 — a real payer pays it on their own surface, and the developer
-  // observes the outcome through the documented read.
+  // Step 10 — the page sends the reader to Dados de teste: a test payer pays the
+  // session through the real payment path, run by the Console's API Explorer
+  // broker; the developer then reads the session with the SDK.
   if (steps[8].verdict === 'PASS') {
-    const payerHandle = `qspayer${state.stamp}`;
-    const reg = await fetch(`${CONSUMER}/v1/auth/register`, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ handle: payerHandle, display_name: 'Quickstart payer', pin: String(100000 + Math.floor(Math.random() * 899999)) }),
-    });
-    const payer = await reg.json().catch(() => null);
-    state.created.payer = payerHandle;
-    const pay = await fetch(`${CONSUMER}/v1/payment-links/${slug}/pay`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${payer?.token}`, 'Idempotency-Key': `idem_qs_pay_${state.stamp}` },
-      body: JSON.stringify({ amount_minor: 250000 }),
-    });
+    const saysTestPayer = /pagador de teste|test payer/i.test(page);
+    const payer = await call(`/projects/${state.created.project}/explorer/requests`, 'POST', { operation_id: 'createTestPayer', body: { label: 'Quickstart payer' } });
+    const payerId = payer.body?.body?.id;
+    const pay = payerId
+      ? await call(`/projects/${state.created.project}/explorer/requests`, 'POST', { operation_id: 'payAsTestPayer', path_params: { id: payerId }, body: { payment_session_id: session.session_id }, idempotency_key: `idem_qs_pay_${state.stamp}` })
+      : null;
     const after = runInReaderDir(state.readerDir,
       `import { BanzamiClient } from '${sdk}';\n`
       + `const c = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY, environment: 'sandbox' });\n`
       + `console.log(JSON.stringify(await c.getPaymentSession('${session.session_id}')));\n`, env);
-    pay.ok && /PAID|COMPLETED/i.test(after?.status ?? '')
-      ? mark(10, 'PASS', `payer paid (http ${pay.status}); getPaymentSession → ${after.status}`)
-      : mark(10, 'FAIL', `pay http ${pay.status}; session status ${after?.status}`);
+    saysTestPayer && pay?.body?.status === 200 && after?.status === 'PAID'
+      ? mark(10, 'PASS', `test payer paid through the Console (${pay.body.body?.via}, ${pay.body.body?.status}); getPaymentSession → ${after.status}`)
+      : mark(10, 'FAIL', `page mentions test payer=${saysTestPayer}; payer http ${payer.status}/${payer.body?.status}; pay ${pay?.body?.status ?? 'not run'}; session ${after?.status}`);
   } else {
     mark(10, 'NOT_RUN', 'no hosted payment to complete');
   }
@@ -498,6 +477,7 @@ async function complete() {
   // tools/ops/retire-synthetic-residue.sh through the operator's own APIs;
   // residue below counts them until that has happened.
   const cleanup = [];
+  cleanup.push(`sandbox reset: ${(await call(`/projects/${state.created.project}/sandbox/reset`, 'POST', { confirm: 'RESET' })).status}`);
   if (state.created.webhookEndpoint) {
     // An endpoint with delivery history cannot be deleted (409 ENDPOINT_HAS_DELIVERIES):
     // the Console disables it, as the webhooks guide says.
@@ -532,9 +512,8 @@ function measureResidue(state) {
       + `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE name LIKE 'docs-qs-${state.stamp}%' AND status='ACTIVE')`
       + ` + (SELECT count(*) FROM developer.dev_projects WHERE name LIKE 'docs-qs-${state.stamp}%' AND status='ACTIVE')`
       + ` + (SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id = k.project_id WHERE p.name LIKE 'docs-qs-${state.stamp}%' AND k.status='ACTIVE')`
-      + ` + (SELECT count(*) FROM consumers WHERE handle LIKE 'qspayer${state.stamp}%' AND status='ACTIVE')`
-      + ` + (SELECT count(*) FROM merchants m JOIN handle_registry h ON h.owner_id = m.id AND h.owner_type = 'MERCHANT' WHERE h.handle = 'qs${state.stamp}' AND m.status='ACTIVE')"`], { encoding: 'utf8', timeout: 60000 });
-    return { count: Number(out.trim()) || 0, detail: 'active workspace, project, keys, payer and Business from this run' };
+      + ` + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id = t.project_id WHERE p.name LIKE 'docs-qs-${state.stamp}%' AND t.retired_at IS NULL)"`], { encoding: 'utf8', timeout: 60000 });
+    return { count: Number(out.trim()) || 0, detail: 'active workspace, project, keys and unretired test payers from this run' };
   } catch (e) {
     return { count: -1, detail: `could not measure: ${String(e.message).slice(0, 80)}` };
   }
@@ -563,8 +542,9 @@ function finish(state, { phase = 'prepare' } = {}) {
 // ── entry ────────────────────────────────────────────────────────────────────
 
 if (process.argv[1] && process.argv[1].endsWith('quickstart-e2e.mjs')) {
-  const phase = process.argv[2] ?? 'prepare';
-  if (phase === 'prepare') await prepare();
+  const phase = process.argv[2] ?? 'run';
+  if (phase === 'run') { await prepare({ thenComplete: true }); if (steps[3].verdict === 'PASS') await complete(); }
+  else if (phase === 'prepare') await prepare();
   else if (phase === 'complete') await complete();
   else if (phase === 'residue') {
     // Re-measure after retirement, for this run or earlier ones:
@@ -580,5 +560,5 @@ if (process.argv[1] && process.argv[1].endsWith('quickstart-e2e.mjs')) {
     console.log(`DOC_QUICKSTART_RESIDUE=${total < 0 ? 'UNMEASURED' : total}`);
     process.exitCode = total === 0 ? 0 : 1;
   }
-  else { console.error('usage: quickstart-e2e.mjs prepare | complete | residue [state.json ...]'); process.exit(2); }
+  else { console.error('usage: quickstart-e2e.mjs run | prepare | complete | residue [state.json ...]'); process.exit(2); }
 }
