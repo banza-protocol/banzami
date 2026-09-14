@@ -184,7 +184,7 @@ func (h *AttentionHandler) Summary(w http.ResponseWriter, r *http.Request) {
 		attentionRequests.WithLabelValues(outcome, cacheLabel).Inc()
 		slog.ErrorContext(r.Context(), "attention.summary.failed", "environment", env, "outcome", outcome, "error", err)
 		// Never a partial or zeroed summary: the console hides its badges.
-		writeError(w, http.StatusBadGateway, "ATTENTION_UNAVAILABLE", "could not compute the attention summary")
+		writeError(w, http.StatusServiceUnavailable, "ATTENTION_UNAVAILABLE", "could not compute the attention summary")
 		return
 	}
 	attentionRequests.WithLabelValues("ok", cacheLabel).Inc()

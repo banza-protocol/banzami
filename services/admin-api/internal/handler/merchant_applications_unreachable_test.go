@@ -46,9 +46,9 @@ func TestGetApplication_UnreachableLiveFallsToSandbox(t *testing.T) {
 }
 
 // With nowhere else to ask, a status is still an HTTP status.
-func TestGetApplication_UnreachableWithNoFallbackIs502(t *testing.T) {
+func TestGetApplication_UnreachableWithNoFallbackIs503(t *testing.T) {
 	h := NewMerchantApplicationHandler(&unreachableGateway{}, nil, nil, "", nil)
-	if rec := getApplication(h); rec.Code != http.StatusBadGateway {
-		t.Fatalf("status %d; want 502", rec.Code)
+	if rec := getApplication(h); rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status %d; want 503 — a 502 body is replaced by the edge", rec.Code)
 	}
 }

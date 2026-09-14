@@ -165,8 +165,8 @@ func TestAttention_FailuresAreErrorsNotZeros(t *testing.T) {
 	for name, gw := range cases {
 		h := NewAttentionHandler(map[string]AttentionSource{"SANDBOX": {Gateway: gw}})
 		code, got := askAttention(t, h, auth.RoleSuperAdmin, "SANDBOX")
-		if code != http.StatusBadGateway || got.Error == nil || got.Categories != nil {
-			t.Errorf("%s: status %d body %+v, want 502 with no categories", name, code, got)
+		if code != http.StatusServiceUnavailable || got.Error == nil || got.Categories != nil {
+			t.Errorf("%s: status %d body %+v, want 503 with no categories", name, code, got)
 		}
 	}
 	// An environment this deployment does not serve is 503, not an empty summary.

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/banzami/banzami/services/common/edgestatus"
 	"github.com/banzami/banzami/services/common/obs"
 	"time"
 
@@ -36,6 +37,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	// X-Real-IP and X-Forwarded-For from any peer (A9-09).
 	r.Use(cfg.ClientIP.Middleware)
 	r.Use(middleware.Logger)
+	// A status this service forwards from the gateway or core can still be a
+	// 502/504, whose body Cloudflare replaces: answer 503 with the JSON intact
+	// (outside Timeout, whose deadline answer is a 504). services/common/edgestatus.
+	r.Use(edgestatus.Middleware("/internal/"))
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))
 	r.Use(middleware.RouteSpan) // enriches otelhttp span with chi route pattern

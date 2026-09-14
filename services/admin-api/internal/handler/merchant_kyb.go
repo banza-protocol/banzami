@@ -52,7 +52,7 @@ func (h *MerchantKybHandler) List(w http.ResponseWriter, r *http.Request) {
 	raw, code, err := gw.ListMerchantKybDocumentsRaw(r.Context(),
 		r.URL.Query().Get("status"), r.URL.Query().Get("limit"))
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not list KYB documents")
+		writeErr(w, http.StatusServiceUnavailable, "could not list KYB documents")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -66,7 +66,7 @@ func (h *MerchantKybHandler) Merchants(w http.ResponseWriter, r *http.Request) {
 	}
 	raw, code, err := gw.ListMerchantKybMerchantsRaw(r.Context(), r.URL.Query().Get("limit"))
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not list merchants")
+		writeErr(w, http.StatusServiceUnavailable, "could not list merchants")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -80,7 +80,7 @@ func (h *MerchantKybHandler) MerchantDocuments(w http.ResponseWriter, r *http.Re
 	}
 	raw, code, err := gw.MerchantKybMerchantDocumentsRaw(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not list merchant documents")
+		writeErr(w, http.StatusServiceUnavailable, "could not list merchant documents")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -100,7 +100,7 @@ func (h *MerchantKybHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	raw, code, err := gw.ApproveMerchantKybDocumentRaw(r.Context(), id, actorOf(r), body.ValidUntil, body.Notes)
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not approve document")
+		writeErr(w, http.StatusServiceUnavailable, "could not approve document")
 		return
 	}
 	// Internal notes are operator-only; never echoed to the merchant. The audit row
@@ -123,7 +123,7 @@ func (h *MerchantKybHandler) Reject(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	raw, code, err := gw.RejectMerchantKybDocumentRaw(r.Context(), id, actorOf(r), body.RejectionReason, body.Notes)
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not reject document")
+		writeErr(w, http.StatusServiceUnavailable, "could not reject document")
 		return
 	}
 	// The rejection_reason is merchant-facing (consumed by the Business app); notes
@@ -140,7 +140,7 @@ func (h *MerchantKybHandler) Context(w http.ResponseWriter, r *http.Request) {
 	}
 	raw, code, err := gw.MerchantKybContextRaw(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not load merchant context")
+		writeErr(w, http.StatusServiceUnavailable, "could not load merchant context")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -154,7 +154,7 @@ func (h *MerchantKybHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 	}
 	raw, code, err := gw.MerchantKybTimelineRaw(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not load KYB timeline")
+		writeErr(w, http.StatusServiceUnavailable, "could not load KYB timeline")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -177,7 +177,7 @@ func (h *MerchantKybHandler) ReadURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	raw, code, err := gw.MerchantKybReadURLRaw(r.Context(), id)
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not mint download url")
+		writeErr(w, http.StatusServiceUnavailable, "could not mint download url")
 		return
 	}
 	if code == http.StatusOK {

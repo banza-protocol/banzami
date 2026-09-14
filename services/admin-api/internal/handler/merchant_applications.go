@@ -84,6 +84,10 @@ func (h *MerchantApplicationHandler) gatewayFor(environment string) GatewayAppli
 // environment, which is why this went unnoticed; anything else calling the same
 // route got a connection error dressed as a bad gateway.
 //
+// An upstream this service could not reach answers 503, never 502: Cloudflare
+// replaces the body of a 502 or 504 with its own page, so the operator would see
+// "error code: 502" instead of the message (measured 2026-09-14).
+//
 // With nothing specified, the answer is the platform's own mode. Fail-safe
 // through platformEnv: an unreadable mode resolves to SANDBOX, so an error can
 // never route an operator's request at the live stack by accident.
@@ -105,7 +109,7 @@ func (h *MerchantApplicationHandler) rawAcrossStacks(call func(GatewayApplicatio
 		return call(h.gwStaging)
 	}
 	if err != nil && code == 0 {
-		code = http.StatusBadGateway
+		code = http.StatusServiceUnavailable
 	}
 	return raw, code, err
 }
@@ -128,7 +132,7 @@ func (h *MerchantApplicationHandler) platformEnv(ctx context.Context) string {
 // the operator's page with no answer at all.
 func validStatus(code int) int {
 	if code < 100 || code > 599 {
-		return http.StatusBadGateway
+		return http.StatusServiceUnavailable
 	}
 	return code
 }
@@ -155,7 +159,7 @@ func (h *MerchantApplicationHandler) List(w http.ResponseWriter, r *http.Request
 	environment := r.URL.Query().Get("environment")
 	raw, code, err := h.gatewayForRequest(r.Context(), environment).ListApplicationsRaw(r.Context(), r.URL.Query().Get("status"), environment)
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not list applications")
+		writeErr(w, http.StatusServiceUnavailable, "could not list applications")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -202,7 +206,7 @@ func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Requ
 		return gw.ApproveApplicationRaw(r.Context(), id, actorOf(r))
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not approve application")
+		writeErr(w, http.StatusServiceUnavailable, "could not approve application")
 		return
 	}
 	if code != http.StatusOK {
@@ -213,7 +217,7 @@ func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Requ
 	}
 	var res service.ApprovalResult
 	if err := json.Unmarshal(raw, &res); err != nil {
-		writeErr(w, http.StatusBadGateway, "could not read approval")
+		writeErr(w, http.StatusServiceUnavailable, "could not read approval")
 		return
 	}
 	out := map[string]any{
@@ -263,7 +267,7 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 		return gw.RejectApplicationRaw(r.Context(), id, actorOf(r), body.AdminNotes, body.MerchantMessage)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not reject application")
+		writeErr(w, http.StatusServiceUnavailable, "could not reject application")
 		return
 	}
 	if code != http.StatusOK {
@@ -295,7 +299,7 @@ func (h *MerchantApplicationHandler) StartReview(w http.ResponseWriter, r *http.
 		return gw.StartApplicationReviewRaw(r.Context(), id, actorOf(r))
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not start review")
+		writeErr(w, http.StatusServiceUnavailable, "could not start review")
 		return
 	}
 	if code == http.StatusOK {
@@ -322,7 +326,7 @@ func (h *MerchantApplicationHandler) RequestInformation(w http.ResponseWriter, r
 		return gw.RequestApplicationInformationRaw(r.Context(), id, actorOf(r), body.Message)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not request information")
+		writeErr(w, http.StatusServiceUnavailable, "could not request information")
 		return
 	}
 	if code != http.StatusOK {
@@ -367,7 +371,7 @@ func (h *MerchantApplicationHandler) LinkExisting(w http.ResponseWriter, r *http
 		return gw.LinkApplicationRaw(r.Context(), id, body.MerchantID, body.ConfirmationHandle, actorOf(r), body.Reason)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not link application")
+		writeErr(w, http.StatusServiceUnavailable, "could not link application")
 		return
 	}
 	if code == http.StatusOK {
@@ -390,7 +394,7 @@ func (h *MerchantApplicationHandler) ReissueActivation(w http.ResponseWriter, r 
 		return gw.ReissueActivationRaw(r.Context(), id)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not reissue activation")
+		writeErr(w, http.StatusServiceUnavailable, "could not reissue activation")
 		return
 	}
 	if code != http.StatusOK {
@@ -404,7 +408,7 @@ func (h *MerchantApplicationHandler) ReissueActivation(w http.ResponseWriter, r 
 		ActivationToken string `json:"activation_token"`
 	}
 	if err := json.Unmarshal(raw, &res); err != nil || res.ActivationToken == "" {
-		writeErr(w, http.StatusBadGateway, "could not read activation")
+		writeErr(w, http.StatusServiceUnavailable, "could not read activation")
 		return
 	}
 	link, show := h.activationLink(r.Context(), res.ActivationToken)
@@ -424,7 +428,7 @@ func (h *MerchantApplicationHandler) LinkCandidates(w http.ResponseWriter, r *ht
 		return gw.LinkCandidatesRaw(r.Context(), id, r.URL.Query().Get("handle"))
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not list candidates")
+		writeErr(w, http.StatusServiceUnavailable, "could not list candidates")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -437,7 +441,7 @@ func (h *MerchantApplicationHandler) BusinessState(w http.ResponseWriter, r *htt
 		return gw.ApplicationBusinessStateRaw(r.Context(), id)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not read the business")
+		writeErr(w, http.StatusServiceUnavailable, "could not read the business")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -451,7 +455,7 @@ func (h *MerchantApplicationHandler) BusinessByID(w http.ResponseWriter, r *http
 		return gw.BusinessStateRaw(r.Context(), id)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not read the business")
+		writeErr(w, http.StatusServiceUnavailable, "could not read the business")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -511,7 +515,7 @@ func (h *MerchantApplicationHandler) ResetBusinessAppPin(w http.ResponseWriter, 
 		ExpiresAt       string `json:"expires_at"`
 	}
 	if err := json.Unmarshal(raw, &res); err != nil || res.ActivationToken == "" {
-		writeErr(w, http.StatusBadGateway, "could not read the reset")
+		writeErr(w, http.StatusServiceUnavailable, "could not read the reset")
 		return
 	}
 	link, show := h.activationLink(r.Context(), res.ActivationToken)
@@ -538,7 +542,7 @@ func (h *MerchantApplicationHandler) ListDocuments(w http.ResponseWriter, r *htt
 		return gw.ListApplicationDocumentsRaw(r.Context(), id)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not list documents")
+		writeErr(w, http.StatusServiceUnavailable, "could not list documents")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -550,7 +554,7 @@ func (h *MerchantApplicationHandler) DocumentReadURL(w http.ResponseWriter, r *h
 		return gw.CreateDocumentReadURLRaw(r.Context(), id, docID)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not create read url")
+		writeErr(w, http.StatusServiceUnavailable, "could not create read url")
 		return
 	}
 	writeRaw(w, code, raw)
@@ -562,7 +566,7 @@ func (h *MerchantApplicationHandler) AcceptDocument(w http.ResponseWriter, r *ht
 		return gw.AcceptDocumentRaw(r.Context(), id, docID, actorOf(r))
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not accept document")
+		writeErr(w, http.StatusServiceUnavailable, "could not accept document")
 		return
 	}
 	auditAfter(r, "kyb_document", chi.URLParam(r, "documentId"), map[string]any{
@@ -587,7 +591,7 @@ func (h *MerchantApplicationHandler) RejectDocument(w http.ResponseWriter, r *ht
 		return gw.RejectDocumentRaw(r.Context(), id, docID, actorOf(r), body.Reason)
 	})
 	if err != nil {
-		writeErr(w, http.StatusBadGateway, "could not reject document")
+		writeErr(w, http.StatusServiceUnavailable, "could not reject document")
 		return
 	}
 	auditAfter(r, "kyb_document", chi.URLParam(r, "documentId"), map[string]any{
