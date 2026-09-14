@@ -19,6 +19,8 @@ pub mod consumer_pay_links;
 pub mod consumer_wallets;
 pub mod consumers;
 pub mod credit_idempotency;
+#[cfg(test)]
+mod database_authority_tests;
 pub mod disputes;
 pub mod external_rail;
 #[cfg(test)]

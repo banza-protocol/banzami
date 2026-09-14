@@ -595,6 +595,11 @@ jobs:
           node tools/check-wallet-native-architecture.mjs
           node tools/check-wallet-native-architecture.selftest.mjs
 
+      - name: Database authority gate (only Core may write financial state)
+        run: |
+          node tools/db-authority.mjs
+          node tools/db-authority.selftest.mjs
+
       - name: Public website truth gate
         run: |
           node tools/check-public-site-truth.mjs

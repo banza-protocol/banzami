@@ -1,0 +1,293 @@
+#!/usr/bin/env node
+/**
+ * The database authority of every runtime identity (WALLET-NATIVE-001).
+ *
+ * PostgreSQL privilege is the authority over financial state; the 0144
+ * application_name guard only detects. db/authority/runtime-authority.json says
+ * which role each service connects as and what that role may write; this tool
+ * turns it into db/authority/runtime-authority.sql (applied, as one transaction,
+ * after every Sandbox migration) and refuses a manifest that has drifted:
+ *
+ *   - the financial tables must be exactly those 0144 guards;
+ *   - only the Core role may write a financial table;
+ *   - no runtime role may write the migration ledger;
+ *   - every table a service's own code writes (INSERT/UPDATE/DELETE/COPY in its
+ *     non-test Go source) must be granted to that service's role, or the service
+ *     fails at runtime with permission denied;
+ *   - every granted table must exist in the migrations;
+ *   - the committed SQL must be what this manifest generates.
+ *
+ *   node tools/db-authority.mjs            # check (CI)
+ *   node tools/db-authority.mjs --write    # regenerate the SQL
+ *
+ * BZ_DB_AUTHORITY_ROOT points it at another tree (the selftest).
+ */
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = process.env.BZ_DB_AUTHORITY_ROOT ?? resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
+const MANIFEST = 'db/authority/runtime-authority.json';
+const SQL_OUT = 'db/authority/runtime-authority.sql';
+const GUARD = 'db/migrations/0144_value_moves_inside_external_rails_are_boundaries.sql';
+const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+
+export function load() {
+  return JSON.parse(read(MANIFEST));
+}
+
+/** Tables the migrations create, as schema.table. */
+function migratedTables() {
+  const out = new Set();
+  const dir = join(ROOT, 'db/migrations');
+  for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) {
+    const sql = readFileSync(join(dir, f), 'utf8');
+    for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?(?:table|view)\s+(?:if\s+not\s+exists\s+)?("?[a-z_][a-z0-9_]*"?(?:\."?[a-z_][a-z0-9_]*"?)?)/gi)) {
+      const t = m[1].replace(/"/g, '').toLowerCase();
+      out.add(t.includes('.') ? t : `public.${t}`);
+    }
+    for (const m of sql.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?("?[a-z_][a-z0-9_]*"?(?:\."?[a-z_][a-z0-9_]*"?)?)\s+rename\s+to\s+("?[a-z_][a-z0-9_]*"?)/gi)) {
+      const from = m[1].replace(/"/g, '').toLowerCase();
+      const schema = from.includes('.') ? from.split('.')[0] : 'public';
+      out.add(`${schema}.${m[2].replace(/"/g, '').toLowerCase()}`);
+    }
+  }
+  return out;
+}
+
+/** The array 0144 iterates over. */
+function guardedTables() {
+  const sql = read(GUARD);
+  const arr = sql.match(/FOREACH t IN ARRAY ARRAY\[([\s\S]*?)\]/);
+  return arr ? [...arr[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]) : [];
+}
+
+/** Tables a Go source tree writes outside tests: SQL strings and pgx CopyFrom. */
+export function writeFootprint(dirs) {
+  const verbs = /\b(insert\s+into|update|delete\s+from|merge\s+into|truncate(?:\s+table)?)\s+(?:only\s+)?("?[a-z_][a-z0-9_]*"?(?:\."?[a-z_][a-z0-9_]*"?)?)/gi;
+  const out = new Map();
+  const add = (t, file) => {
+    const name = t.replace(/"/g, '').toLowerCase();
+    const q = name.includes('.') ? name : `public.${name}`;
+    if (!out.has(q)) out.set(q, new Set());
+    out.get(q).add(file);
+  };
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      if (['node_modules', 'vendor', 'testdata', '.git'].includes(entry)) continue;
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) { walk(p); continue; }
+      if (!entry.endsWith('.go') || entry.endsWith('_test.go')) continue;
+      const src = readFileSync(p, 'utf8');
+      const rel = p.slice(ROOT.length + 1);
+      const strings = [...src.matchAll(/`([^`]*)`/g), ...src.matchAll(/"((?:[^"\\\n]|\\.)*)"/g)].map((m) => m[1]);
+      for (const s of strings) {
+        for (const m of s.matchAll(verbs)) {
+          const before = s.slice(Math.max(0, m.index - 12), m.index).toLowerCase();
+          // "FOR UPDATE" / "DO UPDATE SET" are not writes to a table named after them.
+          if (/update/i.test(m[1]) && /(for|do)\s*$/.test(before)) continue;
+          add(m[2], rel);
+        }
+      }
+      for (const m of src.matchAll(/CopyFrom\([\s\S]{0,80}?pgx\.Identifier\{\s*"([a-z_]+)"\s*,\s*"([a-z_]+)"\s*\}/g)) add(`${m[1]}.${m[2]}`, rel);
+    }
+  };
+  for (const d of dirs) if (existsSync(join(ROOT, d))) walk(join(ROOT, d));
+  return out;
+}
+
+const q = (t) => t.split('.').map((x) => `"${x}"`).join('.');
+
+export function generate(m) {
+  const roles = Object.keys(m.roles);
+  const fin = m.financial_tables.map((t) => `public.${t}`);
+  const L = [];
+  L.push('-- GENERATED by tools/db-authority.mjs from db/authority/runtime-authority.json. Do not edit.');
+  L.push('--');
+  L.push('-- The database authority of every runtime identity (WALLET-NATIVE-001, ADR-061 §2).');
+  L.push('-- PostgreSQL privilege is the authority over financial state: only bl_core_runtime');
+  L.push('-- may INSERT, UPDATE or DELETE a financial table. application_name (0144) is');
+  L.push('-- detection and observability, never the authority.');
+  L.push('--');
+  L.push('-- Applied by the cluster superuser after every migration, in ONE transaction');
+  L.push('-- (psql --single-transaction), so a running service never sees the window between');
+  L.push('-- the revoke and the re-grant. Idempotent. Roles are created NOLOGIN when missing;');
+  L.push('-- the Sandbox role bootstrap gives each its LOGIN and its own password.');
+  L.push('');
+  L.push('DO $$');
+  L.push('DECLARE r TEXT;');
+  L.push('BEGIN');
+  L.push(`  FOREACH r IN ARRAY ARRAY[${roles.map((r) => `'${r}'`).join(', ')}] LOOP`);
+  L.push("    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN");
+  L.push('      BEGIN');
+  L.push("        EXECUTE format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS', r);");
+  L.push('      EXCEPTION WHEN duplicate_object OR unique_violation THEN NULL; -- created concurrently');
+  L.push('      END;');
+  L.push('    END IF;');
+  L.push('    -- A runtime identity that could bypass privileges is not bounded by them.');
+  L.push("    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r AND (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb OR rolreplication)) THEN");
+  L.push("      RAISE EXCEPTION 'runtime role % holds a privilege that bypasses table grants', r;");
+  L.push('    END IF;');
+  L.push("    IF EXISTS (SELECT 1 FROM pg_auth_members am JOIN pg_roles g ON g.oid = am.roleid JOIN pg_roles u ON u.oid = am.member");
+  L.push("               WHERE u.rolname = r AND (g.rolsuper OR g.rolname IN ('bl_schema_owner', 'pg_write_all_data', 'pg_database_owner'))) THEN");
+  L.push("      RAISE EXCEPTION 'runtime role % inherits owner or superuser authority', r;");
+  L.push('    END IF;');
+  L.push('  END LOOP;');
+  L.push('END $$;');
+  L.push('');
+  L.push('DO $$');
+  L.push('BEGIN');
+  L.push(`  EXECUTE format('GRANT CONNECT ON DATABASE %I TO ${roles.join(', ')}', current_database());`);
+  L.push('END $$;');
+  L.push('');
+  L.push('-- Start from nothing: every table, view and sequence privilege these roles hold.');
+  for (const s of m.schemas) {
+    L.push(`REVOKE ALL ON ALL TABLES IN SCHEMA ${s} FROM ${roles.join(', ')};`);
+    L.push(`REVOKE ALL ON ALL SEQUENCES IN SCHEMA ${s} FROM ${roles.join(', ')};`);
+    L.push(`REVOKE ALL ON SCHEMA ${s} FROM ${roles.join(', ')};`);
+  }
+  L.push('');
+  L.push('DO $$');
+  L.push('BEGIN');
+  L.push("  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN");
+  for (const s of m.schemas) {
+    L.push(`    ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA ${s} REVOKE ALL ON TABLES FROM ${roles.join(', ')};`);
+    L.push(`    ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA ${s} REVOKE ALL ON SEQUENCES FROM ${roles.join(', ')};`);
+  }
+  L.push('  END IF;');
+  L.push('END $$;');
+  L.push('');
+  L.push('-- A table-level grant helper that tolerates a table a later migration will create.');
+  L.push('CREATE OR REPLACE FUNCTION pg_temp.bz_grant(privs TEXT, tbl TEXT, role TEXT) RETURNS void LANGUAGE plpgsql AS $f$');
+  L.push('DECLARE seq RECORD;');
+  L.push('BEGIN');
+  L.push('  IF to_regclass(tbl) IS NULL THEN RETURN; END IF;');
+  L.push("  EXECUTE format('GRANT %s ON TABLE %s TO %I', privs, tbl, role);");
+  L.push("  IF privs LIKE '%INSERT%' THEN");
+  L.push('    FOR seq IN SELECT d.objid::regclass AS s FROM pg_depend d JOIN pg_class c ON c.oid = d.objid');
+  L.push("               WHERE d.refobjid = to_regclass(tbl) AND c.relkind = 'S' AND d.deptype IN ('a', 'i') LOOP");
+  L.push("      EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE %s TO %I', seq.s, role);");
+  L.push('    END LOOP;');
+  L.push('  END IF;');
+  L.push('END $f$;');
+  L.push('');
+
+  const finSet = new Set(fin);
+  const never = new Set(m.never_written_at_runtime);
+  for (const [role, spec] of Object.entries(m.roles)) {
+    L.push(`-- ── ${role}${spec.service ? ` (${spec.service})` : ' (operator tooling, no container)'} ──`);
+    L.push(`-- ${spec.purpose}`);
+    for (const s of spec.read_schemas) {
+      L.push(`GRANT USAGE ON SCHEMA ${s} TO ${role};`);
+      L.push(`GRANT SELECT ON ALL TABLES IN SCHEMA ${s} TO ${role};`);
+    }
+    L.push('DO $$');
+    L.push('BEGIN');
+    L.push("  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN");
+    for (const s of spec.read_schemas) L.push(`    ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA ${s} GRANT SELECT ON TABLES TO ${role};`);
+    if (spec.write.all_tables_in) for (const s of spec.write.all_tables_in) L.push(`    ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA ${s} GRANT INSERT, UPDATE, DELETE ON TABLES TO ${role};`);
+    L.push('  END IF;');
+    L.push('END $$;');
+    if (spec.write.all_tables_in) {
+      for (const s of spec.write.all_tables_in) {
+        L.push('DO $$');
+        L.push('DECLARE t RECORD;');
+        L.push('BEGIN');
+        L.push(`  FOR t IN SELECT format('%I.%I', n.nspname, c.relname) AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace`);
+        L.push(`           WHERE n.nspname = '${s}' AND c.relkind IN ('r', 'p') AND format('%s.%s', n.nspname, c.relname) NOT IN (${[...never].map((x) => `'${x}'`).join(', ')}) LOOP`);
+        L.push(`    PERFORM pg_temp.bz_grant('INSERT, UPDATE, DELETE', t.name, '${role}');`);
+        L.push('  END LOOP;');
+        L.push('END $$;');
+      }
+    }
+    if (spec.write.all_non_financial_tables_in) {
+      for (const s of spec.write.all_non_financial_tables_in) {
+        const excluded = [...fin, ...never].filter((t) => t.startsWith(`${s}.`));
+        L.push('DO $$');
+        L.push('DECLARE t RECORD;');
+        L.push('BEGIN');
+        L.push(`  FOR t IN SELECT format('%I.%I', n.nspname, c.relname) AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace`);
+        L.push(`           WHERE n.nspname = '${s}' AND c.relkind IN ('r', 'p')${excluded.length ? ` AND format('%s.%s', n.nspname, c.relname) NOT IN (${excluded.map((x) => `'${x}'`).join(', ')})` : ''} LOOP`);
+        L.push(`    PERFORM pg_temp.bz_grant('INSERT, UPDATE, DELETE', t.name, '${role}');`);
+        L.push('  END LOOP;');
+        L.push('END $$;');
+      }
+    }
+    const tables = [...(spec.write.tables ?? []), ...Object.keys(spec.write.implied_by_triggers ?? {})].sort();
+    for (const t of tables) {
+      if (finSet.has(t)) throw new Error(`generate: ${role} may not write financial table ${t}`);
+      L.push(`SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '${q(t)}', '${role}');`);
+    }
+    L.push('');
+  }
+
+  L.push('-- The proof, in the same transaction: a financial table any role but Core may write aborts the apply.');
+  L.push('DO $$');
+  L.push('DECLARE bad TEXT;');
+  L.push('BEGIN');
+  L.push("  SELECT string_agg(format('%s %s on %s', r, p, t), '; ') INTO bad");
+  L.push(`    FROM unnest(ARRAY[${roles.filter((r) => r !== 'bl_core_runtime').map((r) => `'${r}'`).join(', ')}]) r,`);
+  L.push(`         unnest(ARRAY[${fin.map((t) => `'${t}'`).join(', ')}]) t,`);
+  L.push("         unnest(ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) p");
+  L.push('   WHERE to_regclass(t) IS NOT NULL AND has_table_privilege(r, t, p);');
+  L.push('  IF bad IS NOT NULL THEN');
+  L.push("    RAISE EXCEPTION 'NON_CORE_FINANCIAL_TABLE_WRITE_ROLES: %', bad;");
+  L.push('  END IF;');
+  L.push('END $$;');
+  L.push('');
+  return `${L.join('\n')}\n`;
+}
+
+export function check(m) {
+  const problems = [];
+  const guarded = guardedTables();
+  const fin = new Set(m.financial_tables);
+  if (guarded.length === 0) problems.push(`cannot read the guarded table list from ${GUARD}`);
+  for (const t of guarded) if (!fin.has(t)) problems.push(`0144 guards ${t} but the manifest does not list it as financial`);
+  for (const t of fin) if (!guarded.includes(t)) problems.push(`the manifest lists ${t} as financial but 0144 does not guard it`);
+
+  const tables = migratedTables();
+  const cores = Object.entries(m.roles).filter(([, s]) => s.write.all_tables_in);
+  if (cores.length !== 1 || cores[0][0] !== 'bl_core_runtime') problems.push('exactly one role, bl_core_runtime, may hold write authority over every table');
+  for (const [role, spec] of Object.entries(m.roles)) {
+    const granted = new Set([...(spec.write.tables ?? []), ...Object.keys(spec.write.implied_by_triggers ?? {})]);
+    for (const t of granted) {
+      if (fin.has(t.replace(/^public\./, '')) && t.startsWith('public.')) problems.push(`${role} is granted write on financial table ${t}`);
+      if (m.never_written_at_runtime.includes(t)) problems.push(`${role} is granted write on ${t}`);
+      if (!tables.has(t)) problems.push(`${role} is granted ${t}, which no migration creates`);
+      if (!spec.read_schemas.includes(t.split('.')[0])) problems.push(`${role} writes ${t} but cannot read schema ${t.split('.')[0]}`);
+    }
+    if (!spec.source.length) continue;
+    const footprint = writeFootprint(spec.source);
+    for (const [t, files] of footprint) {
+      if (!tables.has(t)) continue; // a word after UPDATE that is not a table
+      const writesAll = (spec.write.all_tables_in ?? []).includes(t.split('.')[0]);
+      if (fin.has(t.replace(/^public\./, '')) && t.startsWith('public.') && !writesAll) {
+        problems.push(`${spec.service} code writes financial table ${t} (${[...files][0]}) — only Core may`);
+        continue;
+      }
+      if (!writesAll && !granted.has(t)) problems.push(`${spec.service} code writes ${t} (${[...files][0]}) but ${role} is not granted it`);
+    }
+  }
+  let sql = null;
+  try { sql = generate(m); } catch (e) { problems.push(e.message); }
+  const committed = existsSync(join(ROOT, SQL_OUT)) ? read(SQL_OUT) : '';
+  if (sql !== null && committed !== sql) problems.push(`${SQL_OUT} is not what the manifest generates (run node tools/db-authority.mjs --write)`);
+  return problems;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const m = load();
+  if (process.argv.includes('--write')) {
+    writeFileSync(join(ROOT, SQL_OUT), generate(m));
+    console.log(`wrote ${SQL_OUT}`);
+  }
+  const problems = check(m);
+  for (const p of problems) console.log(`  ✗ ${p}`);
+  const nonCoreFinancial = Object.entries(m.roles).filter(([r, s]) => r !== 'bl_core_runtime'
+    && ((s.write.tables ?? []).some((t) => m.financial_tables.includes(t.replace(/^public\./, ''))) || s.write.all_tables_in)).length;
+  console.log(`RUNTIME_ROLES=${Object.values(m.roles).filter((s) => s.service).length}`);
+  console.log(`NON_CORE_FINANCIAL_TABLE_WRITE_ROLES=${nonCoreFinancial}`);
+  console.log(`DB_AUTHORITY_MANIFEST=${problems.length ? 'FAIL' : 'PASS'}`);
+  process.exitCode = problems.length ? 1 : 0;
+}

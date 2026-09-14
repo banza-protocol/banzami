@@ -389,6 +389,8 @@ check-docs-drift:
 check-wallet-native:
 	node tools/check-wallet-native-architecture.mjs
 	node tools/check-wallet-native-architecture.selftest.mjs
+	node tools/db-authority.mjs
+	node tools/db-authority.selftest.mjs
 
 .PHONY: check-public-site-truth
 check-public-site-truth:
