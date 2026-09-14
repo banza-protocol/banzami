@@ -49,7 +49,8 @@ export const ISOLATION = [
   "B's key cannot read, test, replay or delete A's webhook endpoint", "A realtime token grants no API access",
   'The second developer cannot open A or its logs', 'The second developer cannot use Explorer on A',
   'The second developer cannot reset A or issue its share code', 'Keys minted in the Sandbox are Sandbox keys only',
-  'A Sandbox key is refused by the Live host', 'Cleanup leaves no residue',
+  'A Sandbox key is refused by the Live host', 'Test value stays among test payers and test Businesses',
+  'Cleanup leaves no residue',
 ];
 export const EXPIRY = ['A token is minted and works', 'After 30 minutes the same token is refused as expired'];
 
@@ -441,10 +442,29 @@ async function isolation() {
     const liveMe = await fetch(`${LIVE_GW}/v1/me`, { headers: { authorization: `Bearer ${await secretOf(dev, A.id, like)}` } }).catch(() => ({ status: 0 }));
     mark(13, liveMe.status !== 200 && liveMe.status !== 0, `live_host=${liveMe.status}`);
 
+    // The perimeter: a test payer gets no PIN; a test Business settles to its
+    // own test payer, and is refused a beneficiary outside the perimeter (a
+    // retired test payer is outside it).
+    const perimeterKey = await dev.call(`/projects/${A.id}/keys`, 'POST', { kind: 'SECRET', name: `${like}-settle`, scopes: [...SCOPES, 'wallet_accounts:create', 'wallet_accounts:read', 'application_settlements:write'] });
+    const pk = keyCaller(perimeterKey.body?.secret ?? '');
+    const acct = await pk('/v1/wallet-accounts', 'POST', { purpose: 'CAMPAIGN', reference_type: 'CAMPANHA', reference_id: `iso_${stamp}`, label: 'Perimeter' }, { 'Idempotency-Key': `iso_${stamp}_acct` });
+    const W = acct.body?.id ?? acct.body?.wallet_account_id;
+    const sp = await pk('/v1/payment-sessions', 'POST', { purpose: 'DONATION', reference_type: 'CAMPANHA', reference_id: `iso_${stamp}`, amount_minor: 40000, currency: 'AOA', wallet_account_id: W }, { 'Idempotency-Key': `iso_${stamp}_ps` });
+    const insider = await pk('/v1/sandbox/test-payers', 'POST', { label: 'Inside' }, { 'Idempotency-Key': `iso_${stamp}_in` });
+    const outsider = await pk('/v1/sandbox/test-payers', 'POST', { label: 'Retired' }, { 'Idempotency-Key': `iso_${stamp}_out` });
+    await pk(`/v1/sandbox/test-payers/${insider.body?.id}/payments`, 'POST', { payment_session_id: sp.body?.session_id }, { 'Idempotency-Key': `iso_${stamp}_pp` });
+    await pk(`/v1/sandbox/test-payers/${outsider.body?.id}`, 'DELETE');
+    const handle = (await dev.call(`/projects/${A.id}/financial-setup`)).body?.readiness?.financial_identity?.handle;
+    const settle = (beneficiary, key) => pk('/v1/application-settlements', 'POST', { source_account_id: W, beneficiary_banza_name: `@${beneficiary}`, fee_destination_banza_name: handle, reference_id: `iso_${stamp}`, reason: 'perimeter', idempotency_key: key });
+    const out = await settle(outsider.body?.handle, `iso_${stamp}_s_out`);
+    const inn = await settle(insider.body?.handle, `iso_${stamp}_s_in`);
+    mark(14, !('pin' in (insider.body ?? {})) && out.status === 422 && out.body?.code === 'SANDBOX_VALUE_PERIMETER' && inn.status === 201,
+      `pin_returned=${'pin' in (insider.body ?? {})} retired_beneficiary=${out.status} ${out.body?.code ?? ''} own_payer=${inn.status} ${inn.body?.code ?? ''}`);
+
     const cleanedOther = await cleanup(other.call, [], other.workspace);
     const cleaned = await cleanup(dev.call, dev.projects.map((x) => x.id), dev.workspace);
     const residue = measureResidue(like);
-    mark(14, residue === 0, `cleanup=${[...cleaned, ...cleanedOther].join(',')} residue=${residue}`);
+    mark(15, residue === 0, `cleanup=${[...cleaned, ...cleanedOther].join(',')} residue=${residue}`);
     dev = null; other = null;
   } catch (e) {
     console.error(`  ! aborted: ${String(e.stack ?? e).split('\n')[0]}`);
