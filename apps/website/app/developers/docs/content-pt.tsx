@@ -233,6 +233,65 @@ curl -X POST https://sandbox-api.banzami.com/v1/payment-links \\
 # Resposta (201) — o pagador abre https://pay.banzami.com/pay/slug_exemplo
 { "slug": "slug_exemplo", "amount_minor": 25000, "currency": "AOA", "status": "ACTIVE" }`;
 
+const SAMPLE_LINK = `import { BanzamiClient } from '@banzami/sdk';
+const apiKey = process.env.BANZAMI_API_KEY;
+if (!apiKey) throw new Error('BANZAMI_API_KEY em falta');
+const banzami = new BanzamiClient({ apiKey });
+
+// Sem merchantId nem walletId: quem recebe vem da configuração financeira do projeto.
+const link = await banzami.createPaymentLink({
+  amountMinor: 25000,       // 250 Kz
+  currency: 'AOA',
+  description: 'Pedido #123',
+});
+// link.slug  ->  o pagador abre https://pay.banzami.com/pay/{slug}
+
+const pagina = await banzami.listPaymentLinks({ limit: 20 });`;
+
+const SAMPLE_REALTIME = `import { watchPaymentSessionStatus } from '@banzami/sdk/realtime';
+
+// Na página do pagador. O token vem do seu servidor (session.realtime.token);
+// não é uma chave, e a função recusa uma chave secreta.
+declare const sessionId: string;
+declare const token: string;
+
+const watch = watchPaymentSessionStatus({
+  sessionId,
+  token,
+  onStatus: (status) => {
+    if (status.status === 'PAID') {
+      // Mostrar "pago". Entregar a encomenda só com o webhook verificado no servidor.
+    }
+  },
+  onEnd: (end) => {
+    if (end.reason === 'token_expired') {
+      // Pedir ao seu servidor um token novo.
+    }
+  },
+});
+// watch.close() ao sair da página.`;
+
+const SAMPLE_TEST_PAYER = `import { BanzamiClient } from '@banzami/sdk';
+const apiKey = process.env.BANZAMI_API_KEY;   // bz_test_sk_ com sandbox:write
+if (!apiKey) throw new Error('BANZAMI_API_KEY em falta');
+const banzami = new BanzamiClient({ apiKey });
+declare const sessionId: string;   // uma sessão do seu projeto
+
+const payer = await banzami.createTestPayer({ label: 'Cliente de teste' });
+await banzami.fundTestPayer(payer.id, { amountMinor: 100000, idempotencyKey: 'carregar_001' });  // 1 000 Kz fictícios
+const paid = await banzami.payAsTestPayer(payer.id, {
+  paymentSessionId: sessionId,
+  via: 'QR',
+  idempotencyKey: 'pagamento_001',
+});
+// paid.status  ->  'PAID';  paid.proof_reference  ->  o comprovativo`;
+
+const SAMPLE_WEBHOOK_TEST = `// Com o endpoint registado (createWebhookEndpoint):
+declare const endpointId: string;
+const test = await banzami.sendWebhookTestEvent(endpointId);
+// test.type -> 'webhook.test';  test.synthetic -> true
+const entregas = await banzami.listWebhookDeliveries(endpointId);`;
+
 const SAMPLE_REFUND = `import { BanzamiClient } from '@banzami/sdk';
 const apiKey = process.env.BANZAMI_API_KEY;
 if (!apiKey) throw new Error('BANZAMI_API_KEY em falta');
@@ -661,7 +720,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                       ['Link e QR', 'Link e QR: DYNAMIC_QR com montante fixo, STATIC_QR com montante aberto', 'Link; o QR é gerado a partir do URL'],
                       ['Conta de destino', 'A conta por omissão ou uma conta sua (wallet_account_id)', 'A conta por omissão do projeto'],
                       ['Confirmação', 'payment_session.paid e status PAID', 'payment_link.paid'],
-                      ['SDK (0.13.0)', 'createPaymentSession', 'HTTP — ver a nota abaixo'],
+                      ['SDK', 'createPaymentSession', 'createPaymentLink'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
@@ -747,6 +806,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                 <LI><strong>Sem stream:</strong> se a ligação não se mantiver (<Code>503 REALTIME_UNAVAILABLE</Code>, rede restrita), a página pergunta ao seu servidor a um intervalo moderado, por exemplo cinco segundos.</LI>
                 <LI><strong>Limites:</strong> 3 ligações por sessão e 20 por IP (<Code>429 REALTIME_STREAM_LIMIT</Code>). Uma página precisa de uma.</LI>
               </UL>
+              <CodeBlock label="TypeScript · estado em tempo real na página" raw={SAMPLE_REALTIME} onCopy={copy} />
               <CodeBlock label="curl · estado em tempo real (stream)" raw={SAMPLE_CURL_REALTIME} onCopy={copy} />
               <Callout tone="warn">O estado em tempo real não é prova de pagamento. Entregue a encomenda com o webhook <Code>payment_session.paid</Code> verificado, ou com <Code>getPaymentSession</Code> no seu servidor. O token não é uma chave: nunca coloque uma chave secreta na página.</Callout>
 
@@ -754,10 +814,8 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
               <P>
                 Um link de pagamento é um endereço reutilizável que pode partilhar sem criar uma sessão por cliente. Com uma chave de projeto, o pedido não indica o destinatário.
               </P>
+              <CodeBlock label="TypeScript · criar link de pagamento" raw={SAMPLE_LINK} onCopy={copy} />
               <CodeBlock label="curl · criar link de pagamento" raw={SAMPLE_LINK_CURL} onCopy={copy} />
-              <Callout tone="warn">
-                <strong>SDK 0.13.0:</strong> <Code>createPaymentLink</Code> e <Code>listPaymentLinks</Code> ainda exigem <Code>merchantId</Code> no tipo, e uma chave de projeto não o pode enviar. Use HTTP para links até à próxima versão do SDK.
-              </Callout>
               <UL>
                 <LI><strong>Confirmar:</strong> o evento <Code>payment_link.paid</Code>, ou <Code>GET /v1/payment-links/{'{'}id{'}'}</Code> com o id devolvido na criação (o slug responde <Code>404</Code>).</LI>
                 <LI><strong>Fechar um link por pagar:</strong> <Code>DELETE /v1/payment-links/{'{'}id{'}'}</Code> devolve-o com <Code>status: &quot;CANCELLED&quot;</Code>.</LI>
@@ -902,10 +960,11 @@ export function PtWebhooks({ copy }: { copy: CopyFn }) {
 
               <H2 id="evento-teste">Testar o endpoint sem um pagamento</H2>
               <P>
-                No Sandbox, <strong>Enviar evento de teste</strong> (Consola → Webhooks) ou <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code> entrega ao endpoint um evento <Code>webhook.test</Code>, assinado com <Code>banza-signature</Code> como qualquer outro.
+                No Sandbox, <strong>Enviar evento de teste</strong> (Consola → Webhooks), <Code>sendWebhookTestEvent</Code> ou <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code> entrega ao endpoint um evento <Code>webhook.test</Code>, assinado com <Code>banza-signature</Code> como qualquer outro.
                 Serve para confirmar que o servidor lê o corpo em bruto, verifica a assinatura e responde <Code>2xx</Code>. O evento vem marcado <Code>synthetic: true</Code>, não descreve nenhum pagamento, não se subscreve e não move nada; a entrega pode ser reenviada mesmo depois de ter sucesso.
                 Trate um <Code>type</Code> que não conhece respondendo <Code>2xx</Code> sem efeitos. Um endpoint desativado responde <Code>409 ENDPOINT_DISABLED</Code>; mais de 10 entregas de teste por minuto ao mesmo endpoint, envios e reenvios juntos, respondem <Code>429 WEBHOOK_TEST_RATE_LIMITED</Code> com <Code>Retry-After</Code>.
               </P>
+              <CodeBlock label="TypeScript · evento de teste" raw={SAMPLE_WEBHOOK_TEST} onCopy={copy} />
 
               <H2 id="desativar">Desativar e reativar um endpoint</H2>
               <P>
@@ -1852,8 +1911,9 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
 
               <H2 id="sdk-preview">Versão atual</H2>
               <P>
-                <Code>@banzami/sdk</Code> 0.13.0. Em 0.13.0, <Code>createPaymentLink</Code> e <Code>listPaymentLinks</Code> ainda exigem <Code>merchantId</Code> no tipo; com uma chave de projeto,
-                use HTTP para links de pagamento. <a href="/docs/payments#links" style={a}>Links de pagamento</a>
+                <Code>@banzami/sdk</Code> 0.14.0. Com uma chave de projeto: sessões e <a href="/docs/payments#links" style={a}>links de pagamento</a> sem indicar quem recebe, pagadores de teste
+                (<Code>createTestPayer</Code>, <Code>fundTestPayer</Code>, <Code>payAsTestPayer</Code>), <Code>sendWebhookTestEvent</Code> e, para o browser, <Code>@banzami/sdk/realtime</Code>.
+                Em 0.14.0, o tipo de <Code>simulate</Code> ainda não inclui <Code>DELAYED</Code>, que a API aceita.
               </P>
               <P>
                 Exemplo completo: <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={a}>typescript-payment-session.example.ts</a>. Os exemplos TypeScript desta documentação
@@ -1982,6 +2042,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 <Code>POST /v1/sandbox/test-payers</Code>, <Code>POST /v1/sandbox/test-payers/{'{id}'}/fund</Code> (com <Code>Idempotency-Key</Code>) e <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>.
                 Um pagador de teste age só pela API do seu projeto: não entra em nenhuma app, e o que o seu negócio de teste recebe liquida só para pagadores de teste e negócios de teste — o valor de teste nunca chega a uma conta real. <a href="/docs/reference#resource-sandbox" style={a}>Referência dos dados de teste</a>
               </P>
+              <CodeBlock label="TypeScript · pagador de teste" raw={SAMPLE_TEST_PAYER} onCopy={copy} />
               <CodeBlock label="curl · pagar uma sessão como pagador de teste" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} />
 
               <H2 id="receitas-base">Chaves e prontidão</H2>
@@ -2346,11 +2407,12 @@ export function PtChangelog({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Data</th><th style={TH}>Área</th><th style={TH}>Alteração</th><th style={TH}>Impacto</th><th style={TH}>Ação</th></tr></thead>
                   <tbody>
                     {([
+                      ['14 Set 2026', 'SDK', '@banzami/sdk 0.14.0: links sem merchantId, pagadores de teste, sendWebhookTestEvent e @banzami/sdk/realtime.', 'O Sandbox self-service usa-se pelo SDK.', 'Atualizar para 0.14.0; nenhuma chamada existente muda.'],
                       ['14 Set 2026', 'Sandbox', 'Sandbox self-service: negócio de teste pelo tipo de uso, pagadores de teste, simulações explícitas, API Explorer, evento de webhook de teste e reposição.', 'Um projeto novo recebe no Sandbox sem candidatura nem revisão.', 'Nenhuma; os projetos já configurados continuam como estão.'],
                       ['14 Set 2026', 'API', 'Estado em tempo real: GET /v1/realtime/payment-sessions/{id}, com o realtime.token de cada sessão no cabeçalho Authorization.', 'Uma página pode mostrar o pagamento no instante em que acontece.', 'Nenhuma; o webhook continua a ser a confirmação.'],
                       ['13 Set 2026', 'Docs', 'Referência de sessões corrigida: wallet_account_id é aceite com uma chave de projeto, para escolher uma conta sua.', 'Pode segregar pagamentos por conta.', 'Nenhuma.'],
                       ['13 Set 2026', 'Docs', 'Resposta de reembolso corrigida: status SUCCEEDED.', 'Código que compare com COMPLETED não reconhece o reembolso.', 'Comparar com SUCCEEDED.'],
-                      ['13 Set 2026', 'SDK', 'createPaymentLink e listPaymentLinks deixam de exigir merchantId (próxima versão do @banzami/sdk).', 'Em 0.13.0, uma chave de projeto não cria links pelo SDK.', 'Até à versão seguinte, usar HTTP para links.'],
+                      ['13 Set 2026', 'SDK', 'createPaymentLink e listPaymentLinks deixam de exigir merchantId (@banzami/sdk 0.14.0).', 'Em 0.13.0, uma chave de projeto não cria links pelo SDK.', 'Atualizar para 0.14.0.'],
                       ['13 Set 2026', 'Docs', 'Documentação reorganizada por tarefa, com referência de eventos, catálogo de erros pesquisável e cenários de teste.', 'Os endereços /docs/guides redirecionam para as páginas novas.', 'Atualizar marcadores, se os tiver.'],
                       ['13 Set 2026', 'API', 'GET /v1/public/proofs/{ref} publicado na referência e no OpenAPI.', 'Verificação pública de comprovativos documentada.', 'Nenhuma.'],
                       ['12 Set 2026', 'SDK', '@banzami/sdk 0.13.0; createApplicationSettlement retirado a favor de createBusinessApplicationSettlement.', 'Chamadas ao método retirado falham.', 'Migrar para createBusinessApplicationSettlement.'],

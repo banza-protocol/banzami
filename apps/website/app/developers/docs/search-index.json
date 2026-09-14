@@ -366,6 +366,16 @@
    "h": "/docs/payments"
   },
   {
+   "k": "method",
+   "t": "createPaymentLink",
+   "h": "/docs/payments"
+  },
+  {
+   "k": "method",
+   "t": "listPaymentLinks",
+   "h": "/docs/payments"
+  },
+  {
    "k": "section",
    "t": "O ciclo de uma entrega",
    "h": "/docs/webhooks#ciclo"
@@ -1052,6 +1062,11 @@
   {
    "k": "method",
    "t": "getFinancialSetup",
+   "h": "/docs/testing"
+  },
+  {
+   "k": "method",
+   "t": "createTestPayer",
    "h": "/docs/testing"
   },
   {
@@ -2634,6 +2649,16 @@
    "h": "/docs/en/payments"
   },
   {
+   "k": "method",
+   "t": "createPaymentLink",
+   "h": "/docs/en/payments"
+  },
+  {
+   "k": "method",
+   "t": "listPaymentLinks",
+   "h": "/docs/en/payments"
+  },
+  {
    "k": "section",
    "t": "The life of a delivery",
    "h": "/docs/en/webhooks#lifecycle"
@@ -3316,6 +3341,11 @@
   {
    "k": "method",
    "t": "getFinancialSetup",
+   "h": "/docs/en/testing"
+  },
+  {
+   "k": "method",
+   "t": "createTestPayer",
    "h": "/docs/en/testing"
   },
   {

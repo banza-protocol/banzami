@@ -848,13 +848,6 @@
    "evidence": "services/api-gateway/internal/handler/{payment_sessions.go (safeDTO, STATIC_QR/DYNAMIC_QR, refund_source), payment_authz.go (rejectClientPayeeFields, authorizeDeveloperSubAccount), payment_links.go}; core/api/src/routes/payment_sessions.rs (one session per purpose + reference); sdk/typescript/src/client.ts (createPaymentLink types in 0.13.0)",
    "text": "Um link de pagamento é um endereço reutilizável que pode partilhar sem criar uma sessão por cliente. Com uma chave de projeto, o pedido não indica o destinatári"
   },
-  "pt:Payments:bf0eec1d5e": {
-   "page": "Payments",
-   "kind": "Callout",
-   "class": "GATE",
-   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "SDK 0.13.0: createPaymentLink e listPaymentLinks ainda exigem merchantId no tipo, e uma chave de projeto não o pode enviar. Use HTTP para links até à próxima ve"
-  },
   "pt:Payments:b7855b3e06": {
    "page": "Payments",
    "kind": "LI",
@@ -918,12 +911,12 @@
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
    "text": "Confirmação | payment_session.paid e status PAID | payment_link.paid"
   },
-  "pt:Payments:efbadc6f72": {
+  "pt:Payments:d1b63e39c8": {
    "page": "Payments",
    "kind": "row",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "SDK (0.13.0) | createPaymentSession | HTTP — ver a nota abaixo"
+   "text": "SDK | createPaymentSession | createPaymentLink"
   },
   "pt:Payments:0c817a9c9d": {
    "page": "Payments",
@@ -1002,12 +995,12 @@
    "evidence": "services/api-gateway/internal/service/postgres_webhooks.go (5 attempts, 1m/5m/30m/2h, fan-out to active endpoints); sdk/typescript/src/webhooks.ts (tolerance 300 s); tools/check-docs-dx.mjs (WEBHOOK_GUIDE_* truths)",
    "text": "Depois da quinta falha, a entrega fica FAILED e pode ser reenviada. A ordem de entrega não é garantida."
   },
-  "pt:Webhooks:ca8580aa4e": {
+  "pt:Webhooks:ee594e45ed": {
    "page": "Webhooks",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "No Sandbox, Enviar evento de teste (Consola → Webhooks) ou POST /v1/webhooks/endpoints/{'{id}'}/test entrega ao endpoint um evento webhook.test, assinado com ba"
+   "text": "No Sandbox, Enviar evento de teste (Consola → Webhooks), sendWebhookTestEvent ou POST /v1/webhooks/endpoints/{'{id}'}/test entrega ao endpoint um evento webhook"
   },
   "pt:Webhooks:f3f5fcb5e9": {
    "page": "Webhooks",
@@ -3305,12 +3298,12 @@
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
    "text": "Reembolsos, transferências e liquidações exigem uma chave de idempotência sua: o SDK não a gera, porque uma chave nova em cada tentativa anularia a proteção."
   },
-  "pt:Sdk:396137a47d": {
+  "pt:Sdk:01b278d28d": {
    "page": "Sdk",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "@banzami/sdk 0.13.0. Em 0.13.0, createPaymentLink e listPaymentLinks ainda exigem merchantId no tipo; com uma chave de projeto, use HTTP para links de pagamento"
+   "text": "@banzami/sdk 0.14.0. Com uma chave de projeto: sessões e links de pagamento sem indicar quem recebe, pagadores de teste (createTestPayer, fundTestPayer, payAsTe"
   },
   "pt:Sdk:e4e1ecd6fc": {
    "page": "Sdk",
@@ -4817,6 +4810,13 @@
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "Alterações incompatíveis são marcadas como tal e indicam sempre a ação necessária. Não há versões de produção: Financial Live não está disponível."
   },
+  "pt:Changelog:8797a9c2df": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "HISTORY",
+   "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
+   "text": "14 Set 2026 | SDK | @banzami/sdk 0.14.0: links sem merchantId, pagadores de teste, sendWebhookTestEvent e @banzami/sdk/realtime. | O Sandbox self-service usa-se"
+  },
   "pt:Changelog:8e2ee88c1f": {
    "page": "Changelog",
    "kind": "row",
@@ -4845,12 +4845,12 @@
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "13 Set 2026 | Docs | Resposta de reembolso corrigida: status SUCCEEDED. | Código que compare com COMPLETED não reconhece o reembolso. | Comparar com SUCCEEDED."
   },
-  "pt:Changelog:af1b883180": {
+  "pt:Changelog:f1cfbaa2ca": {
    "page": "Changelog",
    "kind": "row",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "13 Set 2026 | SDK | createPaymentLink e listPaymentLinks deixam de exigir merchantId (próxima versão do @banzami/sdk). | Em 0.13.0, uma chave de projeto não cri"
+   "text": "13 Set 2026 | SDK | createPaymentLink e listPaymentLinks deixam de exigir merchantId (@banzami/sdk 0.14.0). | Em 0.13.0, uma chave de projeto não cria links pel"
   },
   "pt:Changelog:5bb95da43f": {
    "page": "Changelog",
@@ -5755,13 +5755,6 @@
    "evidence": "services/api-gateway/internal/handler/{payment_sessions.go (safeDTO, STATIC_QR/DYNAMIC_QR, refund_source), payment_authz.go (rejectClientPayeeFields, authorizeDeveloperSubAccount), payment_links.go}; core/api/src/routes/payment_sessions.rs (one session per purpose + reference); sdk/typescript/src/client.ts (createPaymentLink types in 0.13.0)",
    "text": "A Payment Link is a reusable URL you can share without creating a session per customer. With a project key, the request does not name the payee."
   },
-  "en:Payments:48e984c252": {
-   "page": "Payments",
-   "kind": "Callout",
-   "class": "GATE",
-   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "SDK 0.13.0: createPaymentLink and listPaymentLinks still require merchantId in their types, which a project key cannot send. Use HTTP for links until the next S"
-  },
   "en:Payments:c19a24911c": {
    "page": "Payments",
    "kind": "LI",
@@ -5825,12 +5818,12 @@
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
    "text": "Confirmation | payment_session.paid and status PAID | payment_link.paid"
   },
-  "en:Payments:a99c6d7bf5": {
+  "en:Payments:d1b63e39c8": {
    "page": "Payments",
    "kind": "row",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "SDK (0.13.0) | createPaymentSession | HTTP — see the note below"
+   "text": "SDK | createPaymentSession | createPaymentLink"
   },
   "en:Payments:728379deff": {
    "page": "Payments",
@@ -5909,12 +5902,12 @@
    "evidence": "services/api-gateway/internal/service/postgres_webhooks.go (5 attempts, 1m/5m/30m/2h, fan-out to active endpoints); sdk/typescript/src/webhooks.ts (tolerance 300 s); tools/check-docs-dx.mjs (WEBHOOK_GUIDE_* truths)",
    "text": "After the fifth failure, the delivery is FAILED and can be replayed. Delivery order is not guaranteed."
   },
-  "en:Webhooks:42817aabc9": {
+  "en:Webhooks:6c801391ac": {
    "page": "Webhooks",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "In the Sandbox, Send test event (Console → Webhooks) or POST /v1/webhooks/endpoints/{'{id}'}/test delivers a webhook.test event to the endpoint, signed with ban"
+   "text": "In the Sandbox, Send test event (Console → Webhooks), sendWebhookTestEvent or POST /v1/webhooks/endpoints/{'{id}'}/test delivers a webhook.test event to the end"
   },
   "en:Webhooks:5761f698ad": {
    "page": "Webhooks",
@@ -8212,12 +8205,12 @@
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
    "text": "Refunds, transfers and settlements require an idempotency key of your own: the SDK does not generate one, because a new key on every attempt would defeat the pr"
   },
-  "en:Sdk:3379937ad2": {
+  "en:Sdk:940677b3d4": {
    "page": "Sdk",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "@banzami/sdk 0.13.0. In 0.13.0, createPaymentLink and listPaymentLinks still require merchantId in their types; with a project key, use HTTP for Payment Links. "
+   "text": "@banzami/sdk 0.14.0. With a project key: sessions and Payment Links without naming the payee, test payers (createTestPayer, fundTestPayer, payAsTestPayer), send"
   },
   "en:Sdk:76e0e6cbbb": {
    "page": "Sdk",
@@ -9724,6 +9717,13 @@
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "Breaking changes are marked as such and always state the action required. There are no production releases: Financial Live is not available."
   },
+  "en:Changelog:4a4b20d1dc": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "HISTORY",
+   "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
+   "text": "14 Sep 2026 | SDK | @banzami/sdk 0.14.0: links without merchantId, test payers, sendWebhookTestEvent and @banzami/sdk/realtime. | The self-service Sandbox is us"
+  },
   "en:Changelog:8af416b310": {
    "page": "Changelog",
    "kind": "row",
@@ -9752,12 +9752,12 @@
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "13 Sep 2026 | Docs | Refund response corrected: status SUCCEEDED. | Code comparing against COMPLETED does not recognise the refund. | Compare against SUCCEEDED."
   },
-  "en:Changelog:ecfdff5002": {
+  "en:Changelog:b2d4fcea46": {
    "page": "Changelog",
    "kind": "row",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "13 Sep 2026 | SDK | createPaymentLink and listPaymentLinks no longer require merchantId (next @banzami/sdk release). | In 0.13.0, a project key cannot create li"
+   "text": "13 Sep 2026 | SDK | createPaymentLink and listPaymentLinks no longer require merchantId (@banzami/sdk 0.14.0). | In 0.13.0, a project key cannot create links th"
   },
   "en:Changelog:1558fd3cd9": {
    "page": "Changelog",
@@ -13399,19 +13399,19 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "in the future; otherwise 400 INVALID_EXPIRY"
   },
-  "pt:Endpoint-spec:9f74e12efb": {
+  "pt:Endpoint-spec:6543ce5cce": {
    "page": "Endpoint-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
-   "text": "Em @banzami/sdk 0.13.0 o tipo ainda exige merchantId e walletId, que uma chave de projeto não pode enviar; até à versão seguinte, use HTTP para criar links, ou "
+   "text": "Desde @banzami/sdk 0.14.0, com uma chave de projeto não envie merchantId nem walletId."
   },
-  "en:Endpoint-spec:0dc300c478": {
+  "en:Endpoint-spec:1ab16f15e7": {
    "page": "Endpoint-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
-   "text": "In @banzami/sdk 0.13.0 the type still requires merchantId and walletId, which a project key cannot send; until the next release, create links over HTTP, or use "
+   "text": "Since @banzami/sdk 0.14.0, send no merchantId or walletId with a project key."
   },
   "pt:Endpoint-spec:b63a2aa30c": {
    "page": "Endpoint-spec",
@@ -13763,19 +13763,19 @@
    "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
    "text": "the previous page’s next_cursor, unchanged"
   },
-  "pt:Endpoint-spec:4345a98e04": {
+  "pt:Endpoint-spec:8a3e8d4c1f": {
    "page": "Endpoint-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
-   "text": "Em @banzami/sdk 0.13.0 o tipo ainda exige merchantId, que uma chave de projeto não tem; até à versão seguinte, liste por HTTP."
+   "text": "Desde @banzami/sdk 0.14.0, uma chave de projeto lista os links do seu projeto sem merchantId."
   },
-  "en:Endpoint-spec:a3932e7f5f": {
+  "en:Endpoint-spec:5470873c72": {
    "page": "Endpoint-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
-   "text": "In @banzami/sdk 0.13.0 the type still requires merchantId, which a project key does not have; until the next release, list over HTTP."
+   "text": "Since @banzami/sdk 0.14.0, a project key lists its own project’s links without merchantId."
   },
   "pt:Endpoint-spec:50602d5350": {
    "page": "Endpoint-spec",

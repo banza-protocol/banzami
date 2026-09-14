@@ -5,7 +5,7 @@
 - API: https://sandbox-api.banzami.com/v1 (Sandbox). Authentication: Authorization: Bearer bz_test_sk_… (project secret key, server-side only).
 - Financial Live: unavailable (fail-closed). bz_live_ keys are refused.
 - Amounts are integers in minor units: 100 = 1 Kz.
-- Server SDK: @banzami/sdk (npm install @banzami/sdk), current version 0.14.0. OpenAPI: https://developers.banzami.com/developers/openapi/banzami-sandbox.openapi.json
+- Server SDK: @banzami/sdk (npm install @banzami/sdk), current version 0.14.1. OpenAPI: https://developers.banzami.com/developers/openapi/banzami-sandbox.openapi.json
 - Portuguese pages: https://developers.banzami.com/docs · English pages: https://developers.banzami.com/docs/en
 
 ## Get started

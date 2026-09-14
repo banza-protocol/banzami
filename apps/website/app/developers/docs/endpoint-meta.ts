@@ -185,8 +185,8 @@ export const ENDPOINT_META: Record<string, EndpointMeta> = {
     refused: PAYEE_REFUSED,
     sdk: 'createPaymentLink',
     sdkNote: {
-      pt: 'Em @banzami/sdk 0.13.0 o tipo ainda exige merchantId e walletId, que uma chave de projeto não pode enviar; até à versão seguinte, use HTTP para criar links, ou uma sessão de pagamento, que já traz o seu link.',
-      en: 'In @banzami/sdk 0.13.0 the type still requires merchantId and walletId, which a project key cannot send; until the next release, create links over HTTP, or use a Payment Session, which carries its own link.',
+      pt: 'Desde @banzami/sdk 0.14.0, com uma chave de projeto não envie merchantId nem walletId.',
+      en: 'Since @banzami/sdk 0.14.0, send no merchantId or walletId with a project key.',
     },
     events: ['payment_link.paid'],
     guides: ['payments'],
@@ -313,8 +313,8 @@ export const ENDPOINT_META: Record<string, EndpointMeta> = {
     ],
     sdk: 'listPaymentLinks',
     sdkNote: {
-      pt: 'Em @banzami/sdk 0.13.0 o tipo ainda exige merchantId, que uma chave de projeto não tem; até à versão seguinte, liste por HTTP.',
-      en: 'In @banzami/sdk 0.13.0 the type still requires merchantId, which a project key does not have; until the next release, list over HTTP.',
+      pt: 'Desde @banzami/sdk 0.14.0, uma chave de projeto lista os links do seu projeto sem merchantId.',
+      en: 'Since @banzami/sdk 0.14.0, a project key lists its own project’s links without merchantId.',
     },
     events: [],
     guides: ['payments'],
