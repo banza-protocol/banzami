@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" role="img" aria-labelledby="t d" font-family="system-ui,-apple-system,sans-serif">
+  <title id="t">The Banzami network — wallet-native, ledger-native, rail-decoupled</title>
+  <desc id="d">The external financial system — banks, EMIS, PSPs and other rails — joins the Banzami network at two dashed boundaries: value entering and value leaving. Inside the network, a consumer wallet pays another person by P2P and a Business by QR, link or Payment Session; every movement is a posting written by Banzami Core to the double-entry ledger. The developer platform — API, SDK, webhooks and realtime — reads that one financial truth. Public Sandbox: fictitious value and a simulated external rail. Financial Live: unavailable.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#B5101F"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8a7a7e"/></marker>
+  </defs>
+  <rect width="900" height="600" fill="#FFF7F6" rx="16"/>
+  <text x="32" y="36" font-family="ui-monospace,'Courier New',monospace" font-size="10" fill="#9A1B22" letter-spacing="2">SVG-BZ-061 · ADR-061</text>
+
+  <!-- external financial system -->
+  <rect x="150" y="54" width="600" height="72" rx="12" fill="#FFFFFF" stroke="#8a7a7e" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="450" y="84" text-anchor="middle" font-size="18" font-weight="700" fill="#2a2024">External financial system</text>
+  <text x="450" y="110" text-anchor="middle" font-size="14" font-weight="600" fill="#8a7a7e">banks · EMIS · PSPs · other rails</text>
+
+  <!-- boundary -->
+  <path d="M330 128 V186" fill="none" stroke="#8a7a7e" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#ag)"/>
+  <text x="318" y="164" text-anchor="end" font-size="14" font-weight="700" fill="#8a7a7e">value in (cash-in)</text>
+  <path d="M570 186 V128" fill="none" stroke="#8a7a7e" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#ag)"/>
+  <text x="582" y="164" font-size="14" font-weight="700" fill="#8a7a7e">value out (cash-out)</text>
+
+  <!-- network -->
+  <rect x="40" y="192" width="820" height="300" rx="16" fill="#FFFFFF" stroke="#E8434B" stroke-width="2.5"/>
+  <text x="64" y="222" font-size="16" font-weight="800" fill="#9A1B22">Banzami network</text>
+  <rect x="70" y="242" width="220" height="64" rx="12" fill="#FBD2D0"/>
+  <text x="180" y="281" text-anchor="middle" font-size="17" font-weight="700" fill="#2a2024">Consumer wallet</text>
+  <rect x="610" y="242" width="220" height="64" rx="12" fill="#FBD2D0"/>
+  <text x="720" y="281" text-anchor="middle" font-size="17" font-weight="700" fill="#2a2024">Another person’s wallet</text>
+  <rect x="610" y="328" width="220" height="64" rx="12" fill="#FBD2D0"/>
+  <text x="720" y="366" text-anchor="middle" font-size="17" font-weight="700" fill="#2a2024">Business · wallet accounts</text>
+  <path d="M292 274 H604" fill="none" stroke="#B5101F" stroke-width="2.6" marker-end="url(#ar)"/>
+  <text x="448" y="264" text-anchor="middle" font-size="15" font-weight="700" fill="#9A1B22">P2P · @banza</text>
+  <path d="M292 292 C420 292 470 360 604 360" fill="none" stroke="#B5101F" stroke-width="2.6" marker-end="url(#ar)"/>
+  <text x="448" y="350" text-anchor="middle" font-size="15" font-weight="700" fill="#9A1B22">QR · link · Payment Session</text>
+  <rect x="70" y="414" width="760" height="56" rx="12" fill="#B5101F"/>
+  <text x="450" y="449" text-anchor="middle" font-size="18" font-weight="700" fill="#FFFFFF">Banzami Core — the only financial writer · double-entry ledger</text>
+
+  <!-- developer platform -->
+  <path d="M450 494 V518" fill="none" stroke="#B5101F" stroke-width="2.2" marker-end="url(#ar)"/>
+  <rect x="150" y="522" width="600" height="46" rx="12" fill="#FFFFFF" stroke="#E8434B" stroke-width="2"/>
+  <text x="450" y="551" text-anchor="middle" font-size="16" font-weight="700" fill="#2a2024">Developer platform: API · SDK · webhooks · realtime</text>
+  <text x="450" y="588" text-anchor="middle" font-size="13" font-weight="600" fill="#8a7a7e">Public Sandbox: fictitious value, simulated external rail · Financial Live: unavailable, fail-closed</text>
+</svg>

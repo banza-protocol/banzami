@@ -165,3 +165,36 @@ financial authority model, application settlement, operator-governed pricing,
 public verifiable receipts, Developer Console with RBAC, Workspace Activity
 distinct from API logs, the DOA reference implementation, PT/EN parity, and the
 OpenAPI, event and error drift gates with documentation contract tests.
+
+## Architectural taxonomy (WALLET-NATIVE-001 §53–55)
+
+Providers are not one category, and comparing them as if they were produces
+wrong conclusions. Three families, each benchmarked on what it is built to do:
+
+| Family | What it is built around | Benchmark it for | Examples (evidence class) |
+|---|---|---|---|
+| **Gateway / orchestration centric** | Routing merchant payments to external rails; the provider's state is the payment's state | Developer experience, Sandbox, API quality, external-rail orchestration, merchant integration | BitPay Angola (USER_SUPPLIED_RECENT_PUBLIC_EVIDENCE for its developer portal — see above) |
+| **Wallet + multirail payment platform** | A consumer wallet with merchant acceptance and several rails | Wallet adoption, PSP operation, merchant ecosystem, rail interoperability | PayPay (UNVERIFIED — see the research rule below) |
+| **Wallet-native financial network** | Value represented inside the network moves between participants through the operator's core and ledger; rails at the boundary | Internal network movement, ledger correctness, financial addressing, rail decoupling, programmability, Sandbox DX, receipts, realtime, webhooks, settlements | Banzami (ADR-061; proved in the deployed Sandbox) |
+
+**BitPay** is not Banzami's architectural target. It remains a useful benchmark for
+developer experience, Sandbox, API quality and gateway orchestration, and the
+matrices above compare those outcomes only.
+
+**PayPay research rule.** No claim is made here that PayPay is or is not fully
+wallet-native. The question that matters — to what extent value moves natively
+inside the PayPay network without an external rail executing each transaction —
+has not been researched from reliable evidence, so the classification above is
+UNVERIFIED and nothing is inferred from it. Banzami's architecture is not changed
+to differ from, or resemble, any provider.
+
+### Banzami on its own benchmark
+
+| Capability | Banzami (Sandbox) | Evidence |
+|---|---|---|
+| Internal movement with the external rail down | Wallet payment and P2P complete | `external_rail_tests.rs`; scenario `EXTERNAL_RAIL_DOWN_WALLET_PAYMENT` |
+| Rail-dependent operation with the rail down | Fails closed, nothing moved | scenario `EXTERNAL_RAIL_DOWN_FAILS_CLOSED`; payout and acquiring tests |
+| One financial writer | Enforced by the database | migration 0144; `financial_writer_guard.rs` |
+| Ledger correctness | Balanced postings, immutable, book sums to zero | `ledger-reconciliation.sh` |
+| Financial addressing | `@banza` resolves Banzami participants | handle registry; P2P by handle |
+| Which rail a payment used, visible to the developer | `rail: WALLET \| EXTERNAL_SIMULATED` | OpenAPI `TestPayment` |

@@ -52,7 +52,8 @@ proofs and webhooks — that applications consume through APIs and SDKs.
 What Banzami **is not**:
 
 - ❌ a payments application
-- ❌ a wallet
+- ❌ a wallet app (it runs the wallets applications use)
+- ❌ a payment gateway, a rail aggregator or an EMIS wrapper
 - ❌ a fintech for end users
 - ❌ a crowdfunding application
 - ❌ a delivery application
@@ -225,6 +226,32 @@ This is **never** allowed:
 ![Never allowed — an application moving money itself](docs/diagrams/banzami-financial-flow-forbidden-v1.svg)
 
 An application **requests**; the operator **executes**.
+
+---
+
+## Wallet-native, rail-decoupled
+
+Banzami is designed as a wallet-native, ledger-native financial network. Once
+value is represented inside the Banzami network, eligible transfers and payments
+between Banzami participants are executed natively through the Banzami Core and
+ledger rather than requiring an external payment rail for every movement.
+External rails remain essential interoperability boundaries for funding,
+withdrawal, external settlement and other rail-dependent operations. This
+architecture is rail-decoupled, not rail-free, and does not bypass regulatory
+requirements. Public Sandbox models this architecture with fictitious value;
+Financial Live remains unavailable and fail-closed until the applicable
+regulatory, contractual and operational requirements are met.
+
+![The Banzami network — wallet-native, ledger-native, rail-decoupled](docs/diagrams/banzami-wallet-native-network-v1.svg)
+
+What holds it: Core is the only financial writer, enforced by the database
+(migration 0144); internal movements never read an external rail, and
+rail-dependent operations fail closed when their rail is down (tested against a
+real database and in the deployed Sandbox); `make check-wallet-native` guards the
+structure. Decision: [ADR-061](docs/adr/ADR-061-wallet-native-rail-decoupled-financial-network.md) ·
+vocabulary: [wallet-native terminology](docs/architecture/WALLET_NATIVE_TERMINOLOGY.md) ·
+dependencies and failure domains: [dependency audit](docs/architecture/WALLET_NATIVE_DEPENDENCY_AUDIT.md) ·
+regulatory questions: [future Financial Live operating model](docs/regulatory/FUTURE_FINANCIAL_LIVE_OPERATING_MODEL.md).
 
 ---
 

@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -613,9 +614,14 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 			via = "QR"
 		}
 		rail := RailWallet
+		kind := "INTERNAL_TRANSACTION"
 		if in.Simulate != "" {
 			rail = RailExternalSimulated
+			kind = "EXTERNAL_RAIL_OPERATION"
 		}
+		// The failure domain is in the log: an internal movement and a
+		// rail-dependent one are told apart without reading the body (ADR-061).
+		slog.InfoContext(r.Context(), "sandbox.test_payment", "financial_operation", kind, "rail", rail, "status", status)
 		raw = testPaymentResult(raw, payerID, via, rail, in.PaymentSessionID, in.PaymentLinkID)
 		raw = h.withReceipt(r.Context(), raw)
 	}

@@ -172,6 +172,20 @@ A ambição do Banzami é maior do que criar uma carteira. É demonstrar como um
 | **Banzami** | Operador de referência: implementa produtos e infraestrutura de operador, incluindo pagamentos, wallets, QR, recibos, APIs e experiência de rede. |
 | **Aplicações** | DOA, Mongo e futuras plataformas: definem o negócio e usam a infraestrutura, sem executar dinheiro nem implementar lógica financeira própria. |
 
+## Porque nativo de carteira
+
+O Banzami é desenhado como uma rede financeira nativa de carteira e de ledger, desacoplada dos rails externos (ADR-061). A escolha tem cinco razões, e nenhuma dispensa uma obrigação regulatória:
+
+1. **Nem cada movimento precisa de um rail externo.** Quando o valor já está na rede, uma transferência entre pessoas ou um pagamento a um negócio executa-se no Core e no ledger do Banzami.
+2. **Uma falha de rail não é uma falha do Banzami.** Um rail externo em baixo afeta as operações que o atravessam — entrada e saída de valor, pagamento pelo rail externo — e não as que acontecem dentro da rede.
+3. **P2P e pagamento a comerciante nativos.** São movimentos de primeira classe entre carteiras, não pedidos a um switch externo disfarçados.
+4. **Finanças programáveis.** Aplicações raciocinam sobre contas de carteira, pagamentos, reembolsos, liquidações, comprovativos, webhooks e tempo real — sobre uma única verdade financeira.
+5. **Interoperabilidade nas fronteiras.** Bancos, EMIS e PSP continuam essenciais para a entrada e saída de valor e para a liquidação externa; o Banzami liga-se a eles, não os substitui.
+
+Quanto mais valor económico estiver representado dentro do Banzami, mais importantes se tornam a salvaguarda, o resgate e a reconciliação — por isso este modelo exige conformidade regulatória, não a dispensa. As questões em aberto estão em `docs/regulatory/FUTURE_FINANCIAL_LIVE_OPERATING_MODEL.md`.
+
+---
+
 ## Princípio fundamental
 
 > **As aplicações definem o negócio.**  

@@ -73,10 +73,20 @@ pub async fn require_external_rail(state: &AppState, merchant_id: Uuid) -> ApiRe
     if state.environment.is_live() {
         return Ok(());
     }
-    match sandbox_rail_state(&state.pool, merchant_id)
+    let rail = sandbox_rail_state(&state.pool, merchant_id)
         .await
-        .map_err(|e| ApiError::internal(e.to_string()))?
-    {
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+    // Operations name their failure domain: this line exists only for an
+    // operation that crosses a rail, so a log search for
+    // financial_operation=EXTERNAL_RAIL_OPERATION finds every one, and its state.
+    tracing::info!(
+        financial_operation = "EXTERNAL_RAIL_OPERATION",
+        merchant_id = %merchant_id,
+        rail_state = rail.as_str(),
+        simulated = true,
+        "external rail checked"
+    );
+    match rail {
         RailState::Available => Ok(()),
         RailState::Unavailable => Err(ApiError::service_unavailable_code(
             "PROVIDER_UNAVAILABLE",
