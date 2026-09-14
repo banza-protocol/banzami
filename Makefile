@@ -385,6 +385,11 @@ check-docs-drift:
 	node tools/check-docs-drift.mjs
 
 # DOCS-PROD-001 source-side gates (docs/quality/DOCS_PROD_001_SPEC.md).
+.PHONY: check-wallet-native
+check-wallet-native:
+	node tools/check-wallet-native-architecture.mjs
+	node tools/check-wallet-native-architecture.selftest.mjs
+
 .PHONY: check-public-site-truth
 check-public-site-truth:
 	node tools/check-public-site-truth.mjs
@@ -392,7 +397,7 @@ check-public-site-truth:
 	node tools/lib/sdk-readme-claims.selftest.mjs
 
 .PHONY: check-docs-prod
-check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth
+check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth check-wallet-native
 	node tools/check-docs-prod-001-spec.mjs
 	node tools/check-docs-coverage.mjs
 	node tools/check-docs-claims-ledger.mjs

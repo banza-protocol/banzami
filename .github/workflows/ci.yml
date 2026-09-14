@@ -587,6 +587,14 @@ jobs:
       # available, Financial Live unavailable, v1, published SDKs and runtime key
       # prefixes only, no store badges, licences, competitors or speed promises.
       # The selftest reintroduces nineteen drifts the site had or could have.
+      # WALLET-NATIVE-001 / ADR-061: value moves inside Banzami through Core
+      # alone; external rails are boundaries; Live stays closed. The selftest
+      # breaks the architecture twelve ways.
+      - name: Wallet-native architecture gate
+        run: |
+          node tools/check-wallet-native-architecture.mjs
+          node tools/check-wallet-native-architecture.selftest.mjs
+
       - name: Public website truth gate
         run: |
           node tools/check-public-site-truth.mjs

@@ -152,8 +152,6 @@ q "begin;
      from merchants m where m.id = w.merchant_id and w.active and m.name ~ '$FIX';
    update merchant_app_credentials c set locked_until = 'infinity'
      from merchants m where m.id = c.merchant_id and m.name ~ '$FIX';
-   update payment_links l set status = 'CANCELLED', updated_at = now()
-     from merchants m where m.id = l.merchant_id and l.status = 'ACTIVE' and m.name ~ '$FIX';
    update developer.dev_projects p set status = 'ARCHIVED', updated_at = now()
      where p.status = 'ACTIVE' and (p.name ~ '$PFIX' or exists (
        select 1 from developer.dev_project_sandbox_binding b join merchants m on m.id = b.merchant_id
@@ -172,6 +170,15 @@ q "begin;
    update merchants set status = 'SUSPENDED', updated_at = now()
      where status = 'ACTIVE' and name ~ '$FIX';
    commit;"
+
+# Open links of fixture merchants end through Core, the only financial writer
+# (ADR-061) — outside the transaction above, because the database refuses a
+# payment_links update from anyone else.
+CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
+while IFS='|' read -r lid; do [ -n "$lid" ] || continue
+  echo "  link $lid → HTTP $(docker exec "$CORE" curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' "http://localhost:8081/internal/v1/payment-links/$lid/cancel")"
+done < <(q "select l.id from payment_links l join merchants m on m.id = l.merchant_id where l.status = 'ACTIVE' and m.name ~ '$FIX'")
+
 
 echo
 echo "after"

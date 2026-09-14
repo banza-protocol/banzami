@@ -138,10 +138,13 @@ fi
 if [ "$CANCEL_LINKS" -eq 1 ]; then
   echo "cancelling the canonical merchant's open payment links"
   echo "  premise: doa-live holds no campaigns, so none of these can ever settle"
-  q "update payment_links l set status='CANCELLED', updated_at=now()
-      from merchants m
-     where m.id = l.merchant_id and m.name = '$CANON_MERCHANT' and l.status = 'ACTIVE'
-     returning '  cancelled ' || l.slug"
+  # Through Core, the only financial writer (ADR-061): the database refuses a
+  # payment_links update from anyone else.
+  while IFS='|' read -r lid lslug; do [ -n "$lid" ] || continue
+    code=$(docker exec "$CORE" curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{}' "http://localhost:8081/internal/v1/payment-links/$lid/cancel")
+    echo "  cancelled $lslug → HTTP $code"
+  done < <(q "select l.id, l.slug from payment_links l join merchants m on m.id = l.merchant_id
+               where m.name = '$CANON_MERCHANT' and l.status = 'ACTIVE'")
   echo
   q "select '  open payment links now: ' || count(*) from payment_links where status='ACTIVE'"
   exit 0
