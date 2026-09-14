@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/google/uuid"
-
 	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 )
 
@@ -467,7 +465,7 @@ func (s *Service) ResetProjectSandbox(ctx context.Context, actor, projectID, con
 	if !ok {
 		return nil, ErrSetupUnavailable
 	}
-	res, err := resetter.ResetProjectSandbox(ctx, p.ID, actor, uuid.NewString())
+	res, err := resetter.ResetProjectSandbox(ctx, p.ID, actor, newRandomID())
 	if err != nil {
 		return nil, err
 	}

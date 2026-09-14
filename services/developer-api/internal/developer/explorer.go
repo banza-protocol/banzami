@@ -13,8 +13,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // The API Explorer (ADR-060 §7): a Console user runs a published Developer API
@@ -222,7 +220,7 @@ func (s *Service) RunExplorerRequest(ctx context.Context, actor, projectID strin
 		return nil, ErrExplorerInvalidRequest
 	}
 	if op.Idempotency && idem == "" && (op.IdempotencyRequired || op.Method == http.MethodPost) {
-		idem = "explorer_" + uuid.NewString()
+		idem = "explorer_" + newRandomID()
 	}
 	if !op.Idempotency {
 		idem = ""

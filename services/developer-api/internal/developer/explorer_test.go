@@ -124,10 +124,10 @@ func TestExplorer_RunsOnlyWhatThePublishedContractDescribes(t *testing.T) {
 	g := newExplorerGateway(t, s, "payment_sessions:read")
 	s.SetExplorer(g.srv.URL, g.srv.Client())
 	bad := []ExplorerRequest{
-		{OperationID: "createApiKey"},                                                                   // not an operation
-		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "../../internal/v1/x"}},  // path escape
-		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": ""}},                     // missing value
-		{OperationID: "listPaymentSessions", Query: map[string]string{"merchant_id": "m"}},              // undeclared query
+		{OperationID: "createApiKey"}, // not an operation
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "../../internal/v1/x"}},    // path escape
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": ""}},                       // missing value
+		{OperationID: "listPaymentSessions", Query: map[string]string{"merchant_id": "m"}},                // undeclared query
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "ps"}, Body: []byte(`{}`)}, // body on a GET
 	}
 	for _, in := range bad {

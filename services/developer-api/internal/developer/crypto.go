@@ -70,3 +70,12 @@ func slugify(name string) string {
 	s = slugStrip.ReplaceAllString(s, "-")
 	return strings.Trim(s, "-")
 }
+
+// newRandomID is 32 hex characters from crypto/rand: an idempotency key or a
+// request identifier that nobody can predict. (The service's go.mod carries no
+// UUID module; it builds outside the repository's Go workspace.)
+func newRandomID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}

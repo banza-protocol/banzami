@@ -1061,6 +1061,10 @@ jobs:
         env:
           GOOS: linux
           GOARCH: amd64
+          # The images build each service from its own go.mod, with no
+          # repository workspace: build here the same way, or a dependency that
+          # only go.work resolves passes CI and fails the deploy (it did).
+          GOWORK: "off"
         run: |
           set -e
           # -o must be a DIRECTORY here: `./...` matches several packages, and
