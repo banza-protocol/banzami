@@ -26,7 +26,7 @@ model the architecture with fictitious value).
 | Push notifications (FCM) | not a dependency | Sent in a goroutine after the transfer response (`public-api/internal/handler/transfers.go`). |
 | Acquiring provider (EMIS / simulated) | **ACCIDENTAL: none found** | Internal crates do not depend on `banzami-acquiring`; internal routes never call it (`tools/check-wallet-native-architecture.mjs`). With the rail-state table renamed away, wallet payment and P2P still complete (`internal_movements_never_read_the_rail`). |
 | Payment routing engine (`core/routing`) | FUTURE_ONLY | Constructed in `AppState` (Multicaixa Express → EMIS → bank transfer by priority) and not called by any route. The seam for multi-rail routing; it cannot change wallet semantics because no internal path reads it. |
-| Sandbox external rail simulator | SANDBOX_ONLY | Read only by rail-dependent routes; refuses in LIVE; ignored by `require_external_rail` in LIVE. |
+| Sandbox external rail simulator | SANDBOX_ONLY | Per (Project, Business) (0145). Read only by rail-dependent routes; refuses in LIVE; ignored by `require_external_rail` in LIVE. |
 
 `ACCIDENTAL_EXTERNAL_RAIL_DEPENDENCIES=0`.
 
@@ -98,12 +98,42 @@ belongs at the same boundary.
 - No SLO has been measured for public use; public copy promises no instant or
   always-available service.
 
-## 8. Future hardening (recorded, not done)
+## 8. Database authority (done in the WALLET-NATIVE-001 closure)
 
-- **Per-service database roles.** The 0144 guard trusts `application_name`, which a
-  client sets. Separate roles (Core with DML on financial tables; the others
-  without) would make the guard a security boundary. It changes role bootstrap,
-  secrets and grants for every service.
+Every PostgreSQL client on the Sandbox host, audited on 2026-09-14 before the
+change: core-api, api-gateway (including webhook delivery, realtime and proof
+verification, which run inside it), public-api, developer-api and admin-api — all
+five as one role, `bl_app_runtime`, which every migration re-granted DML on every
+table. No other container connects (pay-frontend, admin-frontend, the website,
+the edge and the webhook sink hold no database credential); the legacy
+`banzami-postgres-1` is stopped. No SECURITY DEFINER function exists; the one view
+is not updatable; there are no sequences; no non-Core service takes a row lock on
+a financial table.
+
+After:
+
+| Role | Mounted into | Schemas readable | Financial tables | Writable tables |
+|---|---|---|---|---|
+| `bl_core_runtime` | core-api | public | read + write | all of `public` except `_sqlx_migrations` |
+| `bl_gateway_runtime` | api-gateway | public, developer | read only | 23 (manifest) |
+| `bl_public_api_runtime` | public-api | public | read only | 8 |
+| `bl_developer_api_runtime` | developer-api | public, developer, account_identity | read only | 13 |
+| `bl_admin_api_runtime` | admin-api | public | read only | 15 |
+| `bl_app_runtime` | no container — `/root/.banzami/operator_db_url`, root-only | all three | read only | non-financial |
+| `bl_migration` / `bl_schema_owner` | the migration executor only | — | owner | owner |
+| `sbadmin` (superuser) | the postgres container and the operator's bootstrap/authority containers | — | — | — |
+
+Writes are table-scoped to each service's own footprint (read from its non-test
+source by `tools/db-authority.mjs`). Reads remain schema-scoped: narrowing them per
+table would fail services at runtime on paths no suite exercises (BANZADMIN review
+flows need an operator's MFA), for no gain in financial authority.
+
+Counters: `NON_CORE_FINANCIAL_TABLE_WRITE_ROLES=0`,
+`APPLICATION_NAME_SECURITY_AUTHORITY=0`,
+`RUNTIME_SERVICE_HAS_MIGRATION_SUPERUSER_CREDENTIALS=0`.
+
+## 9. Future hardening (recorded, not done)
+
 - **Payout bank adapter** at the rail boundary, with provider request and
   correlation identities.
 - **Liability vs backing-asset reconciliation** once the regulatory model defines

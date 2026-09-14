@@ -61,7 +61,32 @@ network accounts written by Core; an **external rail** is any system outside the
 network through which value enters, leaves or settles; **rail-decoupled** means
 an internal movement does not technically require an external rail.
 
-### 2. Core is the only financial writer — enforced by the database
+### 2. Core is the only financial writer — enforced by database authority
+
+**PostgreSQL privilege is the authority; the connection name is detection.**
+
+Every runtime service connects to PostgreSQL as its own role, with its own
+password (`db/authority/runtime-authority.json` → generated
+`db/authority/runtime-authority.sql`, applied by the superuser in one
+transaction after every migration by
+`infra/blueprint/sandbox-ops/scripts/runtime-authority.sh`):
+
+| Role | Service | Financial tables | Other writes |
+|---|---|---|---|
+| `bl_core_runtime` | core-api | SELECT, INSERT, UPDATE, DELETE | every `public` table except the migration ledger |
+| `bl_gateway_runtime` | api-gateway | SELECT only | its 22 onboarding, webhook, proof and request-log tables (+ `merchants`, through a trigger) |
+| `bl_public_api_runtime` | public-api | SELECT only | its 8 KYC, credential and test-payer tables |
+| `bl_developer_api_runtime` | developer-api | SELECT only | its 13 account, workspace, project, key and webhook tables |
+| `bl_admin_api_runtime` | admin-api | SELECT only | its 15 operator, KYC-review, compliance and settings tables |
+| `bl_app_runtime` | none (operator tooling on the host) | SELECT only | non-financial tables |
+
+No runtime role is superuser, BYPASSRLS, CREATEROLE, CREATEDB, a member of the
+schema owner, or able to write the migration ledger; the SQL aborts its own
+transaction if any non-Core role holds INSERT, UPDATE, DELETE or TRUNCATE on a
+financial table. Migration authority (`bl_migration` → `bl_schema_owner`) and the
+superuser are mounted into no service. `tools/db-authority.mjs` fails the build
+if the manifest drifts from 0144's table list, grants a financial table to a
+non-Core role, or omits a table a service's own code writes.
 
 Migration `0144` adds `banzami_financial_writer_guard()` as a statement-level
 trigger on the 25 tables that hold financial state (ledger accounts, postings,
@@ -75,11 +100,12 @@ pool (`core/api/src/main.rs`) — or from the table's owner (the migration
 identity, or a superuser in a disposable test database). Anyone else gets
 `FINANCIAL_WRITE_OUTSIDE_CORE`.
 
-This is a guard against an accidental second writer, not a security boundary
-against a compromised service: `application_name` is client-set. Separate
-database roles per service would be the security boundary; that is recorded as
-future hardening in the dependency audit, because it changes secrets and role
-bootstrap for every service.
+That guard is defence in depth and observability, never the authority:
+`application_name` is client-set. A non-Core role that names itself
+`banzami-core` is refused by PostgreSQL's privilege check before any trigger
+runs (`core/api/src/routes/database_authority_tests.rs`, all 25 tables × INSERT,
+UPDATE, DELETE × 5 non-Core roles); the Core role under another name is still
+refused by the guard.
 
 Tables that hold money columns but are not financial state are classified, with
 the reason, in `core/ledger/tests/financial_writer_guard.rs`: receipts
@@ -123,17 +149,26 @@ move value inside the network (`ledger`, `wallets`, `transfers`, `transactions`,
 
 ### 5. The Sandbox models the boundary
 
-Each Sandbox Business has a simulated external rail
-(`sandbox_external_rail_states`, AVAILABLE by default). A Project key sets it with
-`PUT /v1/sandbox/external-rail`; the Console's Test data page has the switch. With
-it UNAVAILABLE:
+Each Project has its own simulated external rail for the Business its key is
+bound to (`sandbox_project_rail_states`, 0145; AVAILABLE by default). A Project
+key sets it with `PUT /v1/sandbox/external-rail`; the Console's Test data page has
+the switch. The scope is the Project, not the Business, because a Business can be
+shared: a Project issues a consent code for its synthetic Business and a Project
+in another Workspace connects to it. Neither can take the other's rail down. Core
+records the Project that created each Payment Link or Session
+(`sandbox_link_projects`, from the gateway's authenticated key, never a request
+body), and a hosted payment reads that Project's rail. The Business-wide rail
+(`sandbox_external_rail_states`) is set only through Core's internal operator
+route and is what payouts read. With a Project's rail UNAVAILABLE:
 
 - a test payer's payment **without** `simulate` is a wallet payment: it completes
   and reports `rail: "WALLET"` — the gateway does not even read the rail;
 - a payment **with** `simulate` stands in for one whose funds cross an external
   rail (`rail: "EXTERNAL_SIMULATED"`) and fails closed with `503
   PROVIDER_UNAVAILABLE`, nothing moved;
-- a hosted acquiring payment cannot be initiated or confirmed.
+- a hosted acquiring payment on a session or link that Project created cannot be
+  initiated or confirmed;
+- another Project on the same Business sees AVAILABLE and is unaffected.
 
 `simulate` keeps its v1 contract; its meaning is now stated precisely, and the
 response says which rail the payment used. Two scenarios make this executable:
@@ -209,9 +244,12 @@ are recorded, unanswered, in
   Banzami movement depend on a rail, the provider the financial truth, and a
   provider change a redesign. It would also change the product strategy
   (wallet, P2P, merchant payments) and would need explicit founder approval.
-- **Per-service database roles now.** Deferred, not rejected: it is the security
-  boundary the application_name guard is not, but it changes role bootstrap,
-  secrets and grants for every service at once.
+- **The application_name guard as the authority.** Rejected (WALLET-NATIVE-001
+  closure): a client chooses its own name. Per-service roles were adopted instead;
+  the guard remains as detection.
+- **A simulated rail per Business.** Replaced by per-Project scope (0145): a
+  Business shared by consent code would have given one developer a switch over
+  another's integration.
 - **Removing `simulate` from wallet payments.** Rejected: it is a published v1
   contract. Its meaning is stated and reported instead (`rail`).
 
@@ -221,9 +259,20 @@ are recorded, unanswered, in
   with the rail down and with the rail-state table renamed away; acquiring
   initiation, confirmation and payout submission and confirmation fail closed.
   Mutation-proven.
-- `core/ledger/tests/financial_writer_guard.rs` — a non-owner, non-Core write to
-  nine financial tables is refused; the same writes from Core pass; every money
-  table is guarded or classified. Mutation-proven.
+- `core/api/src/routes/database_authority_tests.rs` — with the generated
+  authority SQL applied, every non-Core role naming itself `banzami-core` is
+  refused INSERT, UPDATE and DELETE on all 25 financial tables with SQLSTATE 42501;
+  the Core role writes all of them; a wallet payment and a P2P transfer complete on
+  a pool connected as the Core role and fail on one connected as the gateway role.
+  Mutation-proven (a stray grant fails the test; the same grant inside the SQL
+  aborts the apply).
+- `tools/db-authority.mjs` (+ selftest, 6 mutations), in CI.
+- `core/ledger/tests/financial_writer_guard.rs` — the 0144 guard: a non-owner,
+  non-Core write to nine financial tables is refused; every money table is guarded
+  or classified. Mutation-proven.
+- `external_rail_tests.rs::a_projects_rail_switch_never_reaches_another_project_on_the_same_business`
+  and `rail_project_scope_test.go` — two Projects on one Business, each switch
+  reaching only its own payments, then reversed. Mutation-proven.
 - `services/api-gateway/internal/handler/sandbox_external_rail_test.go` — a wallet
   payment never reads the rail; every `simulate` fails closed when it is down.
 - `tools/check-wallet-native-architecture.mjs` (+ selftest, 14 mutations), in CI.

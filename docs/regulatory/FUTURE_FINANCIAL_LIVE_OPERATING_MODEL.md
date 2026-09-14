@@ -35,7 +35,7 @@ change requires explicit founder approval; this document does not assume it.
 | Concern | How the platform is built | Where |
 |---|---|---|
 | Participant value | Wallets and wallet accounts whose balance is derived from double-entry postings; no balance column | ADR-061 §3, `core/ledger` |
-| Financial writer | Banzami Core only, enforced by a database guard on every financial-state table | migration 0144 |
+| Financial writer | Banzami Core only: PostgreSQL privilege on every financial-state table is granted to Core's role alone, with a connection-name guard as detection | `db/authority/`, migration 0144 |
 | Internal movement | P2P, wallet payments, refunds, application settlements: balanced postings, no external rail | ADR-061 §4 |
 | Cash-in | Funding sessions credited only after provider confirmation (SETTLED) | `core/consumer-wallets/src/funding.rs` |
 | Cash-out | Payouts: PENDING → PROCESSING (posting) → SENT (rail) → CONFIRMED only on the rail's confirmation; FAILED/RETURNED reverse | `core/payouts` |
