@@ -35,7 +35,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { gatewaySurface, gatewayAllCodes, gatewayRoutes, routeCodes, coreCodes, consoleCodes, rustFunctions } from './lib/error-surface.mjs';
+import { gatewaySurface, gatewayAllCodes, gatewayRoutes, routeCodes, coreCodes, consoleCodes, rustFunctions, serviceCodes } from './lib/error-surface.mjs';
 
 const ROOT = process.env.BZ_ERRCAT_ROOT ?? resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const DOCS = 'apps/website/app/developers/docs';
@@ -89,6 +89,27 @@ for (const d of cat.forwarded ?? []) {
   if (!surface.entries.includes(d.surface)) undeclared.push(`${d.surface} is declared as forwarding but is not on the developer surface`);
   const r = coreCodes(ROOT, d.core, { includeServerErrors: d.server_errors === 'forwarded' });
   for (const [c, w] of r.codes) put(c, [...w].map((x) => `core:${x}`), r.statuses.get(c));
+}
+// A surface function that forwards to another service and copies its answer
+// (SandboxDevHandler.forward → public-api) must be declared, and what that
+// service writes from the declared handlers is reachable. A code the service
+// writes that the gateway's own request cannot provoke is listed with the
+// reason; a listed reason for a code the service no longer writes is stale.
+for (const o of surface.outbound) {
+  const d = (cat.forwarded_services ?? []).find((x) => x.surface === o.at);
+  if (!d) undeclared.push(`${o.entry} → ${o.at} forwards to another service and copies its answer, and no forwarded_services entry declares it`);
+  else if (!d.routes?.[o.entry]) undeclared.push(`${o.entry} → ${o.at}: forwarded_services ${d.surface} does not say which ${d.service} handlers this route reaches`);
+}
+for (const d of cat.forwarded_services ?? []) {
+  if (!surface.outbound.some((o) => o.at === d.surface)) undeclared.push(`forwarded_services ${d.surface} is not an outbound call on the developer surface`);
+  const r = serviceCodes(ROOT, d.service, [...new Set(Object.values(d.routes ?? {}).flat())]);
+  if (r.missing.length) undeclared.push(`forwarded_services ${d.surface} names handler(s) that do not exist in ${d.service}: ${r.missing.join(', ')}`);
+  const excused = new Map((d.not_reachable ?? []).map((x) => [x.code, x.why]));
+  for (const [c, why] of excused) {
+    if (!r.codes.has(c)) undeclared.push(`forwarded_services ${d.surface}: ${c} is excused as not reachable, but ${d.service} does not write it`);
+    if (!why || why.length < 20) undeclared.push(`forwarded_services ${d.surface}: ${c} is excused without a reason`);
+  }
+  for (const [c, w] of r.codes) if (!excused.has(c)) put(c, [...w], r.statuses.get(c));
 }
 for (const fb of cat.fallbacks ?? []) {
   const src = existsSync(join(ROOT, fb.file)) ? read(fb.file) : '';
@@ -198,12 +219,19 @@ for (const f of docFiles) {
 report('DOC_ERRORS_NOT_PUBLIC', [...new Set(notPublic)], 'documentation names codes that are not part of the developer contract');
 
 // ── route by route ──────────────────────────────────────────────────────────
-const routes = gatewayRoutes(ROOT).filter((r) => r.middleware.includes('DualAuth') || r.middleware.includes('DeveloperKeyAuth') || r.path.startsWith('/v1/public/'));
+const routes = gatewayRoutes(ROOT).filter((r) => r.middleware.includes('DualAuth') || r.middleware.includes('DeveloperKeyAuth') || r.path.startsWith('/v1/public/') || r.path.startsWith('/v1/realtime/'));
 const routeDrift = [];
 const checkRoute = (label, method, path, tokens) => {
   const r = routes.find((x) => x.method === method && x.path === path);
   if (!r) { routeDrift.push(`${label}: ${method} ${path} is not a developer route`); return; }
   const can = routeCodes(ROOT, r, cat.forwarded ?? []);
+  // What a forwarding route's other service writes for it (forwarded_services).
+  for (const d of cat.forwarded_services ?? []) {
+    const reached = d.routes?.[r.handler];
+    if (!reached) continue;
+    const excused = new Set((d.not_reachable ?? []).map((x) => x.code));
+    for (const c of serviceCodes(ROOT, d.service, reached).codes.keys()) if (!excused.has(c)) can.add(c);
+  }
   for (const t of tokens) {
     const ok = t.endsWith('*') ? [...can].some((c) => c.startsWith(t.slice(0, -1))) : can.has(t);
     if (!ok) routeDrift.push(`${label}: ${method} ${path} documents ${t}, which that route cannot return`);

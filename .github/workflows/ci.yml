@@ -515,7 +515,9 @@ jobs:
       # integrator who wrote it; a reachable route that is not published has no
       # contract, no versioning promise and no deprecation path.
       - name: OpenAPI route drift gate
-        run: node tools/check-openapi-route-drift.mjs
+        run: |
+          node tools/check-openapi-route-drift.mjs
+          node tools/docs/build-explorer-allowlist.mjs --check
 
       # A retired application is easy to half-delete: the directory goes and a
       # deploy entry, a CI job or a doc page stays, and the next reader takes that

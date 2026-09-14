@@ -118,10 +118,23 @@ for (const fn of ['mountPublicProofVerify']) {
   for (const m of body.matchAll(/\.(Get|Post|Put|Patch|Delete)\(\s*"([^"]*)"/g)) publicRoutes.add(`${m[1].toUpperCase()} ${m[2]}`);
 }
 
+// The REALTIME STATUS surface (ADR-060 §9): no API key, but not public either —
+// it answers only a short-lived bzst_ status token bound to one Payment
+// Session. Its own credential class, so its security declaration is held to
+// statusToken below.
+const tokenRoutes = new Set();
+for (const fn of ['mountRealtimeStatus']) {
+  const at = src.indexOf(`func ${fn}(`);
+  if (at === -1) { fail(`${fn} is not in server.go — the realtime status surface could not be read`); continue; }
+  const { body } = blockAt(openBraceAfter(at));
+  for (const m of body.matchAll(/\.(Get|Post|Put|Patch|Delete)\(\s*"([^"]*)"/g)) tokenRoutes.add(`${m[1].toUpperCase()} ${m[2]}`);
+}
+
 const reachable = new Set([
   ...routesIn(devKeyGroup, ''),
   ...routesIn(dualGroup, '/v1'),
   ...publicRoutes,
+  ...tokenRoutes,
 ]);
 
 const spec = JSON.parse(readFileSync(SPEC, 'utf8'));
@@ -150,15 +163,17 @@ for (const [p, ops] of Object.entries(spec.paths)) {
       if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
       const key = `${method.toUpperCase()} ${p}`;
       const declaredPublic = Array.isArray(op.security) && op.security.length === 0;
-      const mountedPublic = publicRoutes.has(key);
-      if (declaredPublic !== mountedPublic && reachable.has(key)) {
-        wrong.push(`${key}: spec says ${declaredPublic ? 'public' : 'credentialed'}, server mounts it ${mountedPublic ? 'public' : 'credentialed'}`);
+      const declaredToken = Array.isArray(op.security) && op.security.length === 1 && Object.keys(op.security[0]).join() === 'statusToken';
+      const declared = declaredPublic ? 'public' : declaredToken ? 'status-token' : 'credentialed';
+      const mounted = publicRoutes.has(key) ? 'public' : tokenRoutes.has(key) ? 'status-token' : 'credentialed';
+      if (declared !== mounted && reachable.has(key)) {
+        wrong.push(`${key}: spec says ${declared}, server mounts it ${mounted}`);
       }
     }
   }
   wrong.length
     ? fail(`security declarations contradict the mounts:\n      ${wrong.join('\n      ')}`)
-    : pass(`every operation's security declaration matches how it is mounted (${publicRoutes.size} public)`);
+    : pass(`every operation's security declaration matches how it is mounted (${publicRoutes.size} public, ${tokenRoutes.size} status-token)`);
 }
 
 const handlers = readFileSync(resolve(ROOT, 'services/api-gateway/internal/handler/payment_links.go'), 'utf8');

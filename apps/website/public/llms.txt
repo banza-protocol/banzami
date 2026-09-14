@@ -81,6 +81,15 @@
 - GET /v1/webhooks/events/{id}/deliveries — scope webhooks:read; SDK listWebhookDeliveries() — https://developers.banzami.com/docs/en/reference#ref-webhook-deliveries
 - POST /v1/webhooks/deliveries/{id}/replay — scope webhooks:write; SDK replayWebhookDelivery() — https://developers.banzami.com/docs/en/reference#ref-webhook-replay
 - GET /v1/public/proofs/{ref} — scope none (public) — https://developers.banzami.com/docs/en/reference#ref-public-proof
+- POST /v1/webhooks/endpoints/{id}/test — scope webhooks:write; SDK sendWebhookTestEvent() — https://developers.banzami.com/docs/en/reference#ref-webhook-test
+- GET /v1/realtime/payment-sessions/{id} — scope none (public) — https://developers.banzami.com/docs/en/reference#ref-realtime-status
+- GET /v1/sandbox/scenarios — scope sandbox:read; SDK listSandboxScenarios() — https://developers.banzami.com/docs/en/reference#ref-sandbox-scenarios
+- POST /v1/sandbox/test-payers — scope sandbox:write; SDK createTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-create
+- GET /v1/sandbox/test-payers — scope sandbox:read; SDK listTestPayers() — https://developers.banzami.com/docs/en/reference#ref-test-payer-list
+- GET /v1/sandbox/test-payers/{id} — scope sandbox:read; SDK getTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-get
+- POST /v1/sandbox/test-payers/{id}/fund — scope sandbox:write; SDK fundTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-fund
+- POST /v1/sandbox/test-payers/{id}/payments — scope sandbox:write; SDK payAsTestPayer(); events payment_session.paid, payment_link.paid — https://developers.banzami.com/docs/en/reference#ref-test-payer-pay
+- DELETE /v1/sandbox/test-payers/{id} — scope sandbox:write; SDK retireTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-retire
 
 ## Webhook events
 
@@ -159,7 +168,7 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - REFUND_NOT_FUNDABLE (422): The account that received the payment does not hold enough to return it. Retry once the account holds enough, with a new key.
 - INVALID_PAYMENT_STATUS (422): The payment is in a state that cannot be refunded. Only a completed payment can be refunded.
 - INVALID_TRANSACTION_STATUS (422): The transaction is in a state that cannot be refunded. Only a completed payment can be refunded.
-- WALLET_NOT_FOUND (422): The wallet of the Business that received the payment was not found. Contact support with the request_id.
+- WALLET_NOT_FOUND (422): The wallet was not found: the one of the Business that received the payment, or — in a test payer's payment — the payer's. Contact support with the request_id.
 - CONSUMER_WALLET_NOT_FOUND (422): The payer’s wallet no longer exists. Contact support with the request_id.
 - REFUND_FAILED (4xx): The refund was refused without a more specific reason. Read the message and contact support with the request_id.
 - RATE_LIMITED (429): Too many requests. Nothing was executed. Wait for Retry-After, then retry with the same key.
@@ -168,4 +177,30 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - UPSTREAM_ERROR (502): A Banzami service failed. Your request may be valid. Retry with the same key.
 - SERVICE_UNAVAILABLE (503): The service is temporarily unavailable. Retry with the same key, with increasing backoff.
 - UNAVAILABLE (503): The service is temporarily unavailable. Retry with the same key, with increasing backoff.
+- SANDBOX_ONLY (403): The operation exists only in the Sandbox: test data, test payers, scenarios and test events. The key is not a Sandbox key. Use a bz_test_sk_ key from a Sandbox Project. Live has no test data.
+- IDEMPOTENCY_KEY_REQUIRED (400): This request requires the Idempotency-Key header: a test payer top-up, or a payment with simulate TIMEOUT. Nothing was executed. Send Idempotency-Key with a value unique to the operation, then retry.
+- INTERFACE_UNAVAILABLE (422): The session does not offer the interface named in via: no payment link, or no dynamic QR (an open-amount session is paid by link). Use via LINK, or create the session with the interface you want to test.
+- PAYMENT_DECLINED (402): A Sandbox simulation requested with simulate DECLINED: the external rail declined. Nothing moved. The response carries simulated: true. Handle it as a real decline: tell the payer and allow another attempt. To pay, repeat without simulate.
+- PROVIDER_UNAVAILABLE (503): A Sandbox simulation requested with simulate PROVIDER_UNAVAILABLE: the external provider is unavailable. Nothing moved. The response carries simulated: true. Handle it as a real outage: retry later with increasing backoff. To pay, repeat without simulate.
+- SANDBOX_SIMULATED_TIMEOUT (504): A Sandbox simulation requested with simulate TIMEOUT: the payment was made, but the answer did not arrive in time. The client does not know the outcome. The response carries simulated: true. Do not pay again. Retry with the same Idempotency-Key to read the outcome, or read the session with GET /v1/payment-sessions/{id}.
+- ENDPOINT_DISABLED (409): The webhook endpoint is disabled and receives no events, test events included. Enable the endpoint again and send the test event again.
+- REALTIME_TOKEN_REQUIRED (401): The realtime status request carries no Authorization: Bearer bzst_… Send the session's realtime.token in the Authorization header.
+- REALTIME_TOKEN_IN_URL (400): The status token was sent in the URL (query string). It is refused even if valid: a URL ends up in logs, history and Referer headers. Send the token only in the Authorization header, with fetch. Do not use EventSource with the token in the URL.
+- REALTIME_TOKEN_INVALID (401): The status token is not valid: malformed, not issued by this environment, or altered. Read the session on your backend (GET /v1/payment-sessions/{id}) and use the realtime.token it returns.
+- REALTIME_TOKEN_EXPIRED (401): The status token has expired. Tokens last at most 30 minutes and do not renew themselves. Read the session again on your backend for a new token, then reconnect.
+- REALTIME_TOKEN_WRONG_RESOURCE (403): The status token belongs to another Payment Session. Each token opens only the session it was issued for. Use the token that came with this session.
+- REALTIME_STREAM_LIMIT (429): Too many open status streams: at most 3 per session and 20 per IP address. Close the streams you do not use and wait for Retry-After. A page needs a single stream.
+- REALTIME_UNAVAILABLE (503): Realtime status is not available right now. The payment is not affected. Fall back to reading the status with GET on your backend at a modest interval, and try the stream again later.
+- STREAMING_UNSUPPORTED (406): The connection cannot stream right now. Ask for Accept: application/json for a single read, and try the stream again later.
+- SANDBOX_QUOTA_EXCEEDED (429): A Project Sandbox limit was reached: 10 active test payers, or 20 top-ups and 10,000,000 in 24 hours. Retire test payers you no longer use, or wait for the 24-hour window to move. Nothing was created or funded.
+- SANDBOX_FUNDING_REFUSED (422): The fictitious top-up was refused by the test payer's balance limits (5,000,000 at most). Nothing was funded. Top up a smaller amount, or spend the payer's balance first.
+- TEST_PAYER_RETIRED (422): The test payer has been retired: it neither pays nor receives top-ups. Its history stays. Create a new test payer.
+- RETIREMENT_FAILED (502): The test payer could not be fully retired right now. Nothing was left half-done that cannot be repeated. Repeat the retirement request.
+- LINK_ALREADY_PAID (409): This payment link has already been paid. A single-use link does not accept a second payment. Read the session or link to confirm the existing payment; do not pay again.
+- PAYMENT_NOT_CONFIRMED (502): The money was transferred, but the payment could not be marked complete right now. Repeat the same request: repeating completes the payment and does not charge twice.
+- QR_NOT_FOUND (404): The session's QR code was not found. Read the session and confirm it still offers DYNAMIC_QR; otherwise pay by link.
+- QR_EXPIRED (422): The QR code expired together with its session. Nothing was paid. Create a new session.
+- QR_ALREADY_USED (422): The dynamic QR code has already been used for a payment. A dynamic QR is paid once. Read the session to confirm the payment; do not pay again.
+- AMOUNT_NEGATIVE (422): The amount sent for the QR payment is not valid. Omit amount_minor for a fixed-amount session, or send a positive integer in minor units.
+- INVALID_WALLET_ACCOUNT (422): The wallet account that receives this QR code is no longer active. Check the account with GET /v1/wallet-accounts/{id} and create the session on an active account.
 

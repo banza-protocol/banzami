@@ -56,6 +56,16 @@ const ALLOWED_PATHS = [
   // It was live and absent from the spec, so a documented receipt had no
   // contract behind it (DOCS-PROD-001 §28, §42).
   '/v1/public/proofs/{ref}',
+  // ADR-060: the self-service Sandbox. Test data on the developer key (Sandbox
+  // stacks only), a synthetic webhook test event, and the realtime status route
+  // opened by a short-lived status token rather than a key.
+  '/v1/webhooks/endpoints/{id}/test',
+  '/v1/realtime/payment-sessions/{id}',
+  '/v1/sandbox/scenarios',
+  '/v1/sandbox/test-payers',
+  '/v1/sandbox/test-payers/{id}',
+  '/v1/sandbox/test-payers/{id}/fund',
+  '/v1/sandbox/test-payers/{id}/payments',
 ];
 
 // Retired routes are never described as operations (410 ROUTE_RETIRED).

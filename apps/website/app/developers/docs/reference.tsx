@@ -922,8 +922,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/deliveries/{id}/replay',
     tone: 'ok',
     desc: {
-      pt: 'Volta a pôr em fila uma entrega que falhou, com o mesmo id. Uma entrega que já teve sucesso responde 409 e não é reenviada.',
-      en: 'Queues a failed delivery again, with the same id. A delivery that already succeeded returns 409 and is not sent again.',
+      pt: 'Volta a pôr em fila uma entrega que falhou, com o mesmo id. Uma entrega que já teve sucesso responde 409 e não é reenviada — exceto a de um evento de teste webhook.test, que não move nada e pode ser reenviada sempre.',
+      en: 'Queues a failed delivery again, with the same id. A delivery that already succeeded returns 409 and is not sent again — except one of a webhook.test event, which moves nothing and can always be replayed.',
     },
     credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/webhooks/deliveries/whdel_exemplo/replay \\
@@ -966,6 +966,278 @@ export const ENDPOINTS: EndpointSpec[] = [
       { code: '429 RATE_LIMITED', note: { pt: 'demasiadas verificações a partir do mesmo IP; aguarde os segundos de Retry-After', en: 'too many checks from the same IP; wait the Retry-After seconds' } },
     ],
   },
+  {
+    id: 'ref-webhook-test',
+    method: 'POST',
+    path: '/v1/webhooks/endpoints/{id}/test',
+    tone: 'ok',
+    desc: {
+      pt: 'Só na Sandbox. Envia a este endpoint um evento de teste webhook.test, assinado como qualquer outro, para verificar o seu recetor e a verificação da assinatura. Vem marcado synthetic: true, não descreve nenhum pagamento e não move nada; a entrega pode ser reenviada mesmo depois de ter sucesso.',
+      en: 'Sandbox only. Sends a webhook.test event to this endpoint, signed like any other, to check your receiver and your signature verification. It is marked synthetic: true, describes no payment and moves nothing; its delivery can be replayed even after it succeeds.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/webhooks/endpoints/whep_exemplo/test \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "event_id": "whevt_exemplo",
+  "delivery_id": "whdel_exemplo",
+  "type": "webhook.test",
+  "synthetic": true,
+  "status": "PENDING"
+}`,
+    errors: [
+      { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:write, ou projeto sem configuração financeira concluída', en: 'key without webhooks:write, or project without completed Financial Setup' } },
+      { code: '403 SANDBOX_ONLY', note: { pt: 'a chave não é Sandbox: os eventos de teste só existem na Sandbox', en: 'the key is not a Sandbox key: test events exist only in the Sandbox' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o endpoint não existe ou pertence a outro projeto', en: 'the endpoint does not exist or belongs to another project' } },
+      { code: '409 ENDPOINT_DISABLED', note: { pt: 'o endpoint está desativado; reative-o primeiro', en: 'the endpoint is disabled; enable it first' } },
+    ],
+  },
+  {
+    id: 'ref-realtime-status',
+    method: 'GET',
+    path: '/v1/realtime/payment-sessions/{id}',
+    tone: 'ok',
+    desc: {
+      pt: 'Para uma página no browser: o estado de uma sessão de pagamento em tempo real, por Server-Sent Events — um snapshot, um evento status em cada mudança, um heartbeat a cada 15 s, e o fecho num estado final. Com Accept: application/json, uma leitura única. Abre-se com o token de estado da sessão, nunca com uma chave. Serve o ecrã; não é prova de pagamento.',
+      en: 'For a browser page: a Payment Session’s status in real time, over Server-Sent Events — a snapshot, a status event on each change, a heartbeat every 15 s, and a close on a terminal status. With Accept: application/json, a single read. Opened with the session’s status token, never with a key. It serves the screen; it is not proof of payment.',
+    },
+    credential: { pt: 'Token de estado bzst_ da sessão, no cabeçalho Authorization — nunca no endereço. Sem chave de API.', en: 'The session’s bzst_ status token, in the Authorization header — never in the URL. No API key.' },
+    curl: `curl -N https://sandbox-api.banzami.com/v1/realtime/payment-sessions/payment_session_exemplo \\
+  -H "Authorization: Bearer bzst_XXXXXXXXXXXXXXXX" \\
+  -H "Accept: text/event-stream"`,
+    response: `retry: 3000
+
+id: ACTIVE-1
+event: snapshot
+data: {"session_id":"payment_session_exemplo","status":"ACTIVE","amount_minor":250000,"currency":"AOA","expires_at":"2026-09-14T11:00:00Z","terminal":false,"observed_at":"2026-09-14T10:04:00Z"}
+
+: heartbeat
+
+id: PAID-2
+event: status
+data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250000,"currency":"AOA","expires_at":"2026-09-14T11:00:00Z","terminal":true,"observed_at":"2026-09-14T10:05:01Z"}`,
+    errors: [
+      { code: '400 REALTIME_TOKEN_IN_URL', note: { pt: 'o token foi enviado no endereço; é recusado mesmo que válido', en: 'the token was sent in the URL; it is refused even when valid' } },
+      { code: '401 REALTIME_TOKEN_REQUIRED / REALTIME_TOKEN_INVALID / REALTIME_TOKEN_EXPIRED', note: { pt: 'leia a sessão no seu backend para um token novo', en: 'read the session on your backend for a new token' } },
+      { code: '403 REALTIME_TOKEN_WRONG_RESOURCE', note: { pt: 'o token é de outra sessão', en: 'the token belongs to another session' } },
+      { code: '429 REALTIME_STREAM_LIMIT / RATE_LIMITED', note: { pt: 'no máximo 3 ligações por sessão e 20 por IP', en: 'at most 3 streams per session and 20 per IP' } },
+      { code: '503 REALTIME_UNAVAILABLE', note: { pt: 'use GET no seu backend, a um intervalo moderado', en: 'use GET on your backend at a modest interval' } },
+    ],
+  },
+  {
+    id: 'ref-sandbox-scenarios',
+    method: 'GET',
+    path: '/v1/sandbox/scenarios',
+    tone: 'ok',
+    desc: {
+      pt: 'Os cenários determinísticos da Sandbox: como produzir cada resultado, o que volta e que evento se segue. Cada resultado vem de uma operação real, exceto os resultados de rede externa, pedidos com simulate. Não há montantes mágicos.',
+      en: 'The deterministic Sandbox scenarios: how to produce each outcome, what comes back and which event follows. Every outcome comes from a real operation, except external-rail outcomes, requested with simulate. There are no magic amounts.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
+    curl: `curl https://sandbox-api.banzami.com/v1/sandbox/scenarios \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "version": 1,
+  "note": { "pt": "…", "en": "…" },
+  "scenarios": [
+    {
+      "id": "PAYMENT_DECLINED",
+      "group": "payments",
+      "simulated": true,
+      "goal": { "pt": "Uma recusa do rail externo", "en": "An external-rail decline" },
+      "trigger": { "pt": "… com simulate DECLINED", "en": "… with simulate DECLINED" },
+      "result": { "pt": "402 PAYMENT_DECLINED, simulated: true; nada se move", "en": "402 PAYMENT_DECLINED, simulated: true; nothing moves" },
+      "event": null
+    }
+  ]
+}`,
+    errors: [
+      { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY', note: { pt: 'chave sem sandbox:read, ou chave que não é Sandbox', en: 'key without sandbox:read, or a key that is not a Sandbox key' } },
+    ],
+  },
+  {
+    id: 'ref-test-payer-create',
+    method: 'POST',
+    path: '/v1/sandbox/test-payers',
+    tone: 'ok',
+    desc: {
+      pt: 'Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. O PIN vem só nesta resposta, para entrar na página de pagamento como esse pagador. No máximo 10 pagadores ativos por projeto.',
+      en: 'Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. The PIN comes only in this response, for signing in to the payment page as that payer. At most 10 active payers per Project.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{"label":"Maria (teste)","initial_balance_minor":1000000}'`,
+    response: `{
+  "id": "tp_exemplo",
+  "handle": "tpexemplo01",
+  "label": "Maria (teste)",
+  "status": "ACTIVE",
+  "balance_minor": 1000000,
+  "currency": "AOA",
+  "environment": "SANDBOX",
+  "created_at": "2026-09-14T10:00:00Z",
+  "retired_at": null,
+  "pin": "<devolvido apenas nesta resposta>"
+}`,
+    errors: [
+      { code: '400 INVALID_BODY / INVALID_PARAM', note: { pt: 'um campo desconhecido, label com mais de 60 caracteres, ou saldo fora de 0–1 000 000', en: 'an unknown field, a label over 60 characters, or a balance outside 0–1,000,000' } },
+      { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY', note: { pt: 'chave sem sandbox:write, ou chave que não é Sandbox', en: 'key without sandbox:write, or a key that is not a Sandbox key' } },
+      { code: '429 SANDBOX_QUOTA_EXCEEDED', note: { pt: 'já há 10 pagadores ativos; retire um', en: 'there are already 10 active payers; retire one' } },
+    ],
+  },
+  {
+    id: 'ref-test-payer-list',
+    method: 'GET',
+    path: '/v1/sandbox/test-payers',
+    tone: 'ok',
+    desc: {
+      pt: 'Lista os pagadores de teste do projeto, com o saldo fictício atual.',
+      en: 'Lists the Project’s test payers, with their current fictitious balance.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
+    curl: `curl https://sandbox-api.banzami.com/v1/sandbox/test-payers \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "data": [
+    { "id": "tp_exemplo", "handle": "tpexemplo01", "label": "Maria (teste)", "status": "ACTIVE",
+      "balance_minor": 750000, "currency": "AOA", "environment": "SANDBOX",
+      "created_at": "2026-09-14T10:00:00Z", "retired_at": null }
+  ]
+}`,
+    errors: [
+      { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY', note: { pt: 'chave sem sandbox:read, ou chave que não é Sandbox', en: 'key without sandbox:read, or a key that is not a Sandbox key' } },
+    ],
+  },
+  {
+    id: 'ref-test-payer-get',
+    method: 'GET',
+    path: '/v1/sandbox/test-payers/{id}',
+    tone: 'ok',
+    desc: {
+      pt: 'Devolve um pagador de teste do projeto. O de outro projeto responde 404.',
+      en: 'Returns one of the Project’s test payers. Another Project’s returns 404.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
+    curl: `curl https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_exemplo \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "id": "tp_exemplo",
+  "handle": "tpexemplo01",
+  "label": "Maria (teste)",
+  "status": "ACTIVE",
+  "balance_minor": 750000,
+  "currency": "AOA",
+  "environment": "SANDBOX",
+  "created_at": "2026-09-14T10:00:00Z",
+  "retired_at": null
+}`,
+    errors: [
+      { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY', note: { pt: 'chave sem sandbox:read, ou chave que não é Sandbox', en: 'key without sandbox:read, or a key that is not a Sandbox key' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o pagador não existe ou pertence a outro projeto', en: 'the payer does not exist or belongs to another project' } },
+    ],
+  },
+  {
+    id: 'ref-test-payer-fund',
+    method: 'POST',
+    path: '/v1/sandbox/test-payers/{id}/fund',
+    tone: 'ok',
+    desc: {
+      pt: 'Carrega valor fictício num pagador de teste, pelo ledger — nunca editando um saldo. O cabeçalho Idempotency-Key é obrigatório e identifica o carregamento. Limites: 2 500 000 por carregamento, saldo de 5 000 000, e 20 carregamentos e 10 000 000 por projeto em 24 h.',
+      en: 'Adds fictitious value to a test payer, through the ledger — never by editing a balance. The Idempotency-Key header is required and identifies the top-up. Limits: 2,500,000 per top-up, a 5,000,000 balance, and 20 top-ups and 10,000,000 per Project in 24 h.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_exemplo/fund \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Idempotency-Key: carregamento_001" \\
+  -H "Content-Type: application/json" \\
+  -d '{"amount_minor":500000}'`,
+    response: `{
+  "id": "tp_exemplo",
+  "handle": "tpexemplo01",
+  "label": "Maria (teste)",
+  "status": "ACTIVE",
+  "balance_minor": 1500000,
+  "currency": "AOA",
+  "environment": "SANDBOX",
+  "created_at": "2026-09-14T10:00:00Z",
+  "retired_at": null
+}`,
+    errors: [
+      { code: '400 IDEMPOTENCY_KEY_REQUIRED / INVALID_PARAM', note: { pt: 'sem Idempotency-Key, ou montante fora de 1–2 500 000', en: 'no Idempotency-Key, or an amount outside 1–2,500,000' } },
+      { code: '409 IDEMPOTENCY_KEY_REUSED', note: { pt: 'a chave já foi usada para outro carregamento', en: 'the key was already used for another top-up' } },
+      { code: '422 TEST_PAYER_RETIRED / SANDBOX_FUNDING_REFUSED', note: { pt: 'pagador retirado, ou o saldo passaria o limite', en: 'a retired payer, or the balance would pass its limit' } },
+      { code: '429 SANDBOX_QUOTA_EXCEEDED', note: { pt: 'limite de 24 h do projeto', en: 'the Project’s 24-hour limit' } },
+    ],
+  },
+  {
+    id: 'ref-test-payer-pay',
+    method: 'POST',
+    path: '/v1/sandbox/test-payers/{id}/payments',
+    tone: 'ok',
+    desc: {
+      pt: 'Paga uma sessão (pelo link ou pelo QR dinâmico) ou um link de pagamento do seu projeto como este pagador, pelo mesmo caminho de um pagador real: a sessão fica PAID, payment_session.paid é emitido e o comprovativo é emitido. simulate pede um resultado de rede externa explicitamente; TIMEOUT paga e responde 504, e repetir com a mesma Idempotency-Key lê o resultado real.',
+      en: 'Pays one of your Project’s sessions (by its link or dynamic QR) or payment links as this payer, through the same path a real payer uses: the session becomes PAID, payment_session.paid is emitted and the receipt is issued. simulate requests an external-rail outcome explicitly; TIMEOUT pays and returns 504, and repeating with the same Idempotency-Key reads the real result.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_exemplo/payments \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Idempotency-Key: pagamento_001" \\
+  -H "Content-Type: application/json" \\
+  -d '{"payment_session_id":"payment_session_exemplo","via":"QR"}'`,
+    response: `{
+  "test_payer_id": "tp_exemplo",
+  "via": "QR",
+  "payment_session_id": "payment_session_exemplo",
+  "status": "PAID",
+  "transfer_id": "transfer_exemplo",
+  "amount_minor": 250000,
+  "currency": "AOA",
+  "paid_at": "2026-09-14T10:05:00Z",
+  "proof_reference": "BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX",
+  "simulated": false
+}`,
+    errors: [
+      { code: '400 INVALID_PARAM / IDEMPOTENCY_KEY_REQUIRED', note: { pt: 'não nomeia exatamente um alvo, via ou simulate inválido, ou TIMEOUT sem chave', en: 'not exactly one target, an invalid via or simulate, or TIMEOUT without a key' } },
+      { code: '402 PAYMENT_DECLINED', note: { pt: 'simulate DECLINED; nada se move', en: 'simulate DECLINED; nothing moves' } },
+      { code: '403 PAYMENTS_UNAVAILABLE / SANDBOX_ONLY', note: { pt: 'projeto sem configuração financeira, ou chave que não é Sandbox', en: 'a project without Financial Setup, or a key that is not a Sandbox key' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o pagador, a sessão ou o link não existem ou são de outro projeto', en: 'the payer, session or link does not exist or belongs to another project' } },
+      { code: '409 LINK_ALREADY_PAID', note: { pt: 'o link já foi pago', en: 'the link was already paid' } },
+      { code: '422 INSUFFICIENT_FUNDS / INTERFACE_UNAVAILABLE / TEST_PAYER_RETIRED', note: { pt: 'saldo insuficiente, a sessão não oferece essa via, ou pagador retirado', en: 'not enough balance, the session does not offer that via, or a retired payer' } },
+      { code: '503 PROVIDER_UNAVAILABLE', note: { pt: 'simulate PROVIDER_UNAVAILABLE; nada se move', en: 'simulate PROVIDER_UNAVAILABLE; nothing moves' } },
+      { code: '504 SANDBOX_SIMULATED_TIMEOUT', note: { pt: 'simulate TIMEOUT: o pagamento foi feito; repita com a mesma chave', en: 'simulate TIMEOUT: the payment was made; repeat with the same key' } },
+    ],
+  },
+  {
+    id: 'ref-test-payer-retire',
+    method: 'DELETE',
+    path: '/v1/sandbox/test-payers/{id}',
+    tone: 'ok',
+    desc: {
+      pt: 'Retira um pagador de teste: o saldo fictício é retirado pelo ledger e o pagador deixa de pagar e de receber carregamentos. Nada é apagado; os pagamentos e o histórico continuam legíveis.',
+      en: 'Retires a test payer: its fictitious balance is retired through the ledger and the payer can no longer pay or be funded. Nothing is deleted; its payments and history remain readable.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
+    curl: `curl -X DELETE https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_exemplo \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "id": "tp_exemplo",
+  "handle": "tpexemplo01",
+  "label": "Maria (teste)",
+  "status": "RETIRED",
+  "balance_minor": 0,
+  "currency": "AOA",
+  "environment": "SANDBOX",
+  "created_at": "2026-09-14T10:00:00Z",
+  "retired_at": "2026-09-14T12:00:00Z"
+}`,
+    errors: [
+      { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY', note: { pt: 'chave sem sandbox:write, ou chave que não é Sandbox', en: 'key without sandbox:write, or a key that is not a Sandbox key' } },
+      { code: '404 NOT_FOUND', note: { pt: 'o pagador não existe ou pertence a outro projeto', en: 'the payer does not exist or belongs to another project' } },
+      { code: '502 RETIREMENT_FAILED', note: { pt: 'não ficou retirado por completo; repita', en: 'not fully retired; repeat the request' } },
+    ],
+  },
 ];
 
 // Compact rows for surfaces that exist but are NOT public-key callable today.
@@ -986,7 +1258,9 @@ export const RESOURCE_GROUPS: { id: string; title: Bi; ids: string[] }[] = [
   { id: 'resource-accounts', title: { pt: 'Contas e transferências', en: 'Accounts and transfers' }, ids: ['ref-wacc-create', 'ref-wacc-list', 'ref-wacc-get', 'ref-transfer-create'] },
   { id: 'resource-refunds', title: { pt: 'Reembolsos', en: 'Refunds' }, ids: ['ref-refund-create', 'ref-refund-list', 'ref-refund-get'] },
   { id: 'resource-settlements', title: { pt: 'Liquidações', en: 'Settlements' }, ids: ['ref-settlement-create', 'ref-handle-resolve'] },
-  { id: 'resource-webhooks', title: { pt: 'Webhooks', en: 'Webhooks' }, ids: ['ref-webhook-register', 'ref-webhook-list', 'ref-webhook-get', 'ref-webhook-deactivate', 'ref-webhook-health', 'ref-webhook-rotate', 'ref-webhook-events', 'ref-webhook-deliveries', 'ref-webhook-replay'] },
+  { id: 'resource-webhooks', title: { pt: 'Webhooks', en: 'Webhooks' }, ids: ['ref-webhook-register', 'ref-webhook-list', 'ref-webhook-get', 'ref-webhook-deactivate', 'ref-webhook-health', 'ref-webhook-rotate', 'ref-webhook-events', 'ref-webhook-deliveries', 'ref-webhook-replay', 'ref-webhook-test'] },
+  { id: 'resource-realtime', title: { pt: 'Estado em tempo real', en: 'Realtime status' }, ids: ['ref-realtime-status'] },
+  { id: 'resource-sandbox', title: { pt: 'Dados de teste da Sandbox', en: 'Sandbox test data' }, ids: ['ref-sandbox-scenarios', 'ref-test-payer-create', 'ref-test-payer-list', 'ref-test-payer-get', 'ref-test-payer-fund', 'ref-test-payer-pay', 'ref-test-payer-retire'] },
   { id: 'resource-receipts', title: { pt: 'Comprovativos', en: 'Receipts' }, ids: ['ref-public-proof'] },
 ];
 
@@ -1196,9 +1470,11 @@ export const SCOPE_PURPOSE: Record<string, Bi> = {
   'refunds:write': { pt: 'Reembolsar pagamentos', en: 'Refund payments' },
   'refunds:read': { pt: 'Consultar reembolsos', en: 'Read refunds' },
   'application_settlements:write': { pt: 'Pedir liquidações', en: 'Request settlements' },
-  'webhooks:write': { pt: 'Registar, desativar, rodar o segredo e reenviar', en: 'Register, deactivate, rotate the secret and replay' },
+  'webhooks:write': { pt: 'Registar, desativar, rodar o segredo, reenviar e enviar eventos de teste', en: 'Register, deactivate, rotate the secret, replay and send test events' },
   'webhooks:read': { pt: 'Consultar endpoints, eventos e entregas', en: 'Read endpoints, events and deliveries' },
   'customers:read': { pt: 'Resolver um @banza', en: 'Resolve an @banza handle' },
+  'sandbox:read': { pt: 'Ler os cenários e os pagadores de teste (Sandbox)', en: 'Read scenarios and test payers (Sandbox)' },
+  'sandbox:write': { pt: 'Criar, carregar, pagar como e retirar pagadores de teste (Sandbox)', en: 'Create, fund, pay as and retire test payers (Sandbox)' },
 };
 
 export function ScopeTable({ lang }: { lang: 'pt' | 'en' }) {

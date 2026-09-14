@@ -33,6 +33,8 @@ const FAMILIES: { id: string; pt: string; en: string }[] = [
   { id: 'state', pt: 'Estado da conta ou do recurso', en: 'Account or resource state' },
   { id: 'settlement', pt: 'Liquidações', en: 'Settlements' },
   { id: 'refund', pt: 'Reembolsos', en: 'Refunds' },
+  { id: 'sandbox', pt: 'Sandbox e simulações', en: 'Sandbox and simulations' },
+  { id: 'realtime', pt: 'Estado em tempo real', en: 'Realtime status' },
   { id: 'server', pt: 'Limites e falhas do Banzami', en: 'Limits and Banzami failures' },
 ];
 
@@ -67,6 +69,8 @@ export const INSPECT: Record<string, Record<Lang, string>> = {
   state: { pt: 'Consola → Saldos e Transações: o estado da conta ou do recurso.', en: 'Console → Balances and Transactions: the account or resource state.' },
   settlement: { pt: 'GET /v1/financial-setup (settlement.blockers) e Consola → Configuração financeira.', en: 'GET /v1/financial-setup (settlement.blockers) and Console → Financial setup.' },
   refund: { pt: 'Consola → Transações: o pagamento e os reembolsos já feitos sobre ele.', en: 'Console → Transactions: the payment and the refunds already made against it.' },
+  sandbox: { pt: 'Consola → Dados de teste: pagadores, cenários e o resultado de cada simulação. Registos, pelo request_id.', en: 'Console → Test data: payers, scenarios and the outcome of each simulation. Logs, by request_id.' },
+  realtime: { pt: 'A sessão lida no seu backend (GET /v1/payment-sessions/{id}): estado, realtime.token e realtime.expires_at.', en: 'The session read on your backend (GET /v1/payment-sessions/{id}): status, realtime.token and realtime.expires_at.' },
   server: { pt: 'Consola → Registos, pelo request_id. Se persistir, suporte com esse request_id.', en: 'Console → Logs, by request_id. If it persists, support with that request_id.' },
 };
 

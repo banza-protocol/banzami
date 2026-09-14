@@ -37,6 +37,8 @@ const ALL_SCOPES = [
   'refunds:read',
   'transfers:write',
   'customers:read',
+  'sandbox:read',
+  'sandbox:write',
 ];
 
 // Plain-language purpose, shown under each scope. A developer choosing scopes is
@@ -50,12 +52,14 @@ const SCOPE_HELP: Record<string, string> = {
   'application_settlements:write': 'Liquidar — move dinheiro para um beneficiário.',
   'payment_links:write':           'Criar links de pagamento.',
   'payment_links:read':            'Consultar links de pagamento.',
-  'webhooks:write':                'Registar, desactivar e rodar o segredo de endpoints.',
+  'webhooks:write':                'Registar, desativar e rodar o segredo de endpoints; enviar eventos de teste.',
   'webhooks:read':                 'Ver endpoints, eventos e entregas.',
   'refunds:write':                 'Devolver dinheiro de um pagamento seu.',
   'refunds:read':                  'Consultar os seus reembolsos.',
   'transfers:write':               'Mover valor entre contas do seu projeto.',
   'customers:read':                'Confirmar que um @banza existe antes de o indicar.',
+  'sandbox:read':                  'Ler os cenários e os pagadores de teste (só Sandbox).',
+  'sandbox:write':                 'Criar, carregar, pagar como e retirar pagadores de teste — valor fictício (só Sandbox).',
 };
 
 // ── Reveal-once dialog ───────────────────────────────────────────────────────

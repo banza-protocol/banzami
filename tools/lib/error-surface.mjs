@@ -128,10 +128,20 @@ export function gatewaySurface(root) {
 
   const mountPublic = server.indexOf('func mountPublicProofVerify(');
   const publicBody = mountPublic >= 0 ? server.slice(server.indexOf('{', mountPublic), matchBrace(server, server.indexOf('{', mountPublic), 'go') + 1) : '';
-  const surface = [...groupBodies(server, 'middleware.DeveloperKeyAuth('), ...groupBodies(server, 'middleware.DualAuth('), publicBody].join('\n');
+  // The realtime status route (ADR-060 §9) is reachable by any browser holding a
+  // status token, so what it writes is part of the developer contract too.
+  const mountRealtime = server.indexOf('func mountRealtimeStatus(');
+  const realtimeBody = mountRealtime >= 0 ? server.slice(server.indexOf('{', mountRealtime), matchBrace(server, server.indexOf('{', mountRealtime), 'go') + 1) : '';
+  const surface = [...groupBodies(server, 'middleware.DeveloperKeyAuth('), ...groupBodies(server, 'middleware.DualAuth('), publicBody, realtimeBody].join('\n');
 
   const varType = new Map();
   for (const m of server.matchAll(/(\w+)\s*:?=\s*handler\.New(\w+Handler)\(/g)) varType.set(m[1], m[2]);
+
+  // A mount function names its handler as a typed parameter (h *handler.X).
+  if (mountRealtime >= 0) {
+    const sig = server.slice(mountRealtime, server.indexOf('{', mountRealtime));
+    for (const m of sig.matchAll(/(\w+)\s+\*handler\.(\w+Handler)\b/g)) varType.set(m[1], m[2]);
+  }
 
   const entries = new Set();
   for (const m of surface.matchAll(/\b(\w+)\.(\w+)\)/g)) { const t = varType.get(m[1]); if (t && handlers.has(`${t}.${m[2]}`)) entries.add(`${t}.${m[2]}`); }
@@ -182,14 +192,52 @@ export function gatewaySurface(root) {
     }
   };
 
-  for (const e of entries) for (const k of closure(e, handlers)) scan(handlers.get(k), e);
+  // A surface function that calls another service over HTTP and copies its
+  // answer writes codes this file cannot see. Each one must be declared in the
+  // catalogue (forwarded_services) so the other service's codes are read too.
+  const outbound = [];
+  for (const e of entries) for (const k of closure(e, handlers)) {
+    scan(handlers.get(k), e);
+    if (/\.Do\(\w+\)/.test(handlers.get(k).body)) outbound.push({ entry: e, at: k });
+  }
   for (const m of mw) for (const k of closure(m, middleware)) scan(middleware.get(k), `middleware.${m}`);
 
   // Services the surface handlers call can still choose a code the handler
   // writes verbatim (service.RefundError). Those are declared as forwarding
   // points too, so they are caught at the Respond above; their fallback codes
   // are declared in the catalogue and checked to exist where it says.
-  return { entries: [...entries].sort(), middleware: [...mw].sort(), codes, statuses, forwarding };
+  return { entries: [...entries].sort(), middleware: [...mw].sort(), codes, statuses, forwarding, outbound };
+}
+
+/**
+ * Codes another Go service writes from the named handler functions and what
+ * they call — for a gateway route that forwards to that service and copies the
+ * answer (catalogue forwarded_services). Same patterns as the gateway scan.
+ */
+export function serviceCodes(root, dir, starts) {
+  const fns = goFunctions(join(root, dir));
+  const codes = new Map();
+  const statuses = new Map();
+  const missing = starts.filter((k) => !fns.has(k));
+  const seen = new Set();
+  const stack = starts.filter((k) => fns.has(k));
+  while (stack.length) {
+    const k = stack.pop();
+    if (seen.has(k) || !fns.has(k)) continue;
+    seen.add(k);
+    const fn = fns.get(k);
+    if (fn.recv) for (const c of fn.body.matchAll(new RegExp(`(?<![.\\w])${fn.recv}\\.(\\w+)\\(`, 'g'))) if (fns.has(`${fn.type}.${c[1]}`)) stack.push(`${fn.type}.${c[1]}`);
+    for (const c of fn.body.matchAll(/(?<![.\w])([A-Za-z_]\w*)\s*\(/g)) if (fns.has(c[1])) stack.push(c[1]);
+    const where = `${dir.split('/')[1]}:${fn.file}:${fn.name}`;
+    const add = (code, status) => {
+      if (!codes.has(code)) { codes.set(code, new Set()); statuses.set(code, new Set()); }
+      codes.get(code).add(where);
+      if (status) statuses.get(code).add(status);
+    };
+    for (const m of fn.body.matchAll(/Respond\(\s*w,\s*r,\s*http\.Status(\w+),\s*"([A-Z][A-Z0-9_]{2,})"/g)) add(m[2], HTTP[m[1]] ?? m[1]);
+    for (const m of fn.body.matchAll(/\b[Cc]ode\b[^=:\n]*(?:=|:)\s*"([A-Z][A-Z0-9_]{2,})"/g)) add(m[1]);
+  }
+  return { codes, statuses, missing };
 }
 
 /** Every code the gateway source writes anywhere — the universe to classify. */
@@ -350,7 +398,11 @@ export function gatewayRoutes(root) {
   // Top-level: every func body in server.go that mounts routes.
   for (const m of server.matchAll(/^func\s+(\w+)\s*\(/gm)) {
     const open = bodyOpen(server, m.index + m[0].length - 1);
+    // A mount function names its handler as a typed parameter (h *handler.X).
+    const params = [...server.slice(m.index, open).matchAll(/(\w+)\s+\*handler\.(\w+Handler)\b/g)];
+    for (const p of params) varType.set(p[1], p[2]);
     walk(server.slice(open + 1, matchBrace(server, open, 'go')), '', []);
+    for (const p of params) varType.delete(p[1]);
   }
   return routes;
 }

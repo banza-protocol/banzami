@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Banzami Sandbox API",
-    "version": "docs-2026-09-11",
-    "description": "Machine-readable description of the CURRENTLY DOCUMENTED Banzami Sandbox API surface (Sandbox/Preview documentation scope only). PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. This document describes the Sandbox integration surface verified in evidence — it is NOT a production contract, and Production/live rails are not available (Production in preparation). Every operation described is served by the deployed Sandbox gateway on the developer-key surface; an operation a developer key cannot call says so and names the refusal it answers. POST /v1/payment-links/{id}/mark-used is retired (410 ROUTE_RETIRED) and is not described. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx) — never real credentials."
+    "version": "docs-2026-09-14",
+    "description": "Machine-readable description of the Banzami Developer API as served by the Public Sandbox — one developer platform, two financial environments. The Sandbox is self-service and uses fictitious value. Financial LIVE is NOT READY: it requires institutional approval and is fail-closed — bz_live_ keys are refused and no Live key can be issued from the Sandbox. PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. Every operation described is served by the deployed Sandbox gateway; an operation a developer key cannot call says so and names the refusal it answers. Each operation names the scope it requires in x-banzami-scope (null for a route that takes no API key). POST /v1/payment-links/{id}/mark-used is retired (410 ROUTE_RETIRED) and is not described. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx, bzst_xxx) — never real credentials."
   },
   "servers": [
     {
@@ -48,6 +48,14 @@
     {
       "name": "receipts",
       "description": "Public verification of a payment receipt by its proof reference. No credential."
+    },
+    {
+      "name": "sandbox",
+      "description": "Sandbox test data — deterministic scenarios and test payers owned by your Project. Sandbox keys only; fictitious value."
+    },
+    {
+      "name": "realtime",
+      "description": "Realtime status of one Payment Session for a browser page, opened by a short-lived status token — not an API key, and not proof of payment."
     }
   ],
   "paths": {
@@ -58,6 +66,7 @@
         ],
         "operationId": "getMe",
         "summary": "Key identity (first successful call — no SDK required)",
+        "x-banzami-scope": "identity:read",
         "description": "Returns the authenticated key's environment, the Project it belongs to ({id, name, ref}), its scopes and status. Requires the identity:read scope. Returns no financial state — see GET /v1/financial-setup. bz_live_ keys are rejected fail-closed.",
         "responses": {
           "200": {
@@ -98,6 +107,7 @@
         ],
         "operationId": "getFinancialSetup",
         "summary": "Your Project's financial readiness",
+        "x-banzami-scope": "identity:read",
         "description": "Whether the Project this key belongs to can settle and, if not, exactly what is missing. The key is the authority: nothing in the request names a Project, owner or account. Every field is decided with the rules settlement itself enforces — settlement.ready is true exactly when settlement's prerequisites pass, and each blocker is the refusal a settlement would return. A Project not yet configured answers 200 with financial_setup.state UNCONFIGURED and the blocker FINANCIAL_SETUP_NOT_CONFIGURED. Requires the identity:read scope. SDK: getFinancialSetup().",
         "parameters": [
           {
@@ -228,6 +238,7 @@
         ],
         "operationId": "createPaymentSession",
         "summary": "Create a payment session",
+        "x-banzami-scope": "payment_sessions:write",
         "description": "Creates a payment session and returns its id, status and interfaces (link/QR). Credential: developer key with the payment_sessions scope on a project with an ACTIVE binding, or a merchant credential.",
         "parameters": [
           {
@@ -317,6 +328,7 @@
         ],
         "operationId": "listPaymentSessions",
         "summary": "List payment sessions",
+        "x-banzami-scope": "payment_sessions:read",
         "description": "Lists the project's payment sessions, newest first, optionally filtered by status. There is no cursor: the response is the most recent sessions up to limit. A limit outside 1–200 is replaced by the default.",
         "parameters": [
           {
@@ -384,6 +396,7 @@
         ],
         "operationId": "getPaymentSession",
         "summary": "Fetch a payment session",
+        "x-banzami-scope": "payment_sessions:read",
         "parameters": [
           {
             "$ref": "#/components/parameters/SessionId"
@@ -416,6 +429,7 @@
         ],
         "operationId": "getPaymentSessionLink",
         "summary": "Fetch the session's public payment link",
+        "x-banzami-scope": "payment_sessions:read",
         "parameters": [
           {
             "$ref": "#/components/parameters/SessionId"
@@ -476,6 +490,7 @@
         ],
         "operationId": "getPaymentSessionQr",
         "summary": "Fetch the session QR (JSON value or rendered image)",
+        "x-banzami-scope": "payment_sessions:read",
         "description": "The session QR encodes the session's hosted pay URL (https://pay.banzami.com/pay/{slug}), for a fixed-amount session as for an open-amount one: any phone camera opens the pay page, where the payer pays. (A fixed-amount session used to encode a structured dynamic-QR payload that no route could pay; it is no longer returned.) Without parameters, returns the encodable value as JSON. With ?format=png|svg, returns the rendered image; ?format=pdf answers 415.",
         "parameters": [
           {
@@ -538,6 +553,7 @@
         ],
         "operationId": "createPaymentLink",
         "summary": "Create a reusable payment link",
+        "x-banzami-scope": "payment_links:write",
         "description": "Creates a payment link with a public slug (pay.banzami.com/pay/{slug}). Omit amount_minor for an open-amount link. Credential: merchant credential, or developer key with the payment_links scope on a project with an ACTIVE binding.",
         "parameters": [
           {
@@ -595,6 +611,7 @@
         ],
         "operationId": "listPaymentLinks",
         "summary": "List payment links",
+        "x-banzami-scope": "payment_links:read",
         "responses": {
           "200": {
             "description": "Payment links",
@@ -669,6 +686,7 @@
         ],
         "operationId": "createWalletAccount",
         "summary": "Open a segregated account under your owner",
+        "x-banzami-scope": "wallet_accounts:create",
         "description": "Opens a wallet account beneath the financial owner your project is bound to. Credential: developer key with wallet_accounts:create, or a merchant credential. The owner is always derived server-side; a client-supplied wallet is refused.",
         "requestBody": {
           "required": true,
@@ -725,6 +743,7 @@
         ],
         "operationId": "listWalletAccounts",
         "summary": "List the accounts under your wallet",
+        "x-banzami-scope": "wallet_accounts:read",
         "description": "With a developer key the listing is scoped to your project's bound wallet and a wallet_id parameter is refused. With a merchant credential, wallet_id names the wallet you own. Requires wallet_accounts:read.",
         "parameters": [
           {
@@ -786,6 +805,7 @@
         ],
         "operationId": "getWalletAccount",
         "summary": "Retrieve one of your accounts",
+        "x-banzami-scope": "wallet_accounts:read",
         "description": "Returns the account when it belongs to your owner. An account belonging to another owner returns 404 rather than 403: a status code that distinguished them would let one project enumerate another's accounts. Requires wallet_accounts:read.",
         "parameters": [
           {
@@ -828,6 +848,7 @@
         ],
         "operationId": "createWalletAccountTransfer",
         "summary": "Move value between two accounts of your own owner",
+        "x-banzami-scope": "transfers:write",
         "description": "Transferências (BANZA ADR-052). Moves value between two wallet accounts of the financial owner your project is bound to. Nothing crosses the owner boundary: it is not a payout, not an application settlement, not consumer P2P. Credential: developer key with transfers:write. Both endpoints are validated against the caller’s owner in the gateway and again in Core; an account outside it answers 404, indistinguishable from one that does not exist.",
         "requestBody": {
           "required": true,
@@ -917,6 +938,7 @@
         ],
         "operationId": "registerWebhookEndpoint",
         "summary": "Register the endpoint that receives your project’s events",
+        "x-banzami-scope": "webhooks:write",
         "description": "Registers an HTTPS endpoint under the owner your project is bound to. The signing secret is returned exactly once, in this response, and is never readable again. Credential: developer key with webhooks:write. Deliveries are signed over the raw request bytes and carry the banza-signature header.",
         "requestBody": {
           "required": true,
@@ -983,6 +1005,7 @@
         ],
         "operationId": "listWebhookEndpoints",
         "summary": "List your webhook endpoints",
+        "x-banzami-scope": "webhooks:read",
         "description": "Lists every endpoint registered under the owner your project is bound to, newest first, including deactivated ones (active: false). The signing secret is never included. Credential: developer key with webhooks:read, or a merchant credential. No pagination.",
         "responses": {
           "200": {
@@ -1042,6 +1065,7 @@
         ],
         "operationId": "createRefund",
         "summary": "Refund an eligible payment",
+        "x-banzami-scope": "refunds:write",
         "description": "Returns an eligible payment fully or partially. The refund debits the account that RECEIVED the payment, not the owner’s general balance. Credential: developer key with refunds:write, or a merchant credential. Another project’s payment answers 404 — knowing an id is not authority over it.",
         "requestBody": {
           "required": true,
@@ -1109,6 +1133,7 @@
         ],
         "operationId": "listRefunds",
         "summary": "List your refunds",
+        "x-banzami-scope": "refunds:read",
         "description": "Lists the refunds of the owner your project is bound to, newest first. The owner comes from the credential; no parameter selects another. Credential: developer key with refunds:read on a project bound to a financial owner, or a merchant credential. There is no cursor: at most limit refunds are returned.",
         "parameters": [
           {
@@ -1202,6 +1227,7 @@
         ],
         "operationId": "createApplicationSettlement",
         "summary": "Settle one of your segregated accounts to a beneficiary",
+        "x-banzami-scope": "application_settlements:write",
         "description": "Closes out a segregated wallet account (for example a CAMPAIGN account) of the owner your project is bound to. Banzami reads the account's available balance as the gross, prices it with the pricing profile Banzami assigned to your business, credits any application fee to the fee destination you name and the net to the beneficiary @banza, and returns the completed settlement. The request carries no amount and no rate: a body carrying any pricing field is refused with PRICING_FIELD_NOT_ACCEPTED. The source must not be the PRIMARY account; a fee destination, when named, must be your own business account, and is required only when your pricing resolves a fee. Credential: developer key with application_settlements:write on a project with an ACTIVE binding, or a merchant credential. An unknown source account answers 404; a source account belonging to another owner answers 403 FORBIDDEN. Replaying the same idempotency_key for the same source and beneficiary returns the settlement it already made, with 200.",
         "parameters": [
           {
@@ -1348,6 +1374,8 @@
         ],
         "operationId": "getApplicationSettlement",
         "summary": "Fetch an application settlement (merchant credential only)",
+        "x-banzami-scope": null,
+        "x-banzami-project-key": "refused",
         "description": "Returns a settlement to the Business Account that created it; any other settlement, including one with no recorded creator, answers 404. Credential: merchant credential ONLY. The route sits on the dual-credential surface, but its handler reads only a merchant session, so a developer key is answered 401 UNAUTHORIZED — and there is no application_settlements:read scope. A project keeps the settlement returned by POST /v1/application-settlements.",
         "parameters": [
           {
@@ -1419,6 +1447,7 @@
         ],
         "operationId": "getPaymentLink",
         "summary": "Retrieve one of your payment links",
+        "x-banzami-scope": "payment_links:read",
         "description": "Returns a payment link by its id — the id returned at creation, not the public slug (a slug, or any id that is not a UUID, answers 404). Credential: developer key with payment_links:read on a project with an ACTIVE binding, or a merchant credential. Another project's link answers 404, indistinguishable from one that does not exist. refund_source is returned only to the owning merchant session, never to a developer key.",
         "parameters": [
           {
@@ -1487,6 +1516,7 @@
         ],
         "operationId": "cancelPaymentLink",
         "summary": "Cancel one of your payment links",
+        "x-banzami-scope": "payment_links:write",
         "description": "Cancels an ACTIVE payment link so it can no longer be paid, and returns it with status CANCELLED. A link is marked paid only by a payment; to close an unpaid link, DELETE /v1/payment-links/{id}. Credential: developer key with payment_links:write on a project with an ACTIVE binding, or a merchant credential. Ownership is checked before anything changes: another project's link answers 404, indistinguishable from one that does not exist. A link that is no longer ACTIVE (USED, EXPIRED or CANCELLED) answers 422 LINK_NOT_ACTIVE.",
         "parameters": [
           {
@@ -1580,6 +1610,7 @@
         ],
         "operationId": "getRefund",
         "summary": "Retrieve one of your refunds",
+        "x-banzami-scope": "refunds:read",
         "description": "Returns a refund of the owner your project is bound to. The read is scoped to that owner in Core: another project's refund, an unknown id and a malformed id all answer the same 404. Credential: developer key with refunds:read, or a merchant credential.",
         "parameters": [
           {
@@ -1646,6 +1677,8 @@
         ],
         "operationId": "getIntegration",
         "summary": "Business self-profile — refuses project keys",
+        "x-banzami-scope": null,
+        "x-banzami-project-key": "refused",
         "description": "The consolidated profile of the Business Account behind a merchant session. It names that account's wallet and account ids, which a Project key must never learn, so a developer key is always refused with 403 USE_FINANCIAL_SETUP, whatever its scopes. A project reads the same readiness from GET /v1/financial-setup, which names none of them.",
         "responses": {
           "401": {
@@ -1681,6 +1714,7 @@
         ],
         "operationId": "resolveHandle",
         "summary": "Confirm a consumer @banza exists",
+        "x-banzami-scope": "customers:read",
         "description": "Resolves a consumer @banza to its handle and display name — enough to confirm a destination exists before naming it, and nothing more: no id, no wallet, no balance, no status. The lookup is exact after normalisation (a leading @ and upper case are accepted). Only consumer handles resolve here; a Business @banza answers 404. Credential: developer key with customers:read (no project binding required), or a merchant credential.",
         "parameters": [
           {
@@ -1742,6 +1776,7 @@
         ],
         "operationId": "getWebhookEndpoint",
         "summary": "Retrieve one of your webhook endpoints",
+        "x-banzami-scope": "webhooks:read",
         "description": "Returns an endpoint of your project's owner, without its secret. Another project's endpoint answers 404, indistinguishable from one that does not exist. Credential: developer key with webhooks:read, or a merchant credential.",
         "parameters": [
           {
@@ -1805,6 +1840,7 @@
         ],
         "operationId": "deactivateWebhookEndpoint",
         "summary": "Deactivate one of your webhook endpoints",
+        "x-banzami-scope": "webhooks:write",
         "description": "Stops an endpoint receiving events. It is deactivated, not erased: it is retained for audit and still listed with active: false. Deactivating an already inactive endpoint answers 204 again. Another project's endpoint answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
         "parameters": [
           {
@@ -1867,6 +1903,7 @@
         ],
         "operationId": "getWebhookEndpointHealth",
         "summary": "Delivery health of one of your endpoints (last 24 hours)",
+        "x-banzami-scope": "webhooks:read",
         "description": "Counts the endpoint's deliveries created in the last 24 hours by outcome. Another project's endpoint answers 404. Credential: developer key with webhooks:read, or a merchant credential.",
         "parameters": [
           {
@@ -1932,6 +1969,7 @@
         ],
         "operationId": "rotateWebhookEndpointSecret",
         "summary": "Rotate an endpoint's signing secret",
+        "x-banzami-scope": "webhooks:write",
         "description": "Issues a new signing secret and returns it exactly once, in this response, as registration does. The cutover is immediate: the next delivery is signed with the new secret, while deliveries already queued keep their signature — update your receiver before rotating. No request body. Another project's endpoint answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
         "parameters": [
           {
@@ -2011,6 +2049,7 @@
         ],
         "operationId": "listWebhookEvents",
         "summary": "List your recent webhook events",
+        "x-banzami-scope": "webhooks:read",
         "description": "Lists the events emitted for the owner your project is bound to, newest first, whether or not an endpoint received them. Credential: developer key with webhooks:read, or a merchant credential. There is no cursor: at most limit events are returned.",
         "parameters": [
           {
@@ -2099,6 +2138,7 @@
         ],
         "operationId": "listWebhookDeliveries",
         "summary": "Delivery history of one of your events",
+        "x-banzami-scope": "webhooks:read",
         "description": "One delivery per endpoint the event was sent to, each with every attempt made (oldest first). Another project's event answers 404 — not an empty list. Credential: developer key with webhooks:read, or a merchant credential.",
         "parameters": [
           {
@@ -2191,6 +2231,7 @@
         ],
         "operationId": "replayWebhookDelivery",
         "summary": "Re-send one of your deliveries",
+        "x-banzami-scope": "webhooks:write",
         "description": "Puts an existing delivery back in the queue as PENDING, keeping its id — one delivery per event per endpoint, so a replay is a further attempt, never a second delivery. For recovery after an endpoint outage; a delivery that already succeeded answers 409 and is not sent again. No request body. Another project's delivery answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
         "parameters": [
           {
@@ -2269,6 +2310,7 @@
         ],
         "operationId": "verifyPublicProof",
         "summary": "Verify a receipt by its public proof reference",
+        "x-banzami-scope": null,
         "description": "Public and unauthenticated: the reference is the capability. The current format is SECURE_V1 — BZM- followed by six groups of four symbols from 0-9 and A-Z without I, L, O and U (120 bits). Older eight-symbol references (BZM-XXXX-XXXX) still verify. Matching is EXACT: there is no normalisation, so lower-case letters, spaces or an extra hyphen answer 404 exactly like a reference that does not exist, on purpose. The same verification is the page https://banzami.com/r/{ref} that a receipt QR opens. Rate-limited per client. This is not the eight-character reference the Banzami app shows on a transfer, which is a display aid and does not verify.",
         "security": [],
         "parameters": [
@@ -2327,6 +2369,824 @@
           }
         }
       }
+    },
+    "/v1/sandbox/scenarios": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "listSandboxScenarios",
+        "summary": "List the deterministic Sandbox scenarios",
+        "x-banzami-scope": "sandbox:read",
+        "description": "How to produce each Sandbox outcome, what comes back and which event follows. Every scenario comes from a real operation, except external-rail outcomes, which are requested with simulate and marked simulated: true. There are no magic amounts. Credential: Sandbox project key with sandbox:read.",
+        "responses": {
+          "200": {
+            "description": "The scenario catalogue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxScenarioCatalogue"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (the key lacks sandbox:read) or SANDBOX_ONLY (not a Sandbox key — test data exists only in the Sandbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sandbox/test-payers": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "createTestPayer",
+        "summary": "Create a test payer",
+        "x-banzami-scope": "sandbox:write",
+        "description": "Creates a Sandbox consumer owned by your Project, with a wallet and a fictitious opening balance. The PIN is returned once. At most 10 active test payers per Project. Credential: Sandbox project key with sandbox:write.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTestPayerRequest"
+              },
+              "example": {
+                "label": "Maria (teste)",
+                "initial_balance_minor": 1000000
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Test payer created; pin appears only here",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayer"
+                },
+                "example": {
+                  "id": "tp_xxx",
+                  "handle": "tpxxxxxxxxxx",
+                  "label": "Maria (teste)",
+                  "status": "ACTIVE",
+                  "balance_minor": 1000000,
+                  "currency": "AOA",
+                  "environment": "SANDBOX",
+                  "created_at": "2026-09-14T10:00:00Z",
+                  "retired_at": null,
+                  "pin": "000000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_BODY or INVALID_PARAM (label over 60 characters; initial_balance_minor outside 0–1000000)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (the key lacks sandbox:write) or SANDBOX_ONLY (not a Sandbox key — test data exists only in the Sandbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key header: IDEMPOTENCY_CONFLICT (a request with this key is still in flight) or IDEMPOTENCY_KEY_REUSED (the key was already used for a different request body)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "SANDBOX_FUNDING_REFUSED — the opening balance was refused by the payer's balance limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "SANDBOX_QUOTA_EXCEEDED — 10 active test payers already",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "listTestPayers",
+        "summary": "List your test payers",
+        "x-banzami-scope": "sandbox:read",
+        "description": "Your Project's test payers, newest first, with their current fictitious balance. Credential: Sandbox project key with sandbox:read.",
+        "parameters": [
+          {
+            "name": "include_retired",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "true to include retired payers"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test payers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TestPayer"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (the key lacks sandbox:read) or SANDBOX_ONLY (not a Sandbox key — test data exists only in the Sandbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sandbox/test-payers/{id}": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "getTestPayer",
+        "summary": "Fetch a test payer",
+        "x-banzami-scope": "sandbox:read",
+        "description": "One of your Project's test payers. Another Project's payer answers 404. Credential: Sandbox project key with sandbox:read.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "tp_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test payer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayer"
+                },
+                "example": {
+                  "id": "tp_xxx",
+                  "handle": "tpxxxxxxxxxx",
+                  "label": "Maria (teste)",
+                  "status": "ACTIVE",
+                  "balance_minor": 1000000,
+                  "currency": "AOA",
+                  "environment": "SANDBOX",
+                  "created_at": "2026-09-14T10:00:00Z",
+                  "retired_at": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (the key lacks sandbox:read) or SANDBOX_ONLY (not a Sandbox key — test data exists only in the Sandbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND — unknown, or another Project's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "retireTestPayer",
+        "summary": "Retire a test payer",
+        "x-banzami-scope": "sandbox:write",
+        "description": "Retires the payer: its fictitious balance is retired through the ledger and it can no longer pay or be funded. Nothing is deleted; its payments and history stay readable. Credential: Sandbox project key with sandbox:write.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "tp_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayer"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (the key lacks sandbox:write) or SANDBOX_ONLY (not a Sandbox key — test data exists only in the Sandbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND — unknown, or another Project's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "RETIREMENT_FAILED — not fully retired this time; repeat the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sandbox/test-payers/{id}/fund": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "fundTestPayer",
+        "summary": "Add fictitious value to a test payer",
+        "x-banzami-scope": "sandbox:write",
+        "description": "A fictitious top-up through the ledger — never a balance edit. The Idempotency-Key header is required and identifies the top-up. Limits: 2500000 per top-up, a 5000000 payer balance, and 20 top-ups and 10000000 per Project per 24 hours. Credential: Sandbox project key with sandbox:write.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "tp_xxx"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "topup_xxx",
+            "description": "Required. The same key never funds twice."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FundTestPayerRequest"
+              },
+              "example": {
+                "amount_minor": 500000
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Funded (or the replay of the same top-up)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_BODY, INVALID_PARAM (amount_minor outside 1–2500000) or IDEMPOTENCY_KEY_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (the key lacks sandbox:write) or SANDBOX_ONLY (not a Sandbox key — test data exists only in the Sandbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND — unknown, or another Project's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key header: IDEMPOTENCY_CONFLICT (a request with this key is still in flight) or IDEMPOTENCY_KEY_REUSED (the key was already used for a different request body)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "TEST_PAYER_RETIRED or SANDBOX_FUNDING_REFUSED (the payer's balance limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "SANDBOX_QUOTA_EXCEEDED — 20 top-ups or 10000000 in 24 hours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sandbox/test-payers/{id}/payments": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "payAsTestPayer",
+        "summary": "Pay as a test payer",
+        "x-banzami-scope": "sandbox:write",
+        "description": "Pays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "tp_xxx"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayAsTestPayerRequest"
+              },
+              "example": {
+                "payment_session_id": "payment_session_xxx",
+                "via": "LINK"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Paid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayment"
+                },
+                "example": {
+                  "test_payer_id": "tp_xxx",
+                  "via": "LINK",
+                  "payment_session_id": "payment_session_xxx",
+                  "status": "PAID",
+                  "transfer_id": "transfer_xxx",
+                  "amount_minor": 250000,
+                  "currency": "AOA",
+                  "paid_at": "2026-09-14T10:05:00Z",
+                  "proof_reference": "BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX",
+                  "simulated": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_BODY; INVALID_PARAM (not exactly one target, via not LINK/QR, unknown simulate); IDEMPOTENCY_KEY_REQUIRED (simulate TIMEOUT without a key)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "description": "PAYMENT_DECLINED — simulate DECLINED; nothing moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulatedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE, SANDBOX_ONLY, or PAYMENTS_UNAVAILABLE (the Project has no Financial Setup)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND — the payer, session or link is unknown or another Project's; QR_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "LINK_ALREADY_PAID; or the Idempotency-Key header: IDEMPOTENCY_CONFLICT / IDEMPOTENCY_KEY_REUSED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "INTERFACE_UNAVAILABLE, TEST_PAYER_RETIRED, INSUFFICIENT_FUNDS, LINK_NOT_ACTIVE, QR_EXPIRED, QR_ALREADY_USED, AMOUNT_NEGATIVE, INVALID_WALLET_ACCOUNT, WALLET_NOT_FOUND or ACCOUNT_FROZEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "PAYMENT_NOT_CONFIRMED — the money moved but completion was not confirmed; repeat the same request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "PROVIDER_UNAVAILABLE — simulate PROVIDER_UNAVAILABLE; nothing moved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulatedError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "SANDBOX_SIMULATED_TIMEOUT — simulate TIMEOUT; the payment was made; repeat with the same Idempotency-Key to read it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulatedError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/endpoints/{id}/test": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "sendWebhookTestEvent",
+        "summary": "Send a test event to an endpoint",
+        "x-banzami-scope": "webhooks:write",
+        "description": "Sandbox only. Creates a synthetic webhook.test event (synthetic: true) and delivers it to this endpoint, signed like any other event, so you can check your receiver and signature verification. It describes no payment and moves nothing; it is not one of the subscribable events, and its delivery can be replayed even after success. Follow it with listWebhookDeliveries. No request body. Credential: Sandbox project key with webhooks:write.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "whep_xxx"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Test event queued for delivery",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestEvent"
+                },
+                "example": {
+                  "event_id": "whevt_xxx",
+                  "delivery_id": "whdel_xxx",
+                  "type": "webhook.test",
+                  "synthetic": true,
+                  "status": "PENDING"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:write), PAYMENTS_UNAVAILABLE, or SANDBOX_ONLY (test events exist only in the Sandbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND — unknown, or another Project's endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ENDPOINT_DISABLED — enable the endpoint first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/realtime/payment-sessions/{id}": {
+      "get": {
+        "tags": [
+          "realtime"
+        ],
+        "operationId": "watchPaymentSessionStatus",
+        "summary": "Watch a Payment Session's status",
+        "x-banzami-scope": null,
+        "description": "For a browser page. With Accept: text/event-stream, a Server-Sent Events stream: retry, then a snapshot event with the current status, a status event on each change, a ': heartbeat' comment every 15 seconds, and an expired event when the token expires. The stream closes after a terminal status (PAID, EXPIRED, CANCELLED, FAILED). A reconnect starts again from a fresh snapshot. With Accept: application/json, one snapshot. Open it with fetch and the token in the Authorization header — not EventSource, which cannot send it, and never with the token in the URL. Realtime status is for the screen, not proof of payment: fulfil on the signed payment_session.paid webhook or a GET made by your backend. CORS: any origin, no cookies. Limits: 3 streams per session, 20 per IP, 120 requests per minute per IP.",
+        "security": [
+          {
+            "statusToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "payment_session_xxx"
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "text/event-stream",
+                "application/json"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A snapshot (JSON) or a stream (text/event-stream)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealtimeStatus"
+                },
+                "example": {
+                  "session_id": "payment_session_xxx",
+                  "status": "ACTIVE",
+                  "amount_minor": 250000,
+                  "currency": "AOA",
+                  "expires_at": "2026-09-14T11:00:00Z",
+                  "terminal": false,
+                  "observed_at": "2026-09-14T10:04:00Z"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "retry: 3000\n\nid: ACTIVE-1\nevent: snapshot\ndata: {\"session_id\":\"payment_session_xxx\",\"status\":\"ACTIVE\",\"amount_minor\":250000,\"currency\":\"AOA\",\"expires_at\":\"2026-09-14T11:00:00Z\",\"terminal\":false,\"observed_at\":\"2026-09-14T10:04:00Z\"}\n\n: heartbeat\n\nid: PAID-2\nevent: status\ndata: {\"session_id\":\"payment_session_xxx\",\"status\":\"PAID\",\"amount_minor\":250000,\"currency\":\"AOA\",\"expires_at\":\"2026-09-14T11:00:00Z\",\"terminal\":true,\"observed_at\":\"2026-09-14T10:05:01Z\"}\n\n"
+              }
+            }
+          },
+          "400": {
+            "description": "REALTIME_TOKEN_IN_URL — the token was sent in the query string; it is refused there even when valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "REALTIME_TOKEN_REQUIRED, REALTIME_TOKEN_INVALID or REALTIME_TOKEN_EXPIRED — read the session on your backend for a new token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "REALTIME_TOKEN_WRONG_RESOURCE — the token is for another Payment Session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND — the session no longer exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "STREAMING_UNSUPPORTED — ask for application/json and try the stream again later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "REALTIME_STREAM_LIMIT (3 per session, 20 per IP) or RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "REALTIME_UNAVAILABLE — fall back to GET on your backend at a modest interval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2335,6 +3195,12 @@
         "type": "http",
         "scheme": "bearer",
         "description": "Sandbox API key sent directly as the Bearer token (bz_test_sk_XXXX placeholder — never a real key in examples). bz_live_ keys are rejected fail-closed; there is no Production key issuance."
+      },
+      "statusToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "bzst_",
+        "description": "A realtime status token (bzst_…) from PaymentSession.realtime.token. Read-only, bound to one Payment Session and one environment, valid for at most 30 minutes. Sent only in the Authorization header — a token in the URL is refused (400 REALTIME_TOKEN_IN_URL). It is not an API key and opens nothing else."
       }
     },
     "parameters": {
@@ -2625,6 +3491,9 @@
             "additionalProperties": true,
             "nullable": true,
             "description": "Merchant-safe refund source; present only once the payment has settled"
+          },
+          "realtime": {
+            "$ref": "#/components/schemas/PaymentSessionRealtime"
           }
         },
         "required": [
@@ -3500,6 +4369,10 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "description": "true for a Sandbox test event (webhook.test): it describes no payment and moves nothing; its deliveries can be replayed even after success."
           }
         },
         "required": [
@@ -3739,6 +4612,402 @@
             "type": "string"
           }
         }
+      },
+      "PaymentSessionRealtime": {
+        "type": "object",
+        "description": "A realtime status token for watching this session from a browser. Present on reads made with a project key. Hand token to the page; the page sends it in the Authorization header. Refresh by reading the session again on your backend.",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "bzst_xxx"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path on the API host",
+            "example": "/v1/realtime/payment-sessions/payment_session_xxx"
+          }
+        },
+        "required": [
+          "token",
+          "expires_at",
+          "path"
+        ]
+      },
+      "RealtimeStatus": {
+        "type": "object",
+        "description": "The public status of one Payment Session. No payer, payee, account or ledger identifiers.",
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "ACTIVE",
+              "PAID",
+              "PARTIALLY_PAID",
+              "EXPIRED",
+              "CANCELLED",
+              "FAILED"
+            ]
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "terminal": {
+            "type": "boolean",
+            "description": "true for PAID, EXPIRED, CANCELLED and FAILED; a stream closes after sending it"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "currency",
+          "terminal",
+          "observed_at"
+        ]
+      },
+      "SandboxScenario": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "PAYMENT_SUCCESS"
+          },
+          "group": {
+            "type": "string"
+          },
+          "simulated": {
+            "type": "boolean",
+            "description": "true only for an external-rail outcome requested with simulate"
+          },
+          "goal": {
+            "$ref": "#/components/schemas/BilingualText"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/BilingualText"
+          },
+          "result": {
+            "$ref": "#/components/schemas/BilingualText"
+          },
+          "event": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "group",
+          "simulated",
+          "goal",
+          "trigger",
+          "result"
+        ]
+      },
+      "BilingualText": {
+        "type": "object",
+        "properties": {
+          "pt": {
+            "type": "string"
+          },
+          "en": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pt",
+          "en"
+        ]
+      },
+      "SandboxScenarioCatalogue": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "note": {
+            "$ref": "#/components/schemas/BilingualText"
+          },
+          "scenarios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SandboxScenario"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "note",
+          "scenarios"
+        ]
+      },
+      "TestPayer": {
+        "type": "object",
+        "description": "A Sandbox consumer owned by your Project, with fictitious value.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "handle": {
+            "type": "string",
+            "description": "the payer's @banza, without @"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "RETIRED",
+              "SUSPENDED"
+            ]
+          },
+          "balance_minor": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "AOA"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "SANDBOX"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "retired_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pin": {
+            "type": "string",
+            "description": "Six digits, returned once in the creation response only — for signing in to the hosted payment page as this payer."
+          }
+        },
+        "required": [
+          "id",
+          "handle",
+          "status",
+          "currency",
+          "environment",
+          "created_at"
+        ]
+      },
+      "CreateTestPayerRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "initial_balance_minor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 1000000,
+            "description": "Fictitious opening balance; 1000000 when omitted."
+          }
+        }
+      },
+      "FundTestPayerRequest": {
+        "type": "object",
+        "properties": {
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 2500000
+          }
+        },
+        "required": [
+          "amount_minor"
+        ]
+      },
+      "PayAsTestPayerRequest": {
+        "type": "object",
+        "description": "Name exactly one of payment_session_id or payment_link_id. Both must be your Project's own.",
+        "properties": {
+          "payment_session_id": {
+            "type": "string"
+          },
+          "via": {
+            "type": "string",
+            "enum": [
+              "LINK",
+              "QR"
+            ],
+            "description": "For a session: LINK (default) or QR"
+          },
+          "payment_link_id": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "description": "For an open amount"
+          },
+          "simulate": {
+            "type": "string",
+            "enum": [
+              "DECLINED",
+              "PROVIDER_UNAVAILABLE",
+              "TIMEOUT"
+            ],
+            "description": "An external-rail outcome, requested explicitly. DECLINED and PROVIDER_UNAVAILABLE move nothing. TIMEOUT pays and answers 504; repeat with the same Idempotency-Key to read the real result."
+          }
+        }
+      },
+      "TestPayment": {
+        "type": "object",
+        "properties": {
+          "test_payer_id": {
+            "type": "string"
+          },
+          "via": {
+            "type": "string",
+            "enum": [
+              "LINK",
+              "QR"
+            ]
+          },
+          "payment_session_id": {
+            "type": "string"
+          },
+          "payment_link_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PAID"
+            ]
+          },
+          "transfer_id": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "proof_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "The receipt's BZM-… reference, when its proof was established in time"
+          },
+          "simulated": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          }
+        },
+        "required": [
+          "test_payer_id",
+          "via",
+          "status",
+          "transfer_id",
+          "currency",
+          "simulated"
+        ]
+      },
+      "SimulatedError": {
+        "type": "object",
+        "description": "The error envelope of a Sandbox simulation, marked simulated: true.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "simulated": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "simulated"
+        ]
+      },
+      "WebhookTestEvent": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "delivery_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "webhook.test"
+            ]
+          },
+          "synthetic": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING"
+            ]
+          }
+        },
+        "required": [
+          "event_id",
+          "delivery_id",
+          "type",
+          "synthetic",
+          "status"
+        ]
       }
     }
   }

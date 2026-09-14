@@ -34,6 +34,10 @@ export function searchDocs(entries: SearchEntry[], query: string, limit = 8): Se
     else if (qWords.length > 1 && qWords.every((qw) => tWords.some((w) => w.startsWith(qw)))) s = 4;
     else if (e.a && (fold(e.a).split('|').some((alias) => alias === q || alias.startsWith(q) || (qWords.length > 1 && qWords.every((qw) => words(alias).some((w) => w.startsWith(qw))))))) s = 2;
     else if (e.d && fold(e.d).includes(q)) s = 5;
+    // An alias that IS the query names this entry as precisely as a title that
+    // starts with it: "idempotency" is the concept, before any code that
+    // happens to begin with the word.
+    if (e.a && fold(e.a).split('|').includes(q) && (s < 0 || s > 1)) s = 1;
     if (s >= 0) scored.push({ e, s });
   }
   const weight = (e: SearchEntry) => (prose ? PROSE_WEIGHT[e.k] : 0);

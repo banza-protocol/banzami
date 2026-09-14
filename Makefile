@@ -400,6 +400,7 @@ check-docs-prod: check-docs-drift check-docs-claims
 	node tools/check-docs-illustrations.mjs
 	node tools/check-webhook-event-catalogue.mjs
 	node tools/check-openapi-route-drift.mjs
+	node tools/docs/build-explorer-allowlist.mjs --check
 	node tools/check-docs-code-examples.mjs
 	node tools/check-docs-api-reference.mjs
 	node tools/check-docs-api-reference.selftest.mjs

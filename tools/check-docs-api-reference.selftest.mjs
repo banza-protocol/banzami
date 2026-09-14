@@ -23,7 +23,7 @@ const MUTATIONS = [
   ['invented SDK method', 'endpoint-meta.ts', "sdk: 'getRefund',", "sdk: 'fetchRefund',", 'API_REFERENCE_SDK_DRIFT=1'],
   ['missing guide', 'endpoint-meta.ts', "guides: ['receipts'],", "guides: [],", 'API_REFERENCE_REQUIRED_FIELDS_MISSING=1'],
   ['unknown guide', 'endpoint-meta.ts', "guides: ['receipts'],", "guides: ['proofs'],", 'API_REFERENCE_BROKEN_GUIDES=1'],
-  ['invented error', 'reference.tsx', "{ code: '422 LINK_NOT_ACTIVE',", "{ code: '422 LINK_ALREADY_PAID',", 'API_REFERENCE_FAKE_ERRORS=1'],
+  ['invented error', 'reference.tsx', "{ code: '422 LINK_NOT_ACTIVE',", "{ code: '422 LINK_EXPLODED',", 'API_REFERENCE_FAKE_ERRORS=1'],
   ['query param the handler never reads', 'endpoint-meta.ts', "note: { pt: 'filtra por estado, por exemplo ACTIVE ou PAID', en: 'filters by status, for example ACTIVE or PAID' }, example: 'PAID' },", "note: { pt: 'filtra por estado, por exemplo ACTIVE ou PAID', en: 'filters by status, for example ACTIVE or PAID' }, example: 'PAID' },\n      { in: 'query', name: 'cursor', type: 'string', required: false, note: { pt: 'x', en: 'x' } },", 'API_REFERENCE_DEAD_FIELDS=1'],
 ];
 

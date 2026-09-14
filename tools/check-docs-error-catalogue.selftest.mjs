@@ -21,6 +21,7 @@ const COPY = [
   'services/api-gateway/internal/server', 'services/api-gateway/internal/handler',
   'services/api-gateway/internal/middleware', 'services/api-gateway/internal/service',
   'core/api/src/routes', 'services/developer-api/internal', 'services/developer-api/cmd',
+  'services/public-api/internal/handler',
   'apps/website/app/developers/page.tsx', 'apps/website/app/developers/docs',
 ];
 
@@ -67,6 +68,22 @@ const CASES = [
       '"UNAUTHORIZED", "authentication required")',
       '"UNAUTHORIZED", "authentication required")\n\t\tapierror.Respond(w, r, http.StatusForbidden, "KYB_DECIDED_BY_REVIEW", "x")')),
     expect: (c) => c.code !== 0 && /KYB_DECIDED_BY_REVIEW \(classified INTERNAL/.test(c.out),
+  },
+  {
+    name: 'A — a service a Sandbox route forwards to starts returning a new code',
+    mutate: (d) => edit(d, 'services/public-api/internal/handler/sandbox_test_payers.go', (s) => s.replace(
+      '"TEST_PAYER_RETIRED", "this test payer is retired")',
+      '"TEST_PAYER_RETIRED", "this test payer is retired")\n\t\tapierror.Respond(w, r, http.StatusTeapot, "FORWARDED_NEW_CODE", "x")')),
+    expect: (c) => c.code !== 0 && /FORWARDED_NEW_CODE/.test(c.out) && Number(c.counters.DOC_ERRORS_MISSING) >= 1,
+  },
+  {
+    name: 'A — a route forwards to another service and nothing declares it',
+    mutate: (d) => edit(d, 'apps/website/app/developers/docs/error-catalogue.json', (s) => {
+      const j = JSON.parse(s);
+      delete j.forwarded_services;
+      return JSON.stringify(j, null, 2);
+    }),
+    expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_UNDECLARED_FORWARDING) >= 1,
   },
   {
     name: 'B — the catalogue documents a code nothing returns',

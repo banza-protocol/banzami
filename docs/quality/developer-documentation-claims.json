@@ -10921,19 +10921,19 @@
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "the event does not exist or belongs to another project"
   },
-  "pt:Reference-spec:630d1aaaca": {
+  "pt:Reference-spec:6aeff5c237": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-   "text": "Volta a pôr em fila uma entrega que falhou, com o mesmo id. Uma entrega que já teve sucesso responde 409 e não é reenviada."
+   "text": "Volta a pôr em fila uma entrega que falhou, com o mesmo id. Uma entrega que já teve sucesso responde 409 e não é reenviada — exceto a de um evento de teste webh"
   },
-  "en:Reference-spec:7bc4e2942b": {
+  "en:Reference-spec:db523ebefa": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-   "text": "Queues a failed delivery again, with the same id. A delivery that already succeeded returns 409 and is not sent again."
+   "text": "Queues a failed delivery again, with the same id. A delivery that already succeeded returns 409 and is not sent again — except one of a webhook.test event, whic"
   },
   "pt:Reference-spec:9c0442894d": {
    "page": "Reference-spec",
@@ -11033,6 +11033,692 @@
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "too many checks from the same IP; wait the Retry-After seconds"
   },
+  "pt:Reference-spec:3df9358642": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Só na Sandbox. Envia a este endpoint um evento de teste webhook.test, assinado como qualquer outro, para verificar o seu recetor e a verificação da assinatura. "
+  },
+  "en:Reference-spec:8f75019d1a": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox only. Sends a webhook.test event to this endpoint, signed like any other, to check your receiver and your signature verification. It is marked synthetic"
+  },
+  "pt:Reference-spec:3b1569c4fb": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto · configuração financeira concluída"
+  },
+  "en:Reference-spec:ce5dd72038": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key · Financial Setup complete"
+  },
+  "pt:Reference-spec:06573ce3d6": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem webhooks:write, ou projeto sem configuração financeira concluída"
+  },
+  "en:Reference-spec:f5f5d5dd31": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without webhooks:write, or project without completed Financial Setup"
+  },
+  "pt:Reference-spec:3820dd1c1a": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "a chave não é Sandbox: os eventos de teste só existem na Sandbox"
+  },
+  "en:Reference-spec:fb35dc8773": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the key is not a Sandbox key: test events exist only in the Sandbox"
+  },
+  "pt:Reference-spec:085af64cfa": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o endpoint não existe ou pertence a outro projeto"
+  },
+  "en:Reference-spec:ab363c6917": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the endpoint does not exist or belongs to another project"
+  },
+  "pt:Reference-spec:e484882dfc": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o endpoint está desativado; reative-o primeiro"
+  },
+  "en:Reference-spec:0f1edc0891": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the endpoint is disabled; enable it first"
+  },
+  "pt:Reference-spec:37e0067aeb": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Para uma página no browser: o estado de uma sessão de pagamento em tempo real, por Server-Sent Events — um snapshot, um evento status em cada mudança, um heartb"
+  },
+  "en:Reference-spec:c9baae4f24": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "For a browser page: a Payment Session’s status in real time, over Server-Sent Events — a snapshot, a status event on each change, a heartbeat every 15 s, and a "
+  },
+  "pt:Reference-spec:d2c91327e2": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Token de estado bzst_ da sessão, no cabeçalho Authorization — nunca no endereço. Sem chave de API."
+  },
+  "en:Reference-spec:6fa0868b78": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "The session’s bzst_ status token, in the Authorization header — never in the URL. No API key."
+  },
+  "pt:Reference-spec:fed8a1422f": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o token foi enviado no endereço; é recusado mesmo que válido"
+  },
+  "en:Reference-spec:94ec2b7c69": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the token was sent in the URL; it is refused even when valid"
+  },
+  "pt:Reference-spec:0f7afd3d7b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "leia a sessão no seu backend para um token novo"
+  },
+  "en:Reference-spec:4de6cdf7ee": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "read the session on your backend for a new token"
+  },
+  "pt:Reference-spec:93a00df585": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o token é de outra sessão"
+  },
+  "en:Reference-spec:6bd78642fe": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the token belongs to another session"
+  },
+  "pt:Reference-spec:9e3e142d05": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "no máximo 3 ligações por sessão e 20 por IP"
+  },
+  "en:Reference-spec:d4f5c3e10e": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "at most 3 streams per session and 20 per IP"
+  },
+  "pt:Reference-spec:bf5fe97de6": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "use GET no seu backend, a um intervalo moderado"
+  },
+  "en:Reference-spec:0103f16098": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "use GET on your backend at a modest interval"
+  },
+  "pt:Reference-spec:82b87efb3b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Os cenários determinísticos da Sandbox: como produzir cada resultado, o que volta e que evento se segue. Cada resultado vem de uma operação real, exceto os resu"
+  },
+  "en:Reference-spec:3fbcbd131b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "The deterministic Sandbox scenarios: how to produce each outcome, what comes back and which event follows. Every outcome comes from a real operation, except ext"
+  },
+  "pt:Reference-spec:fa89711e38": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto"
+  },
+  "en:Reference-spec:90099ce05f": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key"
+  },
+  "pt:Reference-spec:81ff2bd2d0": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem sandbox:read, ou chave que não é Sandbox"
+  },
+  "en:Reference-spec:13c558d94f": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without sandbox:read, or a key that is not a Sandbox key"
+  },
+  "pt:Reference-spec:e0a9b76de6": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. O PIN vem só nesta resposta, para entrar na página de pagamento co"
+  },
+  "en:Reference-spec:ccf119dd03": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. The PIN comes only in this response, for signing in to th"
+  },
+  "pt:Reference-spec:98eeae416b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto"
+  },
+  "en:Reference-spec:2ff15d356b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key"
+  },
+  "pt:Reference-spec:11008982ec": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "um campo desconhecido, label com mais de 60 caracteres, ou saldo fora de 0–1 000 000"
+  },
+  "en:Reference-spec:30e15c21fe": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "an unknown field, a label over 60 characters, or a balance outside 0–1,000,000"
+  },
+  "pt:Reference-spec:f92f274856": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem sandbox:write, ou chave que não é Sandbox"
+  },
+  "en:Reference-spec:a8a7e68932": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without sandbox:write, or a key that is not a Sandbox key"
+  },
+  "pt:Reference-spec:835542e404": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "já há 10 pagadores ativos; retire um"
+  },
+  "en:Reference-spec:b77e080a11": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "there are already 10 active payers; retire one"
+  },
+  "pt:Reference-spec:5aa38bb2ab": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Lista os pagadores de teste do projeto, com o saldo fictício atual."
+  },
+  "en:Reference-spec:0942b1e34b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Lists the Project’s test payers, with their current fictitious balance."
+  },
+  "pt:Reference-spec:016d1a5d64": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto"
+  },
+  "en:Reference-spec:05e0912a84": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key"
+  },
+  "pt:Reference-spec:76ea00f190": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem sandbox:read, ou chave que não é Sandbox"
+  },
+  "en:Reference-spec:9cc8ecf0b8": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without sandbox:read, or a key that is not a Sandbox key"
+  },
+  "pt:Reference-spec:96e3d128b1": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Devolve um pagador de teste do projeto. O de outro projeto responde 404."
+  },
+  "en:Reference-spec:31dbe20510": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Returns one of the Project’s test payers. Another Project’s returns 404."
+  },
+  "pt:Reference-spec:926a50f0fb": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto"
+  },
+  "en:Reference-spec:114e51bacc": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key"
+  },
+  "pt:Reference-spec:ee9cfd3b0d": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem sandbox:read, ou chave que não é Sandbox"
+  },
+  "en:Reference-spec:8c554ab3ee": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without sandbox:read, or a key that is not a Sandbox key"
+  },
+  "pt:Reference-spec:4b190a41c8": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o pagador não existe ou pertence a outro projeto"
+  },
+  "en:Reference-spec:d9c3caced7": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the payer does not exist or belongs to another project"
+  },
+  "pt:Reference-spec:08b04cb1e8": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Carrega valor fictício num pagador de teste, pelo ledger — nunca editando um saldo. O cabeçalho Idempotency-Key é obrigatório e identifica o carregamento. Limit"
+  },
+  "en:Reference-spec:2274422f54": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Adds fictitious value to a test payer, through the ledger — never by editing a balance. The Idempotency-Key header is required and identifies the top-up. Limits"
+  },
+  "pt:Reference-spec:d1ef8bb8d1": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto"
+  },
+  "en:Reference-spec:16df77e72c": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key"
+  },
+  "pt:Reference-spec:f1fbdd14d0": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "sem Idempotency-Key, ou montante fora de 1–2 500 000"
+  },
+  "en:Reference-spec:cda7d58ec5": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "no Idempotency-Key, or an amount outside 1–2,500,000"
+  },
+  "pt:Reference-spec:31341e4172": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "a chave já foi usada para outro carregamento"
+  },
+  "en:Reference-spec:65ac2fb2da": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the key was already used for another top-up"
+  },
+  "pt:Reference-spec:69d8073f0a": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "pagador retirado, ou o saldo passaria o limite"
+  },
+  "en:Reference-spec:ecf489f984": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "a retired payer, or the balance would pass its limit"
+  },
+  "pt:Reference-spec:c218ed9516": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "limite de 24 h do projeto"
+  },
+  "en:Reference-spec:159d7785ea": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the Project’s 24-hour limit"
+  },
+  "pt:Reference-spec:e67e967277": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "Paga uma sessão (pelo link ou pelo QR dinâmico) ou um link de pagamento do seu projeto como este pagador, pelo mesmo caminho de um pagador real: a sessão fica P"
+  },
+  "en:Reference-spec:644520ced7": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "Pays one of your Project’s sessions (by its link or dynamic QR) or payment links as this payer, through the same path a real payer uses: the session becomes PAI"
+  },
+  "pt:Reference-spec:09fb114ebc": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto · configuração financeira concluída"
+  },
+  "en:Reference-spec:a42c1a48fd": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key · Financial Setup complete"
+  },
+  "pt:Reference-spec:48c31dc7a5": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "não nomeia exatamente um alvo, via ou simulate inválido, ou TIMEOUT sem chave"
+  },
+  "en:Reference-spec:c517b8a1ec": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "not exactly one target, an invalid via or simulate, or TIMEOUT without a key"
+  },
+  "pt:Reference-spec:79916d6497": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "simulate DECLINED; nada se move"
+  },
+  "en:Reference-spec:8b6fb6f521": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "simulate DECLINED; nothing moves"
+  },
+  "pt:Reference-spec:b6d3ec2404": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "projeto sem configuração financeira, ou chave que não é Sandbox"
+  },
+  "en:Reference-spec:c29edafd40": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "a project without Financial Setup, or a key that is not a Sandbox key"
+  },
+  "pt:Reference-spec:8e7f5ca7c0": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o pagador, a sessão ou o link não existem ou são de outro projeto"
+  },
+  "en:Reference-spec:7f205ff098": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the payer, session or link does not exist or belongs to another project"
+  },
+  "pt:Reference-spec:5508e48e12": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o link já foi pago"
+  },
+  "en:Reference-spec:8ed474b236": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the link was already paid"
+  },
+  "pt:Reference-spec:af6d15f5cb": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "saldo insuficiente, a sessão não oferece essa via, ou pagador retirado"
+  },
+  "en:Reference-spec:9e47da03d0": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "not enough balance, the session does not offer that via, or a retired payer"
+  },
+  "pt:Reference-spec:b7221bd01d": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "simulate PROVIDER_UNAVAILABLE; nada se move"
+  },
+  "en:Reference-spec:eb8f371d6a": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "simulate PROVIDER_UNAVAILABLE; nothing moves"
+  },
+  "pt:Reference-spec:cd2b8557c1": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "simulate TIMEOUT: o pagamento foi feito; repita com a mesma chave"
+  },
+  "en:Reference-spec:7c024cfaf7": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "simulate TIMEOUT: the payment was made; repeat with the same key"
+  },
+  "pt:Reference-spec:64a871ac0d": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Retira um pagador de teste: o saldo fictício é retirado pelo ledger e o pagador deixa de pagar e de receber carregamentos. Nada é apagado; os pagamentos e o his"
+  },
+  "en:Reference-spec:9ac3d58400": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Retires a test payer: its fictitious balance is retired through the ledger and the payer can no longer pay or be funded. Nothing is deleted; its payments and hi"
+  },
+  "pt:Reference-spec:2954283f0a": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto"
+  },
+  "en:Reference-spec:980d906efd": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key"
+  },
+  "pt:Reference-spec:6df3516dcc": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem sandbox:write, ou chave que não é Sandbox"
+  },
+  "en:Reference-spec:97046e1abd": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without sandbox:write, or a key that is not a Sandbox key"
+  },
+  "pt:Reference-spec:6af53f1dfc": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "o pagador não existe ou pertence a outro projeto"
+  },
+  "en:Reference-spec:c95515bee0": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "the payer does not exist or belongs to another project"
+  },
+  "pt:Reference-spec:17c3f9fdb1": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "não ficou retirado por completo; repita"
+  },
+  "en:Reference-spec:8be88f7e68": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "not fully retired; repeat the request"
+  },
   "pt:Reference-spec:83ee068159": {
    "page": "Reference-spec",
    "kind": "spec",
@@ -11130,6 +11816,34 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "Accounts and transfers"
+  },
+  "pt:Reference-spec:81cd540154": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Estado em tempo real"
+  },
+  "en:Reference-spec:0fd9d26e08": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Realtime status"
+  },
+  "pt:Reference-spec:8fe45e5824": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Dados de teste da Sandbox"
+  },
+  "en:Reference-spec:a3c2d7b902": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox test data"
   },
   "pt:Reference-spec:bfd1d4c7c3": {
    "page": "Reference-spec",
@@ -11299,19 +12013,19 @@
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "Read refunds"
   },
-  "pt:Reference-spec:e0922eade2": {
+  "pt:Reference-spec:5f65ea48e7": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-   "text": "Registar, desativar, rodar o segredo e reenviar"
+   "text": "Registar, desativar, rodar o segredo, reenviar e enviar eventos de teste"
   },
-  "en:Reference-spec:d16432d825": {
+  "en:Reference-spec:4042db3a5a": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-   "text": "Register, deactivate, rotate the secret and replay"
+   "text": "Register, deactivate, rotate the secret, replay and send test events"
   },
   "pt:Reference-spec:b5b6094a72": {
    "page": "Reference-spec",
@@ -11340,6 +12054,34 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "Resolve an @banza handle"
+  },
+  "pt:Reference-spec:00a606b30d": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Ler os cenários e os pagadores de teste (Sandbox)"
+  },
+  "en:Reference-spec:5c17638049": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Read scenarios and test payers (Sandbox)"
+  },
+  "pt:Reference-spec:5df854537b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Criar, carregar, pagar como e retirar pagadores de teste (Sandbox)"
+  },
+  "en:Reference-spec:c124784690": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Create, fund, pay as and retire test payers (Sandbox)"
   },
   "pt:Endpoint-spec:d0aef4a3a2": {
    "page": "Endpoint-spec",
@@ -12068,6 +12810,272 @@
    "class": "GATE",
    "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
    "text": "1 to 100, default 20"
+  },
+  "pt:Endpoint-spec:79677644cd": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "Bearer e o realtime.token da sessão (bzst_…). Nunca uma chave, nunca no endereço"
+  },
+  "en:Endpoint-spec:34595bea2e": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "Bearer and the session’s realtime.token (bzst_…). Never a key, never in the URL"
+  },
+  "pt:Endpoint-spec:b66f6b0dd6": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "text/event-stream para o stream; application/json (por omissão) para uma leitura única"
+  },
+  "en:Endpoint-spec:ab0a23e70f": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "text/event-stream for the stream; application/json (default) for a single read"
+  },
+  "pt:Endpoint-spec:f9e25ad753": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "o id da sessão de pagamento"
+  },
+  "en:Endpoint-spec:9fa1a7b164": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "the Payment Session id"
+  },
+  "pt:Endpoint-spec:3cc8efb10b": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
+   "text": "No browser: watchPaymentSessionStatus de @banzami/sdk/realtime, com o token — não leva chave e recusa uma. No servidor, leia a sessão com getPaymentSession."
+  },
+  "en:Endpoint-spec:79c8a12d93": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
+   "text": "In the browser: watchPaymentSessionStatus from @banzami/sdk/realtime, with the token — it takes no key and refuses one. On the server, read the session with get"
+  },
+  "pt:Endpoint-spec:ff418dd59c": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "um nome para o reconhecer, até 60 caracteres"
+  },
+  "en:Endpoint-spec:ab74d38b50": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "a name to recognise it by, up to 60 characters"
+  },
+  "pt:Endpoint-spec:fe02239472": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "saldo fictício inicial, de 0 a 1 000 000; 1 000 000 por omissão"
+  },
+  "en:Endpoint-spec:a1d6acfec4": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "fictitious opening balance, 0 to 1,000,000; 1,000,000 by default"
+  },
+  "pt:Endpoint-spec:32307099eb": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "true para incluir os pagadores retirados"
+  },
+  "en:Endpoint-spec:362fbf181e": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "true to include retired payers"
+  },
+  "pt:Endpoint-spec:986f05ac10": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "o id do pagador de teste"
+  },
+  "en:Endpoint-spec:5bc9666317": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "the test payer id"
+  },
+  "pt:Endpoint-spec:e9dd263946": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "obrigatório: identifica o carregamento; a mesma chave nunca carrega duas vezes"
+  },
+  "en:Endpoint-spec:39eeacdcba": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "required: identifies the top-up; the same key never funds twice"
+  },
+  "pt:Endpoint-spec:0fc4dfe624": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "o id do pagador de teste"
+  },
+  "en:Endpoint-spec:d0c197ba52": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "the test payer id"
+  },
+  "pt:Endpoint-spec:b6d9a9d049": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "de 1 a 2 500 000 unidades menores"
+  },
+  "en:Endpoint-spec:781eb5706e": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "1 to 2,500,000 minor units"
+  },
+  "pt:Endpoint-spec:c9700972a7": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "obrigatório com simulate TIMEOUT; recomendado sempre — repetir com a mesma chave lê o resultado"
+  },
+  "en:Endpoint-spec:6f166b191e": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "required with simulate TIMEOUT; recommended always — repeating with the same key reads the result"
+  },
+  "pt:Endpoint-spec:3b1671fd61": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "o id do pagador de teste"
+  },
+  "en:Endpoint-spec:cdf88e23b5": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "the test payer id"
+  },
+  "pt:Endpoint-spec:73c1476b61": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "a sessão a pagar, do seu projeto; ou payment_link_id"
+  },
+  "en:Endpoint-spec:c38795789f": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "the session to pay, your Project’s own; or payment_link_id"
+  },
+  "pt:Endpoint-spec:114df3e2f9": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "para uma sessão: LINK (por omissão) ou QR"
+  },
+  "en:Endpoint-spec:bed8b82b95": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "for a session: LINK (default) or QR"
+  },
+  "pt:Endpoint-spec:8db2226fae": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "o link a pagar, do seu projeto; ou payment_session_id"
+  },
+  "en:Endpoint-spec:fa7de02b1d": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "the link to pay, your Project’s own; or payment_session_id"
+  },
+  "pt:Endpoint-spec:c8408e37e8": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "só para um montante aberto"
+  },
+  "en:Endpoint-spec:e17db35e5e": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "only for an open amount"
+  },
+  "pt:Endpoint-spec:081c5f7448": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "DECLINED, PROVIDER_UNAVAILABLE ou TIMEOUT: um resultado de rede externa, pedido explicitamente"
+  },
+  "en:Endpoint-spec:108517908f": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "DECLINED, PROVIDER_UNAVAILABLE or TIMEOUT: an external-rail outcome, requested explicitly"
+  },
+  "pt:Endpoint-spec:84f1910152": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "o id do pagador de teste"
+  },
+  "en:Endpoint-spec:ab2f1fa5e2": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "the test payer id"
   },
   "pt:Endpoint-spec:04d154ec35": {
    "page": "Endpoint-spec",
@@ -15107,19 +16115,19 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "INVALID_TRANSACTION_STATUS: The transaction is in a state that cannot be refunded. Only a completed payment can be refunded."
   },
-  "pt:Errors-spec:cf3eb13c1f": {
+  "pt:Errors-spec:93fa63abfc": {
    "page": "Errors-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "WALLET_NOT_FOUND: A carteira do Business que recebeu o pagamento não foi encontrada. Contacte o suporte com o request_id."
+   "text": "WALLET_NOT_FOUND: A carteira não foi encontrada: a da Business que recebeu o pagamento, ou — num pagamento de um pagador de teste — a do pagador. Contacte o sup"
   },
-  "en:Errors-spec:aabff557a4": {
+  "en:Errors-spec:5320073ab2": {
    "page": "Errors-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "WALLET_NOT_FOUND: The wallet of the Business that received the payment was not found. Contact support with the request_id."
+   "text": "WALLET_NOT_FOUND: The wallet was not found: the one of the Business that received the payment, or — in a test payer's payment — the payer's. Contact support wit"
   },
   "pt:Errors-spec:de60f802d7": {
    "page": "Errors-spec",
@@ -15232,6 +16240,370 @@
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "UNAVAILABLE: The service is temporarily unavailable. Retry with the same key, with increasing backoff."
+  },
+  "pt:Errors-spec:aea78649a1": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_ONLY: A operação só existe na Sandbox: dados de teste, pagadores de teste, cenários e eventos de teste. A chave não é uma chave Sandbox. Use uma chave b"
+  },
+  "en:Errors-spec:4589d2a64d": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_ONLY: The operation exists only in the Sandbox: test data, test payers, scenarios and test events. The key is not a Sandbox key. Use a bz_test_sk_ key f"
+  },
+  "pt:Errors-spec:e01c24fbd1": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "IDEMPOTENCY_KEY_REQUIRED: Este pedido exige o cabeçalho Idempotency-Key: um carregamento de pagador de teste, ou um pagamento com simulate TIMEOUT. Nada foi exe"
+  },
+  "en:Errors-spec:0dcd162a10": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "IDEMPOTENCY_KEY_REQUIRED: This request requires the Idempotency-Key header: a test payer top-up, or a payment with simulate TIMEOUT. Nothing was executed. Send "
+  },
+  "pt:Errors-spec:9536f52a8c": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "INTERFACE_UNAVAILABLE: A sessão não oferece a interface pedida em via: sem link de pagamento, ou sem QR dinâmico (uma sessão de montante aberto paga-se por link"
+  },
+  "en:Errors-spec:e38a5bb1dd": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "INTERFACE_UNAVAILABLE: The session does not offer the interface named in via: no payment link, or no dynamic QR (an open-amount session is paid by link). Use vi"
+  },
+  "pt:Errors-spec:c6e541c727": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PAYMENT_DECLINED: Simulação Sandbox pedida com simulate DECLINED: o rail externo recusou. Nada se moveu. A resposta traz simulated: true. Trate como uma recusa "
+  },
+  "en:Errors-spec:b7b7be7920": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PAYMENT_DECLINED: A Sandbox simulation requested with simulate DECLINED: the external rail declined. Nothing moved. The response carries simulated: true. Handle"
+  },
+  "pt:Errors-spec:800af936fb": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PROVIDER_UNAVAILABLE: Simulação Sandbox pedida com simulate PROVIDER_UNAVAILABLE: o fornecedor externo está indisponível. Nada se moveu. A resposta traz simulat"
+  },
+  "en:Errors-spec:e8d4cad862": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PROVIDER_UNAVAILABLE: A Sandbox simulation requested with simulate PROVIDER_UNAVAILABLE: the external provider is unavailable. Nothing moved. The response carri"
+  },
+  "pt:Errors-spec:0cf1c844e2": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_SIMULATED_TIMEOUT: Simulação Sandbox pedida com simulate TIMEOUT: o pagamento foi feito, mas a resposta não chegou a tempo. O cliente não sabe o resulta"
+  },
+  "en:Errors-spec:ebd7cc21fb": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_SIMULATED_TIMEOUT: A Sandbox simulation requested with simulate TIMEOUT: the payment was made, but the answer did not arrive in time. The client does no"
+  },
+  "pt:Errors-spec:202074bf9c": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "ENDPOINT_DISABLED: O endpoint de webhook está desativado e não recebe eventos, incluindo eventos de teste. Reative o endpoint e envie o evento de teste de novo."
+  },
+  "en:Errors-spec:5eb51353ec": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "ENDPOINT_DISABLED: The webhook endpoint is disabled and receives no events, test events included. Enable the endpoint again and send the test event again."
+  },
+  "pt:Errors-spec:41797e3752": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_REQUIRED: O pedido de estado em tempo real não traz Authorization: Bearer bzst_… Envie o realtime.token da sessão no cabeçalho Authorization."
+  },
+  "en:Errors-spec:e3aae76e7a": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_REQUIRED: The realtime status request carries no Authorization: Bearer bzst_… Send the session's realtime.token in the Authorization header."
+  },
+  "pt:Errors-spec:7e60da7c4d": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_IN_URL: O token de estado foi enviado no endereço (query string). É recusado mesmo que seja válido: um endereço fica em registos, histórico e cab"
+  },
+  "en:Errors-spec:e6eb9ba370": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_IN_URL: The status token was sent in the URL (query string). It is refused even if valid: a URL ends up in logs, history and Referer headers. Sen"
+  },
+  "pt:Errors-spec:4c1e28440b": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_INVALID: O token de estado não é válido: mal formado, não emitido por este ambiente, ou alterado. Leia a sessão no seu backend (GET /v1/payment-s"
+  },
+  "en:Errors-spec:db2843b900": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_INVALID: The status token is not valid: malformed, not issued by this environment, or altered. Read the session on your backend (GET /v1/payment-"
+  },
+  "pt:Errors-spec:9973102b15": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_EXPIRED: O token de estado expirou. Os tokens duram no máximo 30 minutos e não se renovam sozinhos. Leia a sessão de novo no seu backend para um "
+  },
+  "en:Errors-spec:a52d674e16": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_EXPIRED: The status token has expired. Tokens last at most 30 minutes and do not renew themselves. Read the session again on your backend for a n"
+  },
+  "pt:Errors-spec:ee67d6dd83": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_WRONG_RESOURCE: O token de estado é de outra sessão de pagamento. Cada token abre só a sessão para a qual foi emitido. Use o token que veio com e"
+  },
+  "en:Errors-spec:6c4b3973b5": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_TOKEN_WRONG_RESOURCE: The status token belongs to another Payment Session. Each token opens only the session it was issued for. Use the token that came"
+  },
+  "pt:Errors-spec:710626787a": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_STREAM_LIMIT: Demasiadas ligações de estado abertas: no máximo 3 por sessão e 20 por endereço IP. Feche as ligações que não usa e aguarde o Retry-After"
+  },
+  "en:Errors-spec:c3dc8d64bb": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_STREAM_LIMIT: Too many open status streams: at most 3 per session and 20 per IP address. Close the streams you do not use and wait for Retry-After. A p"
+  },
+  "pt:Errors-spec:28e54b93dd": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_UNAVAILABLE: O estado em tempo real não está disponível neste momento. O pagamento não é afetado. Passe a ler o estado com GET no seu backend, a um int"
+  },
+  "en:Errors-spec:31914e533a": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "REALTIME_UNAVAILABLE: Realtime status is not available right now. The payment is not affected. Fall back to reading the status with GET on your backend at a mod"
+  },
+  "pt:Errors-spec:0b416e17ab": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "STREAMING_UNSUPPORTED: A ligação não permite streaming neste momento. Peça Accept: application/json para uma leitura única e volte a tentar o stream mais tarde."
+  },
+  "en:Errors-spec:5e9f1084c3": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "STREAMING_UNSUPPORTED: The connection cannot stream right now. Ask for Accept: application/json for a single read, and try the stream again later."
+  },
+  "pt:Errors-spec:22dc4fab0a": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_QUOTA_EXCEEDED: Chegou a um limite da Sandbox do projeto: 10 pagadores de teste ativos, ou 20 carregamentos e 10 000 000 em 24 horas. Retire pagadores q"
+  },
+  "en:Errors-spec:bfbcb44582": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_QUOTA_EXCEEDED: A Project Sandbox limit was reached: 10 active test payers, or 20 top-ups and 10,000,000 in 24 hours. Retire test payers you no longer u"
+  },
+  "pt:Errors-spec:1ef03532ff": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_FUNDING_REFUSED: O carregamento fictício foi recusado pelos limites de saldo do pagador de teste (5 000 000 no máximo). Nada foi carregado. Carregue um "
+  },
+  "en:Errors-spec:c5ae0b321f": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_FUNDING_REFUSED: The fictitious top-up was refused by the test payer's balance limits (5,000,000 at most). Nothing was funded. Top up a smaller amount, "
+  },
+  "pt:Errors-spec:1b15f46897": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "TEST_PAYER_RETIRED: O pagador de teste foi retirado: não paga nem recebe carregamentos. O histórico fica. Crie um pagador de teste novo."
+  },
+  "en:Errors-spec:07860f5744": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "TEST_PAYER_RETIRED: The test payer has been retired: it neither pays nor receives top-ups. Its history stays. Create a new test payer."
+  },
+  "pt:Errors-spec:c2e4d42bd6": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "RETIREMENT_FAILED: O pagador de teste não pôde ser retirado por completo neste momento. Nada ficou meio feito que não se possa repetir. Repita o pedido de retir"
+  },
+  "en:Errors-spec:47daaeca84": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "RETIREMENT_FAILED: The test payer could not be fully retired right now. Nothing was left half-done that cannot be repeated. Repeat the retirement request."
+  },
+  "pt:Errors-spec:6847a65708": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "LINK_ALREADY_PAID: Este link de pagamento já foi pago. Um link de uso único não aceita um segundo pagamento. Leia a sessão ou o link para confirmar o pagamento "
+  },
+  "en:Errors-spec:2e3c49a75b": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "LINK_ALREADY_PAID: This payment link has already been paid. A single-use link does not accept a second payment. Read the session or link to confirm the existing"
+  },
+  "pt:Errors-spec:aabee87f07": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PAYMENT_NOT_CONFIRMED: O dinheiro foi transferido, mas o pagamento não pôde ser dado como concluído neste momento. Repita o mesmo pedido: repetir conclui o paga"
+  },
+  "en:Errors-spec:e218b82e01": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PAYMENT_NOT_CONFIRMED: The money was transferred, but the payment could not be marked complete right now. Repeat the same request: repeating completes the payme"
+  },
+  "pt:Errors-spec:f8bf11bd50": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "QR_NOT_FOUND: O QR da sessão não foi encontrado. Leia a sessão e confirme que ainda oferece DYNAMIC_QR; senão, pague por link."
+  },
+  "en:Errors-spec:bc056a06bd": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "QR_NOT_FOUND: The session's QR code was not found. Read the session and confirm it still offers DYNAMIC_QR; otherwise pay by link."
+  },
+  "pt:Errors-spec:1b3c7ead87": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "QR_EXPIRED: O QR expirou juntamente com a sessão. Nada foi pago. Crie uma sessão nova."
+  },
+  "en:Errors-spec:d536490fd4": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "QR_EXPIRED: The QR code expired together with its session. Nothing was paid. Create a new session."
+  },
+  "pt:Errors-spec:394f4b3b59": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "QR_ALREADY_USED: O QR dinâmico já foi usado para um pagamento. Um QR dinâmico paga-se uma vez. Leia a sessão para confirmar o pagamento; não pague de novo."
+  },
+  "en:Errors-spec:0d99c6ec2d": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "QR_ALREADY_USED: The dynamic QR code has already been used for a payment. A dynamic QR is paid once. Read the session to confirm the payment; do not pay again."
+  },
+  "pt:Errors-spec:4d4fa154ec": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "AMOUNT_NEGATIVE: O montante enviado para o pagamento por QR não é válido. Omita amount_minor numa sessão de montante fixo, ou envie um inteiro positivo em unida"
+  },
+  "en:Errors-spec:71c9ca9edf": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "AMOUNT_NEGATIVE: The amount sent for the QR payment is not valid. Omit amount_minor for a fixed-amount session, or send a positive integer in minor units."
+  },
+  "pt:Errors-spec:cfd9e54da6": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "INVALID_WALLET_ACCOUNT: A conta de carteira que recebe este QR já não está ativa. Confirme a conta com GET /v1/wallet-accounts/{id} e crie a sessão numa conta a"
+  },
+  "en:Errors-spec:85c7091e12": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "INVALID_WALLET_ACCOUNT: The wallet account that receives this QR code is no longer active. Check the account with GET /v1/wallet-accounts/{id} and create the se"
   }
  }
 }
