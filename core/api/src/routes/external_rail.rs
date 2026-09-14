@@ -109,7 +109,10 @@ pub async fn effective_rail_state(
 
 /// Validates a creator Project id before anything is created. Sandbox only; the
 /// id comes from the gateway's authenticated principal, never a payer.
-pub fn link_project(state: &AppState, project_id: Option<&str>) -> ApiResult<Option<Uuid>> {
+///
+/// A Project whose deletion has begun (SANDBOX-DELETE-001) creates nothing: a
+/// request its key authorised just before the keys were revoked is refused here.
+pub async fn link_project(state: &AppState, project_id: Option<&str>) -> ApiResult<Option<Uuid>> {
     let Some(raw) = project_id else {
         return Ok(None);
     };
@@ -118,9 +121,18 @@ pub fn link_project(state: &AppState, project_id: Option<&str>) -> ApiResult<Opt
             "sandbox_project_id exists only in the Sandbox",
         ));
     }
-    Uuid::parse_str(raw)
-        .map(Some)
-        .map_err(|_| ApiError::bad_request("invalid sandbox_project_id"))
+    let project =
+        Uuid::parse_str(raw).map_err(|_| ApiError::bad_request("invalid sandbox_project_id"))?;
+    if crate::routes::sandbox_project_deletion::is_retired(&state.pool, project)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        return Err(ApiError::conflict(
+            "RESOURCE_DELETING",
+            "this Project has been deleted; it can no longer create payments",
+        ));
+    }
+    Ok(Some(project))
 }
 
 /// Records the Project whose key created a Payment Link.

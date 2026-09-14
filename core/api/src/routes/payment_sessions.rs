@@ -128,7 +128,8 @@ pub async fn create(
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     let merchant_id = Uuid::parse_str(&body.merchant_id)
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
-    let creator = super::external_rail::link_project(&state, body.sandbox_project_id.as_deref())?;
+    let creator =
+        super::external_rail::link_project(&state, body.sandbox_project_id.as_deref()).await?;
     let wa_id = Uuid::parse_str(&body.wallet_account_id)
         .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
     let purpose = body

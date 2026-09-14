@@ -97,153 +97,36 @@ pub async fn reset(
         ));
     }
 
-    // ── test payers ──────────────────────────────────────────────────────────
-    let payers: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT consumer_id FROM sandbox_test_payers WHERE project_id = $1 AND retired_at IS NULL FOR UPDATE",
+    let (payers, payers_minor) = retire_test_payers(
+        &mut tx,
+        &state,
+        project,
+        by,
+        reason,
+        &format!("reset:{key}"),
+        "reset",
     )
-    .bind(project)
-    .fetch_all(&mut *tx)
-    .await
-    .map_err(db)?;
-    let mut retired_minor: i64 = 0;
-    for payer in &payers {
-        let has_wallet: bool = sqlx::query_scalar(
-            "SELECT EXISTS (SELECT 1 FROM consumer_wallets WHERE consumer_id = $1 AND currency = 'AOA')",
-        )
-        .bind(payer)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db)?;
-        if has_wallet {
-            let (amount, _) = retire_in_tx(
-                &mut tx,
-                state.transit_account_id.as_uuid(),
-                "CONSUMER",
-                *payer,
-                reason,
-                by,
-                &format!("reset:{key}:payer:{payer}"),
-            )
-            .await?;
-            retired_minor += amount;
-        }
-        sqlx::query("UPDATE sandbox_test_payers SET retired_at = now() WHERE consumer_id = $1")
-            .bind(payer)
-            .execute(&mut *tx)
-            .await
-            .map_err(db)?;
-        sqlx::query(
-            "INSERT INTO audit_log (actor, action, subject, metadata) VALUES ($1, 'SANDBOX_TEST_PAYER_RETIRED', $2, $3)",
-        )
-        .bind(format!("DEVELOPER:{by}"))
-        .bind(format!("consumer:{payer}"))
-        .bind(serde_json::json!({ "project_id": project, "via": "reset" }))
-        .execute(&mut *tx)
-        .await
-        .map_err(db)?;
-    }
+    .await?;
+    let mut retired_minor = payers_minor;
 
     // ── the Project's own synthetic Business ─────────────────────────────────
-    let business: Option<Uuid> = sqlx::query_scalar(
-        "SELECT sb.merchant_id FROM sandbox_businesses sb
-           JOIN merchant_compliance c ON c.merchant_id = sb.merchant_id
-          WHERE sb.project_id = $1 AND c.kyb_status = 'SANDBOX_SYNTHETIC'",
-    )
-    .bind(project)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(db)?;
-
+    let business = owned_synthetic_business(&mut tx, project).await?;
     let (mut sessions, mut links, mut closed) = (0u64, 0u64, 0u64);
     if let Some(merchant) = business {
-        let pending: i64 = sqlx::query_scalar(
-            "SELECT count(*) FROM app_settlements s JOIN wallet_accounts wa ON wa.account_id = s.source_account_id
-              WHERE wa.merchant_id = $1 AND s.status IN ('CREATED','PENDING')",
-        )
-        .bind(merchant)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db)?;
-        if pending > 0 {
-            return Err(ApiError::conflict(
-                "PENDING_SETTLEMENT",
-                "a settlement has not finished; reset once it has",
-            ));
-        }
-        sessions = sqlx::query_scalar::<_, i64>(
-            "WITH s AS (
-                UPDATE payment_sessions SET status = 'CANCELLED', updated_at = now()
-                 WHERE merchant_id = $1 AND status IN ('CREATED','ACTIVE')
-             RETURNING qr_code_id
-             ), q AS (
-                UPDATE qr_codes SET status = 'EXPIRED'
-                 WHERE id IN (SELECT qr_code_id FROM s) AND status = 'ACTIVE'
-             )
-             SELECT count(*) FROM s",
-        )
-        .bind(merchant)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db)? as u64;
-        links = sqlx::query(
-            "UPDATE payment_links SET status = 'CANCELLED', updated_at = now()
-              WHERE merchant_id = $1 AND status = 'ACTIVE'",
-        )
-        .bind(merchant)
-        .execute(&mut *tx)
-        .await
-        .map_err(db)?
-        .rows_affected();
-
-        let (amount, _) = retire_in_tx(
+        let r = retire_business(
             &mut tx,
-            state.transit_account_id.as_uuid(),
-            "MERCHANT",
+            &state,
             merchant,
-            reason,
             by,
-            &format!("reset:{key}:business:{merchant}"),
+            reason,
+            &format!("reset:{key}"),
+            "sandbox_reset",
         )
         .await?;
-        retired_minor += amount;
-
-        let segregated: Vec<Uuid> = sqlx::query_scalar(
-            "SELECT id FROM wallet_accounts WHERE merchant_id = $1 AND purpose <> 'PRIMARY' AND status <> 'CLOSED' FOR UPDATE",
-        )
-        .bind(merchant)
-        .fetch_all(&mut *tx)
-        .await
-        .map_err(db)?;
-        for account in segregated {
-            let (amount, _) = retire_in_tx(
-                &mut tx,
-                state.transit_account_id.as_uuid(),
-                "WALLET_ACCOUNT",
-                account,
-                reason,
-                by,
-                &format!("reset:{key}:account:{account}"),
-            )
-            .await?;
-            retired_minor += amount;
-            sqlx::query(
-                "UPDATE wallet_accounts SET status = 'CLOSED', updated_at = now() WHERE id = $1",
-            )
-            .bind(account)
-            .execute(&mut *tx)
-            .await
-            .map_err(db)?;
-            sqlx::query(
-                "INSERT INTO audit_log (actor, action, subject, metadata) VALUES ($1, 'WALLET_ACCOUNT_CLOSED', $2, $3)",
-            )
-            .bind(format!("DEVELOPER:{by}"))
-            .bind(format!("wallet_account:{account}"))
-            .bind(serde_json::json!({ "merchant_id": merchant, "reason": reason, "via": "sandbox_reset" }))
-            .execute(&mut *tx)
-            .await
-            .map_err(db)?;
-            closed += 1;
-        }
+        sessions = r.sessions_cancelled;
+        links = r.links_cancelled;
+        closed = r.accounts_closed;
+        retired_minor += r.retired_minor;
     }
 
     let result = serde_json::json!({
@@ -281,4 +164,204 @@ pub async fn reset(
     Ok(Json(
         serde_json::json!({ "replayed": false, "result": result }),
     ))
+}
+
+// ── retirement steps shared by a reset and a deletion ────────────────────────
+//
+// Each step is state-based: a payer already retired is skipped, only CREATED /
+// ACTIVE sessions and ACTIVE links are cancelled, and a balance is retired only
+// if one remains (`retire_in_tx` posts nothing for zero and replays by key). A
+// step that runs twice — a retried request, a resumed deletion — changes nothing
+// the first run already changed and never posts twice.
+
+type Tx<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
+
+/// Retires the Project's unretired test payers: fictitious balance back to
+/// transit through the ledger, marked retired, audited. Returns the payers (to
+/// suspend through the identity lifecycle after commit) and the value retired.
+pub(crate) async fn retire_test_payers(
+    tx: &mut Tx<'_>,
+    state: &AppState,
+    project: Uuid,
+    by: &str,
+    reason: &str,
+    key_scope: &str,
+    via: &str,
+) -> ApiResult<(Vec<Uuid>, i64)> {
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let payers: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT consumer_id FROM sandbox_test_payers WHERE project_id = $1 AND retired_at IS NULL FOR UPDATE",
+    )
+    .bind(project)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(db)?;
+    let mut retired_minor: i64 = 0;
+    for payer in &payers {
+        let has_wallet: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM consumer_wallets WHERE consumer_id = $1 AND currency = 'AOA')",
+        )
+        .bind(payer)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(db)?;
+        if has_wallet {
+            let (amount, _) = retire_in_tx(
+                tx,
+                state.transit_account_id.as_uuid(),
+                "CONSUMER",
+                *payer,
+                reason,
+                by,
+                &format!("{key_scope}:payer:{payer}"),
+            )
+            .await?;
+            retired_minor += amount;
+        }
+        sqlx::query("UPDATE sandbox_test_payers SET retired_at = now() WHERE consumer_id = $1")
+            .bind(payer)
+            .execute(&mut **tx)
+            .await
+            .map_err(db)?;
+        sqlx::query(
+            "INSERT INTO audit_log (actor, action, subject, metadata) VALUES ($1, 'SANDBOX_TEST_PAYER_RETIRED', $2, $3)",
+        )
+        .bind(format!("DEVELOPER:{by}"))
+        .bind(format!("consumer:{payer}"))
+        .bind(serde_json::json!({ "project_id": project, "via": via }))
+        .execute(&mut **tx)
+        .await
+        .map_err(db)?;
+    }
+    Ok((payers, retired_minor))
+}
+
+/// The synthetic Sandbox Business the Project owns, if any. Ownership is read
+/// from sandbox_businesses and SANDBOX_SYNTHETIC, never taken from a caller.
+pub(crate) async fn owned_synthetic_business(
+    tx: &mut Tx<'_>,
+    project: Uuid,
+) -> ApiResult<Option<Uuid>> {
+    sqlx::query_scalar(
+        "SELECT sb.merchant_id FROM sandbox_businesses sb
+           JOIN merchant_compliance c ON c.merchant_id = sb.merchant_id
+          WHERE sb.project_id = $1 AND c.kyb_status = 'SANDBOX_SYNTHETIC'",
+    )
+    .bind(project)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))
+}
+
+#[derive(Default)]
+pub(crate) struct BusinessRetired {
+    pub sessions_cancelled: u64,
+    pub links_cancelled: u64,
+    pub accounts_closed: u64,
+    pub retired_minor: i64,
+}
+
+/// Cancels a Business's open sessions and links, retires every account's
+/// fictitious balance and closes its segregated accounts. Refuses while a
+/// settlement is still in flight.
+pub(crate) async fn retire_business(
+    tx: &mut Tx<'_>,
+    state: &AppState,
+    merchant: Uuid,
+    by: &str,
+    reason: &str,
+    key_scope: &str,
+    via: &str,
+) -> ApiResult<BusinessRetired> {
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let mut out = BusinessRetired::default();
+    let pending: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM app_settlements s JOIN wallet_accounts wa ON wa.account_id = s.source_account_id
+          WHERE wa.merchant_id = $1 AND s.status IN ('CREATED','PENDING')",
+    )
+    .bind(merchant)
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(db)?;
+    if pending > 0 {
+        return Err(ApiError::conflict(
+            "PENDING_SETTLEMENT",
+            "a settlement has not finished; try again once it has",
+        ));
+    }
+    out.sessions_cancelled = sqlx::query_scalar::<_, i64>(
+        "WITH s AS (
+            UPDATE payment_sessions SET status = 'CANCELLED', updated_at = now()
+             WHERE merchant_id = $1 AND status IN ('CREATED','ACTIVE')
+         RETURNING qr_code_id
+         ), q AS (
+            UPDATE qr_codes SET status = 'EXPIRED'
+             WHERE id IN (SELECT qr_code_id FROM s) AND status = 'ACTIVE'
+         )
+         SELECT count(*) FROM s",
+    )
+    .bind(merchant)
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(db)? as u64;
+    out.links_cancelled = sqlx::query(
+        "UPDATE payment_links SET status = 'CANCELLED', updated_at = now()
+          WHERE merchant_id = $1 AND status = 'ACTIVE'",
+    )
+    .bind(merchant)
+    .execute(&mut **tx)
+    .await
+    .map_err(db)?
+    .rows_affected();
+
+    let (amount, _) = retire_in_tx(
+        tx,
+        state.transit_account_id.as_uuid(),
+        "MERCHANT",
+        merchant,
+        reason,
+        by,
+        &format!("{key_scope}:business:{merchant}"),
+    )
+    .await?;
+    out.retired_minor += amount;
+
+    let segregated: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM wallet_accounts WHERE merchant_id = $1 AND purpose <> 'PRIMARY' AND status <> 'CLOSED' FOR UPDATE",
+    )
+    .bind(merchant)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(db)?;
+    for account in segregated {
+        let (amount, _) = retire_in_tx(
+            tx,
+            state.transit_account_id.as_uuid(),
+            "WALLET_ACCOUNT",
+            account,
+            reason,
+            by,
+            &format!("{key_scope}:account:{account}"),
+        )
+        .await?;
+        out.retired_minor += amount;
+        sqlx::query(
+            "UPDATE wallet_accounts SET status = 'CLOSED', updated_at = now() WHERE id = $1",
+        )
+        .bind(account)
+        .execute(&mut **tx)
+        .await
+        .map_err(db)?;
+        sqlx::query(
+            "INSERT INTO audit_log (actor, action, subject, metadata) VALUES ($1, 'WALLET_ACCOUNT_CLOSED', $2, $3)",
+        )
+        .bind(format!("DEVELOPER:{by}"))
+        .bind(format!("wallet_account:{account}"))
+        .bind(serde_json::json!({ "merchant_id": merchant, "reason": reason, "via": via }))
+        .execute(&mut **tx)
+        .await
+        .map_err(db)?;
+        out.accounts_closed += 1;
+    }
+    Ok(out)
 }

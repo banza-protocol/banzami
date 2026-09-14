@@ -11,7 +11,7 @@ use crate::routes::sandbox_businesses::{provision, ProvisionBody};
 use crate::routes::sandbox_reset::{reset, ResetBody, RESETS_PER_DAY};
 use crate::state::{AppState, CoreEnvironment};
 
-async fn account(pool: &PgPool, ty: &str) -> Uuid {
+pub(super) async fn account(pool: &PgPool, ty: &str) -> Uuid {
     sqlx::query_scalar::<_, Uuid>(
         "INSERT INTO ledger_accounts (id, account_type, name, currency) VALUES ($1, $2, 'a', 'AOA') RETURNING id",
     )
@@ -22,7 +22,7 @@ async fn account(pool: &PgPool, ty: &str) -> Uuid {
     .unwrap()
 }
 
-async fn state(pool: PgPool, env: CoreEnvironment) -> (AppState, Uuid) {
+pub(super) async fn state(pool: PgPool, env: CoreEnvironment) -> (AppState, Uuid) {
     let transit = account(&pool, "ASSET").await;
     let bank = account(&pool, "ASSET").await;
     let fee = account(&pool, "REVENUE").await;
@@ -39,7 +39,7 @@ async fn state(pool: PgPool, env: CoreEnvironment) -> (AppState, Uuid) {
     )
 }
 
-async fn balance(pool: &PgPool, acct: Uuid) -> i64 {
+pub(super) async fn balance(pool: &PgPool, acct: Uuid) -> i64 {
     sqlx::query_scalar(
         "SELECT COALESCE(SUM(CASE entry_type WHEN 'CREDIT' THEN amount_minor ELSE -amount_minor END),0)::BIGINT FROM ledger_entries WHERE account_id=$1",
     )
@@ -49,7 +49,7 @@ async fn balance(pool: &PgPool, acct: Uuid) -> i64 {
     .unwrap()
 }
 
-async fn fund(pool: &PgPool, transit: Uuid, to: Uuid, amount: i64) {
+pub(super) async fn fund(pool: &PgPool, transit: Uuid, to: Uuid, amount: i64) {
     let p = Uuid::new_v4();
     sqlx::query(
         "INSERT INTO ledger_postings (id,description,idempotency_key) VALUES ($1,'fund',$2)",
@@ -65,19 +65,24 @@ async fn fund(pool: &PgPool, transit: Uuid, to: Uuid, amount: i64) {
     }
 }
 
-struct Fixture {
-    merchant: Uuid,
-    wallet: Uuid,
-    primary_account: Uuid,
-    segregated: Uuid,
-    segregated_ledger: Uuid,
-    session: Uuid,
-    link: Uuid,
+pub(super) struct Fixture {
+    pub(super) merchant: Uuid,
+    pub(super) wallet: Uuid,
+    pub(super) primary_account: Uuid,
+    pub(super) segregated: Uuid,
+    pub(super) segregated_ledger: Uuid,
+    pub(super) session: Uuid,
+    pub(super) link: Uuid,
 }
 
 /// A Project's synthetic Business, funded, with an extra account, an open
 /// session and an active link.
-async fn business(st: &AppState, pool: &PgPool, transit: Uuid, project: Uuid) -> Fixture {
+pub(super) async fn business(
+    st: &AppState,
+    pool: &PgPool,
+    transit: Uuid,
+    project: Uuid,
+) -> Fixture {
     let (_, Json(b)) = provision(
         State(st.clone()),
         Json(ProvisionBody {
@@ -124,7 +129,12 @@ async fn business(st: &AppState, pool: &PgPool, transit: Uuid, project: Uuid) ->
     }
 }
 
-async fn test_payer(pool: &PgPool, transit: Uuid, project: Uuid, amount: i64) -> (Uuid, Uuid) {
+pub(super) async fn test_payer(
+    pool: &PgPool,
+    transit: Uuid,
+    project: Uuid,
+    amount: i64,
+) -> (Uuid, Uuid) {
     let consumer: Uuid =
         sqlx::query_scalar("INSERT INTO consumers (handle) VALUES ($1) RETURNING id")
             .bind(format!("tp{}", &Uuid::new_v4().simple().to_string()[..10]))
@@ -153,7 +163,7 @@ fn body(project: Uuid, key: &str) -> Json<ResetBody> {
     })
 }
 
-async fn count(pool: &PgPool, sql: &str) -> i64 {
+pub(super) async fn count(pool: &PgPool, sql: &str) -> i64 {
     sqlx::query_scalar(sql).fetch_one(pool).await.unwrap()
 }
 

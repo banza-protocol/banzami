@@ -75,6 +75,9 @@ mod sandbox_credit_tests;
 pub mod sandbox_funds;
 #[cfg(test)]
 mod sandbox_funds_tests;
+pub mod sandbox_project_deletion;
+#[cfg(test)]
+mod sandbox_project_deletion_tests;
 pub mod sandbox_reset;
 #[cfg(test)]
 mod sandbox_reset_tests;

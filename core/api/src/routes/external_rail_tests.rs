@@ -595,6 +595,7 @@ async fn a_projects_rail_and_attribution_do_not_exist_in_live(pool: PgPool) {
     .expect_err("LIVE has no simulated rail");
     assert_eq!(err.status.as_u16(), 403);
     let err = external_rail::link_project(&live, Some(&Uuid::new_v4().to_string()))
+        .await
         .expect_err("LIVE records no Sandbox Project");
     assert_eq!(err.status.as_u16(), 400);
 }

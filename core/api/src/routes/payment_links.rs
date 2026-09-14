@@ -181,7 +181,8 @@ pub async fn create(
         return Err(ApiError::bad_request("currency is required"));
     }
     let creator =
-        crate::routes::external_rail::link_project(&state, body.sandbox_project_id.as_deref())?;
+        crate::routes::external_rail::link_project(&state, body.sandbox_project_id.as_deref())
+            .await?;
 
     let wallet_account_id = match body.wallet_account_id.as_deref() {
         Some(s) => Some(

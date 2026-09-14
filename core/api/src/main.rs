@@ -522,6 +522,11 @@ async fn main() {
             post(routes::sandbox_reset::reset),
         )
         .route(
+            // A deleted Sandbox Project's retirement (SANDBOX-DELETE-001). Idempotent per pass.
+            "/internal/v1/sandbox/projects/retire",
+            post(routes::sandbox_project_deletion::retire),
+        )
+        .route(
             "/internal/v1/wallets/:wallet_id/accounts",
             get(routes::wallet_accounts::list_for_wallet),
         )
