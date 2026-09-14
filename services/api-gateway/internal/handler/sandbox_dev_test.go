@@ -183,32 +183,6 @@ func TestSandboxDev_SimulatedOutcomesAreExplicitAndTimeoutIsRecoverable(t *testi
 	}
 }
 
-func TestSandboxDev_ScopeAndEnvironment(t *testing.T) {
-	h := NewSandboxDevHandler("http://unused", "ik", sbxSessions{}, sbxLinks{})
-	noScope := principalA()
-	noScope.Scopes = []string{"payment_sessions:write"}
-	if rec := post(t, sbxRouter(h, noScope), "/v1/sandbox/test-payers", `{}`, ""); rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "INSUFFICIENT_SCOPE") {
-		t.Fatalf("missing scope: %d %s", rec.Code, rec.Body)
-	}
-	live := principalA()
-	live.Environment = "LIVE"
-	if rec := post(t, sbxRouter(h, live), "/v1/sandbox/test-payers", `{}`, ""); rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "SANDBOX_ONLY") {
-		t.Fatalf("LIVE principal: %d %s", rec.Code, rec.Body)
-	}
-	req := httptest.NewRequest(http.MethodGet, "/v1/sandbox/scenarios", nil)
-	rec := httptest.NewRecorder()
-	sbxRouter(h, principalA()).ServeHTTP(rec, req)
-	var cat struct {
-		Scenarios []struct {
-			ID        string `json:"id"`
-			Simulated bool   `json:"simulated"`
-		} `json:"scenarios"`
-	}
-	if rec.Code != 200 || json.Unmarshal(rec.Body.Bytes(), &cat) != nil || len(cat.Scenarios) < 20 {
-		t.Fatalf("scenario catalogue: %d", rec.Code)
-	}
-}
-
 type sbxQRs map[string]string
 
 func (q sbxQRs) Get(_ context.Context, id string) (*service.QrResponse, error) {

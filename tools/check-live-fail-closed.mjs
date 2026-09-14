@@ -56,10 +56,30 @@ assertContains('core/api/src/state.rs',
   ['pub type CoreEnvironment = banzami_types::Environment;', 'fn missing_env_defaults_to_live()', 'fn unknown_env_defaults_to_live()'],
   'core uses the canonical environment and tests its LIVE default');
 
-// 2. Sandbox handlers hard-enforce SANDBOX.
+// 2. Sandbox capabilities hard-enforce SANDBOX at every layer (ADR-060). The
+//    legacy card-instrument utilities (handler/sandbox.go, requireSandbox) were
+//    retired; what replaced them is checked where each refusal lives: the
+//    gateway refuses a non-Sandbox key and mounts the routes only on a Sandbox
+//    stack, public-api refuses outside the Sandbox, Core refuses in LIVE before
+//    writing, and developer-api keeps the Explorer and the self-service setup off.
 assertContains('services/api-gateway/internal/handler/sandbox.go',
-  ['func requireSandbox'],
-  'sandbox utilities enforce SANDBOX (requireSandbox)');
+  ['env.Parse(p.Environment).IsSandbox()', '"SANDBOX_ONLY"'],
+  'Sandbox test data refuses a non-Sandbox key (SANDBOX_ONLY)');
+assertContains('services/api-gateway/internal/server/server.go',
+  ['if env.Parse(cfg.Environment).IsSandbox() {\n\t\t\t\tsbx := handler.NewSandboxDevHandler('],
+  'Sandbox test-data routes are mounted only on a Sandbox stack');
+assertContains('services/api-gateway/internal/handler/webhooks.go',
+  ['"SANDBOX_ONLY", "test events exist only in the Sandbox"'],
+  'webhook test events refuse outside the Sandbox');
+assertContains('services/public-api/internal/handler/sandbox_test_payers.go',
+  ['"SANDBOX_ONLY", "test payers exist only in the Sandbox"'],
+  'public-api test payers refuse outside the Sandbox');
+for (const f of ['sandbox_businesses.rs', 'sandbox_funds.rs', 'sandbox_reset.rs']) {
+  assertContains(`core/api/src/routes/${f}`, ['state.environment.is_live()'], `core ${f} refuses in LIVE before writing`);
+}
+assertContains('services/developer-api/internal/developer/explorer.go',
+  ['if !s.sandboxEnv || strings.TrimSpace(baseURL) == ""'],
+  'the API Explorer is off outside the Sandbox');
 
 // 3. Live activation requires platform_mode agreement (not one ENV flag).
 assertContains('services/api-gateway/internal/service/env_gate.go',
