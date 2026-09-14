@@ -142,7 +142,11 @@ func (s *Service) SetExplorer(baseURL string, client *http.Client) {
 	if client == nil {
 		client = &http.Client{Timeout: 20 * time.Second}
 	}
-	s.explorer = &explorerBroker{baseURL: strings.TrimRight(baseURL, "/"), client: client, now: time.Now, window: map[string][]time.Time{}}
+	// A redirect is answered, never followed: following one would send the
+	// minted key to a path the allowlist did not name.
+	c := *client
+	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	s.explorer = &explorerBroker{baseURL: strings.TrimRight(baseURL, "/"), client: &c, now: time.Now, window: map[string][]time.Time{}}
 }
 
 // ExplorerOperations lists what the Explorer can run for a member of the Project.
@@ -184,7 +188,9 @@ func (s *Service) RunExplorerRequest(ctx context.Context, actor, projectID strin
 	path := op.Path
 	for _, pp := range op.PathParams {
 		v := strings.TrimSpace(in.PathParams[pp.Name])
-		if !explorerPathValue.MatchString(v) {
+		// "." and ".." pass the character class but are path segments of their
+		// own: the gateway would clean /v1/x/.. into another route.
+		if !explorerPathValue.MatchString(v) || strings.Trim(v, ".") == "" {
 			return nil, ErrExplorerInvalidRequest
 		}
 		path = strings.Replace(path, "{"+pp.Name+"}", url.PathEscape(v), 1)

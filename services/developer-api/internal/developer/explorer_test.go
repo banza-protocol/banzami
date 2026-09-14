@@ -127,6 +127,8 @@ func TestExplorer_RunsOnlyWhatThePublishedContractDescribes(t *testing.T) {
 		{OperationID: "createApiKey"}, // not an operation
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "../../internal/v1/x"}},    // path escape
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": ""}},                       // missing value
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": ".."}},                     // dot segment
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "."}},                      // dot segment
 		{OperationID: "listPaymentSessions", Query: map[string]string{"merchant_id": "m"}},                // undeclared query
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "ps"}, Body: []byte(`{}`)}, // body on a GET
 	}
@@ -221,5 +223,25 @@ func TestExplorer_AllowlistIsTheContractsProjectKeySurface(t *testing.T) {
 		if op.Scope == "" || !AllowedScopes[op.Scope] {
 			t.Errorf("%s: scope %q is not an allowed key scope", op.OperationID, op.Scope)
 		}
+	}
+}
+
+func TestExplorer_ARedirectIsAnsweredNotFollowed(t *testing.T) {
+	s, proj := explorerSvc(t)
+	g := newExplorerGateway(t, s, "identity:read")
+	g.respond = func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/me" {
+			http.Redirect(w, r, "/v1/refunds", http.StatusTemporaryRedirect)
+			return
+		}
+		_, _ = w.Write([]byte(`{"followed":true}`))
+	}
+	s.SetExplorer(g.srv.URL, g.srv.Client())
+	out, err := s.RunExplorerRequest(bg, "u_dev", proj, ExplorerRequest{OperationID: "getMe"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Status != http.StatusTemporaryRedirect || len(g.paths) != 1 {
+		t.Fatalf("status %d, gateway saw %v", out.Status, g.paths)
 	}
 }
