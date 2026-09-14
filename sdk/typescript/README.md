@@ -166,7 +166,7 @@ import { watchPaymentSessionStatus } from '@banzami/sdk/realtime';
 
 const watch = watchPaymentSessionStatus({
   sessionId: session.session_id,
-  token:     session.realtime.token,      // bzst_… — refused if it is an API key
+  token:     session.realtime!.token,     // bzst_… — refused if it is an API key
   onStatus:  (s) => render(s.status),     // snapshot first, then every change
   onEnd:     (end) => console.log(end.reason), // terminal | token_expired | closed | error
 });
