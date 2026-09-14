@@ -8,15 +8,12 @@
  *
  * Writes apps/website/app/developers/docs/openapi-statuses.json:
  *   { "POST /v1/payment-sessions": [201], … }
- * openapi-statuses.test.ts fails when the file and the contract disagree.
+ * apps/website/components/developers/code/visual-language.test.tsx fails when
+ * the file and the contract disagree.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '../..');
-const SPEC = resolve(ROOT, 'apps/website/public/developers/openapi/banzami-sandbox.openapi.json');
-const OUT = resolve(ROOT, 'apps/website/app/developers/docs/openapi-statuses.json');
 
 export function statusesFrom(spec) {
   const out = {};
@@ -30,6 +27,9 @@ export function statusesFrom(spec) {
 }
 
 if (process.argv[1]?.endsWith('build-openapi-statuses.mjs')) {
+  const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '../..');
+  const SPEC = resolve(ROOT, 'apps/website/public/developers/openapi/banzami-sandbox.openapi.json');
+  const OUT = resolve(ROOT, 'apps/website/app/developers/docs/openapi-statuses.json');
   const map = statusesFrom(JSON.parse(readFileSync(SPEC, 'utf8')));
   writeFileSync(OUT, `${JSON.stringify(map, null, 2)}\n`);
   console.log(`wrote ${OUT}: ${Object.keys(map).length} operations`);

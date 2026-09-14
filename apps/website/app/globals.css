@@ -523,5 +523,5 @@ body {
   .bz-events td[data-label]::before { content: attr(data-label) ': '; font-size: 11.5px; font-weight: 600; color: #6f6468; }
   .bz-facts { grid-template-columns: minmax(0, 1fr) !important; gap: 2px !important; }
   .bz-facts dd { margin-bottom: 8px !important; }
-}
+  .bz-response-lines { display: none; }
 }

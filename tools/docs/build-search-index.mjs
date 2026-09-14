@@ -96,7 +96,7 @@ function build() {
       for (const c of body.matchAll(/<StepCard[^>]*?\bid="([^"]+)"\s+title="([^"]+)"/g)) add(lang, 'section', c[2], `${href}#${c[1]}`);
       for (const c of body.matchAll(/<RecipeCard[^>]*?r=\{\{\s*id: '([^']+)', title: '([^']+)'/g)) add(lang, 'section', c[2], `${href}#${c[1]}`);
       // SDK methods in this page's text and in the samples it renders.
-      const samples = [...body.matchAll(/raw=\{(SAMPLE_[A-Z0-9_]+)\}/g)].map((x) => {
+      const samples = [...body.matchAll(/raw(?:=\{|: )(SAMPLE_[A-Z0-9_]+)\b/g)].map((x) => {
         const d = new RegExp(`const ${x[1]}\\s*=\\s*\`((?:\\\\\`|[^\`])*)\``).exec(src);
         return d ? d[1] : '';
       }).join('\n');

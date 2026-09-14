@@ -7,7 +7,7 @@
 
 import { MailLink } from '@/components/MailLink';
 import type { ReactNode } from 'react';
-import { BADGE_LABELS_EN, Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono } from './ui';
+import { BADGE_LABELS_EN, Badge, BODY, Callout, Code, CodeBlock, CodeTabs, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono } from './ui';
 import { ResourceReference, ScopeTable } from './reference';
 import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
 import { EventReference } from './EventReference';
@@ -515,8 +515,7 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 success={<><Code>201</Code> with <Code>status: &quot;ACTIVE&quot;</Code> and a <Code>PAYMENT_LINK</Code> interface. Store the <Code>session_id</Code>.</>}
                 next="Open the payment page.">
                 Do not name the payee: it comes from Financial Setup. Use <Code>reference_id</Code> to tie the session to your order.
-                <CodeBlock label="ts · create a payment session (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} {...enCopy} />
-                <CodeBlock label="curl · create a payment session (request + response)" raw={SAMPLE_CURL_SESSION} onCopy={copy} {...enCopy} />
+                <CodeTabs ui="en" items={[{ lang: 'ts', raw: SAMPLE_SESSION, context: 'create a payment session (@banzami/sdk)' }, { lang: 'curl', raw: SAMPLE_CURL_SESSION, context: 'create a payment session (request + response)' }]} />
               </StepCard>
               <P style={{ fontSize: 13, color: MUT }}>
                 The most common errors at this step: <Code>403 PAYMENTS_UNAVAILABLE</Code> (step 4 not complete), <Code>403 INSUFFICIENT_SCOPE</Code> (step 5),{' '}
@@ -877,16 +876,14 @@ export function EnPayments({ copy }: { copy: CopyFn }) {
                 <LI><strong>No stream:</strong> if the connection cannot stay up (<Code>503 REALTIME_UNAVAILABLE</Code>, a restricted network), the page asks your server at a modest interval, for example every five seconds.</LI>
                 <LI><strong>Limits:</strong> 3 streams per session and 20 per IP (<Code>429 REALTIME_STREAM_LIMIT</Code>). A page needs one.</LI>
               </UL>
-              <CodeBlock label="TypeScript · realtime status on the page" raw={SAMPLE_REALTIME} onCopy={copy} {...enCopy} />
-              <CodeBlock label="curl · realtime status (stream)" raw={SAMPLE_CURL_REALTIME} onCopy={copy} {...enCopy} />
+              <CodeTabs ui="en" items={[{ lang: 'ts', raw: SAMPLE_REALTIME, context: 'realtime status on the page' }, { lang: 'curl', raw: SAMPLE_CURL_REALTIME, context: 'realtime status (stream)' }]} />
               <Callout tone="warn">Realtime status is not proof of payment. Fulfil the order on the verified <Code>payment_session.paid</Code> webhook, or on <Code>getPaymentSession</Code> on your server. The token is not a key: never put a secret key in the page.</Callout>
 
               <H2 id="links">Create a Payment Link</H2>
               <P>
                 A Payment Link is a reusable URL you can share without creating a session per customer. With a project key, the request does not name the payee.
               </P>
-              <CodeBlock label="TypeScript · create a payment link" raw={SAMPLE_LINK} onCopy={copy} {...enCopy} />
-              <CodeBlock label="curl · create a payment link" raw={SAMPLE_LINK_CURL} onCopy={copy} {...enCopy} />
+              <CodeTabs ui="en" items={[{ lang: 'ts', raw: SAMPLE_LINK, context: 'create a payment link' }, { lang: 'curl', raw: SAMPLE_LINK_CURL, context: 'create a payment link' }]} />
               <UL>
                 <LI><strong>Confirm:</strong> the <Code>payment_link.paid</Code> event, or <Code>GET /v1/payment-links/{'{'}id{'}'}</Code> with the id returned at creation (a slug returns <Code>404</Code>).</LI>
                 <LI><strong>Close an unpaid link:</strong> <Code>DELETE /v1/payment-links/{'{'}id{'}'}</Code> returns it with <Code>status: &quot;CANCELLED&quot;</Code>.</LI>
@@ -2140,8 +2137,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 <Code>POST /v1/sandbox/test-payers</Code>, <Code>POST /v1/sandbox/test-payers/{'{id}'}/fund</Code> (with an <Code>Idempotency-Key</Code>) and <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>.
                 A test payer acts only through your project’s API: it does not sign in to any app, and what your test Business receives settles only to test payers and test Businesses — test value never reaches a real account. <a href="/docs/en/reference#resource-sandbox" style={a}>Test data reference</a>
               </P>
-              <CodeBlock label="TypeScript · test payer" raw={SAMPLE_TEST_PAYER} onCopy={copy} {...enCopy} />
-              <CodeBlock label="curl · pay a session as a test payer" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} {...enCopy} />
+              <CodeTabs ui="en" items={[{ lang: 'ts', raw: SAMPLE_TEST_PAYER, context: 'test payer' }, { lang: 'curl', raw: SAMPLE_CURL_TEST_PAYER_PAY, context: 'pay a session as a test payer' }]} />
 
               <H2 id="external-rail">External rail down</H2>
               <P>

@@ -14,7 +14,7 @@ import { GlossaryTerm } from './GlossaryTerm';
 import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram, MoneyMovementDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import { GLOSSARY } from './glossary';
-import { Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
+import { Badge, BODY, Callout, Code, CodeBlock, CodeTabs, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
 import { ResourceReference, ScopeTable } from './reference';
 import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
 import { EventReference } from './EventReference';
@@ -500,8 +500,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 success={<><Code>201</Code> com <Code>status: &quot;ACTIVE&quot;</Code> e a interface <Code>PAYMENT_LINK</Code>. Guarde o <Code>session_id</Code>.</>}
                 next="Abrir a página de pagamento.">
                 Não indique o destinatário: vem da configuração financeira. Use <Code>reference_id</Code> para associar a sessão à sua encomenda.
-                <CodeBlock label="ts · criar sessão de pagamento (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} />
-                <CodeBlock label="curl · criar sessão de pagamento (pedido + resposta)" raw={SAMPLE_CURL_SESSION} onCopy={copy} />
+                <CodeTabs ui="pt" items={[{ lang: 'ts', raw: SAMPLE_SESSION, context: 'criar sessão de pagamento (@banzami/sdk)' }, { lang: 'curl', raw: SAMPLE_CURL_SESSION, context: 'criar sessão de pagamento (pedido + resposta)' }]} />
               </StepCard>
               <P style={{ fontSize: 13, color: MUT }}>
                 Respostas de erro mais frequentes neste passo: <Code>403 PAYMENTS_UNAVAILABLE</Code> (passo 4 por concluir), <Code>403 INSUFFICIENT_SCOPE</Code> (passo 5),{' '}
@@ -862,16 +861,14 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                 <LI><strong>Sem stream:</strong> se a ligação não se mantiver (<Code>503 REALTIME_UNAVAILABLE</Code>, rede restrita), a página pergunta ao seu servidor a um intervalo moderado, por exemplo cinco segundos.</LI>
                 <LI><strong>Limites:</strong> 3 ligações por sessão e 20 por IP (<Code>429 REALTIME_STREAM_LIMIT</Code>). Uma página precisa de uma.</LI>
               </UL>
-              <CodeBlock label="TypeScript · estado em tempo real na página" raw={SAMPLE_REALTIME} onCopy={copy} />
-              <CodeBlock label="curl · estado em tempo real (stream)" raw={SAMPLE_CURL_REALTIME} onCopy={copy} />
+              <CodeTabs ui="pt" items={[{ lang: 'ts', raw: SAMPLE_REALTIME, context: 'estado em tempo real na página' }, { lang: 'curl', raw: SAMPLE_CURL_REALTIME, context: 'estado em tempo real (stream)' }]} />
               <Callout tone="warn">O estado em tempo real não é prova de pagamento. Entregue a encomenda com o webhook <Code>payment_session.paid</Code> verificado, ou com <Code>getPaymentSession</Code> no seu servidor. O token não é uma chave: nunca coloque uma chave secreta na página.</Callout>
 
               <H2 id="links">Criar um link de pagamento</H2>
               <P>
                 Um link de pagamento é um endereço reutilizável que pode partilhar sem criar uma sessão por cliente. Com uma chave de projeto, o pedido não indica o destinatário.
               </P>
-              <CodeBlock label="TypeScript · criar link de pagamento" raw={SAMPLE_LINK} onCopy={copy} />
-              <CodeBlock label="curl · criar link de pagamento" raw={SAMPLE_LINK_CURL} onCopy={copy} />
+              <CodeTabs ui="pt" items={[{ lang: 'ts', raw: SAMPLE_LINK, context: 'criar link de pagamento' }, { lang: 'curl', raw: SAMPLE_LINK_CURL, context: 'criar link de pagamento' }]} />
               <UL>
                 <LI><strong>Confirmar:</strong> o evento <Code>payment_link.paid</Code>, ou <Code>GET /v1/payment-links/{'{'}id{'}'}</Code> com o id devolvido na criação (o slug responde <Code>404</Code>).</LI>
                 <LI><strong>Fechar um link por pagar:</strong> <Code>DELETE /v1/payment-links/{'{'}id{'}'}</Code> devolve-o com <Code>status: &quot;CANCELLED&quot;</Code>.</LI>
@@ -2126,8 +2123,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 <Code>POST /v1/sandbox/test-payers</Code>, <Code>POST /v1/sandbox/test-payers/{'{id}'}/fund</Code> (com <Code>Idempotency-Key</Code>) e <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>.
                 Um pagador de teste age só pela API do seu projeto: não entra em nenhuma app, e o que o seu negócio de teste recebe liquida só para pagadores de teste e negócios de teste — o valor de teste nunca chega a uma conta real. <a href="/docs/reference#resource-sandbox" style={a}>Referência dos dados de teste</a>
               </P>
-              <CodeBlock label="TypeScript · pagador de teste" raw={SAMPLE_TEST_PAYER} onCopy={copy} />
-              <CodeBlock label="curl · pagar uma sessão como pagador de teste" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} />
+              <CodeTabs ui="pt" items={[{ lang: 'ts', raw: SAMPLE_TEST_PAYER, context: 'pagador de teste' }, { lang: 'curl', raw: SAMPLE_CURL_TEST_PAYER_PAY, context: 'pagar uma sessão como pagador de teste' }]} />
 
               <H2 id="rail-externo">Rail externo em baixo</H2>
               <P>

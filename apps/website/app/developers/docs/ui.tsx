@@ -69,7 +69,7 @@ export const LI = ({ children }: { children: ReactNode }) => (
   <li style={{ fontSize: 15, lineHeight: 1.6, color: BODY, fontWeight: 400, overflowWrap: 'break-word' }}>{children}</li>
 );
 export const Code = ({ children }: { children: ReactNode }) => (
-  <code style={{ fontFamily: mono, fontSize: '0.86em', background: '#F4EFEF', color: INK, padding: '1px 5px', borderRadius: 5, fontWeight: 500, overflowWrap: 'break-word' }}>{children}</code>
+  <code data-inline-code style={{ fontFamily: mono, fontSize: '0.86em', background: '#F7F2F2', border: '1px solid #ECE3E4', color: '#3a2e32', padding: '0 5px', borderRadius: 5, fontWeight: 500, overflowWrap: 'break-word', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>{children}</code>
 );
 /** A page section: the level under the page's h1, and what "On this page" lists. */
 export const H2 = ({ id, children }: { id?: string; children: ReactNode }) => (

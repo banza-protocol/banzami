@@ -12,12 +12,13 @@
  * · Copy writes `raw` — the source string — never the rendered tokens.
  * · The copy button says "Copiado" for a moment and a polite live region says it
  *   aloud; its width is fixed, so the header never moves.
- * · Tabs keep every panel in the same grid cell and only hide the inactive ones,
- *   so switching language (or restoring the reader's preferred one after load)
- *   never shifts the page.
+ * · Tabs lay out only the active panel, so a short example is not padded to the
+ *   longest. The frame's height changes when the reader picks a tab (an input,
+ *   excluded from layout-shift scoring) and, for a reader who chose another
+ *   language before, once as the preference is restored after hydration.
  */
-import { getDocsCodeLang, setDocsCodeLang } from '@/lib/developer-prefs';
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { getDocsCodeLang, setDocsCodeLang } from '@/lib/developer-prefs';
 import { LANG_LABEL, highlight, type CodeLang, type Token } from './highlight';
 
 const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
@@ -25,6 +26,30 @@ const LINE_HEIGHT = 21; // px — 13px type, used to place line marks
 const PAD_Y = 14;
 
 export type LineMark = { from: number; to?: number; tone: 'bad' | 'good' | 'focus' };
+
+/**
+ * The marks a block gets without asking: in a request, the Idempotency-Key
+ * header is a focus line (it is what makes a retry safe, and it is easy to miss
+ * among headers); in a "wrong and right" example, the WRONG/ERRADO part is
+ * marked bad and the RIGHT/CERTO part good, from the comment that opens each.
+ */
+export function defaultMarks(raw: string, lang: CodeLang): LineMark[] {
+  const lines = raw.split('\n');
+  const marks: LineMark[] = [];
+  if (lang === 'curl' || lang === 'shell' || lang === 'http') {
+    lines.forEach((l, i) => { if (/Idempotency-Key:/i.test(l)) marks.push({ from: i + 1, tone: 'focus' }); });
+  }
+  const section = (re: RegExp, tone: 'bad' | 'good') => {
+    const start = lines.findIndex((l) => re.test(l));
+    if (start < 0) return;
+    let end = start;
+    while (end + 1 < lines.length && lines[end + 1].trim() !== '') end += 1;
+    marks.push({ from: start + 1, to: end + 1, tone });
+  };
+  section(/^\s*(\/\/|#)\s*(ERRADO|WRONG)\b/, 'bad');
+  section(/^\s*(\/\/|#)\s*(CERTO|RIGHT)\b/, 'good');
+  return marks;
+}
 
 export type CodeUiText = { copy: string; copied: string; announce: string; languages: string };
 export const CODE_UI_TEXT: Record<'pt' | 'en', CodeUiText> = {
@@ -162,7 +187,7 @@ export function CodeView({
         {status ? <span style={{ flex: 'none' }}>{status}</span> : null}
         <CopyButton raw={raw} label={label} text={text} />
       </div>
-      <Body raw={raw} lang={lang} marks={marks} label={label} />
+      <Body raw={raw} lang={lang} marks={marks ?? defaultMarks(raw, lang)} label={label} />
     </div>
   );
 }
@@ -238,7 +263,7 @@ export function CodeTabs({ items, ui = 'pt' }: { items: CodeTab[]; ui?: 'pt' | '
         {current.context ? <span style={CONTEXT}>{current.context}</span> : null}
         <CopyButton raw={current.raw} label={label} text={text} />
       </div>
-      <div style={{ display: 'grid' }}>
+      <div>
         {items.map((t, i) => (
           <div
             key={t.lang + i}
@@ -248,12 +273,14 @@ export function CodeTabs({ items, ui = 'pt' }: { items: CodeTab[]; ui?: 'pt' | '
             data-code-block
             data-lang={t.lang}
             data-raw-length={t.raw.length}
-            // Inactive panels keep their height in the shared cell, so the frame is as tall as
-            // the tallest example and choosing another never moves the page.
+            // Only the active example is laid out: a short TypeScript example is not padded to
+            // the height of a cURL request with its response. The height changes only when the
+            // reader picks a tab — an input, which layout-shift scoring excludes.
+            hidden={i !== active}
             {...(i === active ? {} : { inert: true, 'aria-hidden': true })}
-            style={{ gridArea: '1 / 1', visibility: i === active ? 'visible' : 'hidden', minWidth: 0 }}
+            style={{ minWidth: 0 }}
           >
-            <Body raw={t.raw} lang={t.lang} marks={t.marks} label={[LANG_LABEL[t.lang], t.context].filter(Boolean).join(' · ')} hidden={i !== active} />
+            <Body raw={t.raw} lang={t.lang} marks={t.marks ?? defaultMarks(t.raw, t.lang)} label={[LANG_LABEL[t.lang], t.context].filter(Boolean).join(' · ')} hidden={i !== active} />
           </div>
         ))}
       </div>

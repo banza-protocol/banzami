@@ -10,7 +10,7 @@
 // available to a credential that would be rejected today.
 
 import type { ReactNode } from 'react';
-import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H2, INK, P, mono, type LineMark, type Tone } from './ui';
+import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H2, INK, P, mono, type Tone } from './ui';
 import { ENDPOINT_META, type EndpointMeta, type Param, type ParamIn } from './endpoint-meta';
 import explorerOperations from './explorer-operations.json';
 import { ApiMethod, ApiPath, HttpStatus } from '@/components/developers/api/ApiMethod';
@@ -1424,11 +1424,6 @@ function SandboxAvailability({ lang, tone }: { lang: 'pt' | 'en'; tone: Tone }) 
   return <Badge tone={tone}>{lang === 'en' ? BADGE_LABELS_EN[tone] : undefined}</Badge>;
 }
 
-/** The Idempotency-Key header line of a request, drawn as a focus line so a retry-safe write is noticed. */
-export function idempotencyMarks(raw: string): LineMark[] {
-  return raw.split('\n').flatMap((l, i) => (/Idempotency-Key:/i.test(l) ? [{ from: i + 1, tone: 'focus' as const }] : []));
-}
-
 const CELL: React.CSSProperties = { padding: '9px 10px', borderBottom: '1px solid #EFE8E8', verticalAlign: 'top', color: '#3f3538' };
 const TH_REF: React.CSSProperties = { padding: '8px 10px', fontSize: 11.5, fontWeight: 650, letterSpacing: '.02em', color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' };
 
@@ -1515,15 +1510,15 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
                   </div>
                 ) : null}
                 {e.curl || e.response ? <h4 style={SUBHEAD}>{label(lang, 'Pedido e resposta', 'Request and response')}</h4> : null}
-                {e.curl ? <CodeBlock label={'curl · ' + e.method + ' ' + e.path} raw={e.curl} marks={idempotencyMarks(e.curl)} onCopy={onCopy} {...copyProps} /> : null}
+                {e.curl ? <CodeBlock label={'curl · ' + e.method + ' ' + e.path} raw={e.curl} onCopy={onCopy} {...copyProps} /> : null}
                 {responseBlock ? (
                   lines > 14 ? (
                     <details className="bz-response" style={{ margin: '0 0 16px' }}>
                       <summary className="bz-response-summary" style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, padding: '0 12px', margin: '0 0 8px', borderRadius: 10, border: '1px solid #EAE3E3', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 650, color: INK, listStyle: 'none' }}>
                         <svg className="bz-response-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        {label(lang, 'Resposta de exemplo', 'Example response')}
+                        <span style={{ whiteSpace: 'nowrap' }}>{label(lang, 'Resposta de exemplo', 'Example response')}</span>
                         {primary ? <HttpStatus code={primary} /> : null}
-                        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: '#6f6468' }}>{label(lang, lines + ' linhas', lines + ' lines')}</span>
+                        <span className="bz-response-lines" style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: '#6f6468', whiteSpace: 'nowrap' }}>{label(lang, lines + ' linhas', lines + ' lines')}</span>
                       </summary>
                       {responseBlock}
                     </details>
