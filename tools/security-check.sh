@@ -171,13 +171,21 @@ if command -v govulncheck >/dev/null 2>&1; then
   #
   #   * MODULE vulnerabilities (a "Module:" line) are repository-controlled —
   #     the fix is a go.mod version bump. These FAIL the gate.
-  #   * STANDARD LIBRARY vulnerabilities have no module and are fixed by the Go
-  #     toolchain that performs the build, which this repository pins in the
-  #     service Dockerfiles. They are reported, with the required version, as a
-  #     toolchain-currency notice rather than a code defect — a developer whose
-  #     local Go patch release lags must not be told the code is vulnerable.
+  #   * STANDARD LIBRARY vulnerabilities are fixed by the Go toolchain. Each
+  #     service module pins it (`toolchain go1.26.8`, so the go command uses that
+  #     release locally and in CI) and each Dockerfile builds with the same image
+  #     tag. A standard-library advisory is therefore repository-controlled too,
+  #     and FAILS: the fix is raising the toolchain line and the builder tag.
   for m in services/api-gateway services/public-api services/admin-api services/developer-api; do
-    out=$(cd "$m" && govulncheck ./... 2>&1)
+    # The builder image must be the toolchain the module pins.
+    tc=$(grep -oE '^toolchain go[0-9.]+' "$m/go.mod" | awk '{print $2}')
+    img=$(grep -oE '^FROM golang:[0-9.]+' "$m/Dockerfile" | sed 's/FROM golang://')
+    if [ -z "$tc" ] || [ "go$img" != "$tc" ]; then
+      bad "$m: Dockerfile builder golang:$img does not match go.mod toolchain ${tc:-<none>}"
+    else
+      ok "$m: builds with $tc (go.mod toolchain = Dockerfile builder)"
+    fi
+    out=$(cd "$m" && GOWORK=off govulncheck ./... 2>&1)  # as the Dockerfile builds: the module alone, its own toolchain
     modvulns=$(printf '%s\n' "$out" | grep -c '^  Module:' || true)
     if [ "$modvulns" -gt 0 ]; then
       bad "govulncheck: $modvulns module vulnerability/-ies in $m (bump the dependency in go.mod)"
@@ -188,7 +196,7 @@ if command -v govulncheck >/dev/null 2>&1; then
     stdvulns=$(printf '%s\n' "$out" | grep -E 'Found in: [a-z/]+@go1' | wc -l | tr -d ' ')
     if [ "$stdvulns" -gt 0 ]; then
       needed=$(printf '%s\n' "$out" | grep -oE 'Fixed in: [a-z/]+@go1\.[0-9.]+' | grep -oE 'go1\.[0-9.]+' | sort -V | tail -1)
-      skip "$m: $stdvulns Go standard-library advisory/-ies — build with $needed or newer (service Dockerfile pins the builder image)"
+      bad "govulncheck: $stdvulns Go standard-library advisory/-ies in $m — raise the toolchain line in go.mod and the Dockerfile builder to $needed or newer"
     fi
   done
 else

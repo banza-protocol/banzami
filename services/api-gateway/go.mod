@@ -2,6 +2,8 @@ module github.com/banzami/banzami/services/api-gateway
 
 go 1.26.0
 
+toolchain go1.26.8
+
 require (
 	firebase.google.com/go/v4 v4.20.0
 	github.com/go-chi/chi/v5 v5.3.0

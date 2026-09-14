@@ -2,6 +2,8 @@ module github.com/banzami/banzami/services/developer-api
 
 go 1.25.0
 
+toolchain go1.26.8
+
 require (
 	github.com/banzami/banzami/services/common/obs v0.0.0
 	github.com/go-chi/chi/v5 v5.3.0
