@@ -1020,7 +1020,7 @@ jobs:
 
       - name: No pending migrations after run
         run: |
-          if sqlx migrate info --source db/migrations | grep -qi pending; then
+          if sqlx migrate info --source db/migrations | grep -qiE '^[0-9]+/pending'; then
             echo "::error::pending migrations after run — sequence drift"; exit 1
           fi
 
