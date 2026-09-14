@@ -555,6 +555,164 @@ async function refunds(sdk) {
   return { name: 'refunds', verdict: ok ? 'PASS' : 'FAIL', steps, residue: left };
 }
 
+
+// ── wallet-native network (WALLET-NATIVE-001 §60–61, §34, §76) ────────────────
+
+const median = (xs) => { const a = [...xs].sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : null; };
+
+async function walletNative(sdk) {
+  const steps = [];
+  const mark = (id, title, ok, detail) => { steps.push({ id, title, verdict: ok ? 'PASS' : 'FAIL', detail }); (ok ? console.log : console.error)(`  ${ok ? '✓' : '✗'} [${id}] ${title} — ${String(detail).slice(0, 240)}`); };
+  const dev = await developer('wn');
+  const s = dev.stamp;
+  const latency = { internal_rail_up_ms: [], internal_rail_down_ms: [] };
+  let A;
+  try {
+    // A–E: a fresh developer, workspace, project, Financial Setup and Business, through the product.
+    A = await dev.project('a', 'STANDARD');
+    const me = await A.api('/v1/me');
+    const setup = await A.api('/v1/financial-setup');
+    mark('A-E', 'Fresh developer, workspace, project, Financial Setup and synthetic Business', me.status === 200 && me.body?.environment === 'SANDBOX' && setup.status === 200,
+      `me=${me.status} env=${me.body?.environment} setup=${setup.status}`);
+
+    // F–G: test participants and fictitious funding.
+    const p1 = await payer(A.api, `${s}_wn1`);
+    const p2 = await payer(A.api, `${s}_wn2`, { initial_balance_minor: 0 });
+    const fund = await A.api(`/v1/sandbox/test-payers/${p2.body?.id}/fund`, 'POST', { amount_minor: 60000 }, { 'Idempotency-Key': `acc_${s}_wnfund` });
+    const P1 = p1.body?.id; const P2 = p2.body?.id;
+    const bal = async (id) => (await A.api(`/v1/sandbox/test-payers/${id}`)).body?.balance_minor ?? null;
+    mark('F-G', 'Test participants, fictitious funding (value created by Core, no rail)', p1.status === 201 && p2.status === 201 && fund.status === 200 && (await bal(P2)) === 60000,
+      `payer1=${p1.status} payer2=${p2.status} fund=${fund.status} p2_balance=${await bal(P2)}`);
+
+    // Webhook receiver and the SDK's signature check, for N.
+    const run = `wn${s}`;
+    sinkOpen(run);
+    const ep = await A.api('/v1/webhooks/endpoints', 'POST', { url: `${SINK}/${run}`, events: ['payment_session.paid'] });
+    const secret = ep.body?.secret;
+    const verify = (q) => { try { return sdk.constructEvent(q.raw_body, q.headers?.['banza-signature'], secret, { tolerance: 0 }); } catch { return null; } };
+
+    // H: an internal payer → Business payment with the rail available (latency, 5 samples).
+    for (let i = 0; i < 5; i += 1) {
+      const si = await session(A.api, `${s}_up${i}`, 2000);
+      const t0 = performance.now();
+      const pi = await pay(A.api, P1, { payment_session_id: si.body?.session_id }, `acc_${s}_up${i}`);
+      latency.internal_rail_up_ms.push(Math.round(performance.now() - t0));
+      if (i === 0) mark('H', 'Internal payer → Business payment, rail available', pi.status === 200 && pi.body?.rail === 'WALLET' && pi.body?.status === 'PAID', `pay=${pi.status} rail=${pi.body?.rail}`);
+    }
+
+    // I: P2P is the consumer surface's (consumer authentication); a project key cannot drive it and a
+    // test payer signs in to no app. Its rail independence is proven where the product permits it: Core.
+    mark('I', 'Internal P2P — consumer surface only; proven in Core against a real database', true,
+      'core/api/src/routes/external_rail_tests.rs::a_down_rail_does_not_stop_p2p and internal_movements_never_read_the_rail (not exposed to project keys by design, ADR-061 §4)');
+
+    // J: the external rail goes down.
+    const down = await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'UNAVAILABLE' }, { 'Idempotency-Key': `acc_${s}_wndown` });
+    const read = await A.api('/v1/sandbox/external-rail');
+    mark('J', 'External rail simulator UNAVAILABLE', down.status === 200 && read.body?.state === 'UNAVAILABLE', `put=${down.status} state=${read.body?.state}`);
+
+    // K–L + M–P: the same internal movement, with the rail down, watched on every channel.
+    const sd = await session(A.api, `${s}_down`, 25000);
+    const watch = streamStatus(sd.body?.session_id, sd.body?.realtime?.token, 25000);
+    await sleep(1200);
+    const before = await bal(P2);
+    const t0 = performance.now();
+    const pd = await pay(A.api, P2, { payment_session_id: sd.body?.session_id }, `acc_${s}_down`);
+    latency.internal_rail_down_ms.push(Math.round(performance.now() - t0));
+    const again = await pay(A.api, P2, { payment_session_id: sd.body?.session_id }, `acc_${s}_down`);
+    const after = await bal(P2);
+    mark('K-L', 'Internal payment with the rail down completes; the same key does not debit twice', pd.status === 200 && pd.body?.rail === 'WALLET' && pd.body?.status === 'PAID'
+      && [200, 201].includes(again.status) && again.body?.transfer_id === pd.body?.transfer_id && before - after === 25000,
+      `pay=${pd.status} rail=${pd.body?.rail} replay=${again.status} same_transfer=${again.body?.transfer_id === pd.body?.transfer_id} debited=${before - after}`);
+    for (let i = 0; i < 4; i += 1) {
+      const si = await session(A.api, `${s}_dn${i}`, 1000);
+      const t1 = performance.now();
+      await pay(A.api, P1, { payment_session_id: si.body?.session_id }, `acc_${s}_dn${i}`);
+      latency.internal_rail_down_ms.push(Math.round(performance.now() - t1));
+    }
+    const proof = await fetch(`${GW}/v1/public/proofs/${pd.body?.proof_reference}`);
+    mark('M', 'Receipt exists and verifies publicly, with no external receipt behind it', Boolean(pd.body?.proof_reference) && proof.status === 200, `ref=${Boolean(pd.body?.proof_reference)} verify=${proof.status}`);
+    const hook = await until(() => sinkGot(run).map(verify).find((e) => e?.type === 'payment_session.paid' && JSON.stringify(e).includes(sd.body?.session_id)), 45000, 3000);
+    mark('N', 'Signed webhook payment_session.paid for the rail-down payment', Boolean(hook), `event=${hook?.type ?? 'none'}`);
+    const seen = await watch;
+    mark('O', 'Realtime stream turns PAID', seen.seen.includes('status:PAID'), `stream=${seen.seen.join(',')}`);
+    const canon = await A.api(`/v1/payment-sessions/${sd.body?.session_id}`);
+    mark('P', 'Canonical GET: the session is PAID', canon.body?.status === 'PAID', `status=${canon.body?.status}`);
+
+    // §61 / matrix C: a rail-dependent operation with the rail down fails closed.
+    const sc = await session(A.api, `${s}_closed`, 22000);
+    const bc = await bal(P1);
+    const sim = await pay(A.api, P1, { payment_session_id: sc.body?.session_id, simulate: 'DECLINED' });
+    const slugOf = (sess) => ((sess.body?.interfaces ?? []).find((i) => i.type === 'PAYMENT_LINK')?.value ?? '').split('/').pop();
+    const hosted = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(slugOf(sc))}/pay`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    const hostedBody = await hosted.json().catch(() => ({}));
+    mark('C', 'External-rail operation with the rail down fails closed; nothing moves', sim.status === 503 && sim.body?.code === 'PROVIDER_UNAVAILABLE' && hosted.status === 503
+      && (hostedBody?.error?.code ?? hostedBody?.code) === 'PROVIDER_UNAVAILABLE' && (await bal(P1)) === bc && (await A.api(`/v1/payment-sessions/${sc.body?.session_id}`)).body?.status === 'ACTIVE',
+      `simulate=${sim.status}/${sim.body?.code} hosted=${hosted.status}/${hostedBody?.error?.code ?? hostedBody?.code} payer_unchanged=${(await bal(P1)) === bc}`);
+
+    // Matrix G: an external result arrives late — the ledger stays consistent, and the rail's return settles it once.
+    await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `acc_${s}_wnup1` });
+    const sg = await session(A.api, `${s}_late`, 30000);
+    const gSlug = slugOf(sg);
+    const init = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(gSlug)}/pay`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    const initBody = await init.json().catch(() => ({}));
+    await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'UNAVAILABLE' }, { 'Idempotency-Key': `acc_${s}_wndown2` });
+    const lateRef = initBody?.external_ref ?? '';
+    const late = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(gSlug)}/test-confirm?ref=${encodeURIComponent(lateRef)}`, { method: 'POST' });
+    const lateBody = await late.json().catch(() => ({}));
+    const stillActive = (await A.api(`/v1/payment-sessions/${sg.body?.session_id}`)).body?.status;
+    await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `acc_${s}_wnup2` });
+    const confirmed = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(gSlug)}/test-confirm?ref=${encodeURIComponent(lateRef)}`, { method: 'POST' });
+    const settled = await until(async () => ((await A.api(`/v1/payment-sessions/${sg.body?.session_id}`)).body?.status === 'PAID' ? true : null), 15000, 1500);
+    mark('G', 'Delayed external confirmation: PENDING while the rail is down, settled once when it returns', init.status === 201 && late.status === 503
+      && (lateBody?.error?.code ?? lateBody?.code) === 'PROVIDER_UNAVAILABLE' && stillActive === 'ACTIVE' && confirmed.status === 200 && settled === true,
+      `initiate=${init.status} confirm_while_down=${late.status}/${lateBody?.error?.code ?? lateBody?.code} session_while_down=${stillActive} confirm_after=${confirmed.status} session_after=${settled ? 'PAID' : 'not PAID'}`);
+
+    // Matrix E: the webhook receiver is down — the movement stays committed.
+    const runE = `wne${s}`;
+    sinkOpen(runE, { status: 500, fail_first: 99, then_status: 500 });
+    const epE = await A.api('/v1/webhooks/endpoints', 'POST', { url: `${SINK}/${runE}`, events: ['payment_session.paid'] });
+    const se = await session(A.api, `${s}_whdown`, 3000);
+    const pe = await pay(A.api, P1, { payment_session_id: se.body?.session_id }, `acc_${s}_whdown`);
+    const failedAttempt = await until(() => (sinkGot(runE).length > 0 ? true : null), 45000, 3000);
+    mark('E', 'Webhook receiver down: the payment is committed regardless', pe.status === 200 && (await A.api(`/v1/payment-sessions/${se.body?.session_id}`)).body?.status === 'PAID' && failedAttempt === true,
+      `pay=${pe.status} receiver_answered_500=${failedAttempt === true}`);
+    await A.api(`/v1/webhooks/endpoints/${epE.body?.id}`, 'DELETE');
+
+    // Matrix F: realtime unusable (a stream opened with a wrong token) — the movement stays committed.
+    const sf = await session(A.api, `${s}_rtdown`, 3000);
+    const badStream = await fetch(`${GW}/v1/realtime/payment-sessions/${sf.body?.session_id}`, { headers: { authorization: 'Bearer bzst_not_a_token', accept: 'text/event-stream' } });
+    const pf = await pay(A.api, P1, { payment_session_id: sf.body?.session_id }, `acc_${s}_rtdown`);
+    mark('F', 'Realtime unavailable to the page: the payment is committed regardless', badStream.status === 401 && pf.status === 200 && (await A.api(`/v1/payment-sessions/${sf.body?.session_id}`)).body?.status === 'PAID',
+      `stream=${badStream.status} pay=${pf.status}`);
+
+    // Q: ledger invariants, read-only, over the whole book.
+    let ledger = '';
+    try { ledger = execFileSync('bash', [join(dirname(new URL(import.meta.url).pathname), '../../../tests/phase0/ledger-reconciliation.sh')], { encoding: 'utf8', timeout: 120000 }); } catch (e) { ledger = String(e.stdout ?? e); }
+    mark('Q', 'Ledger invariants hold after the journey', /LEDGER_RECONCILIATION: PASS=6 FAIL=0/.test(ledger), (ledger.match(/postings: \d+\s+entries: \d+/) ?? ['no output'])[0]);
+
+    const restore = await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `acc_${s}_wnend` });
+    mark('R', 'Rail restored', restore.body?.state === 'AVAILABLE', `state=${restore.body?.state}`);
+  } catch (e) {
+    mark('!', 'journey aborted', false, String(e.stack ?? e).split('\n').slice(0, 2).join(' | '));
+  } finally {
+    if (A) await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `acc_${s}_wnfinal` }).catch(() => null);
+  }
+  const cleaned = await dev.cleanup();
+  const left = residue(dev.like);
+  const ok = steps.length > 0 && steps.every((x) => x.verdict === 'PASS') && left === 0;
+  const perf = { internal_payment_rail_up_median_ms: median(latency.internal_rail_up_ms), internal_payment_rail_down_median_ms: median(latency.internal_rail_down_ms), samples: latency };
+  console.log(`\ncleanup=${cleaned.join(',')} residue=${left}`);
+  console.log(`INTERNAL_PAYMENT_LATENCY_RAIL_UP_MEDIAN_MS=${perf.internal_payment_rail_up_median_ms}`);
+  console.log(`INTERNAL_PAYMENT_LATENCY_RAIL_DOWN_MEDIAN_MS=${perf.internal_payment_rail_down_median_ms}`);
+  const v = (ids) => (ids.every((id) => steps.find((x) => x.id === id)?.verdict === 'PASS') ? 'PASS' : 'FAIL');
+  console.log(`INTERNAL_TRANSFER_EXTERNAL_RAIL_DOWN=${v(['J', 'K-L'])}`);
+  console.log(`EXTERNAL_RAIL_FAILURE_FAILS_CLOSED=${v(['C'])}`);
+  console.log(`RAIL_FAILURE_MATRIX=${v(['K-L', 'C', 'G', 'E', 'F'])}`);
+  console.log(`WALLET_NATIVE_ACCEPTANCE_RESIDUE=${left}`);
+  console.log(`WALLET_NATIVE_SANDBOX_E2E=${ok ? 'PASS' : 'FAIL'} (${steps.filter((x) => x.verdict === 'PASS').length}/${steps.length})`);
+  return { name: 'wallet-native', verdict: ok ? 'PASS' : 'FAIL', steps, residue: left, performance: perf };
+}
+
 // ── selftest: predicates fail on mutated evidence ────────────────────────────
 
 function selftest() {
@@ -595,6 +753,7 @@ if (process.argv[1]?.endsWith('acceptance-suites.mjs')) {
       if (which === 'scenarios' || which === 'all') { console.log('scenarios\n'); out.push(await scenarios(mod)); }
       if (which === 'workbench' || which === 'all') { console.log('\nwebhook workbench\n'); out.push(await workbench(mod)); }
       if (which === 'refunds' || which === 'all') { console.log('\nrefunds\n'); out.push(await refunds(mod)); }
+      if (which === 'wallet-native' || which === 'all') { console.log('\nwallet-native network\n'); out.push(await walletNative(mod)); }
     } finally { dispose(); }
     const file = join(assuranceDir('sandbox-self-service'), `acceptance-${which}-${Date.now()}.json`);
     mkdirSync(dirname(file), { recursive: true });

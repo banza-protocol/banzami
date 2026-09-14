@@ -149,3 +149,27 @@ func TestCoreProviderUnavailableIsNotCollapsedInto502(t *testing.T) {
 		t.Fatalf("any other Core 5xx stays 502: %d", rec.Code)
 	}
 }
+
+type railDownAcquiring struct{ fakeAcquiring }
+
+func (*railDownAcquiring) InitiatePay(context.Context, string, int64, string) (*service.AcquiringPayment, error) {
+	return nil, &service.CoreError{Status: http.StatusServiceUnavailable, Code: "PROVIDER_UNAVAILABLE", Message: "rail down"}
+}
+func (*railDownAcquiring) TestConfirm(context.Context, string, string, string) (*service.AcquiringPayment, error) {
+	return nil, &service.CoreError{Status: http.StatusServiceUnavailable, Code: "PROVIDER_UNAVAILABLE", Message: "rail down"}
+}
+
+// A confirmation on the hosted acquiring rail reports a rail outage as
+// PROVIDER_UNAVAILABLE — the deployed test-confirm answered 502 UPSTREAM_ERROR,
+// which reads as Banzami failing. (Initiation goes through respondCoreError,
+// pinned by TestCoreProviderUnavailableIsNotCollapsedInto502.)
+func TestHostedAcquiringRailDownIsProviderUnavailable(t *testing.T) {
+	h := NewAcquiringHandler(&railDownAcquiring{}, &fakeLinks{merchant: "m-owner"}, nil, &capturingWebhook{StubWebhookService: service.NewStubWebhookService()})
+	for name, rec := range map[string]*httptest.ResponseRecorder{
+		"test-confirm": routeWithSlug(h.TestConfirm, http.MethodPost, "/public/pay/abc123/x?ref=ref-1"),
+	} {
+		if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "PROVIDER_UNAVAILABLE") {
+			t.Errorf("%s with the rail down: %d %s", name, rec.Code, rec.Body)
+		}
+	}
+}

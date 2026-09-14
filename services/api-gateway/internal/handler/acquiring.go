@@ -174,6 +174,12 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "no pending payment for that reference")
 			return
 		}
+		// The rail is down: the confirmation cannot happen and the payment stays
+		// PENDING. That is the rail's outcome, not an upstream failure (ADR-061).
+		if ce, ok := service.AsCoreError(err); ok && ce.Code == "PROVIDER_UNAVAILABLE" {
+			respondCoreError(w, r, err, "the external rail is unavailable")
+			return
+		}
 		if ce, ok := service.AsCoreError(err); ok && ce.IsClientError() {
 			code, msg := ce.Code, ce.Message
 			if code == "" {
