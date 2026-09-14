@@ -48,23 +48,54 @@ and left what those defects produce:
 | Shared test Business `35a6f38a…` (creator and partner both deleted) | was ACTIVE | retired through Core's own route (`POST /internal/v1/sandbox/projects/retire`, pass `repair-orphan-1`, `requested_by` operator): 5 000 Kz retired by balanced posting, SUSPENDED. No SQL write. One operator repair of acceptance residue, not a step of any developer flow |
 | Retired test payer `4d654f5d…` of deleted Project `1540f933…` | had 10 000 Kz fictitious balance | owner-approved Core pass (`repair-late-credit-1`, `retire_business: true`), 17:03:47Z: one posting, DR payer available 10 000 / CR transit 10 000; payer balance 0; Project DELETED (6 passes); its Business already SUSPENDED, unchanged; no negative account, no duplicate retirement key; every unrelated merchant, payer, consumer, Console resource, webhook, session and link unchanged (before/after hashes); ledger reconciliation 6/6, book sums to zero |
 
-### Found after the repair, not repaired (pre-dates this milestone)
+### The 165 archive-era synthetic Businesses — found, tooling fixed, retired
 
-`tools/ops/retire-synthetic-residue.sh` (dry run) reports every selection counter
-at 0, but its patterns do not recognise the self-service test Businesses
-(`Sandbox · <project name>`, ADR-060), so it lists them as survivors instead:
+**Finding.** After the repair, the database held 165 ACTIVE synthetic test
+Businesses (`Sandbox · <project name>`, zero value, no keys, no webhooks, no
+unretired payers, no live binding) behind ARCHIVED harness Projects, created
+02:53–15:07Z by harnesses that cleaned up by archiving. The residue scanner
+reported "synthetic merchants active 0" — it matched Businesses by name and
+e-mail shape, and this shape was not on its list — and the canonical-resource
+gate reported "0 unclassified" because it did not inventory Businesses. Both
+tools were blind to a class they claimed to cover.
 
-| | Count | Value | Keys | Webhooks | Unretired payers |
-|---|---|---|---|---|---|
-| ACTIVE synthetic Business behind an ARCHIVED harness Project, no live binding | 165 | 0 | 0 | 0 | 0 |
+**Tooling fixed first.**
 
-All were created 02:53–15:07Z, before the deletion capability was deployed, by
-harnesses that still cleaned up by archiving — the archive-only behaviour this
-milestone replaced. None came from a SANDBOX-DELETE-001 run. Their owning
-fixture identities have since been swept, so the product's Delete cannot reach
-them; retiring them would take one Core retirement pass per Project, which is an
-operator action awaiting the owner's decision. `check-canonical-resources.mjs`
-does not inventory merchants, so it does not see them either.
+| Change | Proof |
+|---|---|
+| `tools/lib/sandbox-businesses.mjs`: every ACTIVE Business classified from evidence — `kyb_status = SANDBOX_SYNTHETIC` + `sandbox_businesses`, owning Project lifecycle, ACTIVE binding from an ACTIVE Project, ACTIVE keys — into CANONICAL (declared **and** bound to a declared live Project), SYNTHETIC_RETIREABLE, or UNCLASSIFIED | `retire-synthetic-residue.selftest.mjs` on a migrated database: the pre-fix selection misses the fixture (blind spot reproduced), the fixed one selects it; a live keyed Business, a synthetic Business of a live Project and a keyed archived one are not selected; residue declared canonical stays UNCLASSIFIED |
+| `retire-synthetic-residue.sh`: the structural predicate joins the selection; new counters for self-service Businesses with no live Project and for active merchants no rule selects; DOA's canonical tenant counted on its own line; `--apply` retires this class through Core's Project retirement | mutations caught: predicate neutralised; live-Project guard dropped; a declaration alone making a Business canonical |
+| `check-canonical-resources.mjs`: BUSINESSES section; `ops/canonical-resources.yaml` declares `Sandbox · Doa-Sandbox`; retireable residue fails the gate | before retirement: 166 active, 1 canonical, 165 retireable, 0 unclassified, 100% classified — FAIL; after: PASS |
+
+**Cleanup set (read-only discovery).** 166 ACTIVE Businesses: 1 canonical (DOA), 165
+eligible, 0 skipped, 0 unclassified. Candidates: value 0, webhooks 0, unretired
+payers 0, live bindings 0, active keys 0; 3 open payment links and 3 open sessions
+among them. Per candidate the set records Business, Project, Workspace, creation
+time, status, Project lifecycle, balance, bindings, keys, webhooks, payers and class.
+
+**Retirement.** `tools/ops/retire-archived-synthetic-businesses.mjs --apply`:
+sequential; each candidate's invariants re-read immediately before its call;
+`POST /internal/v1/sandbox/projects/retire` for the owning Project over Core's
+loopback, `retire_business: true`, pass id `synthetic-batch-<business>`. Result:
+165 retired, 0 failed, 0 skipped; 0 postings (no candidate held value); 0 still
+ACTIVE; the open links and sessions cancelled by Core. Everything outside the set —
+other Businesses and their balances, Projects, Workspaces, keys, bindings,
+payers, consumers, webhooks, sessions, links, identities — hashed before and after:
+identical. A second `--apply` selected 0 and called nothing; audit events,
+postings, active Businesses and retirement passes unchanged.
+
+**Harness cleanup fixed.** self-service, realtime-isolation, quickstart,
+doa-tutorial and the Explorer browser acceptance clean up with the product's
+Delete. `cleanupRun` retires every Project in scope through Core
+(`coreRetirementStep`) and through developer-api's retire route
+(`productRetirementStep` — archive, revoke keys, disable an unsealed binding)
+before any SQL fallback; running it after the Console onboarding harness first
+exposed two unsealed bindings left ACTIVE by the old archival UPDATE, which the
+fixed cleanup then disabled through the same route. `check-harness-hygiene.mjs`
+fails on cleanup that only archives (selftest includes the pre-fix harness from
+git). The Console onboarding harness, stale since SANDBOX-SELF-SERVICE-001 (it
+drove the KYB form the Sandbox no longer shows), drives the self-service flow:
+12/12, and its cleanup retired its synthetic Business through Core.
 
 The runs after the fixes leave neither (lifecycle 10/10, `FUNDING_PAYMENT_RACE`
 funded 0, `SHARED_BUSINESS_KEPT` then residue 0).
@@ -160,7 +191,9 @@ payee display is the snapshot taken at issue. E2E `RECEIPT_UNCHANGED`.
 | `runtime-authority.sh verify` | `DB_AUTHORITY_VERIFY=PASS` |
 | `acceptance-suites.mjs all` (cleanup = Delete) | scenarios PASS, workbench 10/10, refunds 8/8, wallet-native 16/16, rail isolation 7/7, residue 0 |
 | `responsive.mjs` / `accessibility.mjs` (populated) | 52/52 / 41/41 |
-| `check-canonical-resources.mjs` | 0 unclassified identities, workspaces, projects, keys (merchants not inventoried) |
+| `check-canonical-resources.mjs` | PASS — identities, workspaces, projects, keys, Businesses (1 active, canonical, 100% classified), no unsealed binding on an archived Project |
+| `retire-synthetic-residue.sh` (dry run, fixed) | every counter 0, active merchants no rule selects 0 |
+| Regression after the tooling change | project 17/17, workspace 10/10, lifecycle 10/10, fresh 24/24, application 18/18, realtime 17/17, isolation 16/16, cleanroom 32/32, quickstart 12/12, DOA tutorial 13/13, Explorer 11/11, Console onboarding 12/12 — residue 0 |
 
 ## Counters
 
@@ -220,6 +253,22 @@ DOA_DELETE_SPECIAL_CASES=0
 SANDBOX_DELETE_PUBLIC_CONTRADICTIONS=0
 SANDBOX_DELETE_ENABLES_LIVE_DESTRUCTIVE_DELETE=0
 SANDBOX_DELETE_CROSS_ENVIRONMENT=0
+PRE_MILESTONE_SYNTHETIC_BUSINESSES_ACTIVE=0
+SYNTHETIC_BUSINESS_SCANNER_COVERAGE=PASS
+ACTIVE_SYNTHETIC_BUSINESSES_HIDDEN_FROM_SCANNER=0
+SYNTHETIC_BUSINESS_SCANNER_MUTATION_PROOF=PASS
+ACTIVE_SANDBOX_BUSINESSES_CLASSIFIED=100%
+UNCLASSIFIED_ACTIVE_SANDBOX_BUSINESSES=0
+UNCLASSIFIED_SYNTHETIC_RESOURCES=0
+SYNTHETIC_RESIDUE_SCAN=0
+CANONICAL_RESOURCE_CHECK=PASS
+SYNTHETIC_BUSINESS_BATCH_CLEANUP_IDEMPOTENT=PASS
+BATCH_DIRECT_BALANCE_MUTATIONS=0
+BATCH_UNBALANCED_FINANCIAL_CLEANUP=0
+BATCH_CANONICAL_RESOURCE_CHANGES=0
+BATCH_CROSS_TENANT_DAMAGE=0
+CURRENT_HARNESS_ARCHIVE_ONLY_CLEANUP_PATHS=0
+CURRENT_HARNESS_SYNTHETIC_BUSINESS_LEAKS=0
 FINANCIAL_LIVE_STATUS=NOT_READY
 FINANCIAL_LIVE_FAIL_CLOSED=PASS
 ```
