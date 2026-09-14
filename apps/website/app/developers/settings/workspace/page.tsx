@@ -103,15 +103,11 @@ function WorkspaceSettings() {
 
   const remove = async () => {
     try {
-      const { keys_revoked } = await developerApi.deleteWorkspace(activeWs.id, activeWs.name, csrf);
+      const { keys_revoked, status } = await developerApi.deleteWorkspace(activeWs.id, activeWs.name, csrf);
       await reloadWorkspaces();
-      flash(
-        keys_revoked === 1
-          ? 'Workspace eliminado. 1 chave revogada.'
-          : keys_revoked > 1
-            ? `Workspace eliminado. ${keys_revoked} chaves revogadas.`
-            : 'Workspace eliminado.',
-      );
+      const revoked = keys_revoked === 1 ? ' 1 chave revogada.' : keys_revoked > 1 ? ` ${keys_revoked} chaves revogadas.` : '';
+      // DELETING: authority is already gone; the test resources close in the next minute.
+      flash(`Workspace eliminado.${revoked}${status === 'DELETING' ? ' Os recursos de teste estão a ser encerrados.' : ''}`);
     } catch (e) {
       throw new Error(explain(e));
     }
@@ -294,6 +290,7 @@ function WorkspaceSettings() {
           name={activeWs.name}
           nameLabel="Escreva o nome do workspace para confirmar"
           confirmLabel="Eliminar workspace"
+          busyLabel="A eliminar…"
           onConfirm={remove}
           onClose={() => setDialog(null)}
         />

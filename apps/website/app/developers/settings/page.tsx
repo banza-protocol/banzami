@@ -145,15 +145,11 @@ function ProjectSettings() {
 
   const remove = async () => {
     try {
-      const { keys_revoked } = await developerApi.deleteProject(activeProject.id, activeProject.name, csrf);
+      const { keys_revoked, status } = await developerApi.deleteProject(activeProject.id, activeProject.name, csrf);
       await reloadProjects();
-      flash(
-        keys_revoked === 1
-          ? 'Projeto eliminado. 1 chave revogada.'
-          : keys_revoked > 1
-            ? `Projeto eliminado. ${keys_revoked} chaves revogadas.`
-            : 'Projeto eliminado.',
-      );
+      const revoked = keys_revoked === 1 ? ' 1 chave revogada.' : keys_revoked > 1 ? ` ${keys_revoked} chaves revogadas.` : '';
+      // DELETING: authority is already gone; the test resources close in the next minute.
+      flash(`Projeto eliminado.${revoked}${status === 'DELETING' ? ' Os recursos de teste estão a ser encerrados.' : ''}`);
     } catch (e) {
       throw new Error(explain(e));
     }
@@ -297,6 +293,7 @@ function ProjectSettings() {
           name={activeProject.name}
           nameLabel="Escreva o nome do projeto para confirmar"
           confirmLabel="Eliminar projeto"
+          busyLabel="A eliminar…"
           onConfirm={remove}
           onClose={() => setDialog(null)}
         />

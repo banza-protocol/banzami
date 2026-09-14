@@ -3564,6 +3564,13 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Em Dados de teste → Repor a Sandbox (Owner ou Admin, escrevendo RESET): os pagadores de teste do projeto são retirados e, no negócio de teste do próprio projeto"
   },
+  "pt:Testing:c56beb18ae": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "text": "Repor não é necessário para eliminar: para remover o projeto e tudo o que é dele, elimine-o."
+  },
   "pt:Testing:79bb91ddca": {
    "page": "Testing",
    "kind": "row",
@@ -8687,6 +8694,13 @@
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Under Test data → Reset the Sandbox (Owner or Admin, typing RESET): the project’s test payers are retired and, in the project’s own test Business, open sessions"
+  },
+  "en:Testing:a7a9feba1f": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "text": "You do not need to reset before deleting: to remove the project and everything it owns, delete it."
   },
   "en:Testing:216a824bb6": {
    "page": "Testing",

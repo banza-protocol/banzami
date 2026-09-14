@@ -2319,6 +2319,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 Under <strong>Test data → Reset the Sandbox</strong> (Owner or Admin, typing <Code>RESET</Code>): the project’s test payers are retired and, in the project’s own test Business, open sessions and links are cancelled, the fictitious balance is retired and the extra accounts are closed.
                 Nothing is deleted: payments, refunds, receipts, events, logs and the ledger stay. Keys, webhooks and Financial Setup remain. A project connected to another project’s Business resets only its own payers. Up to 5 times a day.
               </P>
+              <P>You do not need to reset before deleting: to remove the project and everything it owns, <a href="/docs/en/console#deleting" style={a}>delete it</a>.</P>
 
               <NextStepCards lang="en" items={[
                 { href: '/docs/en/going-live', title: 'Prepare for Live', desc: 'The readiness checklist for your integration.' },

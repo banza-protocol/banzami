@@ -146,6 +146,7 @@ export function ConfirmByName({
   name,
   nameLabel,
   confirmLabel,
+  busyLabel = 'A processar…',
   onConfirm,
   onClose,
 }: {
@@ -158,6 +159,8 @@ export function ConfirmByName({
   /** e.g. "Escreva o nome do projeto para confirmar". */
   nameLabel: string;
   confirmLabel: string;
+  /** Shown on the confirm button and announced while the request runs, e.g. "A eliminar…". */
+  busyLabel?: string;
   /** Rejects with a message to show in the dialog; resolves to close. */
   onConfirm: () => Promise<void>;
   onClose: () => void;
@@ -166,18 +169,43 @@ export function ConfirmByName({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const field = useRef<HTMLInputElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
   const fieldId = useId();
   const errorId = useId();
+  const titleId = useId();
+  const bodyId = useId();
 
+  // Focus moves into the dialog, and back to the control that opened it on close.
   useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     field.current?.focus();
+    return () => opener?.focus();
   }, []);
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => {
+    const keys = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !busy) onClose();
+      // Tab stays inside the dialog: the page behind it is inert while it is open.
+      if (e.key === 'Tab' && dialog.current) {
+        const focusable = Array.from(
+          dialog.current.querySelectorAll<HTMLElement>('input:not([disabled]), button:not([disabled]), a[href]'),
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        } else if (!dialog.current.contains(document.activeElement)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
+    window.addEventListener('keydown', keys);
+    return () => window.removeEventListener('keydown', keys);
   }, [onClose, busy]);
 
   // Trimmed on both sides, matching the server's strings.TrimSpace comparison —
@@ -201,9 +229,12 @@ export function ConfirmByName({
 
   return (
     <div
+      ref={dialog}
       role="dialog"
       aria-modal="true"
-      aria-label={title}
+      aria-labelledby={titleId}
+      aria-describedby={bodyId}
+      aria-busy={busy || undefined}
       style={{
         position: 'fixed',
         inset: 0,
@@ -216,8 +247,8 @@ export function ConfirmByName({
       }}
     >
       <Card style={{ maxWidth: 480, width: '100%', padding: 26 }}>
-        <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 900 }}>{title}</h3>
-        <p style={{ margin: '0 0 14px', fontSize: 13.5, lineHeight: 1.55, color: '#8a7a7e', fontWeight: 600 }}>
+        <h3 id={titleId} style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 900, overflowWrap: 'anywhere' }}>{title}</h3>
+        <p id={bodyId} style={{ margin: '0 0 14px', fontSize: 13.5, lineHeight: 1.55, color: '#8a7a7e', fontWeight: 600 }}>
           {body}
         </p>
 
@@ -326,9 +357,12 @@ export function ConfirmByName({
               cursor: canConfirm ? 'pointer' : 'default',
             }}
           >
-            {busy ? 'A processar…' : confirmLabel}
+            {busy ? busyLabel : confirmLabel}
           </button>
         </div>
+        <p role="status" aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', margin: 0 }}>
+          {busy ? busyLabel : ''}
+        </p>
       </Card>
     </div>
   );

@@ -69,6 +69,8 @@ export function describe(ev: ActivityEvent): string {
       return 'renomeou o workspace';
     case 'workspace.archived':
       return 'arquivou o workspace';
+    case 'workspace.deletion_requested':
+      return 'eliminou o workspace';
     case 'workspace.deleted':
       return 'eliminou o workspace';
     case 'project.created':
@@ -77,6 +79,7 @@ export function describe(ev: ActivityEvent): string {
       return who ? `renomeou o projeto ${who}` : 'renomeou um projeto';
     case 'project.archived':
       return who ? `arquivou o projeto ${who}` : 'arquivou um projeto';
+    case 'project.deletion_requested':
     case 'project.deleted':
       return who ? `eliminou o projeto ${who}` : 'eliminou um projeto';
     case 'apikey.created':

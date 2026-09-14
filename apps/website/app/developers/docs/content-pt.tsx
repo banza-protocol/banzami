@@ -2305,6 +2305,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 Em <strong>Dados de teste → Repor a Sandbox</strong> (Owner ou Admin, escrevendo <Code>RESET</Code>): os pagadores de teste do projeto são retirados e, no negócio de teste do próprio projeto, as sessões e links em aberto são cancelados, o saldo fictício é retirado e as contas extra são encerradas.
                 Nada é apagado: pagamentos, reembolsos, comprovativos, eventos, registos e o ledger ficam. Chaves, webhooks e a configuração financeira mantêm-se. Um projeto ligado ao negócio de outro repõe só os seus pagadores. Até 5 vezes por dia.
               </P>
+              <P>Repor não é necessário para eliminar: para remover o projeto e tudo o que é dele, <a href="/docs/console#eliminar" style={a}>elimine-o</a>.</P>
 
               <NextStepCards lang="pt" items={[
                 { href: '/docs/going-live', title: 'Preparar para Live', desc: 'A lista de verificação da sua integração.' },
