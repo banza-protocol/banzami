@@ -1282,6 +1282,8 @@ func (c *CoreApiClient) SetSandboxExternalRail(ctx context.Context, merchantID, 
 	if err != nil {
 		return nil, fmt.Errorf("core-api request: %w", err)
 	}
+	// Core's JSON extractor answers 415 to a body without a content type.
+	req.Header.Set("Content-Type", "application/json")
 	var out SandboxExternalRail
 	if err := c.do(req, &out); err != nil {
 		return nil, err

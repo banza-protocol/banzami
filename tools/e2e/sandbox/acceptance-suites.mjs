@@ -133,6 +133,12 @@ export const PREDICATES = {
   DELAYED_COMPLETION: (e) => e.accepted === 202 && e.pendingStatus === 'PENDING' && e.simulated === true && e.statusRightAfter === 'ACTIVE'
     && e.streamSaw === 'snapshot:ACTIVE,status:PAID' && e.finalStatus === 'PAID' && e.repeat === 200 && e.webhook === true,
   PROVIDER_UNAVAILABLE: (e) => e.pay === 503 && e.code === 'PROVIDER_UNAVAILABLE' && Number(e.retryAfter) > 0 && e.simulated === true && e.status === 'ACTIVE',
+  // ADR-061: value inside the network moves with the external rail down …
+  EXTERNAL_RAIL_DOWN_WALLET_PAYMENT: (e) => e.railSet === 200 && e.railState === 'UNAVAILABLE' && e.pay === 200 && e.rail === 'WALLET'
+    && e.status === 'PAID' && e.payerDebited === e.amount,
+  // … and what crosses the rail fails closed, with nothing moved, until the rail is back.
+  EXTERNAL_RAIL_DOWN_FAILS_CLOSED: (e) => e.pay === 503 && e.code === 'PROVIDER_UNAVAILABLE' && e.rail === 'EXTERNAL_SIMULATED'
+    && e.hosted === 503 && e.hostedCode === 'PROVIDER_UNAVAILABLE' && e.status === 'ACTIVE' && e.payerDebited === 0 && e.restored === 'AVAILABLE',
   INVALID_PARAMETER: (e) => e.status === 400 && Boolean(e.code) && Boolean(e.requestId),
   INVALID_CURSOR: (e) => e.cursor === 400 && e.cursorCode === 'INVALID_PARAM' && e.limit === 400,
   INVALID_KEY: (e) => e.before === 200 && e.after === 401,
@@ -162,7 +168,8 @@ export const PREDICATES = {
 export const COUNTERS = {
   TEST_SCENARIO_PAYMENT_SUCCESS: ['PAYMENT_SUCCESS'], TEST_SCENARIO_DECLINED: ['PAYMENT_DECLINED'],
   TEST_SCENARIO_INSUFFICIENT_FUNDS: ['INSUFFICIENT_FUNDS'], TEST_SCENARIO_TIMEOUT: ['AMBIGUOUS_TIMEOUT'],
-  TEST_SCENARIO_PROVIDER_UNAVAILABLE: ['PROVIDER_UNAVAILABLE'], TEST_SCENARIO_DELAYED_COMPLETION: ['DELAYED_COMPLETION'], TEST_SCENARIO_INVALID_PARAM: ['INVALID_PARAMETER'],
+  TEST_SCENARIO_PROVIDER_UNAVAILABLE: ['PROVIDER_UNAVAILABLE'],
+  INTERNAL_TRANSFER_EXTERNAL_RAIL_DOWN: ['EXTERNAL_RAIL_DOWN_WALLET_PAYMENT'], EXTERNAL_RAIL_FAILURE_FAILS_CLOSED: ['EXTERNAL_RAIL_DOWN_FAILS_CLOSED'], TEST_SCENARIO_DELAYED_COMPLETION: ['DELAYED_COMPLETION'], TEST_SCENARIO_INVALID_PARAM: ['INVALID_PARAMETER'],
   TEST_SCENARIO_INVALID_CURSOR: ['INVALID_CURSOR'], TEST_SCENARIO_INVALID_KEY: ['INVALID_KEY'],
   TEST_SCENARIO_MISSING_SCOPE: ['MISSING_SCOPE'], TEST_SCENARIO_IDEMPOTENT_REPLAY: ['IDEMPOTENT_REPLAY'],
   TEST_SCENARIO_IDEMPOTENCY_CONFLICT: ['IDEMPOTENCY_PAYLOAD_CONFLICT'], TEST_SCENARIO_CONCURRENT_DUPLICATE: ['CONCURRENT_DUPLICATE'],
@@ -235,6 +242,33 @@ async function scenarios(sdk) {
     const to1 = await pay(A.api, T, { payment_session_id: s3.body?.session_id, simulate: 'TIMEOUT' }, `acc_${s}_to`);
     const to2 = await pay(A.api, T, { payment_session_id: s3.body?.session_id }, `acc_${s}_to`);
     record('AMBIGUOUS_TIMEOUT', { first: to1.status, firstCode: to1.body?.code, retry: to2.status, status: (await A.api(`/v1/payment-sessions/${s3.body?.session_id}`)).body?.status });
+
+    // ADR-061 — the Business's simulated external rail goes down.
+    const balanceOf = async (id) => (await A.api(`/v1/sandbox/test-payers/${id}`)).body?.balance_minor ?? null;
+    const railDown = await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'UNAVAILABLE' }, { 'Idempotency-Key': `acc_${s}_raildown` });
+    const sRail = await session(A.api, `${s}_rail`, 21000);
+    const beforeWallet = await balanceOf(T);
+    const wp = await pay(A.api, T, { payment_session_id: sRail.body?.session_id }, `acc_${s}_railpay`);
+    record('EXTERNAL_RAIL_DOWN_WALLET_PAYMENT', {
+      railSet: railDown.status, railState: railDown.body?.state, pay: wp.status, rail: wp.body?.rail,
+      status: (await A.api(`/v1/payment-sessions/${sRail.body?.session_id}`)).body?.status,
+      amount: 21000, payerDebited: beforeWallet !== null ? beforeWallet - ((await balanceOf(T)) ?? beforeWallet) : null,
+    });
+    const sClosed = await session(A.api, `${s}_railclosed`, 22000);
+    const beforeClosed = await balanceOf(T);
+    const fc = await pay(A.api, T, { payment_session_id: sClosed.body?.session_id, simulate: 'DECLINED' });
+    const linkUrl = (sClosed.body?.interfaces ?? []).find((i) => i.type === 'PAYMENT_LINK')?.value ?? '';
+    const slug = linkUrl.split('/').pop();
+    const hostedRes = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(slug)}/pay`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    const hostedBody = await hostedRes.json().catch(() => ({}));
+    const railBack = await A.api('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `acc_${s}_railback` });
+    record('EXTERNAL_RAIL_DOWN_FAILS_CLOSED', {
+      pay: fc.status, code: fc.body?.code, rail: fc.body?.rail,
+      hosted: hostedRes.status, hostedCode: hostedBody?.error?.code ?? hostedBody?.code,
+      status: (await A.api(`/v1/payment-sessions/${sClosed.body?.session_id}`)).body?.status,
+      payerDebited: beforeClosed !== null ? beforeClosed - ((await balanceOf(T)) ?? beforeClosed) : null,
+      restored: railBack.body?.state,
+    });
 
     // Completes later, on its own: 202 PENDING, the stream turns PAID ~10 s later, the event arrives.
     const sDelayed = await session(A.api, `${s}_delayed`, 33000);
@@ -534,6 +568,8 @@ function selftest() {
     ['LIVE_FAIL_CLOSED', { status: 401, liveHost: 503 }, { liveHost: 200 }],
     ['DELAYED_COMPLETION', { accepted: 202, pendingStatus: 'PENDING', simulated: true, statusRightAfter: 'ACTIVE', streamSaw: 'snapshot:ACTIVE,status:PAID', finalStatus: 'PAID', repeat: 200, webhook: true }, { statusRightAfter: 'PAID' }],
     ['RATE_LIMIT', { limited: 3, code: 'RATE_LIMITED', retryAfter: '30' }, { retryAfter: undefined }],
+    ['EXTERNAL_RAIL_DOWN_WALLET_PAYMENT', { railSet: 200, railState: 'UNAVAILABLE', pay: 200, rail: 'WALLET', status: 'PAID', amount: 21000, payerDebited: 21000 }, { pay: 503 }],
+    ['EXTERNAL_RAIL_DOWN_FAILS_CLOSED', { pay: 503, code: 'PROVIDER_UNAVAILABLE', rail: 'EXTERNAL_SIMULATED', hosted: 503, hostedCode: 'PROVIDER_UNAVAILABLE', status: 'ACTIVE', payerDebited: 0, restored: 'AVAILABLE' }, { hosted: 201 }],
   ];
   let bad = 0;
   for (const [id, good, mutation] of cases) {
