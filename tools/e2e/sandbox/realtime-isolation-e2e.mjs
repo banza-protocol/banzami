@@ -50,7 +50,7 @@ export const ISOLATION = [
   'The second developer cannot open A or its logs', 'The second developer cannot use Explorer on A',
   'The second developer cannot reset A or issue its share code', 'Keys minted in the Sandbox are Sandbox keys only',
   'A Sandbox key is refused by the Live host', 'Test value stays among test payers and test Businesses',
-  'Cleanup leaves no residue',
+  'Test deliveries to one endpoint are bounded, through the API and the Console', 'Cleanup leaves no residue',
 ];
 export const EXPIRY = ['A token is minted and works', 'After 30 minutes the same token is refused as expired'];
 
@@ -461,10 +461,20 @@ async function isolation() {
     mark(14, !('pin' in (insider.body ?? {})) && out.status === 422 && out.body?.code === 'SANDBOX_VALUE_PERIMETER' && inn.status === 201,
       `pin_returned=${'pin' in (insider.body ?? {})} retired_beneficiary=${out.status} ${out.body?.code ?? ''} own_payer=${inn.status} ${inn.body?.code ?? ''}`);
 
+    // A's endpoint already had one test delivery (step 7).
+    const burst = [];
+    for (let i = 0; i < 10; i += 1) burst.push((await A.api(`/v1/webhooks/endpoints/${EA}/test`, 'POST')).status);
+    const limited = burst.filter((x) => x === 429).length;
+    const over = await A.api(`/v1/webhooks/endpoints/${EA}/test`, 'POST');
+    const consoleReplay = await dev.call(`/projects/${A.id}/webhooks/deliveries/${deliveryA}/replay`, 'POST');
+    mark(15, burst.slice(0, 9).every((x) => x === 202) && limited === 1 && over.status === 429 && over.body?.code === 'WEBHOOK_TEST_RATE_LIMITED'
+      && over.headers.get('retry-after') === '60' && consoleReplay.status === 429,
+      `sent=${burst.join(',')} api_over=${over.status} ${over.body?.code ?? ''} console_replay=${consoleReplay.status}`);
+
     const cleanedOther = await cleanup(other.call, [], other.workspace);
     const cleaned = await cleanup(dev.call, dev.projects.map((x) => x.id), dev.workspace);
     const residue = measureResidue(like);
-    mark(15, residue === 0, `cleanup=${[...cleaned, ...cleanedOther].join(',')} residue=${residue}`);
+    mark(16, residue === 0, `cleanup=${[...cleaned, ...cleanedOther].join(',')} residue=${residue}`);
     dev = null; other = null;
   } catch (e) {
     console.error(`  ! aborted: ${String(e.stack ?? e).split('\n')[0]}`);
