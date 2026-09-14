@@ -3,6 +3,7 @@ package developer
 import (
 	"context"
 	"errors"
+	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 	"testing"
 
 	"github.com/banzami/banzami/services/developer-api/internal/gatewayclient"
@@ -47,23 +48,100 @@ func onboardingSvc(t *testing.T) (*Service, *fakeProvisioner, *fakeOnboarding, s
 	return s, prov, o, pid
 }
 
-func TestOneClickSetup_IsRetiredAndCreatesNothing(t *testing.T) {
-	s, prov, _, pid := onboardingSvc(t)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); !errors.Is(err, ErrOneClickSetupRetired) {
-		t.Fatalf("one-click setup: %v", err)
+type fakeSandboxBusinesses struct {
+	calls   int
+	useCase string
+	changed string
+	err     error
+}
+
+func (f *fakeSandboxBusinesses) ProvisionSandboxBusiness(_ context.Context, projectID, _ string, useCase string) (*coreclient.SandboxBusiness, error) {
+	f.calls++
+	f.useCase = useCase
+	if f.err != nil {
+		return nil, f.err
 	}
-	if prov.callCount() != 0 || prov.readinessCount() != 0 {
-		t.Fatal("a synthetic Business was provisioned (or its KYB approved) by the retired path")
+	typ, profile := "MERCHANT", "sandbox-default"
+	if useCase == UseCaseApplication {
+		typ, profile = "APPLICATION", "sandbox-reference"
 	}
-	if b, _ := s.store.ActiveBindingForProject(bg, pid); b != nil {
-		t.Fatal("the retired path bound the Project")
+	return &coreclient.SandboxBusiness{
+		MerchantID: "m_" + projectID, WalletID: "w_" + projectID, WalletAccountID: "wa_" + projectID,
+		Handle: "psandbox", UseCase: useCase, BusinessAccountType: typ, PricingProfile: profile, KybStatus: "SANDBOX_SYNTHETIC",
+	}, nil
+}
+
+func (f *fakeSandboxBusinesses) ChangeSandboxUseCase(_ context.Context, projectID, useCase string) (*coreclient.SandboxBusiness, error) {
+	f.changed = useCase
+	return &coreclient.SandboxBusiness{MerchantID: "m_" + projectID, UseCase: useCase}, nil
+}
+
+// ADR-060: in the Sandbox, a Project gets its Business from a use case, with no
+// application and no operator.
+func TestSandboxSetup_ProvisionsByUseCaseWithNoReview(t *testing.T) {
+	s, _, o, pid := onboardingSvc(t)
+	f := &fakeSandboxBusinesses{}
+	s.SetSandboxBusinessProvisioner(f)
+
+	st, err := s.ProjectFinancialSetup(bg, "u_owner", pid)
+	if err != nil || !st.SelfService || !st.CanConfigure || st.State != FinancialUnconfigured {
+		t.Fatalf("a fresh Sandbox Project must offer self-service setup: %v %+v", err, st)
 	}
-	// A Project that already receives keeps answering with its state.
-	if _, err := configureForTest(s, "u_owner", pid); err != nil {
+	st, err = s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseApplication, "", "")
+	if err != nil || st.State != FinancialReady {
+		t.Fatalf("configure: %v %s", err, st.State)
+	}
+	if f.calls != 1 || f.useCase != UseCaseApplication {
+		t.Fatalf("Core was asked %d time(s) for %q", f.calls, f.useCase)
+	}
+	if len(o.submitted) != 0 {
+		t.Fatal("self-service setup submitted a Business application")
+	}
+	if st.SandboxUseCase == nil || *st.SandboxUseCase != UseCaseApplication {
+		t.Fatalf("use case not reported: %v", st.SandboxUseCase)
+	}
+	// Idempotent: a second press answers with the state and provisions nothing.
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", ""); err != nil || f.calls != 1 {
+		t.Fatalf("second configure: %v, calls %d", err, f.calls)
+	}
+}
+
+func TestSandboxSetup_RefusesWhatItMust(t *testing.T) {
+	s, _, _, pid := onboardingSvc(t)
+	f := &fakeSandboxBusinesses{}
+	s.SetSandboxBusinessProvisioner(f)
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "PLATFORM", "", ""); !errors.Is(err, ErrInvalidUseCase) {
+		t.Fatalf("an unknown use case: %v", err)
+	}
+	for _, who := range []string{"u_dev", "u_fin", "u_view"} {
+		if _, err := s.ConfigureProjectFinancialSandbox(bg, who, pid, UseCaseStandard, "", ""); !errors.Is(err, ErrForbidden) {
+			t.Fatalf("%s configured a Project: %v", who, err)
+		}
+	}
+	s.SetSandboxEnvironment(false)
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", ""); !errors.Is(err, ErrWrongEnvironment) {
+		t.Fatalf("outside the Sandbox: %v", err)
+	}
+	if f.calls != 0 {
+		t.Fatal("Core was asked for a Business on a refused request")
+	}
+}
+
+func TestSandboxSetup_UseCaseIsLockedOnceSealed(t *testing.T) {
+	s, _, _, pid := onboardingSvc(t)
+	f := &fakeSandboxBusinesses{}
+	s.SetSandboxBusinessProvisioner(f)
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if st, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil || st.State != FinancialReady {
-		t.Fatalf("a bound Project: %v %s", err, st.State)
+	if _, err := s.ChangeProjectSandboxUseCase(bg, "u_owner", pid, UseCaseApplication, "", ""); err != nil || f.changed != UseCaseApplication {
+		t.Fatalf("change before any payment: %v %q", err, f.changed)
+	}
+	b, _ := s.store.ActiveBindingForProject(bg, pid)
+	_ = s.store.MarkBindingArtifactCreated(bg, b.ID)
+	f.changed = ""
+	if _, err := s.ChangeProjectSandboxUseCase(bg, "u_owner", pid, UseCaseStandard, "", ""); !errors.Is(err, ErrUseCaseSealed) || f.changed != "" {
+		t.Fatalf("a sealed Project changed use case: %v", err)
 	}
 }
 

@@ -768,6 +768,24 @@ func (s *pgStore) ProjectsBoundToMerchant(ctx context.Context, merchantID string
 	return out, rows.Err()
 }
 
+func (s *pgStore) SetBindingUseCase(ctx context.Context, projectID, useCase string) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE developer.dev_project_sandbox_binding SET sandbox_use_case = $2
+		  WHERE project_id = $1 AND state = 'ACTIVE'`, projectID, useCase)
+	return err
+}
+
+func (s *pgStore) BindingUseCase(ctx context.Context, projectID string) (string, error) {
+	var uc *string
+	err := s.pool.QueryRow(ctx,
+		`SELECT sandbox_use_case FROM developer.dev_project_sandbox_binding
+		  WHERE project_id = $1 AND state = 'ACTIVE' LIMIT 1`, projectID).Scan(&uc)
+	if errors.Is(err, pgx.ErrNoRows) || uc == nil {
+		return "", nil
+	}
+	return *uc, err
+}
+
 func (s *pgStore) ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error) {
 	b, err := scanBinding(s.pool.QueryRow(ctx,
 		`SELECT `+bindingCols+` FROM developer.dev_project_sandbox_binding

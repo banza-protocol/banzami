@@ -3,7 +3,10 @@ package developer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+
+	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 )
 
 // Sandbox financial setup — making a project able to take a test payment.
@@ -71,6 +74,12 @@ type FinancialSetup struct {
 	// Onboarding is how this Project gets (or got) a Business to receive into:
 	// its application, the Business it is connected to, and what blocks it.
 	Onboarding *FinancialOnboarding `json:"onboarding"`
+	// SandboxUseCase is the use case this Project's Sandbox Business follows
+	// (STANDARD or APPLICATION), or nil when unbound or not self-service.
+	SandboxUseCase *string `json:"sandbox_use_case"`
+	// SelfService is true where Financial Setup provisions a synthetic Sandbox
+	// Business on request (ADR-060) — the Sandbox. No review is involved.
+	SelfService bool `json:"self_service"`
 }
 
 // ReadinessReader asks core whether a financial owner can settle. Core evaluates
@@ -193,8 +202,9 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 	out := FinancialSetup{
 		Environment:  s.environmentName(),
 		Role:         role,
-		CanConfigure: canConfigureFinancialSandbox(role) && s.onboarding != nil,
+		CanConfigure: canConfigureFinancialSandbox(role) && (s.onboarding != nil || (s.sandboxEnv && s.sandboxBusinesses != nil)),
 		State:        FinancialUnconfigured,
+		SelfService:  s.sandboxEnv && s.sandboxBusinesses != nil,
 	}
 	b, err := s.store.ActiveBindingForProject(ctx, p.ID)
 	if err != nil {
@@ -203,6 +213,9 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 	if b != nil && b.MerchantID != "" {
 		out.CanConfigure = false
 		out.Sealed = b.ArtifactCreated
+		if uc, uerr := s.store.BindingUseCase(ctx, p.ID); uerr == nil && uc != "" {
+			out.SandboxUseCase = &uc
+		}
 		out.State = FinancialReady
 		if b.ArtifactCreated {
 			out.State = FinancialSealed
@@ -219,7 +232,7 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 				out.Readiness = r
 			}
 		}
-	} else if s.onboarding == nil {
+	} else if s.onboarding == nil && !out.SelfService {
 		out.State = FinancialUnavailable
 	}
 	out.Onboarding = s.onboardingView(ctx, p.ID, role, b, out.Readiness, out.ReadinessUnavailable)
@@ -230,17 +243,43 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 	return out, nil
 }
 
-// ConfigureProjectFinancialSandbox gives the project a Sandbox financial owner.
+// Sandbox use cases a developer chooses from (ADR-060). The developer chooses a
+// use case; Core's Sandbox policy decides the classification and the pricing
+// profile. There is no request field for either.
+const (
+	UseCaseStandard    = "STANDARD"
+	UseCaseApplication = "APPLICATION"
+)
+
+func validUseCase(u string) bool { return u == UseCaseStandard || u == UseCaseApplication }
+
+// SandboxBusinessProvisioner is Core's synthetic Sandbox Business (ADR-060).
+type SandboxBusinessProvisioner interface {
+	ProvisionSandboxBusiness(ctx context.Context, projectID, projectName, useCase string) (*coreclient.SandboxBusiness, error)
+	ChangeSandboxUseCase(ctx context.Context, projectID, useCase string) (*coreclient.SandboxBusiness, error)
+}
+
+// SetSandboxBusinessProvisioner wires Core's synthetic Sandbox Business.
+func (s *Service) SetSandboxBusinessProvisioner(p SandboxBusinessProvisioner) {
+	s.sandboxBusinesses = p
+}
+
+// ErrInvalidUseCase: the request named a use case that does not exist.
+var ErrInvalidUseCase = errors.New("use_case must be STANDARD or APPLICATION")
+
+// ErrUseCaseSealed: the Project's Business already has payment artifacts; its
+// pricing and classification are not re-decided by its developer (ADR-055).
+var ErrUseCaseSealed = errors.New("this Project has issued payments; its use case can no longer change")
+
+// ConfigureProjectFinancialSandbox gives the Project a synthetic Sandbox
+// Business for the chosen use case and binds it (ADR-060). No application, no
+// review, no operator: the Business is a test entity, and Core records it as
+// SANDBOX_SYNTHETIC — never as a reviewed Business.
 //
-// Idempotent by the only measure that matters: a project that already has an
-// ACTIVE binding gets that binding back, not a second owner. Two callers racing
-// converge on one, because the binding insert is the single point where "there
-// is already one" is decided — and it decides it in the database, not here.
-//
-// The caller supplies a project id and nothing else. There is no field for a
-// merchant, a wallet or an owner, so there is none to aim: the owner is created
-// by this operation and named after the project it belongs to.
-func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, projectID, ip, reqID string) (FinancialSetup, error) {
+// Idempotent: a Project that already receives answers with its state; a retry
+// after a partial failure finds the same Business in Core (one per Project) and
+// completes the binding.
+func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, projectID, useCase, ip, reqID string) (FinancialSetup, error) {
 	p, role, err := s.projectAuthz(ctx, actor, projectID)
 	if err != nil {
 		return FinancialSetup{}, err
@@ -248,19 +287,104 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 	if !canConfigureFinancialSandbox(role) {
 		return FinancialSetup{}, ErrForbidden
 	}
-	// A Project that already receives keeps receiving: this answers with its
-	// state, as it always did for a double click.
 	if b, err := s.store.ActiveBindingForProject(ctx, p.ID); err == nil && b != nil && b.MerchantID != "" {
 		return s.ProjectFinancialSetup(ctx, actor, projectID)
 	}
-	// Anything else is retired. The one-click setup created a synthetic
-	// Business and wrote its KYB as approved with nobody reviewing anything —
-	// a second KYB authority, reachable by any Project owner. A Project now
-	// applies through the Business review, or connects an existing Business
-	// with its consent (financial_onboarding.go).
-	s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.one_click_setup_refused",
-		"PROJECT:"+projectID, ip, reqID, map[string]any{"reason": "retired"})
-	return FinancialSetup{}, ErrOneClickSetupRetired
+	// Read from the deployment, never from the request: a self-service path into
+	// a real-money Business must not exist, and nothing here can relax that.
+	if !s.sandboxEnv {
+		return FinancialSetup{}, ErrWrongEnvironment
+	}
+	if s.sandboxBusinesses == nil {
+		return FinancialSetup{}, ErrSetupUnavailable
+	}
+	if useCase == "" {
+		useCase = UseCaseStandard
+	}
+	if !validUseCase(useCase) {
+		return FinancialSetup{}, ErrInvalidUseCase
+	}
+	// A Project with an application still in review finishes that path first:
+	// two Businesses for one Project is not a state to create.
+	if s.onboarding != nil {
+		if app, aerr := s.onboarding.LatestForProject(ctx, p.ID); aerr == nil && app != nil {
+			switch app.Status {
+			case "SUBMITTED", "UNDER_REVIEW", "INFORMATION_REQUIRED", "APPROVED", "PROVISIONING_FAILED":
+				return FinancialSetup{}, ErrApplicationInProgress
+			}
+		}
+	}
+
+	biz, perr := s.sandboxBusinesses.ProvisionSandboxBusiness(ctx, p.ID, p.Name, useCase)
+	if perr != nil || biz == nil || biz.WalletAccountID == "" {
+		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
+			"PROJECT:"+projectID, ip, reqID, map[string]any{"stage": "sandbox_business", "use_case": useCase})
+		slog.ErrorContext(ctx, "developer.financial_setup.sandbox_business_failed", "project", projectID, "err", fmt.Sprint(perr))
+		if errors.Is(perr, coreclient.ErrSandboxBusinessRefused) {
+			return FinancialSetup{}, ErrConflict
+		}
+		return FinancialSetup{}, ErrUnavailable
+	}
+	// The Business Core found or made is this Project's by construction (its
+	// derived address and the one-per-Project row). Nobody else may hold it.
+	if err := s.assertOwnerUnclaimed(ctx, biz.MerchantID, projectID); err != nil {
+		slog.ErrorContext(ctx, "developer.financial_setup.owner_claimed", "project", projectID, "merchant", biz.MerchantID)
+		return FinancialSetup{}, ErrUnavailable
+	}
+	if _, berr := s.BindProjectSandbox(ctx, projectID, biz.MerchantID, biz.WalletID, biz.WalletAccountID, actor, ip, reqID); berr != nil {
+		return FinancialSetup{}, berr
+	}
+	if err := s.store.SetBindingUseCase(ctx, projectID, biz.UseCase); err != nil {
+		slog.WarnContext(ctx, "developer.financial_setup.use_case_not_recorded", "project", projectID, "err", err.Error())
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_configured",
+		"PROJECT:"+projectID, ip, reqID, map[string]any{
+			"use_case": biz.UseCase, "business_account_type": biz.BusinessAccountType,
+			"pricing_profile": biz.PricingProfile, "kyb_status": biz.KybStatus,
+		})
+	return s.ProjectFinancialSetup(ctx, actor, projectID)
+}
+
+// ChangeProjectSandboxUseCase re-applies Core's Sandbox policy for another use
+// case. Refused once the binding is sealed: a Business that has issued payment
+// artifacts keeps the pricing those payments were made under.
+func (s *Service) ChangeProjectSandboxUseCase(ctx context.Context, actor, projectID, useCase, ip, reqID string) (FinancialSetup, error) {
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return FinancialSetup{}, err
+	}
+	if !canConfigureFinancialSandbox(role) {
+		return FinancialSetup{}, ErrForbidden
+	}
+	if !s.sandboxEnv {
+		return FinancialSetup{}, ErrWrongEnvironment
+	}
+	if s.sandboxBusinesses == nil {
+		return FinancialSetup{}, ErrSetupUnavailable
+	}
+	if !validUseCase(useCase) {
+		return FinancialSetup{}, ErrInvalidUseCase
+	}
+	b, err := s.store.ActiveBindingForProject(ctx, p.ID)
+	if err != nil || b == nil {
+		return FinancialSetup{}, ErrNotFound
+	}
+	if b.ArtifactCreated {
+		return FinancialSetup{}, ErrUseCaseSealed
+	}
+	biz, cerr := s.sandboxBusinesses.ChangeSandboxUseCase(ctx, p.ID, useCase)
+	if cerr != nil {
+		if errors.Is(cerr, coreclient.ErrSandboxBusinessRefused) {
+			return FinancialSetup{}, ErrConflict
+		}
+		return FinancialSetup{}, ErrUnavailable
+	}
+	_ = s.store.SetBindingUseCase(ctx, projectID, biz.UseCase)
+	s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.sandbox_use_case_changed",
+		"PROJECT:"+projectID, ip, reqID, map[string]any{
+			"use_case": biz.UseCase, "business_account_type": biz.BusinessAccountType, "pricing_profile": biz.PricingProfile,
+		})
+	return s.ProjectFinancialSetup(ctx, actor, projectID)
 }
 
 // assertOwnerUnclaimed refuses an owner that another project already holds.

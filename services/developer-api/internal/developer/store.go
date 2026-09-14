@@ -388,6 +388,10 @@ type Store interface {
 	CreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, error)
 	// ActiveBindingForProject returns the project's ACTIVE binding, or nil.
 	ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error)
+	// SetBindingUseCase records the Sandbox use case on the Project's ACTIVE
+	// binding (ADR-060); BindingUseCase reads it ("" when none).
+	SetBindingUseCase(ctx context.Context, projectID, useCase string) error
+	BindingUseCase(ctx context.Context, projectID string) (string, error)
 	// ProjectsBoundToMerchant lists the projects holding an ACTIVE binding to a
 	// merchant. Used before adopting an owner recovered from a partial
 	// provisioning run: a merchant somebody else already holds is not a leftover.

@@ -14,18 +14,19 @@ import (
 // call takes the authenticated actor's user id (from Account Identity); no
 // client-supplied workspace/user id is trusted without a membership check.
 type Service struct {
-	store           Store
-	inviteSecret    string
-	apiKeyPepper    string
-	inviteTTL       time.Duration
-	payee           PayeeValidator
-	refunder        Refunder                 // Core refund boundary; nil until wired (see refunds.go)
-	provisioner     SandboxProvisioner       // Sandbox financial owner provisioning; nil until wired
-	readiness       ReadinessReader          // core settlement readiness; nil until wired
-	sandboxEnv      bool                     // self-service financial setup is sandbox-only
-	walletProv      WalletAccountProvisioner // segregated destination creation; nil until wired
-	paymentReleased bool                     // deploy-vs-release control (RT04C §1)
-	fixturesEnabled bool                     // operator E2E fixture-key path, sandbox-only (RT04D §2)
+	store             Store
+	inviteSecret      string
+	apiKeyPepper      string
+	inviteTTL         time.Duration
+	payee             PayeeValidator
+	refunder          Refunder                   // Core refund boundary; nil until wired (see refunds.go)
+	provisioner       SandboxProvisioner         // Sandbox financial owner provisioning; nil until wired
+	readiness         ReadinessReader            // core settlement readiness; nil until wired
+	sandboxEnv        bool                       // self-service financial setup is sandbox-only
+	sandboxBusinesses SandboxBusinessProvisioner // Core's synthetic Sandbox Business (ADR-060); nil until wired
+	walletProv        WalletAccountProvisioner   // segregated destination creation; nil until wired
+	paymentReleased   bool                       // deploy-vs-release control (RT04C §1)
+	fixturesEnabled   bool                       // operator E2E fixture-key path, sandbox-only (RT04D §2)
 	// webhookCipher encrypts webhook signing secrets at rest. Nil stores them in
 	// the clear, which only sandbox permits.
 	webhookCipher *webhookprov.SecretCipher

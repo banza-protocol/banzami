@@ -715,3 +715,72 @@ func (c *ProvisionClient) MerchantName(ctx context.Context, merchantID string) (
 	}
 	return m.Name, nil
 }
+
+// SandboxBusiness is a Project's synthetic Sandbox Business as Core provisioned
+// it (ADR-060). Classification and pricing are Core's policy for the use case;
+// nothing here was chosen by the caller except the use case.
+type SandboxBusiness struct {
+	MerchantID          string `json:"merchant_id"`
+	WalletID            string `json:"wallet_id"`
+	WalletAccountID     string `json:"wallet_account_id"`
+	Handle              string `json:"handle"`
+	UseCase             string `json:"use_case"`
+	BusinessAccountType string `json:"business_account_type"`
+	PricingProfile      string `json:"pricing_profile"`
+	KybStatus           string `json:"kyb_status"`
+	Provisioned         bool   `json:"provisioned"`
+}
+
+// ErrSandboxBusinessRefused is a reasoned refusal from Core (a handle already
+// taken, a Business that is no longer synthetic). Not an outage.
+var ErrSandboxBusinessRefused = errors.New("core refused the Sandbox Business operation")
+
+// ProvisionSandboxBusiness asks Core for this Project's synthetic Sandbox
+// Business. Idempotent in Core on the project id.
+func (c *ProvisionClient) ProvisionSandboxBusiness(ctx context.Context, projectID, projectName, useCase string) (*SandboxBusiness, error) {
+	var out SandboxBusiness
+	if err := c.sendJSON(ctx, http.MethodPost, "/internal/v1/sandbox/businesses", map[string]any{
+		"project_id": projectID, "project_name": projectName, "use_case": useCase,
+	}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ChangeSandboxUseCase re-applies Core's Sandbox policy for a new use case.
+func (c *ProvisionClient) ChangeSandboxUseCase(ctx context.Context, projectID, useCase string) (*SandboxBusiness, error) {
+	var out SandboxBusiness
+	if err := c.sendJSON(ctx, http.MethodPut, "/internal/v1/sandbox/businesses/use-case", map[string]any{
+		"project_id": projectID, "use_case": useCase,
+	}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// sendJSON is the write half for routes that answer a reasoned 4xx: those map to
+// ErrSandboxBusinessRefused rather than to an outage.
+func (c *ProvisionClient) sendJSON(ctx context.Context, method, path string, body, out any) error {
+	b, _ := json.Marshal(body)
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bytes.NewReader(b))
+	if err != nil {
+		return ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return ErrUnavailable
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	switch {
+	case resp.StatusCode == http.StatusConflict || resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusNotFound:
+		return ErrSandboxBusinessRefused
+	case resp.StatusCode >= 400:
+		return ErrUnavailable
+	}
+	if out != nil && json.Unmarshal(raw, out) != nil {
+		return ErrUnavailable
+	}
+	return nil
+}

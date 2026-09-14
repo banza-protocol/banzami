@@ -281,6 +281,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Delete("/keys/{keyID}", h.revokeKey)
 		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
 		r.Post("/projects/{projID}/financial-setup", h.configureFinancialSetup)
+		r.Put("/projects/{projID}/financial-setup/use-case", h.changeSandboxUseCase)
 		r.Post("/projects/{projID}/financial-onboarding/applications", h.submitFinancialApplication)
 		r.Post("/projects/{projID}/financial-onboarding/link", h.linkExistingBusiness)
 		r.Post("/projects/{projID}/wallet-accounts", h.createWalletAccount)
@@ -440,38 +441,73 @@ func (h *Handlers) financialSetup(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, st)
 }
 
-// POST /projects/{projID}/financial-setup
+// POST /projects/{projID}/financial-setup   {"use_case": "STANDARD" | "APPLICATION"}
 //
-// Behind the CSRF guard with the other state-changing routes. It takes no body:
-// there is no merchant, wallet or owner to supply, because supplying one is
-// exactly what this exists to make unnecessary.
+// Behind the CSRF guard. The body names a use case and nothing else: no
+// merchant, wallet, classification, profile or rate. Core's Sandbox policy
+// decides those (ADR-060).
 func (h *Handlers) configureFinancialSetup(w http.ResponseWriter, r *http.Request) {
 	u, ok := actor(r)
 	if !ok {
 		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
 		return
 	}
-	ip, reqID := reqMeta(r)
-	st, err := h.svc.ConfigureProjectFinancialSandbox(r.Context(), u.ID,
-		chi.URLParam(r, "projID"), ip, reqID)
-	if err != nil {
-		switch {
-		case errors.Is(err, ErrWrongEnvironment):
-			httpx.Error(w, http.StatusForbidden, "SANDBOX_ONLY",
-				"financial setup is available in the Sandbox only")
-			return
-		case errors.Is(err, ErrSetupUnavailable):
-			httpx.Error(w, http.StatusServiceUnavailable, "SETUP_UNAVAILABLE",
-				"sandbox financial setup is not available on this deployment")
-			return
-		case errors.Is(err, ErrOneClickSetupRetired):
-			httpx.Error(w, http.StatusGone, "FINANCIAL_SETUP_BY_REVIEW", err.Error())
+	var in struct {
+		UseCase string `json:"use_case"`
+	}
+	if r.ContentLength != 0 {
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+			httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "body must be {\"use_case\": \"STANDARD\" | \"APPLICATION\"}")
 			return
 		}
-		mapErr(w, err)
+	}
+	ip, reqID := reqMeta(r)
+	st, err := h.svc.ConfigureProjectFinancialSandbox(r.Context(), u.ID, chi.URLParam(r, "projID"), in.UseCase, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
 		return
 	}
 	httpx.JSON(w, http.StatusOK, st)
+}
+
+// PUT /projects/{projID}/financial-setup/use-case   {"use_case": …}
+func (h *Handlers) changeSandboxUseCase(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		UseCase string `json:"use_case"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "body must be {\"use_case\": \"STANDARD\" | \"APPLICATION\"}")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	st, err := h.svc.ChangeProjectSandboxUseCase(r.Context(), u.ID, chi.URLParam(r, "projID"), in.UseCase, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, st)
+}
+
+func financialSetupErr(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, ErrWrongEnvironment):
+		httpx.Error(w, http.StatusForbidden, "SANDBOX_ONLY", "self-service financial setup is available in the Sandbox only")
+	case errors.Is(err, ErrSetupUnavailable):
+		httpx.Error(w, http.StatusServiceUnavailable, "SETUP_UNAVAILABLE", "sandbox financial setup is not available on this deployment")
+	case errors.Is(err, ErrInvalidUseCase):
+		httpx.Error(w, http.StatusBadRequest, "INVALID_USE_CASE", err.Error())
+	case errors.Is(err, ErrApplicationInProgress):
+		httpx.Error(w, http.StatusConflict, "APPLICATION_IN_PROGRESS", err.Error())
+	case errors.Is(err, ErrUseCaseSealed):
+		httpx.Error(w, http.StatusConflict, "USE_CASE_SEALED", err.Error())
+	default:
+		mapErr(w, err)
+	}
 }
 
 // onboardingErr answers a financial onboarding refusal. A reasoned refusal

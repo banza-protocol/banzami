@@ -21,6 +21,7 @@ type memStore struct {
 	projects         map[string]*Project
 	apiKeys          []*apiKeyRec
 	bindings         []*SandboxBinding
+	useCases         map[string]string
 	requestLogs      []memRequestLog
 	webhookEndpoints map[string]*memWebhookEndpoint
 
@@ -687,6 +688,22 @@ func (m *memStore) ProjectsBoundToMerchant(_ context.Context, merchantID string)
 		}
 	}
 	return out, nil
+}
+
+func (m *memStore) SetBindingUseCase(_ context.Context, projectID, useCase string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.useCases == nil {
+		m.useCases = map[string]string{}
+	}
+	m.useCases[projectID] = useCase
+	return nil
+}
+
+func (m *memStore) BindingUseCase(_ context.Context, projectID string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.useCases[projectID], nil
 }
 
 func (m *memStore) ActiveBindingForProject(_ context.Context, projectID string) (*SandboxBinding, error) {

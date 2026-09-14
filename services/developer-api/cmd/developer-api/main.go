@@ -155,6 +155,8 @@ func main() {
 	}
 	if pc := coreclient.NewProvision(cfg.CoreAPIURL).WithInternalKey(cfg.CoreInternalKey); pc != nil {
 		devSvc.SetSandboxProvisioner(developer.NewSandboxProvisioner(pc))
+		// A Project's synthetic Sandbox Business, by use case (ADR-060).
+		devSvc.SetSandboxBusinessProvisioner(pc)
 		// The Console reads the same readiness a Project key reads.
 		devSvc.SetReadinessReader(developer.NewReadinessReader(pc))
 		// The Business a bound Project receives into, by name.

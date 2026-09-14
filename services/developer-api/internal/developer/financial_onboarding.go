@@ -50,9 +50,9 @@ var (
 	// ErrProjectAlreadyReceiving: the Project already has a Business; a second
 	// one is a rebind, which is an operator decision (and refused once sealed).
 	ErrProjectAlreadyReceiving = errors.New("this Project already receives into a Business")
-	// ErrOneClickSetupRetired: the synthetic self-approved Sandbox Business is
-	// gone; a Project applies or connects a Business.
-	ErrOneClickSetupRetired = errors.New("a Project's Business is applied for and reviewed, or connected with the Business's consent")
+	// ErrApplicationInProgress: the Project has a Business application still in
+	// review; it finishes that path before a Sandbox Business is provisioned.
+	ErrApplicationInProgress = errors.New("this Project has a Business application in progress")
 )
 
 // BusinessOnboarding is the Gateway's Business application domain.
@@ -117,6 +117,9 @@ type OnboardingBusiness struct {
 	Handle    string `json:"handle"`
 	KybStatus string `json:"kyb_status"`
 	Verified  bool   `json:"verified"`
+	// Synthetic: a Sandbox test entity provisioned by Financial Setup (ADR-060),
+	// never a reviewed Business.
+	Synthetic bool `json:"synthetic"`
 }
 
 // FinancialOnboarding is the Project's onboarding, one level above the tables.
@@ -154,6 +157,8 @@ func (s *Service) onboardingView(ctx context.Context, projectID, role string, b 
 				bus.KybStatus = *r.Kyb.Status
 			}
 			bus.Verified = bus.KybStatus == "APPROVED"
+			// A synthetic Sandbox Business (ADR-060) is shown as what it is.
+			bus.Synthetic = bus.KybStatus == "SANDBOX_SYNTHETIC"
 			v.Blockers = append(v.Blockers, r.Settlement.Blockers...)
 		}
 		v.Business = bus
