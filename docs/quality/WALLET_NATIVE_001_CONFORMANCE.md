@@ -35,6 +35,9 @@ the dependency classification is
 | Payer page description "Envie dinheiro instantaneamente"; README "instant settlement", "integration in hours" (§68) | Measured wording; `PUBLIC_UNMEASURED_INSTANT_CLAIMS` in the architecture gate (mutation-proven) | deployed `pay.banzami.com/u/doa` description |
 | Public claims and the model's wording were unguarded | `tools/check-wallet-native-architecture.mjs` in CI: 9 counters, 14 mutations | selftest PASS |
 | CI red since the first wallet-native commit: `clippy::err_expect` under Rust 1.98 (local clippy was 1.90) | `expect_err` | CI and Economic gate green on `2b3f34f3` |
+| **Closure review:** "only Core writes financial state" rested on `application_name`, which a client chooses — a compromised service could name itself Core. All five services connected as one role, `bl_app_runtime`, and every migration re-granted it DML on every table | One PostgreSQL role per service, each with its own password and credential file; only `bl_core_runtime` is granted writes on financial tables; grants generated from a manifest and applied in one transaction after every migration; the 0144 guard kept as detection | [Database authority](#database-authority) |
+| **Closure review:** the simulated rail was per Business, and a Business can be shared across Workspaces by consent code — one developer's switch reached another's integration | Per-(Project, Business) rail (0145); Core records the creating Project of every link and session from the authenticated key; the Business-wide rail is operator-only | [Rail simulator isolation](#rail-simulator-isolation) |
+| Operator tools and harnesses read Core's database credential out of its container | `/root/.banzami/operator_db_url` (`bl_app_runtime`, no container, no financial write authority) | 58 files |
 
 ## Architecture
 
@@ -45,7 +48,75 @@ the dependency classification is
 | Rail-decoupled | Internal crates do not depend on `acquiring`, `routing`, `payouts`; internal routes never read the rail | gate `RAIL_DEPENDENCY_IN_INTERNAL_CRATES=0`, `RAIL_CHECK_IN_INTERNAL_ROUTES=0`; Core test with the rail table removed |
 | Provider boundary | Provider code only in `core/acquiring/src/providers/{emis,simulated}.rs` behind `AcquirerProvider`; native API and SDK types carry no provider identifier | `PUBLIC_NATIVE_API_PROVIDER_LEAKAGE=0`; `PROVIDER_SWITCH_REQUIRES_LEDGER_REDESIGN=0` |
 | Failure-domain separation | Core/DB down → every financial operation 503, nothing half-written; rail down → only rail-crossing operations `PROVIDER_UNAVAILABLE`; webhook receiver down → delivery retried from the outbox, movement committed; realtime unusable → movement committed, webhook and GET answer | failure matrix A–G on the deployed Sandbox |
-| Honest limit | The guard trusts `application_name`, which a client sets: it stops an accidental second writer, not a compromised service. Per-service database roles are recorded as future hardening | dependency audit §8 |
+| Core-only financial writing | **PostgreSQL privilege is the authority**: only `bl_core_runtime` holds INSERT/UPDATE/DELETE on the 25 financial tables; every other runtime role reads them. `application_name` (0144) is detection | [Database authority](#database-authority) |
+
+## Database authority
+
+**Inventory before the change (2026-09-14).** PostgreSQL clients on the Sandbox
+host: core-api, api-gateway (with webhook delivery, realtime and proof
+verification inside it), public-api, developer-api, admin-api — all as
+`bl_app_runtime`, with DML on every table in `public`, `developer` and
+`account_identity`. pay-frontend, admin-frontend, the website, the edge, the
+webhook sink and Redis hold no database credential; the legacy
+`banzami-postgres-1` is stopped. No SECURITY DEFINER function, no updatable view,
+no sequence; no non-Core row lock on a financial table.
+
+**After — read from PostgreSQL on the deployed Sandbox** (`runtime-authority.sh verify`):
+
+| Role | Used by (process `DATABASE_URL` user) | Login | Superuser / BYPASSRLS | Financial write privileges | Writable tables | Schemas readable |
+|---|---|---|---|---|---|---|
+| `bl_core_runtime` | core-api | yes | no / no | 75 (25 × INSERT, UPDATE, DELETE) | 97 (`public` except `_sqlx_migrations`) | public |
+| `bl_gateway_runtime` | api-gateway | yes | no / no | **0** | 23 | public, developer |
+| `bl_public_api_runtime` | public-api | yes | no / no | **0** | 8 | public |
+| `bl_developer_api_runtime` | developer-api | yes | no / no | **0** | 13 | public, developer, account_identity |
+| `bl_admin_api_runtime` | admin-api | yes | no / no | **0** | 15 | public |
+| `bl_app_runtime` | no container (operator tools on the host) | yes | no / no | **0** | 85 (non-financial) | all three |
+| `bl_control_plane` | no container | yes | no / no | 0 | 0 | public |
+| `bl_migration` → `bl_schema_owner` | the migration executor only (short-lived login) | — | no / no | owner | owner | — |
+| `sbadmin` | the postgres container and the operator's bootstrap/authority containers | yes | yes | — | — | — |
+
+Each service mounts exactly one database credential (`/run/secrets/db_url_<service>`);
+no container's image environment holds a database credential; no service mounts
+`mi_superuser`, `mi_migration`, `mi_control` or the secrets directory. The shared
+`evidence/db_url` is retired.
+
+| Proof | Result |
+|---|---|
+| Deployed: each non-Core role connects **naming itself `banzami-core`** and attempts INSERT, UPDATE and DELETE on all 25 financial tables (rolled back) | gateway 75/75 refused, public-api 75/75, developer-api 75/75, admin-api 75/75, operator 75/75 — every one `permission denied for table`, 0 other errors |
+| Deployed: the Core role, same 75 statements | 75 accepted, 0 errors |
+| Deployed: the Core role under another name | refused by the 0144 guard (`FINANCIAL_WRITE_OUTSIDE_CORE`) — detection retained |
+| Deployed: services after the cutover | 0 permission errors in any service log; Postgres logged exactly the 375 proof refusals and nothing else; admin-api recorded a login attempt as its own role |
+| `database_authority_tests.rs` (real PostgreSQL, CI) | 5 tests: non-Core roles refused on 25 × 3 × 5; non-Core roles keep reads and their own writes and cannot write another service's; Core writes all 25; `application_name` is detection; a wallet payment and a P2P transfer complete on a pool connected as the Core role and **fail on one connected as the gateway role running Core's own code** |
+| Mutation | `GRANT UPDATE ON wallets TO bl_gateway_runtime` after the apply → the refusal test fails naming it; the same grant inside the SQL → the SQL's own assertion aborts the transaction (`NON_CORE_FINANCIAL_TABLE_WRITE_ROLES: bl_admin_api_runtime UPDATE on public.ledger_entries`) |
+| `tools/db-authority.mjs` (CI) + selftest | PASS; 6 mutations: a financial table granted to the gateway; a second all-tables writer; a guarded table dropped from the manifest; service code writing a table it is not granted; service code writing a ledger entry; a hand-edited SQL |
+| Core still works | every deployed suite below ran with Core as `bl_core_runtime`: wallet payments, P2P (Core test), refunds (8/8), application settlement (fresh/application journeys), Sandbox funding and reset, hosted acquiring, rail matrix, reconciliation 6/6 |
+
+Reads remain schema-scoped rather than table-scoped: narrowing them per table
+would fail services on paths no suite exercises (BANZADMIN review flows need an
+operator's MFA) and adds nothing to financial authority. Writes are table-scoped.
+
+## Rail simulator isolation
+
+Before: `sandbox_external_rail_states` per Business. A Business can be shared —
+Project A issues a consent code, Project B in another Workspace redeems it — so
+A's switch reached B. Now (0145) the switch is per (Project, Business); a hosted
+payment reads the rail of the Project that created its link or session
+(`sandbox_link_projects`, written by Core from the gateway's authenticated key);
+the Business-wide rail is set only through Core's internal operator route, which
+the public edge does not expose (404).
+
+| Proof | Result |
+|---|---|
+| Deployed `acceptance-suites.mjs rail-isolation`: Workspace A / Project A; Workspace B / Project B1 (own Business) and Project B2 (connected to A's Business — same handle verified) | 7/7 |
+| A down | A: `simulate` 503 and hosted 503 `PROVIDER_UNAVAILABLE`; B1: AVAILABLE, `simulate` 402 `PAYMENT_DECLINED`, hosted 201; **B2 on the same Business: AVAILABLE, 402, 201** |
+| Reversed (A up, B2 down) | B2 503/503; A and B1 402/201 |
+| A key naming another Project and a Business-wide scope in the body | ignored: only the key's own Project changes (A stays AVAILABLE) |
+| Another Workspace's Console against A's Project (Explorer, set rail) | 404 |
+| Core's internal route from the public edge | 404 |
+| The switch on the Live host | 503; no route reaches Financial Live |
+| Core tests | `a_projects_rail_switch_never_reaches_another_project_on_the_same_business` (then reversed; nothing written to the Business-wide rail; payouts unaffected), `a_link_no_project_created_reads_only_the_business_wide_rail`, `a_projects_rail_and_attribution_do_not_exist_in_live`. Mutation: key the Project's rail by Business alone → fails ("B, on the same Business, sees A's switch"); ignore the creator Project → fails ("A's own hosted payment fails closed") |
+| Gateway tests | `TestSandboxRail_AProjectsSwitchNeverReachesAnotherProject`, `TestCreatorProjectComesFromTheKey` (a body `sandbox_project_id` is never used). Mutations: rail keyed without the Project → fails; creator taken from the body → fails |
+| Cannot affect Live | Core refuses the simulator and link attribution in LIVE (`403` / `400`); `require_external_rail` is a no-op in LIVE; the tables exist only in the Sandbox database |
 
 ## Resilience — deployed rail failure matrix (`acceptance-suites.mjs wallet-native`)
 
@@ -89,10 +160,11 @@ Measured, not published: internal payment median 56 ms with the rail available,
 
 | Property | Evidence |
 |---|---|
-| Tenant isolation | isolation 16/16; the rail belongs to the key's own Business (gateway test); refunds of another Project 404 |
+| Tenant isolation | isolation 16/16; rail isolation 7/7 across Workspaces sharing a Business; refunds of another Project 404 |
 | Authorization | rail routes require `sandbox:read` / `sandbox:write` and a bound Business; the simulator refuses in LIVE (`the_simulator_refuses_in_live`) |
-| Direct balance mutation | no balance column; `FINANCIAL_WRITES_OUTSIDE_CORE=0` across 1 157 non-Core files; DB guard refuses non-Core writes |
-| Core-only writing | deployed refusal; Core test suite writes through the guard |
+| Direct balance mutation | no balance column; `FINANCIAL_WRITES_OUTSIDE_CORE=0` across 1 157 non-Core files; no non-Core role holds a write privilege on a financial table |
+| Core-only writing | PostgreSQL privilege (deployed: 375/375 spoofed non-Core writes refused, Core 75/75 accepted); 0144 guard as detection |
+| Migration and superuser credentials | mounted into no runtime service; runtime roles are not superuser, BYPASSRLS, CREATEROLE or owner members (the authority SQL aborts otherwise) |
 | Secrets | `make security-check` PASS; no secret printed in any evidence of this milestone |
 
 ## Documentation and public claims
@@ -124,28 +196,45 @@ unregulated money.
 
 ## Regression
 
-| Check | Result |
-|---|---|
-| Rust core (real Postgres) | 695 passed, 0 failed; clippy `-D warnings` clean under 1.98 |
-| Go (CI, real Postgres + Redis) | all services green on `2b3f34f3` |
-| Website / pay / SDK | 1 121 / 24 / 116 tests |
-| `make check-docs-prod` | PASS (includes the wallet-native gate) |
-| Architecture gate + selftest | PASS, 14 mutations |
-| Ledger reconciliation (read-only) | 6/6 during regression (2 766 postings) and after cleanup (2 771 postings, 5 542 entries) |
-| SDK install proof / docs examples | 30/30 / PASS against npm 0.14.1, `SDK_DOCS_REGISTRY_DRIFT=0` |
-| `make security-check` | PASS |
-| `make check-deploy-parity` | every deployed component matches the tree |
+The first closure's regression, then again after the database-authority cutover
+and the rail isolation fix (every deployed suite below ran with each service on
+its own role).
+
+| Check | Before the closure review | After the cutover |
+|---|---|---|
+| Rust core (real Postgres) | 695 passed, 0 failed | **703 passed, 0 failed** (+5 authority, +3 rail isolation); clippy `-D warnings` clean under 1.98 |
+| Go (CI, real Postgres + Redis) | green on `2b3f34f3` | green on `92fed6eb` and `f1a62575` (CI and Economic gate), including `TestSandboxRail_AProjectsSwitchNeverReachesAnotherProject`, `TestCreatorProjectComesFromTheKey` |
+| Website / pay / SDK | 1 121 / 24 / 116 | 1 121 / — / — (pay and SDK unchanged) |
+| `make check-docs-prod` | PASS | PASS (includes the wallet-native and database-authority gates) |
+| Gates + selftests | architecture 14 mutations | architecture 14, database authority 6 — PASS |
+| Scenarios / workbench / refunds / wallet-native | 31/31 / 10/10 / 8/8 / 16/16 | 31/31 / 10/10 / 8/8 / 16/16 (rail matrix PASS, residue 0) |
+| Rail isolation | — | **7/7** |
+| Public cleanroom (SDK 0.14.1 from npm) | 29/29 | **29/29**, rail steps 3/3, operator interventions 0, residue 0 |
+| Realtime / isolation / expiry | 17/17 / 16/16 / 2/2 | 17/17 / 16/16 / — (tokens unchanged) |
+| Fresh / application journeys | 24/24 / 18/18 | 24/24 / 18/18 |
+| Quickstart / DOA tutorial / Explorer | 12/12 / 13/13 / 11/11 | 12/12 / 13/13 / 11/11 |
+| Ledger reconciliation (read-only) | 6/6 | 6/6 — 2 935 postings, 5 870 entries, through the operator credential |
+| Service logs since the cutover | — | 0 permission or authentication errors in any service |
+| `make security-check` | PASS | PASS |
+| `make check-deploy-parity` | every component matches | every component matches the tree |
+
+A first post-cutover pass ran several suites concurrently from one address and
+met the Sandbox's own rate limits (gateway 429, and 20 OTP requests per IP per 15
+minutes); those runs reported rate limiting, not authority or isolation defects
+— no service logged a permission error — and each affected suite was re-run alone
+and passed as above.
 
 ## Cleanup
 
 | Check | Result |
 |---|---|
-| Every acceptance run of this closure | reported its own residue 0 and restored its Business's rail |
-| `sweep-console-fixtures.mjs --min-age-hours 0 --apply` | 19 fixture memberships closed; 0 fixture accounts, workspaces, projects or keys remaining |
+| Every acceptance run | residue 0; each restores its Projects' rails |
+| `sweep-console-fixtures.mjs --min-age-hours 0 --apply` | 26 fixture memberships closed; 0 fixture accounts, workspaces, projects or keys remaining |
 | `retire-synthetic-residue.sh --apply` | 0 synthetic value, accounts, keys, webhooks, open links, open sessions, pending payouts, consumers or projects |
-| `check-canonical-resources` | everything active on the Sandbox is declared canonical, with an owner and a reason; 0 unclassified keys |
-| Simulated rails left down | 0 (7 rows, all AVAILABLE) |
-| Ledger after cleanup | 6/6 — 2 771 postings, 5 542 entries |
+| `check-canonical-resources` | everything active is declared canonical, with an owner and a reason |
+| Simulated rails left down | 0 — two per-Project rails left UNAVAILABLE by the rate-limited runs (their Projects already archived) were restored through Core's internal route; 13 Project rails and 7 Business-wide rails, all AVAILABLE |
+| Shared runtime credential | `evidence/db_url` retired; mounted by no container |
+| Ledger after cleanup | 6/6 |
 
 `WALLET_NATIVE_ACCEPTANCE_RESIDUE=0`
 
@@ -157,6 +246,14 @@ BANZAMI_RAIL_DECOUPLED_MODEL=PASS
 ONE_FINANCIAL_TRUTH=PASS
 ONE_LEDGER_AUTHORITY=PASS
 CORE_ONLY_FINANCIAL_WRITES=PASS
+CORE_FINANCIAL_WRITE_AUTHORITY=PASS
+APPLICATION_NAME_SECURITY_AUTHORITY=0
+NON_CORE_FINANCIAL_TABLE_WRITE_ROLES=0
+NON_CORE_DIRECT_FINANCIAL_INSERT=0
+NON_CORE_DIRECT_FINANCIAL_UPDATE=0
+NON_CORE_DIRECT_FINANCIAL_DELETE=0
+CORE_ONLY_WRITER_MUTATION_PROOF=PASS
+RUNTIME_SERVICE_HAS_MIGRATION_SUPERUSER_CREDENTIALS=0
 DIRECT_BALANCE_MUTATION_PATHS=0
 DUPLICATE_FINANCIAL_TRUTH_DOMAINS=0
 INTERNAL_TRANSFER_REQUIRES_EXTERNAL_PROVIDER=0
@@ -176,6 +273,9 @@ WALLET_NATIVE_PUBLIC_CLEANROOM=PASS
 WALLET_NATIVE_CONCEPT_CONTRADICTIONS=0
 RAIL_DECOUPLING_CONTRADICTIONS=0
 WALLET_NATIVE_ACCEPTANCE_RESIDUE=0
+SANDBOX_RAIL_SIMULATOR_CROSS_TENANT_EFFECT=0
+SANDBOX_RAIL_SIMULATOR_TENANT_ISOLATION=PASS
+SANDBOX_RAIL_SWITCH_CAN_AFFECT_LIVE=0
 FINANCIAL_LIVE_STATUS=NOT_READY
 FINANCIAL_LIVE_FAIL_CLOSED=PASS
 ```
@@ -188,3 +288,9 @@ the Developers landing, developer docs, OpenAPI, SDK README, Console, FAQ, Sobre
 and the internal architecture documents; the four contradictions found (glossary,
 `BANZAMI_REFERENCE.md`, payer page, README) are corrected above, and Multicaixa
 Express appears on the payer page only behind the LIVE-only external-rail flag.
+
+**The canonical security principle.** Only Core has database authority to write
+canonical financial state: PostgreSQL grants INSERT, UPDATE and DELETE on the 25
+financial tables to `bl_core_runtime` alone; no other runtime role holds them,
+whatever it calls itself. Sandbox simulation controls are scoped to one Project
+and cannot reach another developer or Financial Live.
