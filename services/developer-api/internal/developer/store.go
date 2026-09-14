@@ -140,7 +140,7 @@ var (
 	// ErrTestDeliveriesLimited: the endpoint had WebhookTestDeliveriesPerMinute
 	// synthetic deliveries scheduled in the last minute.
 	ErrTestDeliveriesLimited = errors.New("too many test deliveries to this endpoint")
-	ErrProjectQuota   = errors.New("project limit reached")
+	ErrProjectQuota          = errors.New("project limit reached")
 	// ErrEnvironmentUndeclared: the process cannot say which financial universe
 	// it serves, so it may not write a row that has to name one. A configuration
 	// fault, surfaced rather than defaulted — the column default is 'LIVE'.

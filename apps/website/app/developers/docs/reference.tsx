@@ -16,7 +16,7 @@ import explorerOperations from './explorer-operations.json';
 
 // The operations the Console's API Explorer can run (generated from the OpenAPI by
 // tools/docs/build-explorer-allowlist.mjs): those entries get "Try in Sandbox".
-const EXPLORER_OP = new Map(explorerOperations.operations.map((o) => [`${o.method} ${o.path}`, o.operation_id]));
+const EXPLORER_OP = new Map(explorerOperations.operations.map((o) => [o.method + ' ' + o.path, o.operation_id]));
 
 type Bi = { pt: string; en: string };
 
@@ -1370,9 +1370,9 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
                   <Badge tone={e.tone}>{lang === 'en' ? BADGE_LABELS_EN[e.tone] : undefined}</Badge>
                 </H3>
                 <P>{t(e.desc)}</P>
-                {EXPLORER_OP.has(`${e.method} ${e.path}`) ? (
+                {EXPLORER_OP.has(e.method + ' ' + e.path) ? (
                   <p style={{ margin: '0 0 12px' }}>
-                    <a href={`/explorer?op=${EXPLORER_OP.get(`${e.method} ${e.path}`)}`} data-try-in-sandbox={EXPLORER_OP.get(`${e.method} ${e.path}`)} style={{ ...link, fontSize: 13, fontWeight: 700 }}>
+                    <a href={'/explorer?op=' + EXPLORER_OP.get(e.method + ' ' + e.path)} data-try-in-sandbox={EXPLORER_OP.get(e.method + ' ' + e.path)} style={{ ...link, fontSize: 13, fontWeight: 700 }}>
                       {label(lang, 'Experimentar na Sandbox →', 'Try in Sandbox →')}
                     </a>{' '}
                     <span style={{ fontSize: 12.5, color: '#6f6468' }}>{label(lang, 'no API Explorer da Consola, com o seu projeto; nenhuma chave vai para o browser.', 'in the Console’s API Explorer, with your project; no key reaches the browser.')}</span>
