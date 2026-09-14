@@ -158,6 +158,7 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - FEE_DESTINATION_KYB_NOT_APPROVED (422): The fee destination Business’s verification is not approved yet. Retry after approval, with a new key.
 - FEE_DESTINATION_WALLET_UNAVAILABLE (422): The fee destination account has no active wallet in this currency. Contact support with the request_id.
 - FEE_DESTINATION_TYPE_NOT_ALLOWED (422): The fee can only go to an APPLICATION or PLATFORM account. Name an account of that type. The classification is assigned by Banzami.
+- SANDBOX_VALUE_PERIMETER (422): A Sandbox test Business settles only to a test payer or another test Business, and its fee goes only to a test Business. Test value never reaches a real account. Name one of the project's test payers (POST /v1/sandbox/test-payers) as the beneficiary and your own test Business as the fee destination.
 - FEE_EXCEEDS_GROSS (422): The calculated fee would exceed the gross being settled. Settle once the balance is larger, or contact support with the request_id.
 - PRICING_NOT_CONFIGURED (409): The Business has no pricing profile yet, so the settlement cannot be calculated. The profile is assigned by Banzami: contact support with the request_id.
 - PRICING_CONFIGURATION_ERROR (409): More than one pricing rule applies to this settlement. Contact support with the request_id.
