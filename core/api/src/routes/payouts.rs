@@ -235,6 +235,10 @@ pub async fn mark_sent(
     let pid: PayoutId = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid payout id"))?;
+    // Submission hands the payout to the external rail (ADR-061).
+    let current = state.payout.get(pid).await.map_err(transition_err)?;
+    crate::routes::external_rail::require_external_rail(&state, current.merchant_id.as_uuid())
+        .await?;
     let p = state.payout.mark_sent(pid).await.map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }
@@ -246,6 +250,11 @@ pub async fn confirm(
     let pid: PayoutId = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid payout id"))?;
+    // Only the rail confirms a payout; a rail that is down confirms nothing and the
+    // payout stays SENT — never CONFIRMED on Banzami's word alone (ADR-061).
+    let current = state.payout.get(pid).await.map_err(transition_err)?;
+    crate::routes::external_rail::require_external_rail(&state, current.merchant_id.as_uuid())
+        .await?;
     let p = state.payout.confirm(pid).await.map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }

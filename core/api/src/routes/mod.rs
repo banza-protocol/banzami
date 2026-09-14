@@ -20,6 +20,9 @@ pub mod consumer_wallets;
 pub mod consumers;
 pub mod credit_idempotency;
 pub mod disputes;
+pub mod external_rail;
+#[cfg(test)]
+mod external_rail_tests;
 pub mod finance_catalogs;
 pub mod finance_dashboard;
 #[cfg(test)]

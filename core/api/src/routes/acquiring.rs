@@ -72,6 +72,14 @@ impl From<AcquiringPayment> for AcquiringPaymentResponse {
 // Error mapping
 // ---------------------------------------------------------------------------
 
+async fn link_merchant(state: &AppState, link_id: uuid::Uuid) -> ApiResult<Option<uuid::Uuid>> {
+    sqlx::query_scalar::<_, uuid::Uuid>("SELECT merchant_id FROM payment_links WHERE id = $1")
+        .bind(link_id)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))
+}
+
 fn map_err(e: AcquiringError) -> ApiError {
     match e {
         AcquiringError::NotFound(_) | AcquiringError::ExternalRefNotFound(_) => {
@@ -119,6 +127,13 @@ pub async fn initiate_payment(
     }
 
     let amount = banzami_types::Money::new(body.amount_minor, currency);
+
+    // The hosted acquiring payment crosses an external rail (ADR-061): ask before
+    // the provider is called or anything is written. An unknown link falls
+    // through to the engine's own 404.
+    if let Some(merchant_id) = link_merchant(&state, payment_link_id.as_uuid()).await? {
+        crate::routes::external_rail::require_external_rail(&state, merchant_id).await?;
+    }
 
     let payment = state
         .acquiring
@@ -558,6 +573,12 @@ pub async fn test_confirm(
         if existing.payment_link_id.as_uuid() != link {
             return Err(ApiError::not_found("no pending payment for that reference"));
         }
+    }
+
+    // A confirmation comes from the rail; a rail that is down confirms nothing and
+    // the payment stays PENDING (ADR-061).
+    if let Some(merchant_id) = link_merchant(&state, existing.payment_link_id.as_uuid()).await? {
+        crate::routes::external_rail::require_external_rail(&state, merchant_id).await?;
     }
 
     let amount_minor = existing.amount.amount_minor();

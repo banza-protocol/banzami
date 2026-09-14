@@ -799,6 +799,12 @@ async fn main() {
             post(routes::sandbox_businesses::provision),
         )
         .route(
+            // The Sandbox external rail simulator of one Business (ADR-061):
+            // AVAILABLE or UNAVAILABLE. Refuses in LIVE.
+            "/internal/v1/sandbox/external-rail/:merchant_id",
+            get(routes::external_rail::get).put(routes::external_rail::put),
+        )
+        .route(
             "/internal/v1/sandbox/businesses/use-case",
             axum::routing::put(routes::sandbox_businesses::change_use_case),
         )
@@ -927,6 +933,11 @@ async fn health() -> &'static str {
     "ok"
 }
 
+/// The application_name Core connects with. The financial writer guard (migration
+/// 0144) accepts writes to financial-state tables only from this name or the
+/// table owner.
+pub const CORE_APPLICATION_NAME: &str = "banzami-core";
+
 /// Connects to PostgreSQL, tolerating the brief window after container creation in
 /// which DNS for a linked service is not yet resolvable.
 ///
@@ -936,10 +947,17 @@ async fn connect_with_retry(database_url: &str) -> sqlx::Pool<sqlx::Postgres> {
     const ATTEMPTS: u32 = 6;
     let mut last_err = None;
     for attempt in 1..=ATTEMPTS {
+        // Core names itself on every connection. Financial-state tables refuse a
+        // write from any other application_name (migration 0144, ADR-061): Core
+        // is the one financial writer, and the database now knows it.
+        let options = match database_url.parse::<sqlx::postgres::PgConnectOptions>() {
+            Ok(o) => o.application_name(CORE_APPLICATION_NAME),
+            Err(e) => panic!("DATABASE_URL is not a valid PostgreSQL URL: {e}"),
+        };
         match sqlx::postgres::PgPoolOptions::new()
             .max_connections(20)
             .acquire_timeout(std::time::Duration::from_secs(5))
-            .connect(database_url)
+            .connect_with(options)
             .await
         {
             Ok(pool) => {

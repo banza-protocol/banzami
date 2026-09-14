@@ -854,6 +854,29 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "Wallet-native, rail-decoupled network (0144 / ADR-061)",
+      "why": "The Sandbox external rail simulator per Business, read only where an operation crosses a rail; and the Core-only financial writer guard on every financial-state table.",
+      "tables": [
+        {
+          "name": "sandbox_external_rail_states",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "state",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }
