@@ -96,7 +96,8 @@ export default function HomePage() {
               O novo caminho do Kwanza.
             </h1>
             <p className="m-0 mt-[22px] max-w-[520px] text-[clamp(16px,1.5vw,19px)] font-semibold leading-[1.55] text-ink-secondary">
-              O Banzami é uma rede de pagamentos nativa de carteira, construída sobre o protocolo BANZA. Cada
+              O Banzami está a construir uma plataforma financeira nativa de carteira, em que pessoas, negócios e aplicações movem valor numa
+              rede programável, com interoperabilidade com os rails financeiros externos. Construída sobre o protocolo BANZA. Cada
               conta é uma carteira em Kwanza; paga-se por QR ou para um{' '}
               <span className="bz-mono font-semibold text-cherry">@banza</span>, com um comprovativo que qualquer
               pessoa pode verificar.

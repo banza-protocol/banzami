@@ -68,7 +68,7 @@ function PlatformDiagram() {
       <div className="overflow-x-auto">
         <svg viewBox="0 0 1010 150" role="img" aria-labelledby="bz-dev-diagram-title bz-dev-diagram-desc" className="block min-w-[720px] w-full">
           <title id="bz-dev-diagram-title">Como uma aplicação usa o Banzami</title>
-          <desc id="bz-dev-diagram-desc">A aplicação chama a API do Banzami, que cria pagamentos e movimenta contas de carteira; cada movimento fica registado no ledger do Banzami. A ligação a bancos e outros rails externos pertence ao Financial Live, que não está disponível.</desc>
+          <desc id="bz-dev-diagram-desc">A aplicação chama a API do Banzami, que cria pagamentos e movimenta contas de carteira dentro da rede; cada movimento fica registado no ledger do Banzami, sem rail externo. Os rails externos ligam a rede aos bancos para a entrada e a saída de valor; essa ligação pertence ao Financial Live, que não está disponível.</desc>
           <defs>
             <marker id="bz-dev-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
               <path d="M0 0 L10 5 L0 10 z" fill="#B5101F" />
@@ -88,7 +88,8 @@ function PlatformDiagram() {
         </svg>
       </div>
       <figcaption className="mt-3 text-[13px] font-semibold text-ink-muted">
-        Na Sandbox pública, o dinheiro é fictício e nada chega a um banco. A ligação a bancos e a outros rails de pagamento pertence ao Financial Live.
+        Um pagamento move-se entre contas dentro da rede, no ledger, sem rail externo. Os rails externos ligam a rede aos bancos para a entrada e a saída de valor — isso pertence ao Financial Live. Na Sandbox pública, o dinheiro é fictício e nada chega a um banco.{' '}
+        <a href={`${DOCS}/concepts#como-o-dinheiro-se-move`} className="font-extrabold text-cherry">Como o dinheiro se move →</a>
       </figcaption>
     </figure>
   );
@@ -106,7 +107,8 @@ export default function DevelopersLandingPage() {
             Construa com o Banzami.
           </h1>
           <p className="m-0 mt-5 max-w-[680px] text-[clamp(17px,1.6vw,20px)] font-semibold leading-[1.55] text-ink-secondary">
-            Pagamentos nativos de carteira e integração programável para aplicações feitas para Angola.
+            Construa sobre primitivas financeiras do Banzami — contas de carteira, pagamentos, QR, webhooks, estado em tempo real, liquidações e comprovativos —
+            numa rede nativa de carteira, com interoperabilidade com os rails financeiros externos.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href={CONSOLE} className="inline-flex items-center rounded-[40px] bg-gradient-to-b from-cherry to-cherry-deeper px-7 py-[15px] text-[16px] font-extrabold text-white no-underline shadow-[0_16px_32px_-12px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5">
