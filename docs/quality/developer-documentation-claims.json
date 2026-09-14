@@ -2710,12 +2710,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Transferir a titularidade faz-se em dois passos: um Owner atribui o papel de Owner a outro membro e depois sai ou altera o seu papel. O workspace nunca fica sem"
   },
-  "pt:Console:eb5b9b5908": {
+  "pt:Console:18cef00fe4": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
-   "text": "Arquivar é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos."
+   "text": "Arquivar é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos. Os workspaces arquivados aparecem em Mostrar arquivados e podem s"
   },
   "pt:Console:35acb9068c": {
    "page": "Console",
@@ -7841,12 +7841,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Transferring ownership takes two steps: an Owner gives another member the Owner role, then leaves or changes their own role. The workspace is never without an O"
   },
-  "en:Console:d046ceb51c": {
+  "en:Console:082b86fb2d": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
-   "text": "Archive is optional and only organises; it is refused while projects are active."
+   "text": "Archive is optional and only organises; it is refused while projects are active. Archived workspaces appear under Show archived and can be deleted."
   },
   "en:Console:b4a42f1ae7": {
    "page": "Console",

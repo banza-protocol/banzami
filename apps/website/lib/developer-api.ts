@@ -623,7 +623,10 @@ export const developerApi = {
   logout: (csrf: string) => req<{ ok: boolean }>('/auth/logout', { method: 'POST', csrf }),
 
   // Workspaces
-  listWorkspaces: () => req<{ workspaces: Workspace[] }>('/workspaces'),
+  // Archived workspaces only when asked: they have no active projects left, but
+  // their Owner can still reach one to delete it (SANDBOX-DELETE-001).
+  listWorkspaces: (includeArchived = false) =>
+    req<{ workspaces: Workspace[] }>(`/workspaces${includeArchived ? '?include_archived=true' : ''}`),
   createWorkspace: (name: string, csrf: string) =>
     req<Workspace>('/workspaces', { method: 'POST', body: { name }, csrf }),
   renameWorkspace: (wsID: string, name: string, csrf: string) =>

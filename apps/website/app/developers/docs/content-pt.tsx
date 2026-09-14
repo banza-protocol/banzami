@@ -1685,7 +1685,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Convidar</strong> gera um link que a Consola copia. O convite define o papel; quem o aceita entra com o próprio email.</LI>
                 <LI><strong>Sair de um workspace</strong> é sempre possível, exceto para o último Owner.</LI>
                 <LI><strong>Transferir a titularidade</strong> faz-se em dois passos: um Owner atribui o papel de Owner a outro membro e depois sai ou altera o seu papel. O workspace nunca fica sem Owner.</LI>
-                <LI><strong>Arquivar</strong> é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos.</LI>
+                <LI><strong>Arquivar</strong> é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos. Os workspaces arquivados aparecem em <strong>Mostrar arquivados</strong> e podem ser eliminados.</LI>
                 <LI><strong>Eliminar</strong> está disponível para o Owner, mesmo depois de atividade, e sem arquivar primeiro. Elimina todos os projetos do workspace, ativos e arquivados, revoga as chaves e invalida os membros e os convites pendentes.</LI>
               </UL>
 

@@ -23,7 +23,7 @@ export const COVERAGE = {
       // Sandbox Workspace is deleted after activity, with its Projects, and
       // archiving is optional. The spec items stay; the substance is the new rule.
       { spec: 'hard-delete conditions', pt: /Eliminar está disponível para o Owner, mesmo depois de atividade, e sem arquivar primeiro/, en: /Delete is available to the Owner, even after activity, and without archiving first/ },
-      { spec: 'archive conditions', pt: /Arquivar é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos/, en: /Archive is optional and only organises; it is refused while projects are active/ },
+      { spec: 'archive conditions', pt: /Arquivar é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos\. Os workspaces arquivados aparecem em Mostrar arquivados e podem ser eliminados/, en: /Archive is optional and only organises; it is refused while projects are active\. Archived workspaces appear under Show archived and can be deleted/ },
       { spec: 'Workspace Activity = administrative\nmembership/ownership audit', pt: /Atividade do workspace[\s\S]{0,300}registo administrativo/, en: /Workspace activity[\s\S]{0,300}administrative record/i },
       { spec: 'Do not confuse the two', pt: /Quem alterou o quê no workspace[\s\S]{0,120}O que a aplicação pediu à API/, en: /Who changed what in the workspace[\s\S]{0,120}What your application asked the API/ },
     ],

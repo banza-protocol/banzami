@@ -41,6 +41,9 @@ type DataValue = {
    */
   showArchivedProjects: boolean;
   setShowArchivedProjects: (v: boolean) => void;
+  /** The same, for workspaces: an archived workspace can still be deleted. */
+  showArchivedWorkspaces: boolean;
+  setShowArchivedWorkspaces: (v: boolean) => void;
 };
 
 /** ARCHIVED, decided in one place so the selector and the pages agree. */
@@ -94,6 +97,7 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [showArchivedProjects, setShowArchivedProjects] = useState(false);
+  const [showArchivedWorkspaces, setShowArchivedWorkspaces] = useState(false);
 
   // onApiError centralises 401 recovery (clear local state → guard returns to
   // login) and maps everything else to a safe message (never internals).
@@ -113,7 +117,7 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
     setWsLoad('loading');
     setWsError('');
     try {
-      const { workspaces: ws } = await developerApi.listWorkspaces();
+      const { workspaces: ws } = await developerApi.listWorkspaces(showArchivedWorkspaces);
       const list = ws ?? [];
       setWorkspaces(list);
       setActiveWs((cur) => {
@@ -137,7 +141,7 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
       setWsError(onApiError(e));
       setWsLoad('error');
     }
-  }, [onApiError]);
+  }, [onApiError, showArchivedWorkspaces]);
 
   useEffect(() => {
     void reloadWorkspaces();
@@ -248,6 +252,8 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
         reloadProjects,
         showArchivedProjects,
         setShowArchivedProjects,
+        showArchivedWorkspaces,
+        setShowArchivedWorkspaces,
       }}
     >
       {children}

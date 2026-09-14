@@ -267,7 +267,7 @@ func TestSandboxDelete_WorkspaceCascadesWithoutArchivingFirst(t *testing.T) {
 	if _, err := s.GetWorkspace(bg, "u_dev", ws); err == nil {
 		t.Fatal("a member keeps access to a deleted workspace")
 	}
-	if list, _ := s.ListWorkspaces(bg, "u_owner"); len(list) != 0 {
+	if list, _ := s.ListWorkspaces(bg, "u_owner", true); len(list) != 0 {
 		t.Fatalf("the deleted workspace is still listed: %+v", list)
 	}
 	if _, err := s.AcceptInvite(bg, "u_later", "later@x.co", pendingRaw, "", ""); err == nil {
@@ -382,5 +382,24 @@ func TestSandboxDelete_ARequestPastItsCheckIsRefusedAsDeletingNotUnavailable(t *
 	_, _, err = racing.CreateAPIKey(bg, "u_owner", p.ID, KindSecret, "k", []string{"identity:read"}, "", "")
 	if !errors.Is(err, ErrDeleting) {
 		t.Fatalf("a key creation that meets the deletion answers RESOURCE_DELETING, not a server fault: %v", err)
+	}
+}
+
+func TestSandboxDelete_AnArchivedWorkspaceIsReachableAndDeletable(t *testing.T) {
+	s, _, _, ws := sandboxSvc(t)
+	w, _ := s.GetWorkspace(bg, "u_owner", ws)
+	if _, err := s.ArchiveWorkspace(bg, "u_owner", ws, w.Name, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	listed, _ := s.ListWorkspaces(bg, "u_owner", true)
+	if len(listed) != 1 || listed[0].Status != StatusArchived {
+		t.Fatalf("the archived workspace is offered on request: %+v", listed)
+	}
+	d, _, err := s.DeleteWorkspace(bg, "u_owner", ws, w.Name, "", "")
+	if err != nil || d.Status != StatusDeleting {
+		t.Fatalf("an archived workspace is deleted: %v %+v", err, d)
+	}
+	if again, _ := s.ListWorkspaces(bg, "u_owner", true); len(again) != 0 {
+		t.Fatalf("a deleting workspace is never listed, archived or not: %+v", again)
 	}
 }

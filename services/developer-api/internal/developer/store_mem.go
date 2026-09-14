@@ -123,13 +123,13 @@ func (m *memStore) ProjectCreationCounts(_ context.Context, workspaceID string, 
 	return active, created, nil
 }
 
-func (m *memStore) WorkspacesForUser(_ context.Context, userID string) ([]Workspace, error) {
+func (m *memStore) WorkspacesForUser(_ context.Context, userID string, includeArchived bool) ([]Workspace, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var out []Workspace
 	for _, mem := range m.members {
 		if mem.UserID == userID && mem.Status == "ACTIVE" {
-			if w, ok := m.workspaces[mem.WorkspaceID]; ok && w.Status != "ARCHIVED" && !isGone(w.Status) {
+			if w, ok := m.workspaces[mem.WorkspaceID]; ok && (includeArchived || w.Status != "ARCHIVED") && !isGone(w.Status) {
 				out = append(out, *w)
 			}
 		}

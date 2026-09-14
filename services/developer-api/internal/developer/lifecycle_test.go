@@ -425,7 +425,7 @@ func TestWorkspace_EmptyIsDeletedOutright(t *testing.T) {
 	if _, err := s.GetWorkspace(bg, "u_owner", ws); err == nil {
 		t.Fatal("the workspace is still readable after being deleted")
 	}
-	listed, err := s.ListWorkspaces(bg, "u_owner")
+	listed, err := s.ListWorkspaces(bg, "u_owner", true)
 	if err != nil {
 		t.Fatal(err)
 	}

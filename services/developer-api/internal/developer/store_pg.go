@@ -84,13 +84,14 @@ func (s *pgStore) ProjectCreationCounts(ctx context.Context, workspaceID string,
 	return active, created, err
 }
 
-func (s *pgStore) WorkspacesForUser(ctx context.Context, userID string) ([]Workspace, error) {
+func (s *pgStore) WorkspacesForUser(ctx context.Context, userID string, includeArchived bool) ([]Workspace, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT w.id, w.name, w.slug, w.created_by, w.status, w.created_at, w.updated_at
 		   FROM developer.dev_workspaces w
 		   JOIN developer.dev_workspace_members m ON m.workspace_id = w.id
-		  WHERE m.user_id = $1 AND m.status = 'ACTIVE' AND w.status NOT IN ('ARCHIVED', 'DELETING', 'DELETED')
-		  ORDER BY w.created_at`, userID)
+		  WHERE m.user_id = $1 AND m.status = 'ACTIVE' AND w.status NOT IN ('DELETING', 'DELETED')
+		    AND ($2 OR w.status <> 'ARCHIVED')
+		  ORDER BY w.created_at`, userID, includeArchived)
 	if err != nil {
 		return nil, err
 	}

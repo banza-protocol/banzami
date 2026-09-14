@@ -149,8 +149,8 @@ func (s *Service) CreateWorkspace(ctx context.Context, actor, name, ip, reqID st
 	return Workspace{}, ErrConflict
 }
 
-func (s *Service) ListWorkspaces(ctx context.Context, actor string) ([]Workspace, error) {
-	return s.store.WorkspacesForUser(ctx, actor)
+func (s *Service) ListWorkspaces(ctx context.Context, actor string, includeArchived bool) ([]Workspace, error) {
+	return s.store.WorkspacesForUser(ctx, actor, includeArchived)
 }
 
 func (s *Service) GetWorkspace(ctx context.Context, actor, wsID string) (Workspace, error) {

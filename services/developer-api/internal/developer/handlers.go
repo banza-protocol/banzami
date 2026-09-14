@@ -979,7 +979,9 @@ func mapErr(w http.ResponseWriter, err error) {
 
 func (h *Handlers) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 	u, _ := actor(r)
-	ws, err := h.svc.ListWorkspaces(r.Context(), u.ID)
+	// Archived workspaces only on request: an archived workspace can still be
+	// deleted, and the Console reaches it through "Mostrar arquivados".
+	ws, err := h.svc.ListWorkspaces(r.Context(), u.ID, r.URL.Query().Get("include_archived") == "true")
 	if err != nil {
 		mapErr(w, err)
 		return

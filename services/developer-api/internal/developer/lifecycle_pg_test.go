@@ -235,7 +235,7 @@ func TestPgStore_MembersCarryNameAndEmail(t *testing.T) {
 		t.Fatal(err)
 	}
 	// An archived workspace leaves the switcher.
-	all, err := svc.ListWorkspaces(ctx, actor)
+	all, err := svc.ListWorkspaces(ctx, actor, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +243,18 @@ func TestPgStore_MembersCarryNameAndEmail(t *testing.T) {
 		if w.ID == ws.ID {
 			t.Error("an archived workspace is still listed for its owner")
 		}
+	}
+	// ...and comes back when asked, so its Owner can still reach it to delete it.
+	withArchived, err := svc.ListWorkspaces(ctx, actor, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, w := range withArchived {
+		found = found || (w.ID == ws.ID && w.Status == "ARCHIVED")
+	}
+	if !found {
+		t.Error("\"Mostrar arquivados\" does not bring the archived workspace back")
 	}
 }
 

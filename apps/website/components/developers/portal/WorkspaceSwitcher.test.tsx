@@ -12,11 +12,13 @@ const state = {
   projects: [] as Project[],
   activeProject: null as Project | null,
   showArchivedProjects: false,
+  showArchivedWorkspaces: false,
   selectWorkspace: vi.fn(),
   createWorkspace: vi.fn(),
   selectProject: vi.fn(),
   createProject: vi.fn(),
   setShowArchivedProjects: vi.fn(),
+  setShowArchivedWorkspaces: vi.fn(),
   onApiError: () => 'Serviço indisponível. Tente novamente.',
 };
 
@@ -45,6 +47,8 @@ beforeEach(() => {
   state.activeProject = live;
   state.showArchivedProjects = false;
   state.setShowArchivedProjects.mockClear();
+  state.showArchivedWorkspaces = false;
+  state.setShowArchivedWorkspaces.mockClear();
 });
 afterEach(cleanup);
 
@@ -67,8 +71,9 @@ describe('the project selector and archived projects', () => {
 
   it('asks the provider for them when the affordance is pressed', () => {
     render(<WorkspaceSwitcher />);
-    fireEvent.click(screen.getByRole('button', { name: 'Mostrar arquivados' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar projetos arquivados' }));
     expect(state.setShowArchivedProjects).toHaveBeenCalledWith(true);
+    expect(state.setShowArchivedWorkspaces).not.toHaveBeenCalled();
   });
 
   // A select whose value is not among its options renders the wrong row as
@@ -110,5 +115,24 @@ describe('the switcher speaks Portuguese', () => {
     expect(screen.getByLabelText('Workspace ativo')).toBeTruthy();
     expect(screen.getByLabelText('Projeto ativo')).toBeTruthy();
     expect(optionLabels()).toContain('+ Novo projeto…');
+  });
+});
+
+// SANDBOX-DELETE-001: an archived workspace can still be deleted, so its Owner
+// must be able to reach it from the Console.
+describe('the workspace selector and archived workspaces', () => {
+  it('asks the provider for archived workspaces with its own affordance', () => {
+    render(<WorkspaceSwitcher />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar workspaces arquivados' }));
+    expect(state.setShowArchivedWorkspaces).toHaveBeenCalledWith(true);
+    expect(state.setShowArchivedProjects).not.toHaveBeenCalled();
+  });
+
+  it('marks an archived workspace as archived when it is listed', () => {
+    state.showArchivedWorkspaces = true;
+    state.workspaces = [ws('a'), { ...ws('antigo'), status: 'ARCHIVED' }];
+    render(<WorkspaceSwitcher />);
+    const labels = [...(screen.getByLabelText('Workspace ativo') as HTMLSelectElement).options].map((o) => o.textContent);
+    expect(labels).toContain('antigo (arquivado)');
   });
 });

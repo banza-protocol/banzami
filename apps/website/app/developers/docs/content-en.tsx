@@ -1699,7 +1699,7 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Invite</strong> generates a link the Console copies for you. The invitation sets the role; whoever accepts signs in with their own email.</LI>
                 <LI><strong>Leaving a workspace</strong> is always possible, except for the last Owner.</LI>
                 <LI><strong>Transferring ownership</strong> takes two steps: an Owner gives another member the Owner role, then leaves or changes their own role. The workspace is never without an Owner.</LI>
-                <LI><strong>Archive</strong> is optional and only organises; it is refused while projects are active.</LI>
+                <LI><strong>Archive</strong> is optional and only organises; it is refused while projects are active. Archived workspaces appear under <strong>Show archived</strong> and can be deleted.</LI>
                 <LI><strong>Delete</strong> is available to the Owner, even after activity, and without archiving first. It deletes every project in the workspace, active and archived, revokes the keys and invalidates members and pending invitations.</LI>
               </UL>
 

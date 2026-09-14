@@ -88,6 +88,8 @@ export function WorkspaceSwitcher() {
     createProject,
     showArchivedProjects,
     setShowArchivedProjects,
+    showArchivedWorkspaces,
+    setShowArchivedWorkspaces,
     onApiError,
   } = useDeveloperData();
   const { flash } = useToast();
@@ -132,7 +134,17 @@ export function WorkspaceSwitcher() {
   return (
     <div style={{ margin: '0 2px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div>
-        <p style={{ margin: '0 0 4px', fontSize: 9.5, fontWeight: 800, letterSpacing: '.06em', color: '#a89a9e' }}>WORKSPACE</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, margin: '0 0 4px' }}>
+          <p style={{ margin: 0, fontSize: 9.5, fontWeight: 800, letterSpacing: '.06em', color: '#a89a9e' }}>WORKSPACE</p>
+          <button
+            type="button"
+            aria-label={showArchivedWorkspaces ? 'Ocultar workspaces arquivados' : 'Mostrar workspaces arquivados'}
+            onClick={() => setShowArchivedWorkspaces(!showArchivedWorkspaces)}
+            style={toggleStyle}
+          >
+            {showArchivedWorkspaces ? 'Ocultar arquivados' : 'Mostrar arquivados'}
+          </button>
+        </div>
         <select aria-label="Workspace ativo" value={activeWs?.id ?? ''} onChange={(e) => onWsChange(e.target.value)} disabled={busy} style={selStyle}>
           {!activeWs ? <option value="">Selecione…</option> : null}
           {workspaces.map((w) => (
@@ -149,6 +161,7 @@ export function WorkspaceSwitcher() {
             <p style={{ margin: 0, fontSize: 9.5, fontWeight: 800, letterSpacing: '.06em', color: '#a89a9e' }}>PROJETO</p>
             <button
               type="button"
+              aria-label={showArchivedProjects ? 'Ocultar projetos arquivados' : 'Mostrar projetos arquivados'}
               onClick={() => setShowArchivedProjects(!showArchivedProjects)}
               style={toggleStyle}
             >

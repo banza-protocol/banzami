@@ -320,7 +320,9 @@ type Store interface {
 	// ProjectCreationCounts: the workspace's ACTIVE projects, and how many were
 	// created in it (any status) since `since`.
 	ProjectCreationCounts(ctx context.Context, workspaceID string, since time.Time) (active, created int, err error)
-	WorkspacesForUser(ctx context.Context, userID string) ([]Workspace, error)
+	// WorkspacesForUser lists the user's live workspaces; archived ones only when
+	// asked (the Console's "Mostrar arquivados"). Deleting ones never.
+	WorkspacesForUser(ctx context.Context, userID string, includeArchived bool) ([]Workspace, error)
 	Workspace(ctx context.Context, id string) (Workspace, error)
 	// RenameWorkspace changes only the display name. The slug is the workspace's
 	// stable identity and never moves with it: a rename that rewrote the slug
