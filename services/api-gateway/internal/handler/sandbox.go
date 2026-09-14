@@ -637,11 +637,15 @@ func (h *SandboxDevHandler) completeDelayed(ctx context.Context, job delayedPaym
 	if err != nil {
 		return false
 	}
-	if status >= 200 && status < 300 {
-		raw = testPaymentResult(raw, job.PayerID, job.Via, job.SessionID, job.LinkID)
-		raw = h.withReceipt(cctx, raw)
+	if status < 200 || status >= 300 {
+		h.storeOutcome(cctx, job.CacheKey, status, raw)
+		return true
 	}
+	// The money has moved: a repeat must stop reading PENDING now, not after the
+	// receipt lookup. Store the result at once, then again with its receipt.
+	raw = testPaymentResult(raw, job.PayerID, job.Via, job.SessionID, job.LinkID)
 	h.storeOutcome(cctx, job.CacheKey, status, raw)
+	h.storeOutcome(cctx, job.CacheKey, status, h.withReceipt(cctx, raw))
 	return true
 }
 

@@ -246,7 +246,11 @@ async function scenarios(sdk) {
     const d1 = await pay(A.api, T, { payment_session_id: sDelayed.body?.session_id, simulate: 'DELAYED' }, `acc_${s}_delayed`);
     const rightAfter = (await A.api(`/v1/payment-sessions/${sDelayed.body?.session_id}`)).body?.status;
     const dSeen = await dWatch;
-    const dRepeat = await pay(A.api, T, { payment_session_id: sDelayed.body?.session_id, simulate: 'DELAYED' }, `acc_${s}_delayed`);
+    // The stream turning PAID and the worker recording the result are moments apart.
+    const dRepeat = await until(async () => {
+      const r = await pay(A.api, T, { payment_session_id: sDelayed.body?.session_id, simulate: 'DELAYED' }, `acc_${s}_delayed`);
+      return r.status === 200 ? r : null;
+    }, 8000, 500) || { status: 202 };
     const dHook = await until(() => sinkGot(dRun).some((q) => q.raw_body.includes(sDelayed.body?.session_id ?? '#') && q.raw_body.includes('payment_session.paid')), 30000, 2000);
     record('DELAYED_COMPLETION', {
       accepted: d1.status, pendingStatus: d1.body?.status, simulated: d1.body?.simulated, statusRightAfter: rightAfter,
