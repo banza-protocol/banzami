@@ -437,7 +437,13 @@ body {
    the webhook events list is a disclosure row, so a printed header would be
    noise while its absence left the ids unlabelled. */
 .bz-sr-only {
+  /* Pinned to its containing block's origin. Without an offset it sat at its
+     static position — the far end of a table that scrolls inside its own
+     container — and, escaping that container's clip, widened the whole page on
+     a phone (Console responsive sweep, 2026-09-14). */
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   padding: 0;

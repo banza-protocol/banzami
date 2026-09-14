@@ -455,7 +455,7 @@ export function WebhooksManager() {
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900 }}>Eventos e entregas</h3>
           <button
             onClick={() => void load()}
-            style={{ border: 'none', background: 'none', fontSize: 12.5, fontWeight: 800, color: '#B5101F', cursor: 'pointer' }}
+            style={{ border: 'none', background: 'none', fontSize: 12.5, fontWeight: 800, color: '#B5101F', cursor: 'pointer', minHeight: 32, padding: '6px 10px' }}
           >
             Actualizar
           </button>

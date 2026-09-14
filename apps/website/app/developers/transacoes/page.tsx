@@ -42,7 +42,7 @@ const money = (minor: number | null, currency: string) =>
 // reader can read out — an empty <th> leaves the cell under it unlabelled — and
 // a visible one would be a column title over a single button.
 const SR_ONLY: React.CSSProperties = {
-  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  position: 'absolute', top: 0, left: 0, width: 1, height: 1, padding: 0, margin: -1,
   overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
 };
 
