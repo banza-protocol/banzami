@@ -237,7 +237,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// Realtime payment status (ADR-060 §9) — no API key: a single-session,
 	// read-only status token in the Authorization header. Limited per IP before
 	// the handler's own per-session and per-client stream caps.
-	r.With(middleware.RateLimitPerIP(deps.Redis, 120, "realtime")).Get("/v1/realtime/payment-sessions/{id}", realtimeHandler.Status)
+	mountRealtimeStatus(r, deps.Redis, realtimeHandler)
 
 	// Public platform mode — read-only, no auth. Lets the website show a SANDBOX
 	// banner without a rebuild. Never leaks internal config.
@@ -362,7 +362,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// Sandbox test data (ADR-060): scenarios, and the Project's own test
 			// payers — create, fund, pay as, retire. Mounted only on a Sandbox stack.
 			if env.Parse(cfg.Environment).IsSandbox() {
-				sbx := handler.NewSandboxDevHandler(cfg.PublicAPIInternalURL, cfg.InternalAPIKey, deps.PaymentSessionSvc, deps.PaymentLinkSvc)
+				sbx := handler.NewSandboxDevHandler(cfg.PublicAPIInternalURL, cfg.InternalAPIKey, deps.PaymentSessionSvc, deps.PaymentLinkSvc).
+					WithOutcomeStore(deps.Redis)
 				r.Get("/v1/sandbox/scenarios", sbx.Scenarios)
 				r.Route("/v1/sandbox/test-payers", func(r chi.Router) {
 					r.Use(middleware.Idempotency(deps.Redis))
@@ -852,6 +853,14 @@ func mountPublicProofVerify(r chi.Router, rdb *redis.Client, proofs *service.Pro
 			return service.ClassifyReference(ref) == service.ReferenceLegacyV0
 		}),
 	).Get("/v1/public/proofs/{ref}", handler.NewProofHandler(proofs, salt).Verify)
+}
+
+// mountRealtimeStatus is the ONE route a realtime status token (bzst_) opens
+// (ADR-060 §9). It takes no API key and is mounted by its own function so the
+// contract gates can read it as its own credential class: not public, not a
+// developer key — a short-lived, read-only token bound to one Payment Session.
+func mountRealtimeStatus(r chi.Router, rdb *redis.Client, h *handler.RealtimeHandler) {
+	r.With(middleware.RateLimitPerIP(rdb, 120, "realtime")).Get("/v1/realtime/payment-sessions/{id}", h.Status)
 }
 
 // realtimeEnvironment is the environment a status token is bound to.

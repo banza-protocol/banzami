@@ -134,7 +134,7 @@ func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSessi
 		dto["realtime"] = map[string]any{
 			"token":      tok,
 			"expires_at": exp.Format(time.RFC3339),
-			"url":        "/v1/realtime/payment-sessions/" + s.SessionID,
+			"path":       "/v1/realtime/payment-sessions/" + s.SessionID,
 		}
 	}
 	return dto

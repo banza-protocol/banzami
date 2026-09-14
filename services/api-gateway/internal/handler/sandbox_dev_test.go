@@ -49,6 +49,11 @@ func newUpstream(t *testing.T) *upstream {
 		u.calls = append(u.calls, r.Method+" "+r.URL.Path+"?"+r.URL.RawQuery+" "+string(b)+" key="+r.Header.Get("X-Internal-Key"))
 		u.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "/payments") {
+			// The link path's view: link fields, the transfer as transaction_id, a receipt.
+			_, _ = w.Write([]byte(`{"slug":"s","merchant_name":"Loja","status":"PAID","amount_minor":5000,"currency":"AOA","transaction_id":"tr-1","receipt":{"proof_reference":"BZM-1"}}`))
+			return
+		}
 		_, _ = w.Write([]byte(`{"status":"PAID"}`))
 	}))
 	t.Cleanup(u.srv.Close)
@@ -89,7 +94,11 @@ func post(t *testing.T, h http.Handler, path, body, key string) *httptest.Respon
 func TestSandboxDev_ProjectComesFromTheKeyNeverTheBody(t *testing.T) {
 	up := newUpstream(t)
 	h := NewSandboxDevHandler(up.srv.URL, "ik", sbxSessions{}, sbxLinks{})
-	rec := post(t, sbxRouter(h, principalA()), "/v1/sandbox/test-payers", `{"label":"x","project_id":"proj-B"}`, "")
+	// A body naming a Project is refused outright: nothing reaches public-api.
+	if rec := post(t, sbxRouter(h, principalA()), "/v1/sandbox/test-payers", `{"label":"x","project_id":"proj-B"}`, ""); rec.Code != http.StatusBadRequest || len(up.calls) != 0 {
+		t.Fatalf("a body naming project_id: %d %s calls=%v", rec.Code, rec.Body, up.calls)
+	}
+	rec := post(t, sbxRouter(h, principalA()), "/v1/sandbox/test-payers", `{"label":"x"}`, "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: %d %s", rec.Code, rec.Body)
 	}
@@ -155,6 +164,18 @@ func TestSandboxDev_SimulatedOutcomesAreExplicitAndTimeoutIsRecoverable(t *testi
 	retry := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own"}`, "idem-1")
 	if retry.Code != http.StatusOK || !strings.Contains(retry.Body.String(), "PAID") || len(up.calls) != 1 {
 		t.Fatalf("the retry must read the real result without paying again: %d %s calls=%d", retry.Code, retry.Body, len(up.calls))
+	}
+	// An SDK retries a 504 with the SAME body and key: that too reads the real
+	// result, never a second payment.
+	again := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"TIMEOUT"}`, "idem-1")
+	if again.Code != http.StatusOK || len(up.calls) != 1 {
+		t.Fatalf("an identical retry must read the real result: %d %s calls=%d", again.Code, again.Body, len(up.calls))
+	}
+	var result map[string]any
+	_ = json.Unmarshal(again.Body.Bytes(), &result)
+	if result["transfer_id"] != "tr-1" || result["proof_reference"] != "BZM-1" || result["via"] != "LINK" ||
+		result["payment_session_id"] != "own" || result["merchant_name"] != nil || result["slug"] != nil {
+		t.Fatalf("a test payment has one shape, without the payee's link view: %s", again.Body)
 	}
 	if rec := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"MAGIC"}`, ""); rec.Code != http.StatusBadRequest {
 		t.Fatalf("an unknown simulate value: %d", rec.Code)

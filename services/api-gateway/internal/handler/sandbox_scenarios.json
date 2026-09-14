@@ -1,8 +1,8 @@
 {
   "version": 1,
   "note": {
-    "pt": "Cada cenário é produzido fazendo a coisa real, exceto os resultados de rede externa, pedidos explicitamente com simulate e marcados como simulated: true. Não há valores mágicos.",
-    "en": "Every scenario is produced by doing the real thing, except external-rail outcomes, which are requested explicitly with simulate and marked simulated: true. There are no magic values."
+    "pt": "Cada cenário vem de uma operação real, exceto os resultados de rede externa, pedidos explicitamente com simulate e marcados como simulated: true. Não há valores mágicos.",
+    "en": "Every scenario comes from a real operation, except external-rail outcomes, which are requested explicitly with simulate and marked simulated: true. There are no magic values."
   },
   "scenarios": [
     {

@@ -451,7 +451,7 @@ type publicRealtime struct {
 	SessionID string `json:"session_id"`
 	Token     string `json:"token"`
 	ExpiresAt string `json:"expires_at"`
-	URL       string `json:"url"`
+	Path      string `json:"path"`
 }
 
 func toPublicPaymentLink(link *service.PaymentLink, payee service.BusinessIdentity, paid bool) publicPaymentLink {
@@ -532,7 +532,7 @@ func (h *PaymentLinkHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		if sess, serr := h.linkSession(r.Context(), link.ID); serr == nil && sess != nil && sess.SessionID != "" {
 			tok, exp := h.realtime.Mint(sess.SessionID)
 			view.Realtime = &publicRealtime{SessionID: sess.SessionID, Token: tok, ExpiresAt: exp.Format(time.RFC3339),
-				URL: "/v1/realtime/payment-sessions/" + sess.SessionID}
+				Path: "/v1/realtime/payment-sessions/" + sess.SessionID}
 		}
 	}
 	respond(w, http.StatusOK, view)

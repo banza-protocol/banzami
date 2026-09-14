@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
@@ -61,9 +62,15 @@ type SandboxDevHandler struct {
 	sessions    devSessionReader
 	links       devLinkReader
 
+	// The real outcome of a simulated timeout, by project|Idempotency-Key, for
+	// 24 hours: in Redis when the gateway has it (it survives a restart), in
+	// memory otherwise.
+	rdb      *redis.Client
 	mu       sync.Mutex
-	timeouts map[string]timedOutcome // project|idempotency key → the real outcome of a simulated timeout
+	timeouts map[string]timedOutcome
 }
+
+const simulatedTimeoutTTL = 24 * time.Hour
 
 type timedOutcome struct {
 	status int
@@ -79,10 +86,59 @@ func NewSandboxDevHandler(publicAPIURL, internalKey string, sessions devSessionR
 	}
 }
 
+// WithOutcomeStore keeps simulated-timeout outcomes in Redis.
+func (h *SandboxDevHandler) WithOutcomeStore(rdb *redis.Client) *SandboxDevHandler {
+	h.rdb = rdb
+	return h
+}
+
+func (h *SandboxDevHandler) storedOutcome(ctx context.Context, key string) (timedOutcome, bool) {
+	if h.rdb != nil {
+		raw, err := h.rdb.Get(ctx, "sbx:timeout:"+key).Bytes()
+		if err != nil || len(raw) < 4 {
+			return timedOutcome{}, false
+		}
+		var o struct {
+			Status int    `json:"s"`
+			Body   []byte `json:"b"`
+		}
+		if json.Unmarshal(raw, &o) != nil {
+			return timedOutcome{}, false
+		}
+		return timedOutcome{status: o.Status, body: o.Body}, true
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	o, found := h.timeouts[key]
+	if !found || time.Since(o.at) >= simulatedTimeoutTTL {
+		return timedOutcome{}, false
+	}
+	return o, true
+}
+
+func (h *SandboxDevHandler) storeOutcome(ctx context.Context, key string, status int, body []byte) {
+	if h.rdb != nil {
+		raw, _ := json.Marshal(struct {
+			Status int    `json:"s"`
+			Body   []byte `json:"b"`
+		}{status, body})
+		_ = h.rdb.Set(ctx, "sbx:timeout:"+key, raw, simulatedTimeoutTTL).Err()
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.timeouts[key] = timedOutcome{status: status, body: body, at: time.Now()}
+	for k, o := range h.timeouts { // keep the map bounded
+		if time.Since(o.at) > simulatedTimeoutTTL {
+			delete(h.timeouts, k)
+		}
+	}
+}
+
 func (h *SandboxDevHandler) principal(w http.ResponseWriter, r *http.Request, scope string) (*middleware.DeveloperPrincipal, bool) {
 	p, ok := middleware.GetDeveloperPrincipal(r.Context())
 	if !ok {
-		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHENTICATED", "a Project key is required")
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "a Project key is required")
 		return nil, false
 	}
 	if !env.Parse(p.Environment).IsSandbox() {
@@ -127,7 +183,7 @@ func (h *SandboxDevHandler) forward(w http.ResponseWriter, r *http.Request, meth
 	req.Header.Set("X-Internal-Key", h.internalKey)
 	resp, err := h.http.Do(req)
 	if err != nil {
-		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_UNAVAILABLE", "the Sandbox test payer service did not answer")
+		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "the Sandbox test payer service did not answer")
 		return 0, nil, false
 	}
 	defer resp.Body.Close()
@@ -156,10 +212,24 @@ func (h *SandboxDevHandler) CreateTestPayer(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	body, ok := readBody(w, r)
+	// Decoded here, so only the documented fields ever reach public-api.
+	var in struct {
+		Label               *string `json:"label"`
+		InitialBalanceMinor *int64  `json:"initial_balance_minor"`
+	}
+	raw, ok := readBody(w, r)
 	if !ok {
 		return
 	}
+	if len(bytes.TrimSpace(raw)) > 0 {
+		dec := json.NewDecoder(bytes.NewReader(raw))
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&in); err != nil {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "body may carry only label and initial_balance_minor")
+			return
+		}
+	}
+	body, _ := json.Marshal(map[string]any{"label": in.Label, "initial_balance_minor": in.InitialBalanceMinor})
 	if status, raw, ok := h.forward(w, r, http.MethodPost, "", body, p.ProjectID); ok {
 		writeSandboxRaw(w, status, raw)
 	}
@@ -262,12 +332,11 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
 	cacheKey := p.ProjectID + "|" + key
 
-	// A retry after a simulated timeout, with the same key, reads the real result.
-	if key != "" && in.Simulate == "" {
-		h.mu.Lock()
-		o, found := h.timeouts[cacheKey]
-		h.mu.Unlock()
-		if found && time.Since(o.at) < 24*time.Hour {
+	// A repeat after a simulated timeout, with the same key — with or without
+	// simulate, so a client's automatic retry of the 504 also lands here —
+	// reads the real result instead of paying again.
+	if key != "" {
+		if o, found := h.storedOutcome(r.Context(), cacheKey); found {
 			w.Header().Set("Idempotent-Replayed", "true")
 			writeSandboxRaw(w, o.status, o.body)
 			return
@@ -335,19 +404,20 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 		target["payment_link_slug"] = l.Slug
 	}
 	b, _ := json.Marshal(target)
-	status, raw, ok := h.forward(w, r, http.MethodPost, "/"+url.PathEscape(chi.URLParam(r, "id"))+"/payments", b, p.ProjectID)
+	payerID := chi.URLParam(r, "id")
+	status, raw, ok := h.forward(w, r, http.MethodPost, "/"+url.PathEscape(payerID)+"/payments", b, p.ProjectID)
 	if !ok {
 		return
 	}
-	if in.Simulate == SimulateTimeout {
-		h.mu.Lock()
-		h.timeouts[cacheKey] = timedOutcome{status: status, body: raw, at: time.Now()}
-		for k, o := range h.timeouts { // keep the map bounded
-			if time.Since(o.at) > 24*time.Hour {
-				delete(h.timeouts, k)
-			}
+	if status >= 200 && status < 300 {
+		via := "LINK"
+		if _, isQR := target["qr_payload"]; isQR {
+			via = "QR"
 		}
-		h.mu.Unlock()
+		raw = testPaymentResult(raw, payerID, via, in.PaymentSessionID, in.PaymentLinkID)
+	}
+	if in.Simulate == SimulateTimeout {
+		h.storeOutcome(r.Context(), cacheKey, status, raw)
 		writeJSON(w, http.StatusGatewayTimeout, map[string]any{
 			"code": "SANDBOX_SIMULATED_TIMEOUT",
 			"message": "Sandbox simulation: no answer arrived in time. The outcome is unknown to the client — " +
@@ -357,4 +427,53 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeSandboxRaw(w, status, raw)
+}
+
+// testPaymentResult gives a test-payer payment ONE response shape whichever
+// consumer path paid it (the link view or the QR payment), with nothing about
+// the payee the developer does not already own.
+func testPaymentResult(raw []byte, payerID, via, sessionID, linkID string) []byte {
+	var in struct {
+		TransferID    string  `json:"transfer_id"`
+		TransactionID string  `json:"transaction_id"`
+		AmountMinor   *int64  `json:"amount_minor"`
+		Currency      string  `json:"currency"`
+		PaidAt        *string `json:"paid_at"`
+		Receipt       *struct {
+			ProofReference string `json:"proof_reference"`
+		} `json:"receipt"`
+	}
+	_ = json.Unmarshal(raw, &in)
+	out := map[string]any{
+		"test_payer_id": payerID,
+		"via":           via,
+		"status":        "PAID",
+		"transfer_id":   firstNonEmpty(in.TransferID, in.TransactionID),
+		"amount_minor":  in.AmountMinor,
+		"currency":      in.Currency,
+		"paid_at":       in.PaidAt,
+		"simulated":     false,
+	}
+	if sessionID != "" {
+		out["payment_session_id"] = sessionID
+	}
+	if linkID != "" {
+		out["payment_link_id"] = linkID
+	}
+	if in.Receipt != nil && in.Receipt.ProofReference != "" {
+		out["proof_reference"] = in.Receipt.ProofReference
+	} else {
+		out["proof_reference"] = nil
+	}
+	b, _ := json.Marshal(out)
+	return b
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
