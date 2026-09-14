@@ -138,6 +138,10 @@ var (
 	// ErrDeleting: the project or workspace is being deleted (SANDBOX-DELETE-001);
 	// nothing new may be created under it.
 	ErrDeleting = errors.New("resource is being deleted")
+	// ErrAlreadyDeleting: Begin*Deletion found the resource already DELETING or
+	// DELETED under its lock — another request started the deletion first, and
+	// only that request records it.
+	ErrAlreadyDeleting = errors.New("deletion already started")
 	// Self-service creation limits (see limits.go).
 	ErrWorkspaceQuota = errors.New("workspace limit reached")
 	// ErrTestDeliveriesLimited: the endpoint had WebhookTestDeliveriesPerMinute
@@ -335,7 +339,8 @@ type Store interface {
 	// BeginWorkspaceDeletion moves the workspace and every project in it that is
 	// not already gone to DELETING, revokes every key of those projects and every
 	// pending invite, in one transaction. Returns the ids of the workspace's
-	// DELETING projects. ErrNotFound if the workspace does not exist.
+	// DELETING projects. ErrAlreadyDeleting if another request began it first;
+	// ErrNotFound if the workspace does not exist.
 	BeginWorkspaceDeletion(ctx context.Context, id string) (projectIDs []string, keysRevoked int, err error)
 	// FinishWorkspaceDeletion turns a DELETING workspace whose projects are all
 	// DELETED into a tombstone: members and invites removed, name and slug released.
@@ -388,7 +393,7 @@ type Store interface {
 	ProjectFootprint(ctx context.Context, id string) (ProjectFootprint, error)
 	// BeginProjectDeletion moves an ACTIVE or ARCHIVED project to DELETING and
 	// revokes every key on it, in one transaction. A project already DELETING or
-	// DELETED is left as it is (0 keys). ErrNotFound if it does not exist.
+	// DELETED is left as it is: ErrAlreadyDeleting. ErrNotFound if it does not exist.
 	BeginProjectDeletion(ctx context.Context, id string) (keysRevoked int, err error)
 	// FinishProjectDeletion turns a DELETING project into a tombstone: request logs
 	// removed, name and slug released. Idempotent.

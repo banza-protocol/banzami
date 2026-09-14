@@ -1744,7 +1744,7 @@ func (s *pgStore) BeginProjectDeletion(ctx context.Context, id string) (int, err
 		return 0, err
 	}
 	if isGone(status) {
-		return 0, tx.Commit(ctx)
+		return 0, ErrAlreadyDeleting
 	}
 	n, err := revokeProjectAuthority(ctx, tx, id)
 	if err != nil {
@@ -1847,11 +1847,12 @@ func (s *pgStore) BeginWorkspaceDeletion(ctx context.Context, id string) ([]stri
 		}
 		return nil, 0, err
 	}
-	if status != StatusDeleted && status != StatusDeleting {
-		if _, err := tx.Exec(ctx,
-			`UPDATE developer.dev_workspaces SET status = 'DELETING', deletion_requested_at = now(), updated_at = now() WHERE id = $1`, id); err != nil {
-			return nil, 0, err
-		}
+	if isGone(status) {
+		return nil, 0, ErrAlreadyDeleting
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_workspaces SET status = 'DELETING', deletion_requested_at = now(), updated_at = now() WHERE id = $1`, id); err != nil {
+		return nil, 0, err
 	}
 	rows, err := tx.Query(ctx,
 		`SELECT id FROM developer.dev_projects WHERE workspace_id = $1 AND status IN ('ACTIVE', 'ARCHIVED') ORDER BY id FOR UPDATE`, id)

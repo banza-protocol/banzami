@@ -1053,7 +1053,7 @@ func (m *memStore) BeginProjectDeletion(_ context.Context, id string) (int, erro
 		return 0, ErrNotFound
 	}
 	if isGone(p.Status) {
-		return 0, nil
+		return 0, ErrAlreadyDeleting
 	}
 	return m.revokeProjectAuthorityLocked(id), nil
 }
@@ -1119,7 +1119,10 @@ func (m *memStore) BeginWorkspaceDeletion(_ context.Context, id string) ([]strin
 	if !ok {
 		return nil, 0, ErrNotFound
 	}
-	if !isGone(w.Status) {
+	if isGone(w.Status) {
+		return nil, 0, ErrAlreadyDeleting
+	}
+	{
 		now := time.Now().UTC()
 		w.Status = StatusDeleting
 		w.DeletionRequestedAt = &now

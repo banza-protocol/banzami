@@ -203,3 +203,61 @@ func TestPgStore_WorkspaceDeletionRevokesMembersInvitesAndChildren(t *testing.T)
 		t.Fatalf("%d membership rows remain", members)
 	}
 }
+
+func TestPgStore_ConcurrentDeletesRecordTheDeletionOnce(t *testing.T) {
+	ctx := context.Background()
+	svc, st := pgDeleteSvc(ctx, t)
+	actor := uuid.NewString()
+	ws, err := svc.CreateWorkspace(ctx, actor, "Twice "+uuid.NewString()[:8], "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := svc.CreateProject(ctx, actor, ws.ID, "Twice", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := svc.CreateProject(ctx, actor, ws.ID, "Other", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := 0; i < 8; i++ {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			<-start
+			if d, _, err := svc.DeleteProject(ctx, actor, p.ID, "Twice", "", ""); err != nil || d.Status != StatusDeleting {
+				t.Errorf("a concurrent delete must succeed as DELETING: %v %+v", err, d)
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			<-start
+			if d, _, err := svc.DeleteWorkspace(ctx, actor, ws.ID, ws.Name, "", ""); err != nil || d.Status != StatusDeleting {
+				t.Errorf("a concurrent workspace delete must succeed as DELETING: %v %+v", err, d)
+			}
+		}()
+	}
+	close(start)
+	wg.Wait()
+	count := func(action, subject string) int {
+		var n int
+		if err := st.pool.QueryRow(ctx,
+			`SELECT count(*) FROM developer.audit_events WHERE action = $1 AND subject = $2`, action, subject).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	if n := count("project.deletion_requested", "PROJECT:"+p.ID); n > 1 {
+		t.Fatalf("project deletion recorded %d times", n)
+	}
+	if n := count("workspace.deletion_requested", "WORKSPACE:"+ws.ID); n != 1 {
+		t.Fatalf("workspace deletion recorded %d times", n)
+	}
+	for _, id := range []string{p.ID, other.ID} {
+		if got, _ := st.Project(ctx, id); got == nil || got.Status != StatusDeleting {
+			t.Fatalf("project %s not DELETING: %+v", id, got)
+		}
+	}
+}

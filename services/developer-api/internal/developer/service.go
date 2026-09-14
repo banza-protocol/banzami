@@ -305,6 +305,13 @@ func (s *Service) DeleteWorkspace(ctx context.Context, actor, wsID, confirmName,
 	}
 	// The audit event is written before the owner loses access.
 	projects, revoked, err := s.store.BeginWorkspaceDeletion(ctx, wsID)
+	if errors.Is(err, ErrAlreadyDeleting) {
+		// A concurrent request began it; that request recorded it.
+		if fresh, ferr := s.store.Workspace(ctx, wsID); ferr == nil {
+			return s.continueWorkspaceDeletion(ctx, &fresh, actor), f, nil
+		}
+		return ProjectDeletion{Status: StatusDeleting}, f, nil
+	}
 	if err != nil {
 		if err == ErrNotFound {
 			return ProjectDeletion{}, f, ErrNotFound
@@ -664,6 +671,13 @@ func (s *Service) DeleteProject(ctx context.Context, actor, projectID, confirmNa
 		return ProjectDeletion{}, f, err
 	}
 	revoked, err := s.store.BeginProjectDeletion(ctx, p.ID)
+	if errors.Is(err, ErrAlreadyDeleting) {
+		// A concurrent request began it; that request recorded it.
+		if fresh, ferr := s.store.Project(ctx, p.ID); ferr == nil && fresh != nil {
+			return s.continueProjectDeletion(ctx, fresh, actor), ProjectFootprint{}, nil
+		}
+		return ProjectDeletion{Status: StatusDeleting}, ProjectFootprint{}, nil
+	}
 	if err != nil {
 		if err == ErrNotFound {
 			return ProjectDeletion{}, ProjectFootprint{}, ErrNotFound
