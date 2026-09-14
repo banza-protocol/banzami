@@ -268,6 +268,25 @@ pub async fn test_credit(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    // A test payer retired by a reset or a deleted Project takes no new value.
+    // The row lock serialises this with retirement's FOR UPDATE: a credit either
+    // commits first and is retired with the payer, or finds it retired.
+    if !state.environment.is_live() {
+        let retired: Option<bool> = sqlx::query_scalar(
+            "SELECT retired_at IS NOT NULL FROM sandbox_test_payers WHERE consumer_id = $1 FOR SHARE",
+        )
+        .bind(consumer_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+        if retired == Some(true) {
+            return Err(ApiError::unprocessable(
+                "TEST_PAYER_RETIRED",
+                "this test payer is retired",
+            ));
+        }
+    }
+
     match sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
          VALUES ($1, $2, $3, $4)",

@@ -237,6 +237,68 @@ async fn a_later_pass_retires_only_what_arrived_since(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
+async fn value_reaching_a_retired_payer_is_retired_by_the_next_pass(pool: PgPool) {
+    let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
+    let project = Uuid::new_v4();
+    let (payer, avail) = test_payer(&pool, transit, project, 50_000).await;
+    let _ = retire(State(st.clone()), body(project, "p1", true))
+        .await
+        .unwrap();
+    assert_eq!(balance(&pool, avail).await, 0);
+
+    // A credit that was in flight when the payer was retired (a refund, say).
+    fund(&pool, transit, avail, 9_000).await;
+    let Json(next) = retire(State(st.clone()), body(project, "p2", true))
+        .await
+        .unwrap();
+    assert_eq!(next["retired_minor"], 9_000);
+    assert_eq!(
+        next["test_payers_retired"], 0,
+        "the payer was already retired"
+    );
+    assert_eq!(balance(&pool, avail).await, 0);
+    assert_eq!(
+        count(
+            &pool,
+            &format!("SELECT count(*) FROM audit_log WHERE action = 'SANDBOX_TEST_PAYER_RETIRED' AND subject = 'consumer:{payer}'")
+        )
+        .await,
+        1,
+        "retired once, its later value swept"
+    );
+    assert!(book_balanced(&pool).await);
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_retired_payer_takes_no_new_credit(pool: PgPool) {
+    let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
+    let project = Uuid::new_v4();
+    let (payer, avail) = test_payer(&pool, transit, project, 50_000).await;
+    let credit = |key: &str| {
+        crate::routes::consumer_wallets::test_credit(
+            State(st.clone()),
+            Json(crate::routes::consumer_wallets::TestCreditBody {
+                consumer_id: payer.to_string(),
+                amount_minor: 10_000,
+                currency: Some("AOA".into()),
+                idempotency_key: Some(key.into()),
+            }),
+        )
+    };
+    if let Err(e) = credit("credit-before").await {
+        panic!("a live payer is funded: {} {}", e.code, e.message);
+    }
+    let _ = retire(State(st.clone()), body(project, "p1", true))
+        .await
+        .unwrap();
+    let Err(refused) = credit("credit-after").await else {
+        panic!("a retired test payer was credited");
+    };
+    assert_eq!(refused.code, "TEST_PAYER_RETIRED");
+    assert_eq!(balance(&pool, avail).await, 0);
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn a_shared_business_is_never_retired(pool: PgPool) {
     let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
     let owner = Uuid::new_v4();

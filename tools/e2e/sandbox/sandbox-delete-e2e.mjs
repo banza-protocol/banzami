@@ -145,9 +145,11 @@ const historyPrint = (P, M, cut) => sql(`
                UNION SELECT w.available_account_id FROM consumer_wallets w JOIN sandbox_test_payers t ON t.consumer_id = w.consumer_id WHERE t.project_id = '${id(P)}')
   SELECT count(*) || ':' || coalesce(md5(string_agg(e.id::text || e.posting_id || e.account_id || e.entry_type || e.amount_minor || e.created_at, ',' ORDER BY e.id)), '-')
     FROM ledger_entries e WHERE e.account_id IN (SELECT a FROM acc) AND e.created_at <= '${cut}'`);
-/** The same account retired by two different passes. */
-const doubleCleanups = (P) => num(`SELECT count(*) FROM (SELECT regexp_replace(idempotency_key, '^sandbox-retire:delete:[^:]+:[^:]+:', '') t
-  FROM ledger_postings WHERE idempotency_key LIKE 'sandbox-retire:delete:${id(P)}:%' GROUP BY 1 HAVING count(*) > 1) x`);
+/** Accounts a deletion retired below zero: value retired twice. (A second pass
+ *  retiring a credit that arrived later is correct, and is not counted.) */
+const doubleCleanups = (P) => num(`SELECT count(*) FROM (SELECT DISTINCT e.account_id FROM ledger_postings p JOIN ledger_entries e ON e.posting_id = p.id AND e.entry_type = 'DEBIT'
+  WHERE p.idempotency_key LIKE 'sandbox-retire:delete:${id(P)}:%') r
+  WHERE (SELECT sum(CASE x.entry_type WHEN 'CREDIT' THEN x.amount_minor ELSE -x.amount_minor END) FROM ledger_entries x WHERE x.account_id = r.account_id) < 0`);
 const coreRetirementPasses = (P) => num(`SELECT count(*) FROM audit_log WHERE action = 'SANDBOX_PROJECT_RETIRED' AND subject = 'project:${id(P)}'`);
 const requestLogs = (P) => num(`SELECT count(*) FROM developer.dev_api_request_logs WHERE project_id = '${id(P)}'`);
 const auditCount = (action, subject) => num(`SELECT count(*) FROM developer.audit_events WHERE action = '${action.replace(/[^a-z._]/g, '')}' AND subject = '${subject.replace(/[^A-Za-z0-9:-]/g, '')}'`);

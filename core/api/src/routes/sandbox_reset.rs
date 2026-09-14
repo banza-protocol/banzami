@@ -189,15 +189,19 @@ pub(crate) async fn retire_test_payers(
     via: &str,
 ) -> ApiResult<(Vec<Uuid>, i64)> {
     let db = |e: sqlx::Error| ApiError::internal(e.to_string());
-    let payers: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT consumer_id FROM sandbox_test_payers WHERE project_id = $1 AND retired_at IS NULL FOR UPDATE",
+    // Every payer of the Project, retired or not: value that reached an already
+    // retired payer (a refund or a credit that was in flight when it was retired)
+    // is retired by the next pass. A zero balance posts nothing.
+    let all: Vec<(Uuid, bool)> = sqlx::query_as(
+        "SELECT consumer_id, retired_at IS NOT NULL FROM sandbox_test_payers WHERE project_id = $1 FOR UPDATE",
     )
     .bind(project)
     .fetch_all(&mut **tx)
     .await
     .map_err(db)?;
+    let mut payers: Vec<Uuid> = Vec::new();
     let mut retired_minor: i64 = 0;
-    for payer in &payers {
+    for (payer, already_retired) in &all {
         let has_wallet: bool = sqlx::query_scalar(
             "SELECT EXISTS (SELECT 1 FROM consumer_wallets WHERE consumer_id = $1 AND currency = 'AOA')",
         )
@@ -218,6 +222,10 @@ pub(crate) async fn retire_test_payers(
             .await?;
             retired_minor += amount;
         }
+        if *already_retired {
+            continue;
+        }
+        payers.push(*payer);
         sqlx::query("UPDATE sandbox_test_payers SET retired_at = now() WHERE consumer_id = $1")
             .bind(payer)
             .execute(&mut **tx)
