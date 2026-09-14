@@ -1,0 +1,360 @@
+package handler
+
+import (
+	"bytes"
+	"context"
+	_ "embed"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/common/env"
+)
+
+// The public Sandbox test-data surface (ADR-060 §4–§5), on the developer key.
+//
+//	GET    /v1/sandbox/scenarios                        sandbox:read
+//	POST   /v1/sandbox/test-payers                      sandbox:write
+//	GET    /v1/sandbox/test-payers                      sandbox:read
+//	GET    /v1/sandbox/test-payers/{id}                 sandbox:read
+//	POST   /v1/sandbox/test-payers/{id}/fund            sandbox:write
+//	POST   /v1/sandbox/test-payers/{id}/payments        sandbox:write
+//	DELETE /v1/sandbox/test-payers/{id}                 sandbox:write
+//
+// The Project is the key's, never a request field. A test payer pays only the
+// Project's OWN Payment Sessions and Payment Links: a test in Project A cannot
+// move fictitious money into Project B.
+//
+// External-rail outcomes are explicit (simulate), marked simulated: true, and
+// never silently triggered by a value. DECLINED and PROVIDER_UNAVAILABLE change
+// nothing. TIMEOUT makes the payment and then answers 504, so a client practises
+// the ambiguous-outcome rule: repeat with the same Idempotency-Key and read the
+// real result.
+
+//go:embed sandbox_scenarios.json
+var sandboxScenarios []byte
+
+// SandboxScenarioCatalogue exposes the embedded catalogue to the docs drift gate.
+func SandboxScenarioCatalogue() []byte { return sandboxScenarios }
+
+type devSessionReader interface {
+	Get(ctx context.Context, id string) (*service.PaymentSession, error)
+}
+
+type devLinkReader interface {
+	Get(ctx context.Context, id string) (*service.PaymentLink, error)
+}
+
+type SandboxDevHandler struct {
+	publicAPI   string // public-api internal base URL
+	internalKey string
+	http        *http.Client
+	sessions    devSessionReader
+	links       devLinkReader
+
+	mu       sync.Mutex
+	timeouts map[string]timedOutcome // project|idempotency key → the real outcome of a simulated timeout
+}
+
+type timedOutcome struct {
+	status int
+	body   []byte
+	at     time.Time
+}
+
+func NewSandboxDevHandler(publicAPIURL, internalKey string, sessions devSessionReader, links devLinkReader) *SandboxDevHandler {
+	return &SandboxDevHandler{
+		publicAPI: strings.TrimRight(publicAPIURL, "/"), internalKey: internalKey,
+		http: &http.Client{Timeout: 20 * time.Second}, sessions: sessions, links: links,
+		timeouts: map[string]timedOutcome{},
+	}
+}
+
+func (h *SandboxDevHandler) principal(w http.ResponseWriter, r *http.Request, scope string) (*middleware.DeveloperPrincipal, bool) {
+	p, ok := middleware.GetDeveloperPrincipal(r.Context())
+	if !ok {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHENTICATED", "a Project key is required")
+		return nil, false
+	}
+	if !env.Parse(p.Environment).IsSandbox() {
+		apierror.Respond(w, r, http.StatusForbidden, "SANDBOX_ONLY", "Sandbox test data exists only in the Sandbox")
+		return nil, false
+	}
+	if !p.HasScope(scope) {
+		apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE", "missing required scope: "+scope)
+		return nil, false
+	}
+	return p, true
+}
+
+// Scenarios handles GET /v1/sandbox/scenarios.
+func (h *SandboxDevHandler) Scenarios(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.principal(w, r, "sandbox:read"); !ok {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(sandboxScenarios)
+}
+
+// forward calls public-api's internal test-payer route for the key's Project
+// and copies the answer.
+func (h *SandboxDevHandler) forward(w http.ResponseWriter, r *http.Request, method, path string, body []byte, projectID string) (int, []byte, bool) {
+	if h.publicAPI == "" || h.internalKey == "" {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "Sandbox test payers are not available on this deployment")
+		return 0, nil, false
+	}
+	u := h.publicAPI + "/internal/v1/sandbox/test-payers" + path
+	q := url.Values{"project_id": {projectID}}
+	if r.URL.Query().Get("include_retired") == "true" {
+		q.Set("include_retired", "true")
+	}
+	req, err := http.NewRequestWithContext(r.Context(), method, u+"?"+q.Encode(), bytes.NewReader(body))
+	if err != nil {
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not build the request")
+		return 0, nil, false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Internal-Key", h.internalKey)
+	resp, err := h.http.Do(req)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_UNAVAILABLE", "the Sandbox test payer service did not answer")
+		return 0, nil, false
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	return resp.StatusCode, raw, true
+}
+
+func writeSandboxRaw(w http.ResponseWriter, status int, raw []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(raw)
+}
+
+func readBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 16<<10))
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body too large or unreadable")
+		return nil, false
+	}
+	return b, true
+}
+
+// CreateTestPayer handles POST /v1/sandbox/test-payers.
+func (h *SandboxDevHandler) CreateTestPayer(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:write")
+	if !ok {
+		return
+	}
+	body, ok := readBody(w, r)
+	if !ok {
+		return
+	}
+	if status, raw, ok := h.forward(w, r, http.MethodPost, "", body, p.ProjectID); ok {
+		writeSandboxRaw(w, status, raw)
+	}
+}
+
+// ListTestPayers handles GET /v1/sandbox/test-payers.
+func (h *SandboxDevHandler) ListTestPayers(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:read")
+	if !ok {
+		return
+	}
+	if status, raw, ok := h.forward(w, r, http.MethodGet, "", nil, p.ProjectID); ok {
+		writeSandboxRaw(w, status, raw)
+	}
+}
+
+// GetTestPayer handles GET /v1/sandbox/test-payers/{id}.
+func (h *SandboxDevHandler) GetTestPayer(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:read")
+	if !ok {
+		return
+	}
+	if status, raw, ok := h.forward(w, r, http.MethodGet, "/"+url.PathEscape(chi.URLParam(r, "id")), nil, p.ProjectID); ok {
+		writeSandboxRaw(w, status, raw)
+	}
+}
+
+// RetireTestPayer handles DELETE /v1/sandbox/test-payers/{id}.
+func (h *SandboxDevHandler) RetireTestPayer(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:write")
+	if !ok {
+		return
+	}
+	if status, raw, ok := h.forward(w, r, http.MethodDelete, "/"+url.PathEscape(chi.URLParam(r, "id")), nil, p.ProjectID); ok {
+		writeSandboxRaw(w, status, raw)
+	}
+}
+
+// FundTestPayer handles POST /v1/sandbox/test-payers/{id}/fund. The
+// Idempotency-Key header is the top-up's key.
+func (h *SandboxDevHandler) FundTestPayer(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:write")
+	if !ok {
+		return
+	}
+	var in struct {
+		AmountMinor int64 `json:"amount_minor"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "body must be {\"amount_minor\": …}")
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if key == "" {
+		apierror.Respond(w, r, http.StatusBadRequest, "IDEMPOTENCY_KEY_REQUIRED", "send an Idempotency-Key header with a top-up")
+		return
+	}
+	b, _ := json.Marshal(map[string]any{"amount_minor": in.AmountMinor, "idempotency_key": key})
+	if status, raw, ok := h.forward(w, r, http.MethodPost, "/"+url.PathEscape(chi.URLParam(r, "id"))+"/fund", b, p.ProjectID); ok {
+		writeSandboxRaw(w, status, raw)
+	}
+}
+
+// Simulated rail outcomes a test-payer payment may request.
+const (
+	SimulateDeclined            = "DECLINED"
+	SimulateProviderUnavailable = "PROVIDER_UNAVAILABLE"
+	SimulateTimeout             = "TIMEOUT"
+)
+
+// PayAsTestPayer handles POST /v1/sandbox/test-payers/{id}/payments.
+//
+//	{ "payment_session_id": "…", "via": "LINK" | "QR" }   or
+//	{ "payment_link_id": "…" }
+//	  + "amount_minor" for an open amount, + "simulate" for a rail outcome
+func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:write")
+	if !ok {
+		return
+	}
+	var in struct {
+		PaymentSessionID string `json:"payment_session_id"`
+		PaymentLinkID    string `json:"payment_link_id"`
+		Via              string `json:"via"`
+		AmountMinor      *int64 `json:"amount_minor"`
+		Simulate         string `json:"simulate"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&in); err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+		return
+	}
+	if (in.PaymentSessionID == "") == (in.PaymentLinkID == "") {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "name exactly one of payment_session_id or payment_link_id")
+		return
+	}
+	if !p.Bound || p.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE", "this project has no Financial Setup")
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	cacheKey := p.ProjectID + "|" + key
+
+	// A retry after a simulated timeout, with the same key, reads the real result.
+	if key != "" && in.Simulate == "" {
+		h.mu.Lock()
+		o, found := h.timeouts[cacheKey]
+		h.mu.Unlock()
+		if found && time.Since(o.at) < 24*time.Hour {
+			w.Header().Set("Idempotent-Replayed", "true")
+			writeSandboxRaw(w, o.status, o.body)
+			return
+		}
+	}
+
+	switch in.Simulate {
+	case "":
+	case SimulateDeclined:
+		writeJSON(w, http.StatusPaymentRequired, map[string]any{
+			"code": "PAYMENT_DECLINED", "message": "Sandbox simulation: the external rail declined this payment. Nothing moved.",
+			"simulated": true, "request_id": w.Header().Get("X-Request-ID"),
+		})
+		return
+	case SimulateProviderUnavailable:
+		w.Header().Set("Retry-After", "30")
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"code": "PROVIDER_UNAVAILABLE", "message": "Sandbox simulation: the external provider is unavailable. Nothing moved; retry later.",
+			"simulated": true, "request_id": w.Header().Get("X-Request-ID"),
+		})
+		return
+	case SimulateTimeout:
+		if key == "" {
+			apierror.Respond(w, r, http.StatusBadRequest, "IDEMPOTENCY_KEY_REQUIRED",
+				"simulate TIMEOUT needs an Idempotency-Key, so the retry can read the real result")
+			return
+		}
+	default:
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "simulate must be DECLINED, PROVIDER_UNAVAILABLE or TIMEOUT")
+		return
+	}
+
+	// Resolve what is being paid, and that it is this Project's own.
+	target := map[string]any{"amount_minor": in.AmountMinor}
+	if in.PaymentSessionID != "" {
+		s, err := h.sessions.Get(r.Context(), in.PaymentSessionID)
+		if err != nil || s == nil || s.MerchantID != p.MerchantID {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment session not found")
+			return
+		}
+		switch strings.ToUpper(in.Via) {
+		case "", "LINK":
+			if s.PaymentLinkSlug == nil || *s.PaymentLinkSlug == "" {
+				apierror.Respond(w, r, http.StatusUnprocessableEntity, "INTERFACE_UNAVAILABLE", "this session has no payment link")
+				return
+			}
+			target["payment_link_slug"] = *s.PaymentLinkSlug
+		case "QR":
+			if s.QrPayload == nil || *s.QrPayload == "" {
+				apierror.Respond(w, r, http.StatusUnprocessableEntity, "INTERFACE_UNAVAILABLE", "this session has no dynamic QR (open-amount sessions are paid by link)")
+				return
+			}
+			target["qr_payload"] = *s.QrPayload
+			target["idempotency_key"] = "sbx-qr-" + p.ProjectID + "-" + in.PaymentSessionID
+		default:
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "via must be LINK or QR")
+			return
+		}
+	} else {
+		l, err := h.links.Get(r.Context(), in.PaymentLinkID)
+		if err != nil || l == nil || l.MerchantID != p.MerchantID {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment link not found")
+			return
+		}
+		target["payment_link_slug"] = l.Slug
+	}
+	b, _ := json.Marshal(target)
+	status, raw, ok := h.forward(w, r, http.MethodPost, "/"+url.PathEscape(chi.URLParam(r, "id"))+"/payments", b, p.ProjectID)
+	if !ok {
+		return
+	}
+	if in.Simulate == SimulateTimeout {
+		h.mu.Lock()
+		h.timeouts[cacheKey] = timedOutcome{status: status, body: raw, at: time.Now()}
+		for k, o := range h.timeouts { // keep the map bounded
+			if time.Since(o.at) > 24*time.Hour {
+				delete(h.timeouts, k)
+			}
+		}
+		h.mu.Unlock()
+		writeJSON(w, http.StatusGatewayTimeout, map[string]any{
+			"code": "SANDBOX_SIMULATED_TIMEOUT",
+			"message": "Sandbox simulation: no answer arrived in time. The outcome is unknown to the client — " +
+				"repeat the same request with the same Idempotency-Key to read it.",
+			"simulated": true, "request_id": w.Header().Get("X-Request-ID"),
+		})
+		return
+	}
+	writeSandboxRaw(w, status, raw)
+}

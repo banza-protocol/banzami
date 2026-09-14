@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/handler"
-	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
@@ -118,38 +117,6 @@ func TestDisputeEvidence_CoreTransportErrorTextNeverInBody(t *testing.T) {
 	w := httptest.NewRecorder()
 	h.SubmitEvidence(w, withRouteID(withMerchant(httptest.NewRequest(http.MethodPost, "/",
 		strings.NewReader(`{"submitted_by":"x","party":"MERCHANT","description":"d"}`)), ownerID), linkID))
-	assertNoInternalText(t, w, http.StatusBadGateway, "UPSTREAM_ERROR")
-}
-
-func sandboxPost(body string) *http.Request {
-	r := httptest.NewRequest(http.MethodPost, "/v1/sandbox/x", strings.NewReader(body))
-	return r.WithContext(middleware.ContextWithPrincipal(r.Context(), &middleware.Principal{MerchantID: ownerID, Environment: "SANDBOX"}))
-}
-
-func TestSandboxSimulate_CoreTransportErrorTextNeverInBody(t *testing.T) {
-	h := handler.NewSandboxHandler(service.NewCoreApiTransactionService(deadCore()), nil)
-	w := httptest.NewRecorder()
-	h.SimulatePayment(w, sandboxPost(`{"amount_minor":1000}`))
-	assertNoInternalText(t, w, http.StatusBadGateway, "UPSTREAM_ERROR")
-}
-
-// fundToDeadCore finds the wallet but funds it through a core that is down.
-type fundToDeadCore struct {
-	service.WalletService
-	core *service.CoreApiWalletService
-}
-
-func (f fundToDeadCore) GetForMerchant(context.Context, string, string) (*service.WalletRecord, error) {
-	return &service.WalletRecord{ID: "w1"}, nil
-}
-func (f fundToDeadCore) SandboxFund(ctx context.Context, walletID string, amount int64, currency, key string) (*service.WalletBalance, error) {
-	return f.core.SandboxFund(ctx, walletID, amount, currency, key)
-}
-
-func TestSandboxFund_CoreTransportErrorTextNeverInBody(t *testing.T) {
-	h := handler.NewSandboxHandler(nil, fundToDeadCore{core: service.NewCoreApiWalletService(deadCore())})
-	w := httptest.NewRecorder()
-	h.FundWallet(w, sandboxPost(`{"amount_minor":1000}`))
 	assertNoInternalText(t, w, http.StatusBadGateway, "UPSTREAM_ERROR")
 }
 

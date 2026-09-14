@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "note": {
+    "pt": "Cada cenário é produzido fazendo a coisa real, exceto os resultados de rede externa, pedidos explicitamente com simulate e marcados como simulated: true. Não há valores mágicos.",
+    "en": "Every scenario is produced by doing the real thing, except external-rail outcomes, which are requested explicitly with simulate and marked simulated: true. There are no magic values."
+  },
+  "scenarios": [
+    {
+      "id": "PAYMENT_SUCCESS", "group": "payments", "simulated": false,
+      "goal": { "pt": "Um pagamento concluído", "en": "A completed payment" },
+      "trigger": { "pt": "POST /v1/sandbox/test-payers/{id}/payments com payment_session_id", "en": "POST /v1/sandbox/test-payers/{id}/payments with payment_session_id" },
+      "result": { "pt": "200; a sessão fica PAID", "en": "200; the session becomes PAID" },
+      "event": "payment_session.paid"
+    },
+    {
+      "id": "INSUFFICIENT_FUNDS", "group": "payments", "simulated": false,
+      "goal": { "pt": "Um pagador sem saldo", "en": "A payer without funds" },
+      "trigger": { "pt": "Crie o pagador com initial_balance_minor: 0 e pague uma sessão", "en": "Create the payer with initial_balance_minor: 0 and pay a session" },
+      "result": { "pt": "422 INSUFFICIENT_FUNDS; a sessão continua ACTIVE", "en": "422 INSUFFICIENT_FUNDS; the session stays ACTIVE" },
+      "event": null
+    },
+    {
+      "id": "PAYMENT_DECLINED", "group": "payments", "simulated": true,
+      "goal": { "pt": "Uma recusa da rede externa", "en": "An external-rail decline" },
+      "trigger": { "pt": "simulate: \"DECLINED\" no pagamento do pagador de teste", "en": "simulate: \"DECLINED\" on the test payer payment" },
+      "result": { "pt": "402 PAYMENT_DECLINED com simulated: true; nada muda", "en": "402 PAYMENT_DECLINED with simulated: true; nothing changes" },
+      "event": null
+    },
+    {
+      "id": "AMBIGUOUS_TIMEOUT", "group": "payments", "simulated": true,
+      "goal": { "pt": "Um resultado ambíguo", "en": "An ambiguous outcome" },
+      "trigger": { "pt": "simulate: \"TIMEOUT\" com Idempotency-Key; depois repita o pedido com a mesma chave, sem simulate", "en": "simulate: \"TIMEOUT\" with an Idempotency-Key; then repeat the request with the same key, without simulate" },
+      "result": { "pt": "504 SANDBOX_SIMULATED_TIMEOUT, mas o pagamento foi feito; a repetição responde 200 com o resultado", "en": "504 SANDBOX_SIMULATED_TIMEOUT, but the payment was made; the retry answers 200 with the result" },
+      "event": "payment_session.paid"
+    },
+    {
+      "id": "PROVIDER_UNAVAILABLE", "group": "payments", "simulated": true,
+      "goal": { "pt": "Um fornecedor indisponível", "en": "A provider outage" },
+      "trigger": { "pt": "simulate: \"PROVIDER_UNAVAILABLE\"", "en": "simulate: \"PROVIDER_UNAVAILABLE\"" },
+      "result": { "pt": "503 PROVIDER_UNAVAILABLE com Retry-After e simulated: true; nada muda", "en": "503 PROVIDER_UNAVAILABLE with Retry-After and simulated: true; nothing changes" },
+      "event": null
+    },
+    {
+      "id": "INVALID_PARAMETER", "group": "api", "simulated": false,
+      "goal": { "pt": "Um parâmetro inválido", "en": "An invalid parameter" },
+      "trigger": { "pt": "POST /v1/payment-sessions com amount_minor: 0", "en": "POST /v1/payment-sessions with amount_minor: 0" },
+      "result": { "pt": "400 com o código e o request_id", "en": "400 with the code and the request_id" },
+      "event": null
+    },
+    {
+      "id": "INVALID_CURSOR", "group": "api", "simulated": false,
+      "goal": { "pt": "Um cursor de paginação inválido", "en": "An invalid pagination cursor" },
+      "trigger": { "pt": "GET /v1/payment-links?cursor=abc ou limit=500", "en": "GET /v1/payment-links?cursor=abc or limit=500" },
+      "result": { "pt": "400 INVALID_PARAM", "en": "400 INVALID_PARAM" },
+      "event": null
+    },
+    {
+      "id": "INVALID_KEY", "group": "api", "simulated": false,
+      "goal": { "pt": "Uma chave inválida ou revogada", "en": "An invalid or revoked key" },
+      "trigger": { "pt": "Revogue a chave na Consola e chame GET /v1/me", "en": "Revoke the key in the Console and call GET /v1/me" },
+      "result": { "pt": "401", "en": "401" },
+      "event": null
+    },
+    {
+      "id": "MISSING_SCOPE", "group": "api", "simulated": false,
+      "goal": { "pt": "Um scope em falta", "en": "A missing scope" },
+      "trigger": { "pt": "Chame POST /v1/payment-sessions com uma chave sem payment_sessions:write", "en": "Call POST /v1/payment-sessions with a key without payment_sessions:write" },
+      "result": { "pt": "403 INSUFFICIENT_SCOPE", "en": "403 INSUFFICIENT_SCOPE" },
+      "event": null
+    },
+    {
+      "id": "FINANCIAL_SETUP_NOT_READY", "group": "api", "simulated": false,
+      "goal": { "pt": "Um projeto sem configuração financeira", "en": "A project without Financial Setup" },
+      "trigger": { "pt": "Crie um projeto novo, emita uma chave e crie uma sessão antes de configurar", "en": "Create a new project, issue a key and create a session before configuring" },
+      "result": { "pt": "403 PAYMENTS_UNAVAILABLE", "en": "403 PAYMENTS_UNAVAILABLE" },
+      "event": null
+    },
+    {
+      "id": "IDEMPOTENT_REPLAY", "group": "idempotency", "simulated": false,
+      "goal": { "pt": "Repetir um pedido com segurança", "en": "Repeat a request safely" },
+      "trigger": { "pt": "Envie o mesmo pedido duas vezes com o mesmo Idempotency-Key", "en": "Send the same request twice with the same Idempotency-Key" },
+      "result": { "pt": "A segunda resposta é a primeira; nada é criado duas vezes", "en": "The second response is the first; nothing is created twice" },
+      "event": null
+    },
+    {
+      "id": "IDEMPOTENCY_PAYLOAD_CONFLICT", "group": "idempotency", "simulated": false,
+      "goal": { "pt": "A mesma chave com outro corpo", "en": "The same key with another body" },
+      "trigger": { "pt": "Repita o Idempotency-Key com um corpo diferente", "en": "Repeat the Idempotency-Key with a different body" },
+      "result": { "pt": "409 IDEMPOTENCY_KEY_REUSED", "en": "409 IDEMPOTENCY_KEY_REUSED" },
+      "event": null
+    },
+    {
+      "id": "CONCURRENT_DUPLICATE", "group": "idempotency", "simulated": false,
+      "goal": { "pt": "Dois pedidos simultâneos com a mesma chave", "en": "Two concurrent requests with the same key" },
+      "trigger": { "pt": "Envie os dois pedidos ao mesmo tempo", "en": "Send both requests at the same time" },
+      "result": { "pt": "Um é executado; o outro recebe 409 IDEMPOTENCY_CONFLICT", "en": "One runs; the other receives 409 IDEMPOTENCY_CONFLICT" },
+      "event": null
+    },
+    {
+      "id": "WEBHOOK_SUCCESS", "group": "webhooks", "simulated": true,
+      "goal": { "pt": "Verificar o endpoint sem um pagamento", "en": "Check the endpoint without a payment" },
+      "trigger": { "pt": "POST /v1/webhooks/endpoints/{id}/test", "en": "POST /v1/webhooks/endpoints/{id}/test" },
+      "result": { "pt": "202; entrega webhook.test assinada, marcada synthetic", "en": "202; a signed webhook.test delivery, marked synthetic" },
+      "event": "webhook.test"
+    },
+    {
+      "id": "WEBHOOK_RETRY", "group": "webhooks", "simulated": false,
+      "goal": { "pt": "Uma falha do endpoint e a nova tentativa", "en": "An endpoint failure and the retry" },
+      "trigger": { "pt": "Responda 500 à primeira entrega", "en": "Answer the first delivery with 500" },
+      "result": { "pt": "Nova tentativa após 1 minuto; tentativas visíveis nas entregas", "en": "Retried after 1 minute; attempts visible in deliveries" },
+      "event": "the original event"
+    },
+    {
+      "id": "WEBHOOK_REPLAY", "group": "webhooks", "simulated": false,
+      "goal": { "pt": "Reenviar uma entrega", "en": "Redeliver a delivery" },
+      "trigger": { "pt": "POST /v1/webhooks/deliveries/{id}/replay", "en": "POST /v1/webhooks/deliveries/{id}/replay" },
+      "result": { "pt": "201; o mesmo evento com o mesmo id; nenhuma operação é repetida", "en": "201; the same event with the same id; no operation is repeated" },
+      "event": "the original event"
+    },
+    {
+      "id": "WEBHOOK_SIGNATURE_INVALID", "group": "webhooks", "simulated": false,
+      "goal": { "pt": "Uma assinatura que não confere", "en": "A signature that does not match" },
+      "trigger": { "pt": "Verifique uma entrega com outro segredo ou com o corpo alterado", "en": "Verify a delivery with another secret or an altered body" },
+      "result": { "pt": "O verificador do SDK recusa", "en": "The SDK verifier refuses" },
+      "event": null
+    },
+    {
+      "id": "REFUND_FULL", "group": "refunds", "simulated": false,
+      "goal": { "pt": "Reembolso total", "en": "Full refund" },
+      "trigger": { "pt": "POST /v1/refunds com o refund_source e o montante total", "en": "POST /v1/refunds with the refund_source and the full amount" },
+      "result": { "pt": "201 SUCCEEDED", "en": "201 SUCCEEDED" },
+      "event": "refund.completed"
+    },
+    {
+      "id": "REFUND_PARTIAL", "group": "refunds", "simulated": false,
+      "goal": { "pt": "Reembolso parcial e acumulado", "en": "Partial and cumulative refund" },
+      "trigger": { "pt": "Dois reembolsos parciais do mesmo pagamento", "en": "Two partial refunds of the same payment" },
+      "result": { "pt": "201 cada; o total nunca excede o pago", "en": "201 each; the total never exceeds the payment" },
+      "event": "refund.completed"
+    },
+    {
+      "id": "REFUND_CUMULATIVE_LIMIT", "group": "refunds", "simulated": false,
+      "goal": { "pt": "Reembolsar mais do que o pago", "en": "Refund more than was paid" },
+      "trigger": { "pt": "Um reembolso depois de o pagamento estar totalmente reembolsado", "en": "A refund after the payment is fully refunded" },
+      "result": { "pt": "422 REFUND_EXCEEDS_CAPTURED", "en": "422 REFUND_EXCEEDS_CAPTURED" },
+      "event": null
+    },
+    {
+      "id": "REFUND_NOT_ELIGIBLE", "group": "refunds", "simulated": false,
+      "goal": { "pt": "Reembolsar o que não foi pago", "en": "Refund something that was not paid" },
+      "trigger": { "pt": "Um refund_source de outro projeto ou de uma sessão por pagar", "en": "A refund_source from another project or an unpaid session" },
+      "result": { "pt": "404 ou 422, sem movimento", "en": "404 or 422, nothing moves" },
+      "event": null
+    },
+    {
+      "id": "SETTLEMENT_SUCCESS", "group": "settlements", "simulated": false,
+      "goal": { "pt": "Uma liquidação com taxa", "en": "A settlement with a fee" },
+      "trigger": { "pt": "Configuração financeira APPLICATION; conta de campanha paga; POST /v1/application-settlements", "en": "APPLICATION Financial Setup; a paid campaign account; POST /v1/application-settlements" },
+      "result": { "pt": "201 COMPLETED; bruto, taxa e líquido somam zero", "en": "201 COMPLETED; gross, fee and net sum to zero" },
+      "event": "application_settlement.completed"
+    },
+    {
+      "id": "SETTLEMENT_REPLAY", "group": "settlements", "simulated": false,
+      "goal": { "pt": "Repetir uma liquidação", "en": "Repeat a settlement" },
+      "trigger": { "pt": "O mesmo pedido com o mesmo idempotency_key", "en": "The same request with the same idempotency_key" },
+      "result": { "pt": "A mesma liquidação; nada se move outra vez", "en": "The same settlement; nothing moves again" },
+      "event": null
+    },
+    {
+      "id": "RECEIPT_VALID", "group": "receipts", "simulated": false,
+      "goal": { "pt": "Verificar um comprovativo", "en": "Verify a receipt" },
+      "trigger": { "pt": "GET /v1/public/proofs/{referência BZM-…} de um pagamento feito", "en": "GET /v1/public/proofs/{BZM-… reference} of a payment made" },
+      "result": { "pt": "200 com o estado confirmado", "en": "200 with the confirmed status" },
+      "event": null
+    },
+    {
+      "id": "RECEIPT_NOT_FOUND", "group": "receipts", "simulated": false,
+      "goal": { "pt": "Uma referência inexistente ou alterada", "en": "A reference that does not exist or was altered" },
+      "trigger": { "pt": "Altere um símbolo da referência", "en": "Change one character of the reference" },
+      "result": { "pt": "404", "en": "404" },
+      "event": null
+    },
+    {
+      "id": "REALTIME_STATUS", "group": "realtime", "simulated": false,
+      "goal": { "pt": "Ver a sessão mudar para PAID", "en": "Watch the session change to PAID" },
+      "trigger": { "pt": "Abra o stream com o realtime.token da sessão e pague com um pagador de teste", "en": "Open the stream with the session's realtime.token and pay with a test payer" },
+      "result": { "pt": "snapshot ACTIVE, depois status PAID e fecho", "en": "snapshot ACTIVE, then status PAID and close" },
+      "event": "payment_session.paid"
+    },
+    {
+      "id": "RATE_LIMIT", "group": "api", "simulated": false,
+      "goal": { "pt": "Exceder o limite de pedidos", "en": "Exceed the rate limit" },
+      "trigger": { "pt": "Mais pedidos por minuto do que o limite da chave", "en": "More requests per minute than the key's limit" },
+      "result": { "pt": "429 RATE_LIMITED com Retry-After", "en": "429 RATE_LIMITED with Retry-After" },
+      "event": null
+    },
+    {
+      "id": "LIVE_FAIL_CLOSED", "group": "api", "simulated": false,
+      "goal": { "pt": "Tentar o Live", "en": "Try Live" },
+      "trigger": { "pt": "Use uma chave bz_live_ no Sandbox", "en": "Use a bz_live_ key in the Sandbox" },
+      "result": { "pt": "401; não existe execução financeira Live", "en": "401; no Live financial execution exists" },
+      "event": null
+    }
+  ]
+}

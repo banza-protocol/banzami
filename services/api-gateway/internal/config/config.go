@@ -65,7 +65,10 @@ type Config struct {
 	// DeveloperAPIURL + DeveloperInternalKey wire the ADR-046 external
 	// developer-key path: the Gateway delegates key verification to developer-api
 	// (the single key authority).
-	DeveloperAPIURL      string
+	DeveloperAPIURL string
+	// PublicAPIInternalURL reaches public-api's internal Sandbox test-payer
+	// routes (ADR-060 §4), with InternalAPIKey. Empty disables test payers.
+	PublicAPIInternalURL string
 	DeveloperInternalKey string
 	// DeveloperKeyAuthEnabled is the EXPLICIT activation flag (RT02.1). The
 	// developer-key path (GET /v1/me) is mounted ONLY when this is true AND the
@@ -129,6 +132,7 @@ func Load() (*Config, error) {
 	// platform-mode guard switched off, and public onboarding took the
 	// environment from the request body (A2-01). "development" must now be said.
 	cfg.Environment = strings.TrimSpace(os.Getenv("ENVIRONMENT"))
+	cfg.PublicAPIInternalURL = strings.TrimSpace(os.Getenv("PUBLIC_API_INTERNAL_URL"))
 	if cfg.Environment == "" {
 		return nil, fmt.Errorf("ENVIRONMENT must be set (sandbox, live, or development for a local run)")
 	}

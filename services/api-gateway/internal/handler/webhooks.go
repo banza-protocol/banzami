@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 	"strconv"
 
@@ -325,4 +326,43 @@ func (h *WebhookHandler) EndpointHealth(w http.ResponseWriter, r *http.Request) 
 	}
 
 	respond(w, http.StatusOK, health)
+}
+
+// SendTestEvent handles POST /v1/webhooks/endpoints/{id}/test (ADR-060 §8).
+//
+// Sandbox only. Delivers a synthetic "webhook.test" event, signed like any
+// other, to this endpoint alone. No payment exists and no money moves.
+func (h *WebhookHandler) SendTestEvent(w http.ResponseWriter, r *http.Request) {
+	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev && !env.Parse(dp.Environment).IsSandbox() {
+		apierror.Respond(w, r, http.StatusForbidden, "SANDBOX_ONLY", "test events exist only in the Sandbox")
+		return
+	}
+	if p, ok := middleware.GetPrincipal(r.Context()); ok && !env.Parse(p.Environment).IsSandbox() {
+		apierror.Respond(w, r, http.StatusForbidden, "SANDBOX_ONLY", "test events exist only in the Sandbox")
+		return
+	}
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:write")
+	if !ok {
+		return
+	}
+	sender, ok := h.svc.(service.WebhookTestSender)
+	if !ok {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "test events are not available here")
+		return
+	}
+	ev, deliveryID, err := sender.SendTestEvent(r.Context(), merchantID, chi.URLParam(r, "id"))
+	switch {
+	case errors.Is(err, service.ErrEndpointNotFound):
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "endpoint not found")
+		return
+	case errors.Is(err, service.ErrEndpointInactive):
+		apierror.Respond(w, r, http.StatusConflict, "ENDPOINT_DISABLED", "a disabled endpoint receives nothing — enable it first")
+		return
+	case err != nil:
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "test event could not be sent")
+		return
+	}
+	respond(w, http.StatusAccepted, map[string]any{
+		"event_id": ev.ID, "delivery_id": deliveryID, "type": ev.EventType, "synthetic": true, "status": "PENDING",
+	})
 }

@@ -364,7 +364,7 @@ func (s *PostgresWebhookService) ListEvents(
 		limit = 20
 	}
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, merchant_id, event_type, payload, created_at
+		`SELECT id, merchant_id, event_type, payload, created_at, synthetic
 		 FROM webhook_events
 		 WHERE merchant_id = $1
 		 ORDER BY created_at DESC
@@ -380,7 +380,7 @@ func (s *PostgresWebhookService) ListEvents(
 	for rows.Next() {
 		var ev WebhookEvent
 		if err := rows.Scan(
-			&ev.ID, &ev.MerchantID, &ev.EventType, &ev.Payload, &ev.CreatedAt,
+			&ev.ID, &ev.MerchantID, &ev.EventType, &ev.Payload, &ev.CreatedAt, &ev.Synthetic,
 		); err != nil {
 			return nil, fmt.Errorf("scan webhook event: %w", err)
 		}
@@ -516,10 +516,15 @@ func (s *PostgresWebhookService) ReplayDelivery(ctx context.Context, merchantID,
 	now := time.Now().UTC()
 	var attempts int
 	err = s.pool.QueryRow(ctx,
-		`UPDATE webhook_deliveries
+		`UPDATE webhook_deliveries d
 		    SET status = 'PENDING', scheduled_at = now(), last_error = NULL
-		  WHERE id = $1 AND status <> 'SUCCESS'
-		RETURNING attempt_count`,
+		  WHERE d.id = $1
+		    AND (d.status <> 'SUCCESS'
+		         -- A synthetic test delivery may be sent again after it
+		         -- succeeded: it moved no money, and receiving the same event
+		         -- id twice is exactly what a developer tests dedupe with.
+		         OR EXISTS (SELECT 1 FROM webhook_events e WHERE e.id = d.event_id AND e.synthetic))
+		RETURNING d.attempt_count`,
 		deliveryID,
 	).Scan(&attempts)
 	if errors.Is(err, pgx.ErrNoRows) {

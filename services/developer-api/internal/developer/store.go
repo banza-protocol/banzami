@@ -64,8 +64,13 @@ var AllowedScopes = map[string]bool{
 	"refunds:read":                  true,
 	"refunds:write":                 true,
 	"webhooks:read":                 true,
-	"webhooks:write":                true,
-	"customers:read":                true,
+	// Sandbox test data (ADR-060): test payers, their fictitious funding and
+	// payments, and the scenario catalogue. Meaningless outside the Sandbox,
+	// where the routes do not exist.
+	"sandbox:read":   true,
+	"sandbox:write":  true,
+	"webhooks:write": true,
+	"customers:read": true,
 }
 
 // ClientSafeScopes is the subset a PUBLISHABLE key may hold.
@@ -113,6 +118,8 @@ var EnforcedScopes = map[string]bool{
 	"wallet_accounts:create":        true,
 	"application_settlements:write": true,
 	"webhooks:read":                 true, // endpoints, events, deliveries
+	"sandbox:read":                  true, // GET /v1/sandbox/test-payers, /v1/sandbox/scenarios
+	"sandbox:write":                 true, // create, fund, pay as, retire a test payer
 	"webhooks:write":                true, // register, deactivate, replay, rotate secret
 	"refunds:read":                  true, // read your own refunds
 	"refunds:write":                 true, // return money from your own payment

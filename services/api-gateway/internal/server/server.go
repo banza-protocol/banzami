@@ -198,7 +198,6 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		WithRealtime(service.NewRealtimeTokens(cfg.JWTSecret, realtimeEnvironment(cfg.Environment)), deps.PaymentSessionSvc)
 	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc).WithWallets(deps.WalletSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc, deps.WebhookSvc)
-	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
 	disputeHandler := handler.NewDisputeHandler(deps.DisputeSvc)
 	// /v1/payment-requests is unmounted (RA-057) and its handler deleted (A4-13):
@@ -359,6 +358,22 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// The Project's own financial readiness. Project key only: a merchant
 			// session has its own dashboard, and no request names a Project.
 			r.Get("/v1/financial-setup", financialSetupHandler.FinancialSetup)
+
+			// Sandbox test data (ADR-060): scenarios, and the Project's own test
+			// payers — create, fund, pay as, retire. Mounted only on a Sandbox stack.
+			if env.Parse(cfg.Environment).IsSandbox() {
+				sbx := handler.NewSandboxDevHandler(cfg.PublicAPIInternalURL, cfg.InternalAPIKey, deps.PaymentSessionSvc, deps.PaymentLinkSvc)
+				r.Get("/v1/sandbox/scenarios", sbx.Scenarios)
+				r.Route("/v1/sandbox/test-payers", func(r chi.Router) {
+					r.Use(middleware.Idempotency(deps.Redis))
+					r.Post("/", sbx.CreateTestPayer)
+					r.Get("/", sbx.ListTestPayers)
+					r.Get("/{id}", sbx.GetTestPayer)
+					r.Delete("/{id}", sbx.RetireTestPayer)
+					r.Post("/{id}/fund", sbx.FundTestPayer)
+					r.Post("/{id}/payments", sbx.PayAsTestPayer)
+				})
+			}
 		})
 		slog.Info("developer-key auth active", "surface", "GET /v1/me, GET /v1/financial-setup")
 	} else {
@@ -646,14 +661,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// inventing a merchant-side consent model to keep these mounted is
 			// exactly the mistake SEC-015 and RA-053 rejected.
 
-			// Sandbox utilities — only functional with bz_test_ keys.
-			// Every handler in this group enforces SANDBOX environment internally.
-			r.Route("/sandbox", func(r chi.Router) {
-				r.Get("/status", sandboxHandler.Status)
-				r.Get("/instruments", sandboxHandler.ListInstruments)
-				r.Post("/fund", sandboxHandler.FundWallet)
-				r.Post("/simulate/payment", sandboxHandler.SimulatePayment)
-			})
+			// The merchant-JWT Sandbox utilities (card "test instruments", injected
+			// synthetic transactions, direct wallet credit) are retired: they
+			// described a card-network model Banzami does not have and injected
+			// payments that never ran the payment path. The Sandbox test-data
+			// surface is the developer-key /v1/sandbox group (ADR-060).
 		})
 
 		// Canonical payment surface (ADR-047 §5) — a SINGLE mount per resource that
@@ -764,6 +776,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Delete("/endpoints/{id}", wbhHandler.DeactivateEndpoint)
 				r.Get("/endpoints/{id}/health", wbhHandler.EndpointHealth)
 				r.Post("/endpoints/{id}/rotate-secret", wbhHandler.RotateSecret)
+				r.Post("/endpoints/{id}/test", wbhHandler.SendTestEvent)
 
 				r.Get("/events", wbhHandler.ListEvents)
 				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)

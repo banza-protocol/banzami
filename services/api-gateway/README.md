@@ -13,7 +13,7 @@ Go HTTP gateway — authentication, rate limiting, idempotency enforcement, requ
 - Idempotency key enforcement for mutating routes (Redis-backed, 24 h TTL)
 - Routing to versioned API handlers (`/v1/*`)
 - Health and readiness probes
-- Sandbox utilities (`/v1/sandbox/*`) — enforced sandbox-only via JWT environment claim
+- Sandbox test data (`/v1/sandbox/*`, ADR-060) — developer key, mounted only on a Sandbox stack
 - EMIS acquiring callbacks (`/v1/callbacks/emis`) — HMAC-signed, no JWT
 - Public pay-page endpoints (`/public/pay/*`) — no auth, consumed by `apps/pay`
 
@@ -152,6 +152,7 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | DELETE | /v1/webhooks/endpoints/{id} | Read · deactivate an endpoint |
 | GET | /v1/webhooks/endpoints/{id}/health | Delivery health |
 | POST | /v1/webhooks/endpoints/{id}/rotate-secret | Rotate the signing secret |
+| POST | /v1/webhooks/endpoints/{id}/test | Send a synthetic `webhook.test` delivery to this endpoint only — no money moves (Sandbox only) |
 | GET | /v1/webhooks/events | List events |
 | GET | /v1/webhooks/events/{id}/deliveries | An event's deliveries |
 | POST | /v1/webhooks/deliveries/{id}/replay | Replay a delivery |
@@ -224,10 +225,13 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | GET | /v1/disputes/{id} | Read a dispute |
 | POST | /v1/disputes/{id}/evidence | Submit · list evidence |
 | GET | /v1/disputes/{id}/evidence | Submit · list evidence |
-| GET | /v1/sandbox/status | Sandbox status and test instruments (SANDBOX only) |
-| GET | /v1/sandbox/instruments | Sandbox status and test instruments (SANDBOX only) |
-| POST | /v1/sandbox/fund | Credit a Sandbox wallet · simulate a payment (SANDBOX only) |
-| POST | /v1/sandbox/simulate/payment | Credit a Sandbox wallet · simulate a payment (SANDBOX only) |
+| GET | /v1/sandbox/scenarios | Sandbox scenario catalogue (developer key, `sandbox:read`; Sandbox stack only) |
+| POST | /v1/sandbox/test-payers | Create a Project-owned test payer (developer key, `sandbox:write`) |
+| GET | /v1/sandbox/test-payers | List the Project's test payers (`sandbox:read`) |
+| GET | /v1/sandbox/test-payers/{id} | Read a test payer (`sandbox:read`) |
+| DELETE | /v1/sandbox/test-payers/{id} | Retire a test payer — balance retired by posting, consumer suspended (`sandbox:write`) |
+| POST | /v1/sandbox/test-payers/{id}/fund | Add fictitious value within Project quotas; Idempotency-Key required (`sandbox:write`) |
+| POST | /v1/sandbox/test-payers/{id}/payments | Pay the Project's own session or link as the payer; optional explicit `simulate` rail outcome (`sandbox:write`) |
 
 ### Internal (X-Internal-Key — admin-api, public-api, developer-api)
 
@@ -334,9 +338,13 @@ When adding a new production frontend, choose one layer and add it there only.
 
 ## Sandbox Environment
 
-All routes under `/v1/sandbox/*` enforce that the caller holds a `SANDBOX` JWT (obtained by authenticating with a `bz_test_…` API key). Live keys receive `403 SANDBOX_ONLY`.
-
-`POST /v1/sandbox/fund` credits the merchant wallet via a direct ledger entry in the Rust core-api (same pattern as consumer wallet test credits). The balance update is immediate, persistent, and reflected in all downstream operations (QR payments, transfers, payouts). Virtual balance — no real funds are moved.
+`/v1/sandbox/*` exists only on a Sandbox stack and takes a developer (Project) key. Test payers are
+Project-owned consumers created through public-api's internal routes (`PUBLIC_API_INTERNAL_URL` +
+`INTERNAL_API_KEY`); their payments run the consumer payment handlers, and a test payer can pay only
+the Project's own Payment Sessions and Links. Rail outcomes (`DECLINED`, `PROVIDER_UNAVAILABLE`,
+`TIMEOUT`) are requested explicitly with `simulate` and answered with `simulated: true`. The earlier
+merchant-JWT utilities (card test instruments, injected transactions, direct wallet credit) are
+retired. See ADR-060.
 
 ## Dependencies
 

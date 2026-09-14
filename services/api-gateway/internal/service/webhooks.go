@@ -51,6 +51,8 @@ type WebhookEvent struct {
 	EventType  string          `json:"event_type"`
 	Payload    json.RawMessage `json:"payload"`
 	CreatedAt  time.Time       `json:"created_at"`
+	// Synthetic marks a webhook.test delivery (ADR-060 §8): no money moved.
+	Synthetic bool `json:"synthetic"`
 }
 
 // WebhookDelivery tracks a single delivery attempt for an event to an endpoint.
