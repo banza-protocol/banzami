@@ -539,6 +539,7 @@ type RequestLogFilter struct {
 	Path      string // case-insensitive substring of path or route
 	Method    string // exact HTTP method
 	Source    string // API (an integration's key) | API_EXPLORER (the Console's API Explorer)
+	ErrorCode string // exact error code the caller received, e.g. INSUFFICIENT_FUNDS
 	Since     *time.Time
 	Until     *time.Time
 }
@@ -547,13 +548,16 @@ type RequestLogFilter struct {
 // The fields are the whole record (migration 0104): no header, no body, no
 // credential. What is absent here is absent in the database too.
 type APIRequestLogView struct {
-	ID          string    `json:"id"`
-	Method      string    `json:"method"`
-	Path        string    `json:"path"`
-	Route       string    `json:"route,omitempty"`
-	Status      int       `json:"status"`
-	RequestID   string    `json:"request_id"`
-	LatencyMS   *int      `json:"latency_ms,omitempty"`
+	ID        string `json:"id"`
+	Method    string `json:"method"`
+	Path      string `json:"path"`
+	Route     string `json:"route,omitempty"`
+	Status    int    `json:"status"`
+	RequestID string `json:"request_id"`
+	LatencyMS *int   `json:"latency_ms,omitempty"`
+	// ErrorCode is the code of the error the caller received (migration 0143);
+	// absent for a success and for rows written before it.
+	ErrorCode   *string   `json:"error_code,omitempty"`
 	Environment string    `json:"environment"`
 	CreatedAt   time.Time `json:"created_at"`
 	// Source is API for a request made with one of the Project's keys, and

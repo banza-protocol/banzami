@@ -40,7 +40,10 @@ type APIRequestLogEntry struct {
 	Status      int
 	RequestID   string
 	LatencyMS   int
-	At          time.Time
+	// ErrorCode is the `code` of the error body the caller received, and
+	// nothing else from that body. Empty for a success.
+	ErrorCode string
+	At        time.Time
 }
 
 // APIRequestLogSink accepts finished entries. Implementations MUST NOT block.
@@ -144,15 +147,19 @@ func (r *PostgresRequestLogRecorder) insert(ctx context.Context, batch []APIRequ
 		if e.LatencyMS >= 0 {
 			latency = e.LatencyMS
 		}
+		var code any
+		if e.ErrorCode != "" {
+			code = e.ErrorCode
+		}
 		rows = append(rows, []any{
 			e.ProjectID, keyID, e.Environment, e.Method, e.Path,
-			e.Route, e.Status, e.RequestID, latency, e.At,
+			e.Route, e.Status, e.RequestID, latency, code, e.At,
 		})
 	}
 	n, err := r.pool.CopyFrom(wctx,
 		pgx.Identifier{"developer", "dev_api_request_logs"},
 		[]string{"project_id", "key_id", "environment", "method", "path",
-			"route", "status", "request_id", "latency_ms", "created_at"},
+			"route", "status", "request_id", "latency_ms", "error_code", "created_at"},
 		pgx.CopyFromRows(rows))
 	if err != nil {
 		// Losing telemetry is not worth a retry queue; it is worth being loud.

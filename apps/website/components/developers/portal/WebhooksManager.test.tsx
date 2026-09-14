@@ -295,6 +295,25 @@ describe('reenviar uma entrega', () => {
     expect(screen.queryByRole('button', { name: 'Reenviar' })).toBeNull();
   });
 
+  it('shows each attempt with its status, latency and error class', async () => {
+    api.listWebhookDeliveries.mockResolvedValue({
+      deliveries: [{
+        ...succeeded,
+        attempt_count: 2,
+        attempts: [
+          { attempt_number: 1, outcome: 'FAILED', status_code: 500, error_class: 'http_status', duration_ms: 812, attempted_at: '2026-09-10T10:00:01Z' },
+          { attempt_number: 2, outcome: 'SUCCESS', status_code: 200, error_class: null, duration_ms: 94, attempted_at: '2026-09-10T10:01:02Z' },
+        ],
+      }],
+    });
+    await openDeliveries();
+    const list = await screen.findByTestId('webhook-attempts');
+    expect(list.textContent).toContain('HTTP 500');
+    expect(list.textContent).toContain('812 ms');
+    expect(list.textContent).toContain('HTTP 200');
+    expect(list.textContent).toContain('94 ms');
+  });
+
   it('re-queues the delivery that failed, once confirmed, and re-reads the row', async () => {
     api.listWebhookDeliveries.mockResolvedValue({ deliveries: [failed] });
 

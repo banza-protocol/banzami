@@ -189,3 +189,44 @@ func TestAPIRequestLog_NilSinkIsPassthrough(t *testing.T) {
 		t.Error("nil sink must not break the chain")
 	}
 }
+
+// The log line names the error the caller received — its code, and nothing else
+// from the body.
+func TestAPIRequestLog_RecordsTheErrorCodeOnly(t *testing.T) {
+	cases := []struct {
+		status int
+		body   string
+		want   string
+	}{
+		{http.StatusUnprocessableEntity, `{"code":"REFUND_EXCEEDS_CAPTURED","message":"the refund exceeds","request_id":"r1"}`, "REFUND_EXCEEDS_CAPTURED"},
+		{http.StatusConflict, `{"error":{"code":"IDEMPOTENCY_KEY_REUSED","message":"x"}}`, "IDEMPOTENCY_KEY_REUSED"},
+		{http.StatusBadRequest, `{"code":"bz_test_sk_leak","message":"x"}`, ""}, // not a code: dropped
+		{http.StatusInternalServerError, `<html>oops</html>`, ""},               // not JSON
+		{http.StatusOK, `{"code":"LOOKS_LIKE_A_CODE"}`, ""},                     // a success has none
+	}
+	for _, c := range cases {
+		sink := &memSink{}
+		r := chi.NewRouter()
+		r.Use(obs.Correlation)
+		r.Use(APIRequestLog(sink))
+		r.Route("/v1", func(r chi.Router) {
+			r.Use(DualAuth(&config.Config{JWTSecret: "s"}, devAuthorizer("proj-1")))
+			r.Post("/refunds", func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(c.status)
+				_, _ = w.Write([]byte(c.body))
+			})
+		})
+		req := httptest.NewRequest(http.MethodPost, "/v1/refunds", nil)
+		req.Header.Set("Authorization", "Bearer bz_test_sk_abc")
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+		got := sink.all()
+		if len(got) != 1 || got[0].ErrorCode != c.want {
+			t.Errorf("%d %s: code=%q want %q", c.status, c.body, got[0].ErrorCode, c.want)
+		}
+		if rec.Body.String() != c.body {
+			t.Errorf("the caller's body changed: %q", rec.Body.String())
+		}
+	}
+}

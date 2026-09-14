@@ -197,4 +197,18 @@ func TestPgStore_ExplorerKeyAndLogSource(t *testing.T) {
 	if len(all) != 2 || len(explorer) != 1 || explorer[0].Source != "API_EXPLORER" || len(api) != 1 || api[0].Source != "API" {
 		t.Fatalf("log sources: all=%d explorer=%+v api=%+v", len(all), explorer, api)
 	}
+
+	// A failed request names its error (migration 0143), and the log filters on it.
+	if _, err := pool.Exec(ctx, `INSERT INTO developer.dev_api_request_logs (project_id, key_id, environment, method, path, route, status, request_id, error_code)
+		VALUES ($1, $2, 'SANDBOX', 'POST', '/v1/refunds', '/v1/refunds', 422, $3, 'REFUND_EXCEEDS_CAPTURED')`, proj.ID, std.ID, uuid.NewString()); err != nil {
+		t.Fatalf("seed error log: %v", err)
+	}
+	failed, _ := svc.store.APIRequestLogs(ctx, proj.ID, RequestLogFilter{ErrorCode: "REFUND_EXCEEDS_CAPTURED"})
+	if len(failed) != 1 || failed[0].ErrorCode == nil || *failed[0].ErrorCode != "REFUND_EXCEEDS_CAPTURED" || failed[0].Status != 422 {
+		t.Fatalf("error code: %+v", failed)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO developer.dev_api_request_logs (project_id, environment, method, path, status, error_code)
+		VALUES ($1, 'SANDBOX', 'GET', '/v1/me', 400, 'not a code: bz_test_sk_x')`, proj.ID); err == nil {
+		t.Fatal("the schema stored something that is not an error code")
+	}
 }

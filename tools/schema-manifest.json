@@ -380,6 +380,10 @@
             {
               "name": "created_at",
               "nullable": false
+            },
+            {
+              "name": "error_code",
+              "nullable": true
             }
           ],
           "indexes": [

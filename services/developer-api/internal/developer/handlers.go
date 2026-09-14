@@ -891,7 +891,7 @@ func (h *Handlers) listAPIRequestLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	f := RequestLogFilter{RequestID: q.Get("request_id"), Path: q.Get("path"), Method: strings.ToUpper(q.Get("method")), Source: strings.ToUpper(q.Get("source"))}
+	f := RequestLogFilter{RequestID: q.Get("request_id"), Path: q.Get("path"), Method: strings.ToUpper(q.Get("method")), Source: strings.ToUpper(q.Get("source")), ErrorCode: strings.ToUpper(q.Get("error_code"))}
 	f.Limit, _ = strconv.Atoi(q.Get("limit"))
 	f.Status, _ = strconv.Atoi(q.Get("status"))
 	if v := q.Get("since"); v != "" {

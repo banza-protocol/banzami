@@ -1347,6 +1347,9 @@ func (s *pgStore) APIRequestLogs(ctx context.Context, projectID string, f Reques
 		p := bind(f.Path)
 		where = append(where, fmt.Sprintf("(l.path ILIKE '%%' || %s || '%%' OR l.route ILIKE '%%' || %s || '%%')", p, p))
 	}
+	if f.ErrorCode != "" {
+		where = append(where, "l.error_code = "+bind(f.ErrorCode))
+	}
 	if f.Method != "" {
 		where = append(where, "l.method = "+bind(f.Method))
 	}
@@ -1363,7 +1366,7 @@ func (s *pgStore) APIRequestLogs(ctx context.Context, projectID string, f Reques
 		where = append(where, "l.created_at <= "+bind(*f.Until))
 	}
 
-	q := `SELECT l.id, l.method, l.path, l.route, l.status, l.request_id, l.latency_ms, l.environment, l.created_at,
+	q := `SELECT l.id, l.method, l.path, l.route, l.status, l.request_id, l.latency_ms, l.error_code, l.environment, l.created_at,
 	             CASE WHEN k.purpose = 'EXPLORER' THEN 'API_EXPLORER' ELSE 'API' END
 	        FROM developer.dev_api_request_logs l
 	        LEFT JOIN developer.dev_api_keys k ON k.id = l.key_id
@@ -1382,7 +1385,7 @@ func (s *pgStore) APIRequestLogs(ctx context.Context, projectID string, f Reques
 	for rows.Next() {
 		var v APIRequestLogView
 		if err := rows.Scan(&v.ID, &v.Method, &v.Path, &v.Route, &v.Status,
-			&v.RequestID, &v.LatencyMS, &v.Environment, &v.CreatedAt, &v.Source); err != nil {
+			&v.RequestID, &v.LatencyMS, &v.ErrorCode, &v.Environment, &v.CreatedAt, &v.Source); err != nil {
 			return nil, err
 		}
 		out = append(out, v)

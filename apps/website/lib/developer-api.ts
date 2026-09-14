@@ -531,6 +531,8 @@ export interface ApiRequestLog {
   status: number;
   request_id: string;
   latency_ms?: number | null;
+  /** The code of the error the caller received, e.g. INSUFFICIENT_FUNDS; absent for a success. */
+  error_code?: string | null;
   environment: string;
   created_at: string;
   /** API for a request made with one of the Project's keys; API_EXPLORER for one the Console ran. */
@@ -595,6 +597,7 @@ export interface RequestLogQuery {
   method?: string;
   request_id?: string;
   status?: number;
+  error_code?: string;
   path?: string;
   since?: string;
   until?: string;
@@ -890,6 +893,7 @@ export const developerApi = {
     if (q.limit) p.set('limit', String(q.limit));
     if (q.request_id) p.set('request_id', q.request_id);
     if (q.status) p.set('status', String(q.status));
+    if (q.error_code) p.set('error_code', q.error_code);
     if (q.path) p.set('path', q.path);
     if (q.source) p.set('source', q.source);
     if (q.method) p.set('method', q.method);

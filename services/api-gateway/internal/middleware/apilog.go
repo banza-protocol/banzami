@@ -21,7 +21,9 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -68,7 +70,7 @@ func APIRequestLog(sink service.APIRequestLogSink) func(http.Handler) http.Handl
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			attr := &requestAttribution{}
 			ctx := context.WithValue(r.Context(), attributionKey{}, attr)
-			rw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+			rw := &codeWriter{statusWriter: statusWriter{ResponseWriter: w, status: http.StatusOK}}
 			start := time.Now()
 
 			next.ServeHTTP(rw, r.WithContext(ctx))
@@ -93,8 +95,60 @@ func APIRequestLog(sink service.APIRequestLogSink) func(http.Handler) http.Handl
 				Status:      rw.status,
 				RequestID:   obs.RequestID(ctx),
 				LatencyMS:   int(time.Since(start).Milliseconds()),
+				ErrorCode:   rw.errorCode(),
 				At:          start.UTC(),
 			})
 		})
 	}
+}
+
+// codeWriter keeps the first bytes of an error response so the log line can
+// name the error's code. Only a status of 400 or more is read, only the first
+// errorBodyPeek bytes, and only the `code` field survives (errorCodeOf).
+type codeWriter struct {
+	statusWriter
+	peek []byte
+}
+
+const errorBodyPeek = 2048
+
+var errorCodeShape = regexp.MustCompile(`^[A-Z][A-Z0-9_]{1,63}$`)
+
+func (w *codeWriter) Write(b []byte) (int, error) {
+	if w.status >= 400 && len(w.peek) < errorBodyPeek {
+		n := errorBodyPeek - len(w.peek)
+		if n > len(b) {
+			n = len(b)
+		}
+		w.peek = append(w.peek, b[:n]...)
+	}
+	return w.statusWriter.ResponseWriter.Write(b)
+}
+
+func (w *codeWriter) errorCode() string { return errorCodeOf(w.status, w.peek) }
+
+// errorCodeOf reads the code of a Banzami error body: {"code": …} or
+// {"error": {"code": …}}. Anything that is not a catalogue-shaped code is
+// dropped rather than stored.
+func errorCodeOf(status int, body []byte) string {
+	if status < 400 || len(body) == 0 {
+		return ""
+	}
+	var env struct {
+		Code  string `json:"code"`
+		Error *struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(body, &env) != nil {
+		return ""
+	}
+	code := env.Code
+	if code == "" && env.Error != nil {
+		code = env.Error.Code
+	}
+	if !errorCodeShape.MatchString(code) {
+		return ""
+	}
+	return code
 }

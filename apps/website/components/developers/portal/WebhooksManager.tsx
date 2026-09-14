@@ -595,6 +595,7 @@ export function WebhooksManager() {
                                                   </span>
                                                   {' · '}
                                                   {attemptLabel(a)}
+                                                  {typeof a.duration_ms === 'number' ? <span data-testid="attempt-latency">{' · '}{a.duration_ms} ms</span> : null}
                                                   {' · '}
                                                   <span style={{ fontFamily: mono }}>{when(a.attempted_at)}</span>
                                                 </li>

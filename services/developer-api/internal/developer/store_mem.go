@@ -896,6 +896,9 @@ func (m *memStore) APIRequestLogs(_ context.Context, projectID string, f Request
 		if f.RequestID != "" && v.RequestID != f.RequestID {
 			continue
 		}
+		if f.ErrorCode != "" && (v.ErrorCode == nil || *v.ErrorCode != f.ErrorCode) {
+			continue
+		}
 		if f.Status > 0 && v.Status != f.Status {
 			continue
 		}

@@ -228,8 +228,13 @@ export function RequestLog() {
                         {l.source === 'API_EXPLORER' ? <span style={{ marginLeft: 6 }}><Pill kind="neutral">Explorer</Pill></span> : null}
                       </td>
                       <td style={{ ...td, color: '#2a2024' }} title={l.route || l.path}>{l.path}</td>
-                      <td style={{ padding: '13px 12px' }}>
+                      <td style={{ padding: '13px 12px', whiteSpace: 'nowrap' }}>
                         <Pill kind={statusTone(l.status)}>{l.status}</Pill>
+                        {l.error_code ? (
+                          <a href={`/docs/errors#error-${l.error_code}`} data-testid="log-error-code" style={{ marginLeft: 8, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12, fontWeight: 700, color: '#9A1B22' }}>
+                            {l.error_code}
+                          </a>
+                        ) : null}
                       </td>
                       <td style={{ ...td, color: '#8a7a7e' }}>
                         {typeof l.latency_ms === 'number' ? `${l.latency_ms} ms` : '—'}
