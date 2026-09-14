@@ -1308,7 +1308,7 @@ export const RESOURCE_GROUPS: { id: string; title: Bi; ids: string[] }[] = [
   { id: 'resource-settlements', title: { pt: 'Liquidações', en: 'Settlements' }, ids: ['ref-settlement-create', 'ref-handle-resolve'] },
   { id: 'resource-webhooks', title: { pt: 'Webhooks', en: 'Webhooks' }, ids: ['ref-webhook-register', 'ref-webhook-list', 'ref-webhook-get', 'ref-webhook-deactivate', 'ref-webhook-health', 'ref-webhook-rotate', 'ref-webhook-events', 'ref-webhook-deliveries', 'ref-webhook-replay', 'ref-webhook-test'] },
   { id: 'resource-realtime', title: { pt: 'Estado em tempo real', en: 'Realtime status' }, ids: ['ref-realtime-status'] },
-  { id: 'resource-sandbox', title: { pt: 'Dados de teste da Sandbox', en: 'Sandbox test data' }, ids: ['ref-sandbox-scenarios', 'ref-test-payer-create', 'ref-test-payer-list', 'ref-test-payer-get', 'ref-test-payer-fund', 'ref-test-payer-pay', 'ref-test-payer-retire'] },
+  { id: 'resource-sandbox', title: { pt: 'Dados de teste da Sandbox', en: 'Sandbox test data' }, ids: ['ref-sandbox-scenarios', 'ref-sandbox-external-rail-get', 'ref-sandbox-external-rail-set', 'ref-test-payer-create', 'ref-test-payer-list', 'ref-test-payer-get', 'ref-test-payer-fund', 'ref-test-payer-pay', 'ref-test-payer-retire'] },
   { id: 'resource-receipts', title: { pt: 'Comprovativos', en: 'Receipts' }, ids: ['ref-public-proof'] },
 ];
 
