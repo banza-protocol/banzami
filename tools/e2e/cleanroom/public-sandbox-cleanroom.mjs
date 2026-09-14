@@ -15,9 +15,13 @@
  *     developer's own endpoint (told to answer 2xx for this run, and read back
  *     for the raw body and signature the SDK then verifies).
  *
- * Where the published SDK (0.13.0 on 2026-09-14) has no method yet — test
- * payers, webhook test events, realtime — the step uses HTTP, as the public
- * documentation does until the registry serves 0.14.0.
+ * With @banzami/sdk 0.14.0 or later the SDK carries test payers, webhook test
+ * events and realtime, and the cleanroom uses it for them; with an older one
+ * those steps use HTTP. CLEANROOM_SDK_VERSION=0.14.0 installs exactly that
+ * version and fails step 7 if the registry does not serve it.
+ * CLEANROOM_SDK_TARBALL installs a local pack instead — for checking this
+ * harness only: step 7 then FAILS, because a local package is not the public
+ * SDK.
  *
  * Nothing secret is printed or written. Everything created is retired through
  * the product; residue is measured afterwards, read-only, as operator
@@ -133,20 +137,41 @@ async function main() {
 
     // The published SDK, installed into an empty directory from the registry.
     writeFileSync(join(room, 'package.json'), JSON.stringify({ name: 'cleanroom-app', private: true, type: 'module' }));
-    execFileSync('npm', ['install', '--no-audit', '--no-fund', '--registry=https://registry.npmjs.org', '@banzami/sdk@latest'], { cwd: room, stdio: 'ignore', timeout: 180000 });
+    execFileSync('npm', ['install', '--no-audit', '--no-fund', '--registry=https://registry.npmjs.org', process.env.CLEANROOM_SDK_TARBALL ?? `@banzami/sdk@${process.env.CLEANROOM_SDK_VERSION ?? 'latest'}`], { cwd: room, stdio: 'ignore', timeout: 180000 });
     const sdkVersion = JSON.parse(execFileSync('node', ['-e', "console.log(JSON.stringify(require('./node_modules/@banzami/sdk/package.json').version))"], { cwd: room, encoding: 'utf8' }));
     const { BanzamiClient, constructEvent } = await import(pathToFileURL(join(room, 'node_modules/@banzami/sdk/dist/cjs/index.js')).href).catch(() => import(pathToFileURL(join(room, 'node_modules/@banzami/sdk/dist/index.js')).href));
     let client = new BanzamiClient({ apiKey: secret });
     const me = await client.me();
     timings.first_api_call_ms = Date.now() - t0;
-    mark(7, me?.environment === 'SANDBOX', `@banzami/sdk ${sdkVersion} from registry; environment=${me?.environment}`);
+    timings.sdk_version = sdkVersion;
+    // From 0.14.0 the SDK itself carries test payers, webhook test events and
+    // realtime; the cleanroom then uses it for them. CLEANROOM_SDK_VERSION makes
+    // the run fail if the registry did not serve that version.
+    const [maj, min] = sdkVersion.split('.').map(Number);
+    const sdk14 = maj > 0 || min >= 14;
+    const required = process.env.CLEANROOM_SDK_VERSION;
+    const resolvedFromRegistry = !execFileSync('npm', ['ls', '@banzami/sdk', '--json'], { cwd: room, encoding: 'utf8' }).includes('file:');
+    mark(7, me?.environment === 'SANDBOX' && resolvedFromRegistry && (!required || required === sdkVersion),
+      `@banzami/sdk ${sdkVersion} ${resolvedFromRegistry ? 'from registry.npmjs.org' : 'NOT from the registry (local pack)'} (required ${required ?? 'any'}); environment=${me?.environment}`);
     let api = http(secret);
+    // An SDK call as {status, body}, so every step judges one shape.
+    const viaSdk = async (fn, okStatus) => {
+      try { return { status: okStatus, body: await fn() }; } catch (e) { return { status: e?.status ?? 0, body: { code: e?.code } }; }
+    };
+    const sdkRealtime = sdk14
+      ? await import(pathToFileURL(join(room, 'node_modules/@banzami/sdk/dist/cjs/realtime.js')).href).catch(() => import(pathToFileURL(join(room, 'node_modules/@banzami/sdk/dist/realtime.js')).href))
+      : null;
 
-    const payer = await api('/v1/sandbox/test-payers', 'POST', { label: 'Cliente (teste)' }, { 'Idempotency-Key': `cr_${stamp}_payer` });
+    const payer = sdk14
+      ? await viaSdk(() => client.createTestPayer({ label: 'Cliente (teste)' }), 201)
+      : await api('/v1/sandbox/test-payers', 'POST', { label: 'Cliente (teste)' }, { 'Idempotency-Key': `cr_${stamp}_payer` });
     const T = payer.body?.id;
     mark(8, payer.status === 201 && payer.body?.balance_minor === 1000000 && !('pin' in (payer.body ?? {})), `${payer.status} balance=${payer.body?.balance_minor}`);
-    const f1 = await api(`/v1/sandbox/test-payers/${T}/fund`, 'POST', { amount_minor: 800000 }, { 'Idempotency-Key': `cr_${stamp}_fund` });
-    const f2 = await api(`/v1/sandbox/test-payers/${T}/fund`, 'POST', { amount_minor: 800000 }, { 'Idempotency-Key': `cr_${stamp}_fund` });
+    const fund = () => (sdk14
+      ? viaSdk(() => client.fundTestPayer(T, { amountMinor: 800000, idempotencyKey: `cr_${stamp}_fund` }), 200)
+      : api(`/v1/sandbox/test-payers/${T}/fund`, 'POST', { amount_minor: 800000 }, { 'Idempotency-Key': `cr_${stamp}_fund` }));
+    const f1 = await fund();
+    const f2 = await fund();
     const after = await api(`/v1/sandbox/test-payers/${T}`);
     mark(9, f1.status === 200 && f2.status === 200 && after.body?.balance_minor === 1800000, `balance=${after.body?.balance_minor}`);
 
@@ -162,20 +187,34 @@ async function main() {
     const verified = (type) => received(run).filter((q) => {
       try { return constructEvent(q.raw_body, q.headers?.['banza-signature'], signingSecret).type === type; } catch { return false; }
     });
-    const pay1 = await api(`/v1/sandbox/test-payers/${T}/payments`, 'POST', { payment_session_id: s1.session_id }, { 'Idempotency-Key': `cr_${stamp}_pay1` });
+    const payAs = (body, key) => (sdk14
+      ? viaSdk(() => client.payAsTestPayer(T, { paymentSessionId: body.payment_session_id, paymentLinkId: body.payment_link_id, via: body.via, idempotencyKey: key }), 200)
+      : api(`/v1/sandbox/test-payers/${T}/payments`, 'POST', body, { 'Idempotency-Key': key }));
+    const pay1 = await payAs({ payment_session_id: s1.session_id }, `cr_${stamp}_pay1`);
     timings.first_payment_ms = Date.now() - t0;
     const r1 = await api(`/v1/payment-sessions/${s1.session_id}`);
     mark(11, pay1.status === 200 && r1.body?.status === 'PAID', `sdk_session=${Boolean(s1.session_id)} pay=${pay1.status} status=${r1.body?.status}`);
 
-    const link = await api('/v1/payment-links', 'POST', { amount_minor: 45000, currency: 'AOA', description: 'Link cleanroom' });
+    const link = sdk14
+      ? await viaSdk(() => client.createPaymentLink({ amountMinor: 45000, currency: 'AOA', description: 'Link cleanroom' }), 201)
+      : await api('/v1/payment-links', 'POST', { amount_minor: 45000, currency: 'AOA', description: 'Link cleanroom' });
     const linkId = link.body?.id ?? link.body?.link_id;
-    const payLink = linkId ? await api(`/v1/sandbox/test-payers/${T}/payments`, 'POST', { payment_link_id: linkId }, { 'Idempotency-Key': `cr_${stamp}_link` }) : { status: 0 };
+    const payLink = linkId ? await payAs({ payment_link_id: linkId }, `cr_${stamp}_link`) : { status: 0 };
     mark(12, link.status === 201 && payLink.status === 200 && payLink.body?.status === 'PAID', `create=${link.status} pay=${payLink.status}`);
 
     const s2 = await api('/v1/payment-sessions', 'POST', { purpose: 'ORDER', reference_type: 'PEDIDO', reference_id: `cr_${stamp}_2`, amount_minor: 120000, currency: 'AOA' }, { 'Idempotency-Key': `cr_${stamp}_s2` });
-    const watching = streamUntilTerminal(s2.body?.session_id, s2.body?.realtime?.token, 30000);
+    let watching;
+    if (sdkRealtime) {
+      // The SDK's own realtime helper, with the session's status token.
+      const events = [];
+      const w = sdkRealtime.watchPaymentSessionStatus({ sessionId: s2.body?.session_id, token: s2.body?.realtime?.token,
+        onStatus: (st, kind) => events.push({ ev: kind, status: st.status, at: Date.now() }) });
+      watching = Promise.race([w.done, sleep(30000)]).then(() => { w.close(); return events; });
+    } else {
+      watching = streamUntilTerminal(s2.body?.session_id, s2.body?.realtime?.token, 30000);
+    }
     await sleep(1500);
-    const payQr = await api(`/v1/sandbox/test-payers/${T}/payments`, 'POST', { payment_session_id: s2.body?.session_id, via: 'QR' }, { 'Idempotency-Key': `cr_${stamp}_qr` });
+    const payQr = await payAs({ payment_session_id: s2.body?.session_id, via: 'QR' }, `cr_${stamp}_qr`);
     const seen = await watching;
     mark(13, payQr.status === 200 && payQr.body?.via === 'QR' && (await api(`/v1/payment-sessions/${s2.body?.session_id}`)).body?.status === 'PAID', `pay=${payQr.status} via=${payQr.body?.via}`);
     mark(14, seen[0]?.ev === 'snapshot' && seen.some((e) => e.status === 'PAID'), seen.map((e) => `${e.ev}:${e.status}`).join(','));
@@ -193,7 +232,7 @@ async function main() {
     const paidDelivered = await until(() => deliveries((e) => (e.event_type ?? e.type) === 'payment_session.paid'), 60000, 3000);
     const paidVerified = await until(() => verified('payment_session.paid').length > 0, 30000, 2000);
     mark(15, Boolean(ep.id) && Boolean(paidDelivered) && paidVerified, `endpoint=${Boolean(ep.id)} delivery_log=${Boolean(paidDelivered)} sdk_signature_verified=${paidVerified}`);
-    const test = await api(`/v1/webhooks/endpoints/${ep.id}/test`, 'POST');
+    const test = sdk14 ? await viaSdk(() => client.sendWebhookTestEvent(ep.id), 202) : await api(`/v1/webhooks/endpoints/${ep.id}/test`, 'POST');
     const testDelivered = await until(() => deliveries((e) => e.id === test.body?.event_id), 60000, 3000);
     const testVerified = await until(() => verified('webhook.test').length > 0, 30000, 2000);
     mark(16, test.status === 202 && test.body?.synthetic === true && Boolean(testDelivered) && testVerified, `test=${test.status} delivery_log=${Boolean(testDelivered)} sdk_signature_verified=${testVerified}`);
@@ -237,7 +276,12 @@ async function main() {
     await sleep(2000);
     const logs = (await call('GET', `/projects/${P}/logs?limit=100`)).body?.logs ?? [];
     const explorerLogs = (await call('GET', `/projects/${P}/logs?source=API_EXPLORER&limit=20`)).body?.logs ?? [];
-    mark(22, logs.some((l) => l.path === '/v1/refunds') && explorerLogs.length >= 1 && explorerLogs.every((l) => l.source === 'API_EXPLORER'), `logs=${logs.length} explorer=${explorerLogs.length}`);
+    // The refused refund's line names its error, and the log filters on it.
+    const refused = (await call('GET', `/projects/${P}/logs?error_code=REFUND_EXCEEDS_CAPTURED&limit=5`)).body?.logs ?? [];
+    const line = refused[0] ?? {};
+    mark(22, logs.some((l) => l.path === '/v1/refunds') && explorerLogs.length >= 1 && explorerLogs.every((l) => l.source === 'API_EXPLORER')
+      && line.status === 422 && line.error_code === 'REFUND_EXCEEDS_CAPTURED' && line.method === 'POST' && typeof line.latency_ms === 'number' && Boolean(line.request_id),
+      `logs=${logs.length} explorer=${explorerLogs.length} refused_line=${line.method} ${line.path} ${line.status} ${line.error_code} ${line.latency_ms}ms`);
     const activity = (await call('GET', `/workspaces/${ws}/activity`)).body?.events ?? [];
     const actions = new Set(activity.map((e) => e.action));
     mark(23, activity.length > 0 && [...actions].some((a) => /key/.test(a)) && !activity.some((e) => /^\/v1\//.test(e.path ?? '')), `activity=${activity.length} actions=${[...actions].slice(0, 6).join(',')}`);
@@ -278,7 +322,8 @@ async function main() {
     const out = join(assuranceDir('sandbox-self-service'), `public-cleanroom-${Date.now()}.json`);
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, `${JSON.stringify({ ran_at: new Date().toISOString(), steps, timings, residue: left, operator_interventions: 0 }, null, 2)}\n`);
-    console.log(`\nTIME_TO_FIRST_API_CALL_MS=${timings.first_api_call_ms ?? 'n/a'} (automated, includes the npm install)`);
+    console.log(`\nPUBLIC_CLEANROOM_SDK_VERSION=${timings.sdk_version ?? 'n/a'}`);
+    console.log(`TIME_TO_FIRST_API_CALL_MS=${timings.first_api_call_ms ?? 'n/a'} (automated, includes the npm install)`);
     console.log(`TIME_TO_FIRST_PAYMENT_MS=${timings.first_payment_ms ?? 'n/a'} (automated)`);
     console.log(`PUBLIC_SANDBOX_CLEANROOM=${verdict} (${passed}/${steps.length})`);
     console.log('PUBLIC_SANDBOX_OPERATOR_INTERVENTIONS=0');

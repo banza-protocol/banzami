@@ -419,7 +419,10 @@ async function workbench(sdk) {
     const failedLog = await until(async () => { const d = (await deliveriesOf(A.api, t1.body?.event_id))[0]; return d && (d.attempts ?? []).some((a) => (a.status_code ?? 0) >= 500) ? d : null; }, 30000, 3000);
     mark('Failed endpoint: the attempt is in the delivery log', Boolean(failedLog), `status=${failedLog?.status} attempts=${JSON.stringify((failedLog?.attempts ?? []).map((a) => a.status_code))}`);
     const retried = await until(async () => { const d = (await deliveriesOf(A.api, t1.body?.event_id))[0]; return d?.status === 'SUCCESS' ? d : null; }, 150000, 5000);
-    mark('Retry: delivered after the failure', Boolean(retried) && retried.attempt_number >= 2, `status=${retried?.status} attempts=${retried?.attempt_number}`);
+    const attempts = retried?.attempts ?? [];
+    mark('Retry: delivered after the failure, every attempt with its status and latency', Boolean(retried) && retried.attempt_number >= 2
+      && attempts.length >= 2 && attempts.every((a) => typeof a.duration_ms === 'number' && a.attempted_at) && attempts[0].status_code >= 500 && attempts.at(-1).status_code === 200,
+      `status=${retried?.status} attempts=${attempts.map((a) => `#${a.attempt_number}:${a.status_code}/${a.duration_ms}ms`).join(',')}`);
 
     const tp = await payer(A.api, `${s}_w`);
     const sp = await session(A.api, `${s}_w`, 25000);

@@ -6,103 +6,156 @@ Version: 1.0
 appear in Banzami's public documentation, and nothing here supports a public
 superiority claim (SANDBOX-SELF-SERVICE-001 §46–48, §71–73, §85).
 
-Date of research: 2026-09-14. Banzami column: the deployed Public Sandbox at
-commit `e5739cd9`, proved by the harnesses named. Legend: **PASS** Banzami has
-it and it is proved · **EQUIVALENT** same developer outcome by a different,
-Banzami-native mechanism · **BETTER** a stronger Banzami-native outcome ·
-**N/A** structurally irrelevant (reason given) · **GAP** an applicable
-capability where the benchmark is objectively better.
+Research date: 2026-09-14. Banzami column: the deployed Public Sandbox, proved by
+the harnesses named (see [SANDBOX_SELF_SERVICE_001_CONFORMANCE.md](SANDBOX_SELF_SERVICE_001_CONFORMANCE.md)).
 
-## Evidence
+## Evidence classes
 
-| Benchmark | Public evidence used | What could be verified |
-|---|---|---|
-| BitPay Angola | `bitpay.ao` and `developers.bitpay.ao` (Cloudflare-fronted; nameservers `apollo`/`carrera.ns.cloudflare.com`) | **Nothing.** Every host and path answered `HTTP 522` (origin unreachable) on 2026-09-14 04:30 UTC and on retries; no Web Archive capture exists; no search index carries its developer pages. See *Evidence limitation* below. |
-| Angolan gateway reference (same market, same rails) | ProxyPay developer docs (`developer.proxypay.co.ao`, RPS v2), AppyPay API page (`appypay.co.ao/api-info`) | Sandbox host, API-key auth, reference payments, HMAC-SHA-256 callbacks with at-least-once delivery, a sandbox `POST /payments` to simulate a payment (ProxyPay); a testing environment and Stoplight docs, access via commercial contact (AppyPay) |
-| Stripe | docs.stripe.com/sandboxes, /testing | Multiple self-service sandboxes, anonymous sandbox creation from the CLI, test cards, test helpers, CLI event triggering and local webhook forwarding, Workbench |
-| Adyen | docs.adyen.com/development-resources/testing | Test Customer Area credentials, test cards and result codes, webhook testing, API Explorer |
-| Checkout.com | checkout.com/docs/developer-resources/testing | Self-service test account, test cards with simulated CVV/AVS/fraud/dispute/payout outcomes, API reference |
-| Plaid | plaid.com/docs/sandbox | Self-service sandbox keys, test users, `/sandbox/item/fire_webhook`, `/sandbox/item/reset_login`, product simulation endpoints |
-| Twilio | twilio.com/docs/iam/test-credentials | Test credentials that never charge or touch real resources; magic numbers producing success/failure |
+| Class | Meaning |
+|---|---|
+| **LIVE_VERIFIED** | Read or exercised on the research date from the live public source |
+| **RECENT_PUBLIC_SECONDARY** | A recent public copy (archive, index, cache) retrieved by Banzami itself |
+| **USER_SUPPLIED_RECENT_PUBLIC_EVIDENCE** | The owner's account of a recent public copy that Banzami could not retrieve itself; labelled as such |
+| **UNVERIFIED** | No evidence either way; nothing is inferred from absence |
+| **N/A** | Structurally irrelevant to Banzami, with the reason |
 
-### Evidence limitation — BitPay Angola
+Verdicts, Banzami against the benchmark's developer outcome (never its vocabulary):
+**BETTER** · **EQUIVALENT** · **GAP** · **N/A**.
 
-The owner's brief names capabilities of BitPay Angola indirectly (self-service
-Sandbox, test phone numbers as deterministic personas). Its developer portal
-could not be read on the research date. The BitPay Angola column below
-therefore records, for each capability, the **Angolan-market reference that
-could be read** (ProxyPay/AppyPay) together with the capability named in the
-brief, and Banzami is compared to that. No row is marked PASS/BETTER on the
-basis of a BitPay behaviour that was not observed, and no row assumes BitPay
-lacks something. The matrix must be re-run against `developers.bitpay.ao` when
-it answers; a capability found there that is applicable and objectively better
-reopens this document as a GAP.
+## BitPay Angola — evidence
 
-## Product capabilities — Banzami vs the Angolan reference (BitPay Angola column)
+- **Live origin, 2026-09-14:** `developers.bitpay.ao` and `bitpay.ao` answered
+  Cloudflare **522** (browser and Cloudflare working, origin host error) on every
+  path from 04:30 to 07:37 UTC, confirmed independently by the owner's browser at
+  07:15:46 UTC. This is an availability observation for that window only. No
+  capability is marked absent because of it.
+- **Archives tried, 2026-09-14:** Web Archive CDX (no capture), Common Crawl
+  indexes CC-MAIN-2026-34/-30/-25 (no capture), archive.today (404), search
+  engines (no indexed page). None could be retrieved from this session.
+- **USER_SUPPLIED_RECENT_PUBLIC_EVIDENCE used** (no RECENT_PUBLIC_SECONDARY copy could be retrieved): the owner's summary, given on
+  2026-09-14, of a recent publicly indexed copy of `https://developers.bitpay.ao/api`.
+  It lists: a Public Sandbox open to all; `POST /v1/sandbox/accounts` returning
+  test credentials at once; `sk_test_` / `sk_live_` keys; `Idempotency-Key`;
+  Payment Intents; deterministic Sandbox scenarios by test mobile number
+  (success, customer rejection, timeout → UNKNOWN → later reconciliation,
+  insufficient funds, provider unavailable); refunds; Payment Links; hosted
+  checkout; QR; signed webhooks with at-least-once delivery and retries; *Send
+  test event*; delivery history (HTTP status, latency, attempts, retries);
+  realtime SSE with an initial snapshot and terminal-state behaviour, by a browser
+  path `GET /v1/public/payments/{id}/events` without credentials and a server path
+  `GET /v1/payment_intents/{id}/events` with the secret key; events; HTTP request
+  logs with method, path, status, error code, latency and `request_id`;
+  OpenAPI/API documentation and code examples.
+  **None of these was verified live by Banzami today.**
+- Also LIVE_VERIFIED on 2026-09-14, as Angolan-market context: ProxyPay RPS v2
+  documentation (sandbox host, API-key auth, HMAC-SHA-256 callbacks with
+  at-least-once delivery, sandbox `POST /payments` to simulate a payment) and the
+  AppyPay API page (testing environment, access via commercial contact).
 
-| Capability | BitPay Angola / Angolan reference (observed) | Banzami (proved) | Verdict |
+## Product capabilities — Banzami vs BitPay Angola
+
+| Capability | BitPay Angola (class · evidence) | Banzami (LIVE_VERIFIED on the deployed Sandbox) | Verdict |
 |---|---|---|---|
-| Zero-human Sandbox signup | ProxyPay: sandbox keys "through their ProxyPay account"; AppyPay: via commercial contact | Email code → workspace → project → Financial Setup by use case → key; no operator (`public-sandbox-cleanroom.mjs` 26/26, `PUBLIC_SANDBOX_OPERATOR_INTERVENTIONS=0`) | BETTER |
-| Time to first call / first payment | Not published | Automated cleanroom: first SDK call 6.1 s (including `npm install`), first completed payment 7.1 s after sign-in; human time not measured | PASS |
-| Test credentials | Sandbox API key | `bz_test_sk_` keys, scoped, rotatable, environment-bound; cannot reach Live (`SANDBOX_CREDENTIAL_CAN_ACCESS_LIVE=0`) | EQUIVALENT |
-| Test payer / test data | ProxyPay: simulate a payment event; brief: test phone numbers | Project-owned test payers with fictitious funding, quotas and a value perimeter; pay by link or QR through the real consumer path | BETTER |
-| Deterministic scenarios | Brief: reserved test phone numbers | 28 published scenarios (`GET /v1/sandbox/scenarios`), explicit `simulate` for rail outcomes, no magic amounts or numbers (`SANDBOX_HIDDEN_TEST_MAGIC=0`) | EQUIVALENT (Banzami-native: explicit, not reserved identifiers) |
-| Payment orchestration | Reference / mobile-number payment requests | Payment Sessions: one intent with link, deep link and dynamic QR crediting one account | PASS |
-| Payment Links | Not observed | Create, list with cursor, get, cancel; paid by test payer (cleanroom step 12) | PASS |
-| QR | Not observed | Dynamic QR per session, paid cross-device (cleanroom step 13; pay page realtime 827 ms) | PASS |
-| Refunds | Not observed | Full, partial, cumulative, idempotent, over-refund refused (cleanroom 19–20) | PASS |
-| Idempotency | Not observed | `Idempotency-Key` with stored replay; SDK keeps the key across retries | PASS |
-| Webhooks: signing, retry | HMAC-SHA-256 `X-Signature`; at-least-once | `banza-signature` (timestamped HMAC, replay window), 5 retries, SDK verification | EQUIVALENT |
-| Webhook replay | Not observed | Replay per delivery, same delivery identity; test deliveries replayable | BETTER |
-| Webhook test events | ProxyPay: sandbox simulated payment triggers a callback | Synthetic `webhook.test` to one endpoint, signed, never financial, bounded | EQUIVALENT |
-| Event and delivery logs | Not observed | Events, deliveries, attempts with status codes (API and Console) | BETTER |
-| API request logs | Not observed | Per-Project logs with `request_id`, source `API` / `API_EXPLORER`, distinct from Workspace Activity | BETTER |
-| Real-time payment status (SSE) | Not observed | Header-token SSE, snapshot/status/heartbeat/terminal, reconnect, CORS, limits; p50 901 ms through Cloudflare | BETTER |
-| OpenAPI | Not observed (docs per API) | OpenAPI 3 (41 operations), route/doc drift gates | PASS |
-| SDK | Code samples (HTTP, Shell, PHP, Java, C#) | `@banzami/sdk` on npm (0.13.0 published; 0.14.0 prepared), `banzami_client` for Dart/Flutter | BETTER |
-| API Explorer | AppyPay: Stoplight-hosted docs | Console broker: no key in the browser, one-scope 60 s key, allowlist from OpenAPI, logged | EQUIVALENT (Banzami-native, safer for a financial API) |
-| Hosted payment page | Not observed | pay.banzami.com with realtime status | PASS |
-| Error catalogue | Status codes, validation messages | 100 codes, PT/EN meaning and action, drift-gated to the runtime | BETTER |
-| Event catalogue | Payment notification | Seven financial events plus the synthetic test event, per-field reference, drift-gated | BETTER |
-| Receipts / proofs | Not observed | Public verifiable receipt per operation (`/v1/public/proofs/{ref}`, banzami.com/r/{ref}) | BETTER |
-| Settlements | Not observed | Application settlement with operator pricing: gross = fee + net (cleanroom 21) | BETTER |
-| Wallet / ledger model | Not applicable to a reference gateway | Wallet accounts, double-entry ledger, invariants checked on the deployed Sandbox | BETTER |
-| Self-service reset | Not observed | Reset keeps ledger history, retires test data, 5 a day | BETTER |
+| Sandbox self-service | USER_SUPPLIED · open to all | Anyone with a mailbox; no operator (cleanroom 26/26, `PUBLIC_SANDBOX_OPERATOR_INTERVENTIONS=0`) | EQUIVALENT |
+| Zero-human onboarding | USER_SUPPLIED · `POST /v1/sandbox/accounts` returns credentials at once | Email code → workspace → project → Sandbox Financial Setup by use case → key. First SDK call 6.1 s after sign-in (automated). Mailbox ownership is required on purpose: the per-account creation limits and the test-value perimeter hang on an identity | EQUIVALENT — immediate and operator-free in both; Banzami adds a verified identity |
+| Test credentials | USER_SUPPLIED · `sk_test_` / `sk_live_` | `bz_test_sk_`, scoped, rotatable, revocable; a Sandbox key cannot reach Live and no Live key can be minted (isolation 12–13) | EQUIVALENT |
+| Deterministic scenarios | USER_SUPPLIED · test mobile numbers | 29 published scenarios (`GET /v1/sandbox/scenarios`), explicit `simulate` (DECLINED, PROVIDER_UNAVAILABLE, TIMEOUT, DELAYED), real outcomes by doing the real thing; see *Deterministic testing* below | BETTER |
+| Success · decline · insufficient funds · provider unavailable | USER_SUPPLIED | PAYMENT_SUCCESS, PAYMENT_DECLINED (402, nothing moves), INSUFFICIENT_FUNDS (422), PROVIDER_UNAVAILABLE (503 + Retry-After) — scenario suite | EQUIVALENT |
+| Timeout → unknown → later resolution | USER_SUPPLIED · UNKNOWN then reconciliation | AMBIGUOUS_TIMEOUT (503 `SANDBOX_SIMULATED_TIMEOUT`, money moved, retry with the key reads it) **and** DELAYED_COMPLETION (202 PENDING, completes on its own ~10 s later: session PAID, webhook, realtime, repeat reads 200) — added 2026-09-14 when this review found the second outcome missing | EQUIVALENT |
+| Payment orchestration | USER_SUPPLIED · Payment Intents | Payment Sessions: one intent, link + deep link + dynamic QR crediting one account | EQUIVALENT (vocabulary differs, outcome matches) |
+| Hosted payment | USER_SUPPLIED · hosted checkout | pay.banzami.com; realtime status turned the page paid 827 ms after another device paid | EQUIVALENT |
+| Payment Links | USER_SUPPLIED | Create, list with cursor, get, cancel; paid by a test payer (cleanroom 12) | EQUIVALENT |
+| QR | USER_SUPPLIED | Dynamic QR per session, paid cross-device (cleanroom 13) | EQUIVALENT |
+| Refunds | USER_SUPPLIED | Full, partial, cumulative, idempotent, over-refund refused, receipt REVERSED (refund suite 8/8) | EQUIVALENT |
+| Test payer · fictitious funding | USER_SUPPLIED · test mobile numbers as payers | Project-owned test payers (API, SDK, Console), idempotent fictitious top-ups within per-Project quotas, test value kept among test payers and test Businesses | BETTER |
+| Idempotency | USER_SUPPLIED · `Idempotency-Key` | Stored replay, payload-conflict 409, concurrent 409, a pending acknowledgement never cached as the outcome (scenario suite) | EQUIVALENT |
+| Webhooks · signing | USER_SUPPLIED · signed | `banza-signature` with timestamp and replay window; the published SDK verifies it (cleanroom 15) | EQUIVALENT |
+| Delivery · retries | USER_SUPPLIED · at-least-once, retries | 5 retries, attempts recorded (workbench: 500 then 200) | EQUIVALENT |
+| Send test event | USER_SUPPLIED | Synthetic `webhook.test`, signed, never financial, bounded 10/min per endpoint (workbench, isolation 15) | EQUIVALENT |
+| Delivery history | USER_SUPPLIED · status, latency, attempts, retries | Per delivery: status, attempts; per attempt: number, outcome, HTTP status or error class, latency, time — API and Console (latency shown in the Console since 2026-09-14) | EQUIVALENT |
+| Replay | UNVERIFIED | Replay a failed delivery, same delivery identity; a succeeded real delivery refused (409); test deliveries replayable | BETTER than no evidence; recorded as EQUIVALENT for safety |
+| Realtime · snapshot · terminal · reconnect | USER_SUPPLIED · SSE, snapshot, terminal; browser path without credentials, server path with secret key | Header-token SSE, snapshot first, heartbeat 5 s, closes on terminal, fresh snapshot on reconnect; see *Realtime architecture* | BETTER |
+| API Explorer | UNVERIFIED | Console broker; no key in the browser; Try in Sandbox from every runnable reference entry (browser acceptance 10/10) | BETTER than no evidence; EQUIVALENT for safety |
+| Request logs | USER_SUPPLIED · method, path, status, error code, latency, request_id | Method, path, route, status, **error code** (since 2026-09-14, migration 0143), latency, request_id, time, Project, source API/API_EXPLORER, filters on each; distinct from Workspace Activity (cleanroom 22–23) | EQUIVALENT |
+| Per-attempt latency | USER_SUPPLIED · latency in delivery history | `duration_ms` per attempt in the API and the Console (workbench: `#1:500/…ms, #2:200/…ms`) | EQUIVALENT |
+| Error code visibility | USER_SUPPLIED · error code in request logs | Error code in each failed log line, linked to the catalogue, filterable (cleanroom 22) | EQUIVALENT |
+| RBAC · Activity | UNVERIFIED | Owner/admin/developer/viewer roles; Workspace Activity separate from API logs | EQUIVALENT for safety |
+| Event logs | USER_SUPPLIED · events | Events API and Console, per-event deliveries | EQUIVALENT |
+| OpenAPI | USER_SUPPLIED | OpenAPI 3, route/doc/error/event drift gates | EQUIVALENT |
+| SDK | USER_SUPPLIED · code examples | `@banzami/sdk` (typed, retries with keys, webhook verification, realtime helper), `banzami_client` for Dart/Flutter | BETTER |
+| Error model | USER_SUPPLIED · error codes in logs | 100 codes with PT/EN meaning and action, drift-gated to the runtime; bodies survive Cloudflare (502/504 → 503) | BETTER |
+| Receipt / proof | UNVERIFIED | Public verifiable receipt per operation, REVERSED on full refund | BETTER than no evidence; EQUIVALENT for safety |
+| Settlement | UNVERIFIED | Application settlement with operator pricing: gross = fee + net | EQUIVALENT for safety |
+| Wallet model · ledger | N/A for a gateway comparison | Wallet accounts, double-entry ledger, invariants checked on the deployed Sandbox (all zero) | N/A — Banzami differentiator, not a parity item |
+| Workspace / Project · Financial Setup | UNVERIFIED | Workspaces, projects, RBAC, Sandbox Financial Setup by use case | EQUIVALENT for safety |
+| Console | UNVERIFIED | Keys, webhooks, logs, Explorer, test data, reset | EQUIVALENT for safety |
+| Reset / cleanup | UNVERIFIED | Reset keeps history, retires test data, 5 a day | EQUIVALENT for safety |
 | Card test numbers | — | Banzami is wallet-native and never takes card data (CLAUDE.md §2.7) | N/A |
 
-`BITPAY_APPLICABLE_PRODUCT_GAPS=0` — against every capability observable in the
-Angolan reference and named in the brief, subject to the evidence limitation.
+`BITPAY_APPLICABLE_PRODUCT_GAPS=0` — every capability in the user-supplied evidence
+has an equivalent or stronger Banzami outcome on the deployed Sandbox. Two rows
+were gaps during this review and were built before counting: delayed completion
+and the error code in request logs (with attempt latency in the Console).
 
-## Documentation and developer experience
+## Realtime architecture
 
-| Area | Angolan reference (observed) | Banzami (proved) | Verdict |
+| Property | BitPay browser path (USER_SUPPLIED) | Banzami `GET /v1/realtime/payment-sessions/{id}` (LIVE_VERIFIED) |
+|---|---|---|
+| Credential | None: the payment id opens the stream | A `bzst_` status token, HMAC-signed, in the `Authorization` header; refused in the URL (400) |
+| Single-resource isolation | Anyone holding or guessing an id | Token bound to one session (`sid`); another session's token 403; an unknown id with a valid token 403 — ids cannot be probed |
+| Cross-tenant protection | Not scoped to a caller | Token only minted on the owner's own read; another Project's key reads nothing (isolation 2, 8) |
+| Expiry | UNVERIFIED | 30 minutes, then 401 `REALTIME_TOKEN_EXPIRED` (expiry run 2/2) |
+| Mutation impossibility | UNVERIFIED | GET only; POST/PUT/PATCH/DELETE 405; the token is not an API credential (401) — realtime 17 |
+| Secret handling | Server path needs the secret key | The browser never holds a key; the server path is the same token (the SDK helper runs in Node) or webhooks/GET with the key |
+| Initial snapshot · terminal · reconnect | Snapshot, terminal behaviour | Snapshot first; closes on PAID/EXPIRED/CANCELLED/FAILED; reconnect starts from a fresh snapshot; a stream opened on a terminal session sends it and closes (realtime 8–14) |
+| Abuse bounds | UNVERIFIED | 3 streams/session, 20/client, 120 req/min, a dead stream frees its place within the 5 s heartbeat |
+
+Banzami's design gives a page what it needs and nothing a leaked or guessed id
+would: **BETTER** by design, recorded with the evidence above. An unauthenticated
+by-id endpoint was not added.
+
+## Deterministic testing
+
+| Criterion | BitPay (USER_SUPPLIED: test mobile numbers) | Banzami |
+|---|---|---|
+| Discoverability | Numbers listed in documentation | `GET /v1/sandbox/scenarios` (machine-readable), Console Test data, cookbook recipe per scenario, drift-gated |
+| Determinism | By number | By explicit `simulate` or by doing the real thing; `simulated: true` marks every simulated outcome |
+| Breadth | 5 outcomes listed | 29 scenarios: payments (incl. delayed completion), request errors, idempotency, webhooks (retry, replay, signature), refunds, settlement, receipts, realtime, rate limit, Live fail-closed |
+| Ease of use | Enter a number | One field on the payment call, or a select in the Console |
+| Safety | UNVERIFIED | No magic values in real flows (`SANDBOX_HIDDEN_TEST_MAGIC=0`); test value stays among test payers and test Businesses |
+| Tenant isolation | UNVERIFIED | Test payers per Project, 404 elsewhere (isolation 3–6) |
+| Expected results documented | UNVERIFIED | Every scenario has trigger, result and event in PT/EN |
+| Automation | UNVERIFIED | Suite of 29 with mutation-proven predicates; SDK typed (`TestPaymentPending`) |
+| Resetability | UNVERIFIED | Self-service reset keeping history |
+
+Verdict: **BETTER** — every applicable outcome is present; the mechanism differs.
+
+## Documentation and developer experience — Banzami vs BitPay Angola
+
+| Area | BitPay (class) | Banzami (LIVE_VERIFIED) | Verdict |
 |---|---|---|---|
-| Onboarding / Quickstart | Per-API introductions | Quickstart that runs end to end with no operator (`DOC_QUICKSTART_E2E` 12/12) | BETTER |
-| Testing | Sandbox host + simulate endpoint | Testing cookbook: one recipe per scenario, drift-gated to the scenario catalogue | BETTER |
-| API reference | Per-API reference pages | Reference generated from and gated against OpenAPI; examples per endpoint; Postman generated | PASS |
-| API Explorer | Stoplight (AppyPay) | Console Explorer (above) | EQUIVALENT |
-| Errors / events / webhooks / realtime guides | Callback section | Dedicated guides, PT/EN, SVG diagrams | BETTER |
-| SDK docs | Code samples | SDK README and guide examples compiled against the registry | BETTER |
-| Console | Merchant back office | Developers Console: keys, webhooks, logs, Explorer, test data, reset | BETTER |
-| Search | Not observed | Docs search with task aliases, gated (`check-docs-search`) | PASS |
-| Reference implementation | Not observed | DOA tutorial runs end to end (13/13), no special tenant path | BETTER |
-| Mobile / accessibility | Not observed | Responsive and accessibility sweeps on docs and Console | PASS |
-| AI-readable docs | Not observed | `llms.txt`, generated and gated | PASS |
-| PT/EN | Portuguese/English varies by provider | Full PT/EN parity, structure-gated | PASS |
-| Troubleshooting | Not observed | Symptom index and error actions | PASS |
+| Quickstart | UNVERIFIED | Runs end to end with no operator (12/12) | EQUIVALENT for safety |
+| API reference · code examples | USER_SUPPLIED · API docs and examples | Reference gated against OpenAPI, curl and SDK examples compiled against the registry, Try in Sandbox | EQUIVALENT |
+| Testing guide | USER_SUPPLIED · scenario numbers | Cookbook, one recipe per scenario | BETTER |
+| Webhooks · realtime · errors · events guides | USER_SUPPLIED | PT/EN guides with SVG diagrams, gated | EQUIVALENT |
+| Search | UNVERIFIED | Task-oriented search, gated | EQUIVALENT for safety |
+| Reference implementation | UNVERIFIED | DOA tutorial runs end to end (13/13) | EQUIVALENT for safety |
+| Mobile · accessibility | UNVERIFIED | Docs sweep 600/0, Console accessibility 41/41, responsive 52/52 | EQUIVALENT for safety |
+| PT/EN | UNVERIFIED | Full parity, structure-gated | EQUIVALENT for safety |
+| AI-readable docs | UNVERIFIED | `llms.txt`, generated and gated | EQUIVALENT for safety |
+| Console | UNVERIFIED | Documented page by page | EQUIVALENT for safety |
+| Troubleshooting | UNVERIFIED | Symptom index, error actions | EQUIVALENT for safety |
 
-`BITPAY_APPLICABLE_DOC_DX_GAPS=0` — same evidence limitation.
+`BITPAY_APPLICABLE_DOC_DX_GAPS=0`.
 
-## Global benchmarks — where they remain stronger (informational)
+## Global benchmarks (LIVE_VERIFIED 2026-09-14) — where they remain stronger
 
-These are not BitPay-applicable gaps under §85, and are recorded so they are
-not forgotten:
+Not BitPay-applicable under §85; recorded so they are not forgotten.
 
 | Capability | Benchmark | Banzami today |
 |---|---|---|
-| CLI with local webhook forwarding and event triggering | Stripe CLI (`listen`, `trigger`) | Console/API test events, delivery logs and replay; no CLI |
-| Several isolated sandboxes per account, anonymous sandbox from a CLI | Stripe | One Sandbox environment; isolation per Workspace/Project |
-| Time simulation (billing clocks) | Stripe test clocks | No recurring products that need it — N/A today |
+| CLI with local webhook forwarding and event triggering | Stripe CLI (`listen`, `trigger`) | Console/API test events, delivery history and replay; no CLI |
+| Several isolated sandboxes per account; anonymous sandbox from a CLI | Stripe | One Sandbox environment; isolation per Workspace/Project |
 | Agent skills / MCP for integration | Stripe | `llms.txt`; no agent tooling |
 
 ## Banzami differentiators preserved (§48)
@@ -111,5 +164,4 @@ Workspace, Project, Financial Setup, Wallet Accounts, double-entry ledger, the
 financial authority model, application settlement, operator-governed pricing,
 public verifiable receipts, Developer Console with RBAC, Workspace Activity
 distinct from API logs, the DOA reference implementation, PT/EN parity, and the
-OpenAPI, event and error drift gates with documentation contract tests — none
-was weakened; each is exercised by the harnesses above.
+OpenAPI, event and error drift gates with documentation contract tests.
