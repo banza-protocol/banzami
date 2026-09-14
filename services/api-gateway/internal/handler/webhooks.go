@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 	"strconv"
@@ -292,6 +293,12 @@ func (h *WebhookHandler) ReplayDelivery(w http.ResponseWriter, r *http.Request) 
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "delivery not found")
 			return
 		}
+		if errors.Is(err, service.ErrTestEventRateLimited) {
+			w.Header().Set("Retry-After", "60")
+			apierror.Respond(w, r, http.StatusTooManyRequests, "WEBHOOK_TEST_RATE_LIMITED",
+				fmt.Sprintf("at most %d test deliveries a minute to one endpoint", service.WebhookTestEventsPerMinute))
+			return
+		}
 		if errors.Is(err, service.ErrDeliveryAlreadyDelivered) {
 			apierror.Respond(w, r, http.StatusConflict, "DELIVERY_ALREADY_SUCCEEDED",
 				"this delivery already succeeded — replay is for one that failed")
@@ -354,6 +361,11 @@ func (h *WebhookHandler) SendTestEvent(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, service.ErrEndpointNotFound):
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "endpoint not found")
+		return
+	case errors.Is(err, service.ErrTestEventRateLimited):
+		w.Header().Set("Retry-After", "60")
+		apierror.Respond(w, r, http.StatusTooManyRequests, "WEBHOOK_TEST_RATE_LIMITED",
+			fmt.Sprintf("at most %d test deliveries a minute to one endpoint", service.WebhookTestEventsPerMinute))
 		return
 	case errors.Is(err, service.ErrEndpointInactive):
 		apierror.Respond(w, r, http.StatusConflict, "ENDPOINT_DISABLED", "a disabled endpoint receives nothing — enable it first")

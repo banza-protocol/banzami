@@ -79,4 +79,38 @@ func TestSendTestEvent_SyntheticSingleEndpointReplayable(t *testing.T) {
 	if _, err := svc.ReplayDelivery(ctx, merchant, deliveryID); err != nil {
 		t.Fatalf("replaying a delivered test event: %v", err)
 	}
+
+	// Synthetic deliveries to one endpoint are bounded: sends and replays count
+	// together, another endpoint has its own allowance.
+	var sent []string
+	defer func() {
+		for _, id := range sent {
+			_, _ = pool.Exec(ctx, `DELETE FROM webhook_deliveries WHERE event_id = $1`, id)
+			_, _ = pool.Exec(ctx, `DELETE FROM webhook_events WHERE id = $1`, id)
+		}
+	}()
+	for i := 2; i < WebhookTestEventsPerMinute; i++ { // the send and the replay above were 1 row, rescheduled
+		e, _, err := svc.SendTestEvent(ctx, merchant, ep)
+		if err != nil {
+			t.Fatalf("test event %d refused below the limit: %v", i, err)
+		}
+		sent = append(sent, e.ID)
+	}
+	tenth, _, err := svc.SendTestEvent(ctx, merchant, ep)
+	if err != nil {
+		t.Fatalf("the tenth: %v", err)
+	}
+	sent = append(sent, tenth.ID)
+	if _, _, err := svc.SendTestEvent(ctx, merchant, ep); !errors.Is(err, ErrTestEventRateLimited) {
+		t.Fatalf("over the limit: %v", err)
+	}
+	_, _ = pool.Exec(ctx, `UPDATE webhook_deliveries SET status = 'SUCCESS' WHERE id = $1`, deliveryID)
+	if _, err := svc.ReplayDelivery(ctx, merchant, deliveryID); !errors.Is(err, ErrTestEventRateLimited) {
+		t.Fatalf("a replay over the limit: %v", err)
+	}
+	elsewhere, _, err := svc.SendTestEvent(ctx, merchant, ep2)
+	if err != nil {
+		t.Fatalf("another endpoint: %v", err)
+	}
+	sent = append(sent, elsewhere.ID)
 }

@@ -91,6 +91,7 @@ export const MESSAGES: Record<string, string> = {
   // Reenviar é para uma entrega que falhou. Uma que já foi aceite não se repete:
   // o servidor do integrador recebeu esse evento e agiu sobre ele, e repeti-lo é
   // um segundo "pagamento recebido" para um pagamento.
+  WEBHOOK_TEST_RATE_LIMITED: 'Já enviou 10 entregas de teste a este endpoint no último minuto. Aguarde um minuto.',
   DELIVERY_ALREADY_SUCCEEDED:
     'Esta entrega já foi recebida com sucesso. O reenvio existe para uma entrega que falhou.',
 };

@@ -514,8 +514,22 @@ func (s *PostgresWebhookService) ReplayDelivery(ctx context.Context, merchantID,
 	// received that event and acted on it, and sending it again is a second
 	// "payment received" for one payment. Replay is for a delivery that failed.
 	now := time.Now().UTC()
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("replay delivery: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	var synthetic bool
+	if err := tx.QueryRow(ctx, `SELECT synthetic FROM webhook_events WHERE id = $1`, eventID).Scan(&synthetic); err != nil {
+		return nil, fmt.Errorf("replay delivery: %w", err)
+	}
+	if synthetic {
+		if err := admitSyntheticDelivery(ctx, tx, endpointID); err != nil {
+			return nil, err
+		}
+	}
 	var attempts int
-	err = s.pool.QueryRow(ctx,
+	err = tx.QueryRow(ctx,
 		`UPDATE webhook_deliveries d
 		    SET status = 'PENDING', scheduled_at = now(), last_error = NULL
 		  WHERE d.id = $1
@@ -531,6 +545,9 @@ func (s *PostgresWebhookService) ReplayDelivery(ctx context.Context, merchantID,
 		return nil, ErrDeliveryAlreadyDelivered
 	}
 	if err != nil {
+		return nil, fmt.Errorf("replay delivery: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("replay delivery: %w", err)
 	}
 

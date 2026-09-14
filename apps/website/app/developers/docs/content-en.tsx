@@ -918,7 +918,7 @@ export function EnWebhooks({ copy }: { copy: CopyFn }) {
               <P>
                 In the Sandbox, <strong>Send test event</strong> (Console → Webhooks) or <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code> delivers a <Code>webhook.test</Code> event to the endpoint, signed with <Code>banza-signature</Code> like any other.
                 Use it to confirm your server reads the raw body, verifies the signature and answers <Code>2xx</Code>. The event is marked <Code>synthetic: true</Code>, describes no payment, cannot be subscribed to and moves nothing; its delivery can be replayed even after it succeeds.
-                Handle a <Code>type</Code> you do not know by answering <Code>2xx</Code> with no side effects. A disabled endpoint returns <Code>409 ENDPOINT_DISABLED</Code>.
+                Handle a <Code>type</Code> you do not know by answering <Code>2xx</Code> with no side effects. A disabled endpoint returns <Code>409 ENDPOINT_DISABLED</Code>; more than 10 test deliveries a minute to one endpoint, sends and replays together, return <Code>429 WEBHOOK_TEST_RATE_LIMITED</Code> with <Code>Retry-After</Code>.
               </P>
 
               <H2 id="disable">Disable and re-enable an endpoint</H2>

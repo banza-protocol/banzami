@@ -137,6 +137,9 @@ var (
 	ErrUnavailable = errors.New("unavailable")
 	// Self-service creation limits (see limits.go).
 	ErrWorkspaceQuota = errors.New("workspace limit reached")
+	// ErrTestDeliveriesLimited: the endpoint had WebhookTestDeliveriesPerMinute
+	// synthetic deliveries scheduled in the last minute.
+	ErrTestDeliveriesLimited = errors.New("too many test deliveries to this endpoint")
 	ErrProjectQuota   = errors.New("project limit reached")
 	// ErrEnvironmentUndeclared: the process cannot say which financial universe
 	// it serves, so it may not write a row that has to name one. A configuration

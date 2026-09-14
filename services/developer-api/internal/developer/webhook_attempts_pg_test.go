@@ -128,4 +128,26 @@ func TestPgStore_ReplayOfASucceededDeliveryOnlyForSyntheticEvents(t *testing.T) 
 	if synthetic[real] || !synthetic[test] {
 		t.Fatalf("synthetic flags: %v", synthetic)
 	}
+
+	// The Console's replay keeps the gateway's bound on test deliveries.
+	var extra []string
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM webhook_deliveries WHERE event_id = ANY($1)`, extra)
+		_, _ = pool.Exec(ctx, `DELETE FROM webhook_events WHERE id = ANY($1)`, extra)
+	})
+	for i := 1; i < WebhookTestDeliveriesPerMinute; i++ { // the replay above scheduled one
+		id := uuid.NewString()
+		extra = append(extra, id)
+		if _, err := pool.Exec(ctx, `INSERT INTO webhook_events (id, merchant_id, event_type, payload, idempotency_key, synthetic)
+			VALUES ($1, $2, 'webhook.test', '{}'::jsonb, $3, true)`, id, merchant, "t:"+id); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `INSERT INTO webhook_deliveries (id, event_id, endpoint_id, status, scheduled_at, created_at)
+			VALUES ($1, $2, $3, 'PENDING', now(), now())`, uuid.NewString(), id, ep); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := store.ReplayWebhookDelivery(ctx, merchant, dTest); err != ErrTestDeliveriesLimited {
+		t.Fatalf("a test replay over the bound: %v", err)
+	}
 }

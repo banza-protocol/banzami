@@ -196,6 +196,11 @@ re-executes an operation. A delivery that succeeded is not replayed — except a
 synthetic event's, which moves nothing and exists to be sent again (gateway and
 developer-api apply the same rule). An inactive endpoint answers
 `409 ENDPOINT_DISABLED`; a non-Sandbox key `403 SANDBOX_ONLY`.
+Synthetic deliveries — test events sent and test deliveries replayed, through
+the API or the Console — are bounded to 10 a minute per endpoint under one
+advisory lock (`429 WEBHOOK_TEST_RATE_LIMITED`, `Retry-After: 60`): otherwise a
+test event is a signed request, with retries, to a URL of the developer's
+choosing, on demand at a key's request rate.
 
 ### 9. Realtime payment status
 

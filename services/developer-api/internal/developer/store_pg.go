@@ -1154,14 +1154,19 @@ func (s *pgStore) ReplayWebhookDelivery(ctx context.Context, merchantID, deliver
 	// The two refusals are told apart deliberately. A delivery that is not the
 	// caller's, or does not exist, is not-found; one that already succeeded is a
 	// conflict, because the caller CAN see it and the answer is "that one worked".
-	var status string
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var status, endpointID string
 	var synthetic bool
-	err := s.pool.QueryRow(ctx,
-		`SELECT d.status, COALESCE(ev.synthetic, false)
+	err = tx.QueryRow(ctx,
+		`SELECT d.status, d.endpoint_id::text, COALESCE(ev.synthetic, false)
 		   FROM webhook_deliveries d
 		   JOIN webhook_endpoints ep ON ep.id = d.endpoint_id
 		   JOIN webhook_events ev ON ev.id = d.event_id
-		  WHERE d.id = $1 AND ep.merchant_id = $2`, deliveryID, merchantID).Scan(&status, &synthetic)
+		  WHERE d.id = $1 AND ep.merchant_id = $2`, deliveryID, merchantID).Scan(&status, &endpointID, &synthetic)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -1173,7 +1178,25 @@ func (s *pgStore) ReplayWebhookDelivery(ctx context.Context, merchantID, deliver
 	if status == "SUCCESS" && !synthetic {
 		return ErrConflict
 	}
-	tag, err := s.pool.Exec(ctx,
+	if synthetic {
+		// The gateway's bound on synthetic deliveries per endpoint, under the
+		// same advisory lock (api-gateway service/webhook_test_event.go): the
+		// Console's replay is not a way around it.
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('webhook-test:' || $1))`, endpointID); err != nil {
+			return err
+		}
+		var recent int
+		if err := tx.QueryRow(ctx,
+			`SELECT count(*) FROM webhook_deliveries d
+			   JOIN webhook_events e ON e.id = d.event_id AND e.synthetic
+			  WHERE d.endpoint_id = $1 AND d.scheduled_at > now() - interval '1 minute'`, endpointID).Scan(&recent); err != nil {
+			return err
+		}
+		if recent >= WebhookTestDeliveriesPerMinute {
+			return ErrTestDeliveriesLimited
+		}
+	}
+	tag, err := tx.Exec(ctx,
 		`UPDATE webhook_deliveries
 		    SET status = 'PENDING', scheduled_at = now(), last_error = NULL
 		  WHERE id = $1 AND (status <> 'SUCCESS' OR $2)`, deliveryID, synthetic)
@@ -1184,7 +1207,7 @@ func (s *pgStore) ReplayWebhookDelivery(ctx context.Context, merchantID, deliver
 		// It succeeded between the read and the update. Refuse rather than retry.
 		return ErrConflict
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (s *pgStore) DeleteWebhookEndpoint(ctx context.Context, merchantID, endpointID string) error {

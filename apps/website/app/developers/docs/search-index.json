@@ -1556,6 +1556,12 @@
   },
   {
    "k": "error",
+   "t": "WEBHOOK_TEST_RATE_LIMITED",
+   "h": "/docs/errors#error-WEBHOOK_TEST_RATE_LIMITED",
+   "d": "Este endpoint já recebeu 10 entregas de teste no último minuto (envios e reenvios contam juntos)."
+  },
+  {
+   "k": "error",
    "t": "ACCOUNT_FROZEN",
    "h": "/docs/errors#error-ACCOUNT_FROZEN",
    "d": "A conta está bloqueada; movimentos a partir dela são recusados."
@@ -3804,6 +3810,12 @@
    "t": "DELIVERY_ALREADY_SUCCEEDED",
    "h": "/docs/en/errors#error-DELIVERY_ALREADY_SUCCEEDED",
    "d": "The delivery already succeeded and is not sent again."
+  },
+  {
+   "k": "error",
+   "t": "WEBHOOK_TEST_RATE_LIMITED",
+   "h": "/docs/en/errors#error-WEBHOOK_TEST_RATE_LIMITED",
+   "d": "This endpoint already had 10 test deliveries in the last minute (sends and replays count together)."
   },
   {
    "k": "error",

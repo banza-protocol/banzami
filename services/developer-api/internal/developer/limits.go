@@ -19,6 +19,11 @@ const (
 	MaxWorkspacesCreatedPerDay    = 20
 	MaxActiveProjectsPerWorkspace = 25
 	MaxProjectsCreatedPerDay      = 50
+
+	// WebhookTestDeliveriesPerMinute is the gateway's WebhookTestEventsPerMinute:
+	// synthetic deliveries (test events sent, test deliveries replayed) per
+	// endpoint per minute.
+	WebhookTestDeliveriesPerMinute = 10
 )
 
 func (s *Service) admitWorkspace(ctx context.Context, actor string) error {

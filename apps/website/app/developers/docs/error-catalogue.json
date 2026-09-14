@@ -819,6 +819,24 @@
       "idempotency_key": "n/a"
     },
     {
+      "code": "WEBHOOK_TEST_RATE_LIMITED",
+      "http": [
+        429
+      ],
+      "family": "sandbox",
+      "source": "gateway",
+      "meaning": {
+        "pt": "Este endpoint já recebeu 10 entregas de teste no último minuto (envios e reenvios contam juntos).",
+        "en": "This endpoint already had 10 test deliveries in the last minute (sends and replays count together)."
+      },
+      "action": {
+        "pt": "Aguarde o Retry-After. Um teste por alteração ao seu servidor chega.",
+        "en": "Wait for Retry-After. One test per change to your server is enough."
+      },
+      "retry": "after_delay",
+      "idempotency_key": "n/a"
+    },
+    {
       "code": "ACCOUNT_FROZEN",
       "http": [
         422

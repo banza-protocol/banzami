@@ -2299,6 +2299,24 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "WEBHOOK_TEST_RATE_LIMITED — a replay of a test delivery counts toward the endpoint's 10 test deliveries a minute; wait for Retry-After",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds to wait"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -3040,6 +3058,24 @@
           },
           "409": {
             "description": "ENDPOINT_DISABLED — enable the endpoint first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "WEBHOOK_TEST_RATE_LIMITED — at most 10 test deliveries a minute to one endpoint (sends and replays together); wait for Retry-After",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds to wait"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

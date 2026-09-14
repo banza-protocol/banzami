@@ -143,6 +143,7 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - WALLET_ACCOUNT_INACTIVE (409): The account that should receive the payment is not active. Use an active account.
 - PRIMARY_NOT_CREATABLE (422): An account with purpose PRIMARY cannot be created: the main account comes with the wallet. Use another purpose, for example CAMPAIGN, STORE or EVENT.
 - DELIVERY_ALREADY_SUCCEEDED (409): The delivery already succeeded and is not sent again. Replay only deliveries that failed.
+- WEBHOOK_TEST_RATE_LIMITED (429): This endpoint already had 10 test deliveries in the last minute (sends and replays count together). Wait for Retry-After. One test per change to your server is enough.
 - ACCOUNT_FROZEN (422): The account is frozen; movements from it are refused. Contact support with the request_id.
 - ACCOUNTS_NOT_SAME_WALLET (422): The two accounts do not belong to the same wallet. Transfer only between accounts of the same Business.
 - CURRENCY_MISMATCH (422): The accounts, the payment and the request do not share a currency. Use the account’s or payment’s currency.

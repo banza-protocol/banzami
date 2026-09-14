@@ -783,6 +783,12 @@ func (h *Handlers) replayWebhookDelivery(w http.ResponseWriter, r *http.Request)
 	}
 	err := h.svc.ReplayProjectWebhookDelivery(r.Context(), u.ID,
 		chi.URLParam(r, "projID"), chi.URLParam(r, "deliveryID"))
+	if err == ErrTestDeliveriesLimited {
+		w.Header().Set("Retry-After", "60")
+		httpx.Error(w, http.StatusTooManyRequests, "WEBHOOK_TEST_RATE_LIMITED",
+			fmt.Sprintf("at most %d test deliveries a minute to one endpoint", WebhookTestDeliveriesPerMinute))
+		return
+	}
 	if err == ErrConflict {
 		httpx.Error(w, http.StatusConflict, "DELIVERY_ALREADY_SUCCEEDED",
 			"this delivery already succeeded — replay is for one that failed")

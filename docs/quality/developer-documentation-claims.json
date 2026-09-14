@@ -1002,7 +1002,7 @@
    "evidence": "services/api-gateway/internal/service/postgres_webhooks.go (5 attempts, 1m/5m/30m/2h, fan-out to active endpoints); sdk/typescript/src/webhooks.ts (tolerance 300 s); tools/check-docs-dx.mjs (WEBHOOK_GUIDE_* truths)",
    "text": "Depois da quinta falha, a entrega fica FAILED e pode ser reenviada. A ordem de entrega não é garantida."
   },
-  "pt:Webhooks:c290c938bd": {
+  "pt:Webhooks:ca8580aa4e": {
    "page": "Webhooks",
    "kind": "P",
    "class": "GATE",
@@ -5867,7 +5867,7 @@
    "evidence": "services/api-gateway/internal/service/postgres_webhooks.go (5 attempts, 1m/5m/30m/2h, fan-out to active endpoints); sdk/typescript/src/webhooks.ts (tolerance 300 s); tools/check-docs-dx.mjs (WEBHOOK_GUIDE_* truths)",
    "text": "After the fifth failure, the delivery is FAILED and can be replayed. Delivery order is not guaranteed."
   },
-  "en:Webhooks:c51ff173bc": {
+  "en:Webhooks:42817aabc9": {
    "page": "Webhooks",
    "kind": "P",
    "class": "GATE",
@@ -16716,6 +16716,20 @@
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "DELIVERY_ALREADY_SUCCEEDED: The delivery already succeeded and is not sent again. Replay only deliveries that failed."
+  },
+  "pt:Errors-spec:6529dd9eed": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "WEBHOOK_TEST_RATE_LIMITED: Este endpoint já recebeu 10 entregas de teste no último minuto (envios e reenvios contam juntos). Aguarde o Retry-After. Um teste por"
+  },
+  "en:Errors-spec:b4f93c962d": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "WEBHOOK_TEST_RATE_LIMITED: This endpoint already had 10 test deliveries in the last minute (sends and replays count together). Wait for Retry-After. One test pe"
   },
   "pt:Errors-spec:7979b3a4b7": {
    "page": "Errors-spec",

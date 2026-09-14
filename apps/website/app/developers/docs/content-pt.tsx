@@ -904,7 +904,7 @@ export function PtWebhooks({ copy }: { copy: CopyFn }) {
               <P>
                 No Sandbox, <strong>Enviar evento de teste</strong> (Consola → Webhooks) ou <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code> entrega ao endpoint um evento <Code>webhook.test</Code>, assinado com <Code>banza-signature</Code> como qualquer outro.
                 Serve para confirmar que o servidor lê o corpo em bruto, verifica a assinatura e responde <Code>2xx</Code>. O evento vem marcado <Code>synthetic: true</Code>, não descreve nenhum pagamento, não se subscreve e não move nada; a entrega pode ser reenviada mesmo depois de ter sucesso.
-                Trate um <Code>type</Code> que não conhece respondendo <Code>2xx</Code> sem efeitos. Um endpoint desativado responde <Code>409 ENDPOINT_DISABLED</Code>.
+                Trate um <Code>type</Code> que não conhece respondendo <Code>2xx</Code> sem efeitos. Um endpoint desativado responde <Code>409 ENDPOINT_DISABLED</Code>; mais de 10 entregas de teste por minuto ao mesmo endpoint, envios e reenvios juntos, respondem <Code>429 WEBHOOK_TEST_RATE_LIMITED</Code> com <Code>Retry-After</Code>.
               </P>
 
               <H2 id="desativar">Desativar e reativar um endpoint</H2>
