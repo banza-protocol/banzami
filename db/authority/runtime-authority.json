@@ -149,6 +149,7 @@
           "account_identity.identity_users",
           "developer.audit_events",
           "developer.dev_api_keys",
+          "developer.dev_api_request_logs",
           "developer.dev_project_sandbox_binding",
           "developer.dev_projects",
           "developer.dev_workspace_invites",

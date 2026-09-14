@@ -921,6 +921,66 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "A Sandbox Project or Workspace can be deleted (0146 / SANDBOX-DELETE-001)",
+      "why": "DELETING/DELETED lifecycle with its timestamps, and Core's own record of a Project being retired, from which Core refuses new Payment Sessions and Payment Links for it.",
+      "tables": [
+        {
+          "name": "sandbox_retired_projects",
+          "columns": [
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "merchant_id",
+              "nullable": true
+            },
+            {
+              "name": "retired_at",
+              "nullable": false
+            },
+            {
+              "name": "passes",
+              "nullable": false
+            }
+          ],
+          "indexes": []
+        },
+        {
+          "name": "developer.dev_projects",
+          "columns": [
+            {
+              "name": "deletion_requested_at",
+              "nullable": true
+            },
+            {
+              "name": "deleted_at",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "developer.idx_dev_projects_deleting"
+          ]
+        },
+        {
+          "name": "developer.dev_workspaces",
+          "columns": [
+            {
+              "name": "deletion_requested_at",
+              "nullable": true
+            },
+            {
+              "name": "deleted_at",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "developer.idx_dev_workspaces_deleting"
+          ]
+        }
+      ]
     }
   ]
 }

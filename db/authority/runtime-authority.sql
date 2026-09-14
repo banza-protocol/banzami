@@ -193,6 +193,7 @@ SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"account_identity"."identity_
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"account_identity"."identity_users"', 'bl_developer_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."audit_events"', 'bl_developer_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_api_keys"', 'bl_developer_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_api_request_logs"', 'bl_developer_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_project_sandbox_binding"', 'bl_developer_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_projects"', 'bl_developer_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_workspace_invites"', 'bl_developer_api_runtime');
