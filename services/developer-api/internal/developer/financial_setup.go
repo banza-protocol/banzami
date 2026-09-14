@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
+
 	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 )
 
@@ -427,4 +429,52 @@ func (s *Service) environmentName() string {
 		return "SANDBOX"
 	}
 	return "UNAVAILABLE"
+}
+
+// ── Sandbox reset (ADR-060 §10) ──────────────────────────────────────────────
+
+// SandboxResetter is Core's reset of a Project's live test data.
+type SandboxResetter interface {
+	ResetProjectSandbox(ctx context.Context, projectID, requestedBy, idempotencyKey string) (*coreclient.SandboxResetResult, error)
+}
+
+// SandboxResetConfirmation is what the member types to confirm a reset.
+const SandboxResetConfirmation = "RESET"
+
+// ErrResetNotConfirmed: the confirmation was not typed exactly.
+var ErrResetNotConfirmed = errors.New("type RESET to confirm")
+
+// ResetProjectSandbox retires the Project's test payers and, if the Project
+// owns a synthetic Sandbox Business, cancels its open sessions and links,
+// retires its fictitious balances and closes its extra accounts. Nothing is
+// deleted. Sandbox only; a member who may configure Financial Setup; typed
+// confirmation; five a day (Core counts).
+func (s *Service) ResetProjectSandbox(ctx context.Context, actor, projectID, confirmation, ip, reqID string) (*coreclient.SandboxResetResult, error) {
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canConfigureFinancialSandbox(role) {
+		return nil, ErrForbidden
+	}
+	if !s.sandboxEnv {
+		return nil, ErrWrongEnvironment
+	}
+	if confirmation != SandboxResetConfirmation {
+		return nil, ErrResetNotConfirmed
+	}
+	resetter, ok := s.sandboxBusinesses.(SandboxResetter)
+	if !ok {
+		return nil, ErrSetupUnavailable
+	}
+	res, err := resetter.ResetProjectSandbox(ctx, p.ID, actor, uuid.NewString())
+	if err != nil {
+		return nil, err
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "project.sandbox_reset", "PROJECT:"+p.ID, ip, reqID, map[string]any{
+		"test_payers_retired": res.TestPayersRetired, "business_reset": res.BusinessReset,
+		"payment_sessions_cancelled": res.PaymentSessionsCancelled, "payment_links_cancelled": res.PaymentLinksCancelled,
+		"accounts_closed": res.AccountsClosed, "retired_minor": res.RetiredMinor,
+	})
+	return res, nil
 }

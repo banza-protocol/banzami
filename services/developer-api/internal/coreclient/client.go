@@ -758,6 +758,62 @@ func (c *ProvisionClient) ChangeSandboxUseCase(ctx context.Context, projectID, u
 	return &out, nil
 }
 
+// SandboxResetResult is what a Sandbox reset did (ADR-060 §10).
+type SandboxResetResult struct {
+	TestPayersRetired        int   `json:"test_payers_retired"`
+	BusinessReset            bool  `json:"business_reset"`
+	PaymentSessionsCancelled int   `json:"payment_sessions_cancelled"`
+	PaymentLinksCancelled    int   `json:"payment_links_cancelled"`
+	AccountsClosed           int   `json:"accounts_closed"`
+	RetiredMinor             int64 `json:"retired_minor"`
+}
+
+// Refusal is Core's reasoned 4xx, with its code, for a caller that shows it.
+type Refusal struct {
+	Status  int
+	Code    string
+	Message string
+}
+
+func (r *Refusal) Error() string { return r.Code + ": " + r.Message }
+
+// ResetProjectSandbox retires a Project's live test data in Core. Idempotent on
+// idempotencyKey; Core reads what the Project owns itself.
+func (c *ProvisionClient) ResetProjectSandbox(ctx context.Context, projectID, requestedBy, idempotencyKey string) (*SandboxResetResult, error) {
+	b, _ := json.Marshal(map[string]string{"project_id": projectID, "requested_by": requestedBy, "idempotency_key": idempotencyKey})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/internal/v1/sandbox/projects/reset", bytes.NewReader(b))
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	if resp.StatusCode == http.StatusConflict || resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusForbidden {
+		var e struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		_ = json.Unmarshal(raw, &e)
+		return nil, &Refusal{Status: resp.StatusCode, Code: e.Error.Code, Message: e.Error.Message}
+	}
+	if resp.StatusCode >= 400 {
+		return nil, ErrUnavailable
+	}
+	var out struct {
+		Result SandboxResetResult `json:"result"`
+	}
+	if json.Unmarshal(raw, &out) != nil {
+		return nil, ErrUnavailable
+	}
+	return &out.Result, nil
+}
+
 // sendJSON is the write half for routes that answer a reasoned 4xx: those map to
 // ErrSandboxBusinessRefused rather than to an outage.
 func (c *ProvisionClient) sendJSON(ctx context.Context, method, path string, body, out any) error {

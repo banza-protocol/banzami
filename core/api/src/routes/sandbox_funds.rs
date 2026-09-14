@@ -44,15 +44,45 @@ pub async fn retire(
     }
     let owner_id =
         Uuid::parse_str(&body.owner_id).map_err(|_| ApiError::bad_request("invalid owner_id"))?;
-    let reason = body.reason.trim();
-    let retired_by = body.retired_by.trim();
-    let key = body.idempotency_key.trim();
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let mut tx = state.pool.begin().await.map_err(db)?;
+    let (retired, replayed) = retire_in_tx(
+        &mut tx,
+        state.transit_account_id.as_uuid(),
+        &body.owner_type,
+        owner_id,
+        &body.reason,
+        &body.retired_by,
+        &body.idempotency_key,
+    )
+    .await?;
+    tx.commit().await.map_err(db)?;
+    Ok(Json(
+        serde_json::json!({ "retired_minor": retired, "replayed": replayed }),
+    ))
+}
+
+/// Retire one owner's synthetic balance inside the caller's transaction:
+/// DR the owner's available account / CR transit, once per key, audited.
+/// Returns (amount retired, whether this key had already retired it).
+pub(crate) async fn retire_in_tx(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transit: Uuid,
+    owner_type: &str,
+    owner_id: Uuid,
+    reason: &str,
+    retired_by: &str,
+    idempotency_key: &str,
+) -> Result<(i64, bool), ApiError> {
+    let reason = reason.trim();
+    let retired_by = retired_by.trim();
+    let key = idempotency_key.trim();
     if reason.is_empty() || retired_by.is_empty() || key.is_empty() || key.len() > 200 {
         return Err(ApiError::bad_request(
             "reason, retired_by and idempotency_key are required",
         ));
     }
-    let lookup = match body.owner_type.as_str() {
+    let lookup = match owner_type {
         "MERCHANT" => {
             "SELECT id, available_account_id FROM wallets WHERE merchant_id = $1 AND currency = 'AOA' FOR UPDATE"
         }
@@ -71,24 +101,21 @@ pub async fn retire(
     let db = |e: sqlx::Error| ApiError::internal(e.to_string());
     let ledger_key = format!("sandbox-retire:{key}");
 
-    let mut tx = state.pool.begin().await.map_err(db)?;
     // A replay returns what the first call retired.
     if let Some(prev) = sqlx::query_scalar::<_, i64>(
         "SELECT e.amount_minor FROM ledger_postings p JOIN ledger_entries e ON e.posting_id = p.id
           WHERE p.idempotency_key = $1 AND e.entry_type = 'DEBIT'",
     )
     .bind(&ledger_key)
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&mut **tx)
     .await
     .map_err(db)?
     {
-        return Ok(Json(
-            serde_json::json!({ "retired_minor": prev, "replayed": true }),
-        ));
+        return Ok((prev, true));
     }
     let Some((wallet_id, available)) = sqlx::query_as::<_, (Uuid, Uuid)>(lookup)
         .bind(owner_id)
-        .fetch_optional(&mut *tx)
+        .fetch_optional(&mut **tx)
         .await
         .map_err(db)?
     else {
@@ -99,13 +126,11 @@ pub async fn retire(
            FROM ledger_entries WHERE account_id = $1",
     )
     .bind(available)
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut **tx)
     .await
     .map_err(db)?;
     if balance <= 0 {
-        return Ok(Json(
-            serde_json::json!({ "retired_minor": 0, "replayed": false }),
-        ));
+        return Ok((0, false));
     }
 
     let posting = Uuid::new_v4();
@@ -113,13 +138,10 @@ pub async fn retire(
         .bind(posting)
         .bind("[SANDBOX] Synthetic funds retired — DR owner available / CR transit")
         .bind(&ledger_key)
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await
         .map_err(db)?;
-    for (account, side) in [
-        (available, "DEBIT"),
-        (state.transit_account_id.as_uuid(), "CREDIT"),
-    ] {
+    for (account, side) in [(available, "DEBIT"), (transit, "CREDIT")] {
         sqlx::query(
             "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
              VALUES ($1, $2, $3, $4, $5, 'AOA', now())",
@@ -129,7 +151,7 @@ pub async fn retire(
         .bind(account)
         .bind(side)
         .bind(balance)
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await
         .map_err(db)?;
     }
@@ -137,18 +159,15 @@ pub async fn retire(
         "INSERT INTO audit_log (actor, action, subject, metadata) VALUES ($1, 'SANDBOX_FUNDS_RETIRED', $2, $3)",
     )
     .bind(format!("OPERATOR:{retired_by}"))
-    .bind(format!("{}:{owner_id}", body.owner_type))
+    .bind(format!("{owner_type}:{owner_id}"))
     .bind(serde_json::json!({
         "wallet_id": wallet_id,
         "amount_minor": balance,
         "posting_id": posting,
         "reason": reason,
     }))
-    .execute(&mut *tx)
+    .execute(&mut **tx)
     .await
     .map_err(db)?;
-    tx.commit().await.map_err(db)?;
-    Ok(Json(
-        serde_json::json!({ "retired_minor": balance, "replayed": false }),
-    ))
+    Ok((balance, false))
 }

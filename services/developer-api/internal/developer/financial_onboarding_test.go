@@ -3,6 +3,7 @@ package developer
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -386,5 +387,53 @@ func TestShareSandboxBusiness_IssuesForTheAuthorisedProjectOnly(t *testing.T) {
 	s.SetBusinessOnboarding(&fakeOnboarding{})
 	if _, err := s.ShareSandboxBusiness(bg, "u_owner", pid, "", ""); err != ErrOnboardingUnavailable {
 		t.Fatalf("no issuer: %v", err)
+	}
+}
+
+type resettingBusinesses struct {
+	fakeSandboxBusinesses
+	resets []string
+	err    error
+}
+
+func (f *resettingBusinesses) ResetProjectSandbox(_ context.Context, projectID, requestedBy, key string) (*coreclient.SandboxResetResult, error) {
+	f.resets = append(f.resets, projectID+"|"+requestedBy+"|"+key)
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &coreclient.SandboxResetResult{TestPayersRetired: 2, BusinessReset: true}, nil
+}
+
+// ADR-060 §10: a reset is typed, Sandbox only, for a member who may configure
+// Financial Setup, for the authorised Project — and each request is its own
+// idempotency key, so two deliberate resets are two resets.
+func TestResetProjectSandbox_TypedSandboxOnlyAndAuthorised(t *testing.T) {
+	s, _, pid := setupSvc(t)
+	f := &resettingBusinesses{}
+	s.SetSandboxBusinessProvisioner(f)
+
+	if _, err := s.ResetProjectSandbox(bg, "u_owner", pid, "reset", "", ""); err != ErrResetNotConfirmed {
+		t.Fatalf("lower-case confirmation: %v", err)
+	}
+	if _, err := s.ResetProjectSandbox(bg, "u_view", pid, "RESET", "", ""); err != ErrForbidden {
+		t.Fatalf("viewer: %v", err)
+	}
+	if _, err := s.ResetProjectSandbox(bg, "u_outsider", pid, "RESET", "", ""); err != ErrNotFound {
+		t.Fatalf("outsider: %v", err)
+	}
+	if len(f.resets) != 0 {
+		t.Fatalf("a refused reset reached Core: %v", f.resets)
+	}
+	res, err := s.ResetProjectSandbox(bg, "u_owner", pid, "RESET", "", "")
+	if err != nil || res.TestPayersRetired != 2 || !strings.HasPrefix(f.resets[0], pid+"|u_owner|") {
+		t.Fatalf("owner reset: %+v %v %v", res, err, f.resets)
+	}
+	_, _ = s.ResetProjectSandbox(bg, "u_owner", pid, "RESET", "", "")
+	if len(f.resets) != 2 || f.resets[0] == f.resets[1] {
+		t.Fatalf("each reset request carries its own key: %v", f.resets)
+	}
+	s.SetSandboxEnvironment(false)
+	if _, err := s.ResetProjectSandbox(bg, "u_owner", pid, "RESET", "", ""); err != ErrWrongEnvironment {
+		t.Fatalf("outside the Sandbox: %v", err)
 	}
 }

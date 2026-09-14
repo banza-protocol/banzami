@@ -68,6 +68,9 @@ mod sandbox_credit_tests;
 pub mod sandbox_funds;
 #[cfg(test)]
 mod sandbox_funds_tests;
+pub mod sandbox_reset;
+#[cfg(test)]
+mod sandbox_reset_tests;
 pub mod settlement_readiness;
 #[cfg(test)]
 mod settlement_readiness_tests;

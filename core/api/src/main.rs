@@ -518,6 +518,10 @@ async fn main() {
             post(routes::sandbox_funds::retire),
         )
         .route(
+            "/internal/v1/sandbox/projects/reset",
+            post(routes::sandbox_reset::reset),
+        )
+        .route(
             "/internal/v1/wallets/:wallet_id/accounts",
             get(routes::wallet_accounts::list_for_wallet),
         )

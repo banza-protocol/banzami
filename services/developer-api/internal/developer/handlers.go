@@ -13,6 +13,7 @@ import (
 	"github.com/banzami/banzami/services/common/clientip"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
+	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 	"github.com/banzami/banzami/services/developer-api/internal/gatewayclient"
 	"github.com/banzami/banzami/services/developer-api/internal/httpx"
 )
@@ -288,6 +289,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/projects/{projID}/financial-onboarding/applications", h.submitFinancialApplication)
 		r.Post("/projects/{projID}/financial-onboarding/link", h.linkExistingBusiness)
 		r.Post("/projects/{projID}/financial-setup/share-code", h.shareSandboxBusiness)
+		r.Post("/projects/{projID}/sandbox/reset", h.resetProjectSandbox)
 		r.Post("/projects/{projID}/wallet-accounts", h.createWalletAccount)
 		r.Post("/projects/{projID}/webhooks/endpoints", h.createWebhookEndpoint)
 		r.Post("/projects/{projID}/webhooks/endpoints/{epID}/rotate-secret", h.rotateWebhookSecret)
@@ -581,6 +583,36 @@ func (h *Handlers) linkExistingBusiness(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"business": b})
+}
+
+// POST /projects/{projID}/sandbox/reset {"confirm": "RESET"}
+func (h *Handlers) resetProjectSandbox(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Confirm string `json:"confirm"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&in)
+	ip, reqID := reqMeta(r)
+	res, err := h.svc.ResetProjectSandbox(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Confirm, ip, reqID)
+	var refusal *coreclient.Refusal
+	switch {
+	case err == nil:
+		httpx.JSON(w, http.StatusOK, res)
+	case errors.As(err, &refusal):
+		httpx.Error(w, refusal.Status, refusal.Code, refusal.Message)
+	case errors.Is(err, ErrResetNotConfirmed):
+		httpx.Error(w, http.StatusBadRequest, "CONFIRMATION_REQUIRED", "type RESET to confirm")
+	case errors.Is(err, ErrWrongEnvironment):
+		httpx.Error(w, http.StatusForbidden, "SANDBOX_ONLY", "a reset exists only in the Sandbox")
+	case errors.Is(err, ErrSetupUnavailable):
+		httpx.Error(w, http.StatusServiceUnavailable, "SETUP_UNAVAILABLE", "resetting is not available on this deployment")
+	default:
+		mapErr(w, err)
+	}
 }
 
 // POST /projects/{projID}/financial-setup/share-code
