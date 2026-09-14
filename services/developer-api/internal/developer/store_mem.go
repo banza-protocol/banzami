@@ -1092,13 +1092,15 @@ func (m *memStore) ProjectsPendingDeletion(_ context.Context, workspaceID string
 	return out, nil
 }
 
-func (m *memStore) OtherLiveProjectsOnBusinessOf(_ context.Context, projectID string) (int, error) {
+func (m *memStore) OtherLiveProjectsOnBusinessOf(_ context.Context, projectID string) (string, int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	merchants := map[string]bool{}
+	latest := ""
 	for _, b := range m.bindings {
 		if b.ProjectID == projectID {
 			merchants[b.MerchantID] = true
+			latest = b.MerchantID
 		}
 	}
 	others := map[string]bool{}
@@ -1109,7 +1111,7 @@ func (m *memStore) OtherLiveProjectsOnBusinessOf(_ context.Context, projectID st
 			}
 		}
 	}
-	return len(others), nil
+	return latest, len(others), nil
 }
 
 func (m *memStore) BeginWorkspaceDeletion(_ context.Context, id string) ([]string, int, error) {

@@ -24,6 +24,7 @@ import (
 type retirePass struct {
 	projectID      string
 	retireBusiness bool
+	bound          string
 }
 
 type fakeRetirer struct {
@@ -33,13 +34,13 @@ type fakeRetirer struct {
 	down   bool
 }
 
-func (f *fakeRetirer) RetireProject(_ context.Context, projectID, _, _ string, retireBusiness bool) (*coreclient.ProjectRetirement, error) {
+func (f *fakeRetirer) RetireProject(_ context.Context, projectID, _, _ string, retireBusiness bool, bound string) (*coreclient.ProjectRetirement, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.down {
 		return nil, coreclient.ErrUnavailable
 	}
-	f.passes = append(f.passes, retirePass{projectID, retireBusiness})
+	f.passes = append(f.passes, retirePass{projectID, retireBusiness, bound})
 	return &coreclient.ProjectRetirement{BusinessRetired: retireBusiness}, nil
 }
 
@@ -213,6 +214,14 @@ func TestSandboxDelete_ASharedBusinessIsNotRetired(t *testing.T) {
 	}
 	if _, err := s.GetProject(bg, "u_owner", other.ID); err != nil {
 		t.Fatalf("the other project is untouched: %v", err)
+	}
+
+	// The last project on it goes: Core is asked to retire it, and told which one.
+	if _, _, err := s.DeleteProject(bg, "u_owner", other.ID, "Ligado", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.passesFor(other.ID); len(got) != 1 || !got[0].retireBusiness || got[0].bound != "shared" {
+		t.Fatalf("the last project on a shared Business names it for retirement: %+v", got)
 	}
 }
 

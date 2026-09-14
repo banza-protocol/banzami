@@ -709,7 +709,7 @@ var DeletionGrace = 60 * time.Second
 
 // DeletionRetirer is Core's retirement of a deleted project's test resources.
 type DeletionRetirer interface {
-	RetireProject(ctx context.Context, projectID, requestedBy, passID string, retireBusiness bool) (*coreclient.ProjectRetirement, error)
+	RetireProject(ctx context.Context, projectID, requestedBy, passID string, retireBusiness bool, boundBusinessID string) (*coreclient.ProjectRetirement, error)
 }
 
 // continueProjectDeletion runs one Core pass for a DELETING project and, once the
@@ -725,12 +725,12 @@ func (s *Service) continueProjectDeletion(ctx context.Context, p *Project, actor
 	if !ok {
 		return ProjectDeletion{Status: StatusDeleting}
 	}
-	others, err := s.store.OtherLiveProjectsOnBusinessOf(ctx, p.ID)
+	bound, others, err := s.store.OtherLiveProjectsOnBusinessOf(ctx, p.ID)
 	if err != nil {
 		return ProjectDeletion{Status: StatusDeleting}
 	}
 	started := time.Now()
-	res, err := retirer.RetireProject(ctx, p.ID, actor, newRandomID(), others == 0)
+	res, err := retirer.RetireProject(ctx, p.ID, actor, newRandomID(), others == 0, bound)
 	if err != nil {
 		slog.WarnContext(ctx, "developer.project_deletion.retire_failed", "project", p.ID, "err", err.Error())
 		return ProjectDeletion{Status: StatusDeleting}

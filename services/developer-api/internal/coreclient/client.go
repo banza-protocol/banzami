@@ -826,9 +826,15 @@ type ProjectRetirement struct {
 
 // RetireProject asks Core to retire a deleted project's test resources. State-
 // based in Core, so any number of passes is safe; retireBusiness is false while
-// another live project still uses the project's own Business.
-func (c *ProvisionClient) RetireProject(ctx context.Context, projectID, requestedBy, passID string, retireBusiness bool) (*ProjectRetirement, error) {
-	b, _ := json.Marshal(map[string]any{"project_id": projectID, "requested_by": requestedBy, "pass_id": passID, "retire_business": retireBusiness})
+// another live project still uses the project's own Business. boundBusinessID is
+// the Business the project was bound to; Core retires it only if it is a
+// synthetic Business whose creating project Core has already retired.
+func (c *ProvisionClient) RetireProject(ctx context.Context, projectID, requestedBy, passID string, retireBusiness bool, boundBusinessID string) (*ProjectRetirement, error) {
+	body := map[string]any{"project_id": projectID, "requested_by": requestedBy, "pass_id": passID, "retire_business": retireBusiness}
+	if boundBusinessID != "" {
+		body["bound_business_id"] = boundBusinessID
+	}
+	b, _ := json.Marshal(body)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/internal/v1/sandbox/projects/retire", bytes.NewReader(b))
 	if err != nil {
 		return nil, ErrUnavailable

@@ -23,6 +23,17 @@ fn body(project: Uuid, pass: &str, retire_business: bool) -> Json<RetireProjectB
         requested_by: "dev-user".into(),
         pass_id: pass.into(),
         retire_business,
+        bound_business_id: None,
+    })
+}
+
+fn bound(project: Uuid, pass: &str, merchant: Uuid) -> Json<RetireProjectBody> {
+    Json(RetireProjectBody {
+        project_id: project.to_string(),
+        requested_by: "dev-user".into(),
+        pass_id: pass.into(),
+        retire_business: true,
+        bound_business_id: Some(merchant.to_string()),
     })
 }
 
@@ -303,6 +314,87 @@ async fn a_shared_business_is_never_retired(pool: PgPool) {
         .await,
         "ACTIVE"
     );
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_shared_business_is_retired_with_the_last_project_on_it(pool: PgPool) {
+    let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
+    let creator = Uuid::new_v4();
+    let partner = Uuid::new_v4();
+    let f = business(&st, &pool, transit, creator).await;
+    let merchant_status = || {
+        status(
+            &pool,
+            "SELECT status FROM merchants WHERE id=$1",
+            f.merchant,
+        )
+    };
+
+    // The partner is deleted while the creator is live: the Business stays,
+    // however the partner names it.
+    let Json(early) = retire(State(st.clone()), bound(partner, "p1", f.merchant))
+        .await
+        .unwrap();
+    assert_eq!(early["business_orphaned"], false);
+    assert_eq!(
+        merchant_status().await,
+        "ACTIVE",
+        "a live creator keeps its Business"
+    );
+    assert_eq!(balance(&pool, f.primary_account).await, 300_000);
+
+    // The creator is deleted while the partner was still live: kept.
+    let _ = retire(State(st.clone()), body(creator, "c1", false))
+        .await
+        .unwrap();
+    assert_eq!(merchant_status().await, "ACTIVE");
+
+    // The last Project on it goes: the Business is retired like an owned one.
+    let Json(last) = retire(State(st.clone()), bound(partner, "p2", f.merchant))
+        .await
+        .unwrap();
+    assert_eq!(last["business_orphaned"], true);
+    assert_eq!(last["business_retired"], true);
+    assert_eq!(merchant_status().await, "SUSPENDED");
+    assert_eq!(
+        balance(&pool, f.primary_account).await,
+        0,
+        "its value is retired through postings"
+    );
+    assert_eq!(
+        status(
+            &pool,
+            "SELECT status FROM payment_sessions WHERE id=$1",
+            f.session
+        )
+        .await,
+        "CANCELLED"
+    );
+    assert!(book_balanced(&pool).await);
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_named_business_that_is_not_orphaned_is_never_retired(pool: PgPool) {
+    let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
+    let creator = Uuid::new_v4();
+    let stranger = Uuid::new_v4();
+    let f = business(&st, &pool, transit, creator).await;
+    // Another tenant's retired Project names a Business it never created, whose
+    // creator is live: nothing happens to it.
+    let Json(out) = retire(State(st.clone()), bound(stranger, "s1", f.merchant))
+        .await
+        .unwrap();
+    assert_eq!(out["business_retired"], false);
+    assert_eq!(
+        status(
+            &pool,
+            "SELECT status FROM merchants WHERE id=$1",
+            f.merchant
+        )
+        .await,
+        "ACTIVE"
+    );
+    assert_eq!(balance(&pool, f.primary_account).await, 300_000);
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]

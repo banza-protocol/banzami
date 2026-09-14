@@ -18,6 +18,13 @@
 //!     links cancelled, every account's fictitious balance retired, segregated
 //!     accounts closed — and then suspended, its webhook endpoints disabled and
 //!     their pending deliveries ended;
+//!   - a Project that only connected to another Project's synthetic Business
+//!     retires that Business when it was the last live Project on it AND Core
+//!     has already retired the Project that created it: otherwise deleting the
+//!     creator first and the partner second would leave a Business nobody can
+//!     reach, ACTIVE for ever. developer-api names the Business; Core decides
+//!     from its own tables whether it qualifies, so a caller cannot point this
+//!     at a real Business or at one whose creator is still live;
 //!   - the Project's simulated rail and Sandbox funding reservations are removed.
 //!
 //! Nothing is rewritten: postings, entries, receipts, completed payments, refunds,
@@ -47,6 +54,9 @@ pub struct RetireProjectBody {
     /// another live Project is still bound to it.
     #[serde(default)]
     pub retire_business: bool,
+    /// The Business the Project was bound to, when it did not create it.
+    #[serde(default)]
+    pub bound_business_id: Option<String>,
 }
 
 /// POST /internal/v1/sandbox/projects/retire
@@ -81,6 +91,25 @@ pub async fn retire(
         .map_err(db)?;
 
     let owned = owned_synthetic_business(&mut tx, project).await?;
+    // Not the Project's own: a synthetic Business whose creator Core has already retired.
+    let orphaned = match (owned, body.bound_business_id.as_deref()) {
+        (None, Some(raw)) => {
+            let merchant = Uuid::parse_str(raw.trim())
+                .map_err(|_| ApiError::bad_request("invalid bound_business_id"))?;
+            sqlx::query_scalar::<_, Uuid>(
+                "SELECT sb.merchant_id FROM sandbox_businesses sb
+                   JOIN merchant_compliance c ON c.merchant_id = sb.merchant_id
+                   JOIN sandbox_retired_projects r ON r.project_id = sb.project_id
+                  WHERE sb.merchant_id = $1 AND c.kyb_status = 'SANDBOX_SYNTHETIC' AND sb.project_id <> $2",
+            )
+            .bind(merchant)
+            .bind(project)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db)?
+        }
+        _ => None,
+    };
     sqlx::query(
         "INSERT INTO sandbox_retired_projects (project_id, merchant_id) VALUES ($1, $2)
          ON CONFLICT (project_id) DO UPDATE SET passes = sandbox_retired_projects.passes + 1",
@@ -131,7 +160,7 @@ pub async fn retire(
     .rows_affected();
 
     let mut business = serde_json::json!(null);
-    if let (Some(merchant), true) = (owned, body.retire_business) {
+    if let (Some(merchant), true) = (owned.or(orphaned), body.retire_business) {
         let r = retire_business(
             &mut tx,
             &state,
@@ -199,7 +228,8 @@ pub async fn retire(
         "payment_links_cancelled": attributed_links,
         "business": business,
         "business_owned": owned.is_some(),
-        "business_retired": owned.is_some() && body.retire_business,
+        "business_orphaned": orphaned.is_some(),
+        "business_retired": owned.or(orphaned).is_some() && body.retire_business,
         "retired_minor": retired_minor,
     });
     sqlx::query(

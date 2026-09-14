@@ -402,7 +402,10 @@ type Store interface {
 	ProjectsPendingDeletion(ctx context.Context, workspaceID string) ([]Project, error)
 	// OtherLiveProjectsOnBusinessOf counts the ACTIVE projects, other than this
 	// one, whose ACTIVE binding names the Business this project's binding names.
-	OtherLiveProjectsOnBusinessOf(ctx context.Context, projectID string) (int, error)
+	// It also returns the Business the project was most recently bound to ("" when
+	// never bound), which Core retires when this was the last project on it and
+	// Core already retired the project that created it.
+	OtherLiveProjectsOnBusinessOf(ctx context.Context, projectID string) (merchantID string, others int, err error)
 	// DeleteProject removes a project row outright. Only ever called for a
 	// project whose footprint is empty; developer.audit_events keeps no foreign
 	// key to it, so the record of its existence survives the row.

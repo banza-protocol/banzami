@@ -1822,16 +1822,19 @@ func (s *pgStore) ProjectsPendingDeletion(ctx context.Context, workspaceID strin
 	return out, rows.Err()
 }
 
-func (s *pgStore) OtherLiveProjectsOnBusinessOf(ctx context.Context, projectID string) (int, error) {
+func (s *pgStore) OtherLiveProjectsOnBusinessOf(ctx context.Context, projectID string) (string, int, error) {
+	var merchant string
 	var n int
 	err := s.pool.QueryRow(ctx,
-		`SELECT count(DISTINCT o.project_id)
-		   FROM developer.dev_project_sandbox_binding mine
-		   JOIN developer.dev_project_sandbox_binding o
-		     ON o.merchant_id = mine.merchant_id AND o.project_id <> mine.project_id AND o.state = 'ACTIVE'
-		   JOIN developer.dev_projects p ON p.id = o.project_id AND p.status = 'ACTIVE'
-		  WHERE mine.project_id = $1`, projectID).Scan(&n)
-	return n, err
+		`SELECT coalesce((SELECT merchant_id::text FROM developer.dev_project_sandbox_binding
+		                   WHERE project_id = $1 ORDER BY created_at DESC LIMIT 1), ''),
+		        (SELECT count(DISTINCT o.project_id)
+		           FROM developer.dev_project_sandbox_binding mine
+		           JOIN developer.dev_project_sandbox_binding o
+		             ON o.merchant_id = mine.merchant_id AND o.project_id <> mine.project_id AND o.state = 'ACTIVE'
+		           JOIN developer.dev_projects p ON p.id = o.project_id AND p.status = 'ACTIVE'
+		          WHERE mine.project_id = $1)`, projectID).Scan(&merchant, &n)
+	return merchant, n, err
 }
 
 func (s *pgStore) BeginWorkspaceDeletion(ctx context.Context, id string) ([]string, int, error) {
