@@ -35,7 +35,7 @@ discipline only — hardening candidates).
 | Acquiring rails (EMIS) | stubbed — provider errors without credentials; test-confirm endpoints 403 in LIVE env | simulated provider | — | ENFORCED fail-closed (no phantom success) |
 | Live activation | requires: ENVIRONMENT=LIVE stack + platform_mode=LIVE via authenticated admin API (audited) + EMIS credentials injected + rail implementation (absent) | — | — | multiple independent gates; no single env var enables live money |
 | Pay/checkout frontends | pay.banzami.com (client → own /api routes; server routes per-link: sandbox links → STAGING_GATEWAY_URL) | shared frontend serves both planes server-side | yes (single deployment) | CHECKED — E2E of staging-link routing required (RA-015) |
-| Seeds/fixtures | seed.sh localhost-only | staging-seed.sh hardcoded staging | no | ENFORCED |
+| Seeds/fixtures | seed.sh localhost-only | through the product only (staging-seed.sh retired 2026-09-14: it wrote wallets outside Core, ADR-061) | no | ENFORCED |
 | Rate limits / usage | per-DB | per-DB | no | ENFORCED |
 | Source maps | Next.js default off | same | — | ENFORCED (default) |
 | Cross-env DB pool (ADR-025 login hint) | optional read-only pool to other env | same | intentional, read-only | CHECKED |

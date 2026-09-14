@@ -1500,7 +1500,7 @@ covers that case separately for exactly that reason.
 Now: DR transit (ASSET) / CR merchant available (LIABILITY), in one transaction.
 Mutation-verified — removing the DEBIT leg again fails the test.
 
-**Remediation path:** `tools/sandbox-financial-reset.sh`. The ledger is
+**Remediation path:** `tools/sandbox-financial-reset.sh` (retired 2026-09-14 by ADR-061: it deleted ledger rows outside Core; synthetic value is now retired through Core's `/internal/v1/sandbox/retire-funds`). The ledger is
 append-only, so the ten rows cannot be edited and correcting them individually is
 what append-only forbids. The script instead performs the authorised clean
 pre-launch Sandbox reset: it exports the full ledger and the failing postings to

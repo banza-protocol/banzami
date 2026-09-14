@@ -55,7 +55,6 @@ campaign-payment-segregation.sh
 developer-platform-e2e.sh
 online-platform-sdk.sh
 payout-sandbox-e2e.sh
-post-reset-bootstrap.sh
 refund-devkey-e2e.sh
 refund-published-sdk-e2e.sh
 sdk-wallet-accounts-public.sh
