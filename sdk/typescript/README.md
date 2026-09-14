@@ -1,6 +1,10 @@
 # @banzami/sdk
 
-Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
+Official JavaScript/TypeScript SDK for Banzami — wallet-native Kwanza payments, built on the BANZA protocol.
+
+> **Status.** The Public Sandbox is available and fully self-service, with fictitious
+> money. Financial Live remains unavailable and subject to the applicable regulatory,
+> contractual and operational approvals. Documentation: <https://developers.banzami.com/docs>.
 
 Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **payment sessions**, **payment links** and their **QR codes** — not card forms or IBAN strings.
 
@@ -10,7 +14,6 @@ cêntimo, so **1 Kz = 100 minor units** (`amountMinor: 50_000` is 500 Kz;
 
 Requires Node.js ≥ 18 (native `fetch`) or a browser environment.
 
-> See [ADR-013](../../docs/adr/ADR-013-wallet-native-identity.md) and [ADR-014](../../docs/adr/ADR-014-angola-national-mission.md) for platform identity and market positioning.
 
 ---
 
@@ -28,7 +31,7 @@ npm install @banzami/sdk
 import { BanzamiClient } from '@banzami/sdk';
 
 const client = new BanzamiClient({
-  apiKey: process.env.BANZAMI_API_KEY!, // bz_test_sk_… (sandbox) or bz_live_sk_… (live)
+  apiKey: process.env.BANZAMI_API_KEY!, // bz_test_sk_… — a Sandbox key from the Console
 });
 ```
 
@@ -36,20 +39,23 @@ const client = new BanzamiClient({
 
 ## Environments & API keys
 
-Banzami has two environments. Every key carries its environment in the prefix,
-so a key can never be used against the wrong universe by accident.
+One developer platform, two financial environments. Every key carries its
+environment in the prefix, so a key can never be used against the wrong one by
+accident.
 
-| Environment | What it is | Money | Secret key | Webhook secret |
-|-------------|------------|-------|------------|----------------|
-| **Sandbox** | Development & testing | Virtual — simulated confirmations, failures, refunds | `bz_test_sk_…` | `whsec_test_…` |
-| **Live**    | Production | Real Kwanza movement (requires activation) | `bz_live_sk_…` | `whsec_live_…` |
+| Environment | Status | Money | Secret key | Publishable key |
+|-------------|--------|-------|------------|-----------------|
+| **Sandbox** | Available, self-service | Fictitious — simulated confirmations, failures, refunds | `bz_test_sk_…` | `bz_test_pk_…` |
+| **Financial Live** | Unavailable | — | `bz_live_sk_…` (refused) | `bz_live_pk_…` (refused) |
 
-> **Sandbox is for development. Live is for production.** Live requires onboarding
-> and activation of approved rails — it is not enabled by default.
+> Financial Live remains unavailable and subject to the applicable regulatory,
+> contractual and operational approvals. The API refuses `bz_live_…` keys today;
+> the SDK keeps the `live` environment so an integration does not change shape
+> when it opens.
 
-Publishable keys (`bz_test_pk_…` / `bz_live_pk_…`) are a planned client-safe key
-type for browser/mobile flows. **Secret keys (`…_sk_…`) are backend-only — never
-ship them in browser or mobile code.**
+Publishable keys (`…_pk_…`) are read-only and are the only keys a browser or
+mobile app may hold. **Secret keys (`…_sk_…`) are backend-only — never ship them
+in browser or mobile code.**
 
 ### Environment detection
 
@@ -75,8 +81,8 @@ new BanzamiClient({ environment: 'sandbox', apiKey: 'bz_test_sk_...' });
 new BanzamiClient({ environment: 'live', apiKey: 'bz_test_sk_...' });
 ```
 
-Legacy keys without the `_sk_` segment (`bz_test_…`, `bz_live_…`) remain fully
-supported — the prefix is all that matters for environment detection.
+Keys without the `_sk_` segment are still classified by their `bz_test_` /
+`bz_live_` prefix for environment detection.
 
 ### Authentication (API key → JWT)
 
