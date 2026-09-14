@@ -10,9 +10,15 @@
 // available to a credential that would be rejected today.
 
 import type { ReactNode } from 'react';
-import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H2, H3, INK, P, mono, type Tone } from './ui';
+import { BADGE_LABELS_EN, Badge, Code, CodeBlock, H2, INK, P, mono, type LineMark, type Tone } from './ui';
 import { ENDPOINT_META, type EndpointMeta, type Param, type ParamIn } from './endpoint-meta';
 import explorerOperations from './explorer-operations.json';
+import { ApiMethod, ApiPath, HttpStatus } from '@/components/developers/api/ApiMethod';
+import openapiStatuses from './openapi-statuses.json';
+
+/** Success statuses per operation, generated from the OpenAPI mirror (tools/docs/build-openapi-statuses.mjs). */
+const OPENAPI_STATUSES = openapiStatuses as Record<string, number[]>;
+const SUBHEAD: React.CSSProperties = { margin: '0 0 8px', fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#6f6468' };
 
 // The operations the Console's API Explorer can run (generated from the OpenAPI by
 // tools/docs/build-explorer-allowlist.mjs): those entries get "Try in Sandbox".
@@ -1350,28 +1356,40 @@ export function endpointWithMeta(e: EndpointSpec): EndpointSpec & EndpointMeta {
   return { ...e, ...meta };
 }
 
+function Required({ lang, required }: { lang: 'pt' | 'en'; required: Param['required'] }) {
+  // Words, not colour: "Obrigatório" reads as required with no colour at all; the
+  // dot is a second signal for a reader scanning the column.
+  const kind = required === 'conditional' ? 'conditional' : required ? 'required' : 'optional';
+  const text = kind === 'required' ? label(lang, 'Obrigatório', 'Required') : kind === 'conditional' ? label(lang, 'Condicional', 'Conditional') : label(lang, 'Opcional', 'Optional');
+  return (
+    <span data-required={kind} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: kind === 'optional' ? 500 : 650, color: kind === 'required' ? INK : '#6f6468', whiteSpace: 'nowrap' }}>
+      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: 999, background: kind === 'required' ? '#B5101F' : kind === 'conditional' ? '#C98A1B' : 'transparent', border: kind === 'optional' ? '1px solid #B9ADB0' : 'none', boxSizing: 'border-box' }} />
+      {text}
+    </span>
+  );
+}
+
 function Params({ lang, params }: { lang: 'pt' | 'en'; params: Param[] }) {
   const groups = (['path', 'query', 'header', 'body'] as ParamIn[]).map((where) => ({ where, rows: params.filter((p) => p.in === where) })).filter((g) => g.rows.length);
+  const heads = [label(lang, 'Parâmetro', 'Parameter'), label(lang, 'Tipo', 'Type'), label(lang, 'Obrigatório', 'Required'), label(lang, 'Aceita', 'Accepts')];
   return (
-    <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 12px' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
+    <div className="bz-reftable-wrap" style={{ margin: '4px 0 18px' }}>
+      <table className="bz-reftable bz-params" style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
         <thead>
-          <tr style={{ textAlign: 'left', color: '#6f6468' }}>
-            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Parâmetro', 'Parameter')}</th>
-            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Tipo', 'Type')}</th>
-            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Obrigatório', 'Required')}</th>
-            <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Aceita', 'Accepts')}</th>
-          </tr>
+          <tr>{heads.map((h) => <th key={h} scope="col" style={TH_REF}>{h}</th>)}</tr>
         </thead>
         {groups.map((g) => (
           <tbody key={g.where}>
-            <tr><td colSpan={4} style={{ ...cell, fontSize: 11, fontWeight: 700, letterSpacing: '.05em', color: '#9A1B22', background: '#FFF7F6' }}>{IN_LABEL[g.where][lang].toUpperCase()}</td></tr>
+            <tr className="bz-reftable-group"><th colSpan={4} scope="colgroup" style={{ ...CELL, padding: '10px 10px 6px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: '#6f6468', background: 'transparent', textAlign: 'left', textTransform: 'uppercase' }}>{IN_LABEL[g.where][lang]}</th></tr>
             {g.rows.map((p) => (
               <tr key={p.in + p.name}>
-                <td style={{ ...cell, fontFamily: mono, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{p.name}</td>
-                <td style={{ ...cell, fontFamily: mono, whiteSpace: 'nowrap' }}>{p.type}</td>
-                <td style={cell}>{p.required === 'conditional' ? label(lang, 'condicional', 'conditional') : p.required ? label(lang, 'sim', 'yes') : label(lang, 'não', 'no')}</td>
-                <td style={cell}>{p.note[lang]}{p.example ? <> · <span style={{ fontFamily: mono, fontSize: 12 }}>{p.example}</span></> : null}</td>
+                <td data-label={heads[0]} style={{ ...CELL, fontFamily: mono, fontSize: 12.5, fontWeight: 650, color: INK, whiteSpace: 'nowrap' }}>{p.name}</td>
+                <td data-label={heads[1]} style={{ ...CELL, fontFamily: mono, fontSize: 12, color: '#5b4f53', whiteSpace: 'nowrap' }}>{p.type}</td>
+                <td data-label={heads[2]} style={CELL}><Required lang={lang} required={p.required} /></td>
+                <td data-label={heads[3]} style={{ ...CELL, lineHeight: 1.55 }}>
+                  {p.note[lang]}
+                  {p.example ? <div style={{ marginTop: 4 }}><span style={{ fontSize: 11.5, color: '#6f6468' }}>{label(lang, 'Exemplo', 'Example')} </span><Code>{p.example}</Code></div> : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1383,10 +1401,47 @@ function Params({ lang, params }: { lang: 'pt' | 'en'; params: Param[] }) {
 
 function Fact({ k, children }: { k: string; children: ReactNode }) {
   return (
-    <div style={{ display: 'contents' }}>
-      <dt style={{ fontSize: 12.5, fontWeight: 600, color: '#6f6468' }}>{k}</dt>
-      <dd style={{ margin: 0, fontSize: 13, color: '#3f3538', minWidth: 0, overflowWrap: 'anywhere' }}>{children}</dd>
+    <div className="bz-fact" style={{ display: 'contents' }}>
+      <dt style={{ fontSize: 12, fontWeight: 600, color: '#6f6468', paddingTop: 2 }}>{k}</dt>
+      <dd style={{ margin: 0, fontSize: 13.5, color: '#3f3538', minWidth: 0, overflowWrap: 'anywhere', lineHeight: 1.55 }}>{children}</dd>
     </div>
+  );
+}
+
+/** An emitted event: a technical chip that links to its entry in the event catalogue. */
+function EventChip({ lang, name }: { lang: 'pt' | 'en'; name: string }) {
+  return (
+    <a href={docsBase(lang) + '/events#event-' + name.replace('.', '-')} className="bz-eventchip" title={label(lang, 'Ver o evento no catálogo', 'See the event in the catalogue')}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 8px', borderRadius: 6, border: '1px solid #E4DCDD', background: '#FBF8F8', fontFamily: mono, fontSize: 12, fontWeight: 600, color: '#3f3538', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: 999, background: '#8B7BD6' }} />
+      {name}
+    </a>
+  );
+}
+
+/** "Available in Sandbox": environment truth — a rounded sans label with a dot, never a mono verb or status. */
+function SandboxAvailability({ lang, tone }: { lang: 'pt' | 'en'; tone: Tone }) {
+  return <Badge tone={tone}>{lang === 'en' ? BADGE_LABELS_EN[tone] : undefined}</Badge>;
+}
+
+/** The Idempotency-Key header line of a request, drawn as a focus line so a retry-safe write is noticed. */
+export function idempotencyMarks(raw: string): LineMark[] {
+  return raw.split('\n').flatMap((l, i) => (/Idempotency-Key:/i.test(l) ? [{ from: i + 1, tone: 'focus' as const }] : []));
+}
+
+const CELL: React.CSSProperties = { padding: '9px 10px', borderBottom: '1px solid #EFE8E8', verticalAlign: 'top', color: '#3f3538' };
+const TH_REF: React.CSSProperties = { padding: '8px 10px', fontSize: 11.5, fontWeight: 650, letterSpacing: '.02em', color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' };
+
+/** The error line "403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE" as status badge + codes. */
+function ErrorLine({ lang, line }: { lang: 'pt' | 'en'; line: string }) {
+  const status = Number(/^\d{3}/.exec(line)?.[0] ?? 0);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 8px' }}>
+      {status ? <HttpStatus code={status} compact /> : null}
+      {codesIn(line).map((c, i) => [i > 0 ? <span key={c + '/'} aria-hidden="true" style={{ color: '#B9ADB0' }}>/</span> : null, (c.endsWith('*')
+        ? <code key={c} style={{ fontFamily: mono, fontSize: 12, fontWeight: 650, color: INK }}>{c}</code>
+        : <a key={c} href={docsBase(lang) + '/errors#error-' + c} className="bz-errorcode" style={{ fontFamily: mono, fontSize: 12, fontWeight: 650, color: INK, textDecoration: 'underline', textDecorationColor: '#D9CDD0', textUnderlineOffset: 3 }}>{c}</a>)])}
+    </span>
   );
 }
 
@@ -1398,83 +1453,100 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
     <div>
       <nav aria-label={label(lang, 'Recursos da API', 'API resources')} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 18px', maxWidth: 760 }}>
         {RESOURCE_GROUPS.map((g) => (
-          <a key={g.id} href={'#' + (g.id)} style={{ ...link, fontSize: 12.5, background: '#fff', border: '1px solid #EAE3E3', borderRadius: 10, padding: '6px 10px' }}>{t(g.title)}</a>
+          <a key={g.id} href={'#' + (g.id)} className="bz-toplink" style={{ fontSize: 12.5, fontWeight: 600, color: '#3f3538', textDecoration: 'none', background: '#fff', border: '1px solid #EAE3E3', borderRadius: 8, padding: '6px 10px' }}>{t(g.title)}</a>
         ))}
       </nav>
       {RESOURCE_GROUPS.map((g) => (
         <section key={g.id} aria-labelledby={g.id}>
-          <h2 id={g.id} style={{ scrollMarginTop: 80, margin: '30px 0 4px', fontSize: 19, fontWeight: 700, color: INK }}>{t(g.title)}</h2>
+          <h2 id={g.id} style={{ scrollMarginTop: 80, margin: '40px 0 4px', fontSize: 20, fontWeight: 700, color: INK, letterSpacing: '-.01em' }}>{t(g.title)}</h2>
           {g.ids.map((id) => {
             const e = byId.get(id)!;
             const lines = (e.response ?? '').split('\n').length;
+            const op = EXPLORER_OP.get(e.method + ' ' + e.path);
+            const ok = OPENAPI_STATUSES[e.method + ' ' + e.path] ?? [];
+            const primary = ok.includes(201) ? 201 : ok[0];
+            const responseStatus = primary ? <HttpStatus code={primary} /> : null;
+            const responseBlock = e.response ? (
+              <CodeBlock lang="json" label={label(lang, 'Resposta de exemplo · placeholders', 'Example response · placeholders')} raw={e.response} status={responseStatus} onCopy={onCopy} {...copyProps} />
+            ) : null;
             return (
-              <div key={e.id} id={e.id} style={{ scrollMarginTop: 80, borderTop: '1px solid #EAE3E3', paddingTop: 6, marginTop: 14 }}>
-                <H3>
-                  <span style={{ fontFamily: mono, fontSize: 15 }}>{e.method} {e.path}</span>{' '}
-                  <Badge tone={e.tone}>{lang === 'en' ? BADGE_LABELS_EN[e.tone] : undefined}</Badge>
-                </H3>
-                <P>{t(e.desc)}</P>
-                {EXPLORER_OP.has(e.method + ' ' + e.path) ? (
-                  <p style={{ margin: '0 0 12px' }}>
-                    <a href={'/explorer?op=' + EXPLORER_OP.get(e.method + ' ' + e.path)} data-try-in-sandbox={EXPLORER_OP.get(e.method + ' ' + e.path)} style={{ ...link, fontSize: 13, fontWeight: 700 }}>
+              <article key={e.id} id={e.id} aria-labelledby={e.id + '-title'} className="bz-endpoint" style={{ scrollMarginTop: 80, borderTop: '1px solid #EAE3E3', paddingTop: 22, marginTop: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px 12px', margin: '0 0 8px' }}>
+                  <h3 id={e.id + '-title'} data-endpoint-heading style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px', margin: 0, minWidth: 0 }}>
+                    <ApiMethod method={e.method} />
+                    <ApiPath path={e.path} size={16} />
+                  </h3>
+                  <SandboxAvailability lang={lang} tone={e.tone} />
+                </div>
+                <P style={{ margin: '0 0 12px', fontSize: 15, color: '#3f3538' }}>{t(e.desc)}</P>
+                {op ? (
+                  <p style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 12px', margin: '0 0 16px' }}>
+                    <a href={'/explorer?op=' + op} data-try-in-sandbox={op} className="bz-trysandbox"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 12px', borderRadius: 8, border: '1px solid #E6CFD2', background: '#FFF6F6', color: '#8E1A21', fontSize: 13, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor" /></svg>
                       {label(lang, 'Experimentar na Sandbox →', 'Try in Sandbox →')}
-                    </a>{' '}
+                    </a>
                     <span style={{ fontSize: 12.5, color: '#6f6468' }}>{label(lang, 'no API Explorer da Consola, com o seu projeto; nenhuma chave vai para o browser.', 'in the Console’s API Explorer, with your project; no key reaches the browser.')}</span>
                   </p>
                 ) : null}
-                <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '5px 14px', margin: '0 0 12px', maxWidth: 760 }}>
+                <dl className="bz-facts" style={{ display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr)', gap: '8px 18px', margin: '0 0 18px', padding: '12px 14px', maxWidth: 760, background: '#FBF9F9', border: '1px solid #EFE8E8', borderRadius: 10 }}>
                   <Fact k={label(lang, 'Autenticação', 'Authentication')}>{t(e.credential)}</Fact>
                   <Fact k="Scope">{e.scope ? <Code>{e.scope}</Code> : label(lang, 'nenhum — rota pública', 'none — public route')}</Fact>
                   <Fact k={label(lang, 'Idempotência', 'Idempotency')}>{e.idem ? t(e.idem) : e.method === 'GET' ? label(lang, 'leitura — repetir é seguro', 'read — safe to repeat') : label(lang, 'Idempotency-Key recomendado', 'Idempotency-Key recommended')}</Fact>
                   <Fact k="SDK">{e.sdk ? <Code>{e.sdk}()</Code> : null}{e.sdk && e.sdkNote ? ' — ' : null}{e.sdkNote ? t(e.sdkNote) : null}</Fact>
                   <Fact k={label(lang, 'Eventos', 'Events')}>
                     {e.events.length
-                      ? e.events.map((ev, i) => <span key={ev}>{i > 0 ? ' · ' : ''}<a href={docsBase(lang) + '/events#event-' + ev.replace('.', '-')} style={link}><Code>{ev}</Code></a></span>)
-                      : label(lang, 'nenhum', 'none')}
+                      ? <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6 }}>{e.events.map((ev) => <EventChip key={ev} lang={lang} name={ev} />)}</span>
+                      : <span style={{ color: '#6f6468' }}>{label(lang, 'nenhum', 'none')}</span>}
                   </Fact>
                   <Fact k={label(lang, 'Guias', 'Guides')}>
-                    {e.guides.map((slug, i) => <span key={slug}>{i > 0 ? ' · ' : ''}<a href={docsBase(lang) + '/' + slug} style={link}>{GUIDE_LABEL[slug]?.[lang] ?? slug}</a></span>)}
+                    {e.guides.map((slug, i) => <span key={slug}>{i > 0 ? <span aria-hidden="true" style={{ color: '#B9ADB0' }}> · </span> : null}<a href={docsBase(lang) + '/' + slug} style={link}>{GUIDE_LABEL[slug]?.[lang] ?? slug}</a></span>)}
                   </Fact>
                 </dl>
+                <h4 style={SUBHEAD}>{label(lang, 'Parâmetros', 'Parameters')}</h4>
                 <Params lang={lang} params={e.params} />
                 {e.refused?.length ? (
-                  <P style={{ fontSize: 13 }}>
-                    <strong>{label(lang, 'Não envie com uma chave de projeto', 'Do not send with a project key')}:</strong>{' '}
-                    {e.refused.map((f, i) => <span key={f}>{i > 0 ? ' · ' : ''}<Code>{f}</Code></span>)} — {label(lang, 'responde 400 PAYEE_NOT_ALLOWED: quem recebe vem da configuração financeira.', 'answers 400 PAYEE_NOT_ALLOWED: who is paid comes from financial setup.')}
-                  </P>
+                  <div role="note" data-refused-fields style={{ display: 'flex', gap: 10, alignItems: 'flex-start', margin: '0 0 18px', padding: '10px 12px', maxWidth: 760, borderRadius: 10, background: '#FFF8EB', border: '1px solid #F1DFB9' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style={{ flex: 'none', marginTop: 2 }}><path d="M12 3l10 18H2z" fill="none" stroke="#A86A06" strokeWidth="2" strokeLinejoin="round" /><path d="M12 10v5M12 18h.01" stroke="#A86A06" strokeWidth="2" strokeLinecap="round" /></svg>
+                    <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#4A3610' }}>
+                      <strong>{label(lang, 'Não envie com uma chave de projeto', 'Do not send with a project key')}:</strong>{' '}
+                      {e.refused.map((f, i) => <span key={f}>{i > 0 ? ' · ' : ''}<code style={{ fontFamily: mono, fontSize: 12, padding: '0 4px', borderRadius: 4, background: '#fff', border: '1px solid #EAD9B5', textDecoration: 'line-through', textDecorationColor: '#C98A1B' }}>{f}</code></span>)} — {label(lang, 'responde 400 PAYEE_NOT_ALLOWED: quem recebe vem da configuração financeira.', 'answers 400 PAYEE_NOT_ALLOWED: who is paid comes from financial setup.')}
+                    </p>
+                  </div>
                 ) : null}
-                {e.curl ? <CodeBlock label={'curl · ' + e.method + ' ' + e.path} raw={e.curl} onCopy={onCopy} {...copyProps} /> : null}
-                {e.response ? (
+                {e.curl || e.response ? <h4 style={SUBHEAD}>{label(lang, 'Pedido e resposta', 'Request and response')}</h4> : null}
+                {e.curl ? <CodeBlock label={'curl · ' + e.method + ' ' + e.path} raw={e.curl} marks={idempotencyMarks(e.curl)} onCopy={onCopy} {...copyProps} /> : null}
+                {responseBlock ? (
                   lines > 14 ? (
-                    <details style={{ margin: '0 0 14px' }}>
-                      <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#9A1B22', margin: '0 0 8px', padding: '4px 0', lineHeight: '20px' }}>{label(lang, 'Resposta de exemplo (' + (lines) + ' linhas)', 'Example response (' + (lines) + ' lines)')}</summary>
-                      <CodeBlock label={label(lang, 'resposta (exemplo, placeholders)', 'response (example, placeholders)')} raw={e.response} onCopy={onCopy} {...copyProps} />
+                    <details className="bz-response" style={{ margin: '0 0 16px' }}>
+                      <summary className="bz-response-summary" style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, padding: '0 12px', margin: '0 0 8px', borderRadius: 10, border: '1px solid #EAE3E3', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 650, color: INK, listStyle: 'none' }}>
+                        <svg className="bz-response-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        {label(lang, 'Resposta de exemplo', 'Example response')}
+                        {primary ? <HttpStatus code={primary} /> : null}
+                        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: '#6f6468' }}>{label(lang, lines + ' linhas', lines + ' lines')}</span>
+                      </summary>
+                      {responseBlock}
                     </details>
-                  ) : <CodeBlock label={label(lang, 'resposta (exemplo, placeholders)', 'response (example, placeholders)')} raw={e.response} onCopy={onCopy} {...copyProps} />
+                  ) : responseBlock
                 ) : null}
-                <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 12px' }}>
-                  <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 12.5 }}>
-                    <thead><tr style={{ textAlign: 'left', color: '#6f6468' }}>
-                      <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Erro', 'Error')}</th>
-                      <th style={{ ...cell, fontWeight: 600 }}>{label(lang, 'Quando', 'When')}</th>
+                <h4 style={SUBHEAD}>{label(lang, 'Erros', 'Errors')}</h4>
+                <div className="bz-reftable-wrap" style={{ margin: '4px 0 12px' }}>
+                  <table className="bz-reftable bz-errors" style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
+                    <thead><tr>
+                      <th scope="col" style={TH_REF}>{label(lang, 'Erro', 'Error')}</th>
+                      <th scope="col" style={TH_REF}>{label(lang, 'Quando', 'When')}</th>
                     </tr></thead>
                     <tbody>
-                      {e.errors.map((er) => {
-                        const status = /^\d{3}/.exec(er.code)?.[0] ?? '';
-                        return (
-                          <tr key={er.code}>
-                            <td style={{ ...cell, fontFamily: mono, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>
-                              {status}{' '}
-                              {codesIn(er.code).map((c, i) => <span key={c}>{i > 0 ? ' / ' : ''}{c.endsWith('*') ? c : <a href={docsBase(lang) + '/errors#error-' + c} style={link}>{c}</a>}</span>)}
-                            </td>
-                            <td style={cell}>{t(er.note)}</td>
-                          </tr>
-                        );
-                      })}
+                      {e.errors.map((er) => (
+                        <tr key={er.code}>
+                          <td data-label={label(lang, 'Erro', 'Error')} style={{ ...CELL, minWidth: 180 }}><ErrorLine lang={lang} line={er.code} /></td>
+                          <td data-label={label(lang, 'Quando', 'When')} style={{ ...CELL, lineHeight: 1.55 }}>{t(er.note)}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </article>
             );
           })}
         </section>

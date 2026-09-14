@@ -1,0 +1,131 @@
+{
+  "DELETE /v1/payment-links/{id}": [
+    200
+  ],
+  "DELETE /v1/sandbox/test-payers/{id}": [
+    200
+  ],
+  "DELETE /v1/webhooks/endpoints/{id}": [
+    204
+  ],
+  "GET /v1/application-settlements/{id}": [
+    200
+  ],
+  "GET /v1/consumers/handle/{handle}": [
+    200
+  ],
+  "GET /v1/financial-setup": [
+    200
+  ],
+  "GET /v1/integration": [],
+  "GET /v1/me": [
+    200
+  ],
+  "GET /v1/payment-links": [
+    200
+  ],
+  "GET /v1/payment-links/{id}": [
+    200
+  ],
+  "GET /v1/payment-sessions": [
+    200
+  ],
+  "GET /v1/payment-sessions/{id}": [
+    200
+  ],
+  "GET /v1/payment-sessions/{id}/link": [
+    200
+  ],
+  "GET /v1/payment-sessions/{id}/qr": [
+    200
+  ],
+  "GET /v1/public/proofs/{ref}": [
+    200
+  ],
+  "GET /v1/realtime/payment-sessions/{id}": [
+    200
+  ],
+  "GET /v1/refunds": [
+    200
+  ],
+  "GET /v1/refunds/{id}": [
+    200
+  ],
+  "GET /v1/sandbox/external-rail": [
+    200
+  ],
+  "GET /v1/sandbox/scenarios": [
+    200
+  ],
+  "GET /v1/sandbox/test-payers": [
+    200
+  ],
+  "GET /v1/sandbox/test-payers/{id}": [
+    200
+  ],
+  "GET /v1/wallet-accounts": [
+    200
+  ],
+  "GET /v1/wallet-accounts/{id}": [
+    200
+  ],
+  "GET /v1/webhooks/endpoints": [
+    200
+  ],
+  "GET /v1/webhooks/endpoints/{id}": [
+    200
+  ],
+  "GET /v1/webhooks/endpoints/{id}/health": [
+    200
+  ],
+  "GET /v1/webhooks/events": [
+    200
+  ],
+  "GET /v1/webhooks/events/{id}/deliveries": [
+    200
+  ],
+  "POST /v1/application-settlements": [
+    200,
+    201
+  ],
+  "POST /v1/payment-links": [
+    201
+  ],
+  "POST /v1/payment-sessions": [
+    201
+  ],
+  "POST /v1/refunds": [
+    201
+  ],
+  "POST /v1/sandbox/test-payers": [
+    201
+  ],
+  "POST /v1/sandbox/test-payers/{id}/fund": [
+    200
+  ],
+  "POST /v1/sandbox/test-payers/{id}/payments": [
+    200,
+    202
+  ],
+  "POST /v1/wallet-account-transfers": [
+    201
+  ],
+  "POST /v1/wallet-accounts": [
+    201
+  ],
+  "POST /v1/webhooks/deliveries/{id}/replay": [
+    201
+  ],
+  "POST /v1/webhooks/endpoints": [
+    201
+  ],
+  "POST /v1/webhooks/endpoints/{id}/rotate-secret": [
+    200
+  ],
+  "POST /v1/webhooks/endpoints/{id}/test": [
+    202
+  ],
+  "PUT /v1/sandbox/external-rail": [
+    200
+  ]
+}

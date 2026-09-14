@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { developerApi, type ExplorerOperation, type ExplorerResponse } from '@/lib/developer-api';
 import { watchStatus, type RealtimeStatus } from '@/lib/realtime-status';
 import { useDeveloperData } from './DeveloperData';
-import { Card, DocsLink, FIELD_ERROR, FIELD_HINT, FIELD_INPUT, FIELD_LABEL, Pill, SECONDARY_BUTTON, primaryButton, type PillKind } from './ui';
+import { Card, DocsLink, FIELD_ERROR, FIELD_HINT, FIELD_INPUT, FIELD_LABEL, Pill, SECONDARY_BUTTON, primaryButton } from './ui';
+import { ApiMethod, ApiPath, HttpStatus } from '../api/ApiMethod';
+import { CodeView } from '../code/CodeView';
 import { explorerRefusal, newIdempotencyKey, useExplorer } from './useExplorer';
 
 /**
@@ -33,11 +35,6 @@ const TAG_LABEL: Record<string, string> = {
   sandbox: 'Dados de teste',
 };
 
-const METHOD_TONE: Record<string, string> = { GET: '#1F6FB5', POST: '#1F8A5B', DELETE: '#C4303C', PUT: '#B8770A', PATCH: '#B8770A' };
-
-function tone(status: number): PillKind {
-  return status >= 500 ? 'error' : status >= 400 ? 'pending' : 'success';
-}
 
 type Realtime = { token: string; sessionId: string };
 
@@ -190,8 +187,10 @@ export function ApiExplorer() {
                         background: selected?.operation_id === op.operation_id ? '#FFF1F0' : 'transparent',
                       }}
                     >
-                      <span style={{ fontFamily: mono, fontSize: 11, fontWeight: 800, color: METHOD_TONE[op.method] ?? '#2a2024', marginRight: 6 }}>{op.method}</span>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2a2024' }}>{op.summary}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <ApiMethod method={op.method} size="sm" />
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2a2024' }}>{op.summary}</span>
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -204,8 +203,9 @@ export function ApiExplorer() {
               <Card style={{ padding: 22 }}><p style={{ margin: 0, fontSize: 14, color: '#8a7a7e', fontWeight: 600 }}>Escolha uma operação.</p></Card>
             ) : (
               <Card style={{ padding: 22 }}>
-                <p style={{ margin: 0, fontFamily: mono, fontSize: 14, fontWeight: 800 }}>
-                  <span style={{ color: METHOD_TONE[selected.method] }}>{selected.method}</span> {selected.path}
+                <p data-endpoint-heading style={{ margin: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px' }}>
+                  <ApiMethod method={selected.method} />
+                  <ApiPath path={selected.path} size={15} />
                 </p>
                 <p style={{ ...FIELD_HINT, marginTop: 6 }}>
                   <code>{selected.operation_id}</code> · scope <code>{selected.scope}</code>
@@ -251,7 +251,7 @@ export function ApiExplorer() {
                 {response && (
                   <div data-testid="explorer-response" style={{ marginTop: 18 }}>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Pill kind={tone(response.status)} dot>{response.status}</Pill>
+                      <HttpStatus code={response.status} />
                       <span style={{ fontSize: 12.5, fontWeight: 800, color: '#8a7a7e' }}>{response.latency_ms} ms</span>
                       {response.request_id && <span style={{ fontFamily: mono, fontSize: 12, color: '#8a7a7e' }}>request_id {response.request_id}</span>}
                       {response.headers['Idempotent-Replayed'] && <Pill kind="neutral">resposta repetida</Pill>}
@@ -261,9 +261,15 @@ export function ApiExplorer() {
                         Escondido pelo API Explorer: {response.redacted.join(', ')}. Um segredo de assinatura mostra-se uma vez, em Webhooks.
                       </p>
                     )}
-                    <pre style={{ margin: '10px 0 0', padding: 14, borderRadius: 12, background: '#1f1719', color: '#f5eceb', fontFamily: mono, fontSize: 12.5, overflowX: 'auto', maxHeight: 460 }}>
-                      {response.body !== undefined ? JSON.stringify(response.body, null, 2) : response.text}
-                    </pre>
+                    <div style={{ marginTop: 10 }}>
+                      <CodeView
+                        raw={response.body !== undefined ? JSON.stringify(response.body, null, 2) : (response.text ?? '')}
+                        lang={response.body !== undefined ? 'json' : 'text'}
+                        context={`${selected.method} ${selected.path}`}
+                        status={<HttpStatus code={response.status} compact />}
+                        title={response.body !== undefined ? 'Resposta · JSON' : 'Resposta'}
+                      />
+                    </div>
                     {hostedPageIn(response.body) && (
                       <a data-testid="explorer-hosted-page" href={hostedPageIn(response.body)} target="_blank" rel="noopener noreferrer" style={{ ...SECONDARY_BUTTON, display: 'inline-block', marginTop: 10, marginRight: 8, textDecoration: 'none' }}>
                         Abrir a página de pagamento

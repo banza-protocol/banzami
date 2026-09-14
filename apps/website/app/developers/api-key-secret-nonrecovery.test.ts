@@ -100,9 +100,10 @@ describe('a revealed key secret cannot be recovered — Console side', () => {
     }
   });
 
-  it('web storage is used only for the two opaque UI preferences', () => {
+  it('web storage is used only for the opaque UI preferences', () => {
     // The single module allowed to touch storage, and the only keys it writes:
-    // which workspace and project the console reopens on. Both are opaque ids.
+    // which workspace and project the console reopens on (opaque ids), and the
+    // documentation's example language (a language name).
     // An ACCESS, not the word. The security guide tells developers never to put a
     // key in localStorage, and naming the thing you are forbidding is not using
     // it — matching the bare word made the documentation look like a storage
@@ -114,6 +115,7 @@ describe('a revealed key secret cannot be recovered — Console side', () => {
     const prefs = code(read('lib/developer-prefs.ts'));
     expect(prefs).toContain("const WS_KEY = 'bz_dev_active_ws'");
     expect(prefs).toContain('bz_dev_active_prj_');
+    expect(prefs).toContain("const DOCS_CODE_LANG_KEY = 'bz-docs-code-lang'");
     expect(prefs).not.toMatch(/secret|api[_-]?key|token/i);
   });
 

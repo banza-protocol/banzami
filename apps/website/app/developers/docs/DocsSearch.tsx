@@ -12,6 +12,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import index from './search-index.json';
 import { searchDocs, type SearchEntry, type SearchLang } from './search-core';
 import { INK, RED, mono } from './ui';
+import { ApiMethod, ApiPath } from '@/components/developers/api/ApiMethod';
+import { isHttpMethod } from '@/components/developers/api/http';
 
 type Lang = SearchLang;
 type Entry = SearchEntry;
@@ -26,6 +28,13 @@ const KIND: Record<Entry['k'], Record<Lang, string>> = {
   term: { pt: 'Glossário', en: 'Glossary' },
 };
 const CODE_KINDS = new Set(['endpoint', 'error', 'event', 'method']);
+
+/** An endpoint result ("POST /v1/payment-sessions") as method + path, drawn like the reference. */
+export function endpointParts(r: Entry): { method: string; path: string } | null {
+  if (r.k !== 'endpoint') return null;
+  const m = /^([A-Z]+)\s+(\/\S*)$/.exec(r.t.trim());
+  return m && isHttpMethod(m[1]) ? { method: m[1], path: m[2] } : null;
+}
 
 export { searchDocs };
 
@@ -78,7 +87,14 @@ export function DocsSearch({ lang }: { lang: Lang }) {
                 <li key={`${r.k}:${r.t}:${r.h}`}>
                   <a href={r.h} className="bz-toplink" style={{ display: 'block', padding: '7px 10px', borderRadius: 9, textDecoration: 'none', background: '#fff', border: '1px solid #EAE3E3' }}>
                     <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, letterSpacing: '.03em', color: '#6f6468' }}>{KIND[r.k][lang]}</span>
-                    <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: RED, overflowWrap: 'anywhere', fontFamily: CODE_KINDS.has(r.k) ? mono : undefined }}>{r.t}</span>
+                    {endpointParts(r) ? (
+                      <span data-search-endpoint style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 2, minWidth: 0 }}>
+                        <ApiMethod method={endpointParts(r)!.method} size="sm" />
+                        <ApiPath path={endpointParts(r)!.path} size={12.5} />
+                      </span>
+                    ) : (
+                      <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: RED, overflowWrap: 'anywhere', fontFamily: CODE_KINDS.has(r.k) ? mono : undefined }}>{r.t}</span>
+                    )}
                   </a>
                 </li>
               ))}
@@ -123,6 +139,13 @@ export function activeSection(tops: number[], line: number, atBottom: boolean): 
 /** The reading line, in px from the top of the viewport. */
 const READING_LINE = 120;
 
+/** A heading's words for the TOC: badges and other decorations marked data-toc-ignore are not part of its name. */
+export function headingText(h: Element): string {
+  const clone = h.cloneNode(true) as Element;
+  clone.querySelectorAll('[data-toc-ignore]').forEach((n) => n.remove());
+  return (clone.textContent ?? '').replace(/\s+/g, ' ').trim();
+}
+
 export function OnThisPage({ lang, variant }: { lang: Lang; variant: 'rail' | 'inline' }) {
   const [items, setItems] = useState<{ id: string; text: string }[]>([]);
   useEffect(() => {
@@ -132,7 +155,7 @@ export function OnThisPage({ lang, variant }: { lang: Lang; variant: 'rail' | 'i
     if (!root) return;
     const read = () => {
       const next = Array.from(root.querySelectorAll<HTMLHeadingElement>('h2[id]'))
-        .map((h) => ({ id: h.id, text: (h.textContent ?? '').replace(/\s+/g, ' ').trim() }))
+        .map((h) => ({ id: h.id, text: headingText(h) }))
         .filter((x) => x.text);
       setItems((prev) => (prev.length === next.length && prev.every((p, i) => p.id === next[i].id && p.text === next[i].text) ? prev : next));
     };

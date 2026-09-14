@@ -112,14 +112,17 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     expect(PT).toContain('A entrega de webhooks é real, sobre a internet pública.');
     expect(PT).toContain('nunca lhe são entregues');
   });
-  it('copy button copies and shows an accessible toast', async () => {
-    const writeText = vi.fn(() => Promise.resolve());
+  it('copy button copies the raw source and announces it', async () => {
+    const writeText = vi.fn((_: string) => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText } });
     render(<PtGetStartedPage />);
     const btn = screen.getAllByRole('button', { name: /Copiar/i })[0];
     fireEvent.click(btn);
+    const block = btn.closest('[data-code-block]');
     expect(writeText).toHaveBeenCalled();
-    expect(await screen.findByText('Copiado para a área de transferência')).toBeTruthy();
+    expect(String(writeText.mock.calls[0][0]).length).toBe(Number(block?.getAttribute('data-raw-length')));
+    expect(await screen.findByText('Código copiado para a área de transferência')).toBeTruthy();
+    expect(within(btn).getByText('Copiado')).toBeTruthy();
   });
   it('the sidebar marks the current area with aria-current', () => {
     render(<PtSdkPage />);

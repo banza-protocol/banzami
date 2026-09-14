@@ -6,6 +6,8 @@
 // typography, same spacing, same components. No visual changes live here.
 
 import type { ReactNode } from 'react';
+import { CodeView, type LineMark } from '@/components/developers/code/CodeView';
+import { contextFromLabel, langFromLabel, type CodeLang } from '@/components/developers/code/highlight';
 
 // -- Documentation design tokens ------------------------------------------------
 // Brand red identifies Banzami (logo, active navigation, primary actions). It is
@@ -49,7 +51,7 @@ export const BADGE_LABELS_EN: Record<Tone, string> = {
 export function Badge({ tone, children }: { tone: Tone; children?: ReactNode }) {
   const b = BADGES[tone];
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 30, background: b.bg, border: `1px solid ${b.bd}`, fontSize: 11, fontWeight: 800, letterSpacing: '.01em', color: b.fg, whiteSpace: 'nowrap' }}>
+    <span data-environment-badge data-toc-ignore style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 30, background: b.bg, border: `1px solid ${b.bd}`, fontSize: 11, fontWeight: 800, letterSpacing: '.01em', color: b.fg, whiteSpace: 'nowrap' }}>
       <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: b.dot }} />
       {children ?? b.label}
     </span>
@@ -103,34 +105,29 @@ export const backLinkStyle: React.CSSProperties = {
   color: '#7a6a6e', textDecoration: 'none', padding: '3px 9px', borderRadius: 8,
 };
 
-// -- Dark code block with copy + toast -----------------------------------------
-export function CodeBlock({ label, raw, onCopy, toastText = 'Copiado para a área de transferência', buttonText = 'Copiar' }: { label: string; raw: string; onCopy: (t: string, l: string) => void; toastText?: string; buttonText?: string }) {
-  return (
-    <div style={{ background: '#241C1E', borderRadius: 10, overflow: 'hidden', margin: '0 0 16px', maxWidth: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 8px 16px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
-        {/* The label must be allowed to shrink. Without minWidth:0 a long label
-            keeps its intrinsic width in this flex row and pushes the copy button
-            past the viewport — which is how /docs/reference scrolled sideways on
-            a 390px phone while every container around it behaved. */}
-        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: mono, fontSize: 11.5, color: '#b8a4a6', fontWeight: 600 }}>{label}</span>
-        <button
-          type="button"
-          onClick={() => onCopy(raw, toastText)}
-          aria-label={`${buttonText}: ${label}`}
-          className="bz-icobtn"
-          style={{ marginLeft: 'auto', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid rgba(255,255,255,.14)', borderRadius: 9, background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#fff" strokeWidth="1.9" />
-            <path d="M5 15V5a2 2 0 012-2h8" stroke="#fff" strokeWidth="1.9" />
-          </svg>
-          {buttonText}
-        </button>
-      </div>
-      <pre tabIndex={0} style={{ margin: 0, padding: '14px 16px', fontFamily: mono, fontSize: 13, lineHeight: 1.65, color: '#EFE7E6', overflowX: 'auto', whiteSpace: 'pre' }}>{raw}</pre>
-    </div>
-  );
+// -- Code ------------------------------------------------------------------------
+// Every code example renders through the shared CodeView (DOCS-VISUAL-DX-002):
+// server-rendered syntax highlighting, a language tag, copy of the raw source.
+// The legacy label "curl · POST /v1/x" still works: its first part names the
+// language, the rest becomes the context. Pass `lang` to say it explicitly.
+export function CodeBlock({ label, raw, lang, status, marks, buttonText = 'Copiar' }: {
+  label: string;
+  raw: string;
+  lang?: CodeLang;
+  status?: ReactNode;
+  marks?: LineMark[];
+  /** Kept for existing call sites; copying is handled by CodeView. */
+  onCopy?: (t: string, l: string) => void;
+  toastText?: string;
+  buttonText?: string;
+}) {
+  const language = lang ?? langFromLabel(label);
+  const context = lang ? label : contextFromLabel(label);
+  return <CodeView raw={raw} lang={language} context={context} status={status} marks={marks} ui={buttonText === 'Copy' ? 'en' : 'pt'} />;
 }
+
+export { CodeTabs } from '@/components/developers/code/CodeView';
+export type { CodeTab, LineMark } from '@/components/developers/code/CodeView';
 
 // -- P3B UX helpers (reuse existing tokens/styles; no new visual system) --------
 

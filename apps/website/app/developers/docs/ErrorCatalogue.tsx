@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import catalogue from './error-catalogue.json';
+import { HttpStatus } from '@/components/developers/api/ApiMethod';
 import { H3, INK, MUT, P, mono } from './ui';
 
 type Lang = 'pt' | 'en';
@@ -50,8 +51,8 @@ const KEY: Record<Entry['idempotency_key'], Record<Lang, string>> = {
   'n/a': { pt: '—', en: '—' },
 };
 
-const th: React.CSSProperties = { padding: '8px 10px', fontWeight: 600, borderBottom: '1px solid #EAE3E3' };
-const td: React.CSSProperties = { padding: '9px 10px', borderBottom: '1px solid #EAE3E3', verticalAlign: 'top', color: '#3f3538' };
+const th: React.CSSProperties = { padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' };
+const td: React.CSSProperties = { padding: '9px 10px', borderBottom: '1px solid #EFE8E8', verticalAlign: 'top', color: '#3f3538', lineHeight: 1.55 };
 
 export const ERROR_CATALOGUE = catalogue.errors as Entry[];
 
@@ -90,10 +91,10 @@ export const HTTP_CLASSES: { status: string; meaning: Record<Lang, string>; acti
 export function HttpClassTable({ lang }: { lang: Lang }) {
   const t = (pt: string, en: string) => (lang === 'pt' ? pt : en);
   return (
-    <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 13 }}>
+    <div className="bz-reftable-wrap" style={{ margin: '0 0 14px' }}>
+      <table className="bz-reftable bz-classes" style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
         <thead>
-          <tr style={{ textAlign: 'left', color: '#6f6468' }}>
+          <tr>
             <th style={th}>HTTP</th>
             <th style={th}>{t('O que significa', 'What it means')}</th>
             <th style={th}>{t('O que fazer', 'What to do')}</th>
@@ -104,11 +105,11 @@ export function HttpClassTable({ lang }: { lang: Lang }) {
         <tbody>
           {HTTP_CLASSES.map((c) => (
             <tr key={c.status} id={`http-${c.status}`}>
-              <td style={{ ...td, fontFamily: mono, fontWeight: 600, color: INK }}>{c.status}</td>
-              <td style={td}>{c.meaning[lang]}</td>
-              <td style={td}>{c.action[lang]}</td>
-              <td style={{ ...td, whiteSpace: 'nowrap' }}>{RETRY[c.retry][lang]}</td>
-              <td style={{ ...td, whiteSpace: 'nowrap', color: MUT }}>{KEY[c.key][lang]}</td>
+              <td style={td}><HttpStatus code={/^\d+$/.test(c.status) ? Number(c.status) : c.status} /></td>
+              <td data-label={t('O que significa', 'What it means')} style={td}>{c.meaning[lang]}</td>
+              <td data-label={t('O que fazer', 'What to do')} style={td}>{c.action[lang]}</td>
+              <td data-label={t('Repetir?', 'Retry?')} style={{ ...td, whiteSpace: 'nowrap' }}>{RETRY[c.retry][lang]}</td>
+              <td data-label={t('Chave de idempotência', 'Idempotency key')} style={{ ...td, whiteSpace: 'nowrap', color: MUT }}>{KEY[c.key][lang]}</td>
             </tr>
           ))}
         </tbody>
@@ -170,10 +171,10 @@ export function ErrorCatalogue({ lang }: { lang: Lang }) {
             <p style={{ margin: '0 0 8px', fontSize: 13, color: '#3f3538', maxWidth: 760 }}>
               <strong>{t('Onde ver', 'Where to look')}:</strong> {INSPECT[f.id][lang]}
             </p>
-            <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 13 }}>
+            <div className="bz-reftable-wrap" style={{ margin: '0 0 14px' }}>
+              <table className="bz-reftable bz-catalogue" style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ textAlign: 'left', color: '#6f6468' }}>
+                  <tr>
                     <th style={th}>{t('Código', 'Code')}</th>
                     <th style={th}>HTTP</th>
                     <th style={th}>{t('O que significa', 'What it means')}</th>
@@ -185,12 +186,12 @@ export function ErrorCatalogue({ lang }: { lang: Lang }) {
                 <tbody>
                   {rows.map((e) => (
                     <tr key={e.code} id={`error-${e.code}`} hidden={!matches(e)}>
-                      <td style={{ ...td, fontFamily: mono, fontSize: 12, fontWeight: 700, color: '#9A1B22', whiteSpace: 'nowrap' }}>{e.code}</td>
-                      <td style={{ ...td, fontFamily: mono, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{e.http.join(' · ')}</td>
-                      <td style={td}>{e.meaning[lang]}</td>
-                      <td style={td}>{e.action[lang]}</td>
-                      <td style={{ ...td, whiteSpace: 'nowrap' }}>{RETRY[e.retry][lang]}</td>
-                      <td style={{ ...td, whiteSpace: 'nowrap', color: MUT }}>{KEY[e.idempotency_key][lang]}</td>
+                      <td style={{ ...td, fontFamily: mono, fontSize: 12.5, fontWeight: 700, color: INK, overflowWrap: 'anywhere' }}>{e.code}</td>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>{e.http.map((h) => <HttpStatus key={String(h)} code={h} compact />)}</span></td>
+                      <td data-label={t('O que significa', 'What it means')} style={td}>{e.meaning[lang]}</td>
+                      <td data-label={t('O que fazer', 'What to do')} style={td}>{e.action[lang]}</td>
+                      <td data-label={t('Repetir?', 'Retry?')} style={{ ...td, whiteSpace: 'nowrap' }}>{RETRY[e.retry][lang]}</td>
+                      <td data-label={t('Chave de idempotência', 'Idempotency key')} style={{ ...td, whiteSpace: 'nowrap', color: MUT }}>{KEY[e.idempotency_key][lang]}</td>
                     </tr>
                   ))}
                 </tbody>

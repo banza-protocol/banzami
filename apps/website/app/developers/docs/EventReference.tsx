@@ -25,13 +25,13 @@ export function EventReference({ lang, onCopy }: { lang: Lang; onCopy: (t: strin
   const copyProps = lang === 'en' ? { toastText: 'Copied to clipboard', buttonText: 'Copy' } : {};
   return (
     <>
-      <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 18px' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+      <div className="bz-reftable-wrap" style={{ margin: '0 0 18px' }}>
+        <table className="bz-reftable bz-events" style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
           <thead>
-            <tr style={{ textAlign: 'left', color: '#6f6468' }}>
-              <th style={{ ...cell, fontWeight: 600 }}>{t('Evento', 'Event')}</th>
-              <th style={{ ...cell, fontWeight: 600 }}>{t('Quando', 'When')}</th>
-              <th style={{ ...cell, fontWeight: 600 }}>{t('Recurso', 'Resource')}</th>
+            <tr>
+              <th style={{ padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' }}>{t('Evento', 'Event')}</th>
+              <th style={{ padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' }}>{t('Quando', 'When')}</th>
+              <th style={{ padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' }}>{t('Recurso', 'Resource')}</th>
             </tr>
           </thead>
           <tbody>
@@ -39,7 +39,7 @@ export function EventReference({ lang, onCopy }: { lang: Lang; onCopy: (t: strin
               <tr key={e.name}>
                 <td style={{ ...cell, whiteSpace: 'nowrap' }}><a href={`#${eventAnchor(e.name)}`} style={{ ...link, fontFamily: mono, fontSize: 12.5 }}>{e.name}</a></td>
                 <td style={cell}>{e.when[lang]}</td>
-                <td style={cell}>{e.resource[lang]}</td>
+                <td data-label={t('Recurso', 'Resource')} style={cell}>{e.resource[lang]}</td>
               </tr>
             ))}
           </tbody>
@@ -50,20 +50,20 @@ export function EventReference({ lang, onCopy }: { lang: Lang; onCopy: (t: strin
         <section key={e.name} aria-labelledby={eventAnchor(e.name)} style={{ borderTop: '1px solid #EAE3E3', paddingTop: 4, marginTop: 18 }}>
           <h3 id={eventAnchor(e.name)} style={{ scrollMarginTop: 80, margin: '18px 0 6px', fontSize: 17, fontWeight: 700, color: INK, fontFamily: mono }}>{e.name}</h3>
           <P>{e.when[lang]}</P>
-          <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 12px' }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 12.5 }}>
+          <div className="bz-reftable-wrap" style={{ margin: '0 0 12px' }}>
+            <table className="bz-reftable bz-fields" style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: '#6f6468' }}>
-                  <th style={{ ...cell, fontWeight: 600 }}>{t('Campo de data', 'data field')}</th>
-                  <th style={{ ...cell, fontWeight: 600 }}>{t('Tipo', 'Type')}</th>
-                  <th style={{ ...cell, fontWeight: 600 }}>{t('O que é', 'What it is')}</th>
+                <tr>
+                  <th style={{ padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' }}>{t('Campo de data', 'data field')}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' }}>{t('Tipo', 'Type')}</th>
+                  <th style={{ padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' }}>{t('O que é', 'What it is')}</th>
                 </tr>
               </thead>
               <tbody>
                 {e.fields.map((f) => (
                   <tr key={f.name}>
                     <td style={{ ...cell, fontFamily: mono, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{f.name}</td>
-                    <td style={{ ...cell, fontFamily: mono, whiteSpace: 'nowrap' }}>{f.type}</td>
+                    <td style={{ ...cell, fontFamily: mono, fontSize: 12, color: '#5b4f53', whiteSpace: 'nowrap' }}>{f.type}</td>
                     <td style={cell}>{f.note[lang]}</td>
                   </tr>
                 ))}
@@ -91,11 +91,13 @@ export function EventReference({ lang, onCopy }: { lang: Lang; onCopy: (t: strin
               </dd>
             </div>
           </dl>
-          <details style={{ margin: '0 0 8px' }}>
-            <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#9A1B22', margin: '0 0 8px', padding: '4px 0', lineHeight: '20px' }}>
-              {t('Exemplo de entrega', 'Example delivery')} — <Code>{e.name}</Code>
+          <details className="bz-response" style={{ margin: '0 0 8px' }}>
+            <summary className="bz-response-summary" style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, padding: '0 12px', margin: '0 0 8px', borderRadius: 10, border: '1px solid #EAE3E3', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 650, color: INK, listStyle: 'none' }}>
+              <svg className="bz-response-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              {t('Exemplo de entrega', 'Example delivery')}
+              <Code>{e.name}</Code>
             </summary>
-            <CodeBlock label={`json · ${e.name}`} raw={e.sample} onCopy={onCopy} {...copyProps} />
+            <CodeBlock lang="json" label={t('Entrega de webhook · ', 'Webhook delivery · ') + e.name} raw={e.sample} onCopy={onCopy} {...copyProps} />
           </details>
         </section>
       ))}
