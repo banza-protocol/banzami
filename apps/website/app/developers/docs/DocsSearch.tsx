@@ -103,6 +103,26 @@ export function DocsSearch({ lang }: { lang: Lang }) {
  * are read. (A first version appeared only after mount and pushed the page down
  * — a layout shift of 0.2 on the reference, measured.)
  */
+/**
+ * Which section the reader is in: the last heading whose top has passed the
+ * reading line (a little below the sticky Sandbox banner). Before the first
+ * heading, the first; at the very bottom of the page, the last — a short final
+ * section can never scroll up to the line, and it must still be reachable.
+ */
+export function activeSection(tops: number[], line: number, atBottom: boolean): number {
+  if (tops.length === 0) return -1;
+  if (atBottom) return tops.length - 1;
+  let current = 0;
+  for (let i = 0; i < tops.length; i += 1) {
+    if (tops[i] <= line) current = i;
+    else break;
+  }
+  return current;
+}
+
+/** The reading line, in px from the top of the viewport. */
+const READING_LINE = 120;
+
 export function OnThisPage({ lang, variant }: { lang: Lang; variant: 'rail' | 'inline' }) {
   const [items, setItems] = useState<{ id: string; text: string }[]>([]);
   useEffect(() => {
@@ -121,14 +141,79 @@ export function OnThisPage({ lang, variant }: { lang: Lang; variant: 'rail' | 'i
     observer.observe(root, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
+
+  // Follow the reader: recompute on scroll and resize, at most once a frame.
+  const [active, setActive] = useState<string | null>(null);
+  const railRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    if (items.length === 0) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const tops = items.map((i) => document.getElementById(i.id)?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY);
+      const doc = document.documentElement;
+      // Only a page that scrolls has a bottom to reach; a short page is read by the line.
+      const atBottom = doc.scrollHeight > window.innerHeight && window.innerHeight + window.scrollY >= doc.scrollHeight - 2;
+      const idx = activeSection(tops, READING_LINE, atBottom);
+      setActive(idx >= 0 ? items[idx].id : null);
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    window.addEventListener('hashchange', schedule);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('hashchange', schedule);
+    };
+  }, [items]);
+
+  // A long list scrolls inside the sticky rail: keep the active entry in view
+  // there, without ever scrolling the page itself.
+  useEffect(() => {
+    if (variant !== 'rail' || !active) return;
+    const container = railRef.current?.closest('.bz-toc-rail') as HTMLElement | null;
+    const link = Array.from(railRef.current?.querySelectorAll<HTMLElement>('a') ?? []).find((a) => a.getAttribute('href') === `#${active}`);
+    if (!container || !link || container.scrollHeight <= container.clientHeight) return;
+    const c = container.getBoundingClientRect();
+    const l = link.getBoundingClientRect();
+    if (l.top < c.top + 24) container.scrollTop -= c.top + 24 - l.top;
+    else if (l.bottom > c.bottom - 24) container.scrollTop += l.bottom - (c.bottom - 24);
+  }, [active, variant]);
+
   const label = lang === 'pt' ? 'Nesta página' : 'On this page';
   const list = (
-    <ul style={{ listStyle: 'none', margin: variant === 'rail' ? 0 : '8px 0 2px', padding: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-      {items.map((i) => (
-        <li key={i.id}>
-          <a href={`#${i.id}`} className="bz-toplink" style={{ display: 'block', padding: variant === 'rail' ? '4px 0 4px 10px' : '5px 4px', borderLeft: variant === 'rail' ? '1px solid #EAE3E3' : undefined, fontSize: 13, fontWeight: 400, lineHeight: 1.4, color: '#5b4f53', textDecoration: 'none', minHeight: 24 }}>{i.text}</a>
-        </li>
-      ))}
+    <ul ref={railRef} style={{ listStyle: 'none', margin: variant === 'rail' ? 0 : '8px 0 2px', padding: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+      {items.map((i) => {
+        const on = i.id === active;
+        return (
+          <li key={i.id}>
+            <a
+              href={`#${i.id}`}
+              aria-current={on ? 'location' : undefined}
+              onClick={() => setActive(i.id)}
+              className="bz-toplink"
+              style={{
+                display: 'block',
+                padding: variant === 'rail' ? '5px 10px' : '5px 8px',
+                borderLeft: variant === 'rail' ? '1px solid #EAE3E3' : undefined,
+                borderRadius: variant === 'rail' ? '0 6px 6px 0' : 6,
+                background: on ? '#FDF0EF' : 'transparent',
+                fontSize: 13,
+                fontWeight: 400,
+                lineHeight: 1.4,
+                color: on ? RED : '#5b4f53',
+                textDecoration: 'none',
+                minHeight: 24,
+              }}
+            >
+              {i.text}
+            </a>
+          </li>
+        );
+      })}
     </ul>
   );
   if (variant === 'rail') {

@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BrandTile } from '@/components/developers/portal/icons';
 import { DOCS_SANS, INK, LINK, MUT, RED, backLinkStyle } from './ui';
 import { DocsSearch, OnThisPage } from './DocsSearch';
+import { LanguagePill } from '@/components/site/LanguagePill';
 
 export type CopyFn = (text: string, label: string) => void;
 
@@ -136,11 +137,13 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
             </span>
           </span>
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <a href={otherLangHref} className="bz-toplink" aria-label={lang === 'pt' ? 'Read the documentation in English' : 'Ler a documentação em português'} style={backLinkStyle}>
-            {lang === 'pt' ? 'EN' : 'PT'}
-          </a>
-          <a href="/login" className="bz-toplink" aria-label={lang === 'pt' ? 'Entrar na Consola' : 'Open the Console'} style={{ ...backLinkStyle, color: RED, fontWeight: 800 }}>
+        <span className="bz-docs-headactions" style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
+          <LanguagePill
+            href={otherLangHref}
+            target={lang === 'pt' ? 'en' : 'pt'}
+            label={lang === 'pt' ? 'Read the documentation in English' : 'Ler a documentação em português'}
+          />
+          <a href="/login" className="bz-toplink" aria-label={lang === 'pt' ? 'Entrar na Consola' : 'Open the Console'} style={{ ...backLinkStyle, color: RED, fontWeight: 800, whiteSpace: 'nowrap' }}>
             {lang === 'pt' ? 'Entrar na Consola' : 'Open the Console'}
             <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>→</span>
           </a>

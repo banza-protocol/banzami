@@ -262,6 +262,12 @@ body {
 .bz-navitem:focus-within > a .bz-chev { transform: rotate(180deg); }
 .bz-toplink:hover { color: #B5101F !important; background: #FFF1F0 !important; }
 .bz-toplink:focus-visible { outline: 2px solid #B5101F; outline-offset: 3px; border-radius: 6px; }
+.bz-langpill { transition: border-color .15s ease, box-shadow .15s ease; }
+.bz-langpill:hover { border-color: #CFCACA !important; box-shadow: 0 1px 4px rgba(42,32,36,.08); }
+.bz-langpill:focus-visible { outline: 2px solid #B5101F; outline-offset: 3px; }
+@media (max-width: 560px) {
+  .bz-docs-headactions { flex-direction: column; align-items: flex-end !important; gap: 8px !important; }
+}
 .bz-megalink {
   display: block;
   padding: 8px 10px;
