@@ -84,12 +84,60 @@ E2E 29/29 · economic model smoke 54/54 · SANDBOX-DELETE project 17/17, workspa
 10/10, lifecycle 10/10 · acceptance: scenarios, webhook workbench 10/10, refunds
 8/8, wallet-native 16/16.
 
-**Not run:** the acceptance `rail-isolation` suite. Its developer sign-ins could
-not complete because the developer-api email provider reached its **daily sending
-quota** (`resend status 429`, from 22:37 UTC on 2026-09-14) after the day's harness
-runs. Its Core-level equivalent
-(`a_projects_rail_switch_never_reaches_another_project_on_the_same_business`)
-passes. Re-run after the quota resets.
+All suites above re-run on the final tree after the closure changes below.
+`RAIL_ISOLATION=7/7` (`SANDBOX_RAIL_SIMULATOR_CROSS_TENANT_EFFECT=0`,
+`SANDBOX_RAIL_SWITCH_CAN_AFFECT_LIVE=0`) — now on fixture sessions, no email.
+
+## Closure — developer authentication cannot lock developers out
+
+The public Console's email provider reached its **daily sending quota** after a
+heavy day of assurance runs (200 fixture sign-in codes on 2026-09-14), and real
+developers then could not receive sign-in codes. Hardened operationally:
+
+- **Fixture sessions** (`POST /internal/v1/fixture-sessions`, developer-api):
+  general regression suites (rail isolation, api-logs, dev-key-gateway, rbac,
+  cross-project, deletion, realtime, acceptance scenarios/workbench/refunds) now
+  open a session for a fixture identity with **no email** — Sandbox only,
+  `@banzami-e2e.test` only, behind the internal key, refused by the public edge
+  (`/internal/` → 404), audited (`session.fixture_minted`), through the same
+  store calls a verified sign-in uses. No OTP is created, read or bypassed.
+  Proven live: edge 404; internal + fixture-domain 200; internal + real address 404.
+- **Fixture email daily budget** (`FIXTURE_EMAIL_DAILY_BUDGET`, default 40):
+  sign-in codes to the fixture domain are capped per UTC day; real addresses are
+  never counted, so fixture traffic can no longer consume the quota real
+  developers need.
+- **Truthful failure**: a send the provider refused is no longer announced as
+  sent. `request-otp` answers a uniform `503 CODE_NOT_SENT` that names no
+  provider; the operator sees the reason (`provider_quota_exhausted` /
+  `provider_rate_limited` / `provider_rejected`) in a log and audit line. Proven
+  live: with the quota spent, `request-otp` returned 503 and the log carried
+  `reason":"provider_quota_exhausted"`.
+- **Real-email authentication stays real**: `tools/e2e/console/auth-email-e2e.mjs`
+  and the public cleanroom sign in through actual delivery (request → provider
+  accepted → OTP received → consumed → session).
+
+Counters:
+
+| Counter | Value | Evidence |
+|---|---|---|
+| RAIL_ISOLATION | 7/7 | acceptance `rail-isolation` on the final tree |
+| SANDBOX_RAIL_SIMULATOR_CROSS_TENANT_EFFECT | 0 | same |
+| SANDBOX_RAIL_SWITCH_CAN_AFFECT_LIVE | 0 | same |
+| PUBLIC_OTP_BYPASS_CAPABILITIES | 0 | no public route discloses an OTP or looks like a peek (`TestNoPublicOTPDisclosure`); fixture-session route internal + fixture-only |
+| INTERNAL_TESTS_CAN_EXHAUST_PUBLIC_EMAIL_QUOTA | 0 | fixture email capped at 40/day; general suites send no email |
+| EMAIL_PROVIDER_QUOTA_FAILURE_OBSERVABLE | PASS | `reason` on the failure log + `otp.delivery_failed` audit; typed `ProviderError`/`DeliveryReason` (`delivery_error_test.go`) |
+| EMAIL_DELIVERY_FAILURE_FAILS_TRUTHFULLY | PASS | `CODE_NOT_SENT` 503, uniform, no provider/numbers (`TestRequestOTP_DeliveryFailureIsNotAnnouncedAsSent`) |
+| PUBLIC_DEVELOPER_EMAIL_AUTH_E2E | PENDING | blocked until the provider daily quota resets (00:00 UTC); to run on the final tree |
+| BL_APP_RUNTIME_CAN_REOPEN_RETIRED_PROJECT | 0 | live probe: DELETE/UPDATE `sandbox_retired_projects` and `sandbox_test_payers` → permission denied; SELECT and other writes intact; Core still retires (SANDBOX-DELETE 37/37) |
+
+Go mutation proofs (5): any address getting a fixture session; fixture sessions
+in Live; a failed send announced as sent; the fixture budget removed; the
+fixture route outside the internal guard. Plus the DB-authority manifest→SQL
+drift check ties the `except_tables` exclusion to the generated grants.
+
+**Final SHAs:** money model core `87078805`, auth/email hardening `d2098e7b`,
+retirement-marker authority `037d353c`. CI green on `88dd85c4` and `d2098e7b`;
+`037d353c` (DB-authority only) in the final CI run.
 
 ## Not in this milestone
 
@@ -97,5 +145,5 @@ passes. Re-run after the quota resets.
   through Core's internal route; no participant data is exposed.
 - Production alerting: findings are logged with stable codes; no alert
   infrastructure exists for Financial Live.
-- Removing `bl_app_runtime`'s write privilege on `sandbox_retired_projects`
-  (hardening noted after SANDBOX-DELETE-001) — pending.
+- (done) `bl_app_runtime`'s write privilege on the retirement/lifecycle-truth
+  tables is removed; see the closure counters.
