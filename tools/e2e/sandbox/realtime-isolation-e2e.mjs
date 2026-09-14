@@ -41,6 +41,7 @@ export const REALTIME = [
   'A fourth stream on one session is refused with Retry-After', 'A closed stream frees its place',
   'Payment turns the stream PAID and the stream closes', 'A stream opened on a PAID session closes after its snapshot',
   'Latency samples: PAID within the 2 s target', 'GET fallback reads the same status with the key',
+  'The token changes nothing: write methods are refused and the session is unchanged',
 ];
 export const ISOLATION = [
   'Two projects set up (A and B), a second developer signed in', "B's key cannot read A's session",
@@ -329,6 +330,17 @@ async function realtime() {
     const fallback = await api(`/v1/payment-sessions/${S}`);
     const snapAfter = await (await rt(S, tok)).json().catch(() => ({}));
     mark(16, fallback.status === 200 && fallback.body?.status === 'PAID' && snapAfter.status === 'PAID', `get=${fallback.body?.status} snapshot=${snapAfter.status}`);
+
+    const sw = await newSession(api, `${stamp}_w`, 11000);
+    const wTok = sw.body?.realtime?.token;
+    const writes = [];
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      const r = await fetch(`${GW}/v1/realtime/payment-sessions/${sw.body?.session_id}`, { method, headers: { authorization: `Bearer ${wTok}`, 'content-type': 'application/json' }, body: method === 'DELETE' ? undefined : JSON.stringify({ status: 'PAID' }) });
+      writes.push(r.status);
+    }
+    const cancelTry = await fetch(`${GW}/v1/payment-sessions/${sw.body?.session_id}`, { method: 'GET', headers: { authorization: `Bearer ${wTok}` } });
+    const still = await api(`/v1/payment-sessions/${sw.body?.session_id}`);
+    mark(17, writes.every((c) => c === 405 || c === 404) && cancelTry.status === 401 && still.body?.status === 'ACTIVE', `methods=${writes.join(',')} token_as_key=${cancelTry.status} session=${still.body?.status}`);
   } catch (e) {
     console.error(`  ! aborted: ${String(e.stack ?? e).split('\n')[0]}`);
   } finally {
