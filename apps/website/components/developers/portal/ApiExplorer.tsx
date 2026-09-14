@@ -84,6 +84,13 @@ function RealtimeWatch({ rt }: { rt: Realtime }) {
   );
 }
 
+/** The hosted payment page of a session in a response — only pay.banzami.com links. */
+function hostedPageIn(body: unknown): string | undefined {
+  const interfaces = (body as { interfaces?: { type?: string; value?: string }[] } | undefined)?.interfaces;
+  const link = interfaces?.find((i) => i.type === 'PAYMENT_LINK')?.value;
+  return link && link.startsWith('https://pay.banzami.com/') ? link : undefined;
+}
+
 export function ApiExplorer() {
   const { activeProject, csrf } = useDeveloperData();
   const projectId = activeProject?.id;
@@ -105,7 +112,14 @@ export function ApiExplorer() {
     if (!projectId) return;
     setOps(null);
     developerApi.explorerOperations(projectId)
-      .then((r) => { setOps(r.operations); setTtl(r.key_ttl_seconds); })
+      .then((r) => {
+        setOps(r.operations);
+        setTtl(r.key_ttl_seconds);
+        // "Try in Sandbox" from the API reference names the operation.
+        const wanted = new URLSearchParams(window.location.search).get('op');
+        const op = wanted ? r.operations.find((o) => o.operation_id === wanted) : undefined;
+        if (op) choose(op);
+      })
       .catch((e) => setLoadError(explorerRefusal(e)));
   }, [projectId]);
 
@@ -250,6 +264,11 @@ export function ApiExplorer() {
                     <pre style={{ margin: '10px 0 0', padding: 14, borderRadius: 12, background: '#1f1719', color: '#f5eceb', fontFamily: mono, fontSize: 12.5, overflowX: 'auto', maxHeight: 460 }}>
                       {response.body !== undefined ? JSON.stringify(response.body, null, 2) : response.text}
                     </pre>
+                    {hostedPageIn(response.body) && (
+                      <a data-testid="explorer-hosted-page" href={hostedPageIn(response.body)} target="_blank" rel="noopener noreferrer" style={{ ...SECONDARY_BUTTON, display: 'inline-block', marginTop: 10, marginRight: 8, textDecoration: 'none' }}>
+                        Abrir a página de pagamento
+                      </a>
+                    )}
                     {realtimeIn(response.body) && !rt && (
                       <button type="button" data-testid="explorer-watch" onClick={() => setRt(realtimeIn(response.body))} style={{ ...SECONDARY_BUTTON, marginTop: 10 }}>
                         Ver o estado em tempo real

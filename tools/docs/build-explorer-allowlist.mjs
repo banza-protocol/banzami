@@ -18,6 +18,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = process.env.BZ_DOCS_ROOT ?? resolve(fileURLToPath(new URL('.', import.meta.url)), '../..');
 const SPEC = join(ROOT, 'docs/developer/openapi/banzami-sandbox.openapi.json');
 const OUT = join(ROOT, 'services/developer-api/internal/developer/explorer_operations.json');
+// The docs' copy: which reference entries get "Try in Sandbox" (method, path, id only).
+const DOCS_OUT = join(ROOT, 'apps/website/app/developers/docs/explorer-operations.json');
 const CHECK = process.argv.includes('--check');
 
 const spec = JSON.parse(readFileSync(SPEC, 'utf8'));
@@ -52,10 +54,12 @@ for (const [path, ops] of Object.entries(spec.paths)) {
 operations.sort((a, b) => a.tag.localeCompare(b.tag) || a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
 
 const text = `${JSON.stringify({ source: 'docs/developer/openapi/banzami-sandbox.openapi.json', spec_version: spec.info.version, operations }, null, 2)}\n`;
+const docsText = `${JSON.stringify({ source: 'tools/docs/build-explorer-allowlist.mjs', operations: operations.map((o) => ({ operation_id: o.operation_id, method: o.method, path: o.path })) }, null, 2)}\n`;
 if (CHECK) {
   const current = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
-  if (current !== text) {
-    console.error('✗ explorer_operations.json is stale — run node tools/docs/build-explorer-allowlist.mjs');
+  const docsCurrent = existsSync(DOCS_OUT) ? readFileSync(DOCS_OUT, 'utf8') : '';
+  if (current !== text || docsCurrent !== docsText) {
+    console.error('✗ explorer_operations.json (developer-api or docs copy) is stale — run node tools/docs/build-explorer-allowlist.mjs');
     console.log('EXPLORER_ALLOWLIST_CURRENT=FAIL');
     process.exit(1);
   }
@@ -63,5 +67,6 @@ if (CHECK) {
   console.log('EXPLORER_ALLOWLIST_CURRENT=PASS');
 } else {
   writeFileSync(OUT, text);
-  console.log(`wrote ${OUT.slice(ROOT.length + 1)} (${operations.length} operations)`);
+  writeFileSync(DOCS_OUT, docsText);
+  console.log(`wrote ${OUT.slice(ROOT.length + 1)} and ${DOCS_OUT.slice(ROOT.length + 1)} (${operations.length} operations)`);
 }

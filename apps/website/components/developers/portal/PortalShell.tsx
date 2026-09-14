@@ -511,7 +511,11 @@ function PortalGuard({ active, showBanner, children }: PortalPageProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'anon') router.replace('/login');
+    if (status === 'anon') {
+      // Come back here after signing in (a "Try in Sandbox" link keeps its operation).
+      const here = window.location.pathname + window.location.search;
+      router.replace(here === '/' ? '/login' : `/login?next=${encodeURIComponent(here)}`);
+    }
   }, [status, router]);
 
   if (status !== 'authed') {

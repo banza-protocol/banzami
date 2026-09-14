@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AuthShell } from '@/components/developers/portal/AuthShell';
 import { IconEnvelope } from '@/components/developers/portal/icons';
 import { developerApi, ApiError, MESSAGES } from '@/lib/developer-api';
+import { safeReturnPath } from '@/lib/return-path';
 
 // Login (Email only) — dossier ecrã 1. Auth V1 is Email + OTP: no password,
 // phone, Google or name at entry. "Continuar" sends the email to the OTP screen;
@@ -25,7 +26,8 @@ export default function DevelopersLoginPage() {
     try {
       await developerApi.requestOtp(email);
       // Uniform response — always advance to the code screen.
-      router.push(`/verify?email=${encodeURIComponent(email)}`);
+      const next = safeReturnPath(new URLSearchParams(window.location.search).get('next'));
+      router.push(`/verify?email=${encodeURIComponent(email)}${next === '/' ? '' : `&next=${encodeURIComponent(next)}`}`);
     } catch (e) {
       // The API names the situation precisely — INVALID_EMAIL is not the same as
       // "could not send". Re-deriving a message from a short list of codes threw

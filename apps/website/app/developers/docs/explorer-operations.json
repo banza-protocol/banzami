@@ -1,0 +1,190 @@
+{
+  "source": "tools/docs/build-explorer-allowlist.mjs",
+  "operations": [
+    {
+      "operation_id": "createApplicationSettlement",
+      "method": "POST",
+      "path": "/v1/application-settlements"
+    },
+    {
+      "operation_id": "resolveHandle",
+      "method": "GET",
+      "path": "/v1/consumers/handle/{handle}"
+    },
+    {
+      "operation_id": "getFinancialSetup",
+      "method": "GET",
+      "path": "/v1/financial-setup"
+    },
+    {
+      "operation_id": "getMe",
+      "method": "GET",
+      "path": "/v1/me"
+    },
+    {
+      "operation_id": "listPaymentLinks",
+      "method": "GET",
+      "path": "/v1/payment-links"
+    },
+    {
+      "operation_id": "createPaymentLink",
+      "method": "POST",
+      "path": "/v1/payment-links"
+    },
+    {
+      "operation_id": "cancelPaymentLink",
+      "method": "DELETE",
+      "path": "/v1/payment-links/{id}"
+    },
+    {
+      "operation_id": "getPaymentLink",
+      "method": "GET",
+      "path": "/v1/payment-links/{id}"
+    },
+    {
+      "operation_id": "listPaymentSessions",
+      "method": "GET",
+      "path": "/v1/payment-sessions"
+    },
+    {
+      "operation_id": "createPaymentSession",
+      "method": "POST",
+      "path": "/v1/payment-sessions"
+    },
+    {
+      "operation_id": "getPaymentSession",
+      "method": "GET",
+      "path": "/v1/payment-sessions/{id}"
+    },
+    {
+      "operation_id": "getPaymentSessionLink",
+      "method": "GET",
+      "path": "/v1/payment-sessions/{id}/link"
+    },
+    {
+      "operation_id": "getPaymentSessionQr",
+      "method": "GET",
+      "path": "/v1/payment-sessions/{id}/qr"
+    },
+    {
+      "operation_id": "listRefunds",
+      "method": "GET",
+      "path": "/v1/refunds"
+    },
+    {
+      "operation_id": "createRefund",
+      "method": "POST",
+      "path": "/v1/refunds"
+    },
+    {
+      "operation_id": "getRefund",
+      "method": "GET",
+      "path": "/v1/refunds/{id}"
+    },
+    {
+      "operation_id": "listSandboxScenarios",
+      "method": "GET",
+      "path": "/v1/sandbox/scenarios"
+    },
+    {
+      "operation_id": "listTestPayers",
+      "method": "GET",
+      "path": "/v1/sandbox/test-payers"
+    },
+    {
+      "operation_id": "createTestPayer",
+      "method": "POST",
+      "path": "/v1/sandbox/test-payers"
+    },
+    {
+      "operation_id": "retireTestPayer",
+      "method": "DELETE",
+      "path": "/v1/sandbox/test-payers/{id}"
+    },
+    {
+      "operation_id": "getTestPayer",
+      "method": "GET",
+      "path": "/v1/sandbox/test-payers/{id}"
+    },
+    {
+      "operation_id": "fundTestPayer",
+      "method": "POST",
+      "path": "/v1/sandbox/test-payers/{id}/fund"
+    },
+    {
+      "operation_id": "payAsTestPayer",
+      "method": "POST",
+      "path": "/v1/sandbox/test-payers/{id}/payments"
+    },
+    {
+      "operation_id": "createWalletAccountTransfer",
+      "method": "POST",
+      "path": "/v1/wallet-account-transfers"
+    },
+    {
+      "operation_id": "listWalletAccounts",
+      "method": "GET",
+      "path": "/v1/wallet-accounts"
+    },
+    {
+      "operation_id": "createWalletAccount",
+      "method": "POST",
+      "path": "/v1/wallet-accounts"
+    },
+    {
+      "operation_id": "getWalletAccount",
+      "method": "GET",
+      "path": "/v1/wallet-accounts/{id}"
+    },
+    {
+      "operation_id": "replayWebhookDelivery",
+      "method": "POST",
+      "path": "/v1/webhooks/deliveries/{id}/replay"
+    },
+    {
+      "operation_id": "listWebhookEndpoints",
+      "method": "GET",
+      "path": "/v1/webhooks/endpoints"
+    },
+    {
+      "operation_id": "registerWebhookEndpoint",
+      "method": "POST",
+      "path": "/v1/webhooks/endpoints"
+    },
+    {
+      "operation_id": "deactivateWebhookEndpoint",
+      "method": "DELETE",
+      "path": "/v1/webhooks/endpoints/{id}"
+    },
+    {
+      "operation_id": "getWebhookEndpoint",
+      "method": "GET",
+      "path": "/v1/webhooks/endpoints/{id}"
+    },
+    {
+      "operation_id": "getWebhookEndpointHealth",
+      "method": "GET",
+      "path": "/v1/webhooks/endpoints/{id}/health"
+    },
+    {
+      "operation_id": "rotateWebhookEndpointSecret",
+      "method": "POST",
+      "path": "/v1/webhooks/endpoints/{id}/rotate-secret"
+    },
+    {
+      "operation_id": "sendWebhookTestEvent",
+      "method": "POST",
+      "path": "/v1/webhooks/endpoints/{id}/test"
+    },
+    {
+      "operation_id": "listWebhookEvents",
+      "method": "GET",
+      "path": "/v1/webhooks/events"
+    },
+    {
+      "operation_id": "listWebhookDeliveries",
+      "method": "GET",
+      "path": "/v1/webhooks/events/{id}/deliveries"
+    }
+  ]
+}

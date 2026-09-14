@@ -7,6 +7,7 @@ import { AuthShell } from '@/components/developers/portal/AuthShell';
 import { IconChevronLeft, IconEnvelopeOpen } from '@/components/developers/portal/icons';
 import { developerApi, ApiError } from '@/lib/developer-api';
 import { createSubmitCoordinator } from '@/lib/otp-submit-coordinator';
+import { safeReturnPath } from '@/lib/return-path';
 
 // OTP verification — six single-digit inputs with auto-focus,
 // backspace-to-previous, paste-distribute, and AUTO-SUBMIT on the sixth digit.
@@ -100,7 +101,7 @@ function VerifyInner() {
       // On success the API sets the host-only session cookie; the portal restores
       // the session (and a fresh CSRF token) via /auth/me on load.
       await developerApi.verify(email, code);
-      router.push('/');
+      router.push(safeReturnPath(new URLSearchParams(window.location.search).get('next')));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
       setError(
