@@ -59,10 +59,11 @@ describe('Refunds docs — typed-source public contract (ADR-017)', () => {
     }
   });
 
-  it('the overview refund snippet uses the public typed-source fields only', () => {
-    for (const token of ['ACQUIRING_PAYMENT', 'source_id', 'amount_minor', 'currency', 'idempotency_key']) {
-      expect(OVERVIEW.includes(token)).toBe(true);
+  it('the landing carries no refund payload and sends readers to the refunds guide', () => {
+    for (const token of ['source_id', 'amount_minor', 'idempotency_key']) {
+      expect(OVERVIEW.includes(token)).toBe(false);
     }
+    expect(OVERVIEW).toContain('/refunds');
   });
 
   it('the Refunds badge matches the manifest disposition, in both directions', () => {

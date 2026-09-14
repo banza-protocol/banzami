@@ -102,9 +102,9 @@ const CASES = [
     expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_NOT_PUBLIC) >= 1 && /INTERNAL code/.test(c.out),
   },
   {
-    name: 'B — the landing page lists an invented lower-case code',
+    name: 'B — the landing page names a code no developer route returns',
     mutate: (d) => edit(d, 'apps/website/app/developers/page.tsx', (s) => s.replace(
-      "  { code: 'RATE_LIMITED',", "  { code: 'rate_limit_exceeded', desc: 'x' },\n  { code: 'RATE_LIMITED',")),
+      '<li>Dinheiro fictício: nada entra ou sai de um banco.</li>', '<li>Dinheiro fictício: nada entra ou sai de um banco. 401 API_KEY_INVALID.</li>')),
     expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_NOT_PUBLIC) >= 1,
   },
   {

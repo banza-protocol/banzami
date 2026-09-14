@@ -107,12 +107,15 @@ describe('P0 — no fake SDK install commands, SDKs never the primary path', () 
     // banzami_client, not banzami_flutter: the latter is Banzami's own
     // application framework and is not published (Banzami ADR-053). Pointing a
     // mobile developer at it would send them to a package that is not theirs.
-    expect(OVERVIEW).toContain('banzami_client');
+    // The landing renders the published-package list rather than naming packages itself.
+    expect(OVERVIEW).toContain('PUBLISHED_PACKAGES.map');
     expect(OVERVIEW.includes('banzami_flutter'), 'the internal framework must not be offered as an SDK').toBe(false);
   });
   it('the quickstart first call is curl against the Sandbox API, no SDK required', () => {
     expect(DOCS).toContain('curl https://sandbox-api.banzami.com/v1/me');
-    expect(OVERVIEW).toContain('curl https://sandbox-api.banzami.com');
+    // The landing page is not a second reference: no endpoint, no key, no code.
+    expect(OVERVIEW.includes('/v1/')).toBe(false);
+    expect(OVERVIEW.includes('bz_test_sk_')).toBe(false);
     // The curl block is RENDERED before the first SDK block (usage order, not
     // constant-definition order): quickstart curl → API reference SDK sample.
     expect(DOCS.indexOf('raw={SAMPLE_CURL_ME}')).toBeGreaterThan(0);

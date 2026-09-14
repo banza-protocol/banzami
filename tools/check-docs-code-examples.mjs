@@ -43,9 +43,8 @@ const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SOURCES = {
   PT: 'apps/website/app/developers/docs/content-pt.tsx',
   EN: 'apps/website/app/developers/docs/content-en.tsx',
-  // banzami.com/developers — the landing page carries code too, and it was the
-  // worst of it: five SDK methods that do not exist.
-  LANDING: 'apps/website/app/developers/landing-samples.ts',
+  // banzami.com/developers carries no code since PUBLIC-TRUTH-001: it links to
+  // these pages instead of keeping a second copy that could drift.
 };
 // Published example files are whole programs, compiled as they are.
 const EXAMPLE_FILES = ['apps/website/public/developers/examples/sdk/typescript-payment-session.example.ts'];
@@ -78,7 +77,7 @@ function extract(lang, file) {
   return out.filter((s) => /@banzami\/sdk|\bbanzami\.|BanzamiClient/.test(s.code) && !/^\s*(curl|#|\{|\$ )/m.test(s.code.trimStart().slice(0, 6)));
 }
 
-const samples = [...extract('PT', SOURCES.PT), ...extract('EN', SOURCES.EN), ...extract('LANDING', SOURCES.LANDING),
+const samples = [...extract('PT', SOURCES.PT), ...extract('EN', SOURCES.EN),
   ...EXAMPLE_FILES.map((f) => ({ lang: 'FILE', id: f.split('/').pop(), code: readFileSync(join(ROOT, f), 'utf8') }))];
 
 // ── the reader's environment ─────────────────────────────────────────────────
@@ -230,7 +229,7 @@ try {
 
   console.log(`\nDOC_CODE_EXAMPLES_TS_TOTAL=${samples.length}`);
   console.log(`DOC_CODE_EXAMPLES_TS_FAILING=${failures}`);
-  console.log(`DOC_CODE_EXAMPLES_PT=${ptN} DOC_CODE_EXAMPLES_EN=${enN} DOC_CODE_EXAMPLES_LANDING=${report.filter((r) => r.lang === 'LANDING').length}`);
+  console.log(`DOC_CODE_EXAMPLES_PT=${ptN} DOC_CODE_EXAMPLES_EN=${enN}`);
   console.log(`DOC_CODE_EXAMPLES_SDK_VERSION=${sdkVersion}`);
   console.log(`DOC_CODE_EXAMPLES_TESTED=${failures === 0 && samples.length > 0 ? 'PASS' : 'FAIL'}`);
 } finally {
