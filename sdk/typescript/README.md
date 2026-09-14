@@ -155,6 +155,58 @@ qr?.value;   // the same pay URL — encode it into the QR you display
 With a Developer Console key, omit `walletAccountId`: the payee comes from the
 Project's binding, and a client-supplied payee is refused.
 
+### Show the payer the status in real time (browser)
+
+A session read with your key carries `realtime: { token, expires_at, path }` —
+a read-only status token for that one session, valid for at most 30 minutes.
+Give the token (never your key) to the page:
+
+```typescript
+import { watchPaymentSessionStatus } from '@banzami/sdk/realtime';
+
+const watch = watchPaymentSessionStatus({
+  sessionId: session.session_id,
+  token:     session.realtime.token,      // bzst_… — refused if it is an API key
+  onStatus:  (s) => render(s.status),     // snapshot first, then every change
+  onEnd:     (end) => console.log(end.reason), // terminal | token_expired | closed | error
+});
+// watch.close() when the page goes away.
+```
+
+It sends the token in the `Authorization` header over a fetch stream (never in
+the URL) and reconnects from a fresh snapshot. It is for the screen, not proof
+of payment: fulfil on the signed `payment_session.paid` webhook, or on a GET
+your backend makes with its key.
+
+---
+
+## Sandbox test data
+
+Sandbox keys only (`sandbox:read` / `sandbox:write`). A test payer belongs to
+your Project, holds fictitious value, and pays only your Project's own sessions
+and links — through this API; it signs in to no app.
+
+```typescript
+const { scenarios } = await client.listSandboxScenarios(); // every outcome and how to produce it
+
+const payer = await client.createTestPayer({ label: 'Maria (teste)' }); // starts with 10 000 Kz
+await client.fundTestPayer(payer.id, { amountMinor: 500_000, idempotencyKey: 'fund-1' });
+
+const paid = await client.payAsTestPayer(payer.id, {
+  paymentSessionId: session.session_id,
+  via:              'QR',               // or 'LINK' (default)
+  idempotencyKey:   'pay-1',
+});
+paid.status;          // 'PAID'
+paid.proof_reference; // a receipt that verifies publicly
+
+// External-rail outcomes are asked for explicitly, never by a magic amount:
+await client.payAsTestPayer(payer.id, { paymentSessionId: other.session_id, simulate: 'DECLINED' });
+// simulate: 'TIMEOUT' pays, answers 504, and the SDK's retry with the same key returns the real result.
+
+await client.retireTestPayer(payer.id); // its value is retired by a balanced posting
+```
+
 ---
 
 ## QR codes
@@ -367,6 +419,15 @@ const endpoint = await client.registerWebhookEndpoint(
 
 // List recent events
 const events = await client.listWebhookEvents({ limit: 10 });
+```
+
+In the Sandbox, send a synthetic `webhook.test` event to one endpoint to check
+your receiver and signature verification without a payment. It moves nothing,
+is marked `synthetic: true`, and is bounded to 10 test deliveries a minute per
+endpoint.
+
+```typescript
+const test = await client.sendWebhookTestEvent(endpoint.id); // 202 — { event_id, delivery_id, synthetic: true }
 ```
 
 ---
