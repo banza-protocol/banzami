@@ -142,6 +142,7 @@ withdrawals; the latest reconciliation; and every **finding**:
 | `WITHDRAWALS_IN_FLIGHT_UNEXPLAINED` | in flight ≠ what unresolved payouts reserved |
 | `UNCLASSIFIED_ACCOUNT_WITH_ENTRIES` | value on an account nothing owns |
 | `RETIRED_RESOURCE_HOLDS_VALUE` | a retired test payer, retired Project Business or closed wallet account still holds value |
+| `RETIRED_RESOURCE_PENDING_CASH_IN` | a hosted payment still pending on a retired Business's cancelled link — a later confirmation would credit it (retirement fails these) |
 | `ENTRY_CURRENCY_MISMATCH` | an entry in a currency other than its account's |
 | `BOUNDARY_*` | a severe outcome in the latest reconciliation run |
 
@@ -168,8 +169,9 @@ arithmetic, or is refused.
 
 Every system account is `synthetic`. Test funding is a cash-in against synthetic
 transit; retirement (SANDBOX-DELETE-001) returns value to it through balanced
-postings, and `RETIRED_RESOURCE_HOLDS_VALUE` proves nothing is hidden on retired
-resources. There is no public withdrawal product in the Sandbox: withdrawals are
+postings and fails any hosted payment still waiting on the links it cancels, so
+no later confirmation can credit a retired Business. `RETIRED_RESOURCE_HOLDS_VALUE`
+and `RETIRED_RESOURCE_PENDING_CASH_IN` prove nothing is hidden on retired resources. There is no public withdrawal product in the Sandbox: withdrawals are
 exercised at the Core level and through the operator routes.
 
 ## 10. Architectural invariant ≠ legal requirement

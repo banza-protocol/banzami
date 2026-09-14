@@ -261,10 +261,33 @@ pub(crate) async fn owned_synthetic_business(
     .map_err(|e| ApiError::internal(e.to_string()))
 }
 
+/// A hosted payment still waiting for the simulated rail on a link this
+/// retirement cancels is failed with it (MONEY-MODEL-001). Otherwise a later
+/// confirmation of it would credit a retired Business — value arriving on a
+/// resource nobody can see or use. Sandbox only, like everything that calls it.
+pub(crate) async fn fail_pending_cash_in(
+    tx: &mut Tx<'_>,
+    links_sql: &str,
+    owner: Uuid,
+) -> ApiResult<u64> {
+    sqlx::query(&format!(
+        "UPDATE acquiring_payments
+            SET status = 'FAILED', failed_at = now(),
+                failure_reason = 'SANDBOX_RETIRED: its payment link was cancelled when its Sandbox resources were retired'
+          WHERE status = 'PENDING' AND payment_link_id IN ({links_sql})"
+    ))
+    .bind(owner)
+    .execute(&mut **tx)
+    .await
+    .map(|r| r.rows_affected())
+    .map_err(|e| ApiError::internal(e.to_string()))
+}
+
 #[derive(Default)]
 pub(crate) struct BusinessRetired {
     pub sessions_cancelled: u64,
     pub links_cancelled: u64,
+    pub acquiring_payments_failed: u64,
     pub accounts_closed: u64,
     pub retired_minor: i64,
 }
@@ -321,6 +344,12 @@ pub(crate) async fn retire_business(
     .await
     .map_err(db)?
     .rows_affected();
+    out.acquiring_payments_failed = fail_pending_cash_in(
+        tx,
+        "SELECT id FROM payment_links WHERE merchant_id = $1",
+        merchant,
+    )
+    .await?;
 
     let (amount, _) = retire_in_tx(
         tx,

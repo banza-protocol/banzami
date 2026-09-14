@@ -785,3 +785,35 @@ async fn reconciliation_classifies_every_boundary_difference_and_moves_nothing(p
         book.findings
     );
 }
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_pending_cash_in_left_on_a_retired_business_is_detected(pool: PgPool) {
+    let _m = model(&pool).await;
+    let b = business(&pool).await;
+    sqlx::query("INSERT INTO acquiring_payments (payment_link_id, provider, external_ref, status, amount_minor, currency, instructions, expires_at) VALUES ($1, 'SIMULATED', 'SIM-LEFT', 'PENDING', 4000, 'AOA', '{}', now())")
+        .bind(b.link)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        position(&pool).await.is_healthy(),
+        "pending on a live Business is just pending"
+    );
+    sqlx::query("UPDATE payment_links SET status = 'CANCELLED' WHERE id = $1")
+        .bind(b.link)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE merchants SET status = 'SUSPENDED' WHERE id = $1")
+        .bind(b.merchant)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let f = position(&pool).await;
+    let found = f
+        .findings
+        .iter()
+        .find(|x| x.code == "RETIRED_RESOURCE_PENDING_CASH_IN")
+        .expect("found");
+    assert_eq!((found.count, found.amount_minor), (1, 4_000));
+}

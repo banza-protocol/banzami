@@ -502,3 +502,57 @@ async fn deletion_retirement_is_sandbox_only(pool: PgPool) {
         0
     );
 }
+
+/// MONEY-MODEL-001: a hosted payment still waiting for the simulated rail on a
+/// retired Business's link is failed by the retirement, so no later
+/// confirmation can credit value into a resource that no longer exists for
+/// anyone.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_retired_business_keeps_no_pending_cash_in_that_could_credit_it(pool: PgPool) {
+    use crate::routes::acquiring::{test_confirm, TestConfirmQuery};
+
+    let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
+    let project = Uuid::new_v4();
+    let f = business(&st, &pool, transit, project).await;
+    let external_ref = format!("SIM-{}", Uuid::new_v4().simple());
+    let pending: Uuid = sqlx::query_scalar(
+        "INSERT INTO acquiring_payments (payment_link_id, provider, external_ref, status, amount_minor, currency, instructions, expires_at)
+         VALUES ($1, 'SIMULATED', $2, 'PENDING', 40000, 'AOA', '{}', now() + interval '1 hour') RETURNING id",
+    )
+    .bind(f.link)
+    .bind(&external_ref)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    let Json(out) = retire(State(st.clone()), body(project, "cash-in", true))
+        .await
+        .unwrap();
+    assert_eq!(out["business"]["acquiring_payments_failed"], 1);
+    assert_eq!(
+        status(
+            &pool,
+            "SELECT status FROM acquiring_payments WHERE id=$1",
+            pending
+        )
+        .await,
+        "FAILED"
+    );
+
+    // The simulated rail's confirmation arrives afterwards: refused, nothing credited.
+    let refused = test_confirm(
+        State(st.clone()),
+        axum::extract::Query(TestConfirmQuery {
+            external_ref,
+            currency: None,
+            payment_link_id: Some(f.link),
+        }),
+    )
+    .await;
+    assert!(
+        refused.is_err(),
+        "a retired Business is credited by nothing"
+    );
+    assert_eq!(balance(&pool, f.primary_account).await, 0);
+    assert!(book_balanced(&pool).await);
+}

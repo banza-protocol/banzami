@@ -439,6 +439,32 @@ async fn retired_resources_hold_nothing(
     )
     .fetch_all(pool)
     .await?;
+    // A cash-in still waiting for a rail on a retired Business's cancelled link
+    // holds no value yet, but a confirmation would credit a resource nobody can
+    // use. Retirement fails it; one left pending is a finding.
+    let pending: Vec<(String, i64, i64)> = sqlx::query_as(
+        r#"
+        SELECT ap.currency::text, COALESCE(SUM(ap.amount_minor), 0)::bigint, COUNT(*)::bigint
+          FROM acquiring_payments ap
+          JOIN payment_links pl ON pl.id = ap.payment_link_id AND pl.status = 'CANCELLED'
+          JOIN merchants m      ON m.id = pl.merchant_id AND m.status <> 'ACTIVE'
+         WHERE ap.status = 'PENDING'
+         GROUP BY ap.currency
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+    for (currency, amount, count) in pending {
+        findings.push(IntegrityFinding {
+            code: "RETIRED_RESOURCE_PENDING_CASH_IN",
+            currency,
+            amount_minor: amount,
+            count,
+            detail: format!(
+                "{count} hosted payment(s) still pending on a retired Business's cancelled link"
+            ),
+        });
+    }
     for (kind, currency, amount, count) in rows {
         findings.push(IntegrityFinding {
             code: "RETIRED_RESOURCE_HOLDS_VALUE",

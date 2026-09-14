@@ -158,6 +158,12 @@ pub async fn retire(
     .await
     .map_err(db)?
     .rows_affected();
+    let attributed_cash_in_failed = crate::routes::sandbox_reset::fail_pending_cash_in(
+        &mut tx,
+        "SELECT payment_link_id FROM sandbox_link_projects WHERE project_id = $1",
+        project,
+    )
+    .await?;
 
     let mut business = serde_json::json!(null);
     if let (Some(merchant), true) = (owned.or(orphaned), body.retire_business) {
@@ -201,6 +207,7 @@ pub async fn retire(
             "merchant_id": merchant,
             "sessions_cancelled": r.sessions_cancelled,
             "links_cancelled": r.links_cancelled,
+            "acquiring_payments_failed": r.acquiring_payments_failed,
             "accounts_closed": r.accounts_closed,
             "suspended": suspended > 0,
             "webhook_endpoints_disabled": endpoints.len(),
@@ -226,6 +233,7 @@ pub async fn retire(
         "test_payers_retired": payers.len(),
         "payment_sessions_cancelled": attributed_sessions,
         "payment_links_cancelled": attributed_links,
+        "acquiring_payments_failed": attributed_cash_in_failed,
         "business": business,
         "business_owned": owned.is_some(),
         "business_orphaned": orphaned.is_some(),
