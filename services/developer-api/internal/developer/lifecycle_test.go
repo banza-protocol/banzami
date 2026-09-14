@@ -198,7 +198,7 @@ func TestProject_AnEmptyProjectCanBeDeleted(t *testing.T) {
 	if !f.Empty() {
 		t.Fatalf("a project with nothing in it reported footprint %+v", f)
 	}
-	if _, err := s.DeleteProject(bg, "u_owner", p.ID, "Engano", "", ""); err != nil {
+	if _, _, err := s.DeleteProject(bg, "u_owner", p.ID, "Engano", "", ""); err != nil {
 		t.Fatalf("delete empty project: %v", err)
 	}
 	if _, err := s.GetProject(bg, "u_owner", p.ID); err != ErrNotFound {
@@ -209,7 +209,7 @@ func TestProject_AnEmptyProjectCanBeDeleted(t *testing.T) {
 func TestProject_DeleteNeedsTheNameTyped(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
 	p, _ := s.CreateProject(bg, "u_owner", ws, "Engano", "", "")
-	if _, err := s.DeleteProject(bg, "u_owner", p.ID, "outro nome", "", ""); err != ErrValidation {
+	if _, _, err := s.DeleteProject(bg, "u_owner", p.ID, "outro nome", "", ""); err != ErrValidation {
 		t.Fatalf("delete with wrong confirmation: want Validation, got %v", err)
 	}
 	if _, err := s.GetProject(bg, "u_owner", p.ID); err != nil {
@@ -224,7 +224,7 @@ func TestProject_AProjectThatIssuedAKeyIsArchivedNotDeleted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := s.DeleteProject(bg, "u_owner", p.ID, "Real", "", "")
+	_, f, err := s.DeleteProject(bg, "u_owner", p.ID, "Real", "", "")
 	if err != ErrConflict {
 		t.Fatalf("delete a project that has issued a key: want Conflict, got %v", err)
 	}
@@ -251,7 +251,7 @@ func TestProject_ARevokedKeyStillBlocksDeletion(t *testing.T) {
 	if err := s.RevokeAPIKey(bg, "u_owner", k.ID, "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.DeleteProject(bg, "u_owner", p.ID, "Real", "", ""); err != ErrConflict {
+	if _, _, err := s.DeleteProject(bg, "u_owner", p.ID, "Real", "", ""); err != ErrConflict {
 		t.Fatalf("delete after revoking the key: want Conflict, got %v", err)
 	}
 }
@@ -260,7 +260,7 @@ func TestProject_DeleteIsForManagersOnly(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
 	p, _ := s.CreateProject(bg, "u_dev", ws, "Meu", "", "")
 	// A DEVELOPER may create a project and may not delete one.
-	if _, err := s.DeleteProject(bg, "u_dev", p.ID, "Meu", "", ""); err != ErrForbidden {
+	if _, _, err := s.DeleteProject(bg, "u_dev", p.ID, "Meu", "", ""); err != ErrForbidden {
 		t.Errorf("developer delete: want Forbidden, got %v", err)
 	}
 }
@@ -414,7 +414,7 @@ func TestWorkspace_EmptyIsDeletedOutright(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
 	name, _ := s.GetWorkspace(bg, "u_owner", ws)
 
-	f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
+	_, f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
 	if err != nil {
 		t.Fatalf("delete an empty workspace: %v", err)
 	}
@@ -439,7 +439,7 @@ func TestWorkspace_EmptyIsDeletedOutright(t *testing.T) {
 func TestWorkspace_DeleteNeedsTheNameTyped(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
 
-	if _, err := s.DeleteWorkspace(bg, "u_owner", ws, "não é o nome", "", ""); err != ErrValidation {
+	if _, _, err := s.DeleteWorkspace(bg, "u_owner", ws, "não é o nome", "", ""); err != ErrValidation {
 		t.Fatalf("delete with the wrong name: want Validation, got %v", err)
 	}
 	if _, err := s.GetWorkspace(bg, "u_owner", ws); err != nil {
@@ -452,7 +452,7 @@ func TestWorkspace_DeleteIsOwnerOnly(t *testing.T) {
 	name, _ := s.GetWorkspace(bg, "u_owner", ws)
 
 	for _, who := range []string{"u_admin", "u_dev", "u_viewer"} {
-		if _, err := s.DeleteWorkspace(bg, who, ws, name.Name, "", ""); err != ErrForbidden {
+		if _, _, err := s.DeleteWorkspace(bg, who, ws, name.Name, "", ""); err != ErrForbidden {
 			t.Errorf("%s deleting a workspace: want Forbidden, got %v", who, err)
 		}
 	}
@@ -469,7 +469,7 @@ func TestWorkspace_DeleteIsRefusedWhileItHoldsAnActiveProject(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
+	_, f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
 	if err != ErrConflict {
 		t.Fatalf("delete with an active project: want Conflict, got %v", err)
 	}
@@ -505,7 +505,7 @@ func TestWorkspace_HoldingAnArchivedProjectIsArchivedNotDeleted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
+	_, f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
 	if err != ErrConflict {
 		t.Fatalf("delete over an archived project: want Conflict, got %v", err)
 	}
@@ -538,10 +538,10 @@ func TestWorkspace_BecomesDeletableAgainOnceItsEmptyProjectIsDeleted(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.DeleteProject(bg, "u_owner", p.ID, p.Name, "", ""); err != nil {
+	if _, _, err := s.DeleteProject(bg, "u_owner", p.ID, p.Name, "", ""); err != nil {
 		t.Fatalf("delete an empty project: %v", err)
 	}
-	if _, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", ""); err != nil {
+	if _, _, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", ""); err != nil {
 		t.Fatalf("delete the workspace once its only project is gone: %v", err)
 	}
 	if _, err := s.GetWorkspace(bg, "u_owner", ws); err == nil {

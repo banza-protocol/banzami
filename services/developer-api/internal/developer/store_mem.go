@@ -129,7 +129,7 @@ func (m *memStore) WorkspacesForUser(_ context.Context, userID string) ([]Worksp
 	var out []Workspace
 	for _, mem := range m.members {
 		if mem.UserID == userID && mem.Status == "ACTIVE" {
-			if w, ok := m.workspaces[mem.WorkspaceID]; ok && w.Status != "ARCHIVED" {
+			if w, ok := m.workspaces[mem.WorkspaceID]; ok && w.Status != "ARCHIVED" && !isGone(w.Status) {
 				out = append(out, *w)
 			}
 		}
@@ -187,7 +187,7 @@ func (m *memStore) WorkspaceFootprint(_ context.Context, id string) (WorkspaceFo
 	defer m.mu.Unlock()
 	var f WorkspaceFootprint
 	for _, p := range m.projects {
-		if p.WorkspaceID != id {
+		if p.WorkspaceID != id || isGone(p.Status) {
 			continue
 		}
 		f.Projects++
@@ -241,6 +241,9 @@ func (m *memStore) memberRef(workspaceID, userID string) *Member {
 func (m *memStore) Membership(_ context.Context, workspaceID, userID string) (*Member, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if w, ok := m.workspaces[workspaceID]; ok && isGone(w.Status) {
+		return nil, ErrNotFound
+	}
 	if mem := m.memberRef(workspaceID, userID); mem != nil && mem.Status == "ACTIVE" {
 		cp := *mem
 		return &cp, nil
@@ -350,6 +353,9 @@ func (m *memStore) AcceptInvite(_ context.Context, inviteID, userID string) (Mem
 	if !ok || inv.AcceptedAt != nil || inv.RevokedAt != nil || time.Now().After(inv.ExpiresAt) {
 		return Member{}, ErrNotFound
 	}
+	if w, ok := m.workspaces[inv.WorkspaceID]; ok && isGone(w.Status) {
+		return Member{}, ErrDeleting
+	}
 	now := time.Now()
 	inv.AcceptedAt = &now
 	if mem := m.memberRef(inv.WorkspaceID, userID); mem != nil {
@@ -450,6 +456,9 @@ func (m *memStore) WorkspaceActivity(_ context.Context, workspaceID string, acti
 func (m *memStore) CreateProject(_ context.Context, workspaceID, name, slug string) (Project, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if w, ok := m.workspaces[workspaceID]; ok && isGone(w.Status) {
+		return Project{}, ErrDeleting
+	}
 	for _, p := range m.projects {
 		if p.WorkspaceID == workspaceID && p.Slug == slug {
 			return Project{}, ErrConflict
@@ -469,7 +478,7 @@ func (m *memStore) ProjectsForWorkspace(_ context.Context, workspaceID string, i
 		if p.WorkspaceID != workspaceID {
 			continue
 		}
-		if !includeArchived && p.Status == "ARCHIVED" {
+		if isGone(p.Status) || (!includeArchived && p.Status == "ARCHIVED") {
 			continue
 		}
 		out = append(out, *p)
@@ -590,6 +599,9 @@ func (m *memStore) insertKey(in APIKeyInsert) APIKey {
 func (m *memStore) CreateAPIKey(_ context.Context, in APIKeyInsert) (APIKey, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.projectGoneLocked(in.ProjectID) {
+		return APIKey{}, ErrDeleting
+	}
 	return m.insertKey(in), nil
 }
 
@@ -622,7 +634,11 @@ func (m *memStore) APIKeyByHash(_ context.Context, keyHash string) (*APIKeyAuth,
 	defer m.mu.Unlock()
 	for _, r := range m.apiKeys {
 		if r.keyHash == keyHash {
-			return &APIKeyAuth{ID: r.ID, ProjectID: r.ProjectID, Environment: r.Environment, Status: r.Status, Scopes: r.Scopes, Purpose: r.Purpose, ExpiresAt: r.expiresAt}, nil
+			status := r.Status
+			if m.projectGoneLocked(r.ProjectID) {
+				status = "REVOKED"
+			}
+			return &APIKeyAuth{ID: r.ID, ProjectID: r.ProjectID, Environment: r.Environment, Status: status, Scopes: r.Scopes, Purpose: r.Purpose, ExpiresAt: r.expiresAt}, nil
 		}
 	}
 	return nil, ErrNotFound
@@ -666,6 +682,9 @@ func (m *memStore) RotateAPIKey(_ context.Context, oldID string, replacement API
 	if old == nil {
 		return APIKey{}, ErrNotFound
 	}
+	if m.projectGoneLocked(replacement.ProjectID) {
+		return APIKey{}, ErrDeleting
+	}
 	nk := m.insertKey(replacement)
 	old.Status = "REVOKED" // atomic in the mem model (under lock)
 	return nk, nil
@@ -676,6 +695,9 @@ func (m *memStore) RotateAPIKey(_ context.Context, oldID string, replacement API
 func (m *memStore) CreateBinding(_ context.Context, in BindingInsert) (SandboxBinding, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.projectGoneLocked(in.ProjectID) {
+		return SandboxBinding{}, ErrDeleting
+	}
 	for _, b := range m.bindings { // mirror the DB partial-unique index
 		if b.ProjectID == in.ProjectID && b.State == "ACTIVE" {
 			return SandboxBinding{}, ErrConflict
@@ -697,6 +719,9 @@ func (m *memStore) CreateBinding(_ context.Context, in BindingInsert) (SandboxBi
 func (m *memStore) SupersedeAndCreateBinding(_ context.Context, in BindingInsert) (SandboxBinding, string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.projectGoneLocked(in.ProjectID) {
+		return SandboxBinding{}, "", ErrDeleting
+	}
 	var superseded string
 	for _, b := range m.bindings {
 		if b.ProjectID == in.ProjectID && b.State == "ACTIVE" && !b.ArtifactCreated {
@@ -970,4 +995,202 @@ func (m *memStore) APIRequestLogSummary(ctx context.Context, projectID string, f
 // SeedRequestLog appends one row to the in-memory request log.
 func (m *memStore) SeedRequestLog(projectID string, v APIRequestLogView) {
 	m.requestLogs = append(m.requestLogs, memRequestLog{projectID: projectID, view: v})
+}
+
+// ── Sandbox deletion (SANDBOX-DELETE-001), mirroring store_pg.go ─────────────
+
+// projectGoneLocked: the project, or its workspace, is being deleted. Caller holds m.mu.
+func (m *memStore) projectGoneLocked(projectID string) bool {
+	p, ok := m.projects[projectID]
+	if !ok {
+		return false
+	}
+	if isGone(p.Status) {
+		return true
+	}
+	w, ok := m.workspaces[p.WorkspaceID]
+	return ok && isGone(w.Status)
+}
+
+func (m *memStore) MembershipAnyState(_ context.Context, workspaceID, userID string) (*Member, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if mem := m.memberRef(workspaceID, userID); mem != nil && mem.Status == "ACTIVE" {
+		cp := *mem
+		return &cp, nil
+	}
+	return nil, ErrNotFound
+}
+
+func (m *memStore) revokeProjectAuthorityLocked(id string) int {
+	p := m.projects[id]
+	if p.Status == StatusActive || p.Status == StatusArchived {
+		now := time.Now().UTC()
+		p.Status = StatusDeleting
+		p.DeletionRequestedAt = &now
+		p.UpdatedAt = now
+	}
+	revoked := 0
+	for _, r := range m.apiKeys {
+		if r.ProjectID == id && r.Status == "ACTIVE" {
+			r.Status = "REVOKED"
+			revoked++
+		}
+	}
+	for _, b := range m.bindings {
+		if b.ProjectID == id && b.State == "ACTIVE" && !b.ArtifactCreated {
+			b.State = "DISABLED"
+		}
+	}
+	return revoked
+}
+
+func (m *memStore) BeginProjectDeletion(_ context.Context, id string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	p, ok := m.projects[id]
+	if !ok {
+		return 0, ErrNotFound
+	}
+	if isGone(p.Status) {
+		return 0, nil
+	}
+	return m.revokeProjectAuthorityLocked(id), nil
+}
+
+func (m *memStore) FinishProjectDeletion(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	p, ok := m.projects[id]
+	if !ok || p.Status != StatusDeleting {
+		return nil
+	}
+	kept := m.requestLogs[:0]
+	for _, l := range m.requestLogs {
+		if l.projectID != id {
+			kept = append(kept, l)
+		}
+	}
+	m.requestLogs = kept
+	p.Status = StatusDeleted
+	p.Name = "deleted"
+	p.Slug = "deleted-" + p.ID
+	p.UpdatedAt = time.Now().UTC()
+	return nil
+}
+
+func (m *memStore) ProjectsPendingDeletion(_ context.Context, workspaceID string) ([]Project, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []Project
+	for _, p := range m.projects {
+		if p.Status == StatusDeleting && (workspaceID == "" || p.WorkspaceID == workspaceID) {
+			out = append(out, *p)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out, nil
+}
+
+func (m *memStore) OtherLiveProjectsOnBusinessOf(_ context.Context, projectID string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	merchants := map[string]bool{}
+	for _, b := range m.bindings {
+		if b.ProjectID == projectID {
+			merchants[b.MerchantID] = true
+		}
+	}
+	others := map[string]bool{}
+	for _, b := range m.bindings {
+		if b.ProjectID != projectID && b.State == "ACTIVE" && merchants[b.MerchantID] {
+			if p, ok := m.projects[b.ProjectID]; ok && p.Status == StatusActive {
+				others[b.ProjectID] = true
+			}
+		}
+	}
+	return len(others), nil
+}
+
+func (m *memStore) BeginWorkspaceDeletion(_ context.Context, id string) ([]string, int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	w, ok := m.workspaces[id]
+	if !ok {
+		return nil, 0, ErrNotFound
+	}
+	if !isGone(w.Status) {
+		now := time.Now().UTC()
+		w.Status = StatusDeleting
+		w.DeletionRequestedAt = &now
+	}
+	revoked := 0
+	var deleting []string
+	for pid, p := range m.projects {
+		if p.WorkspaceID != id {
+			continue
+		}
+		if p.Status == StatusActive || p.Status == StatusArchived {
+			revoked += m.revokeProjectAuthorityLocked(pid)
+		}
+		if p.Status == StatusDeleting {
+			deleting = append(deleting, pid)
+		}
+	}
+	now := time.Now().UTC()
+	for _, inv := range m.invites {
+		if inv.WorkspaceID == id && inv.AcceptedAt == nil && inv.RevokedAt == nil {
+			inv.RevokedAt = &now
+		}
+	}
+	sort.Strings(deleting)
+	return deleting, revoked, nil
+}
+
+func (m *memStore) FinishWorkspaceDeletion(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	w, ok := m.workspaces[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if w.Status == StatusDeleted {
+		return nil
+	}
+	if w.Status != StatusDeleting {
+		return ErrConflict
+	}
+	for _, p := range m.projects {
+		if p.WorkspaceID == id && p.Status != StatusDeleted {
+			return ErrConflict
+		}
+	}
+	kept := m.members[:0]
+	for _, mem := range m.members {
+		if mem.WorkspaceID != id {
+			kept = append(kept, mem)
+		}
+	}
+	m.members = kept
+	for k, inv := range m.invites {
+		if inv.WorkspaceID == id {
+			delete(m.invites, k)
+		}
+	}
+	w.Status = StatusDeleted
+	w.Name = "deleted"
+	w.Slug = "deleted-" + w.ID
+	return nil
+}
+
+func (m *memStore) WorkspacesPendingDeletion(_ context.Context) ([]Workspace, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []Workspace
+	for _, w := range m.workspaces {
+		if w.Status == StatusDeleting {
+			out = append(out, *w)
+		}
+	}
+	return out, nil
 }

@@ -814,6 +814,52 @@ func (c *ProvisionClient) ResetProjectSandbox(ctx context.Context, projectID, re
 	return &out.Result, nil
 }
 
+// ProjectRetirement is one Core pass over a deleted Sandbox project (SANDBOX-DELETE-001).
+type ProjectRetirement struct {
+	TestPayersRetired        int   `json:"test_payers_retired"`
+	PaymentSessionsCancelled int   `json:"payment_sessions_cancelled"`
+	PaymentLinksCancelled    int   `json:"payment_links_cancelled"`
+	BusinessOwned            bool  `json:"business_owned"`
+	BusinessRetired          bool  `json:"business_retired"`
+	RetiredMinor             int64 `json:"retired_minor"`
+}
+
+// RetireProject asks Core to retire a deleted project's test resources. State-
+// based in Core, so any number of passes is safe; retireBusiness is false while
+// another live project still uses the project's own Business.
+func (c *ProvisionClient) RetireProject(ctx context.Context, projectID, requestedBy, passID string, retireBusiness bool) (*ProjectRetirement, error) {
+	b, _ := json.Marshal(map[string]any{"project_id": projectID, "requested_by": requestedBy, "pass_id": passID, "retire_business": retireBusiness})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/internal/v1/sandbox/projects/retire", bytes.NewReader(b))
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	if resp.StatusCode >= 400 {
+		var e struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		_ = json.Unmarshal(raw, &e)
+		if resp.StatusCode < 500 {
+			return nil, &Refusal{Status: resp.StatusCode, Code: e.Error.Code, Message: e.Error.Message}
+		}
+		return nil, ErrUnavailable
+	}
+	var out ProjectRetirement
+	if json.Unmarshal(raw, &out) != nil {
+		return nil, ErrUnavailable
+	}
+	return &out, nil
+}
+
 // sendJSON is the write half for routes that answer a reasoned 4xx: those map to
 // ErrSandboxBusinessRefused rather than to an outage.
 func (c *ProvisionClient) sendJSON(ctx context.Context, method, path string, body, out any) error {

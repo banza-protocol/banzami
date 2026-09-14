@@ -962,12 +962,14 @@ func mapErr(w http.ResponseWriter, err error) {
 		httpx.Error(w, http.StatusConflict, "LAST_OWNER", "cannot remove or demote the last owner")
 	case ErrWorkspaceQuota:
 		httpx.Error(w, http.StatusTooManyRequests, "WORKSPACE_LIMIT_REACHED",
-			fmt.Sprintf("at most %d active workspaces, and %d created a day — archive one you no longer use", MaxActiveWorkspacesPerUser, MaxWorkspacesCreatedPerDay))
+			fmt.Sprintf("at most %d active workspaces, and %d created a day — delete or archive one you no longer use", MaxActiveWorkspacesPerUser, MaxWorkspacesCreatedPerDay))
 	case ErrProjectQuota:
 		httpx.Error(w, http.StatusTooManyRequests, "PROJECT_LIMIT_REACHED",
-			fmt.Sprintf("at most %d active projects per workspace, and %d created a day — archive one you no longer use", MaxActiveProjectsPerWorkspace, MaxProjectsCreatedPerDay))
+			fmt.Sprintf("at most %d active projects per workspace, and %d created a day — delete or archive one you no longer use", MaxActiveProjectsPerWorkspace, MaxProjectsCreatedPerDay))
 	case ErrInviteState:
 		httpx.Error(w, http.StatusGone, "INVITE_INVALID", "invite is expired, revoked or already used")
+	case ErrDeleting:
+		httpx.Error(w, http.StatusConflict, "RESOURCE_DELETING", "this project or workspace is being deleted")
 	default:
 		httpx.Error(w, http.StatusServiceUnavailable, "UNAVAILABLE", "service unavailable")
 	}
@@ -1049,7 +1051,7 @@ func (h *Handlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip, rid := reqMeta(r)
-	f, err := h.svc.DeleteWorkspace(r.Context(), u.ID, chi.URLParam(r, "wsID"), in.Name, ip, rid)
+	d, f, err := h.svc.DeleteWorkspace(r.Context(), u.ID, chi.URLParam(r, "wsID"), in.Name, ip, rid)
 	if err == ErrConflict {
 		httpx.ErrorWithDetails(w, http.StatusConflict, "WORKSPACE_NOT_EMPTY",
 			"this workspace has projects and can be archived, not deleted",
@@ -1063,7 +1065,18 @@ func (h *Handlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 		mapErr(w, err)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	writeDeletion(w, d)
+}
+
+// writeDeletion answers a Sandbox deletion: 200 once it is DELETED, 202 while
+// its test resources are still being retired. Either way the resource already
+// holds no authority and is in no list.
+func writeDeletion(w http.ResponseWriter, d ProjectDeletion) {
+	status := http.StatusAccepted
+	if d.Status == StatusDeleted {
+		status = http.StatusOK
+	}
+	httpx.JSON(w, status, d)
 }
 
 // POST /workspaces/{wsID}/archive — archive.
@@ -1324,7 +1337,9 @@ func (h *Handlers) projectFootprint(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"keys": f.Keys, "request_logs": f.RequestLogs, "bindings": f.Bindings,
-		"deletable": f.Empty(), "blockers": f.Blockers(),
+		// In the Sandbox history never blocks deletion (SANDBOX-DELETE-001);
+		// the counts only say what deleting closes.
+		"deletable": f.Empty() || h.svc.sandboxEnv, "blockers": f.Blockers(),
 	})
 }
 
@@ -1341,11 +1356,11 @@ func (h *Handlers) workspaceFootprint(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"projects": f.Projects, "active_projects": f.ActiveProjects,
 		"archived_projects": f.ArchivedProjects,
-		"deletable":         f.Empty(), "blockers": f.Blockers(),
+		"deletable":         f.Empty() || h.svc.sandboxEnv, "blockers": f.Blockers(),
 	})
 }
 
-// DELETE /projects/{projID} — delete an empty project, refuse anything else.
+// DELETE /projects/{projID} — delete a Sandbox project, whatever it has done (SANDBOX-DELETE-001).
 func (h *Handlers) deleteProject(w http.ResponseWriter, r *http.Request) {
 	u, _ := actor(r)
 	var in struct {
@@ -1356,7 +1371,7 @@ func (h *Handlers) deleteProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip, rid := reqMeta(r)
-	f, err := h.svc.DeleteProject(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Name, ip, rid)
+	d, f, err := h.svc.DeleteProject(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Name, ip, rid)
 	if err == ErrConflict {
 		httpx.ErrorWithDetails(w, http.StatusConflict, "PROJECT_NOT_EMPTY",
 			"this project has history and can be archived, not deleted",
@@ -1370,7 +1385,12 @@ func (h *Handlers) deleteProject(w http.ResponseWriter, r *http.Request) {
 		mapErr(w, err)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	if d.Status == "" {
+		// Outside the Sandbox an empty project is removed outright.
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	writeDeletion(w, d)
 }
 
 // POST /projects/{projID}/archive — the developer-facing counterpart of the

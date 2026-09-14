@@ -2,6 +2,7 @@ package developer
 
 import (
 	"github.com/banzami/banzami/services/common/webhookprov"
+	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 
 	"context"
 	"errors"
@@ -254,55 +255,100 @@ func (s *Service) WorkspaceFootprintFor(ctx context.Context, actor, wsID string)
 	return f, nil
 }
 
-// DeleteWorkspace removes a workspace that never held a project.
+// DeleteWorkspace deletes a Sandbox workspace and every project in it — active
+// and archived — in one request (SANDBOX-DELETE-001). OWNER only; the name must
+// be typed.
 //
-// The counterpart of ArchiveWorkspace, and the same distinction DeleteProject
-// draws one level down: a workspace with a history is archived, a workspace
-// without one is a mistake the owner may take back. It is refused unless the
-// footprint is empty, and the statement re-checks that itself.
-//
-// "The audit log is append-only" is not a reason to keep it. developer.
-// audit_events has no foreign key to a workspace, so the record of this deletion
-// outlives the row it describes — which is what an append-only log owes, rather
-// than an empty workspace nobody can remove from their selector.
-func (s *Service) DeleteWorkspace(ctx context.Context, actor, wsID, confirmName, ip, reqID string) (WorkspaceFootprint, error) {
+// One transaction moves the workspace and its live projects to DELETING, revokes
+// every key of every project and every pending invite; from that commit no member
+// has access and no key authenticates. Each project is then retired as
+// DeleteProject retires it, and once all are DELETED the workspace becomes a
+// tombstone and its memberships go. ResumeDeletions finishes what a request does
+// not. Outside the Sandbox only an empty workspace can be deleted.
+func (s *Service) DeleteWorkspace(ctx context.Context, actor, wsID, confirmName, ip, reqID string) (ProjectDeletion, WorkspaceFootprint, error) {
 	var f WorkspaceFootprint
-	role, err := s.roleOf(ctx, wsID, actor)
-	if err != nil {
-		return f, ErrForbidden
+	mem, err := s.store.MembershipAnyState(ctx, wsID, actor)
+	if err != nil || mem == nil {
+		return ProjectDeletion{}, f, ErrForbidden
 	}
 	// Deleting is the owner's, as archiving is: it ends the workspace for
 	// everyone in it.
-	if role != RoleOwner {
-		return f, ErrForbidden
+	if mem.Role != RoleOwner {
+		return ProjectDeletion{}, f, ErrForbidden
 	}
 	ws, err := s.store.Workspace(ctx, wsID)
 	if err != nil {
-		return f, ErrNotFound
+		return ProjectDeletion{}, f, ErrNotFound
+	}
+	if isGone(ws.Status) {
+		return s.continueWorkspaceDeletion(ctx, &ws, actor), f, nil
 	}
 	if strings.TrimSpace(confirmName) != ws.Name {
-		return f, ErrValidation
+		return ProjectDeletion{}, f, ErrValidation
 	}
-	f, err = s.store.WorkspaceFootprint(ctx, wsID)
+	if !s.sandboxEnv {
+		f, err = s.store.WorkspaceFootprint(ctx, wsID)
+		if err != nil {
+			return ProjectDeletion{}, f, ErrUnavailable
+		}
+		if !f.Empty() {
+			return ProjectDeletion{}, f, ErrConflict
+		}
+		if err := s.store.DeleteWorkspace(ctx, wsID); err != nil {
+			if err == ErrConflict || err == ErrNotFound {
+				return ProjectDeletion{}, f, err
+			}
+			return ProjectDeletion{}, f, ErrUnavailable
+		}
+		s.audit(ctx, &actor, &wsID, nil, "workspace.deleted", "WORKSPACE:"+wsID, ip, reqID, map[string]any{"name": ws.Name})
+		return ProjectDeletion{Status: StatusDeleted}, f, nil
+	}
+	// The audit event is written before the owner loses access.
+	projects, revoked, err := s.store.BeginWorkspaceDeletion(ctx, wsID)
 	if err != nil {
-		return f, ErrUnavailable
-	}
-	if !f.Empty() {
-		return f, ErrConflict
-	}
-	if err := s.store.DeleteWorkspace(ctx, wsID); err != nil {
-		if err == ErrConflict {
-			// The statement re-checked and disagreed: a project was created
-			// between the read and the delete. Refuse, do not retry.
-			return f, ErrConflict
-		}
 		if err == ErrNotFound {
-			return f, ErrNotFound
+			return ProjectDeletion{}, f, ErrNotFound
 		}
-		return f, ErrUnavailable
+		return ProjectDeletion{}, f, ErrUnavailable
 	}
-	s.audit(ctx, &actor, &wsID, nil, "workspace.deleted", "WORKSPACE:"+wsID, ip, reqID, map[string]any{"name": ws.Name})
-	return f, nil
+	s.audit(ctx, &actor, &wsID, nil, "workspace.deletion_requested", "WORKSPACE:"+wsID, ip, reqID,
+		map[string]any{"name": ws.Name, "projects": len(projects), "keys_revoked": revoked})
+	fresh, err := s.store.Workspace(ctx, wsID)
+	if err != nil {
+		return ProjectDeletion{Status: StatusDeleting, KeysRevoked: revoked}, f, nil
+	}
+	d := s.continueWorkspaceDeletion(ctx, &fresh, actor)
+	d.KeysRevoked = revoked
+	return d, f, nil
+}
+
+// continueWorkspaceDeletion continues each of the workspace's DELETING projects
+// and, once all are DELETED and the grace has passed, finishes the workspace.
+func (s *Service) continueWorkspaceDeletion(ctx context.Context, ws *Workspace, actor string) ProjectDeletion {
+	if ws.Status == StatusDeleted {
+		return ProjectDeletion{Status: StatusDeleted}
+	}
+	if ws.Status != StatusDeleting {
+		return ProjectDeletion{Status: ws.Status}
+	}
+	projects, err := s.store.ProjectsPendingDeletion(ctx, ws.ID)
+	if err != nil {
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	pending := 0
+	for i := range projects {
+		if s.continueProjectDeletion(ctx, &projects[i], actor).Status != StatusDeleted {
+			pending++
+		}
+	}
+	if pending > 0 || ws.DeletionRequestedAt == nil || time.Since(*ws.DeletionRequestedAt) < DeletionGrace {
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	if err := s.store.FinishWorkspaceDeletion(ctx, ws.ID); err != nil {
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	s.audit(ctx, nil, &ws.ID, nil, "workspace.deleted", "WORKSPACE:"+ws.ID, "", "", nil)
+	return ProjectDeletion{Status: StatusDeleted}
 }
 
 // LeaveWorkspace removes the caller's own membership.
@@ -573,43 +619,155 @@ func (s *Service) ProjectFootprintFor(ctx context.Context, actor, projectID stri
 	return f, nil
 }
 
-// DeleteProject removes a project that never became anything.
+// DeleteProject deletes a Sandbox project, whatever it has done
+// (SANDBOX-DELETE-001).
 //
-// A project with no key ever issued, no financial owner and no request logged is
-// a typo, and a product that cannot take a typo back accumulates them for ever.
-// Anything with a history is refused here — with its footprint named, so the
-// Console can say exactly what is in the way — and archived instead, which keeps
-// the history and retires the authority.
+// Sandbox value is fictitious, and a developer who cannot remove their own test
+// resources accumulates them for ever, so history does not block deletion. What
+// deletion is, is a lifecycle:
 //
-// Managers only. Deleting is not a build action.
-func (s *Service) DeleteProject(ctx context.Context, actor, projectID, confirmName, ip, reqID string) (ProjectFootprint, error) {
-	p, role, err := s.projectAuthz(ctx, actor, projectID)
-	if err != nil {
-		return ProjectFootprint{}, err
+//  1. one transaction moves the project to DELETING and revokes every key on it
+//     — no key of it authenticates from that commit on, and it leaves every list;
+//  2. Core retires its test resources (DeletionRetirer): test payers and their
+//     fictitious balances through balanced postings, open sessions and links
+//     cancelled, its own synthetic Business retired — unless another live project
+//     still uses that Business;
+//  3. after DeletionGrace a final Core pass catches anything a request authorised
+//     just before step 1 created, and the project becomes a DELETED tombstone.
+//
+// Steps 2–3 are resumed by ResumeDeletions if this request ends first. A repeated
+// DELETE answers the current state. Managers only; the name must be typed.
+//
+// Outside the Sandbox the old rule stands: only a project with no history can be
+// deleted. Financial Live gets no disposable path.
+func (s *Service) DeleteProject(ctx context.Context, actor, projectID, confirmName, ip, reqID string) (ProjectDeletion, ProjectFootprint, error) {
+	p, err := s.store.Project(ctx, projectID)
+	if err != nil || p == nil {
+		return ProjectDeletion{}, ProjectFootprint{}, ErrNotFound
 	}
-	if !isManager(role) {
-		return ProjectFootprint{}, ErrForbidden
+	mem, err := s.store.MembershipAnyState(ctx, p.WorkspaceID, actor)
+	if err != nil || mem == nil {
+		return ProjectDeletion{}, ProjectFootprint{}, ErrNotFound
+	}
+	if !isManager(mem.Role) {
+		return ProjectDeletion{}, ProjectFootprint{}, ErrForbidden
+	}
+	if isGone(p.Status) {
+		// Already accepted: a retry after a timeout, or a second click.
+		return s.continueProjectDeletion(ctx, p, actor), ProjectFootprint{}, nil
 	}
 	if strings.TrimSpace(confirmName) != p.Name {
-		return ProjectFootprint{}, ErrValidation
+		return ProjectDeletion{}, ProjectFootprint{}, ErrValidation
 	}
+	if !s.sandboxEnv {
+		f, err := s.deleteEmptyProject(ctx, actor, p, ip, reqID)
+		return ProjectDeletion{}, f, err
+	}
+	revoked, err := s.store.BeginProjectDeletion(ctx, p.ID)
+	if err != nil {
+		if err == ErrNotFound {
+			return ProjectDeletion{}, ProjectFootprint{}, ErrNotFound
+		}
+		return ProjectDeletion{}, ProjectFootprint{}, ErrUnavailable
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "project.deletion_requested", "PROJECT:"+p.ID, ip, reqID,
+		map[string]any{"name": p.Name, "keys_revoked": revoked})
+	fresh, err := s.store.Project(ctx, p.ID)
+	if err != nil || fresh == nil {
+		return ProjectDeletion{Status: StatusDeleting, KeysRevoked: revoked}, ProjectFootprint{}, nil
+	}
+	d := s.continueProjectDeletion(ctx, fresh, actor)
+	d.KeysRevoked = revoked
+	return d, ProjectFootprint{}, nil
+}
+
+// ProjectDeletion is where a deletion stands.
+type ProjectDeletion struct {
+	Status      string `json:"status"`
+	KeysRevoked int    `json:"keys_revoked"`
+}
+
+// DeletionGrace is how long a DELETING resource waits before its final
+// retirement pass: longer than the gateway's 30 s timeout to Core, so a request
+// authorised just before the keys were revoked has finished, and anything it
+// created is retired by that pass.
+var DeletionGrace = 60 * time.Second
+
+// DeletionRetirer is Core's retirement of a deleted project's test resources.
+type DeletionRetirer interface {
+	RetireProject(ctx context.Context, projectID, requestedBy, passID string, retireBusiness bool) (*coreclient.ProjectRetirement, error)
+}
+
+// continueProjectDeletion runs one Core pass for a DELETING project and, once the
+// grace has passed, finishes it. Safe to call any number of times.
+func (s *Service) continueProjectDeletion(ctx context.Context, p *Project, actor string) ProjectDeletion {
+	if p.Status == StatusDeleted {
+		return ProjectDeletion{Status: StatusDeleted}
+	}
+	if p.Status != StatusDeleting {
+		return ProjectDeletion{Status: p.Status}
+	}
+	retirer, ok := s.sandboxBusinesses.(DeletionRetirer)
+	if !ok {
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	others, err := s.store.OtherLiveProjectsOnBusinessOf(ctx, p.ID)
+	if err != nil {
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	started := time.Now()
+	res, err := retirer.RetireProject(ctx, p.ID, actor, newRandomID(), others == 0)
+	if err != nil {
+		slog.WarnContext(ctx, "developer.project_deletion.retire_failed", "project", p.ID, "err", err.Error())
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	slog.InfoContext(ctx, "developer.project_deletion.pass", "project", p.ID,
+		"test_payers_retired", res.TestPayersRetired, "business_retired", res.BusinessRetired,
+		"retired_minor", res.RetiredMinor, "latency_ms", time.Since(started).Milliseconds())
+	if p.DeletionRequestedAt == nil || time.Since(*p.DeletionRequestedAt) < DeletionGrace {
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	if err := s.store.FinishProjectDeletion(ctx, p.ID); err != nil {
+		return ProjectDeletion{Status: StatusDeleting}
+	}
+	s.audit(ctx, nil, &p.WorkspaceID, &p.ID, "project.deleted", "PROJECT:"+p.ID, "", "", nil)
+	return ProjectDeletion{Status: StatusDeleted}
+}
+
+// deleteEmptyProject is the non-Sandbox rule: a project with no history only.
+func (s *Service) deleteEmptyProject(ctx context.Context, actor string, p *Project, ip, reqID string) (ProjectFootprint, error) {
 	f, err := s.store.ProjectFootprint(ctx, p.ID)
 	if err != nil {
-		return ProjectFootprint{}, ErrUnavailable
+		return f, ErrUnavailable
 	}
 	if !f.Empty() {
 		return f, ErrConflict
 	}
 	if err := s.store.DeleteProject(ctx, p.ID); err != nil {
 		if err == ErrConflict {
-			// The statement re-checked and disagreed: something was written
-			// between the read and the delete. Refuse, do not retry.
 			return f, ErrConflict
 		}
 		return f, ErrUnavailable
 	}
 	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "project.deleted", "PROJECT:"+p.ID, ip, reqID, map[string]any{"name": p.Name})
 	return f, nil
+}
+
+// ResumeDeletions continues every DELETING project and workspace: after a crash,
+// a timeout, a Core outage, or simply once the grace has passed.
+func (s *Service) ResumeDeletions(ctx context.Context) {
+	projects, err := s.store.ProjectsPendingDeletion(ctx, "")
+	if err == nil {
+		for i := range projects {
+			s.continueProjectDeletion(ctx, &projects[i], "system:deletion")
+		}
+	}
+	workspaces, err := s.store.WorkspacesPendingDeletion(ctx)
+	if err == nil {
+		for i := range workspaces {
+			s.continueWorkspaceDeletion(ctx, &workspaces[i], "system:deletion")
+		}
+	}
 }
 
 // ArchiveProject retires a project the developer owns, revoking every key still
@@ -651,6 +809,12 @@ func (s *Service) ArchiveProject(ctx context.Context, actor, projectID, confirmN
 func (s *Service) projectAuthz(ctx context.Context, actor, projectID string) (*Project, string, error) {
 	p, err := s.store.Project(ctx, projectID)
 	if err != nil || p == nil {
+		return nil, "", ErrNotFound
+	}
+	// A project being deleted, or deleted, is gone from the developer's
+	// Sandbox: every read and write answers as for a project that does not exist
+	// (SANDBOX-DELETE-001). Only DeleteProject itself looks past this.
+	if isGone(p.Status) {
 		return nil, "", ErrNotFound
 	}
 	role, err := s.roleOf(ctx, p.WorkspaceID, actor)

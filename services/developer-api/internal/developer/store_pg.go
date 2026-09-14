@@ -89,7 +89,7 @@ func (s *pgStore) WorkspacesForUser(ctx context.Context, userID string) ([]Works
 		`SELECT w.id, w.name, w.slug, w.created_by, w.status, w.created_at, w.updated_at
 		   FROM developer.dev_workspaces w
 		   JOIN developer.dev_workspace_members m ON m.workspace_id = w.id
-		  WHERE m.user_id = $1 AND m.status = 'ACTIVE' AND w.status <> 'ARCHIVED'
+		  WHERE m.user_id = $1 AND m.status = 'ACTIVE' AND w.status NOT IN ('ARCHIVED', 'DELETING', 'DELETED')
 		  ORDER BY w.created_at`, userID)
 	if err != nil {
 		return nil, err
@@ -109,22 +109,34 @@ func (s *pgStore) WorkspacesForUser(ctx context.Context, userID string) ([]Works
 func (s *pgStore) Workspace(ctx context.Context, id string) (Workspace, error) {
 	var w Workspace
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, name, slug, created_by, status, created_at, updated_at
+		`SELECT id, name, slug, created_by, status, created_at, updated_at, deletion_requested_at
 		   FROM developer.dev_workspaces WHERE id = $1`, id).
-		Scan(&w.ID, &w.Name, &w.Slug, &w.CreatedBy, &w.Status, &w.CreatedAt, &w.UpdatedAt)
+		Scan(&w.ID, &w.Name, &w.Slug, &w.CreatedBy, &w.Status, &w.CreatedAt, &w.UpdatedAt, &w.DeletionRequestedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Workspace{}, ErrNotFound
 	}
 	return w, err
 }
 
+// Membership is authority in a workspace. A workspace being deleted grants none
+// (SANDBOX-DELETE-001), whatever its membership rows still say.
 func (s *pgStore) Membership(ctx context.Context, workspaceID, userID string) (*Member, error) {
+	return s.membership(ctx, workspaceID, userID, false)
+}
+
+func (s *pgStore) MembershipAnyState(ctx context.Context, workspaceID, userID string) (*Member, error) {
+	return s.membership(ctx, workspaceID, userID, true)
+}
+
+func (s *pgStore) membership(ctx context.Context, workspaceID, userID string, anyState bool) (*Member, error) {
 	var m Member
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, workspace_id, user_id, role, status, created_at
-		   FROM developer.dev_workspace_members
-		  WHERE workspace_id = $1 AND user_id = $2 AND status = 'ACTIVE'`,
-		workspaceID, userID).Scan(&m.ID, &m.WorkspaceID, &m.UserID, &m.Role, &m.Status, &m.CreatedAt)
+		`SELECT m.id, m.workspace_id, m.user_id, m.role, m.status, m.created_at
+		   FROM developer.dev_workspace_members m
+		   JOIN developer.dev_workspaces w ON w.id = m.workspace_id
+		  WHERE m.workspace_id = $1 AND m.user_id = $2 AND m.status = 'ACTIVE'
+		    AND ($3 OR w.status NOT IN ('DELETING', 'DELETED'))`,
+		workspaceID, userID, anyState).Scan(&m.ID, &m.WorkspaceID, &m.UserID, &m.Role, &m.Status, &m.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -271,6 +283,19 @@ func (s *pgStore) AcceptInvite(ctx context.Context, inviteID, userID string) (Me
 	}
 	defer tx.Rollback(ctx)
 	var wsID, role string
+	// The workspace is locked first, in the order every lifecycle transaction
+	// takes (workspace, then its rows): an invite accepted as the workspace is
+	// being deleted either lands before the deletion revokes it or not at all.
+	var inviteWS string
+	if err = tx.QueryRow(ctx, `SELECT workspace_id FROM developer.dev_workspace_invites WHERE id = $1`, inviteID).Scan(&inviteWS); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Member{}, ErrNotFound
+		}
+		return Member{}, err
+	}
+	if err = lockLiveWorkspace(ctx, tx, inviteWS, true); err != nil {
+		return Member{}, err
+	}
 	if err = tx.QueryRow(ctx,
 		// Only a pending invite is accepted. The service checks the state first,
 		// but a revoke landing between that read and this write must win.
@@ -341,9 +366,9 @@ func (s *pgStore) WorkspaceFootprint(ctx context.Context, id string) (WorkspaceF
 	var f WorkspaceFootprint
 	err := s.pool.QueryRow(ctx,
 		`SELECT count(*),
-		        count(*) FILTER (WHERE status <> 'ARCHIVED'),
-		        count(*) FILTER (WHERE status  = 'ARCHIVED')
-		   FROM developer.dev_projects WHERE workspace_id = $1`, id).
+		        count(*) FILTER (WHERE status = 'ACTIVE'),
+		        count(*) FILTER (WHERE status = 'ARCHIVED')
+		   FROM developer.dev_projects WHERE workspace_id = $1 AND status NOT IN ('DELETING', 'DELETED')`, id).
 		Scan(&f.Projects, &f.ActiveProjects, &f.ArchivedProjects)
 	return f, err
 }
@@ -382,7 +407,15 @@ func (s *pgStore) CountActiveProjects(ctx context.Context, workspaceID string) (
 
 func (s *pgStore) CreateProject(ctx context.Context, workspaceID, name, slug string) (Project, error) {
 	var p Project
-	err := s.pool.QueryRow(ctx,
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Project{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if err := lockLiveWorkspace(ctx, tx, workspaceID, true); err != nil {
+		return Project{}, err
+	}
+	err = tx.QueryRow(ctx,
 		`INSERT INTO developer.dev_projects (workspace_id, name, slug)
 		 VALUES ($1,$2,$3) RETURNING id, workspace_id, name, slug, status, created_at, updated_at`,
 		workspaceID, name, slug).Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.Slug, &p.Status, &p.CreatedAt, &p.UpdatedAt)
@@ -392,7 +425,7 @@ func (s *pgStore) CreateProject(ctx context.Context, workspaceID, name, slug str
 		}
 		return Project{}, err
 	}
-	return p, nil
+	return p, tx.Commit(ctx)
 }
 
 // ArchiveProject moves a project to ARCHIVED and revokes its remaining ACTIVE
@@ -462,7 +495,7 @@ func (s *pgStore) ProjectsForWorkspace(ctx context.Context, workspaceID string, 
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, workspace_id, name, slug, status, created_at, updated_at
 		   FROM developer.dev_projects
-		  WHERE workspace_id = $1 AND ($2 OR status <> 'ARCHIVED')
+		  WHERE workspace_id = $1 AND status NOT IN ('DELETING', 'DELETED') AND ($2 OR status <> 'ARCHIVED')
 		  ORDER BY created_at`, workspaceID, includeArchived)
 	if err != nil {
 		return nil, err
@@ -482,9 +515,9 @@ func (s *pgStore) ProjectsForWorkspace(ctx context.Context, workspaceID string, 
 func (s *pgStore) Project(ctx context.Context, id string) (*Project, error) {
 	var p Project
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, workspace_id, name, slug, status, created_at, updated_at
+		`SELECT id, workspace_id, name, slug, status, created_at, updated_at, deletion_requested_at
 		   FROM developer.dev_projects WHERE id = $1`, id).
-		Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.Slug, &p.Status, &p.CreatedAt, &p.UpdatedAt)
+		Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.Slug, &p.Status, &p.CreatedAt, &p.UpdatedAt, &p.DeletionRequestedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -566,6 +599,12 @@ func scanKey(row pgx.Row) (*APIKey, error) {
 }
 
 func (s *pgStore) insertKeyTx(ctx context.Context, q pgx.Tx, in APIKeyInsert) (APIKey, error) {
+	// No key is ever issued to a project being deleted: the deletion's row lock
+	// and this share lock serialize, so a key either exists before the deletion
+	// revokes every key, or is refused.
+	if err := lockLiveProject(ctx, q, in.ProjectID); err != nil {
+		return APIKey{}, err
+	}
 	k, err := scanKey(q.QueryRow(ctx,
 		`INSERT INTO developer.dev_api_keys
 		    (project_id, environment, kind, name, key_prefix, key_hash, hash_version, public_value, scopes, created_by, rotated_from, purpose, expires_at)
@@ -620,7 +659,16 @@ func (s *pgStore) APIKeyByID(ctx context.Context, id string) (*APIKey, error) {
 func (s *pgStore) APIKeyByHash(ctx context.Context, keyHash string) (*APIKeyAuth, error) {
 	var a APIKeyAuth
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, project_id, environment, status, scopes, purpose, expires_at FROM developer.dev_api_keys WHERE key_hash = $1`,
+		// A key authenticates only while its project and workspace are live: a key
+		// of a project being deleted is refused even in the instant before the
+		// deletion's revoke lands (SANDBOX-DELETE-001).
+		`SELECT k.id, k.project_id, k.environment,
+		        CASE WHEN p.status IN ('DELETING', 'DELETED') OR w.status IN ('DELETING', 'DELETED') THEN 'REVOKED' ELSE k.status END,
+		        k.scopes, k.purpose, k.expires_at
+		   FROM developer.dev_api_keys k
+		   JOIN developer.dev_projects p ON p.id = k.project_id
+		   JOIN developer.dev_workspaces w ON w.id = p.workspace_id
+		  WHERE k.key_hash = $1`,
 		keyHash).Scan(&a.ID, &a.ProjectID, &a.Environment, &a.Status, &a.Scopes, &a.Purpose, &a.ExpiresAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -706,7 +754,15 @@ func scanBinding(row pgx.Row) (*SandboxBinding, error) {
 }
 
 func (s *pgStore) CreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, error) {
-	b, err := scanBinding(s.pool.QueryRow(ctx,
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return SandboxBinding{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if err := lockLiveProject(ctx, tx, in.ProjectID); err != nil {
+		return SandboxBinding{}, err
+	}
+	b, err := scanBinding(tx.QueryRow(ctx,
 		`INSERT INTO developer.dev_project_sandbox_binding
 		    (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id, environment)
 		 VALUES ($1,$2,$3,$4,$5,'SANDBOX') RETURNING `+bindingCols,
@@ -717,7 +773,7 @@ func (s *pgStore) CreateBinding(ctx context.Context, in BindingInsert) (SandboxB
 		}
 		return SandboxBinding{}, err
 	}
-	return *b, nil
+	return *b, tx.Commit(ctx)
 }
 
 // SupersedeAndCreateBinding disables the project's ACTIVE binding and records a
@@ -729,6 +785,9 @@ func (s *pgStore) SupersedeAndCreateBinding(ctx context.Context, in BindingInser
 		return SandboxBinding{}, "", err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck // no-op after a successful commit
+	if err := lockLiveProject(ctx, tx, in.ProjectID); err != nil {
+		return SandboxBinding{}, "", err
+	}
 
 	var superseded string
 	// A sealed binding is excluded here as well as in the service: once a payment
@@ -1609,4 +1668,296 @@ func keysOf(m map[string]bool) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// ── Sandbox deletion (SANDBOX-DELETE-001) ────────────────────────────────────
+//
+// Lock order, everywhere: the workspace row, then project rows. A creation path
+// takes share locks in that order; a deletion takes update locks in that order.
+// So a key, a binding, a project or an accepted invite either commits before a
+// deletion revokes and retires what exists, or it is refused.
+
+// lockLiveWorkspace share-locks a workspace that is not being deleted.
+func lockLiveWorkspace(ctx context.Context, tx pgx.Tx, workspaceID string, share bool) error {
+	lock := "FOR SHARE"
+	if !share {
+		lock = "FOR UPDATE"
+	}
+	var status string
+	err := tx.QueryRow(ctx, `SELECT status FROM developer.dev_workspaces WHERE id = $1 `+lock, workspaceID).Scan(&status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if isGone(status) {
+		return ErrDeleting
+	}
+	return nil
+}
+
+// lockLiveProject share-locks a project, and its workspace first, neither of
+// which is being deleted.
+func lockLiveProject(ctx context.Context, tx pgx.Tx, projectID string) error {
+	var wsID string
+	err := tx.QueryRow(ctx, `SELECT workspace_id FROM developer.dev_projects WHERE id = $1`, projectID).Scan(&wsID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if err := lockLiveWorkspace(ctx, tx, wsID, true); err != nil {
+		return err
+	}
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM developer.dev_projects WHERE id = $1 FOR SHARE`, projectID).Scan(&status); err != nil {
+		return err
+	}
+	if isGone(status) {
+		return ErrDeleting
+	}
+	return nil
+}
+
+func (s *pgStore) BeginProjectDeletion(ctx context.Context, id string) (int, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	var wsID string
+	if err := tx.QueryRow(ctx, `SELECT workspace_id FROM developer.dev_projects WHERE id = $1`, id).Scan(&wsID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrNotFound
+		}
+		return 0, err
+	}
+	// Share lock on the workspace (a workspace deletion takes it FOR UPDATE and
+	// handles this project itself), then the project FOR UPDATE.
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM developer.dev_workspaces WHERE id = $1 FOR SHARE`, wsID); err != nil {
+		return 0, err
+	}
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM developer.dev_projects WHERE id = $1 FOR UPDATE`, id).Scan(&status); err != nil {
+		return 0, err
+	}
+	if isGone(status) {
+		return 0, tx.Commit(ctx)
+	}
+	n, err := revokeProjectAuthority(ctx, tx, id)
+	if err != nil {
+		return 0, err
+	}
+	return n, tx.Commit(ctx)
+}
+
+// revokeProjectAuthority moves a project to DELETING, revokes every key it
+// holds (the Explorer's included) and disables an unsealed binding. A sealed
+// binding is immutable (ADR-055) and stays as the record of what was issued; it
+// grants nothing, because no key of the project authenticates any more.
+func revokeProjectAuthority(ctx context.Context, tx pgx.Tx, id string) (int, error) {
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_projects
+		    SET status = 'DELETING', deletion_requested_at = now(), updated_at = now()
+		  WHERE id = $1 AND status IN ('ACTIVE', 'ARCHIVED')`, id); err != nil {
+		return 0, err
+	}
+	keys, err := tx.Exec(ctx,
+		`UPDATE developer.dev_api_keys SET status = 'REVOKED', revoked_at = now()
+		  WHERE project_id = $1 AND status = 'ACTIVE'`, id)
+	if err != nil {
+		return 0, err
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_project_sandbox_binding SET state = 'DISABLED', updated_at = now()
+		  WHERE project_id = $1 AND state = 'ACTIVE' AND artifact_created = false`, id); err != nil {
+		return 0, err
+	}
+	return int(keys.RowsAffected()), nil
+}
+
+func (s *pgStore) FinishProjectDeletion(ctx context.Context, id string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	// Operational request logs have no purpose once nobody can read them; the
+	// audit trail (developer.audit_events) is kept.
+	if _, err := tx.Exec(ctx, `DELETE FROM developer.dev_api_request_logs WHERE project_id = $1`, id); err != nil {
+		return err
+	}
+	// The tombstone keeps the id, the workspace and the timestamps. The name and
+	// slug are released, so the same name makes a NEW project with a new id.
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_projects
+		    SET status = 'DELETED', deleted_at = now(), updated_at = now(),
+		        name = 'deleted', slug = 'deleted-' || id::text
+		  WHERE id = $1 AND status = 'DELETING'`, id); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (s *pgStore) ProjectsPendingDeletion(ctx context.Context, workspaceID string) ([]Project, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, workspace_id, name, slug, status, created_at, updated_at, deletion_requested_at
+		   FROM developer.dev_projects
+		  WHERE status = 'DELETING' AND ($1 = '' OR workspace_id::text = $1)
+		  ORDER BY deletion_requested_at`, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Project
+	for rows.Next() {
+		var p Project
+		if err := rows.Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.Slug, &p.Status, &p.CreatedAt, &p.UpdatedAt, &p.DeletionRequestedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+func (s *pgStore) OtherLiveProjectsOnBusinessOf(ctx context.Context, projectID string) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(DISTINCT o.project_id)
+		   FROM developer.dev_project_sandbox_binding mine
+		   JOIN developer.dev_project_sandbox_binding o
+		     ON o.merchant_id = mine.merchant_id AND o.project_id <> mine.project_id AND o.state = 'ACTIVE'
+		   JOIN developer.dev_projects p ON p.id = o.project_id AND p.status = 'ACTIVE'
+		  WHERE mine.project_id = $1`, projectID).Scan(&n)
+	return n, err
+}
+
+func (s *pgStore) BeginWorkspaceDeletion(ctx context.Context, id string) ([]string, int, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM developer.dev_workspaces WHERE id = $1 FOR UPDATE`, id).Scan(&status); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, 0, ErrNotFound
+		}
+		return nil, 0, err
+	}
+	if status != StatusDeleted && status != StatusDeleting {
+		if _, err := tx.Exec(ctx,
+			`UPDATE developer.dev_workspaces SET status = 'DELETING', deletion_requested_at = now(), updated_at = now() WHERE id = $1`, id); err != nil {
+			return nil, 0, err
+		}
+	}
+	rows, err := tx.Query(ctx,
+		`SELECT id FROM developer.dev_projects WHERE workspace_id = $1 AND status IN ('ACTIVE', 'ARCHIVED') ORDER BY id FOR UPDATE`, id)
+	if err != nil {
+		return nil, 0, err
+	}
+	var live []string
+	for rows.Next() {
+		var pid string
+		if err := rows.Scan(&pid); err != nil {
+			rows.Close()
+			return nil, 0, err
+		}
+		live = append(live, pid)
+	}
+	rows.Close()
+	revoked := 0
+	for _, pid := range live {
+		n, err := revokeProjectAuthority(ctx, tx, pid)
+		if err != nil {
+			return nil, 0, err
+		}
+		revoked += n
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_workspace_invites SET revoked_at = now(), updated_at = now()
+		  WHERE workspace_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL`, id); err != nil {
+		return nil, 0, err
+	}
+	var deleting []string
+	prow, err := tx.Query(ctx, `SELECT id FROM developer.dev_projects WHERE workspace_id = $1 AND status = 'DELETING' ORDER BY id`, id)
+	if err != nil {
+		return nil, 0, err
+	}
+	for prow.Next() {
+		var pid string
+		if err := prow.Scan(&pid); err != nil {
+			prow.Close()
+			return nil, 0, err
+		}
+		deleting = append(deleting, pid)
+	}
+	prow.Close()
+	return deleting, revoked, tx.Commit(ctx)
+}
+
+func (s *pgStore) FinishWorkspaceDeletion(ctx context.Context, id string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM developer.dev_workspaces WHERE id = $1 FOR UPDATE`, id).Scan(&status); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if status == StatusDeleted {
+		return tx.Commit(ctx)
+	}
+	if status != StatusDeleting {
+		return ErrConflict
+	}
+	var pending int
+	if err := tx.QueryRow(ctx,
+		`SELECT count(*) FROM developer.dev_projects WHERE workspace_id = $1 AND status <> 'DELETED'`, id).Scan(&pending); err != nil {
+		return err
+	}
+	if pending > 0 {
+		return ErrConflict
+	}
+	// Who could open a workspace that no longer exists is not worth keeping;
+	// the audit trail records the deletion and outlives these rows.
+	if _, err := tx.Exec(ctx, `DELETE FROM developer.dev_workspace_invites WHERE workspace_id = $1`, id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM developer.dev_workspace_members WHERE workspace_id = $1`, id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_workspaces
+		    SET status = 'DELETED', deleted_at = now(), updated_at = now(),
+		        name = 'deleted', slug = 'deleted-' || id::text
+		  WHERE id = $1`, id); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (s *pgStore) WorkspacesPendingDeletion(ctx context.Context) ([]Workspace, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, name, slug, created_by, status, created_at, updated_at, deletion_requested_at
+		   FROM developer.dev_workspaces WHERE status = 'DELETING' ORDER BY deletion_requested_at`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Workspace
+	for rows.Next() {
+		var w Workspace
+		if err := rows.Scan(&w.ID, &w.Name, &w.Slug, &w.CreatedBy, &w.Status, &w.CreatedAt, &w.UpdatedAt, &w.DeletionRequestedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, w)
+	}
+	return out, rows.Err()
 }

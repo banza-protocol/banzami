@@ -135,6 +135,9 @@ var (
 	ErrLastOwner   = errors.New("cannot remove or demote the last owner")
 	ErrInviteState = errors.New("invite not acceptable")
 	ErrUnavailable = errors.New("unavailable")
+	// ErrDeleting: the project or workspace is being deleted (SANDBOX-DELETE-001);
+	// nothing new may be created under it.
+	ErrDeleting = errors.New("resource is being deleted")
 	// Self-service creation limits (see limits.go).
 	ErrWorkspaceQuota = errors.New("workspace limit reached")
 	// ErrTestDeliveriesLimited: the endpoint had WebhookTestDeliveriesPerMinute
@@ -155,6 +158,9 @@ type Workspace struct {
 	Status    string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	// DeletionRequestedAt is set when the workspace entered DELETING
+	// (SANDBOX-DELETE-001).
+	DeletionRequestedAt *time.Time
 }
 
 type Member struct {
@@ -326,6 +332,20 @@ type Store interface {
 	// WorkspaceFootprint counts what a workspace still holds. It is the
 	// difference between deleting it and archiving it.
 	WorkspaceFootprint(ctx context.Context, id string) (WorkspaceFootprint, error)
+	// BeginWorkspaceDeletion moves the workspace and every project in it that is
+	// not already gone to DELETING, revokes every key of those projects and every
+	// pending invite, in one transaction. Returns the ids of the workspace's
+	// DELETING projects. ErrNotFound if the workspace does not exist.
+	BeginWorkspaceDeletion(ctx context.Context, id string) (projectIDs []string, keysRevoked int, err error)
+	// FinishWorkspaceDeletion turns a DELETING workspace whose projects are all
+	// DELETED into a tombstone: members and invites removed, name and slug released.
+	// ErrConflict while a project is still DELETING.
+	FinishWorkspaceDeletion(ctx context.Context, id string) error
+	// WorkspacesPendingDeletion lists DELETING workspaces.
+	WorkspacesPendingDeletion(ctx context.Context) ([]Workspace, error)
+	// MembershipAnyState is Membership without the workspace-state filter, for the
+	// owner who repeats a deletion that has already begun.
+	MembershipAnyState(ctx context.Context, workspaceID, userID string) (*Member, error)
 	// DeleteWorkspace removes a workspace row outright. Only ever called for a
 	// workspace whose footprint is empty; the statement re-checks that itself.
 	DeleteWorkspace(ctx context.Context, id string) error
@@ -366,6 +386,18 @@ type Store interface {
 	// between a project that can be deleted outright and one that can only be
 	// archived, and it is what the refusal names back to the caller.
 	ProjectFootprint(ctx context.Context, id string) (ProjectFootprint, error)
+	// BeginProjectDeletion moves an ACTIVE or ARCHIVED project to DELETING and
+	// revokes every key on it, in one transaction. A project already DELETING or
+	// DELETED is left as it is (0 keys). ErrNotFound if it does not exist.
+	BeginProjectDeletion(ctx context.Context, id string) (keysRevoked int, err error)
+	// FinishProjectDeletion turns a DELETING project into a tombstone: request logs
+	// removed, name and slug released. Idempotent.
+	FinishProjectDeletion(ctx context.Context, id string) error
+	// ProjectsPendingDeletion lists DELETING projects, optionally within one workspace.
+	ProjectsPendingDeletion(ctx context.Context, workspaceID string) ([]Project, error)
+	// OtherLiveProjectsOnBusinessOf counts the ACTIVE projects, other than this
+	// one, whose ACTIVE binding names the Business this project's binding names.
+	OtherLiveProjectsOnBusinessOf(ctx context.Context, projectID string) (int, error)
 	// DeleteProject removes a project row outright. Only ever called for a
 	// project whose footprint is empty; developer.audit_events keeps no foreign
 	// key to it, so the record of its existence survives the row.
@@ -732,7 +764,22 @@ type Project struct {
 	Status      string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	// DeletionRequestedAt is set when the project entered DELETING
+	// (SANDBOX-DELETE-001).
+	DeletionRequestedAt *time.Time
 }
+
+// Project and workspace lifecycle states. DELETING and DELETED are Sandbox
+// deletion (SANDBOX-DELETE-001): a DELETING resource holds no authority and is
+// in no list; a DELETED one is a tombstone.
+const (
+	StatusActive   = "ACTIVE"
+	StatusArchived = "ARCHIVED"
+	StatusDeleting = "DELETING"
+	StatusDeleted  = "DELETED"
+)
+
+func isGone(status string) bool { return status == StatusDeleting || status == StatusDeleted }
 
 // APIKey is key metadata — never carries the secret hash or a raw secret.
 type APIKey struct {

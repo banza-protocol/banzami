@@ -186,6 +186,22 @@ func main() {
 	slog.Info("payment capability release state", "released", cfg.PaymentCapabilityReleased, "fixtures", fixturesEnabled, "env", cfg.Environment)
 	devH := developer.NewHandlers(devSvc)
 
+	// Sandbox deletion finishes on its own (SANDBOX-DELETE-001): a DELETING
+	// project or workspace — whose authority is already revoked — is retired in
+	// Core and turned into a tombstone once its grace has passed, whether or not
+	// the request that began it is still running.
+	if env.Parse(cfg.Environment).IsSandbox() || cfg.IsDevelopment() {
+		go func() {
+			tick := time.NewTicker(20 * time.Second)
+			defer tick.Stop()
+			for range tick.C {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+				devSvc.ResumeDeletions(ctx)
+				cancel()
+			}
+		}()
+	}
+
 	handler := server.New(cfg, server.Deps{Pool: pool, Auth: auth, Dev: devH})
 
 	srv := &http.Server{

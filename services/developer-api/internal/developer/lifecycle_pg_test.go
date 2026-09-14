@@ -113,7 +113,7 @@ func TestPgStore_DeleteRefusesAProjectThatHasIssuedAKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.DeleteProject(ctx, actor, empty.ID, "Vazio", "", ""); err != nil {
+	if _, _, err := svc.DeleteProject(ctx, actor, empty.ID, "Vazio", "", ""); err != nil {
 		t.Fatalf("delete an empty project: %v", err)
 	}
 	if _, err := svc.GetProject(ctx, actor, empty.ID); err != ErrNotFound {
@@ -289,13 +289,13 @@ func TestPgStore_NoLifecycleOperationDeletesTheGlobalIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.DeleteProject(ctx, actor, p.ID, p.Name, "", ""); err != nil {
+	if _, _, err := svc.DeleteProject(ctx, actor, p.ID, p.Name, "", ""); err != nil {
 		t.Fatalf("delete empty project: %v", err)
 	}
 	stillThere("PROJECT_DELETE")
 
 	// The workspace deleted outright, now that it holds nothing.
-	if _, err := svc.DeleteWorkspace(ctx, actor, ws.ID, ws.Name, "", ""); err != nil {
+	if _, _, err := svc.DeleteWorkspace(ctx, actor, ws.ID, ws.Name, "", ""); err != nil {
 		t.Fatalf("delete empty workspace: %v", err)
 	}
 	stillThere("WORKSPACE_DELETE")
