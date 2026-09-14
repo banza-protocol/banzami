@@ -130,6 +130,8 @@ export const PREDICATES = {
   INSUFFICIENT_FUNDS: (e) => e.pay === 422 && e.code === 'INSUFFICIENT_FUNDS' && e.status === 'ACTIVE',
   PAYMENT_DECLINED: (e) => e.pay === 402 && e.code === 'PAYMENT_DECLINED' && e.simulated === true && e.status === 'ACTIVE',
   AMBIGUOUS_TIMEOUT: (e) => e.first === 503 && e.firstCode === 'SANDBOX_SIMULATED_TIMEOUT' && e.retry === 200 && e.status === 'PAID',
+  DELAYED_COMPLETION: (e) => e.accepted === 202 && e.pendingStatus === 'PENDING' && e.simulated === true && e.statusRightAfter === 'ACTIVE'
+    && e.streamSaw === 'snapshot:ACTIVE,status:PAID' && e.finalStatus === 'PAID' && e.repeat === 200 && e.webhook === true,
   PROVIDER_UNAVAILABLE: (e) => e.pay === 503 && e.code === 'PROVIDER_UNAVAILABLE' && Number(e.retryAfter) > 0 && e.simulated === true && e.status === 'ACTIVE',
   INVALID_PARAMETER: (e) => e.status === 400 && Boolean(e.code) && Boolean(e.requestId),
   INVALID_CURSOR: (e) => e.cursor === 400 && e.cursorCode === 'INVALID_PARAM' && e.limit === 400,
@@ -160,7 +162,7 @@ export const PREDICATES = {
 export const COUNTERS = {
   TEST_SCENARIO_PAYMENT_SUCCESS: ['PAYMENT_SUCCESS'], TEST_SCENARIO_DECLINED: ['PAYMENT_DECLINED'],
   TEST_SCENARIO_INSUFFICIENT_FUNDS: ['INSUFFICIENT_FUNDS'], TEST_SCENARIO_TIMEOUT: ['AMBIGUOUS_TIMEOUT'],
-  TEST_SCENARIO_PROVIDER_UNAVAILABLE: ['PROVIDER_UNAVAILABLE'], TEST_SCENARIO_INVALID_PARAM: ['INVALID_PARAMETER'],
+  TEST_SCENARIO_PROVIDER_UNAVAILABLE: ['PROVIDER_UNAVAILABLE'], TEST_SCENARIO_DELAYED_COMPLETION: ['DELAYED_COMPLETION'], TEST_SCENARIO_INVALID_PARAM: ['INVALID_PARAMETER'],
   TEST_SCENARIO_INVALID_CURSOR: ['INVALID_CURSOR'], TEST_SCENARIO_INVALID_KEY: ['INVALID_KEY'],
   TEST_SCENARIO_MISSING_SCOPE: ['MISSING_SCOPE'], TEST_SCENARIO_IDEMPOTENT_REPLAY: ['IDEMPOTENT_REPLAY'],
   TEST_SCENARIO_IDEMPOTENCY_CONFLICT: ['IDEMPOTENCY_PAYLOAD_CONFLICT'], TEST_SCENARIO_CONCURRENT_DUPLICATE: ['CONCURRENT_DUPLICATE'],
@@ -233,6 +235,25 @@ async function scenarios(sdk) {
     const to1 = await pay(A.api, T, { payment_session_id: s3.body?.session_id, simulate: 'TIMEOUT' }, `acc_${s}_to`);
     const to2 = await pay(A.api, T, { payment_session_id: s3.body?.session_id }, `acc_${s}_to`);
     record('AMBIGUOUS_TIMEOUT', { first: to1.status, firstCode: to1.body?.code, retry: to2.status, status: (await A.api(`/v1/payment-sessions/${s3.body?.session_id}`)).body?.status });
+
+    // Completes later, on its own: 202 PENDING, the stream turns PAID ~10 s later, the event arrives.
+    const sDelayed = await session(A.api, `${s}_delayed`, 33000);
+    const dRun = `scd${s}`;
+    sinkOpen(dRun);
+    const dEp = await A.api('/v1/webhooks/endpoints', 'POST', { url: `${SINK}/${dRun}`, events: ['payment_session.paid'] });
+    const dWatch = streamStatus(sDelayed.body?.session_id, sDelayed.body?.realtime?.token, 40000);
+    await sleep(1500);
+    const d1 = await pay(A.api, T, { payment_session_id: sDelayed.body?.session_id, simulate: 'DELAYED' }, `acc_${s}_delayed`);
+    const rightAfter = (await A.api(`/v1/payment-sessions/${sDelayed.body?.session_id}`)).body?.status;
+    const dSeen = await dWatch;
+    const dRepeat = await pay(A.api, T, { payment_session_id: sDelayed.body?.session_id, simulate: 'DELAYED' }, `acc_${s}_delayed`);
+    const dHook = await until(() => sinkGot(dRun).some((q) => q.raw_body.includes(sDelayed.body?.session_id ?? '#') && q.raw_body.includes('payment_session.paid')), 30000, 2000);
+    record('DELAYED_COMPLETION', {
+      accepted: d1.status, pendingStatus: d1.body?.status, simulated: d1.body?.simulated, statusRightAfter: rightAfter,
+      streamSaw: dSeen.seen.join(','), finalStatus: (await A.api(`/v1/payment-sessions/${sDelayed.body?.session_id}`)).body?.status,
+      repeat: dRepeat.status, webhook: Boolean(dHook),
+    });
+    await A.api(`/v1/webhooks/endpoints/${dEp.body?.id}`, 'DELETE');
 
     const bad = await A.api('/v1/payment-sessions', 'POST', { purpose: 'ORDER', reference_type: 'PEDIDO', reference_id: `${s}_bad`, amount_minor: 0, currency: 'AOA' }, { 'Idempotency-Key': `acc_${s}_bad` });
     record('INVALID_PARAMETER', { status: bad.status, code: bad.body?.code, requestId: bad.body?.request_id ?? bad.headers['x-request-id'] });
@@ -504,6 +525,7 @@ function selftest() {
     ['WEBHOOK_SIGNATURE_INVALID', { goodVerifies: true, wrongSecretRefused: true, alteredBodyRefused: true }, { alteredBodyRefused: false }],
     ['SETTLEMENT_SUCCESS', { status: 201, gross: 100, fee: 2, net: 98 }, { net: 99 }],
     ['LIVE_FAIL_CLOSED', { status: 401, liveHost: 503 }, { liveHost: 200 }],
+    ['DELAYED_COMPLETION', { accepted: 202, pendingStatus: 'PENDING', simulated: true, statusRightAfter: 'ACTIVE', streamSaw: 'snapshot:ACTIVE,status:PAID', finalStatus: 'PAID', repeat: 200, webhook: true }, { statusRightAfter: 'PAID' }],
     ['RATE_LIMIT', { limited: 3, code: 'RATE_LIMITED', retryAfter: '30' }, { retryAfter: undefined }],
   ];
   let bad = 0;

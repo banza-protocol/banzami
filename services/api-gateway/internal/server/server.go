@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
@@ -374,6 +375,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				if deps.ProofSvc != nil {
 					sbx.WithReceipts(service.NewReceiptSemantics(deps.ProofSvc.Pool(), deps.ProofSvc))
 				}
+				// Completes simulate DELAYED payments as they fall due. The queue is
+				// in Redis, so a restart resumes it; the loop lives as long as the
+				// process that serves the routes.
+				go sbx.RunDelayedPayments(context.Background())
 				r.Get("/v1/sandbox/scenarios", sbx.Scenarios)
 				r.Route("/v1/sandbox/test-payers", func(r chi.Router) {
 					r.Use(middleware.Idempotency(deps.Redis))

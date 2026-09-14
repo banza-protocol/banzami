@@ -1108,7 +1108,7 @@
                 }
               ]
             },
-            "description": "Pay as a test payer\n\nPays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write.",
+            "description": "Pay as a test payer\n\nPays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write. simulate DELAYED answers 202 PENDING and completes about 10 seconds later.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"payment_session_id\": \"payment_session_xxx\",\n  \"via\": \"LINK\"\n}",

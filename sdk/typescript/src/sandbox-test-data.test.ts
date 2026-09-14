@@ -42,6 +42,15 @@ describe('Sandbox test payers', () => {
     expect(sent[0][1].body).toBe(sent[1][1].body);
   });
 
+  it('returns the PENDING answer of a DELAYED payment, typed as pending', async () => {
+    const f = stub(() => json(202, { test_payer_id: 'tp1', via: 'LINK', payment_session_id: 's1', status: 'PENDING', simulated: true, completes_after_seconds: 10 }));
+    const pending = await client.payAsTestPayer('tp1', { paymentSessionId: 's1', simulate: 'DELAYED', idempotencyKey: 'pay-d' });
+    expect(pending.status).toBe('PENDING');
+    expect(pending.completes_after_seconds).toBe(10);
+    expect(JSON.parse(calls(f)[0][1].body as string)).toEqual({ payment_session_id: 's1', simulate: 'DELAYED' });
+    expect(header(calls(f)[0][1], 'Idempotency-Key')).toBe('pay-d');
+  });
+
   it('sends only the fields given', async () => {
     const f = stub(() => json(201, { id: 'tp1', handle: 'tpabc' }));
     await client.createTestPayer({ label: 'Maria' });

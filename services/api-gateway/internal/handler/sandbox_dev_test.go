@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/redis/go-redis/v9"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -236,4 +240,92 @@ func TestSandboxDev_AQRTestPaymentNamesItsReceipt(t *testing.T) {
 	if res.Code != http.StatusOK || body["proof_reference"] != "BZM-QR" || body["transfer_id"] != "tr-qr" || rec.calls != 1 {
 		t.Fatalf("QR test payment receipt: %d %s calls=%d", res.Code, res.Body, rec.calls)
 	}
+}
+
+// DELAYED answers 202 PENDING at once and pays on its own later; until then a
+// repeat reads PENDING, afterwards it reads the real result, and it pays once.
+func TestSandboxDev_DelayedCompletesOnItsOwn(t *testing.T) {
+	up := newUpstream(t)
+	sessions := sbxSessions{"own": {SessionID: "own", MerchantID: "merchant-A", PaymentLinkSlug: slug("s-own")}}
+	h := NewSandboxDevHandler(up.srv.URL, "ik", sessions, sbxLinks{})
+	h.delay = 150 * time.Millisecond
+	r := sbxRouter(h, principalA())
+
+	if rec := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"DELAYED"}`, ""); rec.Code != http.StatusBadRequest {
+		t.Fatalf("DELAYED without a key: %d", rec.Code)
+	}
+	rec := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"DELAYED"}`, "idem-d")
+	var pending map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &pending)
+	if rec.Code != http.StatusAccepted || pending["status"] != "PENDING" || pending["simulated"] != true || len(up.calls) != 0 {
+		t.Fatalf("DELAYED must accept without paying yet: %d %s calls=%d", rec.Code, rec.Body, len(up.calls))
+	}
+	if again := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own"}`, "idem-d"); again.Code != http.StatusAccepted || len(up.calls) != 0 {
+		t.Fatalf("a repeat before completion reads PENDING: %d %s", again.Code, again.Body)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		up.mu.Lock()
+		n := len(up.calls)
+		up.mu.Unlock()
+		if n == 1 || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+	done := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"DELAYED"}`, "idem-d")
+	if done.Code != http.StatusOK || !strings.Contains(done.Body.String(), `"status":"PAID"`) {
+		t.Fatalf("after completion a repeat reads the real result: %d %s", done.Code, done.Body)
+	}
+	up.mu.Lock()
+	defer up.mu.Unlock()
+	if len(up.calls) != 1 {
+		t.Fatalf("paid %d times", len(up.calls))
+	}
+}
+
+// With Redis the queue survives a restart: the worker, not a timer, completes
+// the payment, once, even with two workers racing for it.
+func TestSandboxDev_DelayedQueueInRedisCompletesOnce(t *testing.T) {
+	addr := os.Getenv("REDIS_TEST_ADDR")
+	if addr == "" {
+		t.Skip("REDIS_TEST_ADDR not set — skipping the Redis-backed delayed queue test")
+	}
+	rdb := redis.NewClient(&redis.Options{Addr: addr, DB: 15})
+	defer rdb.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_ = rdb.Del(ctx, sandboxDelayedQueue).Err()
+
+	up := newUpstream(t)
+	sessions := sbxSessions{"own": {SessionID: "own", MerchantID: "merchant-A", PaymentLinkSlug: slug("s-own")}}
+	h := NewSandboxDevHandler(up.srv.URL, "ik", sessions, sbxLinks{}).WithOutcomeStore(rdb)
+	h.delay = 200 * time.Millisecond
+	key := "idem-redis-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	rec := post(t, sbxRouter(h, principalA()), "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"DELAYED"}`, key)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("accept: %d %s", rec.Code, rec.Body)
+	}
+	if n, _ := rdb.ZCard(ctx, sandboxDelayedQueue).Result(); n != 1 {
+		t.Fatalf("queued %d jobs", n)
+	}
+	go h.RunDelayedPayments(ctx)
+	go h.RunDelayedPayments(ctx)
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if o, ok := h.storedOutcome(ctx, "proj-A|"+key); ok && o.status == http.StatusOK {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	time.Sleep(1500 * time.Millisecond)
+	up.mu.Lock()
+	calls := len(up.calls)
+	up.mu.Unlock()
+	o, _ := h.storedOutcome(ctx, "proj-A|"+key)
+	if calls != 1 || o.status != http.StatusOK {
+		t.Fatalf("calls=%d stored=%d %s", calls, o.status, o.body)
+	}
+	_ = rdb.Del(ctx, "sbx:timeout:proj-A|"+key).Err()
 }

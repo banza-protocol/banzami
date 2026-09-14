@@ -141,7 +141,10 @@ for (const b of blocks) {
     else {
       // The method's own text: from its signature to the next method signature.
       const rest = sdk.slice(start.index + start[0].length);
-      const next = /\n  (?:async\s+)?[a-z]\w*\([^)]*\)?[^;\n]*\{\s*\n/.exec(rest.slice(1));
+      // The next signature of ANOTHER method: an overloaded method's own
+      // implementation line is part of its text, not the start of the next one.
+      const sigs = [...rest.slice(1).matchAll(/\n  (?:async\s+)?([a-z]\w*)\([^)]*\)?[^;\n]*\{\s*\n/g)];
+      const next = sigs.find((m) => m[1] !== meta.sdk);
       const bodyText = rest.slice(0, next ? next.index + 1 : 1500);
       const resource = b.path.replace(/^\/v1/, '').split('/').filter(Boolean)[0];
       const called = bodyText.includes(`/${resource}`) || /return this\.\w+\(/.test(bodyText);

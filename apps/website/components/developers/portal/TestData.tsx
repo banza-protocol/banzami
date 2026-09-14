@@ -96,6 +96,12 @@ export function TestData() {
     setError('');
     try {
       const r = await run('fundTestPayer', { path_params: { id: fund.id }, body: { amount_minor: amount }, idempotency_key: fund.key });
+      if (r.status === 202) {
+        const d = r.body as { completes_after_seconds?: number };
+        setNotice(`Aceite, ainda pendente (simulação). O pagamento conclui-se sozinho dentro de cerca de ${d.completes_after_seconds ?? 10} segundos — veja-o chegar em Webhooks ou em Transações.`);
+        setPay(null);
+        return;
+      }
       if (r.status !== 200) { setError(responseError(r.status, r.body)); return; }
       setNotice(`Carregados ${formatMoneyDisplay(amount)} (valor fictício).`);
       setFund(null);
@@ -232,6 +238,7 @@ export function TestData() {
                 <option value="DECLINED">Simular recusa (DECLINED)</option>
                 <option value="PROVIDER_UNAVAILABLE">Simular fornecedor indisponível</option>
                 <option value="TIMEOUT">Simular sem resposta (TIMEOUT)</option>
+                <option value="DELAYED">Simular conclusão tardia (DELAYED)</option>
               </select>
             </label>
             <p style={FIELD_HINT}>Idempotency-Key: <code style={{ fontFamily: mono }}>{pay.key}</code> — repetir com a mesma chave não paga duas vezes.</p>

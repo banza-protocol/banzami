@@ -766,7 +766,7 @@ export interface FundTestPayerParams {
   idempotencyKey: string;
 }
 
-export type SandboxSimulation = 'DECLINED' | 'PROVIDER_UNAVAILABLE' | 'TIMEOUT';
+export type SandboxSimulation = 'DECLINED' | 'PROVIDER_UNAVAILABLE' | 'TIMEOUT' | 'DELAYED';
 
 export interface TestPayment {
   test_payer_id: string;
@@ -781,6 +781,22 @@ export interface TestPayment {
   /** The receipt's BZM-… reference, when its proof was established in time. */
   proof_reference: string | null;
   simulated: false;
+}
+
+/** A test payment made with `simulate: 'DELAYED'`: accepted, not yet complete.
+ *  It completes on its own about `completes_after_seconds` later — watch the
+ *  webhook or the realtime stream, or repeat the call with the same
+ *  `idempotencyKey` to read the {@link TestPayment}. */
+export interface TestPaymentPending {
+  test_payer_id: string;
+  via: 'LINK' | 'QR';
+  payment_session_id?: string;
+  payment_link_id?: string;
+  status: 'PENDING';
+  simulated: true;
+  completes_after_seconds: number;
+  message?: string;
+  request_id?: string;
 }
 
 export interface PayAsTestPayerParams {

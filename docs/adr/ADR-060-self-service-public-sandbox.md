@@ -110,7 +110,7 @@ conflict, concurrent duplicate, insufficient funds via a payer created with
 refused).
 
 External-rail outcomes are requested **explicitly** on the test-payer payment:
-`"simulate": "DECLINED" | "PROVIDER_UNAVAILABLE" | "TIMEOUT"`. The response says
+`"simulate": "DECLINED" | "PROVIDER_UNAVAILABLE" | "TIMEOUT" | "DELAYED"`. The response says
 `"simulated": true`. `DECLINED` and `PROVIDER_UNAVAILABLE` change nothing.
 `TIMEOUT` executes the payment and then answers `503 SANDBOX_SIMULATED_TIMEOUT`
 (not 504: Cloudflare replaces a 504 body, so the code could never arrive),
@@ -127,6 +127,17 @@ simulated: false }` — never the payee's link view. The real outcome of a
 simulated `TIMEOUT` is kept for 24 hours (Redis) under the Project and the
 `Idempotency-Key`, and ANY repeat with that key — with or without `simulate`,
 so an SDK's automatic retry of the 503 too — reads it instead of paying again.
+
+`DELAYED` is the outcome that resolves later on its own: `202` with `status:
+"PENDING"` and `simulated: true`, the payment queued (Redis sorted set
+`sbx:delayed`, so a gateway restart resumes it; `ZREM` decides which gateway
+completes it) and made through the same consumer path about 10 seconds later.
+The session becomes `PAID`, `payment_session.paid` is sent and the realtime
+stream turns; a repeat with the same `Idempotency-Key` answers `202` until then
+and the real result afterwards. A refusal at completion (the payer's balance
+spent meanwhile, the session paid another way) is that result. Added after the
+2026-09-14 competitive review found no Banzami scenario for an outcome that
+settles after the response.
 
 ### 6. Fictitious value has per-Project quotas
 

@@ -38,6 +38,7 @@ import type {
   SandboxScenarioCatalogue,
   TestPayer,
   TestPayment,
+  TestPaymentPending,
   CreateTestPayerParams,
   FundTestPayerParams,
   PayAsTestPayerParams,
@@ -901,8 +902,10 @@ export class BanzamiClient {
    * requests an external-rail outcome explicitly; `TIMEOUT` pays and answers
    * 503 `SANDBOX_SIMULATED_TIMEOUT`, and repeating with the same `idempotencyKey` reads the real result.
    */
-  payAsTestPayer(id: string, params: PayAsTestPayerParams): Promise<TestPayment> {
-    return this.request<TestPayment>(`/sandbox/test-payers/${id}/payments`, {
+  payAsTestPayer(id: string, params: PayAsTestPayerParams & { simulate: 'DELAYED' }): Promise<TestPaymentPending>;
+  payAsTestPayer(id: string, params: PayAsTestPayerParams): Promise<TestPayment>;
+  payAsTestPayer(id: string, params: PayAsTestPayerParams): Promise<TestPayment | TestPaymentPending> {
+    return this.request<TestPayment | TestPaymentPending>(`/sandbox/test-payers/${id}/payments`, {
       method: 'POST',
       body:   JSON.stringify({
         ...(params.paymentSessionId ? { payment_session_id: params.paymentSessionId } : {}),

@@ -53,7 +53,7 @@
   ],
   "forwarded_services": [
     {
-      "surface": "SandboxDevHandler.forward",
+      "surface": "SandboxDevHandler.callPublicAPI",
       "service": "services/public-api/internal/handler",
       "about": "The Sandbox test-payer routes run in public-api; the gateway checks the key, scope and ownership, then copies public-api's answer. A test-payer payment runs the ordinary consumer payment handlers.",
       "routes": {

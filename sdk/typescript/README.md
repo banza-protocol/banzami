@@ -203,6 +203,9 @@ paid.proof_reference; // a receipt that verifies publicly
 // External-rail outcomes are asked for explicitly, never by a magic amount:
 await client.payAsTestPayer(payer.id, { paymentSessionId: other.session_id, simulate: 'DECLINED' });
 // simulate: 'TIMEOUT' pays, answers 503 SANDBOX_SIMULATED_TIMEOUT, and the SDK's retry with the same key returns the real result.
+// simulate: 'DELAYED' answers PENDING at once; the payment completes on its own ~10 s later (webhook, realtime stream, or repeat with the same key).
+const pending = await client.payAsTestPayer(payer.id, { paymentSessionId: later.session_id, simulate: 'DELAYED', idempotencyKey: 'pay-later' });
+pending.status; // 'PENDING'
 
 await client.retireTestPayer(payer.id); // its value is retired by a balanced posting
 ```

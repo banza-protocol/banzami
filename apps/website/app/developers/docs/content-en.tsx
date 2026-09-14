@@ -2051,6 +2051,12 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 event: <><Code>payment_session.paid</Code>, once.</>,
                 console: 'Transactions: a single payment.', cleanup: 'Refund the payment, or reset the Sandbox.',
                 limits: 'This is the case to handle in production: a timeout does not say whether the payment happened. Retry with the same key; never create a new payment.' }} />
+              <RecipeCard lang="en" r={{ id: 'completes-later', title: 'A payment that completes later', scenario: 'DELAYED_COMPLETION',
+                trigger: <>Pay as a test payer with <Code>simulate: &quot;DELAYED&quot;</Code> and an <Code>Idempotency-Key</Code>.</>,
+                api: <><Code>202</Code> with <Code>status: &quot;PENDING&quot;</Code> and <Code>simulated: true</Code>. About 10 seconds later the payment completes on its own: the session becomes <Code>PAID</Code>, and the same request with the same key answers <Code>200</Code> with the result.</>,
+                event: <><Code>payment_session.paid</Code>, when it completes — the realtime stream turns <Code>PAID</Code> at the same moment.</>,
+                console: 'Transactions: the payment appears when it completes.', cleanup: 'Refund the payment, or reset the Sandbox.',
+                limits: 'Show a pending state, then act on the webhook or the stream — not on the 202.' }} />
               <RecipeCard lang="en" r={{ id: 'test-idempotency', title: 'Retry a request safely', scenario: 'IDEMPOTENT_REPLAY IDEMPOTENCY_PAYLOAD_CONFLICT CONCURRENT_DUPLICATE',
                 trigger: <>Send the same POST twice with the same <Code>Idempotency-Key</Code>; then the same key with a different body.</>,
                 api: <>The second response matches the first. With a different body: <Code>409 IDEMPOTENCY_KEY_REUSED</Code>. Two concurrent requests: <Code>409 IDEMPOTENCY_CONFLICT</Code>.</>,

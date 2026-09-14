@@ -34,6 +34,13 @@
       "event": "payment_session.paid"
     },
     {
+      "id": "DELAYED_COMPLETION", "group": "payments", "simulated": true,
+      "goal": { "pt": "Um pagamento que só se conclui depois", "en": "A payment that completes later" },
+      "trigger": { "pt": "simulate: \"DELAYED\" com uma Idempotency-Key", "en": "simulate: \"DELAYED\" with an Idempotency-Key" },
+      "result": { "pt": "202 com status PENDING e simulated: true; cerca de 10 segundos depois o pagamento conclui-se sozinho: a sessão fica PAID, chega o evento e a repetição com a mesma chave responde 200", "en": "202 with status PENDING and simulated: true; about 10 seconds later the payment completes on its own: the session becomes PAID, the event arrives and a repeat with the same key answers 200" },
+      "event": "payment_session.paid"
+    },
+    {
       "id": "PROVIDER_UNAVAILABLE", "group": "payments", "simulated": true,
       "goal": { "pt": "Um fornecedor indisponível", "en": "A provider outage" },
       "trigger": { "pt": "simulate: \"PROVIDER_UNAVAILABLE\"", "en": "simulate: \"PROVIDER_UNAVAILABLE\"" },

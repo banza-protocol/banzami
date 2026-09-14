@@ -971,6 +971,11 @@
   },
   {
    "k": "section",
+   "t": "Um pagamento que se conclui depois",
+   "h": "/docs/testing#conclui-depois"
+  },
+  {
+   "k": "section",
    "t": "Repetir um pedido com segurança",
    "h": "/docs/testing#testar-idempotencia"
   },
@@ -3227,6 +3232,11 @@
    "k": "section",
    "t": "No answer in time",
    "h": "/docs/en/testing#no-answer"
+  },
+  {
+   "k": "section",
+   "t": "A payment that completes later",
+   "h": "/docs/en/testing#completes-later"
   },
   {
    "k": "section",

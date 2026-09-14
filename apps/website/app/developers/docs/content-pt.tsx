@@ -2037,6 +2037,12 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 event: <><Code>payment_session.paid</Code>, uma vez.</>,
                 console: 'Transações: um único pagamento.', cleanup: 'Reembolse o pagamento, ou reponha a Sandbox.',
                 limits: 'É o caso a tratar em produção: um timeout não diz se o pagamento aconteceu. Repita com a mesma chave; nunca crie um pagamento novo.' }} />
+              <RecipeCard lang="pt" r={{ id: 'conclui-depois', title: 'Um pagamento que se conclui depois', scenario: 'DELAYED_COMPLETION',
+                trigger: <>Pague como pagador de teste com <Code>simulate: &quot;DELAYED&quot;</Code> e uma <Code>Idempotency-Key</Code>.</>,
+                api: <><Code>202</Code> com <Code>status: &quot;PENDING&quot;</Code> e <Code>simulated: true</Code>. Cerca de 10 segundos depois o pagamento conclui-se sozinho: a sessão fica <Code>PAID</Code>, e o mesmo pedido com a mesma chave responde <Code>200</Code> com o resultado.</>,
+                event: <><Code>payment_session.paid</Code>, quando se conclui — o stream em tempo real passa a <Code>PAID</Code> no mesmo momento.</>,
+                console: 'Transações: o pagamento aparece quando se conclui.', cleanup: 'Reembolse o pagamento, ou reponha a Sandbox.',
+                limits: 'Mostre um estado pendente e aja no webhook ou no stream — não no 202.' }} />
               <RecipeCard lang="pt" r={{ id: 'testar-idempotencia', title: 'Repetir um pedido com segurança', scenario: 'IDEMPOTENT_REPLAY IDEMPOTENCY_PAYLOAD_CONFLICT CONCURRENT_DUPLICATE',
                 trigger: <>Envie o mesmo POST duas vezes com a mesma <Code>Idempotency-Key</Code>; depois, a mesma chave com outro corpo.</>,
                 api: <>A segunda resposta é igual à primeira. Com outro corpo: <Code>409 IDEMPOTENCY_KEY_REUSED</Code>. Dois pedidos simultâneos: <Code>409 IDEMPOTENCY_CONFLICT</Code>.</>,

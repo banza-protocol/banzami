@@ -2837,7 +2837,7 @@
         "operationId": "payAsTestPayer",
         "summary": "Pay as a test payer",
         "x-banzami-scope": "sandbox:write",
-        "description": "Pays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write.",
+        "description": "Pays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write. simulate DELAYED answers 202 PENDING and completes about 10 seconds later.",
         "parameters": [
           {
             "name": "id",
@@ -2885,6 +2885,26 @@
                   "paid_at": "2026-09-14T10:05:00Z",
                   "proof_reference": "BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX",
                   "simulated": false
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "PENDING — simulate DELAYED: accepted, not yet complete. The payment completes on its own about 10 seconds later (the session becomes PAID and payment_session.paid is sent); a repeat with the same Idempotency-Key answers 202 until then and 200 with the result afterwards.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPaymentPending"
+                },
+                "example": {
+                  "test_payer_id": "tp_xxx",
+                  "via": "LINK",
+                  "payment_session_id": "payment_session_xxx",
+                  "status": "PENDING",
+                  "simulated": true,
+                  "completes_after_seconds": 10,
+                  "message": "Sandbox simulation: accepted and not yet complete.",
+                  "request_id": "0123456789abcdef0123456789abcdef"
                 }
               }
             }
@@ -4880,9 +4900,10 @@
             "enum": [
               "DECLINED",
               "PROVIDER_UNAVAILABLE",
-              "TIMEOUT"
+              "TIMEOUT",
+              "DELAYED"
             ],
-            "description": "An external-rail outcome, requested explicitly. DECLINED and PROVIDER_UNAVAILABLE move nothing. TIMEOUT pays and answers 503 SANDBOX_SIMULATED_TIMEOUT; repeat with the same Idempotency-Key to read the real result."
+            "description": "An external-rail outcome, requested explicitly. DECLINED and PROVIDER_UNAVAILABLE move nothing. TIMEOUT pays and answers 503 SANDBOX_SIMULATED_TIMEOUT; repeat with the same Idempotency-Key to read the real result. DELAYED answers 202 PENDING and completes the payment on its own about 10 seconds later."
           }
         }
       },
@@ -5008,6 +5029,56 @@
           "type",
           "synthetic",
           "status"
+        ]
+      },
+      "TestPaymentPending": {
+        "type": "object",
+        "description": "A test payment accepted with simulate DELAYED and not yet complete.",
+        "properties": {
+          "test_payer_id": {
+            "type": "string"
+          },
+          "via": {
+            "type": "string",
+            "enum": [
+              "LINK",
+              "QR"
+            ]
+          },
+          "payment_session_id": {
+            "type": "string"
+          },
+          "payment_link_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING"
+            ]
+          },
+          "simulated": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "completes_after_seconds": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "test_payer_id",
+          "via",
+          "status",
+          "simulated",
+          "completes_after_seconds"
         ]
       }
     }

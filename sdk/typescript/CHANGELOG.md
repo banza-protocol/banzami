@@ -21,7 +21,9 @@ examples for the features below use the Console or HTTP.
   `payAsTestPayer` (pay your own session or link by link or QR, with an explicit
   `simulate` for external-rail outcomes) and `retireTestPayer`. Sandbox keys only.
   A test payer acts only through this API: `TestPayer` carries no PIN, and it
-  signs in to no app.
+  signs in to no app. `simulate: 'DELAYED'` returns a `TestPaymentPending`
+  (202, `status: 'PENDING'`) and the payment completes on its own about 10
+  seconds later.
 - `sendWebhookTestEvent(endpointId)` — a synthetic `webhook.test` event, signed
   like any other, that moves nothing and can be replayed.
 - `@banzami/sdk/realtime` — `watchPaymentSessionStatus`, for a browser page: it

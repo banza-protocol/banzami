@@ -6,8 +6,10 @@ import (
 	_ "embed"
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -86,6 +88,30 @@ type SandboxDevHandler struct {
 	rdb      *redis.Client
 	mu       sync.Mutex
 	timeouts map[string]timedOutcome
+
+	// delay is how long a simulate DELAYED payment waits before it completes.
+	delay time.Duration
+}
+
+// SandboxDelayedCompletion is how long a simulate DELAYED payment is PENDING
+// before it completes on its own (ADR-060 §5): long enough for a client to show
+// a pending state and learn the outcome from the webhook, the realtime stream or
+// a later read, short enough to test in one sitting.
+const SandboxDelayedCompletion = 10 * time.Second
+
+// sandboxDelayedQueue holds DELAYED payments due for completion (Redis sorted
+// set, score = due Unix milliseconds), so a gateway restart does not lose them.
+const sandboxDelayedQueue = "sbx:delayed"
+
+type delayedPayment struct {
+	CacheKey  string          `json:"k"`
+	ProjectID string          `json:"p"`
+	PayerID   string          `json:"t"`
+	Body      json.RawMessage `json:"b"`
+	Via       string          `json:"v"`
+	SessionID string          `json:"s,omitempty"`
+	LinkID    string          `json:"l,omitempty"`
+	Attempts  int             `json:"a"`
 }
 
 const simulatedTimeoutTTL = 24 * time.Hour
@@ -100,7 +126,7 @@ func NewSandboxDevHandler(publicAPIURL, internalKey string, sessions devSessionR
 	return &SandboxDevHandler{
 		publicAPI: strings.TrimRight(publicAPIURL, "/"), internalKey: internalKey,
 		http: &http.Client{Timeout: 20 * time.Second}, sessions: sessions, links: links,
-		timeouts: map[string]timedOutcome{},
+		timeouts: map[string]timedOutcome{}, delay: SandboxDelayedCompletion,
 	}
 }
 
@@ -199,26 +225,34 @@ func (h *SandboxDevHandler) forward(w http.ResponseWriter, r *http.Request, meth
 		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "Sandbox test payers are not available on this deployment")
 		return 0, nil, false
 	}
+	status, raw, err := h.callPublicAPI(r.Context(), method, path, body, projectID, r.URL.Query().Get("include_retired") == "true")
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "the Sandbox test payer service did not answer")
+		return 0, nil, false
+	}
+	return status, raw, true
+}
+
+// callPublicAPI makes one call to public-api's internal test-payer routes.
+func (h *SandboxDevHandler) callPublicAPI(ctx context.Context, method, path string, body []byte, projectID string, includeRetired bool) (int, []byte, error) {
 	u := h.publicAPI + "/internal/v1/sandbox/test-payers" + path
 	q := url.Values{"project_id": {projectID}}
-	if r.URL.Query().Get("include_retired") == "true" {
+	if includeRetired {
 		q.Set("include_retired", "true")
 	}
-	req, err := http.NewRequestWithContext(r.Context(), method, u+"?"+q.Encode(), bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, method, u+"?"+q.Encode(), bytes.NewReader(body))
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not build the request")
-		return 0, nil, false
+		return 0, nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Internal-Key", h.internalKey)
 	resp, err := h.http.Do(req)
 	if err != nil {
-		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "the Sandbox test payer service did not answer")
-		return 0, nil, false
+		return 0, nil, err
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	return resp.StatusCode, raw, true
+	return resp.StatusCode, raw, nil
 }
 
 func writeSandboxRaw(w http.ResponseWriter, status int, raw []byte) {
@@ -328,6 +362,11 @@ const (
 	SimulateDeclined            = "DECLINED"
 	SimulateProviderUnavailable = "PROVIDER_UNAVAILABLE"
 	SimulateTimeout             = "TIMEOUT"
+	// SimulateDelayed answers 202 PENDING at once and completes the payment
+	// SandboxDelayedCompletion later, on its own: the outcome reaches the client
+	// by the webhook, the realtime stream, a read of the session, or a repeat
+	// of the request with the same Idempotency-Key.
+	SimulateDelayed = "DELAYED"
 )
 
 // PayAsTestPayer handles POST /v1/sandbox/test-payers/{id}/payments.
@@ -388,14 +427,14 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 			"simulated": true, "request_id": w.Header().Get("X-Request-ID"),
 		})
 		return
-	case SimulateTimeout:
+	case SimulateTimeout, SimulateDelayed:
 		if key == "" {
 			apierror.Respond(w, r, http.StatusBadRequest, "IDEMPOTENCY_KEY_REQUIRED",
-				"simulate TIMEOUT needs an Idempotency-Key, so the retry can read the real result")
+				"simulate "+in.Simulate+" needs an Idempotency-Key, so a repeat can read the real result")
 			return
 		}
 	default:
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "simulate must be DECLINED, PROVIDER_UNAVAILABLE or TIMEOUT")
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "simulate must be DECLINED, PROVIDER_UNAVAILABLE, TIMEOUT or DELAYED")
 		return
 	}
 
@@ -444,6 +483,17 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 	}
 	b, _ := json.Marshal(target)
 	payerID := chi.URLParam(r, "id")
+	if in.Simulate == SimulateDelayed {
+		via := "LINK"
+		if _, isQR := target["qr_payload"]; isQR {
+			via = "QR"
+		}
+		h.acceptDelayed(w, r, delayedPayment{
+			CacheKey: cacheKey, ProjectID: p.ProjectID, PayerID: payerID, Body: b, Via: via,
+			SessionID: in.PaymentSessionID, LinkID: in.PaymentLinkID,
+		})
+		return
+	}
 	status, raw, ok := h.forward(w, r, http.MethodPost, "/"+url.PathEscape(payerID)+"/payments", b, p.ProjectID)
 	if !ok {
 		return
@@ -543,4 +593,91 @@ func (h *SandboxDevHandler) withReceipt(ctx context.Context, raw []byte) []byte 
 	out["proof_reference"] = rec.ProofReference
 	b, _ := json.Marshal(out)
 	return b
+}
+
+// acceptDelayed answers 202 PENDING, remembers that answer under the
+// Idempotency-Key (a repeat reads it until the payment completes, then reads
+// the real result) and queues the completion.
+func (h *SandboxDevHandler) acceptDelayed(w http.ResponseWriter, r *http.Request, job delayedPayment) {
+	pending := map[string]any{
+		"test_payer_id": job.PayerID, "via": job.Via, "status": "PENDING", "simulated": true,
+		"completes_after_seconds": int(math.Ceil(h.delay.Seconds())),
+		"message": "Sandbox simulation: accepted and not yet complete. It completes on its own — watch the webhook, the realtime stream " +
+			"or the session, or repeat this request with the same Idempotency-Key.",
+		"request_id": w.Header().Get("X-Request-ID"),
+	}
+	if job.SessionID != "" {
+		pending["payment_session_id"] = job.SessionID
+	} else {
+		pending["payment_link_id"] = job.LinkID
+	}
+	body, _ := json.Marshal(pending)
+	h.storeOutcome(r.Context(), job.CacheKey, http.StatusAccepted, body)
+	due := time.Now().Add(h.delay)
+	if h.rdb != nil {
+		member, _ := json.Marshal(job)
+		if err := h.rdb.ZAdd(r.Context(), sandboxDelayedQueue, redis.Z{Score: float64(due.UnixMilli()), Member: member}).Err(); err != nil {
+			apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "the delayed simulation could not be queued; nothing moved")
+			return
+		}
+	} else {
+		time.AfterFunc(h.delay, func() { h.completeDelayed(context.Background(), job) })
+	}
+	writeSandboxRaw(w, http.StatusAccepted, body)
+}
+
+// completeDelayed makes the queued payment through the same consumer path as an
+// immediate one and stores the real result under the Idempotency-Key. A
+// refusal (insufficient funds, a session paid meanwhile) is the result too.
+// It reports false when public-api did not answer, so the caller may retry.
+func (h *SandboxDevHandler) completeDelayed(ctx context.Context, job delayedPayment) bool {
+	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	status, raw, err := h.callPublicAPI(cctx, http.MethodPost, "/"+url.PathEscape(job.PayerID)+"/payments", job.Body, job.ProjectID, false)
+	if err != nil {
+		return false
+	}
+	if status >= 200 && status < 300 {
+		raw = testPaymentResult(raw, job.PayerID, job.Via, job.SessionID, job.LinkID)
+		raw = h.withReceipt(cctx, raw)
+	}
+	h.storeOutcome(cctx, job.CacheKey, status, raw)
+	return true
+}
+
+// RunDelayedPayments completes queued DELAYED payments as they fall due, until
+// ctx ends. Several gateways may run it: ZREM decides which one owns a job.
+func (h *SandboxDevHandler) RunDelayedPayments(ctx context.Context) {
+	if h.rdb == nil {
+		return
+	}
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+		due, err := h.rdb.ZRangeByScore(ctx, sandboxDelayedQueue, &redis.ZRangeBy{
+			Min: "-inf", Max: strconv.FormatInt(time.Now().UnixMilli(), 10), Count: 20,
+		}).Result()
+		if err != nil {
+			continue
+		}
+		for _, member := range due {
+			if n, err := h.rdb.ZRem(ctx, sandboxDelayedQueue, member).Result(); err != nil || n != 1 {
+				continue // another gateway took it
+			}
+			var job delayedPayment
+			if json.Unmarshal([]byte(member), &job) != nil {
+				continue
+			}
+			if !h.completeDelayed(ctx, job) && job.Attempts < 3 {
+				job.Attempts++
+				again, _ := json.Marshal(job)
+				_ = h.rdb.ZAdd(ctx, sandboxDelayedQueue, redis.Z{Score: float64(time.Now().Add(5 * time.Second).UnixMilli()), Member: again}).Err()
+			}
+		}
+	}
 }

@@ -3865,6 +3865,48 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "É o caso a tratar em produção: um timeout não diz se o pagamento aconteceu. Repita com a mesma chave; nunca crie um pagamento novo."
   },
+  "pt:Testing:915e7be747": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Pague como pagador de teste com simulate: \"DELAYED\" e uma Idempotency-Key."
+  },
+  "pt:Testing:754c82a847": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "202 com status: \"PENDING\" e simulated: true. Cerca de 10 segundos depois o pagamento conclui-se sozinho: a sessão fica PAID, e o mesmo pedido com a mesma chave "
+  },
+  "pt:Testing:93f21dbbb7": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid, quando se conclui — o stream em tempo real passa a PAID no mesmo momento."
+  },
+  "pt:Testing:05b1fc8879": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Transações: o pagamento aparece quando se conclui."
+  },
+  "pt:Testing:7799f7ac8a": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Reembolse o pagamento, ou reponha a Sandbox."
+  },
+  "pt:Testing:22baeae5cb": {
+   "page": "Testing",
+   "kind": "recipe-limits",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Mostre um estado pendente e aja no webhook ou no stream — não no 202."
+  },
   "pt:Testing:9428b48151": {
    "page": "Testing",
    "kind": "recipe-trigger",
@@ -8729,6 +8771,48 @@
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "This is the case to handle in production: a timeout does not say whether the payment happened. Retry with the same key; never create a new payment."
+  },
+  "en:Testing:e49ac73f07": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Pay as a test payer with simulate: \"DELAYED\" and an Idempotency-Key."
+  },
+  "en:Testing:1f2ae2c54e": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "202 with status: \"PENDING\" and simulated: true. About 10 seconds later the payment completes on its own: the session becomes PAID, and the same request with the"
+  },
+  "en:Testing:6df9b58548": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid, when it completes — the realtime stream turns PAID at the same moment."
+  },
+  "en:Testing:aa6cf61cb9": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Transactions: the payment appears when it completes."
+  },
+  "en:Testing:135d90cb7e": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Refund the payment, or reset the Sandbox."
+  },
+  "en:Testing:c1532435af": {
+   "page": "Testing",
+   "kind": "recipe-limits",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Show a pending state, then act on the webhook or the stream — not on the 202."
   },
   "en:Testing:c92b79eaef": {
    "page": "Testing",

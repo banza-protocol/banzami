@@ -65,6 +65,7 @@ export type {
   TestPayer,
   TestPayerStatus,
   TestPayment,
+  TestPaymentPending,
   CreateTestPayerParams,
   FundTestPayerParams,
   PayAsTestPayerParams,
