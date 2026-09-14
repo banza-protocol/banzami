@@ -1139,24 +1139,28 @@ func (s *pgStore) ReplayWebhookDelivery(ctx context.Context, merchantID, deliver
 	// caller's, or does not exist, is not-found; one that already succeeded is a
 	// conflict, because the caller CAN see it and the answer is "that one worked".
 	var status string
+	var synthetic bool
 	err := s.pool.QueryRow(ctx,
-		`SELECT d.status
+		`SELECT d.status, COALESCE(ev.synthetic, false)
 		   FROM webhook_deliveries d
 		   JOIN webhook_endpoints ep ON ep.id = d.endpoint_id
-		  WHERE d.id = $1 AND ep.merchant_id = $2`, deliveryID, merchantID).Scan(&status)
+		   JOIN webhook_events ev ON ev.id = d.event_id
+		  WHERE d.id = $1 AND ep.merchant_id = $2`, deliveryID, merchantID).Scan(&status, &synthetic)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
 	if err != nil {
 		return err
 	}
-	if status == "SUCCESS" {
+	// A delivery that succeeded was received and acted on — except a Sandbox
+	// test event's, which moves nothing and exists to be sent again.
+	if status == "SUCCESS" && !synthetic {
 		return ErrConflict
 	}
 	tag, err := s.pool.Exec(ctx,
 		`UPDATE webhook_deliveries
 		    SET status = 'PENDING', scheduled_at = now(), last_error = NULL
-		  WHERE id = $1 AND status <> 'SUCCESS'`, deliveryID)
+		  WHERE id = $1 AND (status <> 'SUCCESS' OR $2)`, deliveryID, synthetic)
 	if err != nil {
 		return err
 	}
@@ -1192,7 +1196,7 @@ func (s *pgStore) WebhookEventsForMerchant(ctx context.Context, merchantID strin
 		limit = 50
 	}
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, event_type, created_at
+		`SELECT id, event_type, created_at, COALESCE(synthetic, false)
 		   FROM webhook_events
 		  WHERE merchant_id = $1
 		  ORDER BY created_at DESC
@@ -1204,7 +1208,7 @@ func (s *pgStore) WebhookEventsForMerchant(ctx context.Context, merchantID strin
 	out := []WebhookEventView{}
 	for rows.Next() {
 		var v WebhookEventView
-		if err := rows.Scan(&v.ID, &v.EventType, &v.CreatedAt); err != nil {
+		if err := rows.Scan(&v.ID, &v.EventType, &v.CreatedAt, &v.Synthetic); err != nil {
 			return nil, err
 		}
 		out = append(out, v)

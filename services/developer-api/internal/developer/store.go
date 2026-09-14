@@ -678,6 +678,9 @@ type WebhookEventView struct {
 	ID        string    `json:"id"`
 	EventType string    `json:"event_type"`
 	CreatedAt time.Time `json:"created_at"`
+	// Synthetic marks a Sandbox test event (webhook.test): it describes no
+	// payment, and its delivery may be replayed even after it succeeded.
+	Synthetic bool `json:"synthetic"`
 }
 
 type WebhookDeliveryView struct {
