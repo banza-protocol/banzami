@@ -139,9 +139,10 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
         </div>
         <span className="bz-docs-headactions" style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
           <LanguagePill
-            href={otherLangHref}
-            target={lang === 'pt' ? 'en' : 'pt'}
-            label={lang === 'pt' ? 'Read the documentation in English' : 'Ler a documentação em português'}
+            lang={lang}
+            otherHref={otherLangHref}
+            groupLabel={lang === 'pt' ? 'Idioma' : 'Language'}
+            switchLabel={lang === 'pt' ? 'Read the documentation in English' : 'Ler a documentação em português'}
           />
           <a href="/login" className="bz-toplink" aria-label={lang === 'pt' ? 'Entrar na Consola' : 'Open the Console'} style={{ ...backLinkStyle, color: RED, fontWeight: 800, whiteSpace: 'nowrap' }}>
             {lang === 'pt' ? 'Entrar na Consola' : 'Open the Console'}
