@@ -451,6 +451,9 @@ func (s *Service) AcceptInvite(ctx context.Context, actor, actorEmail, rawToken,
 		return Member{}, ErrForbidden // invite is bound to a specific email
 	}
 	mem, err := s.store.AcceptInvite(ctx, inv.ID, actor)
+	if errors.Is(err, ErrDeleting) {
+		return Member{}, ErrDeleting
+	}
 	if errors.Is(err, ErrNotFound) {
 		return Member{}, ErrInviteState // revoked, accepted or expired since the read above
 	}
@@ -557,6 +560,9 @@ func (s *Service) CreateProject(ctx context.Context, actor, wsID, name, ip, reqI
 		if err == nil {
 			s.audit(ctx, &actor, &wsID, &p.ID, "project.created", "PROJECT:"+p.ID, ip, reqID, nil)
 			return p, nil
+		}
+		if errors.Is(err, ErrDeleting) {
+			return Project{}, ErrDeleting
 		}
 		if err != ErrConflict {
 			return Project{}, ErrUnavailable
@@ -1096,6 +1102,9 @@ func (s *Service) CreateAPIKey(ctx context.Context, actor, projectID, kind, name
 		rawSecret = raw // shown once
 	}
 	key, err := s.store.CreateAPIKey(ctx, in)
+	if errors.Is(err, ErrDeleting) {
+		return APIKey{}, "", ErrDeleting
+	}
 	if err != nil {
 		return APIKey{}, "", ErrUnavailable
 	}
@@ -1157,6 +1166,9 @@ func (s *Service) CreateFixtureAPIKey(ctx context.Context, projectID, name strin
 		ins.PublicValue = raw
 	}
 	key, err := s.store.CreateAPIKey(ctx, ins)
+	if errors.Is(err, ErrDeleting) {
+		return APIKey{}, "", ErrDeleting
+	}
 	if err != nil {
 		return APIKey{}, "", ErrUnavailable
 	}
@@ -1378,6 +1390,9 @@ func (s *Service) RotateAPIKey(ctx context.Context, actor, keyID, ip, reqID stri
 		rawSecret = raw
 	}
 	nk, err := s.store.RotateAPIKey(ctx, old, in)
+	if errors.Is(err, ErrDeleting) {
+		return APIKey{}, "", ErrDeleting
+	}
 	if err != nil {
 		return APIKey{}, "", ErrUnavailable
 	}
@@ -1493,6 +1508,9 @@ func (s *Service) BindProjectSandbox(ctx context.Context, projectID, merchantID,
 		}
 		return SandboxBinding{}, ErrConflict
 	}
+	if errors.Is(err, ErrDeleting) {
+		return SandboxBinding{}, ErrDeleting
+	}
 	if err != nil {
 		return SandboxBinding{}, ErrUnavailable
 	}
@@ -1554,6 +1572,9 @@ func (s *Service) RebindProjectSandbox(ctx context.Context, projectID, merchantI
 	})
 	if err == ErrConflict {
 		return SandboxBinding{}, "", ErrConflict
+	}
+	if errors.Is(err, ErrDeleting) {
+		return SandboxBinding{}, "", ErrDeleting
 	}
 	if err != nil {
 		return SandboxBinding{}, "", ErrUnavailable

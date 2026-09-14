@@ -246,6 +246,9 @@ func (s *Service) RunExplorerRequest(ctx context.Context, actor, projectID strin
 		KeyPrefix: prefix, KeyHash: hashKey(raw, s.apiKeyPepper), HashVersion: 1,
 		Scopes: []string{op.Scope}, CreatedBy: actor, Purpose: PurposeExplorer, ExpiresAt: &exp,
 	})
+	if errors.Is(err, ErrDeleting) {
+		return nil, ErrNotFound // the project is gone
+	}
 	if err != nil {
 		return nil, ErrExplorerUnavailable
 	}

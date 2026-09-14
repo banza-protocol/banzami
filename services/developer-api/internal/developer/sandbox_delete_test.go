@@ -358,3 +358,29 @@ func TestSandboxDelete_ArchiveStaysArchive(t *testing.T) {
 		t.Fatalf("an archived project is still listed when asked for: %d", len(list))
 	}
 }
+
+// deletionBetween begins the project's deletion after the service has
+// authorised a key creation and before the store inserts it: the window a
+// request already past its permission check falls into.
+type deletionBetween struct{ *memStore }
+
+func (d deletionBetween) CreateAPIKey(ctx context.Context, in APIKeyInsert) (APIKey, error) {
+	if _, err := d.memStore.BeginProjectDeletion(ctx, in.ProjectID); err != nil {
+		return APIKey{}, err
+	}
+	return d.memStore.CreateAPIKey(ctx, in)
+}
+
+func TestSandboxDelete_ARequestPastItsCheckIsRefusedAsDeletingNotUnavailable(t *testing.T) {
+	_, st, _, ws := sandboxSvc(t)
+	racing := NewService(deletionBetween{st}, "invite-secret-fixture", "api-key-pepper-fixture", time.Hour)
+	racing.SetSandboxEnvironment(true)
+	p, err := racing.CreateProject(bg, "u_owner", ws, "Janela", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = racing.CreateAPIKey(bg, "u_owner", p.ID, KindSecret, "k", []string{"identity:read"}, "", "")
+	if !errors.Is(err, ErrDeleting) {
+		t.Fatalf("a key creation that meets the deletion answers RESOURCE_DELETING, not a server fault: %v", err)
+	}
+}
