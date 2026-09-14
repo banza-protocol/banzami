@@ -53,7 +53,7 @@ surfaces disagreed, the one lower in that order was changed.
 | Developer docs | SDK 0.13.0, "use HTTP until the next release" | registry: `latest` = 0.14.1 | current version 0.14.1 on the SDK page (PT/EN) and `llms.txt`; TypeScript for links, test payers (including `simulate: 'DELAYED'`), realtime and the webhook test event, compiled against npm 0.14.1; changelog rows for 0.14.0 and 0.14.1 kept as history; `DOCS_CURRENT_SDK_VERSION=0.14.1`, `SDK_DOCS_REGISTRY_DRIFT=0` | PASS |
 | Console | "Live" / "aprovação institucional" | wording above | "Financial Live", approvals wording | PASS |
 | SDK README (npm, `latest` 0.14.1) | Live as production, planned publishable keys, merchant-credential tour, relative repo links | runtime | read from the tarball npm serves (gitHead `348dc074`): none of the retired statements; Sandbox and Financial Live status and the docs link present; `SDK_README_STALE_CLAIMS=0`, `SDK_PUBLIC_PACKAGE_CONTRACT=PASS` (install proof 30/30). 0.14.0 remains on npm as an older version, superseded as `latest` | PASS |
-| Sandbox resources after acceptance | nothing synthetic left active; nothing unclassified | `ops/canonical-resources.yaml` | `Doa-Sandbox` (project, workspace `DOA`, created 2026-09-08 — six days before this milestone, owner `contact@doadoa.app`) is declared **canonical**: the Project behind DOA's live donations and its two runtime keys. `check-canonical-resources`: 0 unclassified identities, workspaces, projects and keys. `retire-synthetic-residue.sh` dry run: 0 synthetic merchants, accounts, webhooks, consumers or projects active. Every acceptance run in this closure reported residue 0 and its fixture identities were swept. `DOA_SANDBOX_CLASSIFICATION=CANONICAL` | PASS |
+| Sandbox resources after acceptance | nothing synthetic left active; nothing unclassified | `ops/canonical-resources.yaml` | `Doa-Sandbox` (project, workspace `DOA`, created 2026-09-08 — six days before this milestone, owner `contact@doadoa.app`) is declared **canonical**: the canonical Project used by the publicly deployed DOA application, with its two runtime keys. Its financial execution remains entirely in the Banzami Public Sandbox, with fictitious value — a publicly deployed application is not Financial Live. `check-canonical-resources`: 0 unclassified identities, workspaces, projects and keys. `retire-synthetic-residue.sh` dry run: 0 synthetic merchants, accounts, webhooks, consumers or projects active. Every acceptance run in this closure reported residue 0 and its fixture identities were swept. `DOA_SANDBOX_CLASSIFICATION=CANONICAL` | PASS |
 | Go DB-backed tests | clean isolation | final regression | `TestClaimDueDeliveries_OneTickOneClaim` failed once ("claimed 0"): its seed was one second old and 50 older leaked PENDING rows hid it. The leak was a `defer pool.Close()` running before `t.Cleanup` (11 deliveries per run). Fixed in `e88a27c0` (40 pools now closed by `t.Cleanup`; the claim test seeds far in the past, reproduced failing with 60 due rows before, passing after); a full run leaves no webhook row | PASS |
 | Explorer | encoded dot segments, cross-host redirects | developer-api broker | `%2e%2e`, `%2E.`, `.%2e`, `%252e%252e`, `%2f`, `\`, `?`, `#` refused (unit + deployed, with a control); another host never contacted | PASS |
 | PT/EN | contract parity | docs gate | docs PT/EN structure and claims parity PASS; banzami.com is Portuguese-only by design (`lang="pt"`), so there is no English marketing contract to drift | PASS |
@@ -127,3 +127,28 @@ FINANCIAL_LIVE_STATUS=NOT_READY
 FINANCIAL_LIVE_FAIL_CLOSED=PASS
 PUBLIC_TRUTH_GAPS=0
 ```
+
+## Final verdict
+
+Recorded 2026-09-14 on `FINAL_HEAD_SHA` `83c912e6` (report corrections follow in a docs-only commit).
+
+```
+FINAL_SDK_VERSION=0.14.1
+FINAL_REPORT_CURRENT_SDK_VERSION=0.14.1
+FINAL_REPORT_FINANCIAL_LIVE_AMBIGUITY=0
+```
+
+PUBLIC-TRUTH-001 FULLY CONFORMANT
+BANZAMI PUBLIC PLATFORM SINGLE PUBLIC TRUTH — PASS
+BANZAMI DEVELOPER PLATFORM READY FOR PUBLIC DEVELOPER USE
+BANZAMI PUBLIC SANDBOX FULLY SELF-SERVICE
+BANZAMI DEVELOPERS DOCUMENTATION READY FOR PUBLIC RELEASE
+PUBLIC SDK @banzami/sdk 0.14.1 VERIFIED FROM REGISTRY
+Financial LIVE NOT READY / FAIL-CLOSED
+Public website, runtime, OpenAPI, SDK, Console and documentation are aligned to the same current product truth.
+ZERO KNOWN RELEASE-BLOCKING DEFECTS
+ZERO KNOWN UNRESOLVED PRODUCT DEFECTS
+ZERO KNOWN PUBLIC CONTRACT CONTRADICTIONS
+ZERO BLOCKED ACCEPTANCE STEPS
+ZERO FAILED ACCEPTANCE STEPS
+NO FREEZE. NO TAG.

@@ -81,8 +81,11 @@ workspaces:
 projects:
   - resource: Doa-Sandbox
     owner: contact@doadoa.app (workspace DOA)
-    purpose: The Project behind DOA's donations — bound to DOA's Business, holds its runtime keys.
-    why_now: Live application traffic depends on it.
+    purpose: The canonical Project used by the publicly deployed DOA application — bound to DOA's Business, holds its runtime keys.
+    why_now: >
+      The publicly deployed DOA application depends on it. Its financial execution
+      is entirely in the Banzami Public Sandbox, with fictitious value; a publicly
+      deployed application is not Financial Live.
     classification: canonical
     authority: integrator
     lifetime: as long as DOA integrates
