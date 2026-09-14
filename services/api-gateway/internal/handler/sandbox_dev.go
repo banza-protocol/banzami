@@ -18,6 +18,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/common/documents"
 	"github.com/banzami/banzami/services/common/env"
 )
 
@@ -55,6 +56,13 @@ type devLinkReader interface {
 	Get(ctx context.Context, id string) (*service.PaymentLink, error)
 }
 
+// devReceipts issues the canonical receipt of a transfer (the same semantics
+// the consumer app's receipt uses), for a QR payment whose consumer path
+// returns no receipt of its own.
+type devReceipts interface {
+	TransferReceipt(ctx context.Context, transferID, environment string, issue bool) (documents.Receipt, error)
+}
+
 // devQRReader reads a session's dynamic QR: a session read carries the QR's id,
 // not its signed payload, which only the create response returns.
 type devQRReader interface {
@@ -68,6 +76,7 @@ type SandboxDevHandler struct {
 	sessions    devSessionReader
 	links       devLinkReader
 	qrs         devQRReader
+	receipts    devReceipts
 
 	// The real outcome of a simulated timeout, by project|Idempotency-Key, for
 	// 24 hours: in Redis when the gateway has it (it survives a restart), in
@@ -91,6 +100,12 @@ func NewSandboxDevHandler(publicAPIURL, internalKey string, sessions devSessionR
 		http: &http.Client{Timeout: 20 * time.Second}, sessions: sessions, links: links,
 		timeouts: map[string]timedOutcome{},
 	}
+}
+
+// WithReceipts lets a test payment name its receipt whichever path paid it.
+func (h *SandboxDevHandler) WithReceipts(r devReceipts) *SandboxDevHandler {
+	h.receipts = r
+	return h
 }
 
 // WithQRReader lets via: QR pay a session read back from its QR id.
@@ -437,6 +452,7 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 			via = "QR"
 		}
 		raw = testPaymentResult(raw, payerID, via, in.PaymentSessionID, in.PaymentLinkID)
+		raw = h.withReceipt(r.Context(), raw)
 	}
 	if in.Simulate == SimulateTimeout {
 		h.storeOutcome(r.Context(), cacheKey, status, raw)
@@ -498,4 +514,31 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// withReceipt fills proof_reference from the transfer's canonical receipt when
+// the paying path did not return one (the QR path returns none). Best-effort:
+// a receipt that cannot be established now leaves proof_reference null, as the
+// consumer app's own path does.
+func (h *SandboxDevHandler) withReceipt(ctx context.Context, raw []byte) []byte {
+	if h.receipts == nil {
+		return raw
+	}
+	var out map[string]any
+	if json.Unmarshal(raw, &out) != nil || out["proof_reference"] != nil {
+		return raw
+	}
+	tid, _ := out["transfer_id"].(string)
+	if tid == "" {
+		return raw
+	}
+	rctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+	rec, err := h.receipts.TransferReceipt(rctx, tid, "SANDBOX", true)
+	if err != nil || rec.ProofReference == "" {
+		return raw
+	}
+	out["proof_reference"] = rec.ProofReference
+	b, _ := json.Marshal(out)
+	return b
 }

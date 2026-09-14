@@ -15,6 +15,7 @@ import (
 
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/common/documents"
 )
 
 type sbxSessions map[string]*service.PaymentSession
@@ -231,5 +232,34 @@ func TestSandboxDev_PaysByQRFromASessionReadBack(t *testing.T) {
 	rec := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","via":"QR"}`, "")
 	if rec.Code != http.StatusOK || len(up.calls) != 1 || !strings.Contains(up.calls[0], `"qr_payload":"signed-payload"`) {
 		t.Fatalf("via QR from a read-back session: %d calls=%v", rec.Code, up.calls)
+	}
+}
+
+type sbxReceipts struct{ calls int }
+
+func (r *sbxReceipts) TransferReceipt(_ context.Context, id, env string, issue bool) (documents.Receipt, error) {
+	r.calls++
+	if id != "tr-qr" || env != "SANDBOX" || !issue {
+		return documents.Receipt{}, service.ErrReceiptSourceNotFound
+	}
+	return documents.Receipt{ProofReference: "BZM-QR"}, nil
+}
+
+// The QR path returns no receipt; the test payment still names one.
+func TestSandboxDev_AQRTestPaymentNamesItsReceipt(t *testing.T) {
+	up := &upstream{}
+	up.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		up.calls = append(up.calls, r.URL.Path)
+		_, _ = w.Write([]byte(`{"transfer_id":"tr-qr","amount_minor":5000,"currency":"AOA","qr_type":"DYNAMIC","paid_at":"2026-09-14T00:00:00Z"}`))
+	}))
+	t.Cleanup(up.srv.Close)
+	sessions := sbxSessions{"own": {SessionID: "own", MerchantID: "merchant-A", QrPayload: slug("p")}}
+	rec := &sbxReceipts{}
+	h := NewSandboxDevHandler(up.srv.URL, "ik", sessions, sbxLinks{}).WithReceipts(rec)
+	res := post(t, sbxRouter(h, principalA()), "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","via":"QR"}`, "")
+	var body map[string]any
+	_ = json.Unmarshal(res.Body.Bytes(), &body)
+	if res.Code != http.StatusOK || body["proof_reference"] != "BZM-QR" || body["transfer_id"] != "tr-qr" || rec.calls != 1 {
+		t.Fatalf("QR test payment receipt: %d %s calls=%d", res.Code, res.Body, rec.calls)
 	}
 }

@@ -679,6 +679,48 @@ async fn a_session_qr_read_back_by_id_pays(pool: PgPool) {
     let (payer, _) = consumer_with_funds(&pool, 1_000_000).await;
     let paid = pay(&state, payer, &payload, None, "sbx-qr-read-back").await;
     assert!(paid.is_ok(), "read-back QR payment failed: {paid:?}");
+    // The session is PAID, its link retired, the event emitted once.
+    let sid = session["session_id"].as_str().unwrap().to_string();
+    let status: String =
+        sqlx::query_scalar("SELECT status FROM payment_sessions WHERE id=$1::uuid")
+            .bind(&sid)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(status, "PAID", "a session paid by its QR is PAID");
+    let link_status: String = sqlx::query_scalar(
+        "SELECT l.status FROM payment_links l JOIN payment_sessions s ON s.payment_link_id = l.id WHERE s.id=$1::uuid",
+    )
+    .bind(&sid)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_ne!(
+        link_status, "ACTIVE",
+        "the link of a session paid by QR can no longer be paid"
+    );
+    let events: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM webhook_events WHERE event_type='payment_session.paid' AND payload::text LIKE '%' || $1 || '%'",
+    )
+    .bind(&sid)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(events, 1);
+    // Paying the used code again is refused, and emits nothing more.
+    let replay = pay(&state, payer, &payload, None, "sbx-qr-read-back").await;
+    assert!(
+        matches!(&replay, Err((422, code, _)) if code == "QR_ALREADY_USED"),
+        "{replay:?}"
+    );
+    let again: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM webhook_events WHERE event_type='payment_session.paid' AND payload::text LIKE '%' || $1 || '%'",
+    )
+    .bind(&sid)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(again, 1);
     // The money is in the session's account's LEDGER account.
     let ledger: Uuid = sqlx::query_scalar("SELECT account_id FROM wallet_accounts WHERE id=$1")
         .bind(primary)

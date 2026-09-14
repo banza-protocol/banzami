@@ -366,6 +366,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				sbx := handler.NewSandboxDevHandler(cfg.PublicAPIInternalURL, cfg.InternalAPIKey, deps.PaymentSessionSvc, deps.PaymentLinkSvc).
 					WithOutcomeStore(deps.Redis).
 					WithQRReader(deps.QrSvc)
+				if deps.ProofSvc != nil {
+					sbx.WithReceipts(service.NewReceiptSemantics(deps.ProofSvc.Pool(), deps.ProofSvc))
+				}
 				r.Get("/v1/sandbox/scenarios", sbx.Scenarios)
 				r.Route("/v1/sandbox/test-payers", func(r chi.Router) {
 					r.Use(middleware.Idempotency(deps.Redis))

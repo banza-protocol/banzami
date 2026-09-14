@@ -292,6 +292,27 @@ pub async fn pay(
             .await
             .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    // A dynamic QR that belongs to a Payment Session settles that session in
+    // the same transaction as the money: PAID, its link retired, the wallet
+    // payment recorded and payment_session.paid emitted — exactly once, the
+    // same transition the link path takes. Without this a session paid by QR
+    // stayed ACTIVE with its link still payable, and the integrator was never
+    // told. A replayed key finds the session already PAID and changes nothing.
+    if target.qr_type == QrCodeType::Dynamic {
+        if let Some(qr_id) = target.qr_code_id {
+            super::payment_sessions::settle_for_interface_in(
+                &mut tx,
+                state.environment.as_str(),
+                "qr",
+                qr_id.as_uuid(),
+                settled_transfer_id,
+                "DYNAMIC_QR",
+            )
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+        }
+    }
+
     tx.commit()
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
