@@ -265,16 +265,21 @@ async function realtime() {
     await st.done;
 
     const again = openStream(S, tok);
-    await again.opened;
+    const am = await again.opened;
     const fresh = await until(() => again.events.some((e) => e.event === 'snapshot'), 8000);
-    mark(10, fresh && again.events.find((e) => e.event === 'snapshot')?.status === 'ACTIVE', `snapshot=${fresh}`);
+    mark(10, am.status === 200 && fresh && again.events.find((e) => e.event === 'snapshot')?.status === 'ACTIVE', `reconnect=${am.status} snapshot=${fresh}`);
 
+    // The stream closed for the reconnect keeps its place until the next
+    // heartbeat write fails; let it go before counting places.
+    await sleep(7000);
     const extra = [openStream(S, tok), openStream(S, tok)];
-    await Promise.all(extra.map((x) => x.opened));
+    const em = await Promise.all(extra.map((x) => x.opened));
     await until(() => extra.every((x) => x.events.some((e) => e.event === 'snapshot')), 8000);
     const fourth = openStream(S, tok);
     const fm = await fourth.opened;
-    mark(11, fm.status === 429 && fm.code === 'REALTIME_STREAM_LIMIT' && Number(fm.retryAfter) > 0, `4th=${fm.status} ${fm.code ?? ''} retry-after=${fm.retryAfter}`);
+    if (fm.status === 200) fourth.stop();
+    mark(11, em.every((x) => x.status === 200) && fm.status === 429 && fm.code === 'REALTIME_STREAM_LIMIT' && Number(fm.retryAfter) === 5,
+      `open=${em.map((x) => x.status).join(',')} 4th=${fm.status} ${fm.code ?? ''} retry-after=${fm.retryAfter}`);
     // Behind Cloudflare a closed stream is noticed at the next write: the place
     // must be free within one heartbeat (5 s) plus a poll and network margin.
     extra[1].stop();
@@ -387,14 +392,10 @@ async function isolation() {
 
     const epA = await A.api('/v1/webhooks/endpoints', 'POST', { url: 'https://sandbox-webhook.banzami.com/receive/iso', events: ['payment_session.paid'] });
     const EA = epA.body?.id;
-    await A.api(`/v1/webhooks/endpoints/${EA}/test`, 'POST');
-    let eventA; let deliveryA;
-    for (let i = 0; i < 15 && !deliveryA; i += 1) {
-      await sleep(2000);
-      const evs = (await A.api('/v1/webhooks/events?limit=20')).body;
-      eventA = (evs?.data ?? evs?.events ?? [])[0]?.id;
-      if (eventA) deliveryA = ((await A.api(`/v1/webhooks/events/${eventA}/deliveries`)).body?.deliveries ?? [])[0]?.id;
-    }
+    const testA = await A.api(`/v1/webhooks/endpoints/${EA}/test`, 'POST');
+    const eventA = testA.body?.event_id;
+    const deliveryA = testA.body?.delivery_id;
+    await sleep(3000);
     const deny = (x) => [403, 404].includes(x.status);
     const eg = await B.api(`/v1/webhooks/endpoints/${EA}`);
     const eh = await B.api(`/v1/webhooks/endpoints/${EA}/health`);
