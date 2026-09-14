@@ -27,7 +27,7 @@ CORE=$(docker ps --format '{{.Names}}'| grep core-api-staging    | head -1)
 PG=$(docker ps --format '{{.Names}}'  | grep postgres | grep bzsandbox | head -1)
 NET=$(docker inspect "$GW" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' | tr ' ' '\n' | grep -m1 'bzsb-app')
 IMG=$(docker inspect "$GW" --format '{{.Config.Image}}')
-URL=$(docker exec "$CORE" cat /run/secrets/db_url 2>/dev/null); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
+URL=$(cat /root/.banzami/operator_db_url); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>&1; }
 TARGET="http://$GW:8080/v1/public/proofs"
 PASS=0;FAIL=0

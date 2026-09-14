@@ -82,7 +82,7 @@ E2E_STATE_DIR="${E2E_STATE_DIR:-/var/tmp/banzami-e2e}"
 e2e_discover() {
   E2E_PG=$(docker ps   --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
   E2E_CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
-  E2E_PW=$(docker exec "$E2E_CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' 2>/dev/null | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+  E2E_PW=$(cat /root/.banzami/operator_db_url 2>/dev/null | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
   E2E_GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
   E2E_DEV=$(docker ps --format '{{.Names}}' | grep developer-api       | head -1)
   E2E_INTKEY=$(docker exec "$E2E_DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null' 2>/dev/null)

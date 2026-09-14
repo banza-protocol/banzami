@@ -95,7 +95,7 @@ ssh(`
   set -uo pipefail
   P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
   PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
+  PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
   q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
   ${ROLES.filter((r) => r !== 'OWNER').map((r) => `
   q "insert into developer.dev_workspace_members (workspace_id, user_id, role, accepted_at, status)
@@ -114,7 +114,7 @@ const canon = ssh(`
   set -uo pipefail
   P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
   PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
+  PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
   q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -F'|' -c "$1"; }
   q "select p.id, p.workspace_id from developer.dev_projects p
       where p.status='ACTIVE' and exists (select 1 from developer.dev_project_sandbox_binding b
@@ -126,7 +126,7 @@ ssh(`
   set -uo pipefail
   P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
   PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
+  PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
   q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
   ${ROLES.map((r) => `
   q "insert into developer.dev_workspace_members (workspace_id, user_id, role, accepted_at, status)

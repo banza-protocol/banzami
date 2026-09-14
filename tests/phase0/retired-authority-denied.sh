@@ -55,7 +55,7 @@ PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1
 [ -n "$GW" ] && [ -n "$DEV" ] && [ -n "$PG" ] || { echo "the Sandbox containers are not all present" >&2; exit 2; }
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 psql(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
 
 for _r in "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh" "$(cd "$(dirname "$0")" && pwd)/e2e-run.sh"; do

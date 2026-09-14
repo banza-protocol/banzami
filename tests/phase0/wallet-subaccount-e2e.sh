@@ -40,7 +40,7 @@ PG=$(docker ps --format '{{.Names}}'  | grep -E 'postgres' | grep bzsandbox | he
 
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
-DBURL=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null')
+DBURL=$(cat /root/.banzami/operator_db_url)
 PW=$(printf '%s' "$DBURL" | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 [ -n "$DEVINT" ] || { echo "NO_INTERNAL_KEY"; exit 1; }
 

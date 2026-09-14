@@ -20,7 +20,7 @@ DEV=$(docker ps --format '{{.Names}}' | grep developer-api       | head -1)
 PG=$(docker ps --format '{{.Names}}'  | grep postgres | grep bzsandbox | head -1)
 SECRET=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
-URL=$(docker exec "$CORE" cat /run/secrets/db_url 2>/dev/null); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
+URL=$(cat /root/.banzami/operator_db_url); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
 [ -n "$SECRET" ] && [ -n "$DEVINT" ] || { echo "NO_SECRET"; exit 1; }
 # Errors are NOT swallowed: a suppressed psql error reads as an empty result,
 # which reads as a failing assertion about the product rather than about the

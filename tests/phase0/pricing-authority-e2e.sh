@@ -24,7 +24,7 @@ DEV=$(docker ps --format '{{.Names}}' | grep developer-api       | head -1)
 PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret')
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 # Trimmed at the source. An id with a trailing newline interpolated into a
 # quoted SQL literal produces "invalid input syntax for type uuid" with the
 # opening quote visibly unmatched — which is what the first run of this harness

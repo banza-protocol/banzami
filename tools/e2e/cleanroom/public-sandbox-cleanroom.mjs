@@ -104,7 +104,7 @@ function residue(like) {
   try {
     return Number(execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
       `PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1); `
-      + `PW=$(docker exec $CORE sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); `
+      + `PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); `
       + `docker exec -e PGPASSWORD=$PW -e PGOPTIONS='-c default_transaction_read_only=on' $PG psql -U bl_app_runtime -d banzami_staging -At -c "${sql}"`], { encoding: 'utf8', timeout: 60000 }).trim());
   } catch { return -1; }
 }

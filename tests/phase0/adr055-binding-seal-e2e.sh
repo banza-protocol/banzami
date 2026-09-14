@@ -47,7 +47,7 @@ GW="http://$GWC:8080"
 [ -n "$DEV" ] && [ -n "$PG" ] && [ -n "$GWC" ] || { echo "developer-api, postgres or api-gateway container not found"; exit 2; }
 
 IK=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key')
-DBURL=$(docker exec "$DEV" sh -c 'cat /run/secrets/db_url')
+DBURL=$(cat /root/.banzami/operator_db_url)
 ACTOR=11111111-2222-4333-8444-555555555555
 
 # Ownership and cleanup. Everything this run creates is recorded by id and

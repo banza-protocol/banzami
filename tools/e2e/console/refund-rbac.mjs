@@ -37,7 +37,7 @@ const PRE = `
   set -uo pipefail
   P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
   PG="$P-postgres-1"; CORE="$P-core-api-staging"; DEV="$P-developer-api"; GW="$P-api-gateway-staging"; PUB="$P-public-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
+  PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
   q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -F'|' -c "$1" 2>/dev/null; }
 `;
 

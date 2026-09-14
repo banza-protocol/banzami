@@ -30,7 +30,7 @@ GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
 CORE=$(docker ps --format '{{.Names}}'| grep core-api-staging    | head -1)
 PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 [ -n "$JWTSEC" ] || { echo "NO_SECRET"; exit 1; }
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
 # Ownership and cleanup. Everything this run creates is recorded by id and

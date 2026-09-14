@@ -34,7 +34,7 @@ set -uo pipefail
 P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
 GW="$P-api-gateway-staging"; CORE="$P-core-api-staging"; PG="$P-postgres-1"
 [ -n "$P" ] || { echo "NO_SANDBOX_STACK"; exit 1; }
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret')
 
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"

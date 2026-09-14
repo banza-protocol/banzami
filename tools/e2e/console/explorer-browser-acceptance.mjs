@@ -156,7 +156,7 @@ try {
   let residue = -1;
   try {
     const sql = `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE name LIKE '${like}%' AND status='ACTIVE') + (SELECT count(*) FROM developer.dev_projects WHERE name LIKE '${like}%' AND status='ACTIVE') + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id=t.project_id WHERE p.name LIKE '${like}%' AND t.retired_at IS NULL)`;
-    residue = Number(execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, `PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1); PW=$(docker exec $CORE sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); docker exec -e PGPASSWORD=$PW -e PGOPTIONS='-c default_transaction_read_only=on' $PG psql -U bl_app_runtime -d banzami_staging -At -c "${sql}"`], { encoding: 'utf8' }).trim());
+    residue = Number(execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, `PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1); PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); docker exec -e PGPASSWORD=$PW -e PGOPTIONS='-c default_transaction_read_only=on' $PG psql -U bl_app_runtime -d banzami_staging -At -c "${sql}"`], { encoding: 'utf8' }).trim());
   } catch { /* measured as -1 */ }
   const ok = steps.length === 11 && steps.every((s) => s.verdict === 'PASS') && residue === 0;
   const out = join(assuranceDir('sandbox-self-service'), `explorer-browser-${Date.now()}.json`);

@@ -79,7 +79,7 @@ HARNESSES="$SELECTED"
 PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
 CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
 [ -n "$PG" ] && [ -n "$CORE" ] || { echo "run this on the Sandbox VM" >&2; exit 2; }
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
 
 [ -n "$SKIPPED_DOA" ] && echo "  skipped — they write into DOA's tenant (BANZAMI_ALLOW_DOA_TENANT_WRITES=1 includes them):$SKIPPED_DOA"

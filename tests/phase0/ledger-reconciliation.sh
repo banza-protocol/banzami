@@ -38,7 +38,7 @@ remote_self_or_continue
 
 CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
 PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
 
 PASS=0; FAIL=0

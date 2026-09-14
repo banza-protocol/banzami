@@ -51,7 +51,7 @@ CORE="$PROJECT-core-api-staging"
 PG="$PROJECT-postgres-1"
 # The directory is read from the running container's own bind, not guessed.
 DIR=$(docker inspect "$CORE" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' \
-      | grep '/run/secrets/db_url' | cut -d: -f1 | xargs dirname)
+      | grep '/run/secrets/core_internal_key:' | cut -d: -f1 | xargs dirname)
 [ -d "$DIR" ] || { echo "✗ cannot locate the secret directory" >&2; exit 2; }
 
 # ── the inventory ───────────────────────────────────────────────────────────
@@ -141,32 +141,38 @@ printf '%s\n' "$ROTATE" | while IFS='|' read -r n _ _; do
   fi
 done
 
-# ── the database password ───────────────────────────────────────────────────
-# The application role changes its own password, which needs no superuser and
-# no password anyone has to hold. The URL is rebuilt from its own parts so the
-# host, port, database and user cannot drift.
-URL=$(cat "$DIR/db_url")
-USER=$(printf '%s' "$URL" | sed -E 's#^[a-z]+://([^:]+):.*#\1#')
-REST=$(printf '%s' "$URL" | sed -E 's#^[a-z]+://[^:]+:[^@]+@(.*)$#\1#')
-NEWPW=$(openssl rand -hex 24 2>/dev/null || head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
-OLDPW=$(printf '%s' "$URL" | sed -E 's#^[a-z]+://[^:]+:([^@]+)@.*#\1#')
-
-if docker exec -e PGPASSWORD="$OLDPW" "$PG" psql -U "$USER" -d "${REST##*/}" -v ON_ERROR_STOP=1 \
-     -c "ALTER ROLE \"$USER\" WITH PASSWORD '$NEWPW'" >/dev/null 2>&1; then
-  printf 'postgresql://%s:%s@%s' "$USER" "$NEWPW" "$REST" > "$DIR/db_url"
-  chmod 644 "$DIR/db_url"
-  echo "  ✓ db_url rotated (the role changed its own password)"
-else
-  echo "  ✗ db_url NOT rotated — the ALTER ROLE was refused; the file is unchanged"
-  fail=1
-fi
-unset NEWPW OLDPW URL
+# ── the database passwords ──────────────────────────────────────────────────
+# One role per service (WALLET-NATIVE-001). Each role changes its own password,
+# which needs no superuser and no password anyone has to hold. The URL is
+# rebuilt from its own parts so the host, port, database and user cannot drift,
+# and the role's secret (secrets/mi_<role>) is updated with it: runtime-authority.sh
+# re-sets every password from those files after a migration.
+SECRETS="$(dirname "$DIR")/secrets"
+for f in db_url_core db_url_gateway db_url_public_api db_url_developer_api db_url_admin_api; do
+  [ -s "$DIR/$f" ] || { echo "  ✗ $f missing — run runtime-authority.sh apply"; fail=1; continue; }
+  URL=$(cat "$DIR/$f")
+  USER=$(printf '%s' "$URL" | sed -E 's#^[a-z]+://([^:]+):.*#\1#')
+  REST=$(printf '%s' "$URL" | sed -E 's#^[a-z]+://[^:]+:[^@]+@(.*)$#\1#')
+  NEWPW=$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+  OLDPW=$(printf '%s' "$URL" | sed -E 's#^[a-z]+://[^:]+:([^@]+)@.*#\1#')
+  if docker exec -e PGPASSWORD="$OLDPW" "$PG" psql -U "$USER" -d "${REST##*/}" -v ON_ERROR_STOP=1 \
+       -c "ALTER ROLE \"$USER\" WITH PASSWORD '$NEWPW'" >/dev/null 2>&1; then
+    printf 'postgresql://%s:%s@%s' "$USER" "$NEWPW" "$REST" > "$DIR/$f"
+    chmod 644 "$DIR/$f"
+    (umask 077; printf '%s' "$NEWPW" > "$SECRETS/mi_$USER")
+    echo "  ✓ $f rotated ($USER changed its own password)"
+  else
+    echo "  ✗ $f NOT rotated — the ALTER ROLE was refused; the file is unchanged"
+    fail=1
+  fi
+  unset NEWPW OLDPW URL
+done
 
 echo
 echo "the running containers still hold the OLD values — they read the files at start."
-echo "redeploy all four services now, then prove:"
+echo "redeploy all five services now, then prove:"
 echo "  ./deploy.sh core-api-staging && ./deploy.sh public-api-staging \\"
-echo "    && ./deploy.sh api-gateway-staging && ./deploy.sh developer-api"
+echo "    && ./deploy.sh api-gateway-staging && ./deploy.sh developer-api && ./deploy.sh admin-api"
 echo
 echo "to undo before redeploying:"
 echo "  bash tools/ops/rotate-sandbox-secrets.sh --rollback $BACKUP"

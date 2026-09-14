@@ -49,7 +49,7 @@ PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1
 [ -n "$GW" ] && [ -n "$CORE" ] && [ -n "$DEV" ] && [ -n "$PG" ] || { echo "NO_CONTAINERS"; exit 1; }
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 [ -n "$DEVINT" ] && [ -n "$JWTSEC" ] && [ -n "$PW" ] || { echo "NO_SECRET"; exit 1; }
 q(){ docker exec -e PGPASSWORD="$PW" -e PGOPTIONS="-c default_transaction_read_only=on" "$PG" \
        psql -q -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null | tr -d '\r\n'; }

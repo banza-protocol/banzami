@@ -88,7 +88,9 @@ load_context() {
   : "${BZSB_PROJECT:?}" "${BZSB_DATA_NET:?}" "${BZSB_APP_NET:?}" "${BZSB_SECRET_ROOT:?}" "${EVIDENCE_ROOT:?}"
   : "${RELEASE_ROOT:?}" "${SOURCE_REVISION:?}"
   MANIFEST="$RELEASE_ROOT/manifest.txt"; [ -f "$MANIFEST" ] || die "release manifest missing"
-  DBURL_FILE="$EVIDENCE_ROOT/db_url"
+  # One database credential per service (WALLET-NATIVE-001): written by
+  # runtime-authority.sh, never shared, and only bl_core_runtime's may write
+  # financial state.
   JWT_FILE="$EVIDENCE_ROOT/jwt_secret"
   CIK_FILE="$EVIDENCE_ROOT/core_internal_key"
   # Developer/platform API-key layer (ADR-046/047) synthetic credentials — file-only.
@@ -130,12 +132,14 @@ validate_service() { # <name>
   printf '%s' "$tag"
 }
 
-write_db_url() { # file-only runtime credential (bl_app_runtime → banzami_staging), never in env
-  local proto='postgresql://' host='postgres:5432' db='banzami_staging'
+write_db_url() { # file-only per-service credentials (evidence/db_url_<service>), never in env
+  # Each service connects as its own role; the roles, their grants and these
+  # files come from ONE place, runtime-authority.sh, so a deploy cannot
+  # re-create the shared credential the authority model removed.
   # 0644 (not 0600): bind-mounted read-only into NON-root service containers; on Linux the mount
   # preserves host perms so a 0600 root-owned file is unreadable by the container user. Host
   # confidentiality is preserved by the 0700 root-only EVIDENCE_ROOT dir that contains it.
-  printf '%sbl_app_runtime:%s@%s/%s' "$proto" "$(cat "$BZSB_SECRET_ROOT/mi_runtime")" "$host" "$db" > "$DBURL_FILE"; chmod 0644 "$DBURL_FILE"
+  "$SCRIPT_DIR/runtime-authority.sh" apply || die "runtime authority (per-service database roles) failed"
 }
 uuid() { uuidgen 2>/dev/null | tr 'A-Z' 'a-z' || python3 -c 'import uuid;print(uuid.uuid4())'; }
 
@@ -281,11 +285,11 @@ ensure_proof_signing_key() { # <secret_dir>
 secret_exports_for() {
   case "$1" in
     core-api-staging)
-      printf '%s\n' db_url:DATABASE_URL core_internal_key:CORE_INTERNAL_KEY \
+      printf '%s\n' db_url_core:DATABASE_URL core_internal_key:CORE_INTERNAL_KEY \
         core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY
       ;;
     api-gateway-staging)
-      printf '%s\n' db_url:DATABASE_URL jwt_secret:JWT_SECRET \
+      printf '%s\n' db_url_gateway:DATABASE_URL jwt_secret:JWT_SECRET \
         core_internal_key:CORE_INTERNAL_KEY core_internal_key:INTERNAL_API_KEY \
         developer_internal_key:DEVELOPER_INTERNAL_KEY \
         bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY \
@@ -296,12 +300,12 @@ secret_exports_for() {
         kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY
       ;;
     public-api-staging)
-      printf '%s\n' db_url:DATABASE_URL jwt_secret:JWT_SECRET \
+      printf '%s\n' db_url_public_api:DATABASE_URL jwt_secret:JWT_SECRET \
         core_internal_key:CORE_INTERNAL_KEY core_internal_key:INTERNAL_API_KEY \
         push_topic_key:PUSH_TOPIC_KEY
       ;;
     developer-api)
-      printf '%s\n' db_url:DATABASE_URL api_key_pepper:API_KEY_PEPPER \
+      printf '%s\n' db_url_developer_api:DATABASE_URL api_key_pepper:API_KEY_PEPPER \
         core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY \
         core_internal_key:INTERNAL_API_KEY \
         core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY \
@@ -311,7 +315,7 @@ secret_exports_for() {
         webhook_encryption_key:WEBHOOK_ENCRYPTION_KEY
       ;;
     admin-api)
-      printf '%s\n' db_url:DATABASE_URL admin_jwt_secret:ADMIN_JWT_SECRET \
+      printf '%s\n' db_url_admin_api:DATABASE_URL admin_jwt_secret:ADMIN_JWT_SECRET \
         core_internal_key:CORE_INTERNAL_KEY core_internal_key:INTERNAL_API_KEY \
         core_internal_key:STAGING_INTERNAL_API_KEY \
         resend_api_key:RESEND_API_KEY \
@@ -612,16 +616,17 @@ cmd_deploy_one() {
       # That state file lives under /tmp and does not survive a reboot; every
       # other deploy-one works anyway because it clones a container rather than
       # reading it. Deriving the paths from core-api-staging's own mounts is
-      # both more robust and more correct: admin-api gets the same db_url the
-      # rest of the stack has, by construction, instead of a second copy that
-      # could drift from it.
+      # both more robust than reading the bootstrap state file. admin-api then
+      # mounts its OWN credential (db_url_admin_api, runtime-authority.sh): a
+      # role with no write authority over financial state.
       local core_c secret_dir
       core_c="$(docker ps --format '{{.Names}}' | grep -E -- '-core-api-staging$' | head -1)"
       [ -n "$core_c" ] || die "core-api-staging is not running — cannot locate the Sandbox credential files"
       secret_dir="$(docker inspect "$core_c" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' \
-        | grep '/run/secrets/db_url:' | head -1 | sed 's#/db_url:.*##')"
+        | grep '/run/secrets/core_internal_key:' | head -1 | sed 's#/core_internal_key:.*##')"
       [ -n "$secret_dir" ] && [ -d "$secret_dir" ] || die "cannot locate the Sandbox credential directory"
-      DBURL_FILE="$secret_dir/db_url"
+      DBURL_FILE="$secret_dir/db_url_admin_api"
+      [ -s "$DBURL_FILE" ] || die "admin-api has no database credential of its own — run runtime-authority.sh apply"
       CIK_FILE="$secret_dir/core_internal_key"
       ADMINJWT_FILE="$secret_dir/admin_jwt_secret"
       # The transactional-mail credential, shared with developer-api.
@@ -662,7 +667,7 @@ cmd_deploy_one() {
       docker create --name "$cname" --network "$datanet" \
         --security-opt "no-new-privileges:true" \
         --label "$LABEL.service=$name" \
-        -v "$DBURL_FILE:/run/secrets/db_url:ro" \
+        -v "$DBURL_FILE:/run/secrets/db_url_admin_api:ro" \
         -v "$CIK_FILE:/run/secrets/core_internal_key:ro" \
         -v "$ADMINJWT_FILE:/run/secrets/admin_jwt_secret:ro" \
         -v "$RESEND_FILE:/run/secrets/resend_api_key:ro" \

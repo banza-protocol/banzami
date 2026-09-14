@@ -50,7 +50,7 @@ const PRE = `
   set -uo pipefail
   P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
   PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
+  PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
   # No 2>/dev/null. A statement that fails must say so: the first version of
   # this sweeper suppressed stderr and counted output lines, so an UPDATE
   # rejected by a check constraint was reported as "archived workspaces 0" and

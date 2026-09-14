@@ -79,6 +79,7 @@ async function developer(label) {
   const call = consoleCaller(mintSession(`e2e-${like}@banzami-e2e.test`));
   const ws = (await call('/workspaces', 'POST', { name: like })).body?.id;
   const projects = [];
+  const adopt = (id) => projects.push(id);
   const project = async (name, useCase, scopes = SCOPES) => {
     const p = (await call(`/workspaces/${ws}/projects`, 'POST', { name: `${like}-${name}` })).body?.id;
     projects.push(p);
@@ -102,7 +103,7 @@ async function developer(label) {
     done.push((await call(`/workspaces/${ws}/archive`, 'POST', { name: w.body?.name })).status);
     return done;
   };
-  return { call, ws, like, stamp, project, cleanup };
+  return { call, ws, like, stamp, project, cleanup, adopt };
 }
 
 function residue(like) {
@@ -112,7 +113,7 @@ function residue(like) {
     + ` + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id=t.project_id WHERE p.name LIKE '${like}%' AND t.retired_at IS NULL)`;
   try {
     return Number(ssh(`PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1); `
-      + `PW=$(docker exec $CORE sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); `
+      + `PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); `
       + `docker exec -e PGPASSWORD=$PW -e PGOPTIONS='-c default_transaction_read_only=on' $PG psql -U bl_app_runtime -d banzami_staging -At -c "${sql}"`).trim());
   } catch { return -1; }
 }
@@ -713,6 +714,101 @@ async function walletNative(sdk) {
   return { name: 'wallet-native', verdict: ok ? 'PASS' : 'FAIL', steps, residue: left, performance: perf };
 }
 
+// ── rail isolation: a developer's simulated rail reaches nobody else ─────────
+//
+// WALLET-NATIVE-001 closure §9–10. Two developers, two Workspaces, three
+// Projects: A with its own Business; B1 with its own Business; B2, in B's
+// Workspace, connected to A's Business by A's consent code. A takes its rail
+// down; neither B1 nor B2 — on the same Business — is affected. Then reversed.
+// Nothing a key sends names another Project, the Console refuses another
+// Workspace's Project, and the switch does not exist on the Live host.
+
+async function railIsolation() {
+  const steps = [];
+  const mark = (id, title, ok, detail) => { steps.push({ id, title, verdict: ok ? 'PASS' : 'FAIL', detail }); (ok ? console.log : console.error)(`  ${ok ? '✓' : '✗'} [${id}] ${title} — ${String(detail).slice(0, 260)}`); };
+  const devA = await developer('ria');
+  const devB = await developer('rib');
+  const s = devA.stamp;
+  const slugOf = (sess) => ((sess.body?.interfaces ?? []).find((i) => i.type === 'PAYMENT_LINK')?.value ?? '').split('/').pop();
+  const hosted = async (sess) => { const r = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(slugOf(sess))}/pay`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); const b = await r.json().catch(() => ({})); return { status: r.status, code: b?.error?.code ?? b?.code }; };
+  const rail = async (P) => (await P.api('/v1/sandbox/external-rail')).body?.state;
+  const setRail = (P, state, extra = {}) => P.api('/v1/sandbox/external-rail', 'PUT', { state, ...extra }, { 'Idempotency-Key': `acc_${s}_${randomBytes(3).toString('hex')}` });
+  let A; let B1; let B2;
+  const all = () => [A, B1, B2].filter(Boolean);
+  try {
+    A = await devA.project('a', 'STANDARD');
+    B1 = await devB.project('own', 'STANDARD');
+    // B2: in B's Workspace, connected to A's synthetic Business with A's consent.
+    const b2id = (await devB.call(`/workspaces/${devB.ws}/projects`, 'POST', { name: `${devB.like}-shared` })).body?.id;
+    const code = await devA.call(`/projects/${A.id}/financial-setup/share-code`, 'POST');
+    const link = await devB.call(`/projects/${b2id}/financial-onboarding/link`, 'POST', { code: code.body?.code });
+    const k = await devB.call(`/projects/${b2id}/keys`, 'POST', { kind: 'SECRET', name: `${devB.like}-shared`, scopes: SCOPES });
+    B2 = { id: b2id, api: keyCaller(k.body?.secret ?? '') };
+    devB.adopt?.(b2id);
+    const [fa, fb2] = [await A.api('/v1/financial-setup'), await B2.api('/v1/financial-setup')];
+    const sameBusiness = Boolean(fa.body?.readiness?.financial_identity?.handle) && fa.body?.readiness?.financial_identity?.handle === fb2.body?.readiness?.financial_identity?.handle;
+    const differentWorkspaces = devA.ws !== devB.ws;
+    mark('SETUP', 'Two Workspaces; B1 with its own Business; B2 connected to A\'s Business by consent code', code.status === 201 && link.status === 200 && sameBusiness && differentWorkspaces,
+      `share=${code.status} link=${link.status} same_business=${sameBusiness} different_workspaces=${differentWorkspaces}`);
+
+    const payers = {};
+    for (const [name, P] of [['A', A], ['B1', B1], ['B2', B2]]) payers[name] = (await payer(P.api, `${s}_ri_${name}`)).body?.id;
+    const attempt = async (name, P) => {
+      const simSess = await session(P.api, `${s}_ri_${name}_${randomBytes(2).toString('hex')}_sim`, 11000);
+      const sim = await pay(P.api, payers[name], { payment_session_id: simSess.body?.session_id, simulate: 'DECLINED' }, `acc_${s}_${randomBytes(3).toString('hex')}`);
+      const hostSess = await session(P.api, `${s}_ri_${name}_${randomBytes(2).toString('hex')}_host`, 12000);
+      const host = await hosted(hostSess);
+      return { sim: sim.status, simCode: sim.body?.code, hosted: host.status, hostedCode: host.code };
+    };
+    const down = (e) => e.sim === 503 && e.simCode === 'PROVIDER_UNAVAILABLE' && e.hosted === 503 && e.hostedCode === 'PROVIDER_UNAVAILABLE';
+    const up = (e) => e.sim === 402 && e.simCode === 'PAYMENT_DECLINED' && e.hosted === 201;
+
+    // A down.
+    const aDown = await setRail(A, 'UNAVAILABLE');
+    const eA = await attempt('A', A); const eB1 = await attempt('B1', B1); const eB2 = await attempt('B2', B2);
+    const states1 = { A: await rail(A), B1: await rail(B1), B2: await rail(B2) };
+    mark('A_DOWN', 'A takes its rail down: A fails closed', aDown.status === 200 && states1.A === 'UNAVAILABLE' && down(eA), `set=${aDown.status} A=${JSON.stringify(eA)}`);
+    mark('B1_UNAFFECTED', 'Another Workspace\'s Project, own Business: unaffected', states1.B1 === 'AVAILABLE' && up(eB1), `state=${states1.B1} ${JSON.stringify(eB1)}`);
+    mark('B2_UNAFFECTED', 'Another Workspace\'s Project on the SAME Business: unaffected', states1.B2 === 'AVAILABLE' && up(eB2), `state=${states1.B2} ${JSON.stringify(eB2)}`);
+
+    // Reverse: A up, B2 down.
+    await setRail(A, 'AVAILABLE');
+    const b2Down = await setRail(B2, 'UNAVAILABLE');
+    const rA = await attempt('A', A); const rB2 = await attempt('B2', B2); const rB1 = await attempt('B1', B1);
+    mark('REVERSED', 'Reversed: B2 down on A\'s Business; A and B1 unaffected', b2Down.status === 200 && down(rB2) && up(rA) && up(rB1) && (await rail(A)) === 'AVAILABLE',
+      `B2=${JSON.stringify(rB2)} A=${JSON.stringify(rA)} B1=${JSON.stringify(rB1)}`);
+
+    // Nothing a key sends names another Project or Business.
+    await setRail(B2, 'AVAILABLE');
+    const spoof = await setRail(B2, 'UNAVAILABLE', { project_id: A.id, merchant_id: fa.body?.readiness?.financial_identity?.merchant_id ?? randomUUID(), scope: 'BUSINESS' });
+    const afterSpoof = { A: await rail(A), B2: await rail(B2) };
+    await setRail(B2, 'AVAILABLE');
+    // The Console refuses another Workspace's Project, for the switch and for anything else.
+    const consoleCross = await devB.call(`/projects/${A.id}/explorer/requests`, 'POST', { operation_id: 'setSandboxExternalRail', body: { state: 'UNAVAILABLE' } });
+    const internalRoute = await fetch(`${GW}/internal/v1/sandbox/projects/${A.id}/external-rail/${randomUUID()}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{"state":"UNAVAILABLE"}' });
+    mark('NO_CROSS_TARGET', 'A key cannot name another Project; the Console refuses another Workspace; Core\'s route is not public',
+      spoof.status === 200 && afterSpoof.A === 'AVAILABLE' && afterSpoof.B2 === 'UNAVAILABLE' && [403, 404].includes(consoleCross.status) && [401, 403, 404].includes(internalRoute.status) && (await rail(A)) === 'AVAILABLE',
+      `spoof_set=${spoof.status} A_after=${afterSpoof.A} console_cross=${consoleCross.status} internal_route=${internalRoute.status}`);
+
+    // The switch does not exist on the Live host, and a Sandbox key reaches nothing there.
+    const liveSet = await fetch('https://api.banzami.com/v1/sandbox/external-rail', { method: 'PUT', headers: { authorization: `Bearer ${String(k.body?.secret ?? '')}`, 'content-type': 'application/json' }, body: '{"state":"UNAVAILABLE"}' });
+    mark('NO_LIVE', 'The rail switch cannot reach Financial Live', ![200, 201, 204].includes(liveSet.status), `live_host=${liveSet.status}`);
+  } catch (e) {
+    mark('!', 'rail isolation aborted', false, String(e.stack ?? e).split('\n').slice(0, 2).join(' | '));
+  } finally {
+    for (const P of all()) await P.api('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `acc_${s}_${randomBytes(3).toString('hex')}` }).catch(() => null);
+  }
+  const cleaned = [...await devB.cleanup(), ...await devA.cleanup()];
+  const left = residue(devA.like) + residue(devB.like);
+  const v = (ids) => (ids.every((id) => steps.find((x) => x.id === id)?.verdict === 'PASS') ? 'PASS' : 'FAIL');
+  const ok = steps.length > 0 && steps.every((x) => x.verdict === 'PASS') && left === 0;
+  console.log(`\ncleanup=${cleaned.join(',')} residue=${left}`);
+  console.log(`SANDBOX_RAIL_SIMULATOR_CROSS_TENANT_EFFECT=${v(['B1_UNAFFECTED', 'B2_UNAFFECTED', 'REVERSED', 'NO_CROSS_TARGET']) === 'PASS' ? 0 : 1}`);
+  console.log(`SANDBOX_RAIL_SWITCH_CAN_AFFECT_LIVE=${v(['NO_LIVE']) === 'PASS' ? 0 : 1}`);
+  console.log(`SANDBOX_RAIL_SIMULATOR_TENANT_ISOLATION=${ok ? 'PASS' : 'FAIL'} (${steps.filter((x) => x.verdict === 'PASS').length}/${steps.length})`);
+  return { name: 'rail-isolation', verdict: ok ? 'PASS' : 'FAIL', steps, residue: left };
+}
+
 // ── selftest: predicates fail on mutated evidence ────────────────────────────
 
 function selftest() {
@@ -754,6 +850,7 @@ if (process.argv[1]?.endsWith('acceptance-suites.mjs')) {
       if (which === 'workbench' || which === 'all') { console.log('\nwebhook workbench\n'); out.push(await workbench(mod)); }
       if (which === 'refunds' || which === 'all') { console.log('\nrefunds\n'); out.push(await refunds(mod)); }
       if (which === 'wallet-native' || which === 'all') { console.log('\nwallet-native network\n'); out.push(await walletNative(mod)); }
+      if (which === 'rail-isolation' || which === 'all') { console.log('\nrail isolation\n'); out.push(await railIsolation()); }
     } finally { dispose(); }
     const file = join(assuranceDir('sandbox-self-service'), `acceptance-${which}-${Date.now()}.json`);
     mkdirSync(dirname(file), { recursive: true });

@@ -27,7 +27,7 @@ PUB=$(docker ps --format '{{.Names}}' | grep public-api-staging  | head -1)
 CORE=$(docker ps --format '{{.Names}}'| grep core-api-staging    | head -1)
 PG=$(docker ps --format '{{.Names}}'  | grep postgres | grep bzsandbox | head -1)
 SECRET=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
-URL=$(docker exec "$CORE" cat /run/secrets/db_url 2>/dev/null); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
+URL=$(cat /root/.banzami/operator_db_url); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
 [ -n "$SECRET" ] && [ -n "$PW" ] || { echo "NO_SECRET"; exit 1; }
 PUBLIC_API="${PUBLIC_API:-https://sandbox-api.banzami.com}"
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>&1; }

@@ -28,7 +28,7 @@ PROJECT=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-stag
 CORE="$PROJECT-core-api-staging"; GW="$PROJECT-api-gateway-staging"
 DEV="$PROJECT-developer-api";     PG="$PROJECT-postgres-1"
 DIR=$(docker inspect "$CORE" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' \
-      | grep '/run/secrets/db_url' | cut -d: -f1 | xargs dirname)
+      | grep '/run/secrets/core_internal_key:' | cut -d: -f1 | xargs dirname)
 
 PASS=0; FAIL=0
 chk(){ if [ "$2" = "$3" ]; then echo "  ✓ $1"; PASS=$((PASS+1));
@@ -38,20 +38,21 @@ echo "rotation verification — $PROJECT"
 echo "  previous values read from $BACKUP, never printed"
 echo
 
-# ── the database password ───────────────────────────────────────────────────
-echo "database credential"
-OLDURL=$(cat "$BACKUP/db_url"); NEWURL=$(cat "$DIR/db_url")
-USER=$(printf '%s' "$NEWURL" | sed -E 's#^[a-z]+://([^:]+):.*#\1#')
-DB=$(printf '%s' "$NEWURL" | sed -E 's#.*/([^/?]+)$#\1#')
-chk THE_VALUE_CHANGED "$([ "$OLDURL" != "$NEWURL" ] && echo yes || echo no)" "yes"
-
-OLDPW=$(printf '%s' "$OLDURL" | sed -E 's#^[a-z]+://[^:]+:([^@]+)@.*#\1#')
-NEWPW=$(printf '%s' "$NEWURL" | sed -E 's#^[a-z]+://[^:]+:([^@]+)@.*#\1#')
-docker exec -e PGPASSWORD="$OLDPW" "$PG" psql -U "$USER" -d "$DB" -At -c 'select 1' >/dev/null 2>&1
-chk OLD_PASSWORD_REJECTED "$([ $? -ne 0 ] && echo rejected || echo ACCEPTED)" "rejected"
-docker exec -e PGPASSWORD="$NEWPW" "$PG" psql -U "$USER" -d "$DB" -At -c 'select 1' >/dev/null 2>&1
-chk NEW_PASSWORD_ACCEPTED "$([ $? -eq 0 ] && echo accepted || echo REJECTED)" "accepted"
-unset OLDPW NEWPW OLDURL NEWURL
+# ── the database passwords (one role per service) ──────────────────────────
+echo "database credentials"
+for f in db_url_core db_url_gateway db_url_public_api db_url_developer_api db_url_admin_api; do
+  OLDURL=$(cat "$BACKUP/$f" 2>/dev/null); NEWURL=$(cat "$DIR/$f")
+  USER=$(printf '%s' "$NEWURL" | sed -E 's#^[a-z]+://([^:]+):.*#\1#')
+  DB=$(printf '%s' "$NEWURL" | sed -E 's#.*/([^/?]+)$#\1#')
+  chk "$f THE_VALUE_CHANGED" "$([ -n "$OLDURL" ] && [ "$OLDURL" != "$NEWURL" ] && echo yes || echo no)" "yes"
+  OLDPW=$(printf '%s' "$OLDURL" | sed -E 's#^[a-z]+://[^:]+:([^@]+)@.*#\1#')
+  NEWPW=$(printf '%s' "$NEWURL" | sed -E 's#^[a-z]+://[^:]+:([^@]+)@.*#\1#')
+  docker exec -e PGPASSWORD="$OLDPW" "$PG" psql -U "$USER" -d "$DB" -At -c 'select 1' >/dev/null 2>&1
+  chk "$f OLD_PASSWORD_REJECTED" "$([ $? -ne 0 ] && echo rejected || echo ACCEPTED)" "rejected"
+  docker exec -e PGPASSWORD="$NEWPW" "$PG" psql -U "$USER" -d "$DB" -At -c 'select 1' >/dev/null 2>&1
+  chk "$f NEW_PASSWORD_ACCEPTED" "$([ $? -eq 0 ] && echo accepted || echo REJECTED)" "accepted"
+  unset OLDPW NEWPW OLDURL NEWURL
+done
 
 # ── the internal bearer for developer-api ───────────────────────────────────
 echo

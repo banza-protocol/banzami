@@ -56,7 +56,7 @@ DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
 PG=$(docker ps --format '{{.Names}}' | grep '23807-postgres' | head -1)
 [ -n "$DEV" ] && [ -n "$PG" ] || { echo "✗ developer-api or postgres container not found on this host" >&2; exit 2; }
 IK=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key')
-URL=$(docker exec "$DEV" sh -c 'cat /run/secrets/db_url')
+URL=$(cat /root/.banzami/operator_db_url)
 
 q() { docker exec -e U="$URL" "$PG" sh -c "psql \"\$U\" -tAc \"$1\""; }
 
