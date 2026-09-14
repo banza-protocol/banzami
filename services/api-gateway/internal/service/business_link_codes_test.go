@@ -231,7 +231,9 @@ func TestLinkCode_AProjectSharesOnlyItsOwnSyntheticBusiness(t *testing.T) {
 		t.Fatalf("no Sandbox Business owned: %v", err)
 	}
 	f.exec(`INSERT INTO sandbox_businesses (merchant_id, project_id, use_case) VALUES ($1, $2, 'STANDARD')`, f.merchant, owner)
-	t.Cleanup(func() { _, _ = f.pool.Exec(context.Background(), `DELETE FROM sandbox_businesses WHERE merchant_id=$1`, f.merchant) })
+	t.Cleanup(func() {
+		_, _ = f.pool.Exec(context.Background(), `DELETE FROM sandbox_businesses WHERE merchant_id=$1`, f.merchant)
+	})
 	if _, err := svc.IssueForProject(f.ctx, owner); !errors.Is(err, ErrLinkCodeNotSynthetic) {
 		t.Fatalf("a Business whose KYB is not SANDBOX_SYNTHETIC must not be shareable by a Project: %v", err)
 	}
