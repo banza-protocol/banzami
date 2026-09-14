@@ -396,8 +396,10 @@ version = "0.1.0"
 dependencies = [
  "banzami-types",
  "chrono",
+ "hex",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "thiserror 1.0.69",
  "tokio",

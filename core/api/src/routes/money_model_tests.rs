@@ -559,3 +559,229 @@ async fn a_backing_position_paid_out_before_it_was_received_is_detected(pool: Pg
     post(&pool, &[(m.transit, "DEBIT", 1), (m.bank, "CREDIT", 1)]).await;
     assert!(codes(&position(&pool).await).contains(&"NEGATIVE_BACKING_POSITION"));
 }
+
+// ---------------------------------------------------------------------------
+// Reconciliation — compares the boundary, changes nothing
+// ---------------------------------------------------------------------------
+
+async fn ledger_rows(pool: &PgPool) -> (i64, i64) {
+    sqlx::query_as(
+        "SELECT (SELECT count(*) FROM ledger_postings), (SELECT count(*) FROM ledger_entries)",
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn reconciliation_classifies_every_boundary_difference_and_moves_nothing(pool: PgPool) {
+    use super::acquiring::{self, InitiateBody, TestConfirmQuery};
+    use banzami_reconciliation::boundary::{
+        run_boundary_reconciliation, BoundaryKind, BoundaryOutcome, ExternalEvidence,
+    };
+
+    let m = model(&pool).await;
+    let b = business(&pool).await;
+    priced(&pool, &b).await;
+    let period_start = chrono::Utc::now() - chrono::Duration::hours(1);
+
+    // Cash-in confirmed by the acquirer, and one still waiting for it.
+    let (_, Json(confirmed)) = acquiring::initiate_payment(
+        State(m.state.clone()),
+        Json(InitiateBody {
+            payment_link_id: b.link.to_string(),
+            amount_minor: 25_000,
+            currency: "AOA".into(),
+        }),
+    )
+    .await
+    .unwrap();
+    let _ = acquiring::test_confirm(
+        State(m.state.clone()),
+        axum::extract::Query(TestConfirmQuery {
+            external_ref: confirmed.external_ref.clone(),
+            currency: None,
+            payment_link_id: Some(b.link),
+        }),
+    )
+    .await
+    .unwrap();
+    let (_, Json(waiting)) = acquiring::initiate_payment(
+        State(m.state.clone()),
+        Json(InitiateBody {
+            payment_link_id: b.link.to_string(),
+            amount_minor: 25_000,
+            currency: "AOA".into(),
+        }),
+    )
+    .await
+    .unwrap();
+
+    // Two withdrawals: one the rail confirmed, one it has but Banzami has not
+    // heard back about.
+    let mut payouts_done = Vec::new();
+    for key in ["recon-po-confirmed", "recon-po-late"] {
+        let p = m
+            .state
+            .payout
+            .initiate(CreatePayoutRequest {
+                idempotency_key: key.into(),
+                merchant_id: MerchantId::from_uuid(b.merchant),
+                wallet_id: WalletId::from_uuid(b.wallet),
+                amount: Money::new(5_000, Currency::AOA),
+                destination: destination(),
+            })
+            .await
+            .unwrap();
+        m.state.payout.process(p.id).await.unwrap();
+        m.state.payout.mark_sent(p.id).await.unwrap();
+        payouts_done.push(p.id);
+    }
+    // The acquirer settles to backing first, so the confirmed withdrawal is covered.
+    sweep(&m, &b, 20_000, 0, "recon-sweep").await;
+    m.state.payout.confirm(payouts_done[0]).await.unwrap();
+    let late_net: i64 = sqlx::query_scalar("SELECT net_minor FROM payouts WHERE id = $1")
+        .bind(payouts_done[1].as_uuid())
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let settlement_net: i64 =
+        sqlx::query_scalar("SELECT net_amount_minor FROM settlements LIMIT 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let settlement_id: Uuid = sqlx::query_scalar("SELECT id FROM settlements LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let period_end = chrono::Utc::now() + chrono::Duration::hours(1);
+
+    let at = chrono::Utc::now();
+    let line = |kind, r: &str, amount| ExternalEvidence {
+        source: "SANDBOX_SYNTHETIC_BANK".into(),
+        kind,
+        external_ref: r.into(),
+        amount_minor: amount,
+        currency: "AOA".into(),
+        occurred_at: at,
+    };
+    let evidence = vec![
+        line(BoundaryKind::CashIn, &confirmed.external_ref, 25_000),
+        line(BoundaryKind::CashIn, &confirmed.external_ref, 25_000),
+        line(BoundaryKind::CashIn, "EMIS-UNKNOWN-0001", 9_000),
+        line(
+            BoundaryKind::CashOut,
+            &payouts_done[1].to_string(),
+            late_net,
+        ),
+        line(
+            BoundaryKind::AcquirerSettlement,
+            &settlement_id.to_string(),
+            settlement_net - 1,
+        ),
+    ];
+    let before = ledger_rows(&pool).await;
+    let position_before = position(&pool).await;
+
+    let run = run_boundary_reconciliation(&pool, period_start, period_end, &evidence)
+        .await
+        .unwrap();
+    assert!(run.created);
+    let of = |r: &str| {
+        run.items
+            .iter()
+            .filter(|i| i.external_ref == r)
+            .map(|i| i.outcome)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        of(&confirmed.external_ref),
+        [BoundaryOutcome::Matched, BoundaryOutcome::DuplicateExternal]
+    );
+    assert_eq!(of(&waiting.external_ref), [BoundaryOutcome::Pending]);
+    assert_eq!(of("EMIS-UNKNOWN-0001"), [BoundaryOutcome::MissingInternal]);
+    assert_eq!(
+        of(&payouts_done[0].to_string()),
+        [BoundaryOutcome::MissingExternal]
+    );
+    assert_eq!(
+        of(&payouts_done[1].to_string()),
+        [BoundaryOutcome::RequiresReview]
+    );
+    assert_eq!(
+        of(&settlement_id.to_string()),
+        [BoundaryOutcome::AmountMismatch]
+    );
+
+    // The same inputs again: the same run, nothing new.
+    let again = run_boundary_reconciliation(&pool, period_start, period_end, &evidence)
+        .await
+        .unwrap();
+    assert!(!again.created);
+    assert_eq!(again.run_id, run.run_id);
+    assert_eq!(again.items.len(), run.items.len());
+    let runs: i64 = sqlx::query_scalar("SELECT count(*) FROM boundary_reconciliation_runs")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(runs, 1);
+
+    // Reconciliation moved nothing, and wrote no financial state.
+    assert_eq!(
+        ledger_rows(&pool).await,
+        before,
+        "reconciliation posted to the ledger"
+    );
+    let after = aoa(&position(&pool).await);
+    assert_eq!(
+        after.covered_obligations_minor,
+        aoa(&position_before).covered_obligations_minor
+    );
+    assert_eq!(
+        after.backing_total_minor,
+        aoa(&position_before).backing_total_minor
+    );
+
+    // The position reports what is severe in the latest run.
+    let codes = codes(&position(&pool).await);
+    for c in [
+        "BOUNDARY_DUPLICATE_EXTERNAL",
+        "BOUNDARY_EXTERNAL_WITHOUT_OPERATION",
+        "BOUNDARY_OPERATION_WITHOUT_EVIDENCE",
+        "BOUNDARY_REQUIRES_REVIEW",
+        "BOUNDARY_AMOUNT_MISMATCH",
+    ] {
+        assert!(codes.contains(&c), "{c} missing from {codes:?}");
+    }
+
+    // The late confirmation arrives and is applied through the payout's own
+    // lifecycle — once. Reconciling again is a new run in which it matches.
+    m.state.payout.confirm(payouts_done[1]).await.unwrap();
+    assert!(m.state.payout.confirm(payouts_done[1]).await.is_err());
+    let converged = run_boundary_reconciliation(&pool, period_start, period_end, &evidence)
+        .await
+        .unwrap();
+    assert!(converged.created);
+    assert_eq!(
+        converged
+            .items
+            .iter()
+            .filter(|i| i.external_ref == payouts_done[1].to_string())
+            .map(|i| i.outcome)
+            .collect::<Vec<_>>(),
+        [BoundaryOutcome::Matched]
+    );
+    assert!(position(&pool)
+        .await
+        .findings
+        .iter()
+        .all(|f| f.code != "BOUNDARY_REQUIRES_REVIEW"));
+    let book = position(&pool).await;
+    assert!(
+        book.findings
+            .iter()
+            .all(|f| f.code.starts_with("BOUNDARY_")),
+        "the ledger itself stays healthy: {:?}",
+        book.findings
+    );
+}

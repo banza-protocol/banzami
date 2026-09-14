@@ -890,6 +890,10 @@ async fn main() {
             get(routes::admin::financial_position),
         )
         .route(
+            "/internal/v1/admin/boundary-reconciliation",
+            post(routes::admin::boundary_reconciliation),
+        )
+        .route(
             "/internal/v1/admin/acquiring-recon",
             post(routes::admin::run_acquiring_reconciliation)
                 .get(routes::admin::list_acquiring_reconciliation_runs),

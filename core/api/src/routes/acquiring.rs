@@ -7,7 +7,9 @@ use axum::{
 use chrono::{DateTime, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 
-use banzami_acquiring::{AcquiringEngine, AcquiringError, AcquiringPayment};
+use banzami_acquiring::{
+    AcquiringEngine, AcquiringError, AcquiringPayment, AcquiringPaymentStatus,
+};
 use banzami_types::{LedgerEntryId, LedgerPostingId, PaymentLinkId, WalletId};
 
 use crate::{
@@ -277,6 +279,17 @@ pub async fn settle_confirmed_payment(
     state: &AppState,
     payment: &AcquiringPayment,
 ) -> ApiResult<()> {
+    // No credit before authority (MONEY-MODEL-001): only a payment the provider
+    // has CONFIRMED creates spendable value. Every caller passes what the
+    // callback engine returned, which is confirmed on the normal path — but a
+    // duplicate callback returns the payment as it is stored, and this function
+    // must not rely on its callers to have checked.
+    if !matches!(payment.status, AcquiringPaymentStatus::Confirmed) {
+        return Err(ApiError::unprocessable(
+            "PAYMENT_NOT_CONFIRMED",
+            "an acquiring payment is credited only once the provider has confirmed it",
+        ));
+    }
     // Double-entry: system:transit DR / destination wallet account CR.
     let idempotency_key = format!("acquiring-settle-{}", payment.id);
 

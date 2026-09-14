@@ -53,6 +53,14 @@ const NOT_FINANCIAL_STATE: &[(&str, &str)] = &[
         "reconciliation_attempts",
         "reconciliation evidence: detects a mismatch, never corrects the ledger",
     ),
+    (
+        "boundary_reconciliation_runs",
+        "boundary reconciliation report (MONEY-MODEL-001): never corrects the ledger",
+    ),
+    (
+        "boundary_reconciliation_items",
+        "boundary reconciliation report (MONEY-MODEL-001): never corrects the ledger",
+    ),
 ];
 
 async fn probe_role(pool: &PgPool) -> String {

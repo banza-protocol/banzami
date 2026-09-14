@@ -76,6 +76,19 @@ pub struct FinancialPosition {
     /// many hold value.
     pub classes: Vec<ClassCount>,
     pub findings: Vec<IntegrityFinding>,
+    /// The most recent boundary reconciliation: what external evidence has not
+    /// yet explained.
+    pub latest_boundary_reconciliation: Option<ReconciliationSummary>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ReconciliationSummary {
+    pub run_id: uuid::Uuid,
+    pub period_start: DateTime<Utc>,
+    pub period_end: DateTime<Utc>,
+    pub counts: serde_json::Value,
+    pub unreconciled_amount_minor: i64,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -249,12 +262,14 @@ pub async fn financial_position(pool: &PgPool) -> Result<FinancialPosition, sqlx
     book_invariants(pool, &mut findings).await?;
     in_flight_is_explained(pool, &currencies, &mut findings).await?;
     retired_resources_hold_nothing(pool, &mut findings).await?;
+    let latest_boundary_reconciliation = latest_reconciliation(pool, &mut findings).await?;
 
     Ok(FinancialPosition {
         as_of: Utc::now(),
         currencies,
         classes,
         findings,
+        latest_boundary_reconciliation,
     })
 }
 
@@ -434,4 +449,71 @@ async fn retired_resources_hold_nothing(
         });
     }
     Ok(())
+}
+
+/// The latest boundary reconciliation, and what in it is severe: evidence of a
+/// movement Banzami did not make, a provider executing the same reference twice,
+/// an executed operation Banzami still holds as pending or failed, or amounts
+/// that disagree.
+/// id, period_start, period_end, counts, unreconciled amount, created_at.
+type RunRow = (
+    uuid::Uuid,
+    DateTime<Utc>,
+    DateTime<Utc>,
+    serde_json::Value,
+    i64,
+    DateTime<Utc>,
+);
+
+async fn latest_reconciliation(
+    pool: &PgPool,
+    findings: &mut Vec<IntegrityFinding>,
+) -> Result<Option<ReconciliationSummary>, sqlx::Error> {
+    let run: Option<RunRow> = sqlx::query_as(
+        "SELECT id, period_start, period_end, counts, unreconciled_amount_minor, created_at
+           FROM boundary_reconciliation_runs ORDER BY created_at DESC LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await?;
+    let Some((run_id, period_start, period_end, counts, unreconciled, created_at)) = run else {
+        return Ok(None);
+    };
+    let severe: Vec<(String, String, i64, i64)> = sqlx::query_as(
+        r#"
+        SELECT outcome, currency,
+               COALESCE(SUM(ABS(COALESCE(NULLIF(difference_amount_minor, 0), internal_amount_minor, external_amount_minor))), 0)::bigint,
+               COUNT(*)::bigint
+          FROM boundary_reconciliation_items
+         WHERE run_id = $1 AND outcome NOT IN ('MATCHED', 'PENDING')
+         GROUP BY outcome, currency
+        "#,
+    )
+    .bind(run_id)
+    .fetch_all(pool)
+    .await?;
+    for (outcome, currency, amount, count) in severe {
+        let code: &'static str = match outcome.as_str() {
+            "DUPLICATE_EXTERNAL" => "BOUNDARY_DUPLICATE_EXTERNAL",
+            "MISSING_INTERNAL" => "BOUNDARY_EXTERNAL_WITHOUT_OPERATION",
+            "MISSING_EXTERNAL" => "BOUNDARY_OPERATION_WITHOUT_EVIDENCE",
+            "REQUIRES_REVIEW" => "BOUNDARY_REQUIRES_REVIEW",
+            "CURRENCY_MISMATCH" => "BOUNDARY_CURRENCY_MISMATCH",
+            _ => "BOUNDARY_AMOUNT_MISMATCH",
+        };
+        findings.push(IntegrityFinding {
+            code,
+            currency,
+            amount_minor: amount,
+            count,
+            detail: format!("{count} {outcome} item(s) in reconciliation run {run_id}"),
+        });
+    }
+    Ok(Some(ReconciliationSummary {
+        run_id,
+        period_start,
+        period_end,
+        counts,
+        unreconciled_amount_minor: unreconciled,
+        created_at,
+    }))
 }

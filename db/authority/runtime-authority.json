@@ -42,7 +42,9 @@
     "velocity_counters": "risk counters; they limit movements, they are not movements",
     "sandbox_test_fundings": "Sandbox quota and idempotency reservations; Core posts the credit",
     "acquiring_reconciliation_items": "reconciliation evidence: detects a mismatch, never corrects the ledger",
-    "reconciliation_attempts": "reconciliation evidence: detects a mismatch, never corrects the ledger"
+    "reconciliation_attempts": "reconciliation evidence: detects a mismatch, never corrects the ledger",
+    "boundary_reconciliation_runs": "boundary reconciliation report (MONEY-MODEL-001): compares operations with external evidence, never corrects the ledger",
+    "boundary_reconciliation_items": "boundary reconciliation report (MONEY-MODEL-001): one classified difference, never a correction"
   },
   "financial_write_routines": {
     "public.create_primary_wallet_account": "trigger on wallets (Core-written): creates the PRIMARY wallet account; SECURITY INVOKER, so it writes only with the privileges of the statement that fired it"

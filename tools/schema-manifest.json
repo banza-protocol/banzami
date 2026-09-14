@@ -1013,6 +1013,61 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "Boundary reconciliation is a report, never a correction (0148 / MONEY-MODEL-001, ADR-063)",
+      "why": "Runs identified by period and inputs digest (idempotent), classified items per boundary operation; evidence, never financial state.",
+      "tables": [
+        {
+          "name": "boundary_reconciliation_runs",
+          "columns": [
+            {
+              "name": "period_start",
+              "nullable": false
+            },
+            {
+              "name": "period_end",
+              "nullable": false
+            },
+            {
+              "name": "inputs_digest",
+              "nullable": false
+            },
+            {
+              "name": "unreconciled_amount_minor",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "boundary_reconciliation_runs_once"
+          ]
+        },
+        {
+          "name": "boundary_reconciliation_items",
+          "columns": [
+            {
+              "name": "run_id",
+              "nullable": false
+            },
+            {
+              "name": "outcome",
+              "nullable": false
+            },
+            {
+              "name": "kind",
+              "nullable": false
+            },
+            {
+              "name": "external_ref",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "idx_boundary_reconciliation_items_run",
+            "idx_boundary_reconciliation_items_open"
+          ]
+        }
+      ]
     }
   ]
 }

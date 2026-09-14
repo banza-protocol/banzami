@@ -391,6 +391,8 @@ check-docs-drift:
 check-wallet-native:
 	node tools/check-wallet-native-architecture.mjs
 	node tools/check-wallet-native-architecture.selftest.mjs
+	node tools/check-money-model.mjs
+	node tools/check-money-model.selftest.mjs
 	node tools/db-authority.mjs
 	node tools/db-authority.selftest.mjs
 

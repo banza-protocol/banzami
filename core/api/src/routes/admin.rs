@@ -822,3 +822,38 @@ pub async fn financial_position(
         .map(Json)
         .map_err(|e| ApiError::internal(e.to_string()))
 }
+
+/// POST /internal/v1/admin/boundary-reconciliation
+///
+/// Compare the boundary operations of a period (cash-in, cash-out, acquirer
+/// settlement) with external evidence, and record the classified report
+/// (MONEY-MODEL-001). The same period and evidence return the run already
+/// recorded. Writes only its own report: it never posts, corrects, confirms or
+/// fails an operation — a difference is resolved through the operation's own
+/// lifecycle.
+#[derive(Deserialize)]
+pub struct BoundaryReconciliationBody {
+    pub period_start: chrono::DateTime<Utc>,
+    pub period_end: chrono::DateTime<Utc>,
+    pub evidence: Vec<banzami_reconciliation::boundary::ExternalEvidence>,
+}
+
+pub async fn boundary_reconciliation(
+    State(state): State<AppState>,
+    Json(body): Json<BoundaryReconciliationBody>,
+) -> Result<Json<banzami_reconciliation::boundary::BoundaryRun>, ApiError> {
+    if body.period_end <= body.period_start {
+        return Err(ApiError::bad_request(
+            "period_end must be after period_start",
+        ));
+    }
+    banzami_reconciliation::boundary::run_boundary_reconciliation(
+        &state.pool,
+        body.period_start,
+        body.period_end,
+        &body.evidence,
+    )
+    .await
+    .map(Json)
+    .map_err(|e| ApiError::internal(e.to_string()))
+}

@@ -80,20 +80,29 @@ pub fn resolve_closed_shares(
                     "PERCENTAGE requires at least one share".into(),
                 ));
             }
-            let percent_sum: f64 = shares.iter().map(|s| s.percent).sum();
-            if (percent_sum - 100.0).abs() > 0.001 {
+            // Money is never computed in floating point (MONEY-MODEL-001). The
+            // published contract states a share as a decimal percent; it is
+            // turned into integer basis points once, exactly or not at all, and
+            // every amount below is integer arithmetic on minor units.
+            let mut bps = Vec::with_capacity(shares.len());
+            for s in shares {
+                bps.push(percent_to_bps(s.percent)?);
+            }
+            let bps_sum: i64 = bps.iter().sum();
+            if bps_sum != 10_000 {
                 return Err(CollectionError::InvalidRule(format!(
-                    "PERCENTAGE shares must sum to 100, got {percent_sum}"
+                    "PERCENTAGE shares must sum to 100, got {}.{:02}",
+                    bps_sum / 100,
+                    bps_sum % 100
                 )));
             }
             // Resolve to integer minor units; track remainder.
             let mut out = Vec::with_capacity(shares.len());
             let mut allocated: i64 = 0;
-            for s in shares {
-                if s.percent <= 0.0 {
-                    return Err(CollectionError::InvalidRule("percent must be > 0".into()));
-                }
-                let amount = ((total_amount_minor as f64) * s.percent / 100.0).floor() as i64;
+            for (s, share_bps) in shares.iter().zip(&bps) {
+                let amount =
+                    i64::try_from(i128::from(total_amount_minor) * i128::from(*share_bps) / 10_000)
+                        .map_err(|_| CollectionError::InvalidRule("amount out of range".into()))?;
                 allocated += amount;
                 out.push(ResolvedShare {
                     amount_minor: amount,
@@ -147,5 +156,41 @@ pub fn validate_open_contribution(
         CollectionRule::OpenContribution { .. } => Ok(()),
         // Closed rules do not accept ad-hoc shares.
         _ => Err(CollectionError::ClosedRuleNoDynamicShares),
+    }
+}
+
+/// A decimal percent from the published contract, as integer basis points.
+///
+/// Refused unless it is positive, at most 100 and has at most two decimal places:
+/// a share that basis points cannot state exactly is not rounded into existence.
+fn percent_to_bps(percent: f64) -> Result<i64, CollectionError> {
+    if !percent.is_finite() || percent <= 0.0 || percent > 100.0 {
+        return Err(CollectionError::InvalidRule(
+            "percent must be > 0 and at most 100".into(),
+        ));
+    }
+    let bps = (percent * 100.0).round();
+    if ((bps / 100.0) - percent).abs() > 1e-9 {
+        return Err(CollectionError::InvalidRule(
+            "percent must have at most two decimal places".into(),
+        ));
+    }
+    Ok(bps as i64)
+}
+
+#[cfg(test)]
+mod percent_tests {
+    use super::percent_to_bps;
+
+    #[test]
+    fn a_percent_is_exact_basis_points_or_refused() {
+        assert_eq!(percent_to_bps(33.33).unwrap(), 3_333);
+        assert_eq!(percent_to_bps(100.0).unwrap(), 10_000);
+        assert_eq!(percent_to_bps(0.01).unwrap(), 1);
+        assert!(percent_to_bps(33.333).is_err());
+        assert!(percent_to_bps(0.0).is_err());
+        assert!(percent_to_bps(-5.0).is_err());
+        assert!(percent_to_bps(f64::NAN).is_err());
+        assert!(percent_to_bps(100.01).is_err());
     }
 }

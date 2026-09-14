@@ -1,4 +1,5 @@
 pub mod balance_checker;
+pub mod boundary;
 pub mod engine;
 pub mod position;
 pub mod repository;
