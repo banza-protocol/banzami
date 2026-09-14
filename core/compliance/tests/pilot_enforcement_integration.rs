@@ -205,3 +205,40 @@ async fn below_limits_passes(pool: PgPool) {
         .unwrap()
         .is_none());
 }
+
+// -- a Project-owned Sandbox test payer is not held to the shared aggregate cap ---
+// ADR-060 §6: the aggregate funds cap is shared by every developer, so one
+// Project's test payers must not be able to exhaust it for the rest. The
+// per-party balance cap still applies to them.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn test_payer_funding_ignores_the_aggregate_but_keeps_the_balance_cap(pool: PgPool) {
+    use banzami_compliance::pilot::limits::{AGGREGATE_FUNDS_MINOR, CONSUMER_MAX_BALANCE_MINOR};
+    use banzami_compliance::pilot_enforce::check_test_payer_funding;
+    // Fill the Sandbox-wide aggregate through a merchant wallet.
+    let big = new_account(&pool).await;
+    make_merchant_wallet(&pool, big).await;
+    credit(&pool, big, AGGREGATE_FUNDS_MINOR, 0).await;
+
+    let payer = new_account(&pool).await;
+    // An ordinary consumer is refused by the aggregate…
+    assert!(check_funding(&pool, Party::Consumer, payer, 1_000_000, ON)
+        .await
+        .unwrap()
+        .is_some());
+    // …a test payer is not…
+    assert!(check_test_payer_funding(&pool, payer, 1_000_000, ON)
+        .await
+        .unwrap()
+        .is_none());
+    // …but its own balance cap still holds.
+    credit(&pool, payer, CONSUMER_MAX_BALANCE_MINOR, 0).await;
+    assert!(check_test_payer_funding(&pool, payer, 1, ON)
+        .await
+        .unwrap()
+        .is_some());
+    // And a disabled policy decides nothing.
+    assert!(check_test_payer_funding(&pool, payer, 1, OFF)
+        .await
+        .unwrap()
+        .is_none());
+}

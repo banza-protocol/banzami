@@ -219,16 +219,38 @@ pub async fn test_credit(
     // leaves balances and the ledger unchanged.
     {
         let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
-        if let Some(v) = banzami_compliance::pilot_enforce::check_funding(
-            &state.pool,
-            banzami_compliance::pilot_enforce::Party::Consumer,
-            available_account_id,
-            body.amount_minor,
-            policy,
-        )
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?
-        {
+        // A Project-owned Sandbox test payer is bounded per Project, not by the
+        // Sandbox-wide aggregate every developer shares (ADR-060 §6).
+        let is_test_payer: bool = !state.environment.is_live()
+            && sqlx::query_scalar(
+                "SELECT EXISTS (SELECT 1 FROM sandbox_test_payers tp
+                                  JOIN consumer_wallets cw ON cw.consumer_id = tp.consumer_id
+                                 WHERE cw.available_account_id = $1 AND tp.retired_at IS NULL)",
+            )
+            .bind(available_account_id)
+            .fetch_one(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+        let violation = if is_test_payer {
+            banzami_compliance::pilot_enforce::check_test_payer_funding(
+                &state.pool,
+                available_account_id,
+                body.amount_minor,
+                policy,
+            )
+            .await
+        } else {
+            banzami_compliance::pilot_enforce::check_funding(
+                &state.pool,
+                banzami_compliance::pilot_enforce::Party::Consumer,
+                available_account_id,
+                body.amount_minor,
+                policy,
+            )
+            .await
+        }
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+        if let Some(v) = violation {
             return Err(ApiError::unprocessable(v.as_str(), v.message()));
         }
     }

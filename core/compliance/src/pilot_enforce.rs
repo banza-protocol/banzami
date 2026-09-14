@@ -105,6 +105,24 @@ pub async fn check_funding(
     Ok(policy.check_aggregate_funds_after_add(funds, credit_minor))
 }
 
+/// Funding of a Project-owned Sandbox test payer (ADR-060 §6): the per-party
+/// balance cap applies, the Sandbox-wide aggregate cap does not. That cap is a
+/// resource every developer shares; one Project's test payers could exhaust it
+/// for all the others. Their fictitious value is bounded per Project instead,
+/// by the test-payer quotas in public-api.
+pub async fn check_test_payer_funding(
+    pool: &PgPool,
+    available_account_id: uuid::Uuid,
+    credit_minor: i64,
+    policy: PilotLimitPolicy,
+) -> Result<Option<PilotViolation>, sqlx::Error> {
+    if !policy.is_enabled() {
+        return Ok(None);
+    }
+    let bal = account_balance_minor(pool, available_account_id).await?;
+    Ok(policy.check_consumer_balance_after_credit(bal, credit_minor))
+}
+
 /// Merchant receipt on a payment: enforce merchant per-received, daily-received and
 /// balance-after caps for a receipt of `amount_minor` into the merchant's
 /// `available_account_id`. Returns the first violation, or `None` if allowed.
