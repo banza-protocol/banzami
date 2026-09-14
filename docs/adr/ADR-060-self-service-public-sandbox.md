@@ -113,8 +113,16 @@ External-rail outcomes are requested **explicitly** on the test-payer payment:
 so a client learns the ambiguous-outcome rule: retry with the same
 `Idempotency-Key` and read the real result. There are no reserved magic
 handles, amounts or phone numbers. `GET /v1/sandbox/scenarios` returns the
-catalogue, generated from the same `sandbox-scenarios.json` the documentation
-renders.
+catalogue, served from `services/api-gateway/internal/handler/sandbox_scenarios.json`,
+which the documentation renders and a drift gate holds to the testing guide.
+
+A payment made as a test payer answers one shape whichever consumer path paid
+it — `{ test_payer_id, via, payment_session_id | payment_link_id, status:
+"PAID", transfer_id, amount_minor, currency, paid_at, proof_reference,
+simulated: false }` — never the payee's link view. The real outcome of a
+simulated `TIMEOUT` is kept for 24 hours (Redis) under the Project and the
+`Idempotency-Key`, and ANY repeat with that key — with or without `simulate`,
+so an SDK's automatic retry of the 504 too — reads it instead of paying again.
 
 ### 6. Fictitious value has per-Project quotas
 
@@ -122,9 +130,11 @@ The pilot overlay (ADR-048) stays for per-actor limits. The Sandbox-wide
 aggregate funds cap does not apply to the registration grant and test-payer
 funding of synthetic payers, because one developer could otherwise exhaust
 funding for every other developer. Instead: at most 10 active test payers per
-Project, a 10 000 Kz grant each, and at most 20 top-ups and 1 000 000 Kz of
-top-ups per Project per day; all counted per Project and answered with
-`429 SANDBOX_QUOTA_EXCEEDED` and the reset time.
+Project, a grant of at most 10 000 Kz each (`initial_balance_minor`, default
+1 000 000 minor units), at most 25 000 Kz per top-up, a 50 000 Kz balance per
+payer, and at most 20 top-ups and 100 000 Kz of top-ups per Project per 24
+hours; counted per Project and answered with `429 SANDBOX_QUOTA_EXCEEDED`. A
+top-up exceeding the payer's balance cap answers `422 SANDBOX_FUNDING_REFUSED`.
 
 ### 7. API Explorer is a server-side broker
 
@@ -142,10 +152,18 @@ The browser never holds a Project secret. The Console posts
 4. revokes the key and returns status, headers of interest (`request_id`),
    body and latency.
 
-Explorer keys are hidden from the key list, cannot be introspected after
-expiry, and their requests appear in the Project's API logs attributed to the
-user as "API Explorer". Writes need a caller-visible `Idempotency-Key`, which
-the Console generates once and keeps for Retry.
+Explorer keys are hidden from the key list, refused by key authorisation at and
+after `expires_at` whether or not revoked, and cannot be rotated or revoked
+through the Console's key routes (rotating one would mint a STANDARD key with
+its scopes). Their requests appear in the Project's API logs with
+`source: API_EXPLORER` (filterable). Writes carry a caller-visible
+`Idempotency-Key`, which the Console generates once per form. Signing secrets in
+a response (`secret`) are hidden by the broker and named in `redacted`; a secret
+is revealed once on the Webhooks screen, not in a response panel. The broker
+runs only on a Sandbox deployment, 30 requests a minute per Project, and the
+allowlist (`explorer_operations.json`) is regenerated from the OpenAPI and
+checked in CI (`build-explorer-allowlist.mjs --check`): an operation with no
+`x-banzami-scope`, or marked `x-banzami-project-key: refused`, is not runnable.
 
 ### 8. Webhook test event
 
@@ -155,36 +173,95 @@ Console button deliver `type: "webhook.test"` to that endpoint only, signed with
 and deliveries. It moves no money, is not subscribable, is not one of the seven
 financial events, and is documented and drift-gated separately. Delivery replay
 (existing) re-delivers the stored event with its original id and never
-re-executes an operation.
+re-executes an operation. A delivery that succeeded is not replayed — except a
+synthetic event's, which moves nothing and exists to be sent again (gateway and
+developer-api apply the same rule). An inactive endpoint answers
+`409 ENDPOINT_DISABLED`; a non-Sandbox key `403 SANDBOX_ONLY`.
 
 ### 9. Realtime payment status
 
-A Payment Session response carries `status_token` (HMAC-signed by the gateway:
-session id and expiry, 30 minutes; read-only; no merchant or Project id). Two
-public, unauthenticated-by-key routes accept it:
+*Revised during REALTIME-001: the token travels in the Authorization header, not
+the query string, and the route is `/v1/realtime/payment-sessions/{id}`.*
 
-- `GET /v1/payment-sessions/{id}/status?token=…` — one JSON read;
-- `GET /v1/payment-sessions/{id}/status/stream?token=…` — Server-Sent Events:
-  an initial `status` event, a `status` event on every change, a comment
-  heartbeat every 15 s, and close after a terminal state or at token expiry.
-  `Last-Event-ID` resumes with the current state. At most 3 streams per session
-  and 20 per IP.
+A Payment Session read with a Project key (create, get, list) carries
+`realtime: { token, expires_at, path }`; a session-backed payment link's public
+view carries `realtime: { session_id, token, expires_at, path }` for the hosted
+page. The token is `bzst_` + base64url(payload) + `.` + HMAC-SHA256: session id,
+environment and expiry (at most 30 minutes), under a key derived from the
+gateway's signing secret with a fixed label, so it cannot be confused with or
+forged from a session JWT. It carries no merchant, Project or payer identifier
+and grants nothing a slug does not already grant: the public status of one
+session.
 
-A token for session A cannot read session B. Nothing on these routes mutates.
-Webhooks remain the authoritative server notification; the stream is a UI
-convenience. SSE is chosen over WebSocket because the flow is one-directional,
-passes through the existing HTTP edge, reconnects natively in browsers and needs
-no extra infrastructure.
+One route, mounted by its own function (`mountRealtimeStatus`) so the contract
+gates read it as its own credential class (`statusToken` in the OpenAPI):
+
+`GET /v1/realtime/payment-sessions/{id}` with `Authorization: Bearer bzst_…`
+
+- `Accept: application/json` — one snapshot `{ session_id, status, amount_minor,
+  currency, expires_at, terminal, observed_at }`;
+- `Accept: text/event-stream` — Server-Sent Events: `retry: 3000`, a `snapshot`
+  event, a `status` event on each change, a `: heartbeat` comment every 15 s,
+  an `expired` event at token expiry; the stream closes after a terminal status
+  (PAID, EXPIRED, CANCELLED, FAILED). A reconnect starts from a fresh snapshot
+  (there is no `Last-Event-ID` replay: the current state is the whole state).
+
+Refusals: token in the query string `400 REALTIME_TOKEN_IN_URL` (even when
+valid — a URL reaches logs, history and `Referer`), missing `401
+REALTIME_TOKEN_REQUIRED`, bad signature or foreign environment `401
+REALTIME_TOKEN_INVALID`, expired `401 REALTIME_TOKEN_EXPIRED`, another session
+`403 REALTIME_TOKEN_WRONG_RESOURCE`. Limits: 3 streams per session, 20 per IP
+(`429 REALTIME_STREAM_LIMIT`), 120 requests a minute per IP. CORS allows any
+origin without credentials; the preflight is answered by the CORS middleware.
+The route is exempt from the 60 s request timeout and clears the write
+deadline; the response sets `X-Accel-Buffering: no` for nginx. One watcher per
+session reads the canonical session once a second and fans out changes.
+
+Browsers use `fetch` streaming, not `EventSource` (which cannot send a header):
+`watchPaymentSessionStatus` in `@banzami/sdk/realtime` refuses anything that is
+not a `bzst_` token. The hosted page (apps/pay) and the Console's API Explorer
+use the same protocol and fall back to polling at 5 s when no stream is
+available. Nothing on this route mutates, and it is not financial authority:
+webhooks (signed) and a GET made with the Project key remain what an integration
+fulfils on. SSE is chosen over WebSocket because the flow is one-directional,
+passes through the existing HTTP edge, and needs no extra infrastructure.
 
 ### 10. Reset
 
-`POST /projects/{id}/sandbox/reset` (OWNER/ADMIN, typed confirmation): cancels
-open Payment Sessions and Links, retires the Project's test payers, returns the
-Sandbox Business's balances by retirement posting, and closes non-PRIMARY
-accounts. Financial Setup, keys, webhooks, ledger history and audit history
-stay. Limited to 5 per Project per day. Nothing is deleted.
+`POST /projects/{id}/sandbox/reset` (developer-api, OWNER/ADMIN, typed
+`RESET`) calls Core's `POST /internal/v1/sandbox/projects/reset`, which in one
+transaction retires the Project's test payers (balance retired by posting,
+marked retired, then suspended through the identity lifecycle) and, **only if
+the Project owns a `SANDBOX_SYNTHETIC` Business** (read from
+`sandbox_businesses` in Core), cancels its open Payment Sessions and Links,
+expires their dynamic QRs, retires every account's balance and closes the
+non-PRIMARY accounts. A Project merely connected to a Business — a real one, or
+another Project's synthetic one — resets only its own payers. Refused while a
+settlement is pending (`409 PENDING_SETTLEMENT`). Financial Setup, keys,
+webhooks, ledger history and audit history stay. Limited to 5 per Project per
+24 hours, counted from the audit log (`429 SANDBOX_RESET_LIMIT`), replay-safe on
+the request's key. Nothing is deleted.
 
-### 11. LIVE stays closed on every new path
+A Project shares its synthetic Business with another Project by issuing a
+consent code (`POST /projects/{id}/financial-setup/share-code` → the gateway's
+`issue-for-project`, which reads ownership itself and refuses any Business that
+is not `SANDBOX_SYNTHETIC`); the other Project redeems it through the existing
+connect flow. A Project cannot redeem its own code.
+
+### 11. One platform, two financial environments
+
+The Developer Platform is one product with two strictly separated financial
+environments. **Public Sandbox**: available, self-service, no operator
+approval, fictitious value, `bz_test_` keys. **Financial LIVE**: the same
+platform and contracts, with real value, behind institutional approval — NOT
+READY and fail-closed. The Console shows both: Sandbox "Disponível"; Live
+"Indisponível", requiring institutional approval and not activatable from the
+Console. A Sandbox credential opens nothing in Live, and no Live credential can
+be minted in the Sandbox. Everything in this ADR — synthetic Businesses, test
+payers, simulations, the Explorer, the webhook test event, the reset — is a
+Sandbox capability and is compared only with Sandbox capabilities.
+
+### 12. LIVE stays closed on every new path
 
 Every new route checks the Sandbox environment itself (Core, gateway,
 public-api, developer-api). Keys stay `bz_test_`; `bz_live_` is refused. No new
