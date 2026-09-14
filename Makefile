@@ -389,6 +389,7 @@ check-docs-drift:
 check-public-site-truth:
 	node tools/check-public-site-truth.mjs
 	node tools/check-public-site-truth.selftest.mjs
+	node tools/lib/sdk-readme-claims.selftest.mjs
 
 .PHONY: check-docs-prod
 check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth

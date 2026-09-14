@@ -3298,12 +3298,12 @@
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
    "text": "Reembolsos, transferências e liquidações exigem uma chave de idempotência sua: o SDK não a gera, porque uma chave nova em cada tentativa anularia a proteção."
   },
-  "pt:Sdk:01b278d28d": {
+  "pt:Sdk:553cd646da": {
    "page": "Sdk",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "@banzami/sdk 0.14.0. Com uma chave de projeto: sessões e links de pagamento sem indicar quem recebe, pagadores de teste (createTestPayer, fundTestPayer, payAsTe"
+   "text": "@banzami/sdk 0.14.1. Com uma chave de projeto: sessões e links de pagamento sem indicar quem recebe, pagadores de teste (createTestPayer, fundTestPayer, payAsTe"
   },
   "pt:Sdk:e4e1ecd6fc": {
    "page": "Sdk",
@@ -4809,6 +4809,13 @@
    "class": "HISTORY",
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "Alterações incompatíveis são marcadas como tal e indicam sempre a ação necessária. Não há versões de produção: Financial Live não está disponível."
+  },
+  "pt:Changelog:dfc055701e": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "HISTORY",
+   "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
+   "text": "14 Set 2026 | SDK | @banzami/sdk 0.14.1: simulate DELAYED tipado (TestPaymentPending) e README alinhado com a documentação. | Um pagamento que se conclui depois"
   },
   "pt:Changelog:8797a9c2df": {
    "page": "Changelog",
@@ -8205,12 +8212,12 @@
    "evidence": "sdk/typescript/src/client.ts (request(): Idempotency-Key per POST, retries 429/502/503/504), sdk/dart-client/lib/src/client.dart, apps/website/public/developers/artifacts/sdk-first-manifest.json",
    "text": "Refunds, transfers and settlements require an idempotency key of your own: the SDK does not generate one, because a new key on every attempt would defeat the pr"
   },
-  "en:Sdk:940677b3d4": {
+  "en:Sdk:571df29ca1": {
    "page": "Sdk",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "@banzami/sdk 0.14.0. With a project key: sessions and Payment Links without naming the payee, test payers (createTestPayer, fundTestPayer, payAsTestPayer), send"
+   "text": "@banzami/sdk 0.14.1. With a project key: sessions and Payment Links without naming the payee, test payers (createTestPayer, fundTestPayer, payAsTestPayer), send"
   },
   "en:Sdk:76e0e6cbbb": {
    "page": "Sdk",
@@ -9716,6 +9723,13 @@
    "class": "HISTORY",
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "Breaking changes are marked as such and always state the action required. There are no production releases: Financial Live is not available."
+  },
+  "en:Changelog:72807ddf3a": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "HISTORY",
+   "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
+   "text": "14 Sep 2026 | SDK | @banzami/sdk 0.14.1: simulate DELAYED typed (TestPaymentPending) and the README aligned with the documentation. | A payment that completes l"
   },
   "en:Changelog:4a4b20d1dc": {
    "page": "Changelog",

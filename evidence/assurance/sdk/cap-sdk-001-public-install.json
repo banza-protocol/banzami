@@ -1,12 +1,12 @@
 {
   "suite": "CAP-SDK-001 — public registry install, outside every Banzami repository",
-  "generated_at": "2026-09-14T08:45:51.474Z",
+  "generated_at": "2026-09-14T10:06:40.018Z",
   "registry": {
     "name": "@banzami/sdk",
-    "latest": "0.14.0",
+    "latest": "0.14.1",
     "license": "MIT",
-    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.14.0.tgz",
-    "integrity": "sha512-Zzd9DyWgS6++8gbrVQPFhCqfmLYU4yfx5epE3Wv0B4hD6MYKNtP3PqJtHUd0jp8FIspiz5lXYxFPPgdUZS6hRg==",
+    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.14.1.tgz",
+    "integrity": "sha512-yrrPlFgrrgKAPERcTM/69xQuVnEVtKZE1CocL/2HwS3AMXtVsv9schxW1eVSqI3Lxyzb23Hg9w3iFetPTywY0Q==",
     "all_versions": [
       "0.4.0",
       "0.5.0",
@@ -22,31 +22,32 @@
       "0.12.0",
       "0.12.1",
       "0.13.0",
-      "0.14.0"
+      "0.14.0",
+      "0.14.1"
     ]
   },
   "clean_project": {
     "inside_git_repo": false,
-    "dependency_spec": "^0.14.0",
-    "installed_version": "0.14.0",
+    "dependency_spec": "^0.14.1",
+    "installed_version": "0.14.1",
     "local_path_dependency": false
   },
-  "source_version": "0.14.0",
+  "source_version": "0.14.1",
   "assertions": [
     {
       "id": "SDK.registry.published",
       "pass": true,
-      "note": "dist-tags.latest = 0.14.0"
+      "note": "dist-tags.latest = 0.14.1"
     },
     {
       "id": "SDK.install.from-registry",
       "pass": true,
-      "note": "resolved https://registry.npmjs.org/@banzami/sdk/-/sdk-0.14.0.tgz"
+      "note": "resolved https://registry.npmjs.org/@banzami/sdk/-/sdk-0.14.1.tgz"
     },
     {
       "id": "SDK.install.version-matches-latest",
       "pass": true,
-      "note": "installed 0.14.0"
+      "note": "installed 0.14.1"
     },
     {
       "id": "SDK.install.no-local-path",
@@ -56,7 +57,7 @@
     {
       "id": "SDK.install.integrity-recorded",
       "pass": true,
-      "note": "sha512-Zzd9DyWgS6++8gbrV…"
+      "note": "sha512-yrrPlFgrrgKAPERcT…"
     },
     {
       "id": "SDK.registry.license-mit",
@@ -66,7 +67,7 @@
     {
       "id": "SDK.source.not-behind-registry",
       "pass": true,
-      "note": "source 0.14.0, registry 0.14.0"
+      "note": "source 0.14.1, registry 0.14.1"
     },
     {
       "id": "SDK.contents.dist/index.js",
@@ -102,6 +103,31 @@
       "id": "SDK.contents.no-credential-literal",
       "pass": true,
       "note": "no key literal in any published file"
+    },
+    {
+      "id": "SDK.readme.no-stale-claims",
+      "pass": true,
+      "note": "none of the retired statements"
+    },
+    {
+      "id": "SDK.readme.states-current-truth",
+      "pass": true,
+      "note": "Sandbox and Financial Live status, canonical docs link"
+    },
+    {
+      "id": "SDK.contract.documented-methods-published",
+      "pass": true,
+      "note": "35 methods named by the API reference"
+    },
+    {
+      "id": "SDK.contract.delayed-simulation-typed",
+      "pass": true,
+      "note": "SandboxSimulation includes DELAYED; TestPaymentPending exported"
+    },
+    {
+      "id": "SDK.contract.subpath-exports-resolve",
+      "pass": true,
+      "note": ".:17 ./theme:8 ./webhooks:8 ./money:3 ./sandbox:6 ./realtime:1"
     },
     {
       "id": "SDK.run.esm-entrypoint",
@@ -160,7 +186,7 @@
     }
   ],
   "note": "Re-proved against the registry as served now. The published build is executed — money formatting, entrypoints and webhook signature verification come from the installed package, never from the working tree.",
-  "total": 25,
-  "passed": 25,
+  "total": 30,
+  "passed": 30,
   "promotable": true
 }

@@ -591,6 +591,7 @@ jobs:
         run: |
           node tools/check-public-site-truth.mjs
           node tools/check-public-site-truth.selftest.mjs
+          node tools/lib/sdk-readme-claims.selftest.mjs
 
       # An item can read VALIDATED while the files behind it have been deleted.
       # Four did, for months, because nothing had ever opened an evidence

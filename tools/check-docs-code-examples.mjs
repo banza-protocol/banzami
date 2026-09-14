@@ -231,6 +231,24 @@ try {
   console.log(`DOC_CODE_EXAMPLES_TS_FAILING=${failures}`);
   console.log(`DOC_CODE_EXAMPLES_PT=${ptN} DOC_CODE_EXAMPLES_EN=${enN}`);
   console.log(`DOC_CODE_EXAMPLES_SDK_VERSION=${sdkVersion}`);
+
+  // The version the documentation calls current is the one the registry serves.
+  // The examples above compile against whatever `npm install @banzami/sdk`
+  // resolves to; a page naming another version would describe a package the
+  // reader does not get. Changelog rows that name older versions are history.
+  const lock = JSON.parse(readFileSync(join(dir, 'package-lock.json'), 'utf8'));
+  const resolved = lock.packages?.['node_modules/@banzami/sdk']?.resolved ?? '';
+  const stated = [
+    ['PT SDK page', readFileSync(join(ROOT, SOURCES.PT), 'utf8').match(/<H2 id="sdk-preview">[\s\S]*?<Code>@banzami\/sdk<\/Code> (\d+\.\d+\.\d+)/)?.[1]],
+    ['EN SDK page', readFileSync(join(ROOT, SOURCES.EN), 'utf8').match(/<H2 id="sdk-preview">[\s\S]*?<Code>@banzami\/sdk<\/Code> (\d+\.\d+\.\d+)/)?.[1]],
+    ['llms.txt', readFileSync(join(ROOT, 'apps/website/public/llms.txt'), 'utf8').match(/@banzami\/sdk[^\n]*current version (\d+\.\d+\.\d+)/)?.[1]],
+  ];
+  const drift = stated.filter(([, v]) => v !== sdkVersion);
+  for (const [where, v] of drift) console.error(`  ✗ ${where} says @banzami/sdk ${v ?? '(no version found)'}; the registry serves ${sdkVersion}`);
+  if (!resolved.startsWith('https://registry.npmjs.org/')) { console.error(`  ✗ the SDK did not resolve from the registry: ${resolved}`); failures += 1; }
+  failures += drift.length;
+  console.log(`DOCS_CURRENT_SDK_VERSION=${stated[0][1]}`);
+  console.log(`SDK_DOCS_REGISTRY_DRIFT=${drift.length}`);
   console.log(`DOC_CODE_EXAMPLES_TESTED=${failures === 0 && samples.length > 0 ? 'PASS' : 'FAIL'}`);
 } finally {
   rmSync(dir, { recursive: true, force: true });

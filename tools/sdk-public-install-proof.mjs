@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
+import { readmeFindings } from './lib/sdk-readme-claims.mjs';
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), '..');
 const outArg = process.argv.indexOf('--out');
@@ -67,6 +68,25 @@ const credential = ['bz', '_', 'test', '_', 'sk', '_'].join('').replace(/_(?=[a-
 const leaked = files.filter(f => /\.(js|ts|json|md|map)$/.test(f) && /bz_(test|live)_(sk|pk)_[A-Za-z0-9]/.test(readFileSync(f, 'utf-8')));
 check('SDK.contents.no-credential-literal', leaked.length === 0, leaked.length ? leaked.join(', ') : 'no key literal in any published file');
 
+// 4b. The README the registry serves — npm's package page — states current truth.
+const readme = readFileSync(join(dir, 'node_modules', PKG, 'README.md'), 'utf-8');
+const rf = readmeFindings(readme);
+check('SDK.readme.no-stale-claims', rf.stale.length === 0, rf.stale.length ? rf.stale.join('; ') : 'none of the retired statements');
+check('SDK.readme.states-current-truth', rf.missing.length === 0, rf.missing.length ? `missing: ${rf.missing.join('; ')}` : 'Sandbox and Financial Live status, canonical docs link');
+
+// 4c. The public package contract: every subpath export resolves in the
+//     published build, every SDK method the documentation names exists in the
+//     published types, and the types carry what the docs say this version has.
+const pubPkg = installed;
+const subpaths = Object.keys(pubPkg.exports ?? {}).filter((k) => k !== './package.json');
+const dts = readFileSync(join(dir, 'node_modules', PKG, 'dist/client.d.ts'), 'utf-8');
+const types = readFileSync(join(dir, 'node_modules', PKG, 'dist/types.d.ts'), 'utf-8');
+const meta = readFileSync(join(ROOT, 'apps/website/app/developers/docs/endpoint-meta.ts'), 'utf-8');
+const documented = [...new Set([...meta.matchAll(/sdk:\s*'([A-Za-z]+)'/g)].map((m) => m[1]))];
+const missingMethods = documented.filter((m) => !new RegExp(`\\b${m}\\(`).test(dts));
+check('SDK.contract.documented-methods-published', missingMethods.length === 0, missingMethods.length ? `absent: ${missingMethods.join(', ')}` : `${documented.length} methods named by the API reference`);
+check('SDK.contract.delayed-simulation-typed', /'DELAYED'/.test(types) && /TestPaymentPending/.test(types), 'SandboxSimulation includes DELAYED; TestPaymentPending exported');
+
 // 5. The PUBLISHED build, executed.
 const probe = join(dir, 'probe.mjs');
 writeFileSync(probe, `
@@ -103,6 +123,12 @@ out.sigStaleTimestamp = verifies(body, \`t=\${t - 4000},v1=\${createHmac('sha256
 console.log(JSON.stringify(out));
 `);
 const probed = JSON.parse(execFileSync('node', [probe], { cwd: dir, encoding: 'utf-8' }).trim().split('\n').pop());
+
+// Every subpath export imports from the published package.
+const subProbe = join(dir, 'subpaths.mjs');
+writeFileSync(subProbe, subpaths.map((sp, i) => `import * as m${i} from '${PKG}${sp === '.' ? '' : sp.slice(1)}';`).join('\n') + `\nconsole.log(JSON.stringify([${subpaths.map((_, i) => `Object.keys(m${i}).length`).join(',')}]));\n`);
+const subCounts = JSON.parse(execFileSync('node', [subProbe], { cwd: dir, encoding: 'utf-8' }).trim());
+check('SDK.contract.subpath-exports-resolve', subCounts.every((n) => n > 0), subpaths.map((sp, i) => `${sp}:${subCounts[i]}`).join(' '));
 
 check('SDK.run.esm-entrypoint', typeof probed.addMinor === 'number', `addMinor(999999999,1) = ${probed.addMinor}`);
 check('SDK.run.sandbox-entrypoint', probed.liveKeyRejected === true, 'BanzamiClient imported from ./sandbox');
@@ -145,6 +171,12 @@ const evidence = {
 };
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(evidence, null, 2) + '\n');
+const byId = (p) => checks.filter((c) => c.id.startsWith(p));
+console.log(`\nPUBLIC_SDK_VERSION=${installed.version}`);
+console.log(`PUBLIC_SDK_INSTALL_FROM_REGISTRY=${byId('SDK.install.').every((c) => c.pass) ? 'PASS' : 'FAIL'}`);
+console.log(`PUBLIC_SDK_LOCAL_FALLBACK=${checks.find((c) => c.id === 'SDK.install.no-local-path')?.pass ? 0 : 1}`);
+console.log(`SDK_README_STALE_CLAIMS=${rf.stale.length + rf.missing.length}`);
+console.log(`SDK_PUBLIC_PACKAGE_CONTRACT=${byId('SDK.contract.').every((c) => c.pass) && byId('SDK.contents.').every((c) => c.pass) ? 'PASS' : 'FAIL'}`);
 console.log(`\n${passed}/${checks.length} — ${evidence.promotable ? '\x1b[32mpromotable\x1b[0m' : '\x1b[31mNOT promotable\x1b[0m'}`);
 console.log(`evidence -> ${OUT}\n`);
 process.exit(evidence.promotable ? 0 : 1);

@@ -299,7 +299,16 @@ const paid = await banzami.payAsTestPayer(payer.id, {
   via: 'QR',
   idempotencyKey: 'payment_001',
 });
-// paid.status  ->  'PAID';  paid.proof_reference  ->  the receipt`;
+// paid.status  ->  'PAID';  paid.proof_reference  ->  the receipt
+
+// A payment that completes later: 202 PENDING now, PAID about 10 s later.
+declare const otherSessionId: string;
+const later = await banzami.payAsTestPayer(payer.id, {
+  paymentSessionId: otherSessionId,
+  simulate: 'DELAYED',
+  idempotencyKey: 'payment_002',
+});
+// later.status  ->  'PENDING'`;
 
 const SAMPLE_WEBHOOK_TEST = `// With the endpoint registered (createWebhookEndpoint):
 declare const endpointId: string;
@@ -1925,9 +1934,9 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
 
               <H2 id="sdk-preview">Current version</H2>
               <P>
-                <Code>@banzami/sdk</Code> 0.14.0. With a project key: sessions and <a href="/docs/en/payments#links" style={a}>Payment Links</a> without naming the payee, test payers
+                <Code>@banzami/sdk</Code> 0.14.1. With a project key: sessions and <a href="/docs/en/payments#links" style={a}>Payment Links</a> without naming the payee, test payers
                 (<Code>createTestPayer</Code>, <Code>fundTestPayer</Code>, <Code>payAsTestPayer</Code>), <Code>sendWebhookTestEvent</Code> and, for the browser, <Code>@banzami/sdk/realtime</Code>.
-                In 0.14.0 the <Code>simulate</Code> type does not yet include <Code>DELAYED</Code>, which the API accepts.
+                <Code>payAsTestPayer</Code> accepts every simulation the API does, including <Code>DELAYED</Code>, which returns <Code>PENDING</Code>.
               </P>
               <P>
                 Complete example: <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={a}>typescript-payment-session.example.ts</a>. The TypeScript examples in these docs
@@ -2421,6 +2430,7 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Date</th><th style={TH}>Area</th><th style={TH}>Change</th><th style={TH}>Impact</th><th style={TH}>Action</th></tr></thead>
                   <tbody>
                     {([
+                      ['14 Sep 2026', 'SDK', '@banzami/sdk 0.14.1: simulate DELAYED typed (TestPaymentPending) and the README aligned with the documentation.', 'A payment that completes later is testable from the SDK without type casts.', 'Upgrade to 0.14.1; no existing call changes.'],
                       ['14 Sep 2026', 'SDK', '@banzami/sdk 0.14.0: links without merchantId, test payers, sendWebhookTestEvent and @banzami/sdk/realtime.', 'The self-service Sandbox is usable from the SDK.', 'Upgrade to 0.14.0; no existing call changes.'],
                       ['14 Sep 2026', 'Sandbox', 'Self-service Sandbox: a test Business by use case, test payers, explicit simulations, API Explorer, a webhook test event and reset.', 'A new project receives in the Sandbox with no application and no review.', 'None; projects already set up stay as they are.'],
                       ['14 Sep 2026', 'API', 'Realtime status: GET /v1/realtime/payment-sessions/{id}, with each session’s realtime.token in the Authorization header.', 'A page can show the payment the moment it happens.', 'None; the webhook remains the confirmation.'],

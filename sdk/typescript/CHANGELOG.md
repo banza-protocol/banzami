@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.14.1] — 2026-09-14
 
-Prepared for release; publishing to npm is an owner step (`node tools/sdk-release.mjs --publish`
-from the owner's machine). 0.14.0 was published from the commit before these changes.
+Published to npm on 2026-09-14 (gitHead `348dc074`), proved from the registry
+(`evidence/assurance/sdk/cap-sdk-001-public-install.json`). 0.14.0 was published
+from the commit before these changes.
 
 ### Added
 - `simulate: 'DELAYED'` on `payAsTestPayer` returns a `TestPaymentPending`
