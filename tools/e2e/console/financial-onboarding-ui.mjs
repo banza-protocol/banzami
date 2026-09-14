@@ -5,19 +5,21 @@
  *
  *   node tools/e2e/console/financial-onboarding-ui.mjs [--out <dir>]
  *
- * A fresh synthetic workspace with two Projects, an OWNER and a DEVELOPER:
+ * A fresh synthetic workspace with two Projects, an OWNER and a DEVELOPER, on
+ * the self-service Public Sandbox (ADR-060 — no application, no review):
  *
- *   A — the OWNER opens Configuração financeira, starts the verification, picks
- *       "Criar novo negócio", fills the five steps, chooses the documents and
- *       sends. The page says IN_REVIEW with the reference and the @ requested,
- *       and — where document storage is not configured — says the documents
- *       were not sent (never "enviado"). The application is origin
- *       DEVELOPER_PROJECT for Project A. A reload still says IN_REVIEW. The
- *       DEVELOPER sees the same state with nothing to press.
- *   B — the OWNER picks "Ligar negócio existente" and types the consent code a
- *       synthetic existing Business issued (lower case, no dashes). The page
- *       names the Business; after a reload it shows the Business card
+ *   A — the page offers the two use cases and no verification form; the
+ *       DEVELOPER sees them with nothing to press; the OWNER picks "Loja,
+ *       serviço ou negócio" and configures. The page shows the Project's test
+ *       Business (SANDBOX_SYNTHETIC), Core holds it as the Project's own, and a
+ *       reload still shows it. Cleanup retires it through Core (cleanupRun).
+ *   B — the OWNER picks "Ligar um negócio que já existe" and types the consent
+ *       code a synthetic existing Business issued (lower case, no dashes). The
+ *       page names the Business; after a reload it shows the Business card
  *       (name · @handle · Verificado), and the binding names that Business.
+ *
+ * (Until SANDBOX-SELF-SERVICE-001 this harness drove the KYB application form,
+ * which the Sandbox Console no longer shows; it failed at its first click.)
  *
  * Nothing on the page links to the public candidature. Screenshots go to
  * <out>; the consent code is never on one. Fixtures are retired at the end,
@@ -58,12 +60,7 @@ const PRE = `
 
 const stamp = Date.now().toString(36);
 const emailOf = (r) => `onbui-${r}-${stamp}@banzami-e2e.test`;
-// --keep-for-review leaves Project A, its owner and its application in place for
-// an operator to review and approve in BANZADMIN; the follow-up check
-// (--verify-approved <state.json>) then proves the provisioning. Everything
-// else is retired as usual.
-const KEEP = process.argv.includes('--keep-for-review');
-if (!KEEP) registerCleanup({ emailPattern: `onbui-%-${stamp}@banzami-e2e.test`, namePattern: `onbui-%${stamp}` });
+registerCleanup({ emailPattern: `onbui-%-${stamp}@banzami-e2e.test`, namePattern: `onbui-%${stamp}` });
 
 const session = (email) =>
   mintSession(email);
@@ -79,11 +76,7 @@ async function call(token, path, method = 'GET', body) {
   return { status: r.status, body: j };
 }
 
-// A one-page PDF, small enough for any limit: the form checks type and size.
-const PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
-
 let browser = null;
-let appA = null;
 let business = null;
 
 async function consolePage(token, ws, project) {
@@ -101,10 +94,6 @@ async function consolePage(token, ws, project) {
 const stateOf = (page) => page.locator('[data-testid="financial-onboarding"]').getAttribute('data-state');
 const text = async (page) => (await page.locator('main, body').first().innerText()).replace(/\s+/g, ' ');
 const shot = (page, name) => page.screenshot({ path: join(OUT, `${name}.png`), fullPage: true });
-async function selectFirst(page, id) {
-  const values = await page.locator(`#${id} option`).evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
-  await page.selectOption(`#${id}`, values[0]);
-}
 
 async function main() {
   console.log(`\n▸ Console · Configuração financeira — ${ORIGIN}\n`);
@@ -128,94 +117,36 @@ async function main() {
 
   browser = await chromium.launch();
 
-  // ── A: a new Business, through the form ─────────────────────────────────────
+  // ── A: the Project's own test Business, by use case ────────────────────────
+  const devPage = await consolePage(dev, ws, A);
+  const devGo = await devPage.locator('[data-testid="sandbox-setup-go"]').count();
+  const devText = await text(devPage);
+  rec('the DEVELOPER sees the use cases with nothing to press',
+    (await stateOf(devPage)) === 'NOT_CONFIGURED' && devGo === 0 && devText.includes('Só um Owner ou Admin'), `go_buttons=${devGo}`);
+  await shot(devPage, '01-developer-view');
+  await devPage.context().close();
+
   const page = await consolePage(owner, ws, A);
   rec('Configuração financeira opens NOT_CONFIGURED for a new Project', (await stateOf(page)) === 'NOT_CONFIGURED', await stateOf(page));
   rec('nothing on the page sends the developer to the public candidature',
     (await page.locator('a[href*="/comerciantes/candidatura"]').count()) === 0);
-  await shot(page, '01-not-configured');
-  await page.getByRole('button', { name: 'Iniciar verificação' }).click();
-  const cards = await page.locator('[data-testid^="onboarding-path-"]').count();
-  rec('"Iniciar verificação" offers the two ways: a new Business, or an existing one', cards === 2, `${cards} card(s)`);
-  await shot(page, '02-two-paths');
-  await page.getByRole('button', { name: 'Criar novo negócio' }).click();
-
-  const handleA = `onbui_${stamp}`.slice(0, 30);
-  // Step 1 — Negócio
-  await page.fill('#fo-business-name', `Loja Consola ${stamp}`);
-  await page.fill('#fo-nif', '5001234567');
-  await selectFirst(page, 'fo-category');
-  await page.fill('#fo-business-activity', 'Aplicação de entregas ao domicílio');
-  if (await page.locator('#fo-estimated-volume').count()) await selectFirst(page, 'fo-estimated-volume');
-  await page.fill('#fo-email', `onbui-app-${stamp}@exemplo.co.ao`);
-  await page.fill('#fo-phone', '923456789');
-  await selectFirst(page, 'fo-province');
-  await selectFirst(page, 'fo-municipality');
-  await page.fill('#fo-city', 'Talatona');
-  await page.fill('#fo-address', 'Rua Direita do Kilamba');
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  // Step 2 — Responsável
-  await page.fill('#fo-legal-representative', 'João da Silva');
-  await selectFirst(page, 'fo-representative-role');
-  if (await page.locator('#fo-representative-email').count()) await page.fill('#fo-representative-email', `onbui-rep-${stamp}@exemplo.co.ao`);
-  if (await page.locator('#fo-representative-phone').count()) await page.fill('#fo-representative-phone', '923456780');
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  // Step 3 — Documentos: every slot gets a file.
-  const slots = await page.locator('input[type="file"][id^="fo-doc-"]').count();
-  for (let i = 0; i < slots; i++) {
-    await page.locator('input[type="file"][id^="fo-doc-"]').nth(i).setInputFiles({ name: `documento-${i + 1}.pdf`, mimeType: 'application/pdf', buffer: PDF });
-  }
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  // Step 4 — @banza
-  await page.fill('#fo-desired-handle', handleA);
-  await page.getByText(`@${handleA} está disponível.`).waitFor({ timeout: 15000 }).catch(() => {});
-  const available = await page.getByText(`@${handleA} está disponível.`).count();
-  rec('the form checks the @ is available as it is typed', available === 1);
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  // Step 5 — Revisão
-  const review = await text(page);
-  rec('the review repeats what will be sent', review.includes(`Loja Consola ${stamp}`) && review.includes(`@${handleA}`) && review.includes('5001234567'));
-  await shot(page, '03-review');
-  await page.locator('#fo-terms').check();
-  await page.getByRole('button', { name: 'Enviar para verificação' }).click();
-
-  await page.waitForFunction(() => document.querySelector('[data-testid="financial-onboarding"]')?.getAttribute('data-state') === 'IN_REVIEW', null, { timeout: 30000 }).catch(() => {});
-  const after = await text(page);
-  rec('after sending, the page says IN_REVIEW with the @ requested', (await stateOf(page)) === 'IN_REVIEW' && after.includes(`@${handleA}`), await stateOf(page));
-  const storageOff = after.includes('O envio de documentos ainda não está disponível neste ambiente');
-  rec('the documents are reported as they are — never "enviado" when storage is absent',
-    storageOff ? !/: enviado\b/.test(after) : true, storageOff ? 'storage not configured: said so' : 'storage configured');
-  await shot(page, '04-in-review');
-
-  if (!storageOff) {
-    let docs = '';
-    for (let i = 0; i < 30; i++) {
-      docs = ssh(`${PRE} q "select string_agg(d.document_type, ',' order by d.document_type) from merchant_application_documents d join merchant_applications a on a.id=d.application_id where a.desired_handle='${handleA}' and d.status='UPLOADED' and d.deleted_at is null"`).trim();
-      if (docs.includes('BUSINESS_REGISTRATION') && docs.includes('REPRESENTATIVE_ID')) break;
-      await page.waitForTimeout(1000);
-    }
-    rec('the documents the Console sent reached KYB storage and passed the server\'s checks', docs.includes('BUSINESS_REGISTRATION') && docs.includes('REPRESENTATIVE_ID'), docs);
-  }
-  const stored = ssh(`${PRE} q "select id::text||'|'||origin||'|'||project_id::text||'|'||status from merchant_applications where desired_handle='${handleA}'"`).trim();
-  const [id, origin, project, status] = stored.split('|');
-  appA = id || null;
-  if (KEEP) writeFileSync(join(OUT, 'state.json'), JSON.stringify({ stamp, workspace: ws, projectA: A, projectB: B, owner: emailOf('owner'), developer: emailOf('dev'), application: id, handle: handleA }, null, 2) + '\n');
-  rec('the ONE Business application: origin DEVELOPER_PROJECT, for Project A, SUBMITTED',
-    origin === 'DEVELOPER_PROJECT' && project === A && status === 'SUBMITTED', `${origin} ${String(project).slice(0, 8)} ${status}`);
-  const ref = String(id).slice(0, 8).toUpperCase();
+  const useCases = await page.locator('[data-testid^="use-case-"]').count();
+  const reviewForm = await page.getByRole('button', { name: 'Iniciar verificação' }).count();
+  rec('the Sandbox offers the two use cases, and no verification form', useCases === 2 && reviewForm === 0, `use_cases=${useCases} verification_buttons=${reviewForm}`);
+  await shot(page, '02-use-cases');
+  await page.locator('[data-testid="use-case-STANDARD"]').click();
+  await page.locator('[data-testid="sandbox-setup-go"]').click();
+  await page.locator('[data-testid="sandbox-business-panel"]').waitFor({ timeout: 30000 }).catch(() => {});
+  const configured = await text(page);
+  rec('configuring shows the Project\'s test Business, SANDBOX_SYNTHETIC',
+    (await page.locator('[data-testid="sandbox-business-panel"]').count()) === 1 && configured.includes('SANDBOX_SYNTHETIC'), await stateOf(page));
+  const owned = ssh(`${PRE} q "select c.kyb_status from sandbox_businesses b join merchant_compliance c on c.merchant_id=b.merchant_id where b.project_id='${A}'"`).trim();
+  rec('Core holds it as Project A\'s own synthetic Business', owned === 'SANDBOX_SYNTHETIC', owned);
   await page.reload({ waitUntil: 'networkidle' });
   await page.locator('[data-testid="financial-onboarding"]').waitFor();
-  const reloaded = await text(page);
-  rec('a reload still says IN_REVIEW, with the reference', (await stateOf(page)) === 'IN_REVIEW' && reloaded.includes(ref), ref);
+  rec('a reload still shows the test Business', (await page.locator('[data-testid="sandbox-business-panel"]').count()) === 1, await stateOf(page));
+  await shot(page, '03-configured');
   await page.context().close();
-
-  const devPage = await consolePage(dev, ws, A);
-  const devButtons = await devPage.locator('[data-testid="financial-onboarding"] button').count();
-  const devFiles = await devPage.locator('[data-testid="financial-onboarding"] input[type="file"]').count();
-  rec('the DEVELOPER sees IN_REVIEW with nothing to press or upload',
-    (await stateOf(devPage)) === 'IN_REVIEW' && devButtons === 0 && devFiles === 0, `buttons=${devButtons} uploads=${devFiles}`);
-  await shot(devPage, '05-developer-view');
-  await devPage.context().close();
 
   // ── B: an existing Business, with its consent ───────────────────────────────
   const handleB = `onbuib${stamp}`.slice(0, 30);
@@ -234,8 +165,7 @@ async function main() {
   rec('a synthetic existing Business issued a consent code from its own session', /^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(code), String(merchant).slice(0, 8));
 
   const pb = await consolePage(owner, ws, B);
-  await pb.getByRole('button', { name: 'Iniciar verificação' }).click();
-  await pb.getByRole('button', { name: 'Ligar negócio existente' }).click();
+  await pb.getByRole('button', { name: 'Ligar um negócio que já existe' }).click();
   await shot(pb, '06-connect-form');
   // As a person might type it: lower case, no dashes. Not screenshotted.
   await pb.fill('#fo-link-code', code.replace(/-/g, '').toLowerCase());
@@ -258,8 +188,6 @@ async function main() {
 function cleanup() {
   try {
     ssh(`${PRE}
-      IK=$(docker exec "$GWC" sh -c 'cat /run/secrets/core_internal_key')
-      ${appA && !KEEP ? `docker exec "$GWC" curl -s -o /dev/null -X POST http://localhost:8080/internal/v1/merchant-applications/${appA}/reject -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"reviewed_by":"e2e-fixture-cleanup","admin_notes":"synthetic E2E application","merchant_message":"synthetic"}'` : ''}
       ${business?.merchant ? `JWTSEC=$(docker exec "$GWC" sh -c 'cat /run/secrets/jwt_secret')
       T=$(mint "${business.merchant}")
       docker exec "$GWC" curl -s -o /dev/null -X POST http://localhost:8080/v1/merchants/${business.merchant}/suspend -H "Authorization: Bearer $T"` : ''}
