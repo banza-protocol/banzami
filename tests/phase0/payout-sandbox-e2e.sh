@@ -194,6 +194,10 @@ chk GROSS_EQUALS_NET_PLUS_FEE "$(( ${NET:-0} + ${FEE:-0} ))" "$GROSS"
 chk FEE_IS_0_75_PERCENT "${FEE:-0}" "$(( GROSS * 75 / 10000 ))"
 FEEACC=$(psqlro "SELECT a.account_type FROM ledger_entries e JOIN ledger_postings p ON p.id=e.posting_id JOIN ledger_accounts a ON a.id=e.account_id WHERE p.idempotency_key='$IDEM:process:fee' AND e.entry_type='CREDIT' LIMIT 1")
 chk FEE_CREDITS_REVENUE "$FEEACC" "REVENUE"
+# MONEY-MODEL-001: processing reserves the net obligation in flight; no backing
+# asset moves until the rail confirms.
+NETROLE=$(psqlro "SELECT a.system_role FROM ledger_entries e JOIN ledger_postings p ON p.id=e.posting_id JOIN ledger_accounts a ON a.id=e.account_id WHERE p.idempotency_key='$IDEM:process' AND e.entry_type='CREDIT' LIMIT 1")
+chk NET_RESERVED_IN_FLIGHT "$NETROLE" "WITHDRAWALS_IN_FLIGHT"
 
 echo "### a replay returns the SAME payout and moves nothing"
 call "$GW" 8080 POST /v1/payouts "$BODY" "$JWT"

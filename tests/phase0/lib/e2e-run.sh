@@ -155,10 +155,15 @@ e2e_retire_merchant_funds() { # merchant
   # A payout still in flight holds value the merchant no longer shows. Failing
   # it through the payout lifecycle returns that value first — otherwise every
   # run that made a payout left it PENDING, and its money out of reach.
+  #
+  # A SENT payout is restored only on the rail's evidence (MONEY-MODEL-001,
+  # EXTERNAL_EVIDENCE_REQUIRED). In the Sandbox the rail is simulated and the run
+  # is the one operating it for its own fixtures, so the rejection it records is
+  # the simulated rail's, named as such.
   local po
   while read -r po; do
     [ -n "$po" ] || continue
-    code=$(e2e_core POST "/internal/v1/payouts/$po/fail" "{\"reason\":\"$why\"}")
+    code=$(e2e_core POST "/internal/v1/payouts/$po/fail" "{\"reason\":\"$why\",\"evidence_ref\":\"SANDBOX-SIMULATED-RAIL-REJECTION:e2e-$E2E_RUN_ID\"}")
     case "$code" in 2*) ;; *) echo "$code"; return ;; esac
   done < <(e2e_sql "select id from payouts where merchant_id = '$m' and status in ('PENDING','PROCESSING','SENT')")
   while read -r wa; do
