@@ -213,3 +213,76 @@ func TestRealtime_HeartbeatBoundsHowLongADeadStreamHoldsItsPlace(t *testing.T) {
 		t.Fatalf("heartbeat %s is below the poll interval; it adds traffic and frees nothing sooner", RealtimeHeartbeat)
 	}
 }
+
+type rtDeleted struct {
+	mu   sync.Mutex
+	gone map[string]bool
+}
+
+func (d *rtDeleted) SessionOfDeletedProject(_ context.Context, id string) (bool, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.gone[id], nil
+}
+
+// SANDBOX-DELETE-001: a status token issued before its Project was deleted stops
+// being a window into it — refused on connect, and an open stream is closed.
+// Mutation: drop the sessionGone check from Status or from the heartbeat and
+// this fails.
+func TestRealtime_ADeletedProjectsTokenStopsWorking(t *testing.T) {
+	h, _, tokens := newRealtime(t)
+	del := &rtDeleted{gone: map[string]bool{}}
+	h.WithDeletedProjects(del)
+	tok, _ := tokens.Mint("sess-A")
+	srv := httptest.NewServer(realtimeRouter(h))
+	defer srv.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/v1/realtime/payment-sessions/sess-A", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	req.Header.Set("Accept", "text/event-stream")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("open stream before deletion: %v %v", err, resp)
+	}
+	defer resp.Body.Close()
+	sc := bufio.NewScanner(resp.Body)
+	del.mu.Lock()
+	del.gone["sess-A"] = true
+	del.mu.Unlock()
+	deadline := time.After(3 * time.Second)
+	revoked := make(chan bool, 1)
+	go func() {
+		for sc.Scan() {
+			if strings.HasPrefix(sc.Text(), "event: revoked") {
+				revoked <- true
+				return
+			}
+		}
+		revoked <- false
+	}()
+	select {
+	case ok := <-revoked:
+		if !ok {
+			t.Fatal("the stream ended without saying the session is revoked")
+		}
+	case <-deadline:
+		t.Fatal("an open stream into a deleted Project stayed open")
+	}
+
+	snap := httptest.NewRequest(http.MethodGet, "/v1/realtime/payment-sessions/sess-A", nil)
+	snap.Header.Set("Authorization", "Bearer "+tok)
+	rec := httptest.NewRecorder()
+	realtimeRouter(h).ServeHTTP(rec, snap)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("a deleted Project's session answered %d", rec.Code)
+	}
+	// Another session is unaffected.
+	tokB, _ := tokens.Mint("sess-B")
+	other := httptest.NewRequest(http.MethodGet, "/v1/realtime/payment-sessions/sess-B", nil)
+	other.Header.Set("Authorization", "Bearer "+tokB)
+	rec = httptest.NewRecorder()
+	realtimeRouter(h).ServeHTTP(rec, other)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("another Project's session: %d", rec.Code)
+	}
+}

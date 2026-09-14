@@ -97,10 +97,16 @@ type realtimeSessionReader interface {
 	Get(ctx context.Context, id string) (*service.PaymentSession, error)
 }
 
+// deletedProjectSessions says whether a session's Project has been deleted.
+type deletedProjectSessions interface {
+	SessionOfDeletedProject(ctx context.Context, sessionID string) (bool, error)
+}
+
 // RealtimeHandler serves status snapshots and streams.
 type RealtimeHandler struct {
 	tokens   *service.RealtimeTokens
 	sessions realtimeSessionReader
+	deleted  deletedProjectSessions
 	poll     time.Duration
 	beat     time.Duration
 
@@ -114,6 +120,26 @@ func NewRealtimeHandler(tokens *service.RealtimeTokens, sessions realtimeSession
 		tokens: tokens, sessions: sessions, poll: RealtimePollInterval, beat: RealtimeHeartbeat,
 		watchers: map[string]*sessionWatcher{}, perIP: map[string]int{},
 	}
+}
+
+// WithDeletedProjects makes a status token of a deleted Project's session stop
+// working (SANDBOX-DELETE-001): refused on connect, and an open stream closed at
+// its next heartbeat.
+func (h *RealtimeHandler) WithDeletedProjects(d deletedProjectSessions) *RealtimeHandler {
+	if d != nil {
+		h.deleted = d
+	}
+	return h
+}
+
+// sessionGone: the session's Project is being, or has been, deleted. A failed
+// check is not an answer; it refuses, the way a failed read does.
+func (h *RealtimeHandler) sessionGone(ctx context.Context, sessionID string) bool {
+	if h.deleted == nil {
+		return false
+	}
+	gone, err := h.deleted.SessionOfDeletedProject(ctx, sessionID)
+	return err != nil || gone
 }
 
 // realtimeStatus is what a browser learns: public Payment Session fields only.
@@ -195,6 +221,11 @@ func (h *RealtimeHandler) Status(w http.ResponseWriter, r *http.Request) {
 	sessionID := chi.URLParam(r, "id")
 	exp, ok := h.authorize(w, r, sessionID)
 	if !ok {
+		return
+	}
+	if h.sessionGone(r.Context(), sessionID) {
+		realtimeStreamEvents.WithLabelValues("project_deleted").Inc()
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment session not found")
 		return
 	}
 	if !strings.Contains(r.Header.Get("Accept"), realtimeStreamMediaType) {
@@ -349,6 +380,13 @@ func (h *RealtimeHandler) stream(w http.ResponseWriter, r *http.Request, session
 			slog.InfoContext(r.Context(), "realtime.stream_closed", "session_id", sessionID, "reason", "client", "seconds", int(time.Since(started).Seconds()))
 			return
 		case <-beat.C:
+			if h.sessionGone(r.Context(), sessionID) {
+				seq++
+				fmt.Fprintf(w, "id: revoked-%d\nevent: revoked\ndata: {\"session_id\":%q}\n\n", seq, sessionID)
+				flusher.Flush()
+				realtimeStreamEvents.WithLabelValues("project_deleted_close").Inc()
+				return
+			}
 			if _, err := fmt.Fprint(w, ": heartbeat\n\n"); err != nil {
 				return
 			}

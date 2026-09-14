@@ -224,7 +224,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		WithBindingSeal(deps.BindingSeal).
 		WithPayBaseURL(deps.PayBaseURL).
 		WithRealtime(realtimeTokens)
-	realtimeHandler := handler.NewRealtimeHandler(realtimeTokens, deps.PaymentSessionSvc)
+	realtimeHandler := handler.NewRealtimeHandler(realtimeTokens, deps.PaymentSessionSvc).
+		WithDeletedProjects(deletedProjectsOrNil(deps.DBPool))
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight
@@ -897,4 +898,15 @@ func realtimeEnvironment(raw string) string {
 		return "SANDBOX"
 	}
 	return "LIVE"
+}
+
+// deletedProjectsOrNil keeps a nil pool from becoming a non-nil interface
+// holding a nil pointer.
+func deletedProjectsOrNil(pool *pgxpool.Pool) interface {
+	SessionOfDeletedProject(ctx context.Context, sessionID string) (bool, error)
+} {
+	if d := service.NewDeletedProjects(pool); d != nil {
+		return d
+	}
+	return nil
 }
