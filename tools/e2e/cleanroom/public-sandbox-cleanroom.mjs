@@ -23,6 +23,10 @@
  * harness only: step 7 then FAILS, because a local package is not the public
  * SDK.
  *
+ * SANDBOX-DELETE-001 §54: the developer then deletes the Project, creates a
+ * replacement with the same name, uses it, and deletes the Workspace — the
+ * product's own Delete is the cleanup; nothing is archived first.
+ *
  * Nothing secret is printed or written. Everything created is retired through
  * the product; residue is measured afterwards, read-only, as operator
  * verification of the cleanup — never as a step.
@@ -57,6 +61,9 @@ export const STEPS = [
   'Delivery replay', 'Receipt verifies publicly', 'Partial refund', 'Cumulative refund: the rest, then refused',
   'Application settlement: gross = fee + net', 'API logs', 'Workspace Activity is distinct from API logs',
   'Credential rotation: the old key stops, the new one works', 'Sandbox reset: test data stops, history stays',
+  'Delete the Project after all that activity: its key stops at once, it leaves the Console',
+  'A replacement Project with the same name is new, and works',
+  'Delete the Workspace with its Projects, without archiving',
   'Cleanup through the product',
 ];
 
@@ -95,15 +102,18 @@ async function streamUntilTerminal(sessionId, token, ms) {
   return seen;
 }
 
-function residue(like) {
-  const sql = `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE name LIKE '${like}%' AND status='ACTIVE')`
-    + ` + (SELECT count(*) FROM developer.dev_projects WHERE name LIKE '${like}%' AND status='ACTIVE')`
-    + ` + (SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id=k.project_id WHERE p.name LIKE '${like}%' AND k.status='ACTIVE')`
-    + ` + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id=t.project_id WHERE p.name LIKE '${like}%' AND t.retired_at IS NULL)`
-    + ` + (SELECT count(*) FROM webhook_endpoints e JOIN developer.dev_project_sandbox_binding b ON b.merchant_id::text=e.merchant_id::text JOIN developer.dev_projects p ON p.id=b.project_id WHERE p.name LIKE '${like}%' AND e.active)`;
+function residue(workspace) {
+  if (!/^[0-9a-f-]{36}$/.test(String(workspace))) return -1;
+  const w = `'${workspace}'`;
+  const sql = `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE id=${w} AND status IN ('ACTIVE','ARCHIVED'))`
+    + ` + (SELECT count(*) FROM developer.dev_projects WHERE workspace_id=${w} AND status IN ('ACTIVE','ARCHIVED'))`
+    + ` + (SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id=k.project_id WHERE p.workspace_id=${w} AND k.status='ACTIVE')`
+    + ` + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id=t.project_id WHERE p.workspace_id=${w} AND t.retired_at IS NULL)`
+    + ` + (SELECT count(*) FROM webhook_endpoints e JOIN sandbox_businesses b ON b.merchant_id=e.merchant_id JOIN developer.dev_projects p ON p.id=b.project_id WHERE p.workspace_id=${w} AND e.active)`
+    + ` + (SELECT count(*) FROM merchants m JOIN sandbox_businesses b ON b.merchant_id=m.id JOIN developer.dev_projects p ON p.id=b.project_id WHERE p.workspace_id=${w} AND m.status='ACTIVE')`;
   try {
     return Number(execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
-      `PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1); `
+      `PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); `
       + `PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); `
       + `docker exec -e PGPASSWORD=$PW -e PGOPTIONS='-c default_transaction_read_only=on' $PG psql -U bl_app_runtime -d banzami_staging -At -c "${sql}"`], { encoding: 'utf8', timeout: 60000 }).trim());
   } catch { return -1; }
@@ -335,27 +345,47 @@ async function main() {
     const payersAfter = (await api('/v1/sandbox/test-payers')).body?.data ?? [];
     const history = (await call('GET', `/projects/${P}/transactions`)).body?.transactions ?? [];
     mark(28, reset.status === 200 && payersAfter.length === 0 && history.length > 0, `reset=${reset.status} payers=${payersAfter.length} history=${history.length}`);
+
+    // SANDBOX-DELETE-001 §54 — delete, replace, use again, delete the Workspace.
+    const projectName = `${like}-shop`;
+    const delP = await call('DELETE', `/projects/${P}`, { name: projectName });
+    const oldKeyAfterDelete = await http(secret)('/v1/me');
+    const listedAfter = ((await call('GET', `/workspaces/${ws}/projects?include_archived=true`)).body?.projects ?? []).some((x) => x.id === P);
+    mark(29, [200, 202].includes(delP.status) && oldKeyAfterDelete.status === 401 && !listedAfter && (await call('GET', `/projects/${P}`)).status === 404,
+      `delete=${delP.status}/${delP.body?.status} keys_revoked=${delP.body?.keys_revoked} old_key=${oldKeyAfterDelete.status} listed=${listedAfter}`);
+
+    const rp = await call('POST', `/workspaces/${ws}/projects`, { name: projectName });
+    const R = rp.body?.id; projects.push(R);
+    const rsetup = await call('POST', `/projects/${R}/financial-setup`, { use_case: 'STANDARD' });
+    const rk = await call('POST', `/projects/${R}/keys`, { kind: 'SECRET', name: `${like}-again`, scopes });
+    const rclient = new BanzamiClient({ apiKey: rk.body?.secret ?? '' });
+    const rapi = http(rk.body?.secret ?? '');
+    const rs = await rclient.createPaymentSession({ purpose: 'ORDER', referenceType: 'PEDIDO', referenceId: `cr_${stamp}_again`, amountMinor: 25000, currency: 'AOA', description: 'Outra vez' });
+    const rpayer = await rapi('/v1/sandbox/test-payers', 'POST', { label: 'Cliente' }, { 'Idempotency-Key': `cr_${stamp}_again_payer` });
+    const rpay = await rapi(`/v1/sandbox/test-payers/${rpayer.body?.id}/payments`, 'POST', { payment_session_id: rs.session_id }, { 'Idempotency-Key': `cr_${stamp}_again_pay` });
+    mark(30, rp.status === 201 && R !== P && rsetup.status === 200 && rk.status === 201 && rpay.status === 200 && rpay.body?.status === 'PAID',
+      `create=${rp.status} new_id=${R !== P} setup=${rsetup.status} key=${rk.status} pay=${rpay.status}/${rpay.body?.status}`);
+
+    const wsName = (await call('GET', `/workspaces/${ws}`)).body?.name;
+    const delW = await call('DELETE', `/workspaces/${ws}`, { name: wsName });
+    const replacementKey = await rapi('/v1/me');
+    const wsListed = ((await call('GET', '/workspaces')).body?.workspaces ?? []).some((x) => x.id === ws);
+    mark(31, [200, 202].includes(delW.status) && replacementKey.status === 401 && !wsListed,
+      `delete=${delW.status}/${delW.body?.status} keys_revoked=${delW.body?.keys_revoked} replacement_key=${replacementKey.status} listed=${wsListed}`);
   } catch (e) {
     console.error(`  ! aborted: ${String(e.stack ?? e).split('\n').slice(0, 2).join(' | ')}`);
   } finally {
     const done = [];
     if (sess && railKey) await http(railKey)('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `cr_${stamp}_railfinal` }).catch(() => null);
-    if (sess) {
-      for (const P of projects.filter(Boolean)) {
-        if (P !== projects[0]) done.push((await call('POST', `/projects/${P}/sandbox/reset`, { confirm: 'RESET' })).status);
-        for (const e of (await call('GET', `/projects/${P}/webhooks/endpoints`)).body?.endpoints ?? []) {
-          const del = await call('DELETE', `/projects/${P}/webhooks/endpoints/${e.id}`);
-          done.push(del.status === 409 ? (await call('PATCH', `/projects/${P}/webhooks/endpoints/${e.id}`, { active: false })).status : del.status);
-        }
-        for (const key of ((await call('GET', `/projects/${P}/keys`)).body?.keys ?? []).filter((x) => x.status === 'ACTIVE')) done.push((await call('DELETE', `/keys/${key.id}`)).status);
-        const pr = await call('GET', `/projects/${P}`);
-        done.push((await call('POST', `/projects/${P}/archive`, { name: pr.body?.name })).status);
-      }
-      if (ws) { const w = await call('GET', `/workspaces/${ws}`); done.push((await call('POST', `/workspaces/${ws}/archive`, { name: w.body?.name })).status); }
+    // Whatever the steps left behind (an aborted run included) is deleted the same way.
+    if (sess && ws) {
+      const w = await call('GET', `/workspaces/${ws}`);
+      if (w.status === 200) done.push((await call('DELETE', `/workspaces/${ws}`, { name: w.body?.name })).status);
+      else done.push(w.status === 404 || w.status === 403 ? 200 : w.status);
     }
     rmSync(room, { recursive: true, force: true });
-    mark(29, done.length > 0 && done.every((s) => s >= 200 && s < 300), `statuses=${done.join(',')}`);
-    const left = residue(like);
+    mark(32, done.length > 0 && done.every((s) => s >= 200 && s < 300), `statuses=${done.join(',')}`);
+    const left = ws ? await until(() => residue(ws) === 0, 15000, 3000).then(() => residue(ws)) : -1;
     const passed = steps.filter((s) => s.verdict === 'PASS').length;
     const verdict = passed === steps.length && left === 0 ? 'PASS' : 'FAIL';
     const out = join(assuranceDir('sandbox-self-service'), `public-cleanroom-${Date.now()}.json`);
@@ -368,6 +398,9 @@ async function main() {
     console.log('PUBLIC_SANDBOX_OPERATOR_INTERVENTIONS=0');
     const railSteps = steps.slice(14, 17);
     console.log(`WALLET_NATIVE_PUBLIC_CLEANROOM=${railSteps.every((x) => x.verdict === 'PASS') && verdict === 'PASS' ? 'PASS' : 'FAIL'} (${railSteps.filter((x) => x.verdict === 'PASS').length}/3 rail steps)`);
+    const deleteSteps = steps.slice(28, 31);
+    console.log(`SANDBOX_DELETE_PUBLIC_CLEANROOM=${deleteSteps.every((x) => x.verdict === 'PASS') && verdict === 'PASS' ? 'PASS' : 'FAIL'} (${deleteSteps.filter((x) => x.verdict === 'PASS').length}/3 delete steps)`);
+    console.log('SANDBOX_DELETE_OPERATOR_INTERVENTIONS=0');
     console.log(`CLEANROOM_RESIDUE=${left}`);
     console.log(`evidence: ${out}`);
     process.exitCode = verdict === 'PASS' ? 0 : 1;

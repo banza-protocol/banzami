@@ -87,21 +87,13 @@ async function developer(label) {
     const k = await call(`/projects/${p}/keys`, 'POST', { kind: 'SECRET', name: `${like}-${name}`, scopes });
     return { id: p, keyId: k.body?.id, api: keyCaller(k.body?.secret ?? ''), secretPrefix: String(k.body?.secret ?? '').slice(0, 11) };
   };
+  // SANDBOX-DELETE-001: the product's own Delete is the cleanup. Deleting the
+  // Workspace revokes every key, retires every test payer and test Business
+  // through Core and disables the webhooks; nothing is archived first.
   const cleanup = async () => {
-    const done = [];
-    for (const p of projects) {
-      done.push((await call(`/projects/${p}/sandbox/reset`, 'POST', { confirm: 'RESET' })).status);
-      for (const e of (await call(`/projects/${p}/webhooks/endpoints`)).body?.endpoints ?? []) {
-        const del = await call(`/projects/${p}/webhooks/endpoints/${e.id}`, 'DELETE');
-        done.push(del.status === 409 ? (await call(`/projects/${p}/webhooks/endpoints/${e.id}`, 'PATCH', { active: false })).status : del.status);
-      }
-      for (const k of ((await call(`/projects/${p}/keys`)).body?.keys ?? []).filter((x) => x.status === 'ACTIVE')) done.push((await call(`/keys/${k.id}`, 'DELETE')).status);
-      const pr = await call(`/projects/${p}`);
-      done.push((await call(`/projects/${p}/archive`, 'POST', { name: pr.body?.name })).status);
-    }
     const w = await call(`/workspaces/${ws}`);
-    done.push((await call(`/workspaces/${ws}/archive`, 'POST', { name: w.body?.name })).status);
-    return done;
+    if (w.status !== 200) return [w.status === 404 || w.status === 403 ? 200 : w.status];
+    return [(await call(`/workspaces/${ws}`, 'DELETE', { name: w.body?.name })).status];
   };
   return { call, ws, like, stamp, project, cleanup, adopt };
 }
