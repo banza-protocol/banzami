@@ -73,10 +73,7 @@ func (t *resendTransport) send(m Message) error {
 			Name    string `json:"name"`
 		}
 		_ = json.NewDecoder(io.LimitReader(resp.Body, 2048)).Decode(&er)
-		if er.Message != "" {
-			return fmt.Errorf("resend status %d: %s", resp.StatusCode, er.Message)
-		}
-		return fmt.Errorf("resend status %d", resp.StatusCode)
+		return &ProviderError{Status: resp.StatusCode, Message: er.Message}
 	}
 
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 2048))

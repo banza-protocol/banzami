@@ -37,8 +37,8 @@ func NewMailer(cfg ce.Config) *Mailer { return &Mailer{s: ce.NewSender(cfg)} }
 
 // SendVerificationCode delivers the OTP email. Security → From noreply@, no
 // Reply-To (the code is the action; there is no link). Non-blocking-friendly.
-func (m *Mailer) SendVerificationCode(to, code string) {
+func (m *Mailer) SendVerificationCode(to, code string) error {
 	html, text := RenderVerificationCode(code)
-	m.s.Deliver(m.s.Automated("developer_verification_code", to,
+	return m.s.DeliverErr(m.s.Automated("developer_verification_code", to,
 		"O seu código de verificação Banzami", html, text, ""))
 }

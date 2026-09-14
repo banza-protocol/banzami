@@ -23,11 +23,54 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MINT = join(HERE, '..', 'mint-session.mjs');
 
+const HOST = process.env.BZ_SANDBOX_HOST ?? 'root@217.160.9.248';
+
+/**
+ * A session for a fixture identity, without sending an email.
+ *
+ * For suites whose subject is NOT authentication. Each real sign-in costs the
+ * provider sending quota the public Console needs; on 2026-09-14 these suites
+ * spent all of it and no developer could sign in until it reset. developer-api's
+ * internal `POST /internal/v1/fixture-sessions` opens a session through the same
+ * store calls a verified sign-in uses — Sandbox only, @banzami-e2e.test only,
+ * behind the internal key (read inside the container, never leaving it), refused
+ * by the public edge, audited. No OTP is created, read or derived.
+ *
+ * Authentication itself is still proved through real delivery: the public
+ * cleanroom and tools/e2e/console/auth-email-e2e.mjs use { realEmail: true }.
+ *
+ * Returns { token, csrf }.
+ */
+export function fixtureSession(email) {
+  if (!/^[^@\s]+@banzami-e2e\.test$/.test(email)) {
+    throw new Error(`refusing a fixture session for ${email} — fixture identities only (@banzami-e2e.test)`);
+  }
+  const remote = `DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1); ` +
+    `docker exec -i "$DEV" sh -c 'curl -s -w "\\n%{http_code}" -X POST http://localhost:8086/internal/v1/fixture-sessions ` +
+    `-H "X-Internal-Key: $(cat /run/secrets/developer_internal_key)" -H "Content-Type: application/json" --data @-'`;
+  const out = execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, remote], {
+    input: JSON.stringify({ email }), encoding: 'utf8', maxBuffer: 1 << 20,
+  }).trim();
+  const status = out.split('\n').pop();
+  const body = out.slice(0, out.length - status.length).trim();
+  if (status !== '200') throw new Error(`fixture session for ${email}: HTTP ${status}`);
+  const { session_token: token, csrf_token: csrf } = JSON.parse(body);
+  if (!token || !csrf) throw new Error(`fixture session for ${email}: incomplete answer`);
+  return { token, csrf };
+}
+
 /**
  * Sign in as `email` and return the raw session cookie value.
- * Creates the identity if it does not exist, exactly as a first sign-in does.
+ *
+ * By default a fixture session (no email sent). `{ realEmail: true }` signs in
+ * through the product's own door — request a code, read the message the product
+ * sent, verify — and is for suites whose subject IS authentication.
  */
-export function mintSession(email) {
+export function mintSession(email, { realEmail = false } = {}) {
+  if (!realEmail) {
+    const { token } = fixtureSession(email);
+    return token;
+  }
   // mint-session.mjs deliberately keeps what it mints — its output is a session
   // that has to outlive it. Disposal is the caller's: registerCleanup on the same
   // address, which check-harness-hygiene is what holds every caller to.

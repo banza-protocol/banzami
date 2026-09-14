@@ -14,9 +14,16 @@ const testOrigin = "https://developers.banzami.com"
 type fakeMailer struct {
 	to, code string
 	n        int
+	fail     error
 }
 
-func (f *fakeMailer) SendVerificationCode(to, code string) { f.to, f.code, f.n = to, code, f.n+1 }
+func (f *fakeMailer) SendVerificationCode(to, code string) error {
+	if f.fail != nil {
+		return f.fail
+	}
+	f.to, f.code, f.n = to, code, f.n+1
+	return nil
+}
 
 func newH(t *testing.T, cfg ServiceConfig) (*Handlers, *memStore, *fakeMailer) {
 	t.Helper()

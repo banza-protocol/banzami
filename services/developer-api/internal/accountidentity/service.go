@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/banzami/banzami/services/common/clientip"
+	ce "github.com/banzami/banzami/services/common/email"
 )
 
 const purposeLogin = "login"
@@ -19,7 +20,20 @@ const purposeLogin = "login"
 // OTPSender delivers the verification-code email. *Mailer satisfies it; tests
 // inject a fake that captures the code.
 type OTPSender interface {
-	SendVerificationCode(to, code string)
+	// SendVerificationCode reports whether the provider accepted the message. A
+	// code that was not sent must not be announced as sent.
+	SendVerificationCode(to, code string) error
+}
+
+// FixtureEmailDomain is the reserved domain of Banzami's own test identities
+// (".test" is reserved by RFC 6761: no real mailbox can exist under it). The
+// harness cleanup guard, the fixture email budget and fixture sessions are all
+// keyed on it.
+const FixtureEmailDomain = "banzami-e2e.test"
+
+// IsFixtureEmail reports whether an address belongs to the fixture domain.
+func IsFixtureEmail(email string) bool {
+	return strings.HasSuffix(normalizeEmail(email), "@"+FixtureEmailDomain)
 }
 
 // ServiceConfig holds the Account Identity policy knobs. Peppers/secret come from
@@ -33,6 +47,14 @@ type ServiceConfig struct {
 	PerEmailLimit  int
 	PerIPLimit     int
 	RateWindow     time.Duration
+	// FixtureEmailDailyBudget caps the sign-in codes sent to the fixture domain
+	// per UTC day. Every code costs the same provider sending quota a real
+	// developer's does; without a cap Banzami's own assurance runs spent the whole
+	// daily quota (200 on 2026-09-14) and no developer could sign in until it
+	// reset. Real addresses are never counted against it.
+	FixtureEmailDailyBudget int
+	// FixturesEnabled allows fixture sessions (Sandbox and local development only).
+	FixturesEnabled bool
 }
 
 func (c ServiceConfig) withDefaults() ServiceConfig {
@@ -53,6 +75,9 @@ func (c ServiceConfig) withDefaults() ServiceConfig {
 	}
 	if c.RateWindow == 0 {
 		c.RateWindow = 15 * time.Minute
+	}
+	if c.FixtureEmailDailyBudget == 0 {
+		c.FixtureEmailDailyBudget = 40
 	}
 	return c
 }
@@ -80,6 +105,14 @@ var (
 	ErrInvalidCode     = errors.New("invalid or expired code")
 	ErrUnauthenticated = errors.New("unauthenticated")
 	ErrUnavailable     = errors.New("account identity unavailable")
+	// ErrCodeNotSent: the code could not be handed to the email provider. The
+	// person is told so; nothing claims the code is on its way.
+	ErrCodeNotSent = errors.New("verification code not sent")
+	// ErrFixtureEmailBudget: the day's fixture sign-in codes are spent.
+	ErrFixtureEmailBudget = errors.New("fixture email budget exhausted")
+	// ErrNotFixture: a fixture session was asked for an address outside the
+	// fixture domain, or where fixtures are disabled.
+	ErrNotFixture = errors.New("not a fixture identity")
 )
 
 func normalizeEmail(email string) string { return strings.ToLower(strings.TrimSpace(email)) }
@@ -130,6 +163,22 @@ func (s *Service) RequestOTP(ctx context.Context, email, ip, requestID string) e
 		return ErrCooldown
 	}
 
+	// Banzami's own fixture traffic has a daily budget, so assurance runs can
+	// never spend the provider quota real developers sign in with.
+	if IsFixtureEmail(email) {
+		day := time.Now().UTC().Format("2006-01-02")
+		ok, bErr := s.rl.Allow(ctx, "otp:fixture:day:"+day, s.cfg.FixtureEmailDailyBudget, 25*time.Hour)
+		if bErr != nil {
+			ok, _ = s.local.Allow(ctx, "otp:fixture:day:"+day, s.cfg.FixtureEmailDailyBudget, 25*time.Hour)
+		}
+		if !ok {
+			slog.WarnContext(ctx, "auth.request_otp.fixture_budget_exhausted",
+				"budget", s.cfg.FixtureEmailDailyBudget, "day", day, "request_id", requestID)
+			s.audit(ctx, nil, "otp.fixture_budget_exhausted", "EMAIL:"+email, ip, requestID, nil)
+			return ErrFixtureEmailBudget
+		}
+	}
+
 	code, err := newOTPCode()
 	if err != nil {
 		return ErrUnavailable
@@ -141,9 +190,67 @@ func (s *Service) RequestOTP(ctx context.Context, email, ip, requestID string) e
 	}); err != nil {
 		return ErrUnavailable
 	}
-	s.mailer.SendVerificationCode(email, code)
+	if err := s.mailer.SendVerificationCode(email, code); err != nil {
+		// The code exists but nobody will receive it: say so. The reason is for
+		// operators only (a spent provider quota means nobody can sign in until
+		// it resets); the public answer names no provider and no numbers.
+		slog.ErrorContext(ctx, "auth.request_otp.delivery_failed",
+			"reason", ce.DeliveryReason(err), "request_id", requestID)
+		s.audit(ctx, nil, "otp.delivery_failed", "EMAIL:"+email, ip, requestID,
+			map[string]any{"reason": ce.DeliveryReason(err)})
+		return ErrCodeNotSent
+	}
 	s.audit(ctx, nil, "otp.requested", "EMAIL:"+email, ip, requestID, nil)
 	return nil
+}
+
+// FixtureSessionResult is a session for a fixture identity.
+type FixtureSessionResult struct {
+	User       User
+	SessionRaw string
+	CSRFToken  string
+}
+
+// MintFixtureSession opens a session for a fixture identity without an email.
+//
+// For Banzami's own regression suites whose subject is not authentication
+// (payments, refunds, rail isolation, deletion…), so they stop spending the
+// provider sending quota real developers need. Authentication itself is still
+// proved through real delivery by the public cleanroom and the auth E2E.
+//
+// Bounded so it cannot become a way into anyone's account:
+//   - only where fixtures are enabled (Sandbox, local development) — refused in Live;
+//   - only an address in the reserved fixture domain, which no real person can hold;
+//   - reachable only on the internal key guard, which the public edge refuses
+//     (/internal/ → 404) before it reaches the service;
+//   - creates the identity and session through the same store calls a verified
+//     sign-in uses, and records `session.fixture_minted` in the audit log.
+//
+// No OTP is created, read, derived or bypassed; the OTP flow is untouched.
+func (s *Service) MintFixtureSession(ctx context.Context, email, requestID string) (*FixtureSessionResult, error) {
+	email = normalizeEmail(email)
+	if !s.cfg.FixturesEnabled || !validEmail(email) || !IsFixtureEmail(email) {
+		return nil, ErrNotFixture
+	}
+	if s.cfg.SessionSecret == "" {
+		return nil, ErrUnavailable
+	}
+	user, err := s.store.UpsertVerifiedUser(ctx, email)
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	raw, hash, err := newSessionToken(s.cfg.SessionSecret)
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	if err := s.store.CreateSession(ctx, SessionInsert{
+		UserID: user.ID, TokenHash: hash, UserAgent: "banzami-fixture-session", IP: "",
+		ExpiresAt: time.Now().Add(6 * time.Hour),
+	}); err != nil {
+		return nil, ErrUnavailable
+	}
+	s.audit(ctx, &user.ID, "session.fixture_minted", "USER:"+user.ID, "", requestID, nil)
+	return &FixtureSessionResult{User: user, SessionRaw: raw, CSRFToken: s.csrfFor(raw)}, nil
 }
 
 // VerifyResult carries the raw session token (for the host-only cookie) and the

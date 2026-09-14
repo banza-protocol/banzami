@@ -9,11 +9,11 @@
  * Run: BANZAMI_E2E=RUN node tools/e2e/dev-console/dev-key-gateway-e2e.mjs
  */
 import { chromium } from 'playwright';
-import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { registerCleanup } from '../console/lib/run-cleanup.mjs';
+import { fixtureSession } from '../console/lib/mint.mjs';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -38,15 +38,15 @@ registerCleanup({
   emailPattern: `rt02-%${stamp}@banzami-e2e.test`,
   namePattern: `rt02-%${stamp}%`,
 });
-const getOTP = e => execFileSync('bash', [resolve(HERE, 'otp-retrieve.sh'), e], { encoding: 'utf8' }).trim();
 
+// A session is only this suite's precondition — its subject is not
+// authentication — so it opens a fixture session (no email) instead of spending
+// the provider quota the public Console needs. The real sign-in path is proved
+// by tools/e2e/console/auth-email-e2e.mjs and the public cleanroom.
 async function signIn(ctx, e) {
-  let r = await ctx.request.post(`${API}/auth/request-otp`, { headers: H, data: { email: e } });
-  if (!r.ok()) throw new Error(`otp req ${r.status()}`);
-  const code = getOTP(e);
-  r = await ctx.request.post(`${API}/auth/verify`, { headers: H, data: { email: e, code } });
-  if (!r.ok()) throw new Error(`verify ${r.status()}`);
-  return (await r.json()).csrf_token;
+  const { token, csrf } = fixtureSession(e);
+  await ctx.addCookies([{ name: '__Host-bz_dev_session', value: token, domain: new URL(API).hostname, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' }]);
+  return csrf;
 }
 const j = async r => { try { return await r.json(); } catch { return {}; } };
 async function mkWsProj(ctx, csrf, tag) {

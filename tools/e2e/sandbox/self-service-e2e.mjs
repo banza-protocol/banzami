@@ -28,6 +28,9 @@ import { dirname, join } from 'node:path';
 import { createHmac, randomUUID } from 'node:crypto';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 import { mintSession } from '../console/lib/mint.mjs';
+// This suite's subject IS the public self-service path, so it signs in through
+// real email delivery (not a fixture session).
+const signInReal = (email) => mintSession(email, { realEmail: true });
 
 const API = process.env.BZ_DEV_API ?? 'https://developer-api.banzami.com';
 const GW = process.env.BZ_GATEWAY ?? 'https://sandbox-api.banzami.com';
@@ -193,7 +196,7 @@ async function fresh() {
   const like = `ss-fresh-${stamp}`;
   const email = `e2e-ss-fresh-${stamp}@banzami-e2e.test`;
   let token;
-  try { token = mintSession(email); mark(1, true, 'product sign-in'); } catch (e) { mark(1, false, e.message); return j; }
+  try { token = signInReal(email); mark(1, true, 'product sign-in'); } catch (e) { mark(1, false, e.message); return j; }
   const call = consoleCaller(token);
   const ws = await call('/workspaces', 'POST', { name: like });
   mark(2, ws.status === 201, ws.status);
@@ -313,7 +316,7 @@ async function application() {
   const like = `ss-app-${stamp}`;
   const email = `e2e-ss-app-${stamp}@banzami-e2e.test`;
   let token;
-  try { token = mintSession(email); mark(1, true, 'product sign-in'); } catch (e) { mark(1, false, e.message); return j; }
+  try { token = signInReal(email); mark(1, true, 'product sign-in'); } catch (e) { mark(1, false, e.message); return j; }
   const call = consoleCaller(token);
   const ws = await call('/workspaces', 'POST', { name: like });
   const pa = await call(`/workspaces/${ws.body?.id}/projects`, 'POST', { name: `${like}-a` });

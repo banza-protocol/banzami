@@ -167,7 +167,7 @@ func (s *Sender) DeliverErr(m Message) error {
 		return ErrNotConfigured
 	}
 	if err := s.send(m); err != nil {
-		slog.Error("failed to send email", "email", m.Purpose, "error", maskAddressIn(err.Error(), m.To), "to", MaskAddress(m.To))
+		slog.Error("failed to send email", "email", m.Purpose, "reason", DeliveryReason(err), "error", maskAddressIn(err.Error(), m.To), "to", MaskAddress(m.To))
 		return err
 	}
 	return nil

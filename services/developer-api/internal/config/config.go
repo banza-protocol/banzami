@@ -103,6 +103,8 @@ type Config struct {
 	EmailNoreplyName    string
 	EmailNoreplyAddress string
 	EmailDryRun         bool
+	// FixtureEmailDailyBudget: see FIXTURE_EMAIL_DAILY_BUDGET (0 = service default).
+	FixtureEmailDailyBudget int
 }
 
 // SecureCookies reports whether session cookies must be Secure + __Host- (any
@@ -135,6 +137,13 @@ func Load() (*Config, error) {
 	cfg.Environment = strings.TrimSpace(os.Getenv("ENVIRONMENT"))
 	if cfg.Environment == "" {
 		return nil, fmt.Errorf("ENVIRONMENT must be set (sandbox, live, or development for a local run)")
+	}
+	// Sign-in codes Banzami's own fixture identities may be sent per UTC day
+	// (accountidentity.ServiceConfig.FixtureEmailDailyBudget; default 40).
+	if v := os.Getenv("FIXTURE_EMAIL_DAILY_BUDGET"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			cfg.FixtureEmailDailyBudget = n
+		}
 	}
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v

@@ -69,18 +69,17 @@ async function post(path, body, cookie) {
  * process — only the code does.
  */
 function codeFor(address, notBefore) {
+  // Pick the message by recipient from the list, then fetch that ONE message.
+  // Fetching every listed message on each attempt hit the provider API's own
+  // per-second rate limit, whose throttled answers read as "no message".
   const remote = `
 set -eu
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
 K=$(docker exec "$DEV" sh -c 'cat /run/secrets/resend_api_key')
-LIST=$(curl -s -H "Authorization: Bearer $K" 'https://api.resend.com/emails?limit=25')
-IDS=$(printf '%s' "$LIST" | sed 's/[{,]/\\n/g' | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
-for id in $IDS; do
-  M=$(curl -s -H "Authorization: Bearer $K" "https://api.resend.com/emails/$id")
-  printf '%s' "$M" | grep -q '${address}' || continue
-  printf '%s\\n' "$M"
-  break
-done
+LIST=$(curl -s -H "Authorization: Bearer $K" 'https://api.resend.com/emails?limit=50')
+ID=$(printf '%s' "$LIST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const m=(JSON.parse(s).data||[]).find(e=>(e.to||[]).includes(process.argv[1]));process.stdout.write(m?m.id:"")}catch(e){}})' '${address}')
+[ -n "$ID" ] && curl -s -H "Authorization: Bearer $K" "https://api.resend.com/emails/$ID"
+true
 `;
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const out = execFileSync('ssh', [HOST, 'sh', '-s'], { input: remote, encoding: 'utf8', maxBuffer: 1 << 24 });

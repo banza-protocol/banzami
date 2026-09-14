@@ -69,6 +69,35 @@ func (h *Handlers) originOK(r *http.Request) bool {
 }
 
 // Register mounts the auth endpoints on a router-agnostic mux via a func.
+// MountInternal registers the internal-key guarded identity routes. The caller
+// mounts it inside the internal guard; the public edge refuses /internal/.
+func (h *Handlers) MountInternal(post func(pattern string, hf http.HandlerFunc)) {
+	post("/internal/v1/fixture-sessions", h.FixtureSession)
+}
+
+// POST /internal/v1/fixture-sessions {email} — see Service.MintFixtureSession.
+func (h *Handlers) FixtureSession(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Email string `json:"email"`
+	}
+	if !decode(r, &body) {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "invalid request body")
+		return
+	}
+	res, err := h.svc.MintFixtureSession(r.Context(), body.Email, obs.RequestID(r.Context()))
+	switch {
+	case errors.Is(err, ErrNotFixture):
+		// 404: where fixtures are off, or for a real address, this route does not exist.
+		httpx.Error(w, http.StatusNotFound, "NOT_FOUND", "not found")
+	case err != nil:
+		httpx.Error(w, http.StatusServiceUnavailable, "UNAVAILABLE", "service unavailable")
+	default:
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"session_token": res.SessionRaw, "csrf_token": res.CSRFToken, "user_id": res.User.ID,
+		})
+	}
+}
+
 func (h *Handlers) Register(get, post func(pattern string, hf http.HandlerFunc)) {
 	post("/auth/request-otp", h.RequestOTP)
 	post("/auth/verify", h.Verify)
@@ -148,6 +177,16 @@ func (h *Handlers) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "INVALID_EMAIL", "invalid email")
 	case ErrRateLimited, ErrCooldown:
 		httpx.Error(w, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests, try again later")
+	case ErrFixtureEmailBudget:
+		// Only ever for the reserved fixture domain: it says nothing about any
+		// real address or account.
+		httpx.Error(w, http.StatusTooManyRequests, "FIXTURE_EMAIL_BUDGET_EXHAUSTED",
+			"the daily budget of sign-in codes for test fixtures is spent")
+	case ErrCodeNotSent:
+		// Truthful, and still uniform: every address gets this when the send
+		// fails, whether or not an account exists.
+		httpx.Error(w, http.StatusServiceUnavailable, "CODE_NOT_SENT",
+			"we could not send the sign-in code; try again shortly")
 	default:
 		// The public response is unchanged — a uniform UNAVAILABLE that reveals
 		// nothing about accounts, providers or infrastructure. What changes is

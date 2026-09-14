@@ -76,6 +76,9 @@ export const MESSAGES: Record<string, string> = {
   INVITE_INVALID: 'O convite expirou, foi revogado ou já foi usado.',
   NOT_FOUND: 'Não encontrado.',
   UNAVAILABLE: 'Serviço indisponível. Tente novamente.',
+  // The provider could not be given the message (a spent daily quota, an
+  // outage). Truthful and non-sensitive: names no provider and no numbers.
+  CODE_NOT_SENT: 'Não foi possível enviar o código de acesso. Tente novamente dentro de momentos.',
   NETWORK: 'Sem ligação ao serviço.',
   INVALID_NAME: 'O nome não pode estar vazio e tem no máximo 80 caracteres.',
   // The lifecycle refusals. Each one names what is in the way and what to do

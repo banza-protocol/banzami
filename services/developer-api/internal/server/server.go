@@ -59,6 +59,12 @@ func New(cfg *config.Config, deps Deps) http.Handler {
 		r.Group(func(gr chi.Router) {
 			gr.Use(internalKeyGuard(cfg.InternalAPIKey))
 			deps.Dev.MountInternal(gr)
+			// Fixture sessions (MONEY-MODEL-001 closure): Sandbox-only and
+			// fixture-domain-only inside the service; this guard and the edge's
+			// /internal/ refusal keep them off the public perimeter.
+			if deps.Auth != nil {
+				deps.Auth.MountInternal(gr.Post)
+			}
 		})
 	}
 

@@ -93,6 +93,10 @@ func main() {
 		OTPPepper:     cfg.OTPPepper,
 		SessionSecret: cfg.SessionSecret,
 		SessionTTL:    time.Duration(cfg.SessionTTLHours) * time.Hour,
+		// The same gate as fixture keys and projects: Sandbox and local
+		// development only, decided by the deployment's declared environment.
+		FixturesEnabled:         env.Parse(cfg.Environment).IsSandbox() || cfg.IsDevelopment(),
+		FixtureEmailDailyBudget: cfg.FixtureEmailDailyBudget,
 	})
 	auth := accountidentity.NewHandlers(svc, cfg.ConsoleOrigin, cfg.SecureCookies())
 
