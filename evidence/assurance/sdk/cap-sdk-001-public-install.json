@@ -1,12 +1,12 @@
 {
   "suite": "CAP-SDK-001 — public registry install, outside every Banzami repository",
-  "generated_at": "2026-09-12T10:54:55.773Z",
+  "generated_at": "2026-09-14T08:45:51.474Z",
   "registry": {
     "name": "@banzami/sdk",
-    "latest": "0.13.0",
+    "latest": "0.14.0",
     "license": "MIT",
-    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.13.0.tgz",
-    "integrity": "sha512-rTV0QSA0lc9oc1gvnkGsYJceE11x9Untcax7cn++kJZ/B9LaRGrBwVMjUiM5lD+65e6cZ1ZaJzuTa5XmsIl5/A==",
+    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.14.0.tgz",
+    "integrity": "sha512-Zzd9DyWgS6++8gbrVQPFhCqfmLYU4yfx5epE3Wv0B4hD6MYKNtP3PqJtHUd0jp8FIspiz5lXYxFPPgdUZS6hRg==",
     "all_versions": [
       "0.4.0",
       "0.5.0",
@@ -21,31 +21,32 @@
       "0.11.0",
       "0.12.0",
       "0.12.1",
-      "0.13.0"
+      "0.13.0",
+      "0.14.0"
     ]
   },
   "clean_project": {
     "inside_git_repo": false,
-    "dependency_spec": "^0.13.0",
-    "installed_version": "0.13.0",
+    "dependency_spec": "^0.14.0",
+    "installed_version": "0.14.0",
     "local_path_dependency": false
   },
-  "source_version": "0.13.0",
+  "source_version": "0.14.0",
   "assertions": [
     {
       "id": "SDK.registry.published",
       "pass": true,
-      "note": "dist-tags.latest = 0.13.0"
+      "note": "dist-tags.latest = 0.14.0"
     },
     {
       "id": "SDK.install.from-registry",
       "pass": true,
-      "note": "resolved https://registry.npmjs.org/@banzami/sdk/-/sdk-0.13.0.tgz"
+      "note": "resolved https://registry.npmjs.org/@banzami/sdk/-/sdk-0.14.0.tgz"
     },
     {
       "id": "SDK.install.version-matches-latest",
       "pass": true,
-      "note": "installed 0.13.0"
+      "note": "installed 0.14.0"
     },
     {
       "id": "SDK.install.no-local-path",
@@ -55,7 +56,7 @@
     {
       "id": "SDK.install.integrity-recorded",
       "pass": true,
-      "note": "sha512-rTV0QSA0lc9oc1gvn…"
+      "note": "sha512-Zzd9DyWgS6++8gbrV…"
     },
     {
       "id": "SDK.registry.license-mit",
@@ -65,7 +66,7 @@
     {
       "id": "SDK.source.not-behind-registry",
       "pass": true,
-      "note": "source 0.13.0, registry 0.13.0"
+      "note": "source 0.14.0, registry 0.14.0"
     },
     {
       "id": "SDK.contents.dist/index.js",
