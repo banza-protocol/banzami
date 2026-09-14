@@ -74,6 +74,15 @@ impl ApiError {
         }
     }
 
+    /// 503 — a capability this deployment does not have, with its code.
+    pub fn service_unavailable_code(code: &'static str, msg: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            code,
+            message: msg.into(),
+        }
+    }
+
     /// 429 — an allowance of attempts is used up.
     pub fn too_many_requests(code: &'static str, msg: impl Into<String>) -> Self {
         Self {

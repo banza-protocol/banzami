@@ -10,6 +10,8 @@ pub mod application_settlements;
 #[cfg(test)]
 mod application_settlements_tests;
 pub mod collections;
+#[cfg(test)]
+mod collections_guard_tests;
 pub mod compliance;
 #[cfg(test)]
 mod compliance_tests;

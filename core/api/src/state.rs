@@ -169,6 +169,10 @@ pub struct AppState {
     pub payment_links: Arc<PaymentLinksEng>,
     pub acquiring: Arc<AcquiringEng>,
     pub collections: Arc<CollectionsEng>,
+    /// Whether this database carries the Collections schema. Its migrations are
+    /// frozen out of the active set (db/migrations.phase2, BANZA ADR-016), so a
+    /// fresh stack has none; read once, lazily.
+    pub collections_schema: Arc<tokio::sync::OnceCell<bool>>,
     pub app_settlement: Arc<AppSettlementEng>,
     pub pricing_admin: Arc<PostgresPricingRuleAdminRepository>,
     pub operator_fee_read: Arc<PostgresOperatorFeeReadRepository>,
@@ -364,6 +368,7 @@ impl AppState {
             payment_links,
             acquiring,
             collections,
+            collections_schema: Arc::new(tokio::sync::OnceCell::new()),
             app_settlement,
             pricing_admin,
             operator_fee_read,

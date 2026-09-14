@@ -631,3 +631,59 @@ async fn the_settled_transfer_names_this_environment(pool: PgPool) {
         .unwrap();
     assert_eq!(env, "SANDBOX");
 }
+
+// A Payment Session's dynamic QR, read back by id (as the Sandbox test-payer
+// path and any later reader does) rather than taken from the create response,
+// pays like any other dynamic QR.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_session_qr_read_back_by_id_pays(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let (merchant, _avail) = merchant_with_wallet(&pool).await;
+    let wallet: Uuid = sqlx::query_scalar("SELECT id FROM wallets WHERE merchant_id=$1")
+        .bind(merchant)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let primary: Uuid = sqlx::query_scalar(
+        "SELECT id FROM wallet_accounts WHERE wallet_id=$1 AND purpose='PRIMARY'",
+    )
+    .bind(wallet)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let (_, Json(session)) = crate::routes::payment_sessions::create(
+        State(state.clone()),
+        Json(crate::routes::payment_sessions::CreateBody {
+            merchant_id: merchant.to_string(),
+            wallet_account_id: primary.to_string(),
+            purpose: Some("ORDER".into()),
+            reference_type: Some("PEDIDO".into()),
+            reference_id: Some(format!("o{}", rand_suffix())),
+            amount_minor: Some(250_000),
+            currency: Some("AOA".into()),
+            description: None,
+            expires_at: None,
+            metadata: None,
+        }),
+    )
+    .await
+    .expect("session");
+    let qr_id = session["qr_code_id"]
+        .as_str()
+        .expect("a fixed-amount session has a dynamic QR")
+        .to_string();
+    let Json(read) = qr::get(State(state.clone()), axum::extract::Path(qr_id))
+        .await
+        .unwrap();
+    let payload = read["payload"].as_str().unwrap().to_string();
+    let (payer, _) = consumer_with_funds(&pool, 1_000_000).await;
+    let paid = pay(&state, payer, &payload, None, "sbx-qr-read-back").await;
+    assert!(paid.is_ok(), "read-back QR payment failed: {paid:?}");
+    // The money is in the session's account's LEDGER account.
+    let ledger: Uuid = sqlx::query_scalar("SELECT account_id FROM wallet_accounts WHERE id=$1")
+        .bind(primary)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(balance(&pool, ledger).await, 250_000);
+}

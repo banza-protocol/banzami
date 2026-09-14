@@ -111,10 +111,42 @@ fn rule_type(rule: &CollectionRule) -> &'static str {
     }
 }
 
+/// The Collections prototype runs only where its frozen schema exists
+/// (db/migrations.phase2). Elsewhere every collection route answers 503
+/// COLLECTIONS_UNAVAILABLE instead of a 500 about a missing relation, and a
+/// payment's settlement hook does nothing instead of warning on every payment.
+pub async fn collections_available(state: &AppState) -> bool {
+    *state
+        .collections_schema
+        .get_or_init(|| async {
+            sqlx::query_scalar::<_, bool>(
+                "SELECT to_regclass('public.collections') IS NOT NULL
+                    AND to_regclass('public.payment_intents') IS NOT NULL
+                    AND to_regclass('public.collection_shares') IS NOT NULL",
+            )
+            .fetch_one(&state.pool)
+            .await
+            .unwrap_or(false)
+        })
+        .await
+}
+
+async fn require_collections(state: &AppState) -> Result<(), ApiError> {
+    if collections_available(state).await {
+        Ok(())
+    } else {
+        Err(ApiError::service_unavailable_code(
+            "COLLECTIONS_UNAVAILABLE",
+            "collections are not enabled on this deployment",
+        ))
+    }
+}
+
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateBody>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
+    require_collections(&state).await?;
     let merchant_id = parse_merchant(&body.merchant_id)?;
     let wallet_id = body
         .wallet_id
@@ -214,6 +246,7 @@ pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ScopeQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    require_collections(&state).await?;
     let merchant_id = parse_merchant(&q.merchant_id)?;
     let limit = q.limit.unwrap_or(20);
     let cursor = q
@@ -259,6 +292,7 @@ pub async fn get(
     Path(id): Path<String>,
     Query(q): Query<ScopeQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    require_collections(&state).await?;
     let (cid, _m, c) = load_scoped(&state, &id, &q).await?;
     let collected = state
         .collections
@@ -288,6 +322,7 @@ pub async fn update(
     Path(id): Path<String>,
     Json(body): Json<UpdateBody>,
 ) -> ApiResult<Json<Collection>> {
+    require_collections(&state).await?;
     let cid = id
         .parse::<CollectionId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
@@ -319,6 +354,7 @@ pub async fn close(
     Path(id): Path<String>,
     Json(body): Json<ActionBody>,
 ) -> ApiResult<Json<Collection>> {
+    require_collections(&state).await?;
     let cid = id
         .parse::<CollectionId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
@@ -351,6 +387,7 @@ pub async fn cancel(
     Path(id): Path<String>,
     Json(body): Json<ActionBody>,
 ) -> ApiResult<Json<Collection>> {
+    require_collections(&state).await?;
     let cid = id
         .parse::<CollectionId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
@@ -390,6 +427,7 @@ pub async fn create_share(
     Path(id): Path<String>,
     Json(body): Json<CreateShareBody>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
+    require_collections(&state).await?;
     let cid = id
         .parse::<CollectionId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
@@ -431,6 +469,7 @@ pub async fn list_shares(
     Path(id): Path<String>,
     Query(q): Query<ScopeQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    require_collections(&state).await?;
     let cid = id
         .parse::<CollectionId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
@@ -475,6 +514,7 @@ pub async fn surface_share(
     Path(share_id): Path<String>,
     Json(body): Json<SurfaceBody>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
+    require_collections(&state).await?;
     let sid = share_id
         .parse::<CollectionShareId>()
         .map_err(|_| ApiError::bad_request("invalid share id"))?;
@@ -550,6 +590,7 @@ pub async fn events(
     Path(id): Path<String>,
     Query(q): Query<ScopeQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    require_collections(&state).await?;
     // Ownership check (404 if not ours).
     let (_cid, _m, _c) = load_scoped(&state, &id, &q).await?;
     let rows: Vec<(serde_json::Value,)> = sqlx::query_as(
@@ -636,6 +677,9 @@ pub async fn settle_and_emit(
     transfer_id: TransferId,
     environment: &str,
 ) {
+    if !collections_available(state).await {
+        return; // no Collections schema here: no payment can belong to one
+    }
     let outcome = match state
         .collections
         .settle_from_surface(surface, surface_ref, transfer_id, environment)

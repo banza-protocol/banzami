@@ -380,8 +380,12 @@ async fn resolve_recipient(
             if let Some(account_id) = target.wallet_account_id {
                 // Re-validated at pay time (ADR-027): the account must still be
                 // the owner's, still active, and still in this currency.
+                // The ledger account behind the wallet account — never the
+                // wallet account's own id, which is not a ledger account: every
+                // Payment Session QR routes to a wallet account, and crediting
+                // its id failed the posting's foreign key (500) for all of them.
                 let row = sqlx::query(
-                    "SELECT wa.id FROM wallet_accounts wa
+                    "SELECT wa.account_id FROM wallet_accounts wa
                        JOIN wallets w ON w.id = wa.wallet_id
                       WHERE wa.id = $1 AND wa.status = 'ACTIVE'
                         AND w.currency = $2 AND (w.id = $3 OR w.merchant_id = $3)",
@@ -401,7 +405,7 @@ async fn resolve_recipient(
                 return Ok(Recipient {
                     consumer_id: None,
                     account_id: row
-                        .try_get("id")
+                        .try_get("account_id")
                         .map_err(|e| ApiError::internal(e.to_string()))?,
                 });
             }
