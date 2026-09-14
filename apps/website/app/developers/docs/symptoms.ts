@@ -100,7 +100,7 @@ export const SYMPTOMS: Symptom[] = [
   {
     id: 'symptom-session-active',
     symptom: { pt: 'A sessão continua ACTIVE', en: 'The session stays ACTIVE' },
-    causes: { pt: 'O pagador ainda não pagou. Voltar à sua página não é pagar. No Sandbox, pagar precisa de um pagador com carteira Banzami.', en: 'The payer has not paid yet. Coming back to your page is not paying. In the Sandbox, paying needs a payer with a Banzami wallet.' },
+    causes: { pt: 'O pagador ainda não pagou. Voltar à sua página não é pagar. No Sandbox, pague a sessão com um pagador de teste, em Dados de teste.', en: 'The payer has not paid yet. Coming back to your page is not paying. In the Sandbox, pay the session with a test payer, under Test data.' },
     check: { pt: 'getPaymentSession no servidor. Só PAID confirma.', en: 'getPaymentSession on your server. Only PAID confirms.' },
     console: { pt: 'Transações: o pagamento aparece quando acontece.', en: 'Transactions: the payment appears when it happens.' },
     retry: { pt: 'Não há nada a repetir: espere pelo webhook ou volte a ler a sessão.', en: 'Nothing to retry: wait for the webhook or read the session again.' },

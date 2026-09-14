@@ -41,10 +41,13 @@ export const COVERAGE = {
     items: [
       { spec: 'why it exists', pt: /A configuração financeira liga o projeto a um Business/, en: /Financial Setup connects the project to a Business/ },
       { spec: 'Project → Financial Setup → Business → financial authority', pt: /A autoridade vem da chave\. A chave identifica o projeto, e o projeto determina o Business/, en: /Authority comes from the key\. The key identifies the project, and the project determines the Business/ },
-      { spec: 'A. new Business application', pt: /Business novo[\s\S]{0,400}Submete a candidatura/, en: /New Business[\s\S]{0,400}Submit an application/ },
-      { spec: 'B. connect existing Business with single-use consent code', pt: /código de consentimento[\s\S]{0,200}utilização única/, en: /consent code[\s\S]{0,200}works once/ },
-      { spec: 'Explain operator\nreview truthfully', pt: /O Banzami, após revisão\. Não é imediato/, en: /Banzami, after review\. Not immediate/ },
-      { spec: 'No auto-KYB fiction', pt: /Nenhum campo, pedido ou chave torna um projeto financeiramente pronto/, en: /No field, request or key makes a project financially ready/ },
+      // The spec's labels, read under ADR-060 (SANDBOX-SELF-SERVICE-001): in the
+      // Sandbox the "new Business" path is a test Business created from the use
+      // case with no review, and "truthfully" now means saying nobody reviews it.
+      { spec: 'A. new Business application', pt: /Negócio de teste[\s\S]{0,400}Escolhe o tipo de uso/, en: /Test Business[\s\S]{0,400}Choose the use case/ },
+      { spec: 'B. connect existing Business with single-use consent code', pt: /código de consentimento[\s\S]{0,400}utilização única/, en: /consent code[\s\S]{0,400}works once/ },
+      { spec: 'Explain operator\nreview truthfully', pt: /Ninguém espera: o Banzami cria o negócio/, en: /Nobody waits: Banzami creates the Business/ },
+      { spec: 'No auto-KYB fiction', pt: /É uma entidade de teste — não é verificada/, en: /It is a test entity — not verified/ },
     ],
   },
   DOCS_API_KEYS_COMPLETE: {

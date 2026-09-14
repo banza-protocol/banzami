@@ -14,7 +14,7 @@ import { EventReference } from './EventReference';
 import { Troubleshooting } from './Troubleshooting';
 import { StageBar, StepCard, NextStepCards, RecipeCard, ChapterFacts, DoDont } from './dx';
 import { EVENT_NAMES } from './events';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram } from './diagrams';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import type { CopyFn } from './content-pt';
 
@@ -336,9 +336,9 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
               <h1 style={H1_STYLE}>Quickstart</h1>
               <PageLede>Create your first payment in the Sandbox and confirm it on your server. Twelve steps, in four stages.</PageLede>
               <Callout>
-                <strong>Prerequisites:</strong> an email address, Node.js 18 or later on your server, and the details of the entity that will receive payments.
+                <strong>Prerequisites:</strong> an email address and Node.js 18 or later on your server. In the Sandbox you need no entity details and wait for nobody.
               </Callout>
-              <PathDiagram title="From sign-up to first payment" desc="Account, workspace, project, Financial Setup, API key, SDK and payment, in that order. Financial Setup is the step that depends on a review by Banzami." steps={['Account', 'Workspace', 'Project', 'Financial Setup', 'API key', 'SDK', 'Payment']} highlight={3} />
+              <PathDiagram title="From sign-up to first payment" desc="Account, workspace, project, Financial Setup, API key, SDK and payment, in that order. In the Sandbox every step is yours: none waits for a review by Banzami." steps={['Account', 'Workspace', 'Project', 'Financial Setup', 'API key', 'SDK', 'Payment']} highlight={3} />
               <StageBar lang="en" stages={QS_STAGES} anchor={(n) => 'step-' + n} />
 
               <H2 id="account-and-project">Account and project</H2>
@@ -368,14 +368,15 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
 
               <H2 id="financial-setup">Financial Setup</H2>
               <P>
-                Financial Setup connects the project to a <strong>Business</strong>: the verified entity that receives payments.
+                Financial Setup connects the project to a <strong>Business</strong>: the entity that receives payments.
                 Without it, the project can use keys, webhooks and the API, but cannot be paid — creating a session returns <Code>403 PAYMENTS_UNAVAILABLE</Code>.
+                In the Sandbox, Banzami creates a <strong>test Business</strong> for the project the moment you choose the use case: no application, no documents, no waiting. It is a test entity — not verified, and it does not exist outside the Sandbox.
               </P>
               <FinancialSetupDiagram l={{
-                title: 'Financial Setup: two paths, one result',
-                desc: 'A project becomes financially ready in one of two ways: by applying for a new Business, which Banzami reviews, or by connecting an existing Business with a consent code from its owner.',
+                title: 'Financial Setup in the Sandbox: two paths, one result',
+                desc: 'A project becomes financially ready in one of two ways: by creating a test Business, immediately, from the use case, or by connecting an existing Business with a consent code from its owner.',
                 project: 'Project',
-                newBusiness: 'Apply for a Business', newNote: 'reviewed by Banzami',
+                newBusiness: 'Create a test Business', newNote: 'immediate, by use case',
                 existing: 'Connect an existing Business', existingNote: 'owner’s consent code',
                 ready: 'Financially ready', readyNote: 'the project can receive payments',
               }} />
@@ -383,14 +384,14 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 <table style={TABLE}>
                   <thead><tr style={THEAD}>
                     <th style={TH}></th>
-                    <th style={TH}>New Business</th>
+                    <th style={TH}>Test Business</th>
                     <th style={TH}>Existing Business</th>
                   </tr></thead>
                   <tbody>
                     {[
-                      ['Use when', 'The entity is not yet verified by Banzami.', 'The entity is already verified by Banzami.'],
-                      ['What you do', 'Submit an application: entity details, representative and documents.', 'Enter the consent code its owner generates in the Banzami Business app.'],
-                      ['Who decides', 'Banzami, after review. Not immediate, in the Sandbox too.', 'The Business owner, by issuing the code. Each code works once.'],
+                      ['Use when', 'Almost always: it is the Sandbox path for a new project.', 'Another project of yours already has a test Business, or you want to use a Banzami Business that already exists.'],
+                      ['What you do', 'Choose the use case: “Store, service or business” or “Application or platform”.', 'Enter the consent code its owner generates — in the other project’s Console or in the Banzami Business app.'],
+                      ['Who decides', 'Nobody waits: Banzami creates the Business and assigns the classification and pricing for that use.', 'The owner, by issuing the code. Each code works once, for ten minutes.'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
@@ -401,11 +402,11 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 what="Connect the project to the Business that receives its payments."
                 why="The payee of every payment comes from this setup, never from your application’s request."
                 success={<>The Console shows the project as ready, and <Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
-                next="While the application is in review, continue with steps 5 to 7.">
-                In the Console, open <strong>Financial Setup</strong> and choose one of the two paths in the table above. In your application, check readiness before offering payment:
+                next="Create a secret key.">
+                In the Console, open <strong>Financial Setup</strong>, choose the use case and select <strong>Set up the Sandbox</strong> — or connect an existing Business with its code. In your application, check readiness before offering payment:
                 <CodeBlock label="ts · check financial readiness" raw={SAMPLE_READY} onCopy={copy} {...enCopy} />
               </StepCard>
-              <Callout>No field, request or key makes a project financially ready. Pricing is also assigned to the Business by Banzami.</Callout>
+              <Callout>Your application never sends a classification, a price or a fee: Banzami assigns them to the Business for the chosen use case. The use case can change until the first payment is issued.</Callout>
 
               <H2 id="key-and-sdk">Key and SDK</H2>
               <StepCard lang="en" n={5} of={12} id="step-5" title="Create a secret key"
@@ -458,16 +459,16 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 what={<>The session link, at <Code>pay.banzami.com/pay/…</Code>. The QR code encodes the same address.</>}
                 why="The payer pays on a Banzami page. Your application never handles payment details."
                 success="The page shows the amount and the SANDBOX — test environment notice."
-                next="Confirm the payment on your server.">
-                Open <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code> in a browser.
+                next="Pay the session and confirm it on your server.">
+                Open <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code> in a browser. The page switches to “Payment confirmed” as soon as the session is paid, on any device. <a href="/docs/en/payments#realtime" style={a}>Realtime status</a>
               </StepCard>
 
               <StepCard lang="en" n={10} of={12} id="step-10" title="Confirm the payment on your server"
-                what={<>Read the session with <Code>getPaymentSession</Code> after the payer pays.</>}
+                what={<>Pay the session with a test payer and read it with <Code>getPaymentSession</Code>.</>}
                 why="A payer returning to your page does not confirm payment. The confirmation comes from Banzami."
                 success={<><Code>status</Code> is <Code>PAID</Code>.</>}
                 next="Receive the same confirmation by webhook.">
-                In the Sandbox, the payment is made with a Banzami wallet. <a href="/docs/en/testing#pay-session" style={a}>How to pay a test session</a>
+                In the Console, under <strong>Test data</strong>, create a test payer and pay the session by its <Code>session_id</Code>. The payment takes the real path: the session is paid, the event is emitted and the receipt is issued. <a href="/docs/en/testing#pay-session" style={a}>Pay a test session</a>
               </StepCard>
 
               <StepCard lang="en" n={11} of={12} id="step-11" title="Receive the webhook"
@@ -642,6 +643,20 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
 }
 
 
+const SAMPLE_CURL_REALTIME = `curl -N https://sandbox-api.banzami.com/v1/realtime/payment-sessions/payment_session_example \\
+  -H "Authorization: Bearer bzst_XXXXXXXXXXXXXXXX" \\
+  -H "Accept: text/event-stream"
+
+retry: 3000
+
+event: snapshot
+data: {"session_id":"payment_session_example","status":"ACTIVE","terminal":false,…}
+
+: heartbeat
+
+event: status
+data: {"session_id":"payment_session_example","status":"PAID","terminal":true,…}`;
+
 export function EnPayments({ copy }: { copy: CopyFn }) {
   const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
@@ -721,6 +736,34 @@ export function EnPayments({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
+
+              <H2 id="realtime">Realtime status</H2>
+              <P>
+                A page showing a QR code or a link can switch to “paid” the moment the payment happens — even when the payer paid on another device.
+                Every session read with your key carries <Code>realtime.token</Code>: a status token (<Code>bzst_…</Code>) that opens, read-only and for up to 30 minutes, that session’s public status.
+                Hand the token to your page; the page opens <Code>GET /v1/realtime/payment-sessions/{'{id}'}</Code> with the token in the <Code>Authorization</Code> header.
+              </P>
+              <RealtimeChannelsDiagram l={{
+                title: 'Three ways to learn a payment’s status',
+                desc: 'The same Payment Session reaches you through three channels. The signed webhook and the read with your key, on your server, are what confirm the order. The realtime status, in the browser, with a status token, only updates the screen.',
+                source: 'Payment Session',
+                channels: [
+                  { name: 'Webhook', who: 'Banzami calls your server', credential: 'banza-signature', use: 'Confirm and fulfil', authority: true },
+                  { name: 'GET with your key', who: 'Your server asks', credential: 'bz_test_sk_…', use: 'Confirm and reconcile', authority: true },
+                  { name: 'Realtime', who: 'The payer’s page', credential: 'bzst_… · 30 min', use: 'Update the screen', authority: false },
+                ],
+                authority: 'Authority to fulfil the order',
+                screenOnly: 'Screen only',
+              }} />
+              <UL>
+                <LI><strong>The stream:</strong> with <Code>Accept: text/event-stream</Code>, a <Code>snapshot</Code> event with the current status, a <Code>status</Code> on each change, a heartbeat every 15 seconds and an <Code>expired</Code> when the token expires. It closes on a terminal status: <Code>PAID</Code>, <Code>EXPIRED</Code>, <Code>CANCELLED</Code> or <Code>FAILED</Code>. With <Code>Accept: application/json</Code>, a single read.</LI>
+                <LI><strong>The token goes in the header, never the URL:</strong> a token in the URL is refused with <Code>400 REALTIME_TOKEN_IN_URL</Code>. That is why the page uses <Code>fetch</Code> with a streaming read rather than <Code>EventSource</Code>, which cannot send headers.</LI>
+                <LI><strong>Reconnect:</strong> if the connection drops, open it again — it starts with a fresh snapshot. With an expired token (<Code>401 REALTIME_TOKEN_EXPIRED</Code>), read the session on your server for a new one.</LI>
+                <LI><strong>No stream:</strong> if the connection cannot stay up (<Code>503 REALTIME_UNAVAILABLE</Code>, a restricted network), the page asks your server at a modest interval, for example every five seconds.</LI>
+                <LI><strong>Limits:</strong> 3 streams per session and 20 per IP (<Code>429 REALTIME_STREAM_LIMIT</Code>). A page needs one.</LI>
+              </UL>
+              <CodeBlock label="curl · realtime status (stream)" raw={SAMPLE_CURL_REALTIME} onCopy={copy} {...enCopy} />
+              <Callout tone="warn">Realtime status is not proof of payment. Fulfil the order on the verified <Code>payment_session.paid</Code> webhook, or on <Code>getPaymentSession</Code> on your server. The token is not a key: never put a secret key in the page.</Callout>
 
               <H2 id="links">Create a Payment Link</H2>
               <P>
@@ -870,6 +913,13 @@ export function EnWebhooks({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
               <P>After the fifth failure, the delivery is <Code>FAILED</Code> and can be replayed. Delivery order is not guaranteed.</P>
+
+              <H2 id="test-event">Test the endpoint without a payment</H2>
+              <P>
+                In the Sandbox, <strong>Send test event</strong> (Console → Webhooks) or <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code> delivers a <Code>webhook.test</Code> event to the endpoint, signed with <Code>banza-signature</Code> like any other.
+                Use it to confirm your server reads the raw body, verifies the signature and answers <Code>2xx</Code>. The event is marked <Code>synthetic: true</Code>, describes no payment, cannot be subscribed to and moves nothing; its delivery can be replayed even after it succeeds.
+                Handle a <Code>type</Code> you do not know by answering <Code>2xx</Code> with no side effects. A disabled endpoint returns <Code>409 ENDPOINT_DISABLED</Code>.
+              </P>
 
               <H2 id="disable">Disable and re-enable an endpoint</H2>
               <P>
@@ -1067,7 +1117,7 @@ export function EnSettlements({ copy }: { copy: CopyFn }) {
               <P>
                 When the pricing profile resolves a fee, pass <Code>feeDestinationBanzaName</Code>: an @banza of your own Business, of type
                 <Code> APPLICATION</Code> or <Code>PLATFORM</Code>, with approved verification and an active wallet. Without it, the settlement returns <Code>422 FEE_DESTINATION_REQUIRED</Code>.
-                The APPLICATION classification of an account is assigned by Banzami.
+                The APPLICATION classification of an account is assigned by Banzami. In the Sandbox, it is assigned when you choose the <strong>Application or platform</strong> use case, and the project’s own test Business serves as the fee destination without verification — in the Sandbox only.
               </P>
 
               <H2 id="settlement-errors">Errors and retries</H2>
@@ -1296,13 +1346,13 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
               <ChapterFacts lang="en" appLabel="DOA"
                 goal="A project with Financial Setup complete and a key with the scopes it needs."
                 app="Creates the workspace and project in the Console, completes Financial Setup, and stores the key and webhook secret on its server."
-                banzami="Reviews the Business application, or accepts the owner’s consent code, and assigns the pricing profile."
+                banzami="Creates the project’s test Business for the Application or platform use case — or accepts the owner’s consent code — and assigns the classification and pricing profile."
                 result={<><Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
                 failure={<><Code>403 PAYMENTS_UNAVAILABLE</Code> when creating a session: Financial Setup is not complete yet.</>} />
               <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <LI>In the <a href="/docs/en/console" style={a}>Console</a>, create a <strong>workspace</strong> and a <strong>project</strong> for the application.</LI>
                 <LI>
-                  Complete <strong>Financial Setup</strong>: apply for a new Business, which Banzami reviews, or connect an existing Business with the
+                  Complete <strong>Financial Setup</strong>: choose the <strong>Application or platform</strong> use case — Banzami creates the test Business with the APPLICATION classification and the reference price, waiting for nobody — or connect an existing Business with the
                   consent code its owner generates. <a href="/docs/en/get-started#financial-setup" style={a}>Financial Setup</a>
                 </LI>
                 <LI>
@@ -1571,8 +1621,9 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
 
               <H2 id="financial">Financial Setup</H2>
               <P>
-                Connects the project to the Business that receives its payments, by application or by consent code. It shows the application status, settlement readiness,
-                the pricing profile and the fee destination. <a href="/docs/en/get-started#financial-setup" style={a}>The two paths</a>
+                Connects the project to the Business that receives its payments. In the Sandbox, choose the use case — <strong>Store, service or business</strong> or <strong>Application or platform</strong> — and Banzami creates a test Business with that use’s classification and price; or connect an existing Business with its consent code.
+                It shows the Business (a test Business appears as not verified), settlement readiness, the pricing profile and the fee destination. The use case can change until the first payment is issued, and
+                <strong> Generate connection code</strong> lets another project of yours use the same test Business. <a href="/docs/en/get-started#financial-setup" style={a}>The two paths</a>
               </P>
               <P style={{ fontSize: 13, color: MUT }}>The same state is available through the API at <Code>GET /v1/financial-setup</Code>.</P>
 
@@ -1594,6 +1645,7 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Register</strong> an HTTPS endpoint; the signing secret is returned once.</LI>
                 <LI><strong>Events</strong> lists your project’s events; each event shows its deliveries, with status and response code.</LI>
                 <LI><strong>Replay</strong> repeats the same delivery.</LI>
+                <LI><strong>Send test event</strong> sends <Code>webhook.test</Code> to the endpoint, signed and marked as a test; it moves nothing and can be replayed.</LI>
                 <LI><strong>Rotate secret</strong> issues a new secret, shown once; the endpoint stays the same.</LI>
                 <LI><strong>Disable</strong> stops sending events to the endpoint without deleting it. Events emitted while it is disabled are not delivered to it later.</LI>
               </UL>
@@ -1603,8 +1655,16 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>Balances</strong> — the accounts of the Business connected to the project, and the balance of each.</LI>
                 <LI><strong>Transactions</strong> — payments, refunds and transfers between accounts of the Business connected to the project, including those started by other projects of the same Business.</LI>
-                <LI><strong>Logs</strong> — every request made with the project’s keys, with <Code>request_id</Code>, status and latency, kept for 30 days.</LI>
+                <LI><strong>Logs</strong> — every request made with the project’s keys, with <Code>request_id</Code>, status and latency, kept for 30 days. Filter by method and by source: the integration’s keys or the API Explorer.</LI>
               </UL>
+
+              <H2 id="console-test-data">Test data and API Explorer</H2>
+              <UL>
+                <LI><strong>Overview</strong> — the steps to get started in the Sandbox, ticked from what the project has already done, and the two environments: Sandbox available; Live unavailable, requiring institutional approval.</LI>
+                <LI><strong>Test data</strong> — test payers (create, top up, pay as, retire), the scenarios and <strong>Reset the Sandbox</strong>.</LI>
+                <LI><strong>API Explorer</strong> — runs the v1 API against the Sandbox with no key in the browser: each request uses a 60-second key holding only the operation’s scope.</LI>
+              </UL>
+              <P><a href="/docs/en/testing" style={a}>Sandbox testing</a></P>
               <P style={{ fontSize: 13, color: MUT }}>No Console page shows illustrative data. An empty list means there is nothing recorded yet.</P>
 
               <NextStepCards lang="en" items={[
@@ -1885,117 +1945,210 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
 
 const RECIPES_NOTE = 'The examples use a test key from your project. Nothing done in the Sandbox moves real money.';
 
+const SAMPLE_CURL_TEST_PAYER_PAY = `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_example/payments \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Idempotency-Key: payment_001" \\
+  -H "Content-Type: application/json" \\
+  -d '{"payment_session_id":"payment_session_example","via":"QR"}'
+
+# 200
+# { "test_payer_id": "tp_example", "via": "QR", "status": "PAID",
+#   "transfer_id": "transfer_example", "proof_reference": "BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX",
+#   "simulated": false, … }`;
+
 export function EnTesting({ copy }: { copy: CopyFn }) {
   const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
   return (
     <>
 <Section id="testing">
               <h1 style={H1_STYLE}>Sandbox testing</h1>
-              <PageLede>Test scenarios for every part of your integration: how to trigger each one, the expected response, the event, where to check in the Console, and how to clean up.</PageLede>
-              <Callout>The Sandbox has no special amounts, cards or references that force an outcome. Every scenario uses the API’s real behaviour.</Callout>
+              <PageLede>The Sandbox is self-service: you set it up, get test payers and reset it without asking Banzami for anything. For each scenario: how to trigger it, the expected response, the event, where to check in the Console, and how to clean up.</PageLede>
+              <Callout>The Sandbox has no special amounts, cards or references that force an outcome. Every scenario uses the API’s real behaviour; only an external network’s outcomes are simulated, and only when the request says so with <Code>simulate</Code>.</Callout>
               <P style={{ fontSize: 13, color: MUT }}>{RECIPES_NOTE}</P>
+
+              <H2 id="sandbox-self-service">What the Sandbox gives you</H2>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Capability</th><th style={TH}>Where</th><th style={TH}>Limits</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['A test Business for the project', 'Console → Financial Setup: choose the use case', 'One per project. Not verified, and it does not exist outside the Sandbox.'],
+                      ['Test payers with fictitious value', 'Console → Test data, or /v1/sandbox/test-payers', 'Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 25,000 Kz, a 50,000 Kz balance, 20 top-ups and 100,000 Kz a day.'],
+                      ['External-network outcomes', 'simulate on a test payer’s payment', 'DECLINED, PROVIDER_UNAVAILABLE and TIMEOUT. The response carries simulated: true.'],
+                      ['API Explorer', 'Console → API Explorer', 'Requests with a 60-second key, Sandbox only; 30 a minute per project.'],
+                      ['Test webhook event', 'Console → Webhooks, or POST /v1/webhooks/endpoints/{id}/test', 'webhook.test, marked synthetic; moves nothing.'],
+                      ['Reset the test data', 'Console → Test data → Reset the Sandbox', 'Up to 5 times a day. Nothing is deleted.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>The full, machine-readable list is at <Code>GET /v1/sandbox/scenarios</Code> (scope <Code>sandbox:read</Code>): each scenario has an id, how to trigger it and the outcome. The ids appear on each recipe below.</P>
+
+              <H2 id="test-payers">Test payers</H2>
+              <P>
+                A test payer is a Sandbox customer of your project, with a wallet and a fictitious balance. It pays your sessions and links through the same path a real customer uses — the session becomes <Code>PAID</Code>, the event is emitted and the receipt is issued.
+                A payer of project A does not exist for project B, and pays only its own project’s sessions and links.
+              </P>
+              <P>
+                In the Console, open <strong>Test data</strong>: create a payer, top it up and pay a session by its <Code>session_id</Code>. Through the API, with a key holding <Code>sandbox:write</Code>:
+                <Code>POST /v1/sandbox/test-payers</Code>, <Code>POST /v1/sandbox/test-payers/{'{id}'}/fund</Code> (with an <Code>Idempotency-Key</Code>) and <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>.
+                The payer’s PIN comes only in the creation response, for signing in as that payer on the payment page. <a href="/docs/en/reference#resource-sandbox" style={a}>Test data reference</a>
+              </P>
+              <CodeBlock label="curl · pay a session as a test payer" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} />
 
               <H2 id="recipe-basics">Keys and readiness</H2>
               <RecipeCard lang="en" r={{ id: 'first-call', title: 'The key works',
                 trigger: <><Code>GET /v1/me</Code> with the key.</>,
                 api: <><Code>200</Code> with <Code>environment: &quot;SANDBOX&quot;</Code> and the scopes.</>,
                 event: 'None.', console: 'Logs: the request, with its request_id.', cleanup: 'None.' }} />
-              <RecipeCard lang="en" r={{ id: 'invalid-key', title: 'Invalid or revoked key',
+              <RecipeCard lang="en" r={{ id: 'invalid-key', title: 'Invalid or revoked key', scenario: 'INVALID_KEY',
                 trigger: 'Revoke a test key in the Console and use it.',
                 api: <><Code>401 UNAUTHORIZED</Code>.</>,
                 event: 'None.', console: 'API keys: the key shown as revoked.', cleanup: 'None; the revoked key stays in the history.' }} />
-              <RecipeCard lang="en" r={{ id: 'missing-scope', title: 'Missing scope',
+              <RecipeCard lang="en" r={{ id: 'missing-scope', title: 'Missing scope', scenario: 'MISSING_SCOPE',
                 trigger: <>Create a key with only <Code>identity:read</Code> and try to create a session.</>,
                 api: <><Code>403 INSUFFICIENT_SCOPE</Code>.</>,
                 event: 'None.', console: 'Logs: the refused request.', cleanup: 'Revoke the test key.' }} />
-              <RecipeCard lang="en" r={{ id: 'no-setup', title: 'Project without Financial Setup',
-                trigger: 'In a new project, create a payment session.',
+              <RecipeCard lang="en" r={{ id: 'no-setup', title: 'Project without Financial Setup', scenario: 'FINANCIAL_SETUP_NOT_READY',
+                trigger: 'In a new project, create a payment session before setting up the Sandbox.',
                 api: <><Code>403 PAYMENTS_UNAVAILABLE</Code>; <Code>getFinancialSetup()</Code> returns <Code>UNCONFIGURED</Code>.</>,
-                event: 'None.', console: 'Financial Setup: not configured.', cleanup: 'Delete the project if it has no other history.' }} />
+                event: 'None.', console: 'Financial Setup: not configured.', cleanup: 'Set up the Sandbox, or delete the project if it has no other history.' }} />
+              <RecipeCard lang="en" r={{ id: 'live-refused', title: 'A Live key in the Sandbox', scenario: 'LIVE_FAIL_CLOSED',
+                trigger: <>Call <Code>GET /v1/me</Code> with a key starting <Code>bz_live_</Code>.</>,
+                api: <><Code>401 UNAUTHORIZED</Code>. Live is not available and no Live key is issued.</>,
+                event: 'None.', console: 'Nothing: the request is refused before it reaches the project.', cleanup: 'None.' }} />
 
               <H2 id="recipe-payments">Payments</H2>
               <RecipeCard lang="en" r={{ id: 'create-session-test', title: 'Create a session',
                 trigger: <><Code>createPaymentSession</Code> with <Code>amountMinor: 25000</Code> (250 Kz).</>,
-                api: <><Code>201</Code>, <Code>status: &quot;ACTIVE&quot;</Code>, <Code>PAYMENT_LINK</Code> and <Code>DYNAMIC_QR</Code> interfaces.</>,
+                api: <><Code>201</Code>, <Code>status: &quot;ACTIVE&quot;</Code>, <Code>PAYMENT_LINK</Code> and <Code>DYNAMIC_QR</Code> interfaces, and <Code>realtime.token</Code>.</>,
                 event: <><Code>payment_session.created</Code>.</>,
                 console: 'Webhooks → Events: the event.',
                 cleanup: 'Not needed: an unpaid session has no financial effect.' }} />
-              <RecipeCard lang="en" r={{ id: 'pay-session', title: 'Pay a session',
-                trigger: 'Open the session link and pay with a Banzami wallet in the Sandbox. A new Sandbox consumer account starts with 10,000 Kz of test money.',
-                api: <><Code>getPaymentSession</Code> returns <Code>status: &quot;PAID&quot;</Code> and <Code>refund_source</Code>.</>,
+              <RecipeCard lang="en" r={{ id: 'pay-session', title: 'Pay a session', scenario: 'PAYMENT_SUCCESS',
+                trigger: <>Create a test payer and pay the session with <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>, <Code>payment_session_id</Code> and <Code>via</Code> <Code>LINK</Code> or <Code>QR</Code> — or, in the Console, under Test data.</>,
+                api: <><Code>200</Code> with <Code>transfer_id</Code> and <Code>proof_reference</Code>; <Code>getPaymentSession</Code> returns <Code>status: &quot;PAID&quot;</Code> and <Code>refund_source</Code>.</>,
                 event: <><Code>payment_session.paid</Code> and <Code>payment_link.paid</Code>.</>,
                 console: 'Transactions: the payment; Balances: the account holding the amount.',
-                cleanup: 'Refund the payment if you want to return the balance to the payer.',
-                limits: <>There is no API that marks a session as paid. You need access to a Banzami wallet in the Sandbox; if you do not have one, <a href="/docs/en/support" style={a}>contact support</a>.</> }} />
-              <RecipeCard lang="en" r={{ id: 'test-idempotency', title: 'Retry a request safely',
+                cleanup: 'Refund the payment, or reset the Sandbox.' }} />
+              <RecipeCard lang="en" r={{ id: 'insufficient-funds', title: 'Insufficient funds', scenario: 'INSUFFICIENT_FUNDS',
+                trigger: <>Create the payer with <Code>initial_balance_minor: 0</Code> and pay a session.</>,
+                api: <><Code>422 INSUFFICIENT_FUNDS</Code>; the session stays <Code>ACTIVE</Code>.</>,
+                event: 'None.', console: 'Logs: the refused request.', cleanup: 'Top the payer up, or retire it.' }} />
+              <RecipeCard lang="en" r={{ id: 'simulated-decline', title: 'External network decline', scenario: 'PAYMENT_DECLINED',
+                trigger: <>Pay as a test payer with <Code>simulate: &quot;DECLINED&quot;</Code>.</>,
+                api: <><Code>402 PAYMENT_DECLINED</Code> with <Code>simulated: true</Code>. Nothing moves.</>,
+                event: 'None.', console: 'Logs: the request, with the 402 response.', cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'provider-unavailable', title: 'Provider unavailable', scenario: 'PROVIDER_UNAVAILABLE',
+                trigger: <>Pay as a test payer with <Code>simulate: &quot;PROVIDER_UNAVAILABLE&quot;</Code>.</>,
+                api: <><Code>503 PROVIDER_UNAVAILABLE</Code> with <Code>Retry-After</Code> and <Code>simulated: true</Code>. Nothing moves.</>,
+                event: 'None.', console: 'Logs: the request, with the 503 response.', cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'no-answer', title: 'No answer in time', scenario: 'AMBIGUOUS_TIMEOUT',
+                trigger: <>Pay as a test payer with <Code>simulate: &quot;TIMEOUT&quot;</Code> and an <Code>Idempotency-Key</Code>; then repeat the request with the same key.</>,
+                api: <>First <Code>504 SANDBOX_SIMULATED_TIMEOUT</Code> — but the payment was made. The repeat answers <Code>200</Code> with the real result and does not pay again.</>,
+                event: <><Code>payment_session.paid</Code>, once.</>,
+                console: 'Transactions: a single payment.', cleanup: 'Refund the payment, or reset the Sandbox.',
+                limits: 'This is the case to handle in production: a timeout does not say whether the payment happened. Retry with the same key; never create a new payment.' }} />
+              <RecipeCard lang="en" r={{ id: 'test-idempotency', title: 'Retry a request safely', scenario: 'IDEMPOTENT_REPLAY IDEMPOTENCY_PAYLOAD_CONFLICT CONCURRENT_DUPLICATE',
                 trigger: <>Send the same POST twice with the same <Code>Idempotency-Key</Code>; then the same key with a different body.</>,
                 api: <>The second response matches the first. With a different body: <Code>409 IDEMPOTENCY_KEY_REUSED</Code>. Two concurrent requests: <Code>409 IDEMPOTENCY_CONFLICT</Code>.</>,
                 event: 'A single event, for the first request.',
                 console: 'Logs: the requests sharing the key.',
                 cleanup: 'None.' }} />
-              <RecipeCard lang="en" r={{ id: 'invalid-amount', title: 'Invalid amount',
+              <RecipeCard lang="en" r={{ id: 'invalid-amount', title: 'Invalid amount', scenario: 'INVALID_PARAMETER',
                 trigger: <><Code>amount_minor: 0</Code>. (Omitting the amount is not an error: it creates an open-amount session.)</>,
                 api: <><Code>400 BAD_REQUEST</Code>.</>,
                 event: 'None.', console: 'Logs: the refused request.', cleanup: 'None.' }} />
-              <RecipeCard lang="en" r={{ id: 'invalid-cursor', title: 'Invalid pagination cursor',
+              <RecipeCard lang="en" r={{ id: 'invalid-cursor', title: 'Invalid pagination cursor', scenario: 'INVALID_CURSOR',
                 trigger: <><Code>GET /v1/payment-links?cursor=abc</Code>, or <Code>limit=500</Code>. A valid cursor is the previous page’s <Code>next_cursor</Code>, unchanged.</>,
                 api: <><Code>400 INVALID_PARAM</Code>, with a message naming the parameter.</>,
                 event: 'None.', console: 'Logs: the refused request.', cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'realtime-status', title: 'Realtime status', scenario: 'REALTIME_STATUS',
+                trigger: <>Open the status stream with the session’s <Code>realtime.token</Code> and pay it with a test payer.</>,
+                api: <>A <Code>snapshot</Code> with <Code>ACTIVE</Code>, then a <Code>status</Code> with <Code>PAID</Code>, and the stream closes.</>,
+                event: <><Code>payment_session.paid</Code>, at your webhook — the confirmation to fulfil the order on.</>,
+                console: 'API Explorer: read the session and choose “Watch the realtime status”.', cleanup: 'None.',
+                limits: <>The token lasts up to 30 minutes; read the session again for another. <a href="/docs/en/payments#realtime" style={a}>Realtime status</a></> }} />
 
               <H2 id="test-webhooks">Webhooks</H2>
+              <RecipeCard lang="en" r={{ id: 'webhook-test-event', title: 'Test event', scenario: 'WEBHOOK_SUCCESS',
+                trigger: <>In the Console, under Webhooks, choose <strong>Send test event</strong> — or <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code>.</>,
+                api: <><Code>202</Code> with <Code>type: &quot;webhook.test&quot;</Code> and <Code>synthetic: true</Code>.</>,
+                event: <><Code>webhook.test</Code>, signed like the others, to this endpoint only. It describes no payment.</>,
+                console: 'Webhooks → Events: the event, marked as a test, with its delivery.',
+                cleanup: 'None. The delivery can be replayed even after it succeeds.' }} />
               <RecipeCard lang="en" r={{ id: 'webhook-delivery', title: 'Receive a delivery',
                 trigger: <>Register a public HTTPS endpoint for <Code>payment_session.created</Code> and create a session. No payer needed.</>,
                 api: <><Code>createWebhookEndpoint</Code> returns <Code>201</Code> with <Code>secret</Code>.</>,
                 event: <><Code>payment_session.created</Code>, signed, at your endpoint.</>,
                 console: 'Webhooks: the delivery with its 2xx response.',
                 cleanup: <><Code>deactivateWebhookEndpoint</Code>.</> }} />
-              <RecipeCard lang="en" r={{ id: 'webhook-failure', title: 'Failure and replay',
+              <RecipeCard lang="en" r={{ id: 'webhook-failure', title: 'Failure and replay', scenario: 'WEBHOOK_RETRY WEBHOOK_REPLAY',
                 trigger: <>Make the endpoint return <Code>500</Code> and create a session. Fix the endpoint and replay.</>,
-                api: <><Code>listWebhookDeliveries</Code> shows the attempts; <Code>replayWebhookDelivery</Code> puts the delivery back in <Code>PENDING</Code>. Replaying a successful delivery returns <Code>409 DELIVERY_ALREADY_SUCCEEDED</Code>.</>,
-                event: 'The same event, again.',
+                api: <><Code>listWebhookDeliveries</Code> shows the attempts; <Code>replayWebhookDelivery</Code> puts the delivery back in <Code>PENDING</Code>. Replaying a successful delivery returns <Code>409 DELIVERY_ALREADY_SUCCEEDED</Code>, except a test event’s.</>,
+                event: 'The same event, with the same id, again.',
                 console: 'Webhooks: each attempt, with the status code returned.',
                 cleanup: <><Code>deactivateWebhookEndpoint</Code>.</>,
                 limits: 'Automatic retries follow the real schedule: the second attempt comes a minute after the first failure.' }} />
-              <RecipeCard lang="en" r={{ id: 'webhook-signature', title: 'Invalid signature',
+              <RecipeCard lang="en" r={{ id: 'webhook-signature', title: 'Invalid signature', scenario: 'WEBHOOK_SIGNATURE_INVALID',
                 trigger: <>POST to your own endpoint with a made-up <Code>banza-signature</Code>.</>,
                 api: <><Code>constructEvent</Code> throws; the endpoint responds <Code>400</Code> with no side effects.</>,
                 event: 'None — the request did not come from Banzami.', console: 'Nothing: the test is local.', cleanup: 'None.' }} />
               <RecipeCard lang="en" r={{ id: 'webhook-disabled', title: 'Disabled endpoint',
                 trigger: 'Disable the endpoint and create a session.',
-                api: <>The event appears in <Code>listWebhookEvents</Code>, with no delivery to that endpoint.</>,
+                api: <>The event appears in <Code>listWebhookEvents</Code>, with no delivery to that endpoint. A test event returns <Code>409 ENDPOINT_DISABLED</Code>.</>,
                 event: 'Not delivered, even after re-enabling.',
                 console: 'Webhooks → Events: the event with no delivery.',
                 cleanup: 'Re-enable the endpoint in the Console if you want to keep it.' }} />
 
               <H2 id="test-refunds">Refunds, transfers and settlements</H2>
-              <RecipeCard lang="en" r={{ id: 'partial-refund', title: 'Full, partial and excessive refund',
+              <RecipeCard lang="en" r={{ id: 'partial-refund', title: 'Full, partial and excessive refund', scenario: 'REFUND_FULL REFUND_PARTIAL REFUND_CUMULATIVE_LIMIT',
                 trigger: <>After <a href="#pay-session" style={a}>paying a session</a>, refund part of it, then the rest, then once more.</>,
                 api: <><Code>201</Code> with <Code>SUCCEEDED</Code> twice; the third returns <Code>422 REFUND_EXCEEDS_CAPTURED</Code>.</>,
                 event: <><Code>refund.completed</Code> for each refund made.</>,
                 console: 'Transactions → Refunds.', cleanup: 'None: the payment ends fully refunded.' }} />
+              <RecipeCard lang="en" r={{ id: 'refund-not-eligible', title: 'Refunding something that is not yours', scenario: 'REFUND_NOT_ELIGIBLE',
+                trigger: <>Refund with another project’s <Code>refund_source</Code>, or an unpaid session’s.</>,
+                api: <><Code>404 NOT_FOUND</Code> or <Code>422</Code>; nothing moves.</>,
+                event: 'None.', console: 'Logs: the refused request.', cleanup: 'None.' }} />
               <RecipeCard lang="en" r={{ id: 'transfer-no-funds', title: 'Transfer without funds',
                 trigger: <>Create two accounts and transfer from the empty one.</>,
                 api: <><Code>422 INSUFFICIENT_FUNDS</Code>; nothing moves.</>,
                 event: 'None.', console: 'Balances: both accounts at zero.', cleanup: 'None.' }} />
-              <RecipeCard lang="en" r={{ id: 'settlement-test', title: 'Settlement',
-                trigger: <>Settle an account with no balance; then an account holding a test payment.</>,
-                api: <>No balance: <Code>422 NOTHING_TO_SETTLE</Code>. With a balance: <Code>201</Code> with gross, fee and net.</>,
-                event: <><Code>application_settlement.completed</Code>.</>,
+              <RecipeCard lang="en" r={{ id: 'settlement-test', title: 'Settlement', scenario: 'SETTLEMENT_SUCCESS SETTLEMENT_REPLAY',
+                trigger: <>In a project set up for <strong>Application or platform</strong>, settle an account with no balance; then an account holding a test payment; then repeat with the same <Code>idempotency_key</Code>.</>,
+                api: <>No balance: <Code>422 NOTHING_TO_SETTLE</Code>. With a balance: <Code>201</Code> with gross, fee and net. The repeat returns the same settlement.</>,
+                event: <><Code>application_settlement.completed</Code>, once.</>,
                 console: 'Balances: the account at zero; Financial Setup: readiness.',
                 cleanup: 'None.',
                 limits: <>The <Code>application_settlement.cancelled</Code> and <Code>.failed</Code> events result from Banzami’s decisions and cannot be triggered for testing.</> }} />
 
               <H2 id="test-other">Receipts and limits</H2>
-              <RecipeCard lang="en" r={{ id: 'receipt-test', title: 'Verify a receipt',
+              <RecipeCard lang="en" r={{ id: 'receipt-test', title: 'Verify a receipt', scenario: 'RECEIPT_VALID RECEIPT_NOT_FOUND',
                 trigger: <>Verify the <Code>BZM-…</Code> reference of a test payment; then the same reference with one character changed.</>,
                 api: <><Code>200</Code> with <Code>CONFIRMED</Code>; changed: <Code>404</Code>.</>,
                 event: 'None.', console: 'Transactions: the matching payment.', cleanup: 'None.',
                 limits: <>A <Code>503</Code> response cannot be triggered.</> }} />
-              <RecipeCard lang="en" r={{ id: 'rate-limit', title: 'Rate limit',
+              <RecipeCard lang="en" r={{ id: 'rate-limit', title: 'Rate limit', scenario: 'RATE_LIMIT',
                 trigger: <>Test your handling of <Code>429</Code> and <Code>Retry-After</Code> with a mocked response in your own code.</>,
                 api: <><Code>429 RATE_LIMITED</Code> with <Code>Retry-After</Code>.</>,
                 event: 'None.', console: 'Logs.', cleanup: 'None.',
                 limits: 'Do not hit the limit against the Sandbox on purpose: it is shared with other integrations.' }} />
+
+              <H2 id="explorer">API Explorer</H2>
+              <P>
+                In the Console, <strong>API Explorer</strong> runs the published v1 API operations against the Sandbox, with the active project. No key passes through the browser: for each request, Banzami creates a key on the server that is valid for 60 seconds and holds only that operation’s scope, makes the request and revokes it.
+                The response shows the status, the <Code>request_id</Code>, the latency and the body; a signing secret is hidden. The requests appear in <strong>Logs</strong> with the source <strong>API Explorer</strong>.
+              </P>
+              <P>Write operations carry an <Code>Idempotency-Key</Code> that the Console generates and shows: repeating with the same key returns the original response. When you read a session, you can open its realtime status and pay it under Test data to watch it change.</P>
+
+              <H2 id="reset">Reset the Sandbox</H2>
+              <P>
+                Under <strong>Test data → Reset the Sandbox</strong> (Owner or Admin, typing <Code>RESET</Code>): the project’s test payers are retired and, in the project’s own test Business, open sessions and links are cancelled, the fictitious balance is retired and the extra accounts are closed.
+                Nothing is deleted: payments, refunds, receipts, events, logs and the ledger stay. Keys, webhooks and Financial Setup remain. A project connected to another project’s Business resets only its own payers. Up to 5 times a day.
+              </P>
 
               <NextStepCards lang="en" items={[
                 { href: '/docs/en/going-live', title: 'Prepare for Live', desc: 'The readiness checklist for your integration.' },
@@ -2015,6 +2168,10 @@ export function EnGoingLive({ copy }: { copy: CopyFn }) {
               <PageLede>Financial Live is not available. What your Sandbox work already establishes, and what to check before your integration goes into use.</PageLede>
 
               <H2 id="live-status">Current status</H2>
+              <P>
+                One developer platform, two financial environments. The <strong>Sandbox</strong> is available and self-service: fictitious value, <Code>bz_test_</Code> keys, no approval by Banzami.
+                <strong> Live</strong> is the same platform and the same contracts, with real value, and requires institutional approval: it is not ready and refuses everything (fail-closed). A Sandbox key does not open Live, and no Live key can be created in the Sandbox.
+              </P>
               <UL>
                 <LI>No real-money rails are active, and no <Code>bz_live_</Code> keys are issued.</LI>
                 <LI>There is no Live application process and no waiting list.</LI>
@@ -2197,6 +2354,8 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Date</th><th style={TH}>Area</th><th style={TH}>Change</th><th style={TH}>Impact</th><th style={TH}>Action</th></tr></thead>
                   <tbody>
                     {([
+                      ['14 Sep 2026', 'Sandbox', 'Self-service Sandbox: a test Business by use case, test payers, explicit simulations, API Explorer, a webhook test event and reset.', 'A new project receives in the Sandbox with no application and no review.', 'None; projects already set up stay as they are.'],
+                      ['14 Sep 2026', 'API', 'Realtime status: GET /v1/realtime/payment-sessions/{id}, with each session’s realtime.token in the Authorization header.', 'A page can show the payment the moment it happens.', 'None; the webhook remains the confirmation.'],
                       ['13 Sep 2026', 'Docs', 'Session reference corrected: wallet_account_id is accepted with a project key, to choose one of your own accounts.', 'You can segregate payments by account.', 'None.'],
                       ['13 Sep 2026', 'Docs', 'Refund response corrected: status SUCCEEDED.', 'Code comparing against COMPLETED does not recognise the refund.', 'Compare against SUCCEEDED.'],
                       ['13 Sep 2026', 'SDK', 'createPaymentLink and listPaymentLinks no longer require merchantId (next @banzami/sdk release).', 'In 0.13.0, a project key cannot create links through the SDK.', 'Until the next release, use HTTP for links.'],

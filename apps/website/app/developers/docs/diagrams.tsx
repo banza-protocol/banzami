@@ -439,3 +439,54 @@ function SettlementSplitWide({ l }: { l: SettlementSplitLabels }) {
     </Frame>
   );
 }
+
+// ── three ways to learn a payment's status, and which one to act on ──────────
+
+export type RealtimeChannelsLabels = {
+  title: string;
+  desc?: string;
+  source: string;
+  channels: { name: string; who: string; credential: string; use: string; authority: boolean }[];
+  authority: string;
+  screenOnly: string;
+};
+
+/**
+ * One Payment Session, three channels. The two on the left are what an
+ * integration fulfils an order on; the one on the right only moves a screen.
+ * Drawn because the prose distinction is the one readers most often skip.
+ */
+export function RealtimeChannelsDiagram({ l }: { l: RealtimeChannelsLabels }) {
+  const xs = [30, 320, 610];
+  const W = 260;
+  return (
+    <Frame title={l.title} desc={l.desc} viewBox="0 0 900 470">
+      <defs>
+        <marker id="bz-rt-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill={RED} />
+        </marker>
+      </defs>
+      <rect width="900" height="470" fill={GROUND} rx={14} />
+      <rect x={300} y={22} width={300} height={60} rx={12} fill={RED} stroke={RED_DEEP} strokeWidth={2} />
+      <text x={450} y={60} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.source, 276, 21)} fontWeight={700} fill="#FFFFFF">{l.source}</text>
+      {l.channels.map((c, i) => {
+        const x = xs[i];
+        const mid = x + W / 2;
+        return (
+          <g key={c.name}>
+            <path d={`M450 82 V104 H${mid} V130`} fill="none" stroke={RED} strokeWidth={2.2} markerEnd="url(#bz-rt-arrow)" />
+            <rect x={x} y={134} width={W} height={216} rx={12} fill={c.authority ? '#FFFFFF' : BLUSH} stroke={c.authority ? RED_SOFT : BLUSH} strokeWidth={2} />
+            <text x={mid} y={170} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(c.name, W - 24, 20)} fontWeight={700} fill={INK}>{c.name}</text>
+            <text x={mid} y={214} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(c.who, W - 24, 16)} fontWeight={600} fill={INK_SOFT}>{c.who}</text>
+            <text x={mid} y={252} textAnchor="middle" fontFamily={MONO} fontSize={fitFont(c.credential, W - 24, 15)} fontWeight={600} fill={RED_DEEP}>{c.credential}</text>
+            <text x={mid} y={306} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(c.use, W - 24, 17)} fontWeight={700} fill={INK}>{c.use}</text>
+          </g>
+        );
+      })}
+      <rect x={30} y={374} width={550} height={70} rx={12} fill={RED} opacity={0.12} />
+      <text x={305} y={416} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.authority, 520, 18)} fontWeight={700} fill={RED_DEEP}>{l.authority}</text>
+      <rect x={610} y={374} width={260} height={70} rx={12} fill="#FFFFFF" stroke={BLUSH} strokeWidth={2} />
+      <text x={740} y={416} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.screenOnly, 236, 18)} fontWeight={700} fill={INK_SOFT}>{l.screenOnly}</text>
+    </Frame>
+  );
+}

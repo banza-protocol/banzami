@@ -326,6 +326,11 @@
   },
   {
    "k": "section",
+   "t": "Estado em tempo real",
+   "h": "/docs/payments#tempo-real"
+  },
+  {
+   "k": "section",
    "t": "Criar um link de pagamento",
    "h": "/docs/payments#links",
    "a": "payment link|payment links"
@@ -374,6 +379,11 @@
    "k": "section",
    "t": "Tentativas e reentrega",
    "h": "/docs/webhooks#reentrega"
+  },
+  {
+   "k": "section",
+   "t": "Testar o endpoint sem um pagamento",
+   "h": "/docs/webhooks#evento-teste"
   },
   {
    "k": "section",
@@ -775,6 +785,11 @@
   },
   {
    "k": "section",
+   "t": "Dados de teste e API Explorer",
+   "h": "/docs/console#dados-teste-console"
+  },
+  {
+   "k": "section",
    "t": "Autenticação",
    "h": "/docs/reference#autenticacao"
   },
@@ -856,6 +871,16 @@
   },
   {
    "k": "section",
+   "t": "O que o Sandbox lhe dá",
+   "h": "/docs/testing#sandbox-self-service"
+  },
+  {
+   "k": "section",
+   "t": "Pagadores de teste",
+   "h": "/docs/testing#pagadores-teste"
+  },
+  {
+   "k": "section",
    "t": "Chaves e prontidão",
    "h": "/docs/testing#receitas-base"
   },
@@ -881,6 +906,16 @@
   },
   {
    "k": "section",
+   "t": "API Explorer",
+   "h": "/docs/testing#explorer"
+  },
+  {
+   "k": "section",
+   "t": "Repor a Sandbox",
+   "h": "/docs/testing#repor"
+  },
+  {
+   "k": "section",
    "t": "A chave funciona",
    "h": "/docs/testing#primeira-chamada"
   },
@@ -901,6 +936,11 @@
   },
   {
    "k": "section",
+   "t": "Uma chave Live no Sandbox",
+   "h": "/docs/testing#live-recusado"
+  },
+  {
+   "k": "section",
    "t": "Criar uma sessão",
    "h": "/docs/testing#criar-sessao"
   },
@@ -908,6 +948,26 @@
    "k": "section",
    "t": "Pagar uma sessão",
    "h": "/docs/testing#pagar-sessao"
+  },
+  {
+   "k": "section",
+   "t": "Saldo insuficiente",
+   "h": "/docs/testing#saldo-insuficiente"
+  },
+  {
+   "k": "section",
+   "t": "Recusa da rede externa",
+   "h": "/docs/testing#recusa-simulada"
+  },
+  {
+   "k": "section",
+   "t": "Fornecedor indisponível",
+   "h": "/docs/testing#fornecedor-indisponivel"
+  },
+  {
+   "k": "section",
+   "t": "Sem resposta a tempo",
+   "h": "/docs/testing#sem-resposta"
   },
   {
    "k": "section",
@@ -923,6 +983,16 @@
    "k": "section",
    "t": "Cursor de paginação inválido",
    "h": "/docs/testing#cursor-invalido"
+  },
+  {
+   "k": "section",
+   "t": "Estado em tempo real",
+   "h": "/docs/testing#estado-tempo-real"
+  },
+  {
+   "k": "section",
+   "t": "Evento de teste",
+   "h": "/docs/testing#webhook-teste"
   },
   {
    "k": "section",
@@ -948,6 +1018,11 @@
    "k": "section",
    "t": "Reembolso total, parcial e excessivo",
    "h": "/docs/testing#reembolso-parcial"
+  },
+  {
+   "k": "section",
+   "t": "Reembolso de algo que não é seu",
+   "h": "/docs/testing#reembolso-nao-elegivel"
   },
   {
    "k": "section",
@@ -2503,6 +2578,11 @@
   },
   {
    "k": "section",
+   "t": "Realtime status",
+   "h": "/docs/en/payments#realtime"
+  },
+  {
+   "k": "section",
    "t": "Create a Payment Link",
    "h": "/docs/en/payments#links"
   },
@@ -2550,6 +2630,11 @@
    "k": "section",
    "t": "Retries and replay",
    "h": "/docs/en/webhooks#redelivery"
+  },
+  {
+   "k": "section",
+   "t": "Test the endpoint without a payment",
+   "h": "/docs/en/webhooks#test-event"
   },
   {
    "k": "section",
@@ -2948,6 +3033,11 @@
   },
   {
    "k": "section",
+   "t": "Test data and API Explorer",
+   "h": "/docs/en/console#console-test-data"
+  },
+  {
+   "k": "section",
    "t": "Authentication",
    "h": "/docs/en/reference#authentication"
   },
@@ -3028,6 +3118,16 @@
   },
   {
    "k": "section",
+   "t": "What the Sandbox gives you",
+   "h": "/docs/en/testing#sandbox-self-service"
+  },
+  {
+   "k": "section",
+   "t": "Test payers",
+   "h": "/docs/en/testing#test-payers"
+  },
+  {
+   "k": "section",
    "t": "Keys and readiness",
    "h": "/docs/en/testing#recipe-basics"
   },
@@ -3053,6 +3153,16 @@
   },
   {
    "k": "section",
+   "t": "API Explorer",
+   "h": "/docs/en/testing#explorer"
+  },
+  {
+   "k": "section",
+   "t": "Reset the Sandbox",
+   "h": "/docs/en/testing#reset"
+  },
+  {
+   "k": "section",
    "t": "The key works",
    "h": "/docs/en/testing#first-call"
   },
@@ -3073,6 +3183,11 @@
   },
   {
    "k": "section",
+   "t": "A Live key in the Sandbox",
+   "h": "/docs/en/testing#live-refused"
+  },
+  {
+   "k": "section",
    "t": "Create a session",
    "h": "/docs/en/testing#create-session-test"
   },
@@ -3080,6 +3195,26 @@
    "k": "section",
    "t": "Pay a session",
    "h": "/docs/en/testing#pay-session"
+  },
+  {
+   "k": "section",
+   "t": "Insufficient funds",
+   "h": "/docs/en/testing#insufficient-funds"
+  },
+  {
+   "k": "section",
+   "t": "External network decline",
+   "h": "/docs/en/testing#simulated-decline"
+  },
+  {
+   "k": "section",
+   "t": "Provider unavailable",
+   "h": "/docs/en/testing#provider-unavailable"
+  },
+  {
+   "k": "section",
+   "t": "No answer in time",
+   "h": "/docs/en/testing#no-answer"
   },
   {
    "k": "section",
@@ -3095,6 +3230,16 @@
    "k": "section",
    "t": "Invalid pagination cursor",
    "h": "/docs/en/testing#invalid-cursor"
+  },
+  {
+   "k": "section",
+   "t": "Realtime status",
+   "h": "/docs/en/testing#realtime-status"
+  },
+  {
+   "k": "section",
+   "t": "Test event",
+   "h": "/docs/en/testing#webhook-test-event"
   },
   {
    "k": "section",
@@ -3120,6 +3265,11 @@
    "k": "section",
    "t": "Full, partial and excessive refund",
    "h": "/docs/en/testing#partial-refund"
+  },
+  {
+   "k": "section",
+   "t": "Refunding something that is not yours",
+   "h": "/docs/en/testing#refund-not-eligible"
   },
   {
    "k": "section",

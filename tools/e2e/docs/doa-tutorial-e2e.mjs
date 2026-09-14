@@ -66,7 +66,7 @@ export const RUBRIC = [
  */
 export const CONTRACT = {
   1: { needs: [/workspace/i, /projeto|project/i, /Consola|Console/] },
-  2: { needs: [/configura[çc][ãa]o financeira|financial setup/i, /candidat|apply for/i, /c[óo]digo de consentimento|consent code/i] },
+  2: { needs: [/configura[çc][ãa]o financeira|financial setup/i, /tipo de uso|use case/i, /Aplica[çc][ãa]o ou plataforma|Application or platform/, /c[óo]digo de consentimento|consent code/i], never: [/candidate um Business novo|apply for a new Business, which Banzami reviews/] },
   3: {
     needs: [/identity:read/, /wallet_accounts:create/, /wallet_accounts:read/, /payment_sessions:write/, /payment_sessions:read/, /webhooks:write/, /webhooks:read/, /application_settlements:write/],
   },

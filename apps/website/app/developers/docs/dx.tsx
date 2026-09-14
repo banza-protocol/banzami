@@ -108,6 +108,8 @@ export type RecipeFields = {
   id: string; title: string;
   trigger: ReactNode; api: ReactNode; event: ReactNode; console: ReactNode; cleanup: ReactNode;
   limits?: ReactNode;
+  /** The ids in GET /v1/sandbox/scenarios this recipe produces (space-separated). Held to the catalogue by check-docs-dx. */
+  scenario?: string;
 };
 
 export function RecipeCard({ lang, r }: { lang: Lang; r: RecipeFields }) {
@@ -118,6 +120,7 @@ export function RecipeCard({ lang, r }: { lang: Lang; r: RecipeFields }) {
     [tr(lang, 'Na Consola', 'In the Console'), r.console],
     [tr(lang, 'Limpar', 'Clean up'), r.cleanup],
     ...(r.limits ? [[tr(lang, 'Limitações', 'Limitations'), r.limits] as [string, ReactNode]] : []),
+    ...(r.scenario ? [[tr(lang, 'Cenário', 'Scenario'), <code key="s" style={{ fontSize: 12 }}>{r.scenario.split(' ').join(' · ')}</code>] as [string, ReactNode]] : []),
   ];
   return (
     <section id={r.id} aria-labelledby={`${r.id}-title`} style={{ ...card, scrollMarginTop: 80 }}>

@@ -218,7 +218,11 @@ function resolveLink(href) {
 {
   const invalid = [];
   const magic = [];
-  const MAGIC = /\/v1\/sandbox|4242|magic|simulate|test card|cart[aã]o de teste|montante m[aá]gico|amount_minor:\s*(?:666|13|999|1)\b/i;
+  // What is NOT magic (ADR-060): the published test-payer and scenario routes,
+  // and an external-network outcome requested explicitly with one of the three
+  // simulate values. Anything else that changes behaviour by its value is.
+  const MAGIC = /\/v1\/sandbox\/(?!test-payers|scenarios)|4242|magic|simulate(?!d)(?!: &quot;(?:DECLINED|PROVIDER_UNAVAILABLE|TIMEOUT)&quot;)|test card|cart[aã]o de teste|montante m[aá]gico|amount_minor:\s*(?:666|13|999|1)\b/i;
+  const SCENARIO_IDS = new Set(JSON.parse(readFileSync(join(ROOT, 'services/api-gateway/internal/handler/sandbox_scenarios.json'), 'utf8')).scenarios.map((x) => x.id));
   const sdk = readFileSync(join(ROOT, 'sdk/typescript/src/client.ts'), 'utf8');
   for (const lang of ['pt', 'en']) {
     const body = pages[lang].Testing;
@@ -232,6 +236,14 @@ function resolveLink(href) {
       if (MAGIC.test(r[1])) magic.push(`${lang} ${id}: ${MAGIC.exec(r[1])[0]}`);
     }
     if (!/(montantes, cartões nem referências especiais|no special amounts, cards or references)/.test(body)) invalid.push(`${lang}: does not say there is no test magic`);
+    // Every scenario GET /v1/sandbox/scenarios returns is produced by a recipe on
+    // this page, and no recipe names a scenario the catalogue does not have.
+    const named = new Set();
+    for (const r of recipes) for (const id of (/scenario: '([^']+)'/.exec(r[1])?.[1] ?? '').split(' ').filter(Boolean)) {
+      if (!SCENARIO_IDS.has(id)) invalid.push(`${lang}: recipe names scenario ${id}, which GET /v1/sandbox/scenarios does not return`);
+      named.add(id);
+    }
+    for (const id of SCENARIO_IDS) if (!named.has(id)) invalid.push(`${lang}: scenario ${id} has no recipe`);
   }
   set('SANDBOX_TEST_RECIPES_INVALID', invalid);
   set('SANDBOX_UNDOCUMENTED_TEST_MAGIC', magic);
@@ -269,6 +281,10 @@ function resolveLink(href) {
     const body = diagrams.slice(at, diagrams.indexOf('\n}\n', at));
     const boxes = [...body.matchAll(/<Node\b/g)].length + [...body.matchAll(/<rect x=/g)].length + ([...body.matchAll(/\]\.map\(\(b\)/g)].length ? 2 : 0);
     within(`diagrams.tsx ${name}`, boxes);
+  }
+  // Realtime channels: the session and its channels.
+  for (const f of ['content-pt.tsx', 'content-en.tsx']) {
+    for (const m of read(f).matchAll(/<RealtimeChannelsDiagram\b[\s\S]*?channels: \[([\s\S]*?)\],\s*authority:/g)) within(`${f} RealtimeChannelsDiagram`, 1 + [...m[1].matchAll(/name:/g)].length);
   }
   set('DOCS_DIAGRAM_NODE_COUNT_PROBLEMS', problems);
 }

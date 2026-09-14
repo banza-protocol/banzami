@@ -8,26 +8,26 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "Crie o seu primeiro pagamento no Sandbox e confirme-o no servidor. São doze passos, em quatro etapas."
   },
-  "pt:GetStarted:1d4e6d207f": {
+  "pt:GetStarted:9e3fca5703": {
    "page": "GetStarted",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Pré-requisitos: um email, Node.js 18 ou superior no servidor e os dados da entidade que vai receber os pagamentos."
+   "text": "Pré-requisitos: um email e Node.js 18 ou superior no servidor. No Sandbox não precisa de dados de nenhuma entidade nem de esperar por ninguém."
   },
-  "pt:GetStarted:72ee8aa5ed": {
+  "pt:GetStarted:b497a3ac4b": {
    "page": "GetStarted",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "A configuração financeira liga o projeto a um Business: a entidade verificada que recebe os pagamentos. Sem ela, o projeto pode usar chaves, webhooks e a API, m"
+   "text": "A configuração financeira liga o projeto a um Business: a entidade que recebe os pagamentos. Sem ela, o projeto pode usar chaves, webhooks e a API, mas não pode"
   },
-  "pt:GetStarted:48afe748b9": {
+  "pt:GetStarted:b9408541ea": {
    "page": "GetStarted",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Nenhum campo, pedido ou chave torna um projeto financeiramente pronto. O preço também é atribuído pelo Banzami ao Business."
+   "text": "A sua aplicação nunca envia uma classificação, um preço ou uma taxa: o Banzami atribui-os ao Business para o tipo de uso escolhido. O tipo de uso pode mudar até"
   },
   "pt:GetStarted:9a23f1c303": {
    "page": "GetStarted",
@@ -50,26 +50,26 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Respostas de erro mais frequentes neste passo: 403 PAYMENTS_UNAVAILABLE (passo 4 por concluir), 403 INSUFFICIENT_SCOPE (passo 5), 400 BAD_REQUEST (montante invá"
   },
-  "pt:GetStarted:e02ba9eab0": {
+  "pt:GetStarted:0e4e09e27a": {
    "page": "GetStarted",
    "kind": "row",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Quando usar | A entidade ainda não está verificada no Banzami. | A entidade já está verificada no Banzami."
+   "text": "Quando usar | Quase sempre: é o caminho do Sandbox para um projeto novo. | Outro projeto seu já tem um negócio de teste, ou quer usar um Business Banzami que já"
   },
-  "pt:GetStarted:4e76af051e": {
+  "pt:GetStarted:00dd01c4f3": {
    "page": "GetStarted",
    "kind": "row",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "O que faz | Submete a candidatura: dados da entidade, representante e documentos. | Introduz o código de consentimento gerado pelo titular na app Banzami Busine"
+   "text": "O que faz | Escolhe o tipo de uso: “Loja, serviço ou negócio” ou “Aplicação ou plataforma”. | Introduz o código de consentimento gerado pelo titular — na Consol"
   },
-  "pt:GetStarted:934785d538": {
+  "pt:GetStarted:c61cf45606": {
    "page": "GetStarted",
    "kind": "row",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Quem decide | O Banzami, após revisão. Não é imediato, também no Sandbox. | O titular do Business, ao gerar o código. O código é de utilização única."
+   "text": "Quem decide | Ninguém espera: o Banzami cria o negócio e atribui a classificação e o preço para esse uso. | O titular, ao gerar o código. O código é de utilizaç"
   },
   "pt:GetStarted:0c7ebd76d5": {
    "page": "GetStarted",
@@ -176,12 +176,12 @@
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
    "text": "A Consola mostra o projeto como pronto, e getFinancialSetup() devolve financial_setup.state igual a READY ou SEALED."
   },
-  "pt:GetStarted:44623a69e9": {
+  "pt:GetStarted:de17e29b7d": {
    "page": "GetStarted",
    "kind": "step-next",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Enquanto a candidatura está em revisão, avance para os passos 5 a 7."
+   "text": "Criar uma chave secreta."
   },
   "pt:GetStarted:6b8afb4662": {
    "page": "GetStarted",
@@ -316,19 +316,19 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "A página mostra o montante e a indicação SANDBOX — ambiente de testes."
   },
-  "pt:GetStarted:9052cc049b": {
+  "pt:GetStarted:c28b041de9": {
    "page": "GetStarted",
    "kind": "step-next",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Confirmar o pagamento no servidor."
+   "text": "Pagar a sessão e confirmá-la no servidor."
   },
-  "pt:GetStarted:73acef678e": {
+  "pt:GetStarted:c70f42eede": {
    "page": "GetStarted",
    "kind": "step-what",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "Consultar a sessão com getPaymentSession depois do pagamento."
+   "text": "Pagar a sessão com um pagador de teste e consultá-la com getPaymentSession."
   },
   "pt:GetStarted:e7d57b23cb": {
    "page": "GetStarted",
@@ -428,12 +428,12 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "No workspace, selecione Novo projeto. Crie um projeto por aplicação."
   },
-  "pt:GetStarted:668cd44382": {
+  "pt:GetStarted:5b00ad2250": {
    "page": "GetStarted",
    "kind": "step-do",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "A Consola mostra o projeto como pronto, e getFinancialSetup() devolve financial_setup.state igual a READY ou SEALED.} next=\"Enquanto a candidatura está em revis"
+   "text": "A Consola mostra o projeto como pronto, e getFinancialSetup() devolve financial_setup.state igual a READY ou SEALED.} next=\"Criar uma chave secreta.\"> Na Consol"
   },
   "pt:GetStarted:92453a0d6e": {
    "page": "GetStarted",
@@ -463,19 +463,19 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "Uma sessão de pagamento, com um link e um QR para o pagador.} why=\"A sessão é o recurso principal para cobrar: um pedido de pagamento, várias formas de pagar e "
   },
-  "pt:GetStarted:1173344966": {
+  "pt:GetStarted:681298c50c": {
    "page": "GetStarted",
    "kind": "step-do",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
    "text": "O link da sessão, em pay.banzami.com/pay/…. O QR codifica o mesmo endereço.} why=\"O pagamento é feito numa página do Banzami. A sua aplicação nunca processa os "
   },
-  "pt:GetStarted:6458a575fd": {
+  "pt:GetStarted:7f92c82b50": {
    "page": "GetStarted",
    "kind": "step-do",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "Consultar a sessão com getPaymentSession depois do pagamento.} why=\"O regresso do pagador à sua página não confirma o pagamento. A confirmação vem do Banzami.\" "
+   "text": "Pagar a sessão com um pagador de teste e consultá-la com getPaymentSession.} why=\"O regresso do pagador à sua página não confirma o pagamento. A confirmação vem"
   },
   "pt:GetStarted:c9318bff66": {
    "page": "GetStarted",
@@ -792,6 +792,55 @@
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
    "text": "Confirme sempre no servidor: pelo webhook payment_session.paid ou consultando a sessão até status ser PAID. O regresso do pagador à sua página não é uma confirm"
   },
+  "pt:Payments:443eabf000": {
+   "page": "Payments",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Uma página que mostra um QR ou um link pode mudar para «pago» no instante em que o pagamento acontece — mesmo que o pagador tenha pago noutro dispositivo. Cada "
+  },
+  "pt:Payments:2f3a932ffa": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler/{payment_sessions.go (safeDTO, STATIC_QR/DYNAMIC_QR, refund_source), payment_authz.go (rejectClientPayeeFields, authorizeDeveloperSubAccount), payment_links.go}; core/api/src/routes/payment_sessions.rs (one session per purpose + reference); sdk/typescript/src/client.ts (createPaymentLink types in 0.13.0)",
+   "text": "O stream: com Accept: text/event-stream, um evento snapshot com o estado atual, um status em cada mudança, um heartbeat a cada 15 segundos e um expired quando o"
+  },
+  "pt:Payments:2958870d55": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "O token vai no cabeçalho, nunca no endereço: um token no URL é recusado com 400 REALTIME_TOKEN_IN_URL. Por isso a página usa fetch com leitura em streaming, e n"
+  },
+  "pt:Payments:ec642b2d38": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Religar: se a ligação cair, abra-a de novo — começa com um snapshot novo. Com o token expirado (401 REALTIME_TOKEN_EXPIRED), leia a sessão no seu servidor para "
+  },
+  "pt:Payments:ea54a0319c": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Sem stream: se a ligação não se mantiver (503 REALTIME_UNAVAILABLE, rede restrita), a página pergunta ao seu servidor a um intervalo moderado, por exemplo cinco"
+  },
+  "pt:Payments:ecadfd7f64": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Limites: 3 ligações por sessão e 20 por IP (429 REALTIME_STREAM_LIMIT). Uma página precisa de uma."
+  },
+  "pt:Payments:2e4885a690": {
+   "page": "Payments",
+   "kind": "Callout",
+   "class": "GATE",
+   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
+   "text": "O estado em tempo real não é prova de pagamento. Entregue a encomenda com o webhook payment_session.paid verificado, ou com getPaymentSession no seu servidor. O"
+  },
   "pt:Payments:2090459515": {
    "page": "Payments",
    "kind": "P",
@@ -952,6 +1001,13 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/service/postgres_webhooks.go (5 attempts, 1m/5m/30m/2h, fan-out to active endpoints); sdk/typescript/src/webhooks.ts (tolerance 300 s); tools/check-docs-dx.mjs (WEBHOOK_GUIDE_* truths)",
    "text": "Depois da quinta falha, a entrega fica FAILED e pode ser reenviada. A ordem de entrega não é garantida."
+  },
+  "pt:Webhooks:c290c938bd": {
+   "page": "Webhooks",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "No Sandbox, Enviar evento de teste (Consola → Webhooks) ou POST /v1/webhooks/endpoints/{'{id}'}/test entrega ao endpoint um evento webhook.test, assinado com ba"
   },
   "pt:Webhooks:f3f5fcb5e9": {
    "page": "Webhooks",
@@ -1611,7 +1667,7 @@
    "evidence": "core/api/src/routes/application_settlements.rs (gross = available balance, fee destination, errors); core/app-settlement/src/domain.rs; services/api-gateway/internal/handler/application_settlements.go; apps/website/app/developers/transacoes/page.tsx (no settlement list)",
    "text": "Líquido: bruto menos taxa, creditado ao beneficiário."
   },
-  "pt:Settlements:415ef98bd7": {
+  "pt:Settlements:314ff77f90": {
    "page": "Settlements",
    "kind": "P",
    "class": "GATE",
@@ -2101,12 +2157,12 @@
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
    "text": "Na Consola, crie um workspace e um projeto para a aplicação."
   },
-  "pt:Doa:01478bc747": {
+  "pt:Doa:bd8a4fa83b": {
    "page": "Doa",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
-   "text": "Conclua a configuração financeira: candidate um Business novo, que o Banzami revê, ou ligue um Business existente com o código de consentimento gerado pelo titu"
+   "text": "Conclua a configuração financeira: escolha o tipo de uso Aplicação ou plataforma — o Banzami cria o negócio de teste com a classificação APPLICATION e o preço d"
   },
   "pt:Doa:d081028a45": {
    "page": "Doa",
@@ -2339,12 +2395,12 @@
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
    "text": "Cria o workspace e o projeto na Consola, conclui a configuração financeira e guarda a chave e o segredo do webhook no servidor."
   },
-  "pt:Doa:d5d39ee54b": {
+  "pt:Doa:9af5efd886": {
    "page": "Doa",
    "kind": "step-banzami",
    "class": "SOURCE",
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
-   "text": "Revê a candidatura do Business, ou aceita o código de consentimento do titular, e atribui o perfil de preço."
+   "text": "Cria o negócio de teste do projeto para o tipo de uso Aplicação ou plataforma — ou aceita o código de consentimento do titular — e atribui a classificação e o p"
   },
   "pt:Doa:162c9c1179": {
    "page": "Doa",
@@ -2633,12 +2689,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Os projetos arquivados aparecem em Mostrar arquivados."
   },
-  "pt:Console:e2192d857e": {
+  "pt:Console:a8a26bdb7f": {
    "page": "Console",
    "kind": "P",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Liga o projeto ao Business que recebe os pagamentos, por candidatura ou por código de consentimento. Mostra o estado da candidatura, a prontidão para liquidar, "
+   "text": "Liga o projeto ao Business que recebe os pagamentos. No Sandbox, escolha o tipo de uso — Loja, serviço ou negócio ou Aplicação ou plataforma — e o Banzami cria "
   },
   "pt:Console:a614122b53": {
    "page": "Console",
@@ -2717,6 +2773,13 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Reenviar repete a mesma entrega."
   },
+  "pt:Console:18951609c3": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Enviar evento de teste envia webhook.test ao endpoint, assinado, marcado como teste; não move nada e pode ser reenviado."
+  },
   "pt:Console:b32920699f": {
    "page": "Console",
    "kind": "LI",
@@ -2745,12 +2808,33 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Transações — pagamentos, reembolsos e transferências entre contas do Business ligado ao projeto, incluindo as que outros projetos do mesmo Business iniciaram."
   },
-  "pt:Console:144597b23d": {
+  "pt:Console:70d283fbe3": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Registos — cada pedido feito com as chaves do projeto, com request_id, estado e latência, retido durante 30 dias."
+   "text": "Registos — cada pedido feito com as chaves do projeto, com request_id, estado e latência, retido durante 30 dias. Filtre por método e por origem: as chaves da i"
+  },
+  "pt:Console:32427fd0c0": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Visão geral — os passos para começar no Sandbox, marcados a partir do que o projeto já fez, e os dois ambientes: Sandbox disponível; Live indisponível, a requer"
+  },
+  "pt:Console:62d53b3eaa": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Dados de teste — pagadores de teste (criar, carregar, pagar como, retirar), os cenários e Repor a Sandbox."
+  },
+  "pt:Console:ca548116b3": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "API Explorer — executa a API v1 contra o Sandbox sem nenhuma chave no browser: cada pedido usa uma chave de 60 segundos, só com o scope da operação."
   },
   "pt:Console:d88ca82e09": {
    "page": "Console",
@@ -3291,19 +3375,103 @@
    "evidence": "apps/website/app/developers/docs/p2a-artifacts.test.ts (artifact files, paths and OpenAPI allow-list)",
    "text": "Os artefactos não descrevem Financial Live, que não está disponível."
   },
-  "pt:Testing:0db24030e8": {
+  "pt:Testing:569f374802": {
    "page": "Testing",
    "kind": "PageLede",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Cenários de teste para cada parte da integração: como provocar o cenário, a resposta esperada, o evento, onde confirmar na Consola e como limpar."
+   "text": "O Sandbox é self-service: configura-se, ganha pagadores de teste e repõe-se sem pedir nada ao Banzami. Para cada cenário: como provocá-lo, a resposta esperada, "
   },
-  "pt:Testing:9ae8941300": {
+  "pt:Testing:92231f84dd": {
    "page": "Testing",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "O Sandbox não tem montantes, cartões nem referências especiais que provoquem resultados. Cada cenário usa o comportamento real da API."
+   "text": "O Sandbox não tem montantes, cartões nem referências especiais que provoquem resultados. Cada cenário usa o comportamento real da API; só os resultados de uma r"
+  },
+  "pt:Testing:6e3694d2c4": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "A lista completa, legível por máquina, está em GET /v1/sandbox/scenarios (scope sandbox:read): cada cenário tem um id, como provocá-lo e o resultado. Os ids apa"
+  },
+  "pt:Testing:96685be617": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Um pagador de teste é um cliente Sandbox do seu projeto, com carteira e saldo fictício. Paga as suas sessões e links pelo mesmo caminho que um cliente real — a "
+  },
+  "pt:Testing:25b5e57203": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Na Consola, abra Dados de teste: crie um pagador, carregue-o e pague uma sessão pelo seu session_id. Pela API, com uma chave com sandbox:write: POST /v1/sandbox"
+  },
+  "pt:Testing:132dbf8715": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Na Consola, API Explorer executa as operações publicadas da API v1 contra o Sandbox, com o projeto ativo. Nenhuma chave passa pelo browser: para cada pedido, o "
+  },
+  "pt:Testing:b04dabf4b2": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Operações de escrita levam uma Idempotency-Key que a Consola gera e mostra: repetir com a mesma chave devolve a resposta original. Ao ler uma sessão, pode abrir"
+  },
+  "pt:Testing:53a47e134d": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Em Dados de teste → Repor a Sandbox (Owner ou Admin, escrevendo RESET): os pagadores de teste do projeto são retirados e, no negócio de teste do próprio projeto"
+  },
+  "pt:Testing:79bb91ddca": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Negócio de teste para o projeto | Consola → Configuração financeira: escolha o tipo de uso | Um por projeto. Não é verificado e não existe fora do Sandbox."
+  },
+  "pt:Testing:d14ab19d3d": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Pagadores de teste com valor fictício | Consola → Dados de teste, ou /v1/sandbox/test-payers | Até 10 ativos por projeto; até 10 000 Kz iniciais; carregamentos "
+  },
+  "pt:Testing:107c58b9b5": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Resultados de rede externa | simulate num pagamento de um pagador de teste | DECLINED, PROVIDER_UNAVAILABLE e TIMEOUT. A resposta traz simulated: true."
+  },
+  "pt:Testing:a60da903c9": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "API Explorer | Consola → API Explorer | Pedidos com uma chave de 60 segundos, só no Sandbox; 30 por minuto por projeto."
+  },
+  "pt:Testing:670f795354": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Evento de webhook de teste | Consola → Webhooks, ou POST /v1/webhooks/endpoints/{id}/test | webhook.test, marcado synthetic; não move nada."
+  },
+  "pt:Testing:5fe9fb8894": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Repor os dados de teste | Consola → Dados de teste → Repor a Sandbox | Até 5 vezes por dia. Nada é apagado."
   },
   "pt:Testing:d58f9d3833": {
    "page": "Testing",
@@ -3410,12 +3578,12 @@
    "evidence": "reader guidance",
    "text": "Revogue a chave de teste."
   },
-  "pt:Testing:d41c6fe13b": {
+  "pt:Testing:5e3f4bb9c7": {
    "page": "Testing",
    "kind": "recipe-trigger",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Num projeto novo, crie uma sessão de pagamento."
+   "text": "Num projeto novo, crie uma sessão de pagamento antes de configurar a Sandbox."
   },
   "pt:Testing:f2c02f5ab8": {
    "page": "Testing",
@@ -3438,12 +3606,47 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Configuração financeira: por configurar."
   },
-  "pt:Testing:aa291b818f": {
+  "pt:Testing:737cdae3fe": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Elimine o projeto, se não tiver outro histórico."
+   "text": "Configure a Sandbox, ou elimine o projeto se não tiver outro histórico."
+  },
+  "pt:Testing:ea8cb31c6f": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Chame GET /v1/me com uma chave que comece por bz_live_."
+  },
+  "pt:Testing:33f7cafa9a": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "401 UNAUTHORIZED. O Live não está disponível e nenhuma chave Live é emitida."
+  },
+  "pt:Testing:7dff0f13b3": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhum."
+  },
+  "pt:Testing:354b63ab76": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nada: o pedido é recusado antes de chegar ao projeto."
+  },
+  "pt:Testing:b8ddfe25c3": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhuma."
   },
   "pt:Testing:428a046297": {
    "page": "Testing",
@@ -3452,12 +3655,12 @@
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
    "text": "createPaymentSession com amountMinor: 25000 (250 Kz)."
   },
-  "pt:Testing:068ade1951": {
+  "pt:Testing:a0f75ccbd5": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "201, status: \"ACTIVE\", interfaces PAYMENT_LINK e DYNAMIC_QR."
+   "text": "201, status: \"ACTIVE\", interfaces PAYMENT_LINK e DYNAMIC_QR, e realtime.token."
   },
   "pt:Testing:acab363740": {
    "page": "Testing",
@@ -3480,19 +3683,19 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Não é necessária: uma sessão por pagar não tem efeito financeiro."
   },
-  "pt:Testing:d9c8447fc7": {
+  "pt:Testing:1134b0b6ad": {
    "page": "Testing",
    "kind": "recipe-trigger",
-   "class": "SOURCE",
-   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Abra o link da sessão e pague com uma carteira Banzami do Sandbox. Uma conta nova de consumidor no Sandbox começa com 10 000 Kz de teste."
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Crie um pagador de teste e pague a sessão com POST /v1/sandbox/test-payers/{'{id}'}/payments, payment_session_id e via LINK ou QR — ou, na Consola, em Dados de "
   },
-  "pt:Testing:537774dde1": {
+  "pt:Testing:070674d0e3": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "getPaymentSession devolve status: \"PAID\" e refund_source."
+   "text": "200 com transfer_id e proof_reference; getPaymentSession devolve status: \"PAID\" e refund_source."
   },
   "pt:Testing:d46d599628": {
    "page": "Testing",
@@ -3508,19 +3711,159 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Transações: o pagamento; Saldos: a conta com o valor."
   },
-  "pt:Testing:340ef0444a": {
+  "pt:Testing:3e8bd55236": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Reembolse o pagamento, se quiser devolver o saldo ao pagador."
+   "text": "Reembolse o pagamento, ou reponha a Sandbox."
   },
-  "pt:Testing:ef5b40a27b": {
+  "pt:Testing:b57db5254b": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Crie o pagador com initial_balance_minor: 0 e pague uma sessão."
+  },
+  "pt:Testing:cf8b38e40a": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "422 INSUFFICIENT_FUNDS; a sessão continua ACTIVE."
+  },
+  "pt:Testing:cf7188580e": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhum."
+  },
+  "pt:Testing:2131953978": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Registos: o pedido recusado."
+  },
+  "pt:Testing:0c1bef4184": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Carregue o pagador, ou retire-o."
+  },
+  "pt:Testing:36952bf9c4": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Pague como pagador de teste com simulate: \"DECLINED\"."
+  },
+  "pt:Testing:e1b4ef1545": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "402 PAYMENT_DECLINED com simulated: true. Nada se move."
+  },
+  "pt:Testing:c1ccb7e372": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhum."
+  },
+  "pt:Testing:f080e46834": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Registos: o pedido, com a resposta 402."
+  },
+  "pt:Testing:5de1998cc1": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhuma."
+  },
+  "pt:Testing:7654a6de3b": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Pague como pagador de teste com simulate: \"PROVIDER_UNAVAILABLE\"."
+  },
+  "pt:Testing:2463d11d25": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "503 PROVIDER_UNAVAILABLE com Retry-After e simulated: true. Nada se move."
+  },
+  "pt:Testing:d21ef2f102": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhum."
+  },
+  "pt:Testing:ee26c6ca96": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Registos: o pedido, com a resposta 503."
+  },
+  "pt:Testing:d8d25f85a9": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhuma."
+  },
+  "pt:Testing:402449087f": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Pague como pagador de teste com simulate: \"TIMEOUT\" e uma Idempotency-Key; depois repita o pedido com a mesma chave."
+  },
+  "pt:Testing:de6bb6fac6": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Primeiro 504 SANDBOX_SIMULATED_TIMEOUT — mas o pagamento foi feito. A repetição responde 200 com o resultado real e não paga de novo."
+  },
+  "pt:Testing:d334da9326": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid, uma vez."
+  },
+  "pt:Testing:545e8cab5c": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Transações: um único pagamento."
+  },
+  "pt:Testing:1e3f30e38d": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Reembolse o pagamento, ou reponha a Sandbox."
+  },
+  "pt:Testing:d51c690223": {
    "page": "Testing",
    "kind": "recipe-limits",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Não existe API para marcar uma sessão como paga. Precisa de acesso a uma carteira Banzami no Sandbox; se não tiver, contacte o suporte."
+   "text": "É o caso a tratar em produção: um timeout não diz se o pagamento aconteceu. Repita com a mesma chave; nunca crie um pagamento novo."
   },
   "pt:Testing:9428b48151": {
    "page": "Testing",
@@ -3550,7 +3893,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Registos: os pedidos com a mesma chave."
   },
-  "pt:Testing:b8ddfe25c3": {
+  "pt:Testing:2a75de6f3a": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3571,21 +3914,21 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 BAD_REQUEST."
   },
-  "pt:Testing:7dff0f13b3": {
+  "pt:Testing:307474ad41": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nenhum."
   },
-  "pt:Testing:2131953978": {
+  "pt:Testing:9c8fdc9f44": {
    "page": "Testing",
    "kind": "recipe-console",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Registos: o pedido recusado."
   },
-  "pt:Testing:5de1998cc1": {
+  "pt:Testing:09c6cb4689": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3606,26 +3949,103 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 INVALID_PARAM, com a mensagem a indicar o parâmetro."
   },
-  "pt:Testing:cf7188580e": {
+  "pt:Testing:b49385f4cc": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nenhum."
   },
-  "pt:Testing:9c8fdc9f44": {
+  "pt:Testing:952373b977": {
    "page": "Testing",
    "kind": "recipe-console",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Registos: o pedido recusado."
   },
-  "pt:Testing:d8d25f85a9": {
+  "pt:Testing:b15aa44544": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nenhuma."
+  },
+  "pt:Testing:a147bb6b91": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Abra o stream de estado com o realtime.token da sessão e pague-a com um pagador de teste."
+  },
+  "pt:Testing:d6d9c1dbe5": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Um snapshot com ACTIVE, depois um status com PAID, e o stream fecha."
+  },
+  "pt:Testing:e08acab8e1": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid, no seu webhook — a confirmação a usar para entregar a encomenda."
+  },
+  "pt:Testing:2532fde464": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "API Explorer: leia a sessão e escolha “Ver o estado em tempo real”."
+  },
+  "pt:Testing:2c0310c664": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhuma."
+  },
+  "pt:Testing:0784042f7a": {
+   "page": "Testing",
+   "kind": "recipe-limits",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "O token dura até 30 minutos; leia a sessão de novo para outro. Estado em tempo real"
+  },
+  "pt:Testing:a56ac5d432": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Na Consola, em Webhooks, escolha Enviar evento de teste — ou POST /v1/webhooks/endpoints/{'{id}'}/test."
+  },
+  "pt:Testing:f3c273473b": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "202 com type: \"webhook.test\" e synthetic: true."
+  },
+  "pt:Testing:b2ac6f25b4": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "webhook.test, assinado como os outros, só neste endpoint. Não descreve nenhum pagamento."
+  },
+  "pt:Testing:52e2bb9acc": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Webhooks → Eventos: o evento, marcado como teste, com a entrega."
+  },
+  "pt:Testing:0c706ae4b0": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhuma. A entrega pode ser reenviada mesmo depois de ter sucesso."
   },
   "pt:Testing:8f4e2e6313": {
    "page": "Testing",
@@ -3669,19 +4089,19 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Faça o endpoint responder 500 e crie uma sessão. Corrija o endpoint e reenvie."
   },
-  "pt:Testing:4ec64fd680": {
+  "pt:Testing:5e1171383a": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "listWebhookDeliveries mostra as tentativas; replayWebhookDelivery põe a entrega em PENDING. Reenviar uma entrega com sucesso responde 409 DELIVERY_ALREADY_SUCCE"
   },
-  "pt:Testing:0740bb577b": {
+  "pt:Testing:15d983529b": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "O mesmo evento, novamente."
+   "text": "O mesmo evento, com o mesmo id, novamente."
   },
   "pt:Testing:8cc36bda9b": {
    "page": "Testing",
@@ -3732,7 +4152,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nada: o teste é local."
   },
-  "pt:Testing:2a75de6f3a": {
+  "pt:Testing:ec5a6fc282": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3746,12 +4166,12 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Desative o endpoint e crie uma sessão."
   },
-  "pt:Testing:07f672c902": {
+  "pt:Testing:6362ab619c": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
-   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "O evento aparece em listWebhookEvents, sem entrega para esse endpoint."
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "O evento aparece em listWebhookEvents, sem entrega para esse endpoint. Um evento de teste responde 409 ENDPOINT_DISABLED."
   },
   "pt:Testing:1ba1ecd5a3": {
    "page": "Testing",
@@ -3809,6 +4229,41 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nenhuma: o pagamento fica totalmente reembolsado."
   },
+  "pt:Testing:993c59c76b": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Reembolse com o refund_source de outro projeto, ou de uma sessão por pagar."
+  },
+  "pt:Testing:ae27930bfa": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "404 NOT_FOUND ou 422; nada se move."
+  },
+  "pt:Testing:7593186c8e": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhum."
+  },
+  "pt:Testing:4068b08521": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Registos: o pedido recusado."
+  },
+  "pt:Testing:a065d2d61f": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhuma."
+  },
   "pt:Testing:6fbb2af5b2": {
    "page": "Testing",
    "kind": "recipe-trigger",
@@ -3823,7 +4278,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 INSUFFICIENT_FUNDS; nada se move."
   },
-  "pt:Testing:c1ccb7e372": {
+  "pt:Testing:579bdf0568": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -3837,33 +4292,33 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Saldos: as duas contas, a zero."
   },
-  "pt:Testing:09c6cb4689": {
+  "pt:Testing:dc4ce2dcba": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nenhuma."
   },
-  "pt:Testing:bc2508dd13": {
+  "pt:Testing:a350ab8a62": {
    "page": "Testing",
    "kind": "recipe-trigger",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Liquide uma conta sem saldo; depois, uma conta com saldo de um pagamento de teste."
+   "text": "Num projeto configurado para Aplicação ou plataforma, liquide uma conta sem saldo; depois, uma conta com saldo de um pagamento de teste; depois repita com o mes"
   },
-  "pt:Testing:1b768687d7": {
+  "pt:Testing:9d8b6a602a": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "Sem saldo: 422 NOTHING_TO_SETTLE. Com saldo: 201 com bruto, taxa e líquido."
+   "text": "Sem saldo: 422 NOTHING_TO_SETTLE. Com saldo: 201 com bruto, taxa e líquido. A repetição devolve a mesma liquidação."
   },
-  "pt:Testing:f8df6f6c5d": {
+  "pt:Testing:ce9384611a": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "GATE",
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
-   "text": "application_settlement.completed."
+   "text": "application_settlement.completed, uma vez."
   },
   "pt:Testing:6140e3dd34": {
    "page": "Testing",
@@ -3872,7 +4327,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Saldos: a conta a zero; Configuração financeira: a prontidão."
   },
-  "pt:Testing:b15aa44544": {
+  "pt:Testing:ce4c159255": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3900,7 +4355,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "200 com CONFIRMED; alterada: 404."
   },
-  "pt:Testing:d21ef2f102": {
+  "pt:Testing:9b52576356": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -3914,7 +4369,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Transações: o pagamento correspondente."
   },
-  "pt:Testing:2c0310c664": {
+  "pt:Testing:76b2d8fc25": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3942,7 +4397,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "429 RATE_LIMITED com Retry-After."
   },
-  "pt:Testing:307474ad41": {
+  "pt:Testing:ff46cca071": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -3956,7 +4411,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Registos."
   },
-  "pt:Testing:ec5a6fc282": {
+  "pt:Testing:6413d4d89f": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -3976,6 +4431,13 @@
    "class": "SOURCE",
    "evidence": "apps/website/app/developers/go-live/page.tsx (no Live application, no migration); services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused)",
    "text": "Financial Live não está disponível. O que o trabalho no Sandbox já garante e o que verificar antes de a integração entrar em uso."
+  },
+  "pt:GoingLive:50ea3e1862": {
+   "page": "GoingLive",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "apps/website/app/developers/go-live/page.tsx (no Live application, no migration); services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused)",
+   "text": "Uma plataforma de developers, dois ambientes financeiros. O Sandbox está disponível e é self-service: valor fictício, chaves bz_test_, nenhuma aprovação do Banz"
   },
   "pt:GoingLive:7dd678d32c": {
    "page": "GoingLive",
@@ -4313,6 +4775,20 @@
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "Alterações incompatíveis são marcadas como tal e indicam sempre a ação necessária. Não há versões de produção: Financial Live não está disponível."
   },
+  "pt:Changelog:8e2ee88c1f": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "HISTORY",
+   "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
+   "text": "14 Set 2026 | Sandbox | Sandbox self-service: negócio de teste pelo tipo de uso, pagadores de teste, simulações explícitas, API Explorer, evento de webhook de t"
+  },
+  "pt:Changelog:9c0ed3af1f": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "14 Set 2026 | API | Estado em tempo real: GET /v1/realtime/payment-sessions/{id}, com o realtime.token de cada sessão no cabeçalho Authorization. | Uma página p"
+  },
   "pt:Changelog:408004ffcd": {
    "page": "Changelog",
    "kind": "row",
@@ -4397,26 +4873,26 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "Create your first payment in the Sandbox and confirm it on your server. Twelve steps, in four stages."
   },
-  "en:GetStarted:36576fcf40": {
+  "en:GetStarted:644213871f": {
    "page": "GetStarted",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Prerequisites: an email address, Node.js 18 or later on your server, and the details of the entity that will receive payments."
+   "text": "Prerequisites: an email address and Node.js 18 or later on your server. In the Sandbox you need no entity details and wait for nobody."
   },
-  "en:GetStarted:0942d9a96a": {
+  "en:GetStarted:38e6022ebe": {
    "page": "GetStarted",
    "kind": "P",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "Financial Setup connects the project to a Business: the verified entity that receives payments. Without it, the project can use keys, webhooks and the API, but "
+   "text": "Financial Setup connects the project to a Business: the entity that receives payments. Without it, the project can use keys, webhooks and the API, but cannot be"
   },
-  "en:GetStarted:a8e06c3124": {
+  "en:GetStarted:b0c14cae44": {
    "page": "GetStarted",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "No field, request or key makes a project financially ready. Pricing is also assigned to the Business by Banzami."
+   "text": "Your application never sends a classification, a price or a fee: Banzami assigns them to the Business for the chosen use case. The use case can change until the"
   },
   "en:GetStarted:f2e1c23ad5": {
    "page": "GetStarted",
@@ -4439,26 +4915,26 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "The most common errors at this step: 403 PAYMENTS_UNAVAILABLE (step 4 not complete), 403 INSUFFICIENT_SCOPE (step 5), 400 BAD_REQUEST (invalid amount) and 409 I"
   },
-  "en:GetStarted:ab70d1faa1": {
+  "en:GetStarted:6d5f10bbce": {
    "page": "GetStarted",
    "kind": "row",
    "class": "POLICY",
    "evidence": "reader guidance",
-   "text": "Use when | The entity is not yet verified by Banzami. | The entity is already verified by Banzami."
+   "text": "Use when | Almost always: it is the Sandbox path for a new project. | Another project of yours already has a test Business, or you want to use a Banzami Busines"
   },
-  "en:GetStarted:f2665705c9": {
+  "en:GetStarted:127df528b1": {
    "page": "GetStarted",
    "kind": "row",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "What you do | Submit an application: entity details, representative and documents. | Enter the consent code its owner generates in the Banzami Business app."
+   "text": "What you do | Choose the use case: “Store, service or business” or “Application or platform”. | Enter the consent code its owner generates — in the other projec"
   },
-  "en:GetStarted:9ec321bc1d": {
+  "en:GetStarted:990a4c12ef": {
    "page": "GetStarted",
    "kind": "row",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Who decides | Banzami, after review. Not immediate, in the Sandbox too. | The Business owner, by issuing the code. Each code works once."
+   "text": "Who decides | Nobody waits: Banzami creates the Business and assigns the classification and pricing for that use. | The owner, by issuing the code. Each code wo"
   },
   "en:GetStarted:b534961a89": {
    "page": "GetStarted",
@@ -4565,12 +5041,12 @@
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
    "text": "The Console shows the project as ready, and getFinancialSetup() returns financial_setup.state READY or SEALED."
   },
-  "en:GetStarted:94397d80d3": {
+  "en:GetStarted:ebf12b9483": {
    "page": "GetStarted",
    "kind": "step-next",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "While the application is in review, continue with steps 5 to 7."
+   "text": "Create a secret key."
   },
   "en:GetStarted:e6e25bfd12": {
    "page": "GetStarted",
@@ -4705,19 +5181,19 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "The page shows the amount and the SANDBOX — test environment notice."
   },
-  "en:GetStarted:58ef10e9de": {
+  "en:GetStarted:e945ae1205": {
    "page": "GetStarted",
    "kind": "step-next",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
-   "text": "Confirm the payment on your server."
+   "text": "Pay the session and confirm it on your server."
   },
-  "en:GetStarted:2d2c262c09": {
+  "en:GetStarted:c362508c68": {
    "page": "GetStarted",
    "kind": "step-what",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "Read the session with getPaymentSession after the payer pays."
+   "text": "Pay the session with a test payer and read it with getPaymentSession."
   },
   "en:GetStarted:863f925607": {
    "page": "GetStarted",
@@ -4817,12 +5293,12 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "In the workspace, select New project. Create one project per application."
   },
-  "en:GetStarted:e2a4486fe2": {
+  "en:GetStarted:07ba3f83d1": {
    "page": "GetStarted",
    "kind": "step-do",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "The Console shows the project as ready, and getFinancialSetup() returns financial_setup.state READY or SEALED.} next=\"While the application is in review, contin"
+   "text": "The Console shows the project as ready, and getFinancialSetup() returns financial_setup.state READY or SEALED.} next=\"Create a secret key.\"> In the Console, ope"
   },
   "en:GetStarted:2064262db7": {
    "page": "GetStarted",
@@ -4852,19 +5328,19 @@
    "evidence": "services/developer-api/internal/developer (financial onboarding, keys); services/api-gateway (payment sessions); tools/e2e/docs/cold-reader.mjs 12/12 on the deployed pages",
    "text": "A payment session, with a link and a QR code for the payer.} why=\"The session is the main way to collect a payment: one request, several ways to pay, one confir"
   },
-  "en:GetStarted:ede6c895f8": {
+  "en:GetStarted:e269cabb2b": {
    "page": "GetStarted",
    "kind": "step-do",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
    "text": "The session link, at pay.banzami.com/pay/…. The QR code encodes the same address.} why=\"The payer pays on a Banzami page. Your application never handles payment"
   },
-  "en:GetStarted:98ab815a86": {
+  "en:GetStarted:4a83c3294b": {
    "page": "GetStarted",
    "kind": "step-do",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "Read the session with getPaymentSession after the payer pays.} why=\"A payer returning to your page does not confirm payment. The confirmation comes from Banzami"
+   "text": "Pay the session with a test payer and read it with getPaymentSession.} why=\"A payer returning to your page does not confirm payment. The confirmation comes from"
   },
   "en:GetStarted:b778d54464": {
    "page": "GetStarted",
@@ -5181,6 +5657,55 @@
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
    "text": "Always confirm on your server: through the payment_session.paid webhook, or by reading the session until status is PAID. A payer returning to your page is not a"
   },
+  "en:Payments:c872c2efaf": {
+   "page": "Payments",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "A page showing a QR code or a link can switch to “paid” the moment the payment happens — even when the payer paid on another device. Every session read with you"
+  },
+  "en:Payments:3d162f3f4d": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler/{payment_sessions.go (safeDTO, STATIC_QR/DYNAMIC_QR, refund_source), payment_authz.go (rejectClientPayeeFields, authorizeDeveloperSubAccount), payment_links.go}; core/api/src/routes/payment_sessions.rs (one session per purpose + reference); sdk/typescript/src/client.ts (createPaymentLink types in 0.13.0)",
+   "text": "The stream: with Accept: text/event-stream, a snapshot event with the current status, a status on each change, a heartbeat every 15 seconds and an expired when "
+  },
+  "en:Payments:7e25c549ce": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "The token goes in the header, never the URL: a token in the URL is refused with 400 REALTIME_TOKEN_IN_URL. That is why the page uses fetch with a streaming read"
+  },
+  "en:Payments:9216d99e7a": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Reconnect: if the connection drops, open it again — it starts with a fresh snapshot. With an expired token (401 REALTIME_TOKEN_EXPIRED), read the session on you"
+  },
+  "en:Payments:08e8764e26": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "No stream: if the connection cannot stay up (503 REALTIME_UNAVAILABLE, a restricted network), the page asks your server at a modest interval, for example every "
+  },
+  "en:Payments:b1359dd3cb": {
+   "page": "Payments",
+   "kind": "LI",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Limits: 3 streams per session and 20 per IP (429 REALTIME_STREAM_LIMIT). A page needs one."
+  },
+  "en:Payments:86ca518930": {
+   "page": "Payments",
+   "kind": "Callout",
+   "class": "GATE",
+   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
+   "text": "Realtime status is not proof of payment. Fulfil the order on the verified payment_session.paid webhook, or on getPaymentSession on your server. The token is not"
+  },
   "en:Payments:14d6765191": {
    "page": "Payments",
    "kind": "P",
@@ -5341,6 +5866,13 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/service/postgres_webhooks.go (5 attempts, 1m/5m/30m/2h, fan-out to active endpoints); sdk/typescript/src/webhooks.ts (tolerance 300 s); tools/check-docs-dx.mjs (WEBHOOK_GUIDE_* truths)",
    "text": "After the fifth failure, the delivery is FAILED and can be replayed. Delivery order is not guaranteed."
+  },
+  "en:Webhooks:c51ff173bc": {
+   "page": "Webhooks",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "In the Sandbox, Send test event (Console → Webhooks) or POST /v1/webhooks/endpoints/{'{id}'}/test delivers a webhook.test event to the endpoint, signed with ban"
   },
   "en:Webhooks:5761f698ad": {
    "page": "Webhooks",
@@ -6000,7 +6532,7 @@
    "evidence": "core/api/src/routes/application_settlements.rs (gross = available balance, fee destination, errors); core/app-settlement/src/domain.rs; services/api-gateway/internal/handler/application_settlements.go; apps/website/app/developers/transacoes/page.tsx (no settlement list)",
    "text": "Net: gross minus fee, credited to the beneficiary."
   },
-  "en:Settlements:249b4eb673": {
+  "en:Settlements:363072c3b0": {
    "page": "Settlements",
    "kind": "P",
    "class": "GATE",
@@ -6490,12 +7022,12 @@
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
    "text": "In the Console, create a workspace and a project for the application."
   },
-  "en:Doa:fd55858122": {
+  "en:Doa:9f2d81811f": {
    "page": "Doa",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
-   "text": "Complete Financial Setup: apply for a new Business, which Banzami reviews, or connect an existing Business with the consent code its owner generates. Financial "
+   "text": "Complete Financial Setup: choose the Application or platform use case — Banzami creates the test Business with the APPLICATION classification and the reference "
   },
   "en:Doa:988fd27582": {
    "page": "Doa",
@@ -6728,12 +7260,12 @@
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
    "text": "Creates the workspace and project in the Console, completes Financial Setup, and stores the key and webhook secret on its server."
   },
-  "en:Doa:05671e3469": {
+  "en:Doa:9b0bf89c94": {
    "page": "Doa",
    "kind": "step-banzami",
    "class": "SOURCE",
    "evidence": "tools/e2e/docs/doa-tutorial-e2e.mjs contract (13/13 on the deployed page) and ~/doa packages/core/{payments,settlements,receipts}; core/api/src/routes/application_settlements.rs (fee destination, pricing)",
-   "text": "Reviews the Business application, or accepts the owner’s consent code, and assigns the pricing profile."
+   "text": "Creates the project’s test Business for the Application or platform use case — or accepts the owner’s consent code — and assigns the classification and pricing "
   },
   "en:Doa:6a5c85d4ba": {
    "page": "Doa",
@@ -7022,12 +7554,12 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Archived projects appear under Show archived."
   },
-  "en:Console:0e6f6f7b58": {
+  "en:Console:9a1da7adf4": {
    "page": "Console",
    "kind": "P",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Connects the project to the Business that receives its payments, by application or by consent code. It shows the application status, settlement readiness, the p"
+   "text": "Connects the project to the Business that receives its payments. In the Sandbox, choose the use case — Store, service or business or Application or platform — a"
   },
   "en:Console:96b1e2c3a2": {
    "page": "Console",
@@ -7106,6 +7638,13 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Replay repeats the same delivery."
   },
+  "en:Console:8ef97115df": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Send test event sends webhook.test to the endpoint, signed and marked as a test; it moves nothing and can be replayed."
+  },
   "en:Console:715c427ce8": {
    "page": "Console",
    "kind": "LI",
@@ -7134,12 +7673,33 @@
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Transactions — payments, refunds and transfers between accounts of the Business connected to the project, including those started by other projects of the same "
   },
-  "en:Console:eb3b38b3f2": {
+  "en:Console:9e11ceea4c": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
-   "text": "Logs — every request made with the project’s keys, with request_id, status and latency, kept for 30 days."
+   "text": "Logs — every request made with the project’s keys, with request_id, status and latency, kept for 30 days. Filter by method and by source: the integration’s keys"
+  },
+  "en:Console:3b75713b38": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Overview — the steps to get started in the Sandbox, ticked from what the project has already done, and the two environments: Sandbox available; Live unavailable"
+  },
+  "en:Console:0966c33b57": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "Test data — test payers (create, top up, pay as, retire), the scenarios and Reset the Sandbox."
+  },
+  "en:Console:8e31ea6916": {
+   "page": "Console",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
+   "text": "API Explorer — runs the v1 API against the Sandbox with no key in the browser: each request uses a 60-second key holding only the operation’s scope."
   },
   "en:Console:03c94906b6": {
    "page": "Console",
@@ -7680,19 +8240,103 @@
    "evidence": "apps/website/app/developers/docs/p2a-artifacts.test.ts (artifact files, paths and OpenAPI allow-list)",
    "text": "The artifacts do not describe Financial Live, which is not available."
   },
-  "en:Testing:300564c938": {
+  "en:Testing:31f36c05a5": {
    "page": "Testing",
    "kind": "PageLede",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Test scenarios for every part of your integration: how to trigger each one, the expected response, the event, where to check in the Console, and how to clean up"
+   "text": "The Sandbox is self-service: you set it up, get test payers and reset it without asking Banzami for anything. For each scenario: how to trigger it, the expected"
   },
-  "en:Testing:0d70d95f2a": {
+  "en:Testing:d583d6157e": {
    "page": "Testing",
    "kind": "Callout",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "The Sandbox has no special amounts, cards or references that force an outcome. Every scenario uses the API’s real behaviour."
+   "text": "The Sandbox has no special amounts, cards or references that force an outcome. Every scenario uses the API’s real behaviour; only an external network’s outcomes"
+  },
+  "en:Testing:5e3ebe4cb1": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "The full, machine-readable list is at GET /v1/sandbox/scenarios (scope sandbox:read): each scenario has an id, how to trigger it and the outcome. The ids appear"
+  },
+  "en:Testing:f55b5de5a2": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "A test payer is a Sandbox customer of your project, with a wallet and a fictitious balance. It pays your sessions and links through the same path a real custome"
+  },
+  "en:Testing:ecb8fa129a": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "In the Console, open Test data: create a payer, top it up and pay a session by its session_id. Through the API, with a key holding sandbox:write: POST /v1/sandb"
+  },
+  "en:Testing:b58ce748e4": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "In the Console, API Explorer runs the published v1 API operations against the Sandbox, with the active project. No key passes through the browser: for each requ"
+  },
+  "en:Testing:c167985d0f": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Write operations carry an Idempotency-Key that the Console generates and shows: repeating with the same key returns the original response. When you read a sessi"
+  },
+  "en:Testing:1d9b4e6c2b": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Under Test data → Reset the Sandbox (Owner or Admin, typing RESET): the project’s test payers are retired and, in the project’s own test Business, open sessions"
+  },
+  "en:Testing:216a824bb6": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "A test Business for the project | Console → Financial Setup: choose the use case | One per project. Not verified, and it does not exist outside the Sandbox."
+  },
+  "en:Testing:94086e58cc": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Test payers with fictitious value | Console → Test data, or /v1/sandbox/test-payers | Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 25,00"
+  },
+  "en:Testing:148f191ec3": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "External-network outcomes | simulate on a test payer’s payment | DECLINED, PROVIDER_UNAVAILABLE and TIMEOUT. The response carries simulated: true."
+  },
+  "en:Testing:b4d59f4dac": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "API Explorer | Console → API Explorer | Requests with a 60-second key, Sandbox only; 30 a minute per project."
+  },
+  "en:Testing:91fc275ef2": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Test webhook event | Console → Webhooks, or POST /v1/webhooks/endpoints/{id}/test | webhook.test, marked synthetic; moves nothing."
+  },
+  "en:Testing:7d44ed0948": {
+   "page": "Testing",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Reset the test data | Console → Test data → Reset the Sandbox | Up to 5 times a day. Nothing is deleted."
   },
   "en:Testing:03bae63d0b": {
    "page": "Testing",
@@ -7799,12 +8443,12 @@
    "evidence": "reader guidance",
    "text": "Revoke the test key."
   },
-  "en:Testing:4b2fdc9bfc": {
+  "en:Testing:ea0a4ab02f": {
    "page": "Testing",
    "kind": "recipe-trigger",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "In a new project, create a payment session."
+   "text": "In a new project, create a payment session before setting up the Sandbox."
   },
   "en:Testing:3609dfcdff": {
    "page": "Testing",
@@ -7827,12 +8471,47 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Financial Setup: not configured."
   },
-  "en:Testing:0b6697a862": {
+  "en:Testing:0c06dae7e0": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Delete the project if it has no other history."
+   "text": "Set up the Sandbox, or delete the project if it has no other history."
+  },
+  "en:Testing:574190e05b": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Call GET /v1/me with a key starting bz_live_."
+  },
+  "en:Testing:6e0fa22c33": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "401 UNAUTHORIZED. Live is not available and no Live key is issued."
+  },
+  "en:Testing:08c0aabfa2": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:b95b8e478c": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nothing: the request is refused before it reaches the project."
+  },
+  "en:Testing:93eec42012": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
   },
   "en:Testing:504e6d310f": {
    "page": "Testing",
@@ -7841,12 +8520,12 @@
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
    "text": "createPaymentSession with amountMinor: 25000 (250 Kz)."
   },
-  "en:Testing:caae050489": {
+  "en:Testing:162ddc8335": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "201, status: \"ACTIVE\", PAYMENT_LINK and DYNAMIC_QR interfaces."
+   "text": "201, status: \"ACTIVE\", PAYMENT_LINK and DYNAMIC_QR interfaces, and realtime.token."
   },
   "en:Testing:acab363740": {
    "page": "Testing",
@@ -7869,19 +8548,19 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Not needed: an unpaid session has no financial effect."
   },
-  "en:Testing:0f44ed5952": {
+  "en:Testing:acbef01544": {
    "page": "Testing",
    "kind": "recipe-trigger",
-   "class": "SOURCE",
-   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Open the session link and pay with a Banzami wallet in the Sandbox. A new Sandbox consumer account starts with 10,000 Kz of test money."
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "Create a test payer and pay the session with POST /v1/sandbox/test-payers/{'{id}'}/payments, payment_session_id and via LINK or QR — or, in the Console, under T"
   },
-  "en:Testing:47fc194fba": {
+  "en:Testing:a5e221c24c": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "getPaymentSession returns status: \"PAID\" and refund_source."
+   "text": "200 with transfer_id and proof_reference; getPaymentSession returns status: \"PAID\" and refund_source."
   },
   "en:Testing:060792a075": {
    "page": "Testing",
@@ -7897,19 +8576,159 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Transactions: the payment; Balances: the account holding the amount."
   },
-  "en:Testing:a83d37a20a": {
+  "en:Testing:a500f9c783": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Refund the payment if you want to return the balance to the payer."
+   "text": "Refund the payment, or reset the Sandbox."
   },
-  "en:Testing:054767cf3e": {
+  "en:Testing:7b7d00950e": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Create the payer with initial_balance_minor: 0 and pay a session."
+  },
+  "en:Testing:6ba78be73f": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "422 INSUFFICIENT_FUNDS; the session stays ACTIVE."
+  },
+  "en:Testing:243039fe38": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:55f18d7fe9": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Logs: the refused request."
+  },
+  "en:Testing:4aae529c95": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Top the payer up, or retire it."
+  },
+  "en:Testing:c5a01f6627": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Pay as a test payer with simulate: \"DECLINED\"."
+  },
+  "en:Testing:822175f140": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "402 PAYMENT_DECLINED with simulated: true. Nothing moves."
+  },
+  "en:Testing:8e7f73c5dd": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:e60545d321": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Logs: the request, with the 402 response."
+  },
+  "en:Testing:b4b3c89b28": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:f715a5f2ec": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Pay as a test payer with simulate: \"PROVIDER_UNAVAILABLE\"."
+  },
+  "en:Testing:b8f081b9c8": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "503 PROVIDER_UNAVAILABLE with Retry-After and simulated: true. Nothing moves."
+  },
+  "en:Testing:53c27c588f": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:df115ebea2": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Logs: the request, with the 503 response."
+  },
+  "en:Testing:9dd32c3c5b": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:0c0424a581": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Pay as a test payer with simulate: \"TIMEOUT\" and an Idempotency-Key; then repeat the request with the same key."
+  },
+  "en:Testing:8dd6804c51": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "First 504 SANDBOX_SIMULATED_TIMEOUT — but the payment was made. The repeat answers 200 with the real result and does not pay again."
+  },
+  "en:Testing:e766c8b0d3": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid, once."
+  },
+  "en:Testing:8f097a7fbf": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Transactions: a single payment."
+  },
+  "en:Testing:3d377a53f8": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Refund the payment, or reset the Sandbox."
+  },
+  "en:Testing:20bce43245": {
    "page": "Testing",
    "kind": "recipe-limits",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "There is no API that marks a session as paid. You need access to a Banzami wallet in the Sandbox; if you do not have one, contact support."
+   "text": "This is the case to handle in production: a timeout does not say whether the payment happened. Retry with the same key; never create a new payment."
   },
   "en:Testing:c92b79eaef": {
    "page": "Testing",
@@ -7939,7 +8758,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs: the requests sharing the key."
   },
-  "en:Testing:08c0aabfa2": {
+  "en:Testing:6ff3a4367f": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -7960,21 +8779,21 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 BAD_REQUEST."
   },
-  "en:Testing:93eec42012": {
+  "en:Testing:ec3216080f": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "None."
   },
-  "en:Testing:55f18d7fe9": {
+  "en:Testing:dd33fb1e7d": {
    "page": "Testing",
    "kind": "recipe-console",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs: the refused request."
   },
-  "en:Testing:243039fe38": {
+  "en:Testing:116b8badfa": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -7995,26 +8814,103 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 INVALID_PARAM, with a message naming the parameter."
   },
-  "en:Testing:8e7f73c5dd": {
+  "en:Testing:056950ebd4": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "None."
   },
-  "en:Testing:dd33fb1e7d": {
+  "en:Testing:2bfc8d21dd": {
    "page": "Testing",
    "kind": "recipe-console",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs: the refused request."
   },
-  "en:Testing:b4b3c89b28": {
+  "en:Testing:97e4232ef6": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "None."
+  },
+  "en:Testing:0c16112779": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Open the status stream with the session’s realtime.token and pay it with a test payer."
+  },
+  "en:Testing:2e4ae9de82": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "A snapshot with ACTIVE, then a status with PAID, and the stream closes."
+  },
+  "en:Testing:1f7260d6f8": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid, at your webhook — the confirmation to fulfil the order on."
+  },
+  "en:Testing:7210eef205": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "API Explorer: read the session and choose “Watch the realtime status”."
+  },
+  "en:Testing:719501c74d": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:6615ee30b4": {
+   "page": "Testing",
+   "kind": "recipe-limits",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "The token lasts up to 30 minutes; read the session again for another. Realtime status"
+  },
+  "en:Testing:615757cd06": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "In the Console, under Webhooks, choose Send test event — or POST /v1/webhooks/endpoints/{'{id}'}/test."
+  },
+  "en:Testing:ca7f5db885": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "202 with type: \"webhook.test\" and synthetic: true."
+  },
+  "en:Testing:3e17249a37": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "webhook.test, signed like the others, to this endpoint only. It describes no payment."
+  },
+  "en:Testing:f75d2d62c1": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Webhooks → Events: the event, marked as a test, with its delivery."
+  },
+  "en:Testing:811558a107": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None. The delivery can be replayed even after it succeeds."
   },
   "en:Testing:af63706ea7": {
    "page": "Testing",
@@ -8058,19 +8954,19 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Make the endpoint return 500 and create a session. Fix the endpoint and replay."
   },
-  "en:Testing:9e43cc1719": {
+  "en:Testing:4dc764ab25": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "listWebhookDeliveries shows the attempts; replayWebhookDelivery puts the delivery back in PENDING. Replaying a successful delivery returns 409 DELIVERY_ALREADY_"
   },
-  "en:Testing:7186d37e19": {
+  "en:Testing:8c8aeb7fe6": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "The same event, again."
+   "text": "The same event, with the same id, again."
   },
   "en:Testing:babe3ebe68": {
    "page": "Testing",
@@ -8121,7 +9017,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nothing: the test is local."
   },
-  "en:Testing:53c27c588f": {
+  "en:Testing:8d01805341": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8135,12 +9031,12 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Disable the endpoint and create a session."
   },
-  "en:Testing:b498c5dfce": {
+  "en:Testing:28adc3d7e4": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
-   "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
-   "text": "The event appears in listWebhookEvents, with no delivery to that endpoint."
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "The event appears in listWebhookEvents, with no delivery to that endpoint. A test event returns 409 ENDPOINT_DISABLED."
   },
   "en:Testing:989aea6aa8": {
    "page": "Testing",
@@ -8198,6 +9094,41 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "None: the payment ends fully refunded."
   },
+  "en:Testing:85af664239": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Refund with another project’s refund_source, or an unpaid session’s."
+  },
+  "en:Testing:a65696cdfa": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "404 NOT_FOUND or 422; nothing moves."
+  },
+  "en:Testing:4a9ef896e2": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:ad6fa9343a": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Logs: the refused request."
+  },
+  "en:Testing:6179ee27fd": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
   "en:Testing:4125f584a4": {
    "page": "Testing",
    "kind": "recipe-trigger",
@@ -8212,7 +9143,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 INSUFFICIENT_FUNDS; nothing moves."
   },
-  "en:Testing:9dd32c3c5b": {
+  "en:Testing:14731f29e3": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8226,33 +9157,33 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Balances: both accounts at zero."
   },
-  "en:Testing:6ff3a4367f": {
+  "en:Testing:cee011a0e9": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "None."
   },
-  "en:Testing:ea1b06e68a": {
+  "en:Testing:524158f5d3": {
    "page": "Testing",
    "kind": "recipe-trigger",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
-   "text": "Settle an account with no balance; then an account holding a test payment."
+   "text": "In a project set up for Application or platform, settle an account with no balance; then an account holding a test payment; then repeat with the same idempotenc"
   },
-  "en:Testing:ab108d67fd": {
+  "en:Testing:fc2eb21c93": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "No balance: 422 NOTHING_TO_SETTLE. With a balance: 201 with gross, fee and net."
+   "text": "No balance: 422 NOTHING_TO_SETTLE. With a balance: 201 with gross, fee and net. The repeat returns the same settlement."
   },
-  "en:Testing:f8df6f6c5d": {
+  "en:Testing:58aebad6bc": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "GATE",
    "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
-   "text": "application_settlement.completed."
+   "text": "application_settlement.completed, once."
   },
   "en:Testing:64498df3a7": {
    "page": "Testing",
@@ -8261,7 +9192,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Balances: the account at zero; Financial Setup: readiness."
   },
-  "en:Testing:ec3216080f": {
+  "en:Testing:595b0c06f0": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8289,7 +9220,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "200 with CONFIRMED; changed: 404."
   },
-  "en:Testing:116b8badfa": {
+  "en:Testing:130feb05e9": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8303,7 +9234,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Transactions: the matching payment."
   },
-  "en:Testing:056950ebd4": {
+  "en:Testing:3eaae835c8": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8331,7 +9262,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "429 RATE_LIMITED with Retry-After."
   },
-  "en:Testing:97e4232ef6": {
+  "en:Testing:886e7cce7e": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8345,7 +9276,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs."
   },
-  "en:Testing:719501c74d": {
+  "en:Testing:72ae35c3c2": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8365,6 +9296,13 @@
    "class": "SOURCE",
    "evidence": "apps/website/app/developers/go-live/page.tsx (no Live application, no migration); services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused)",
    "text": "Financial Live is not available. What your Sandbox work already establishes, and what to check before your integration goes into use."
+  },
+  "en:GoingLive:8f5da11de1": {
+   "page": "GoingLive",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "apps/website/app/developers/go-live/page.tsx (no Live application, no migration); services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused)",
+   "text": "One developer platform, two financial environments. The Sandbox is available and self-service: fictitious value, bz_test_ keys, no approval by Banzami. Live is "
   },
   "en:GoingLive:010d6b9677": {
    "page": "GoingLive",
@@ -8701,6 +9639,20 @@
    "class": "HISTORY",
    "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
    "text": "Breaking changes are marked as such and always state the action required. There are no production releases: Financial Live is not available."
+  },
+  "en:Changelog:8af416b310": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "HISTORY",
+   "evidence": "git log (e.g. 39bd5f78 2026-09-10, 3409574f 2026-09-11, 3628e75b 2026-09-12, bfa7f2a1 and b13a6e2a 2026-09-13)",
+   "text": "14 Sep 2026 | Sandbox | Self-service Sandbox: a test Business by use case, test payers, explicit simulations, API Explorer, a webhook test event and reset. | A "
+  },
+  "en:Changelog:0fd20c2da1": {
+   "page": "Changelog",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+   "text": "14 Sep 2026 | API | Realtime status: GET /v1/realtime/payment-sessions/{id}, with each session’s realtime.token in the Authorization header. | A page can show t"
   },
   "en:Changelog:26f247eccb": {
    "page": "Changelog",
@@ -14687,19 +15639,19 @@
    "evidence": "tools/check-docs-dx.mjs (codes and guides) + the error catalogue gate",
    "text": "The session stays ACTIVE"
   },
-  "pt:Symptoms-spec:b513ef4cbc": {
+  "pt:Symptoms-spec:1ca18f7141": {
    "page": "Symptoms-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-dx.mjs (codes and guides) + the error catalogue gate",
-   "text": "O pagador ainda não pagou. Voltar à sua página não é pagar. No Sandbox, pagar precisa de um pagador com carteira Banzami."
+   "text": "O pagador ainda não pagou. Voltar à sua página não é pagar. No Sandbox, pague a sessão com um pagador de teste, em Dados de teste."
   },
-  "en:Symptoms-spec:a2350e194d": {
+  "en:Symptoms-spec:449fffdbd6": {
    "page": "Symptoms-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-dx.mjs (codes and guides) + the error catalogue gate",
-   "text": "The payer has not paid yet. Coming back to your page is not paying. In the Sandbox, paying needs a payer with a Banzami wallet."
+   "text": "The payer has not paid yet. Coming back to your page is not paying. In the Sandbox, pay the session with a test payer, under Test data."
   },
   "pt:Symptoms-spec:a1b597a74c": {
    "page": "Symptoms-spec",

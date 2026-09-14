@@ -29,7 +29,7 @@
     {
       "id": "AMBIGUOUS_TIMEOUT", "group": "payments", "simulated": true,
       "goal": { "pt": "Um resultado ambíguo", "en": "An ambiguous outcome" },
-      "trigger": { "pt": "simulate: \"TIMEOUT\" com Idempotency-Key; depois repita o pedido com a mesma chave, sem simulate", "en": "simulate: \"TIMEOUT\" with an Idempotency-Key; then repeat the request with the same key, without simulate" },
+      "trigger": { "pt": "simulate: \"TIMEOUT\" com uma Idempotency-Key; depois repita o pedido com a mesma chave", "en": "simulate: \"TIMEOUT\" with an Idempotency-Key; then repeat the request with the same key" },
       "result": { "pt": "504 SANDBOX_SIMULATED_TIMEOUT, mas o pagamento foi feito; a repetição responde 200 com o resultado", "en": "504 SANDBOX_SIMULATED_TIMEOUT, but the payment was made; the retry answers 200 with the result" },
       "event": "payment_session.paid"
     },
@@ -97,7 +97,7 @@
       "event": null
     },
     {
-      "id": "WEBHOOK_SUCCESS", "group": "webhooks", "simulated": true,
+      "id": "WEBHOOK_SUCCESS", "group": "webhooks", "simulated": false,
       "goal": { "pt": "Verificar o endpoint sem um pagamento", "en": "Check the endpoint without a payment" },
       "trigger": { "pt": "POST /v1/webhooks/endpoints/{id}/test", "en": "POST /v1/webhooks/endpoints/{id}/test" },
       "result": { "pt": "202; entrega webhook.test assinada, marcada synthetic", "en": "202; a signed webhook.test delivery, marked synthetic" },
