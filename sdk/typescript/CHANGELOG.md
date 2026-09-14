@@ -19,9 +19,14 @@ from the owner's machine). 0.14.0 was published from the commit before these cha
   is not in the `SandboxSimulation` type.
 
 ### Changed
-- README: the environment table states the current truth — the Sandbox is
-  available and self-service; Financial Live is unavailable and the API refuses
-  `bz_live_…` keys; publishable keys exist and are read-only.
+- README: a short tour that links to the canonical documentation instead of a
+  second copy of it. The environment table states the current truth — the Sandbox
+  is available and self-service; Financial Live is unavailable and the API refuses
+  `bz_live_…` keys; publishable keys exist and are read-only. Examples use a
+  project key: Payment Links without `merchantId`/`walletId`, refunds by
+  `refund_source`, `createWebhookEndpoint`, `sendWebhookTestEvent`. The
+  merchant-credential examples (transactions, payouts, disputes, merchant API
+  keys) are gone from the tour.
 
 ## [0.14.0] — 2026-09-14
 

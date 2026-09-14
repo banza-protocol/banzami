@@ -1,19 +1,23 @@
 # @banzami/sdk
 
-Official JavaScript/TypeScript SDK for Banzami — wallet-native Kwanza payments, built on the BANZA protocol.
+Official TypeScript/JavaScript SDK for Banzami — wallet-native Kwanza payments,
+built on the BANZA protocol.
 
 > **Status.** The Public Sandbox is available and fully self-service, with fictitious
 > money. Financial Live remains unavailable and subject to the applicable regulatory,
-> contractual and operational approvals. Documentation: <https://developers.banzami.com/docs>.
+> contractual and operational approvals.
 
-Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **payment sessions**, **payment links** and their **QR codes** — not card forms or IBAN strings.
+This README is a short tour. The canonical documentation — guides, the API
+reference, events, the error catalogue and the Sandbox scenarios — is at
+**<https://developers.banzami.com/docs>**, and every TypeScript example there is
+compiled against the published package.
 
-All monetary values use **integer minor units**: for AOA the minor unit is the
-cêntimo, so **1 Kz = 100 minor units** (`amountMinor: 50_000` is 500 Kz;
-`5_000_000` is 50 000 Kz). No floating-point arithmetic.
+All monetary values use **integer minor units**: for AOA, **1 Kz = 100 minor
+units** (`amountMinor: 25_000` is 250 Kz). No floating-point arithmetic.
 
-Requires Node.js ≥ 18 (native `fetch`) or a browser environment.
-
+Requires Node.js ≥ 18 (native `fetch`). Secret keys (`bz_test_sk_…`) belong on your
+server only; `@banzami/sdk/realtime` is the browser entry point, and it takes a
+status token, never a key.
 
 ---
 
@@ -27,13 +31,22 @@ npm install @banzami/sdk
 
 ## Quick start
 
+1. Create an account, a Workspace and a Project in the Developer Console
+   (<https://developers.banzami.com>). Choose the Project's use case: the Sandbox
+   Financial Setup is ready at once, with no operator approval.
+2. Create a Sandbox secret key (`bz_test_sk_…`) with the scopes you need.
+
 ```typescript
 import { BanzamiClient } from '@banzami/sdk';
 
-const client = new BanzamiClient({
-  apiKey: process.env.BANZAMI_API_KEY!, // bz_test_sk_… — a Sandbox key from the Console
+const banzami = new BanzamiClient({
+  apiKey: process.env.BANZAMI_API_KEY!, // bz_test_sk_… — server only
 });
+
+const me = await banzami.me(); // { environment: 'SANDBOX', project, scopes, … }
 ```
+
+Guide: <https://developers.banzami.com/docs/get-started>
 
 ---
 
@@ -124,26 +137,13 @@ the `identity:read` scope.
 
 ---
 
-## Consumer flows
-
-### Look up a consumer by @banza
-
-```typescript
-const consumer = await client.getConsumerByHandle('joao');
-if (consumer.status !== 'ACTIVE') {
-  throw new Error('Consumer is not active');
-}
-```
-
----
-
 ## Payment sessions (recommended)
 
 A payment session is one payment intent with every way to pay it: a payment
 link, a deep link and a QR — all crediting the same account.
 
 ```typescript
-const session = await client.createPaymentSession({
+const session = await banzami.createPaymentSession({
   purpose:       'ORDER',
   referenceType: 'PEDIDO',
   referenceId:   'pedido_123',
@@ -152,8 +152,8 @@ const session = await client.createPaymentSession({
   description:   'Pedido #123',
 });
 
-const link = client.paymentSessionInterface(session, 'PAYMENT_LINK');
-const qr   = client.paymentSessionInterface(session, 'DYNAMIC_QR');
+const link = banzami.paymentSessionInterface(session, 'PAYMENT_LINK');
+const qr   = banzami.paymentSessionInterface(session, 'DYNAMIC_QR');
 link?.value; // "https://pay.banzami.com/pay/{slug}" — send it to the payer
 qr?.value;   // the same pay URL — encode it into the QR you display
 ```
@@ -193,12 +193,12 @@ your Project, holds fictitious value, and pays only your Project's own sessions
 and links — through this API; it signs in to no app.
 
 ```typescript
-const { scenarios } = await client.listSandboxScenarios(); // every outcome and how to produce it
+const { scenarios } = await banzami.listSandboxScenarios(); // every outcome and how to produce it
 
-const payer = await client.createTestPayer({ label: 'Maria (teste)' }); // starts with 10 000 Kz
-await client.fundTestPayer(payer.id, { amountMinor: 500_000, idempotencyKey: 'fund-1' });
+const payer = await banzami.createTestPayer({ label: 'Maria (teste)' }); // starts with 10 000 Kz
+await banzami.fundTestPayer(payer.id, { amountMinor: 500_000, idempotencyKey: 'fund-1' });
 
-const paid = await client.payAsTestPayer(payer.id, {
+const paid = await banzami.payAsTestPayer(payer.id, {
   paymentSessionId: session.session_id,
   via:              'QR',               // or 'LINK' (default)
   idempotencyKey:   'pay-1',
@@ -207,253 +207,115 @@ paid.status;          // 'PAID'
 paid.proof_reference; // a receipt that verifies publicly
 
 // External-rail outcomes are asked for explicitly, never by a magic amount:
-await client.payAsTestPayer(payer.id, { paymentSessionId: other.session_id, simulate: 'DECLINED' });
+await banzami.payAsTestPayer(payer.id, { paymentSessionId: other.session_id, simulate: 'DECLINED' });
 // simulate: 'TIMEOUT' pays, answers 503 SANDBOX_SIMULATED_TIMEOUT, and the SDK's retry with the same key returns the real result.
 // simulate: 'DELAYED' answers PENDING at once; the payment completes on its own ~10 s later (webhook, realtime stream, or repeat with the same key).
-const pending = await client.payAsTestPayer(payer.id, { paymentSessionId: later.session_id, simulate: 'DELAYED', idempotencyKey: 'pay-later' });
+const pending = await banzami.payAsTestPayer(payer.id, { paymentSessionId: later.session_id, simulate: 'DELAYED', idempotencyKey: 'pay-later' });
 pending.status; // 'PENDING'
 
-await client.retireTestPayer(payer.id); // its value is retired by a balanced posting
-```
-
----
-
-## QR codes
-
-To be paid by QR, show the QR of a **payment session** (above) or a **payment
-link** (see [Payment QR](#payment-qr)). It encodes the hosted pay URL, which any
-phone camera opens.
-
-`createStaticQr()` and `createDynamicQr()` issue structured Banzami QR codes.
-These are paid inside the Banzami app: the payer scans, the app posts the
-scanned payload to the consumer surface, and the payer is the person that
-surface authenticated. A **static** code is reusable and the payer chooses the
-amount; a **dynamic** code carries a fixed amount in its signed record, is
-single-use, and expires — a client-supplied amount is ignored, because a
-fixed-amount code that could be paid for less would not be fixed.
-
-There is no SDK method for paying one, and there will not be: a server key never
-pays on a person's behalf. That was the defect the old route had — it took the
-payer as a field on a merchant credential — and the rebuilt contract has no such
-field anywhere.
-
-Reach for a payment session's QR when you want any phone camera to work, and a
-structured QR when you want the Banzami app's scan-to-pay.
-
----
-
-## Merchant operations
-
-### Create a transaction
-
-```typescript
-const tx = await client.createTransaction({
-  idempotencyKey: 'order-12345',
-  amountMinor:    25_000,        // 250 Kz
-  currency:       'AOA',
-  description:    'Encomenda #12345',
-  walletId:       'wlt_...',
-});
-console.log(tx.status); // "PENDING"
-```
-
-### List transactions with pagination
-
-```typescript
-let cursor: string | undefined;
-
-do {
-  const page = await client.listTransactions({ limit: 50, cursor });
-
-  for (const tx of page.data) {
-    console.log(tx.id, formatMinor(tx.amount_minor, tx.currency), tx.status);
-  }
-
-  cursor = page.next_cursor;
-} while (cursor);
-```
-
-### Wallet balance
-
-```typescript
-const balance = await client.getWalletBalance('wlt_...');
-console.log(`Available: ${formatMinor(balance.available_minor, balance.currency)}`);
-console.log(`Reserved:  ${formatMinor(balance.reserved_minor,  balance.currency)}`);
-```
-
-### Trigger a payout
-
-```typescript
-const payout = await client.createPayout('wlt_...', 100_000); // 1 000 Kz
-console.log(payout.status); // "PENDING"
+await banzami.retireTestPayer(payer.id); // its value is retired by a balanced posting
 ```
 
 ---
 
 ## Payment links
 
-Payment links are shareable URLs for informal commerce — the merchant shares a link and the consumer pays without needing to be present.
-
-### Create and share a link
+A reusable URL to share. With a project key, send no `merchantId` and no
+`walletId`: who is paid comes from the Project's Financial Setup, and the API
+refuses a request that names a payee (`400 PAYEE_NOT_ALLOWED`).
 
 ```typescript
-// Fixed-amount link (expires in 24 h)
-const link = await client.createPaymentLink({
-  merchantId:  'mch_...',
-  walletId:    'wlt_...',
-  amountMinor: 15_000,         // 150 Kz
-  description: 'Cabrito assado',
-  expiresAt:   new Date(Date.now() + 24 * 60 * 60 * 1000),
+const link = await banzami.createPaymentLink({
+  amountMinor: 25_000,          // 250 Kz; omit for an open amount
+  currency:    'AOA',
+  description: 'Pedido #123',
 });
+link.slug; // the payer opens https://pay.banzami.com/pay/{slug}
 
-console.log(link.slug);    // e.g. "abc123"
-console.log(link.status);  // "ACTIVE"
-// Share: https://pay.banzami.com/pay/abc123
+const page = await banzami.listPaymentLinks({ limit: 20 });
+await banzami.cancelPaymentLink(link.id);
 ```
 
-### Open link (consumer sets amount)
-
-```typescript
-const link = await client.createPaymentLink({
-  merchantId:  'mch_...',
-  walletId:    'wlt_...',
-  // no amountMinor → consumer enters the amount
-});
-```
-
-### List and manage links
-
-```typescript
-const page = await client.listPaymentLinks({ merchantId: 'mch_...', limit: 20 });
-for (const link of page.data) {
-  console.log(link.slug, link.status, link.amount_minor);
-}
-
-// Cancel a link
-await client.cancelPaymentLink(link.id);
-```
-
-### Resolve a link on the pay page (no auth required)
-
-```typescript
-const link = await client.getPublicPaymentLink('abc123');
-if (link.status !== 'ACTIVE') throw new Error('Link is no longer active');
-
-// Poll for payment confirmation
-const { paid } = await client.getPaymentLinkStatus('abc123');
-```
-
----
-
-## Payment QR
-
-The **official, renderable QR payload** for a payment link is owned by the SDK —
-never build it yourself. `qrValue` is the canonical, scannable value (the Banzami
-pay URL); encode it into a QR image as-is. Because the payload is produced here,
-its format can evolve without every integration changing.
-
-```typescript
-// You already hold the PaymentLink (e.g. from createPaymentLink) — derive
-// the QR payload with no extra network call:
-const link = await client.createPaymentLink({ merchantId, walletId, amountMinor: 150_000 }); // 1 500 Kz
-
-const qr = client.paymentLinkQr(link, {
-  recipientHandle: '@fm65',         // optional — the gateway doesn't return it
-  recipientName:   'Fidel Monteiro',
-});
-
-qr.qrValue;          // "https://pay.banzami.com/pay/abc123"  ← encode this into the QR
-qr.paymentUrl;       // same canonical pay URL
-qr.amountMinor;      // 150000
-qr.currency;         // "AOA"
-qr.isSandbox;        // true in sandbox
-qr.status;           // "ACTIVE"
-
-// Or fetch by id (JWT-authenticated) and derive in one call:
-const qr2 = await client.getPaymentLinkQr('plink_123', { recipientHandle: '@fm65' });
-```
-
-The pay-page host defaults to `https://pay.banzami.com`; override with the
-`payBaseUrl` client option if needed. **Encoding the returned `qrValue` is the
-only step that belongs to your app — the payload itself comes from the SDK.**
+`banzami.paymentLinkQr(link)` returns the canonical QR payload for a link — encode
+it as-is rather than building one.
 
 ---
 
 ## Refunds
 
 ```typescript
-// Refund a typed payment source (the id from the payment session's refund_source)
-const refund = await client.createRefund({
-  source_type:     'WALLET_PAYMENT',
-  source_id:       'wp_...',
-  amount_minor:    2_500,       // partial refund — 25 Kz
+const session = await banzami.getPaymentSession('psess_…');
+if (!session.refund_source) throw new Error('the session has not been paid');
+
+const refund = await banzami.createRefund({
+  source_type:     session.refund_source.source_type,
+  source_id:       session.refund_source.source_id,
+  amount_minor:    5_000,                    // 50 Kz — partial
   currency:        'AOA',
-  reason:          'Produto devolvido',
-  idempotency_key: 'refund-order-12345', // required: a stable key for this refund
+  idempotency_key: 'refund-order-123',       // required, and stored before the call
+  reason:          'Item out of stock',
 });
-console.log(refund.status); // "PENDING"
-
-// List refunds, optionally for one source
-const page = await client.listRefunds({ sourceId: 'wp_...', limit: 20 });
+refund.status; // 'SUCCEEDED'
 ```
 
----
-
-## Disputes
-
-```typescript
-// Consumer opens a dispute on a transaction
-const dispute = await client.openDispute({
-  transaction_id: 'txn_...',
-  consumer_id:    'cns_...',
-  amount_minor:   25_000,       // 250 Kz
-  currency:       'AOA',
-  reason:         'Serviço não prestado conforme acordado',
-});
-console.log(dispute.status); // "OPEN"
-
-// Merchant lists open disputes
-const page = await client.listDisputes({ status: 'OPEN', limit: 20 });
-```
+A refund never exceeds what was captured: the next one answers
+`422 REFUND_EXCEEDS_CAPTURED`. Guide: <https://developers.banzami.com/docs/refunds>
 
 ---
 
 ## Webhooks
 
 ```typescript
-const endpoint = await client.registerWebhookEndpoint(
-  'https://meusite.ao/webhooks/banzami',
-  ['transaction.completed', 'payout.completed'],
-);
+const banzami = new BanzamiClient({ apiKey, webhookSecret: process.env.BANZAMI_WEBHOOK_SECRET });
 
-// List recent events
-const events = await client.listWebhookEvents({ limit: 10 });
+// Register an endpoint (the secret is returned once).
+const ep = await banzami.createWebhookEndpoint({
+  url:    'https://www.example.com/api/webhooks/banzami',
+  events: ['payment_session.paid'],
+});
+
+// In the receiver: the raw body and the banza-signature header.
+const event = banzami.webhooks.constructEvent(rawBody, signatureHeader); // throws if the signature is wrong
+if (event.type === 'payment_session.paid') { /* fulfil, idempotently */ }
+
+// In the Sandbox: a signed, synthetic webhook.test event that moves nothing
+// (10 test deliveries a minute per endpoint).
+const test = await banzami.sendWebhookTestEvent(ep.id);
+const deliveries = await banzami.listWebhookDeliveries(test.event_id); // attempts, status, latency
 ```
 
-In the Sandbox, send a synthetic `webhook.test` event to one endpoint to check
-your receiver and signature verification without a payment. It moves nothing,
-is marked `synthetic: true`, and is bounded to 10 test deliveries a minute per
-endpoint.
+Delivery is at-least-once with no ordering guarantee; answer `2xx` quickly.
+Guide: <https://developers.banzami.com/docs/webhooks>
+
+---
+
+## Errors
+
+Every API error is a `BanzamiApiError` with `.status` (HTTP), `.code` (for example
+`PAYMENTS_UNAVAILABLE`, `REFUND_EXCEEDS_CAPTURED`). Branch on `.code`; treat a code you do not know as a failure. The full list, route
+by route, is the error catalogue: <https://developers.banzami.com/docs/errors>
 
 ```typescript
-const test = await client.sendWebhookTestEvent(endpoint.id); // 202 — { event_id, delivery_id, synthetic: true }
+import { BanzamiApiError } from '@banzami/sdk';
+
+try {
+  await banzami.createPaymentSession({ /* … */ } as never);
+} catch (err) {
+  if (err instanceof BanzamiApiError && err.code === 'PAYMENTS_UNAVAILABLE') {
+    // the Project's Financial Setup is not ready — see getFinancialSetup()
+  }
+}
 ```
 
 ---
 
-## API keys
+## Other methods
 
-```typescript
-// Create a new key (the raw key is returned only once)
-const { key, prefix } = await client.createApiKey('mch_...', 'Produção');
-console.log(`New key: ${key}`);  // Store securely — not shown again.
-
-// List existing keys
-const keys = await client.listApiKeys('mch_...');
-
-// Revoke
-await client.revokeApiKey('mch_...', keys[0].id);
-```
+The client also carries methods for merchant and consumer credentials used by
+Banzami's own apps (transactions, payouts, disputes, structured QR, API keys by
+merchant). A Developer Console project key does not use them; the API reference
+lists exactly what a project key can call:
+<https://developers.banzami.com/docs/reference>
 
 ---
 
@@ -483,35 +345,6 @@ export default {
     extend: tailwindTokens,
   },
 };
-```
-
----
-
-## Error reference
-
-| Code                  | Meaning                                  |
-|-----------------------|------------------------------------------|
-| `INSUFFICIENT_FUNDS`  | Sender does not have enough balance      |
-| `HANDLE_NOT_FOUND`    | No consumer with the given handle        |
-| `HANDLE_TAKEN`        | Handle is already registered             |
-| `WALLET_NOT_FOUND`    | Wallet ID does not exist                 |
-| `WALLET_NOT_ACTIVE`   | Wallet is suspended or closed            |
-| `LINK_NOT_ACTIVE`     | Payment link is already used, cancelled, or expired |
-
-All errors are instances of `BanzamiApiError` with `.status` (HTTP) and `.code` (domain) properties.
-
-```typescript
-import { BanzamiApiError } from '@banzami/sdk';
-
-try {
-  await client.createPayout('wlt_...', 100_000);
-} catch (err) {
-  if (err instanceof BanzamiApiError) {
-    if (err.isInsufficientFunds) console.error('Saldo insuficiente');
-    if (err.isWalletNotFound)    console.error('Carteira não encontrada');
-    if (err.isWalletNotActive)   console.error('Carteira suspensa');
-  }
-}
 ```
 
 ---

@@ -305,7 +305,7 @@ const SAMPLE_WEBHOOK_TEST = `// With the endpoint registered (createWebhookEndpo
 declare const endpointId: string;
 const test = await banzami.sendWebhookTestEvent(endpointId);
 // test.type -> 'webhook.test';  test.synthetic -> true
-const deliveries = await banzami.listWebhookDeliveries(endpointId);`;
+const deliveries = await banzami.listWebhookDeliveries(test.event_id);`;
 
 const SAMPLE_REFUND = `import { BanzamiClient } from '@banzami/sdk';
 const apiKey = process.env.BANZAMI_API_KEY;
