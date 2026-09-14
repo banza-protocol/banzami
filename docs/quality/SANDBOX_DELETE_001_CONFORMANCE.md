@@ -46,7 +46,25 @@ and left what those defects produce:
 | Item | State | Action |
 |---|---|---|
 | Shared test Business `35a6f38a…` (creator and partner both deleted) | was ACTIVE | retired through Core's own route (`POST /internal/v1/sandbox/projects/retire`, pass `repair-orphan-1`, `requested_by` operator): 5 000 Kz retired by balanced posting, SUSPENDED. No SQL write. One operator repair of acceptance residue, not a step of any developer flow |
-| Retired test payer `4d654f5d…` of deleted Project `1540f933…` | 10 000 Kz fictitious balance | **outstanding**: the same Core pass (`retire_business: true`, no bound Business) sweeps it with the fixed code; the call needs the owner's approval to run |
+| Retired test payer `4d654f5d…` of deleted Project `1540f933…` | had 10 000 Kz fictitious balance | owner-approved Core pass (`repair-late-credit-1`, `retire_business: true`), 17:03:47Z: one posting, DR payer available 10 000 / CR transit 10 000; payer balance 0; Project DELETED (6 passes); its Business already SUSPENDED, unchanged; no negative account, no duplicate retirement key; every unrelated merchant, payer, consumer, Console resource, webhook, session and link unchanged (before/after hashes); ledger reconciliation 6/6, book sums to zero |
+
+### Found after the repair, not repaired (pre-dates this milestone)
+
+`tools/ops/retire-synthetic-residue.sh` (dry run) reports every selection counter
+at 0, but its patterns do not recognise the self-service test Businesses
+(`Sandbox · <project name>`, ADR-060), so it lists them as survivors instead:
+
+| | Count | Value | Keys | Webhooks | Unretired payers |
+|---|---|---|---|---|---|
+| ACTIVE synthetic Business behind an ARCHIVED harness Project, no live binding | 165 | 0 | 0 | 0 | 0 |
+
+All were created 02:53–15:07Z, before the deletion capability was deployed, by
+harnesses that still cleaned up by archiving — the archive-only behaviour this
+milestone replaced. None came from a SANDBOX-DELETE-001 run. Their owning
+fixture identities have since been swept, so the product's Delete cannot reach
+them; retiring them would take one Core retirement pass per Project, which is an
+operator action awaiting the owner's decision. `check-canonical-resources.mjs`
+does not inventory merchants, so it does not see them either.
 
 The runs after the fixes leave neither (lifecycle 10/10, `FUNDING_PAYMENT_RACE`
 funded 0, `SHARED_BUSINESS_KEPT` then residue 0).
@@ -142,7 +160,7 @@ payee display is the snapshot taken at issue. E2E `RECEIPT_UNCHANGED`.
 | `runtime-authority.sh verify` | `DB_AUTHORITY_VERIFY=PASS` |
 | `acceptance-suites.mjs all` (cleanup = Delete) | scenarios PASS, workbench 10/10, refunds 8/8, wallet-native 16/16, rail isolation 7/7, residue 0 |
 | `responsive.mjs` / `accessibility.mjs` (populated) | 52/52 / 41/41 |
-| `check-canonical-resources.mjs` | 0 unclassified identities, workspaces, projects, keys |
+| `check-canonical-resources.mjs` | 0 unclassified identities, workspaces, projects, keys (merchants not inventoried) |
 
 ## Counters
 
@@ -189,7 +207,7 @@ SANDBOX_WORKSPACE_DELETE_E2E=PASS
 SANDBOX_DELETE_REQUIRES_EXTERNAL_PROVIDER=0
 DELETE_RECEIPT_E2E=PASS
 SANDBOX_DELETE_LEDGER_INVARIANTS=PASS
-SANDBOX_DELETE_ACCEPTANCE_RESIDUE=1  (pre-fix payer 4d654f5d…, 10 000 Kz; repair pending approval)
+SANDBOX_DELETE_ACCEPTANCE_RESIDUE=0
 SANDBOX_DELETE_PUBLIC_CLEANROOM=PASS
 SANDBOX_DELETE_OPERATOR_INTERVENTIONS=0
 SANDBOX_DELETE_DOCS=PASS
