@@ -28,6 +28,7 @@ Where everything lives. This is the only meta-document — start here.
 | **Compliance** | [docs/compliance/](compliance/) |
 | **Operator governance** | [BANZAMI_GOVERNANCE.md](../BANZAMI_GOVERNANCE.md) |
 | **Validation / operator readiness** | [docs/validation/](validation/) + the Validation Studio (`apps/validation-studio`) |
+| **Wallet-native model — value moves inside the network, external rails are boundaries** | [ADR-061](adr/ADR-061-wallet-native-rail-decoupled-financial-network.md) · [terminology](architecture/WALLET_NATIVE_TERMINOLOGY.md) · [dependency audit](architecture/WALLET_NATIVE_DEPENDENCY_AUDIT.md) · [future Financial Live operating model (internal)](regulatory/FUTURE_FINANCIAL_LIVE_OPERATING_MODEL.md) |
 | **The economic model — where Banzami charges** | [docs/architecture/economic-model.md](architecture/economic-model.md) |
 | **Audits — what was found, and what it cost** | [docs/audit/](audit/) |
 | **Glossary** | [docs/glossary.md](glossary.md) |

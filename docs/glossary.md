@@ -147,10 +147,16 @@ A QR code that encodes a specific payment amount. The consumer does not need to 
 ## Environment
 
 The deployment context. Banza has two environments:
-- **LIVE** — real Angolan Kwanza, real settlement rails
-- **SANDBOX** — virtual funds, no real rails, completely isolated database
+- **LIVE** — the future regulated real-money environment (real Kwanza, real external rails). Currently **NOT READY / FAIL-CLOSED**: `bz_live_` keys are refused and no real-money capability exists.
+- **SANDBOX** — fictitious value, a simulated external rail, completely isolated database
 
 The environment is embedded in API keys (`bz_live_…` vs `bz_test_…`), JWT claims, and all OTel attributes. Environments never mix (enforced at infrastructure level).
+
+---
+
+## External rail
+
+A system outside the Banzami network through which value enters, leaves or settles: banks, EMIS, PSPs, clearing and settlement systems. Rail-dependent operations (cash-in, cash-out, payouts, hosted acquiring payments, external settlement) cross one and fail closed when it is unavailable; internal movements do not. Banzami is **rail-decoupled, not rail-free**. See [ADR-061](adr/ADR-061-wallet-native-rail-decoupled-financial-network.md) and [wallet-native terminology](architecture/WALLET_NATIVE_TERMINOLOGY.md).
 
 ---
 
@@ -330,7 +336,7 @@ A specialised operator configuration for the sandbox environment. Same capabilit
 
 ## Settlement
 
-The process of crediting a merchant wallet with payment proceeds. In Banza, settlement is T+0 (instant) — the net amount is credited to the merchant wallet at the moment the payment is confirmed. Capability: `settlement.t0`. Governed by INV-STL-001 and INV-STL-002.
+The internal allocation of value already inside the network between accounts according to pricing (gross = fee + net) — crediting a merchant wallet with payment proceeds. It is not a movement to a bank: that is *external settlement*, which crosses an external rail (see [wallet-native terminology](architecture/WALLET_NATIVE_TERMINOLOGY.md)). In Banza, settlement is T+0 (instant) — the net amount is credited to the merchant wallet at the moment the payment is confirmed. Capability: `settlement.t0`. Governed by INV-STL-001 and INV-STL-002.
 
 ---
 
@@ -354,7 +360,7 @@ A grouping of implementation items by engineering concern. Used in the BANZAMI_I
 
 ## Wallet
 
-A Kwanza-denominated balance account. Every consumer and merchant in the Banzami network has at least one wallet. Wallet balances are always derived from ledger entries — never directly mutated. A wallet balance can never go negative (INV-STL-002).
+A participant's Kwanza-denominated financial position in the Banzami network. Every consumer and merchant in the Banzami network has at least one wallet; payments between participants are internal movements between wallets, written by Banzami Core, with no external rail per movement (ADR-061). Wallet balances are always derived from ledger entries — never directly mutated. A wallet balance can never go negative (INV-STL-002).
 
 ---
 
