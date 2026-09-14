@@ -30,15 +30,17 @@ export function PlatformBanner() {
   if (!show) return null;
 
   // A discrete system bar — thin, sticky, no card/pill/shadow/gradient. Inspired
-  // by Stripe/GitHub test-mode banners. Shown only in SANDBOX.
+  // by Stripe/GitHub test-mode banners: a small-caps tag, a hairline middot, and
+  // a quiet line of prose. Shown only in SANDBOX.
   return (
     <div
       role="status"
-      className="sticky top-0 z-50 flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-[7px] text-[12.5px] leading-none"
+      className="sticky top-0 z-50 flex items-center justify-center gap-2 border-b border-amber-200/80 bg-amber-50 px-4 py-[5px] leading-none"
     >
-      <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-      <span className="font-extrabold text-amber-900">SANDBOX</span>
-      <span className="font-semibold text-amber-800 max-[440px]:hidden">Dinheiro fictício. O Financial Live está indisponível.</span>
+      <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500/90" />
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-900">Sandbox</span>
+      <span aria-hidden="true" className="text-amber-300 max-[440px]:hidden">·</span>
+      <span className="text-[12px] font-medium text-amber-800/90 max-[440px]:hidden">Dinheiro fictício — o Financial Live está indisponível.</span>
     </div>
   );
 }
