@@ -534,12 +534,12 @@ func (s *pgStore) DeleteProject(ctx context.Context, id string) error {
 
 // ── api keys ─────────────────────────────────────────────────────────────────
 
-const keyMetaCols = `id, project_id, environment, kind, name, key_prefix, coalesce(public_value,''), scopes, status, rotated_from, created_at, last_used_at`
+const keyMetaCols = `id, project_id, environment, kind, name, key_prefix, coalesce(public_value,''), scopes, status, rotated_from, created_at, last_used_at, purpose`
 
 func scanKey(row pgx.Row) (*APIKey, error) {
 	var k APIKey
 	err := row.Scan(&k.ID, &k.ProjectID, &k.Environment, &k.Kind, &k.Name, &k.KeyPrefix,
-		&k.PublicValue, &k.Scopes, &k.Status, &k.RotatedFrom, &k.CreatedAt, &k.LastUsedAt)
+		&k.PublicValue, &k.Scopes, &k.Status, &k.RotatedFrom, &k.CreatedAt, &k.LastUsedAt, &k.Purpose)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -552,11 +552,11 @@ func scanKey(row pgx.Row) (*APIKey, error) {
 func (s *pgStore) insertKeyTx(ctx context.Context, q pgx.Tx, in APIKeyInsert) (APIKey, error) {
 	k, err := scanKey(q.QueryRow(ctx,
 		`INSERT INTO developer.dev_api_keys
-		    (project_id, environment, kind, name, key_prefix, key_hash, hash_version, public_value, scopes, created_by, rotated_from)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,nullif($8,''),$9,$10,$11)
+		    (project_id, environment, kind, name, key_prefix, key_hash, hash_version, public_value, scopes, created_by, rotated_from, purpose, expires_at)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,nullif($8,''),$9,$10,$11,coalesce(nullif($12,''),'STANDARD'),$13)
 		 RETURNING `+keyMetaCols,
 		in.ProjectID, in.Environment, in.Kind, in.Name, in.KeyPrefix, in.KeyHash, in.HashVersion,
-		in.PublicValue, in.Scopes, in.CreatedBy, in.RotatedFrom))
+		in.PublicValue, in.Scopes, in.CreatedBy, in.RotatedFrom, in.Purpose, in.ExpiresAt))
 	if err != nil {
 		return APIKey{}, err
 	}
@@ -578,7 +578,9 @@ func (s *pgStore) CreateAPIKey(ctx context.Context, in APIKeyInsert) (APIKey, er
 
 func (s *pgStore) APIKeysForProject(ctx context.Context, projectID string) ([]APIKey, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT `+keyMetaCols+` FROM developer.dev_api_keys WHERE project_id = $1 ORDER BY created_at`, projectID)
+		// Explorer keys (ADR-060 §7) are a mechanism, not a credential anyone holds:
+		// they are never listed.
+		`SELECT `+keyMetaCols+` FROM developer.dev_api_keys WHERE project_id = $1 AND purpose <> 'EXPLORER' ORDER BY created_at`, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +589,7 @@ func (s *pgStore) APIKeysForProject(ctx context.Context, projectID string) ([]AP
 	for rows.Next() {
 		var k APIKey
 		if err := rows.Scan(&k.ID, &k.ProjectID, &k.Environment, &k.Kind, &k.Name, &k.KeyPrefix,
-			&k.PublicValue, &k.Scopes, &k.Status, &k.RotatedFrom, &k.CreatedAt, &k.LastUsedAt); err != nil {
+			&k.PublicValue, &k.Scopes, &k.Status, &k.RotatedFrom, &k.CreatedAt, &k.LastUsedAt, &k.Purpose); err != nil {
 			return nil, err
 		}
 		out = append(out, k)
@@ -602,8 +604,8 @@ func (s *pgStore) APIKeyByID(ctx context.Context, id string) (*APIKey, error) {
 func (s *pgStore) APIKeyByHash(ctx context.Context, keyHash string) (*APIKeyAuth, error) {
 	var a APIKeyAuth
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, project_id, environment, status, scopes FROM developer.dev_api_keys WHERE key_hash = $1`,
-		keyHash).Scan(&a.ID, &a.ProjectID, &a.Environment, &a.Status, &a.Scopes)
+		`SELECT id, project_id, environment, status, scopes, purpose, expires_at FROM developer.dev_api_keys WHERE key_hash = $1`,
+		keyHash).Scan(&a.ID, &a.ProjectID, &a.Environment, &a.Status, &a.Scopes, &a.Purpose, &a.ExpiresAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -1293,29 +1295,40 @@ func (s *pgStore) APIRequestLogs(ctx context.Context, projectID string, f Reques
 		return fmt.Sprintf("$%d", len(args))
 	}
 	if f.RequestID != "" {
-		where = append(where, "request_id = "+bind(f.RequestID))
+		where = append(where, "l.request_id = "+bind(f.RequestID))
 	}
 	if f.Status > 0 {
-		where = append(where, "status = "+bind(f.Status))
+		where = append(where, "l.status = "+bind(f.Status))
 	}
 	if f.Path != "" {
 		p := bind(f.Path)
-		where = append(where, fmt.Sprintf("(path ILIKE '%%' || %s || '%%' OR route ILIKE '%%' || %s || '%%')", p, p))
+		where = append(where, fmt.Sprintf("(l.path ILIKE '%%' || %s || '%%' OR l.route ILIKE '%%' || %s || '%%')", p, p))
+	}
+	if f.Method != "" {
+		where = append(where, "l.method = "+bind(f.Method))
+	}
+	switch f.Source {
+	case "API_EXPLORER":
+		where = append(where, "k.purpose = 'EXPLORER'")
+	case "API":
+		where = append(where, "k.purpose IS DISTINCT FROM 'EXPLORER'")
 	}
 	if f.Since != nil {
-		where = append(where, "created_at >= "+bind(*f.Since))
+		where = append(where, "l.created_at >= "+bind(*f.Since))
 	}
 	if f.Until != nil {
-		where = append(where, "created_at <= "+bind(*f.Until))
+		where = append(where, "l.created_at <= "+bind(*f.Until))
 	}
 
-	q := `SELECT id, method, path, route, status, request_id, latency_ms, environment, created_at
-	        FROM developer.dev_api_request_logs
-	       WHERE project_id = $1`
+	q := `SELECT l.id, l.method, l.path, l.route, l.status, l.request_id, l.latency_ms, l.environment, l.created_at,
+	             CASE WHEN k.purpose = 'EXPLORER' THEN 'API_EXPLORER' ELSE 'API' END
+	        FROM developer.dev_api_request_logs l
+	        LEFT JOIN developer.dev_api_keys k ON k.id = l.key_id
+	       WHERE l.project_id = $1`
 	for _, c := range where {
 		q += " AND " + c
 	}
-	q += " ORDER BY created_at DESC LIMIT " + bind(limit)
+	q += " ORDER BY l.created_at DESC LIMIT " + bind(limit)
 
 	rows, err := s.pool.Query(ctx, q, args...)
 	if err != nil {
@@ -1326,7 +1339,7 @@ func (s *pgStore) APIRequestLogs(ctx context.Context, projectID string, f Reques
 	for rows.Next() {
 		var v APIRequestLogView
 		if err := rows.Scan(&v.ID, &v.Method, &v.Path, &v.Route, &v.Status,
-			&v.RequestID, &v.LatencyMS, &v.Environment, &v.CreatedAt); err != nil {
+			&v.RequestID, &v.LatencyMS, &v.Environment, &v.CreatedAt, &v.Source); err != nil {
 			return nil, err
 		}
 		out = append(out, v)

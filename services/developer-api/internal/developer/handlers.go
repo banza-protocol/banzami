@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -255,6 +256,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
 	r.Get("/projects/{projID}/logs", h.listAPIRequestLogs)
+	r.Get("/projects/{projID}/explorer/operations", h.explorerOperations)
 	r.Get("/projects/{projID}/footprint", h.projectFootprint)
 	r.Get("/workspaces/{wsID}/footprint", h.workspaceFootprint)
 
@@ -277,6 +279,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/invites/accept", h.acceptInvite)
 		r.Post("/workspaces/{wsID}/projects", h.createProject)
 		r.Post("/projects/{projID}/keys", h.createKey)
+		r.Post("/projects/{projID}/explorer/requests", h.runExplorerRequest)
 		r.Post("/keys/{keyID}/rotate", h.rotateKey)
 		r.Delete("/keys/{keyID}", h.revokeKey)
 		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
@@ -826,7 +829,7 @@ func (h *Handlers) listAPIRequestLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	f := RequestLogFilter{RequestID: q.Get("request_id"), Path: q.Get("path")}
+	f := RequestLogFilter{RequestID: q.Get("request_id"), Path: q.Get("path"), Method: strings.ToUpper(q.Get("method")), Source: strings.ToUpper(q.Get("source"))}
 	f.Limit, _ = strconv.Atoi(q.Get("limit"))
 	f.Status, _ = strconv.Atoi(q.Get("status"))
 	if v := q.Get("since"); v != "" {
@@ -1424,3 +1427,50 @@ func keyViews(ks []APIKey) []map[string]any {
 // realIP is the client clientip resolved for this service (RemoteAddr), never
 // the caller's own X-Forwarded-For (A9-09).
 func realIP(r *http.Request) string { return clientip.Host(r.RemoteAddr) }
+
+// ── API Explorer (ADR-060 §7) ────────────────────────────────────────────────
+
+// GET /projects/{projID}/explorer/operations — what the Explorer can run.
+func (h *Handlers) explorerOperations(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	version, ops, err := h.svc.ExplorerOperations(r.Context(), u.ID, chi.URLParam(r, "projID"))
+	if err != nil {
+		explorerErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"spec_version": version, "key_ttl_seconds": int(ExplorerKeyTTL.Seconds()), "operations": ops})
+}
+
+// POST /projects/{projID}/explorer/requests — run one operation server-side.
+func (h *Handlers) runExplorerRequest(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	var in ExplorerRequest
+	if !body(r, &in) {
+		explorerErr(w, ErrExplorerInvalidRequest)
+		return
+	}
+	out, err := h.svc.RunExplorerRequest(r.Context(), u.ID, chi.URLParam(r, "projID"), in)
+	if err != nil {
+		explorerErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, out)
+}
+
+func explorerErr(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, ErrExplorerUnavailable):
+		httpx.Error(w, http.StatusServiceUnavailable, "EXPLORER_UNAVAILABLE", "the API Explorer is not available here")
+	case errors.Is(err, ErrExplorerUnknown):
+		httpx.Error(w, http.StatusBadRequest, "EXPLORER_OPERATION_UNKNOWN", "the API Explorer runs only published operations")
+	case errors.Is(err, ErrExplorerInvalidRequest):
+		httpx.Error(w, http.StatusBadRequest, "EXPLORER_INVALID_REQUEST", "a path value, query parameter or body does not fit this operation")
+	case errors.Is(err, ErrExplorerRateLimited):
+		w.Header().Set("Retry-After", "60")
+		httpx.Error(w, http.StatusTooManyRequests, "EXPLORER_RATE_LIMITED", "at most 30 API Explorer requests a minute per project")
+	case errors.Is(err, errExplorerUpstreamFailure):
+		httpx.Error(w, http.StatusBadGateway, "EXPLORER_UPSTREAM_UNAVAILABLE", "the Sandbox API did not answer")
+	default:
+		mapErr(w, err)
+	}
+}

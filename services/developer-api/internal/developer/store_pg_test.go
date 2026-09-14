@@ -126,3 +126,75 @@ func TestPgStore_WalletAccountsLeaveOutClosed(t *testing.T) {
 		t.Fatalf("count %d, listed %d, want 2", n, len(list))
 	}
 }
+
+// The API Explorer's key (ADR-060 §7), against a real schema: the CHECK ties
+// EXPLORER to an expiry, the key is never listed, an expired one does not
+// authenticate, and the request log names what it ran as the Explorer's.
+func TestPgStore_ExplorerKeyAndLogSource(t *testing.T) {
+	ctx := context.Background()
+	pool := devPoolOrSkip(ctx, t)
+	defer pool.Close()
+	var hasPurpose bool
+	_ = pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='developer' AND table_name='dev_api_keys' AND column_name='purpose')`).Scan(&hasPurpose)
+	if !hasPurpose {
+		t.Skip("migration 0142 not applied")
+	}
+	svc := NewService(NewPGStore(pool, env.Sandbox), "invite-secret-fixture", "api-key-pepper-fixture", time.Hour)
+	svc.SetFixturesEnabled(true)
+	actor := uuid.NewString()
+	_, proj, err := svc.CreateFixtureProject(ctx, "Explorer real DB", actor, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	insert := func(purpose string, exp *time.Time) (APIKey, string, error) {
+		raw, prefix, _ := newAPIKey(KindSecret)
+		k, err := svc.store.CreateAPIKey(ctx, APIKeyInsert{ProjectID: proj.ID, Environment: EnvSandbox, Kind: KindSecret, Name: "x",
+			KeyPrefix: prefix, KeyHash: hashKey(raw, svc.apiKeyPepper), HashVersion: 1, Scopes: []string{"identity:read"},
+			CreatedBy: actor, Purpose: purpose, ExpiresAt: exp})
+		return k, raw, err
+	}
+	if _, _, err := insert(PurposeExplorer, nil); err == nil {
+		t.Fatal("an EXPLORER key without an expiry was accepted by the schema")
+	}
+	past := time.Now().Add(-time.Minute)
+	expired, expiredRaw, err := insert(PurposeExplorer, &past)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.AuthorizeKey(ctx, expiredRaw, "identity:read"); err != ErrForbidden {
+		t.Fatalf("an expired Explorer key authenticated: %v", err)
+	}
+	soon := time.Now().Add(ExplorerKeyTTL)
+	live, liveRaw, err := insert(PurposeExplorer, &soon)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.AuthorizeKey(ctx, liveRaw, "identity:read"); err != nil {
+		t.Fatalf("a live Explorer key must authenticate for its scope: %v", err)
+	}
+	std, _, err := insert("", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys, err := svc.store.APIKeysForProject(ctx, proj.ID)
+	if err != nil || len(keys) != 1 || keys[0].ID != std.ID || keys[0].Purpose != "STANDARD" {
+		t.Fatalf("only the STANDARD key is listed: %+v %v", keys, err)
+	}
+	if k, _ := svc.store.APIKeyByID(ctx, live.ID); k == nil || k.Purpose != PurposeExplorer {
+		t.Fatalf("APIKeyByID must carry the purpose: %+v", k)
+	}
+	_ = expired
+
+	for _, keyID := range []string{live.ID, std.ID} {
+		if _, err := pool.Exec(ctx, `INSERT INTO developer.dev_api_request_logs (project_id, key_id, environment, method, path, route, status, request_id)
+			VALUES ($1, $2, 'SANDBOX', 'GET', '/v1/me', '/v1/me', 200, $3)`, proj.ID, keyID, uuid.NewString()); err != nil {
+			t.Fatalf("seed log: %v", err)
+		}
+	}
+	all, _ := svc.store.APIRequestLogs(ctx, proj.ID, RequestLogFilter{})
+	explorer, _ := svc.store.APIRequestLogs(ctx, proj.ID, RequestLogFilter{Source: "API_EXPLORER"})
+	api, _ := svc.store.APIRequestLogs(ctx, proj.ID, RequestLogFilter{Source: "API", Method: "GET"})
+	if len(all) != 2 || len(explorer) != 1 || explorer[0].Source != "API_EXPLORER" || len(api) != 1 || api[0].Source != "API" {
+		t.Fatalf("log sources: all=%d explorer=%+v api=%+v", len(all), explorer, api)
+	}
+}

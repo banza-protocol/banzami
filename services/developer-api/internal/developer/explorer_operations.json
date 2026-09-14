@@ -1,0 +1,721 @@
+{
+  "source": "docs/developer/openapi/banzami-sandbox.openapi.json",
+  "spec_version": "docs-2026-09-14",
+  "operations": [
+    {
+      "operation_id": "createApplicationSettlement",
+      "tag": "application-settlements",
+      "summary": "Settle one of your segregated accounts to a beneficiary",
+      "method": "POST",
+      "path": "/v1/application-settlements",
+      "scope": "application_settlements:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "source_account_id": "wacc_xxx",
+        "beneficiary_banza_name": "@beneficiary_xxx",
+        "fee_destination_banza_name": "@my-business",
+        "reference_id": "campaign_xxx",
+        "reason": "Campaign closed",
+        "idempotency_key": "idem_xxx"
+      }
+    },
+    {
+      "operation_id": "resolveHandle",
+      "tag": "handles",
+      "summary": "Confirm a consumer @banza exists",
+      "method": "GET",
+      "path": "/v1/consumers/handle/{handle}",
+      "scope": "customers:read",
+      "path_params": [
+        {
+          "name": "handle",
+          "example": "handle_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getFinancialSetup",
+      "tag": "identity",
+      "summary": "Your Project's financial readiness",
+      "method": "GET",
+      "path": "/v1/financial-setup",
+      "scope": "identity:read",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "fee_destination",
+          "type": "string"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getMe",
+      "tag": "identity",
+      "summary": "Key identity (first successful call — no SDK required)",
+      "method": "GET",
+      "path": "/v1/me",
+      "scope": "identity:read",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listPaymentLinks",
+      "tag": "payment-links",
+      "summary": "List payment links",
+      "method": "GET",
+      "path": "/v1/payment-links",
+      "scope": "payment_links:read",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "limit",
+          "type": "integer"
+        },
+        {
+          "name": "cursor",
+          "type": "string"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "createPaymentLink",
+      "tag": "payment-links",
+      "summary": "Create a reusable payment link",
+      "method": "POST",
+      "path": "/v1/payment-links",
+      "scope": "payment_links:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "wallet_id": "wallet_xxx",
+        "amount_minor": 25000,
+        "currency": "AOA",
+        "description": "Order #123"
+      }
+    },
+    {
+      "operation_id": "cancelPaymentLink",
+      "tag": "payment-links",
+      "summary": "Cancel one of your payment links",
+      "method": "DELETE",
+      "path": "/v1/payment-links/{id}",
+      "scope": "payment_links:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "payment_link_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getPaymentLink",
+      "tag": "payment-links",
+      "summary": "Retrieve one of your payment links",
+      "method": "GET",
+      "path": "/v1/payment-links/{id}",
+      "scope": "payment_links:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "payment_link_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listPaymentSessions",
+      "tag": "payment-sessions",
+      "summary": "List payment sessions",
+      "method": "GET",
+      "path": "/v1/payment-sessions",
+      "scope": "payment_sessions:read",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "status",
+          "type": "string"
+        },
+        {
+          "name": "limit",
+          "type": "integer"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "createPaymentSession",
+      "tag": "payment-sessions",
+      "summary": "Create a payment session",
+      "method": "POST",
+      "path": "/v1/payment-sessions",
+      "scope": "payment_sessions:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "wallet_account_id": "wacc_xxx",
+        "purpose": "ORDER",
+        "reference_type": "PEDIDO",
+        "reference_id": "order_123",
+        "amount_minor": 25000,
+        "currency": "AOA",
+        "description": "Order #123"
+      }
+    },
+    {
+      "operation_id": "getPaymentSession",
+      "tag": "payment-sessions",
+      "summary": "Fetch a payment session",
+      "method": "GET",
+      "path": "/v1/payment-sessions/{id}",
+      "scope": "payment_sessions:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "payment_session_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getPaymentSessionLink",
+      "tag": "payment-sessions",
+      "summary": "Fetch the session's public payment link",
+      "method": "GET",
+      "path": "/v1/payment-sessions/{id}/link",
+      "scope": "payment_sessions:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "payment_session_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getPaymentSessionQr",
+      "tag": "payment-sessions",
+      "summary": "Fetch the session QR (JSON value or rendered image)",
+      "method": "GET",
+      "path": "/v1/payment-sessions/{id}/qr",
+      "scope": "payment_sessions:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "payment_session_xxx"
+        }
+      ],
+      "query_params": [
+        {
+          "name": "format",
+          "type": "string"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listRefunds",
+      "tag": "refunds",
+      "summary": "List your refunds",
+      "method": "GET",
+      "path": "/v1/refunds",
+      "scope": "refunds:read",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "source_id",
+          "type": "string"
+        },
+        {
+          "name": "limit",
+          "type": "integer"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "createRefund",
+      "tag": "refunds",
+      "summary": "Refund an eligible payment",
+      "method": "POST",
+      "path": "/v1/refunds",
+      "scope": "refunds:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "source_type": "WALLET_PAYMENT",
+        "source_id": "wallet_payment_xxx",
+        "amount_minor": 50000,
+        "currency": "AOA",
+        "idempotency_key": "idem_xxx"
+      }
+    },
+    {
+      "operation_id": "getRefund",
+      "tag": "refunds",
+      "summary": "Retrieve one of your refunds",
+      "method": "GET",
+      "path": "/v1/refunds/{id}",
+      "scope": "refunds:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "refund_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listSandboxScenarios",
+      "tag": "sandbox",
+      "summary": "List the deterministic Sandbox scenarios",
+      "method": "GET",
+      "path": "/v1/sandbox/scenarios",
+      "scope": "sandbox:read",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listTestPayers",
+      "tag": "sandbox",
+      "summary": "List your test payers",
+      "method": "GET",
+      "path": "/v1/sandbox/test-payers",
+      "scope": "sandbox:read",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "include_retired",
+          "type": "boolean"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "createTestPayer",
+      "tag": "sandbox",
+      "summary": "Create a test payer",
+      "method": "POST",
+      "path": "/v1/sandbox/test-payers",
+      "scope": "sandbox:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "label": "Maria (teste)",
+        "initial_balance_minor": 1000000
+      }
+    },
+    {
+      "operation_id": "retireTestPayer",
+      "tag": "sandbox",
+      "summary": "Retire a test payer",
+      "method": "DELETE",
+      "path": "/v1/sandbox/test-payers/{id}",
+      "scope": "sandbox:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "tp_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getTestPayer",
+      "tag": "sandbox",
+      "summary": "Fetch a test payer",
+      "method": "GET",
+      "path": "/v1/sandbox/test-payers/{id}",
+      "scope": "sandbox:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "tp_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "fundTestPayer",
+      "tag": "sandbox",
+      "summary": "Add fictitious value to a test payer",
+      "method": "POST",
+      "path": "/v1/sandbox/test-payers/{id}/fund",
+      "scope": "sandbox:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "tp_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": true,
+      "body": true,
+      "example_body": {
+        "amount_minor": 500000
+      }
+    },
+    {
+      "operation_id": "payAsTestPayer",
+      "tag": "sandbox",
+      "summary": "Pay as a test payer",
+      "method": "POST",
+      "path": "/v1/sandbox/test-payers/{id}/payments",
+      "scope": "sandbox:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "tp_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "payment_session_id": "payment_session_xxx",
+        "via": "LINK"
+      }
+    },
+    {
+      "operation_id": "createWalletAccountTransfer",
+      "tag": "transfers",
+      "summary": "Move value between two accounts of your own owner",
+      "method": "POST",
+      "path": "/v1/wallet-account-transfers",
+      "scope": "transfers:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "source_wallet_account_id": "wacc_source_xxx",
+        "destination_wallet_account_id": "wacc_destination_xxx",
+        "amount_minor": 50000,
+        "currency": "AOA",
+        "idempotency_key": "idem_xxx"
+      }
+    },
+    {
+      "operation_id": "listWalletAccounts",
+      "tag": "wallet-accounts",
+      "summary": "List the accounts under your wallet",
+      "method": "GET",
+      "path": "/v1/wallet-accounts",
+      "scope": "wallet_accounts:read",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "wallet_id",
+          "type": "string"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "createWalletAccount",
+      "tag": "wallet-accounts",
+      "summary": "Open a segregated account under your owner",
+      "method": "POST",
+      "path": "/v1/wallet-accounts",
+      "scope": "wallet_accounts:create",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "purpose": "CAMPAIGN",
+        "reference_type": "DOA_CAMPAIGN",
+        "reference_id": "campaign-a",
+        "label": "Campaign A"
+      }
+    },
+    {
+      "operation_id": "getWalletAccount",
+      "tag": "wallet-accounts",
+      "summary": "Retrieve one of your accounts",
+      "method": "GET",
+      "path": "/v1/wallet-accounts/{id}",
+      "scope": "wallet_accounts:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": ""
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "replayWebhookDelivery",
+      "tag": "webhooks",
+      "summary": "Re-send one of your deliveries",
+      "method": "POST",
+      "path": "/v1/webhooks/deliveries/{id}/replay",
+      "scope": "webhooks:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "whdel_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listWebhookEndpoints",
+      "tag": "webhooks",
+      "summary": "List your webhook endpoints",
+      "method": "GET",
+      "path": "/v1/webhooks/endpoints",
+      "scope": "webhooks:read",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "registerWebhookEndpoint",
+      "tag": "webhooks",
+      "summary": "Register the endpoint that receives your project’s events",
+      "method": "POST",
+      "path": "/v1/webhooks/endpoints",
+      "scope": "webhooks:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "url": "https://your-server.example/webhooks/banzami",
+        "events": [
+          "payment_session.paid"
+        ]
+      }
+    },
+    {
+      "operation_id": "deactivateWebhookEndpoint",
+      "tag": "webhooks",
+      "summary": "Deactivate one of your webhook endpoints",
+      "method": "DELETE",
+      "path": "/v1/webhooks/endpoints/{id}",
+      "scope": "webhooks:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "whep_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getWebhookEndpoint",
+      "tag": "webhooks",
+      "summary": "Retrieve one of your webhook endpoints",
+      "method": "GET",
+      "path": "/v1/webhooks/endpoints/{id}",
+      "scope": "webhooks:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "whep_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "getWebhookEndpointHealth",
+      "tag": "webhooks",
+      "summary": "Delivery health of one of your endpoints (last 24 hours)",
+      "method": "GET",
+      "path": "/v1/webhooks/endpoints/{id}/health",
+      "scope": "webhooks:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "whep_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "rotateWebhookEndpointSecret",
+      "tag": "webhooks",
+      "summary": "Rotate an endpoint's signing secret",
+      "method": "POST",
+      "path": "/v1/webhooks/endpoints/{id}/rotate-secret",
+      "scope": "webhooks:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "whep_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "sendWebhookTestEvent",
+      "tag": "webhooks",
+      "summary": "Send a test event to an endpoint",
+      "method": "POST",
+      "path": "/v1/webhooks/endpoints/{id}/test",
+      "scope": "webhooks:write",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "whep_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listWebhookEvents",
+      "tag": "webhooks",
+      "summary": "List your recent webhook events",
+      "method": "GET",
+      "path": "/v1/webhooks/events",
+      "scope": "webhooks:read",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "limit",
+          "type": "integer"
+        }
+      ],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "listWebhookDeliveries",
+      "tag": "webhooks",
+      "summary": "Delivery history of one of your events",
+      "method": "GET",
+      "path": "/v1/webhooks/events/{id}/deliveries",
+      "scope": "webhooks:read",
+      "path_params": [
+        {
+          "name": "id",
+          "example": "whevt_xxx"
+        }
+      ],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    }
+  ]
+}

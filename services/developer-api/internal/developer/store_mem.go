@@ -56,7 +56,8 @@ type memRequestLog struct {
 // apiKeyRec holds the full key row incl. the secret hash (never exposed).
 type apiKeyRec struct {
 	APIKey
-	keyHash string
+	keyHash   string
+	expiresAt *time.Time
 }
 
 // NewMemStore builds an in-memory developer Store.
@@ -541,7 +542,12 @@ func (m *memStore) insertKey(in APIKeyInsert) APIKey {
 		Name: in.Name, KeyPrefix: in.KeyPrefix, PublicValue: in.PublicValue, Scopes: in.Scopes,
 		Status: "ACTIVE", RotatedFrom: in.RotatedFrom, CreatedAt: time.Now(),
 	}
-	m.apiKeys = append(m.apiKeys, &apiKeyRec{APIKey: k, keyHash: in.KeyHash})
+	purpose := in.Purpose
+	if purpose == "" {
+		purpose = "STANDARD"
+	}
+	k.Purpose = purpose
+	m.apiKeys = append(m.apiKeys, &apiKeyRec{APIKey: k, keyHash: in.KeyHash, expiresAt: in.ExpiresAt})
 	return k
 }
 
@@ -556,7 +562,7 @@ func (m *memStore) APIKeysForProject(_ context.Context, projectID string) ([]API
 	defer m.mu.Unlock()
 	var out []APIKey
 	for _, r := range m.apiKeys {
-		if r.ProjectID == projectID {
+		if r.ProjectID == projectID && r.Purpose != "EXPLORER" {
 			out = append(out, r.APIKey) // metadata only; keyHash stays internal
 		}
 	}
@@ -580,7 +586,7 @@ func (m *memStore) APIKeyByHash(_ context.Context, keyHash string) (*APIKeyAuth,
 	defer m.mu.Unlock()
 	for _, r := range m.apiKeys {
 		if r.keyHash == keyHash {
-			return &APIKeyAuth{ID: r.ID, ProjectID: r.ProjectID, Environment: r.Environment, Status: r.Status, Scopes: r.Scopes}, nil
+			return &APIKeyAuth{ID: r.ID, ProjectID: r.ProjectID, Environment: r.Environment, Status: r.Status, Scopes: r.Scopes, Purpose: r.Purpose, ExpiresAt: r.expiresAt}, nil
 		}
 	}
 	return nil, ErrNotFound
@@ -858,6 +864,15 @@ func (m *memStore) APIRequestLogs(_ context.Context, projectID string, f Request
 			continue
 		}
 		if f.Path != "" && !strings.Contains(strings.ToLower(v.Path+" "+v.Route), strings.ToLower(f.Path)) {
+			continue
+		}
+		if v.Source == "" {
+			v.Source = "API"
+		}
+		if f.Method != "" && v.Method != f.Method {
+			continue
+		}
+		if f.Source != "" && v.Source != f.Source {
 			continue
 		}
 		if f.Since != nil && v.CreatedAt.Before(*f.Since) {

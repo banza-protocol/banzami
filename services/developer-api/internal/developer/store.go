@@ -525,6 +525,8 @@ type RequestLogFilter struct {
 	RequestID string // exact match — the correlation lookup
 	Status    int    // exact status, e.g. 404
 	Path      string // case-insensitive substring of path or route
+	Method    string // exact HTTP method
+	Source    string // API (an integration's key) | API_EXPLORER (the Console's API Explorer)
 	Since     *time.Time
 	Until     *time.Time
 }
@@ -542,6 +544,9 @@ type APIRequestLogView struct {
 	LatencyMS   *int      `json:"latency_ms,omitempty"`
 	Environment string    `json:"environment"`
 	CreatedAt   time.Time `json:"created_at"`
+	// Source is API for a request made with one of the Project's keys, and
+	// API_EXPLORER for one the Console's API Explorer ran.
+	Source string `json:"source"`
 }
 
 // WebhookEndpointView is an endpoint as the Console shows it. The signing secret
@@ -724,6 +729,8 @@ type APIKey struct {
 	RotatedFrom *string
 	CreatedAt   time.Time
 	LastUsedAt  *time.Time
+	// Purpose is STANDARD, or EXPLORER for the API Explorer's own 60-second key.
+	Purpose string
 }
 
 type APIKeyInsert struct {
@@ -738,6 +745,10 @@ type APIKeyInsert struct {
 	Scopes      []string
 	CreatedBy   string
 	RotatedFrom *string
+	// Purpose is STANDARD (listed, lives until revoked) or EXPLORER (never
+	// listed, expires — ADR-060 §7). ExpiresAt is set exactly for EXPLORER.
+	Purpose   string
+	ExpiresAt *time.Time
 }
 
 // APIKeyAuth is the minimal record returned when authorizing a presented key.
@@ -747,6 +758,8 @@ type APIKeyAuth struct {
 	Environment string
 	Status      string
 	Scopes      []string
+	Purpose     string
+	ExpiresAt   *time.Time
 }
 
 // SandboxBinding is a Project→Merchant payee binding (ADR-047). merchant_id,

@@ -34,6 +34,8 @@ type Service struct {
 	// bound Business's display name (financial_onboarding.go).
 	onboarding BusinessOnboarding
 	namer      BusinessNamer
+	// explorer runs API Explorer requests server-side (explorer.go); nil offers none.
+	explorer *explorerBroker
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the
@@ -1138,7 +1140,9 @@ func (s *Service) ListAPIKeys(ctx context.Context, actor, projectID string) ([]A
 
 func (s *Service) keyAuthz(ctx context.Context, actor, keyID string) (*APIKey, *Project, error) {
 	key, err := s.store.APIKeyByID(ctx, keyID)
-	if err != nil || key == nil {
+	// The API Explorer's key is not a credential anyone manages: rotating it
+	// would mint a STANDARD key with its scopes and no expiry.
+	if err != nil || key == nil || key.Purpose == PurposeExplorer {
 		return nil, nil, ErrNotFound
 	}
 	p, role, err := s.projectAuthz(ctx, actor, key.ProjectID)
@@ -1215,6 +1219,11 @@ func (s *Service) AuthorizeKey(ctx context.Context, rawKey, requiredScope string
 	}
 	if auth.Status != "ACTIVE" || auth.Environment != EnvSandbox {
 		return nil, ErrForbidden // revoked / rotated-away / non-sandbox
+	}
+	// An expiring key (the API Explorer's, ADR-060 §7) is refused at and after
+	// its expiry, whether or not anyone revoked it.
+	if auth.ExpiresAt != nil && !time.Now().Before(*auth.ExpiresAt) {
+		return nil, ErrForbidden
 	}
 	if requiredScope != "" {
 		ok := false

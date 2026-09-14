@@ -180,6 +180,9 @@ func main() {
 	// Same gate as fixtures, for the same reason: a self-service path into a
 	// real-money financial owner must not be reachable outside Sandbox.
 	devSvc.SetSandboxEnvironment(env.Parse(cfg.Environment).IsSandbox() || cfg.IsDevelopment())
+	// The API Explorer calls the gateway's public /v1 surface with a 60-second
+	// key (ADR-060 §7). Sandbox only; SetExplorer is a no-op elsewhere.
+	devSvc.SetExplorer(cfg.GatewayInternalURL, nil)
 	slog.Info("payment capability release state", "released", cfg.PaymentCapabilityReleased, "fixtures", fixturesEnabled, "env", cfg.Environment)
 	devH := developer.NewHandlers(devSvc)
 
