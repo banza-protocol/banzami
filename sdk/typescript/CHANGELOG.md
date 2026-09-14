@@ -7,11 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.14.0] — 2026-09-14
+## [0.14.1] — 2026-09-14
 
 Prepared for release; publishing to npm is an owner step (`node tools/sdk-release.mjs --publish`
-from the owner's machine). Until the registry serves 0.14.0, the documentation's
-examples for the features below use the Console or HTTP.
+from the owner's machine). 0.14.0 was published from the commit before these changes.
+
+### Added
+- `simulate: 'DELAYED'` on `payAsTestPayer` returns a `TestPaymentPending`
+  (202, `status: 'PENDING'`, `completes_after_seconds`); the payment completes on
+  its own about 10 seconds later. With 0.14.0 the value is accepted at runtime but
+  is not in the `SandboxSimulation` type.
+
+### Changed
+- README: the environment table states the current truth — the Sandbox is
+  available and self-service; Financial Live is unavailable and the API refuses
+  `bz_live_…` keys; publishable keys exist and are read-only.
+
+## [0.14.0] — 2026-09-14
+
+Published to npm on 2026-09-14 (gitHead `f4f7cf31`), proved from the registry
+(`evidence/assurance/sdk/cap-sdk-001-public-install.json`).
 
 ### Added — the self-service Sandbox (ADR-060)
 - `listSandboxScenarios()` — the deterministic Sandbox scenarios: how to produce
@@ -21,9 +36,7 @@ examples for the features below use the Console or HTTP.
   `payAsTestPayer` (pay your own session or link by link or QR, with an explicit
   `simulate` for external-rail outcomes) and `retireTestPayer`. Sandbox keys only.
   A test payer acts only through this API: `TestPayer` carries no PIN, and it
-  signs in to no app. `simulate: 'DELAYED'` returns a `TestPaymentPending`
-  (202, `status: 'PENDING'`) and the payment completes on its own about 10
-  seconds later.
+  signs in to no app.
 - `sendWebhookTestEvent(endpointId)` — a synthetic `webhook.test` event, signed
   like any other, that moves nothing and can be replayed.
 - `@banzami/sdk/realtime` — `watchPaymentSessionStatus`, for a browser page: it

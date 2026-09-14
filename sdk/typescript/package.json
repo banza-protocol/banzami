@@ -1,6 +1,6 @@
 {
   "name": "@banzami/sdk",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "Official TypeScript/JavaScript SDK for Banzami — wallet-native Kwanza payments on the BANZA protocol",
   "license": "MIT",
   "main": "./dist/cjs/index.js",
