@@ -799,12 +799,12 @@
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "Uma página que mostra um QR ou um link pode mudar para «pago» no instante em que o pagamento acontece — mesmo que o pagador tenha pago noutro dispositivo. Cada "
   },
-  "pt:Payments:2f3a932ffa": {
+  "pt:Payments:050b01d0b5": {
    "page": "Payments",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler/{payment_sessions.go (safeDTO, STATIC_QR/DYNAMIC_QR, refund_source), payment_authz.go (rejectClientPayeeFields, authorizeDeveloperSubAccount), payment_links.go}; core/api/src/routes/payment_sessions.rs (one session per purpose + reference); sdk/typescript/src/client.ts (createPaymentLink types in 0.13.0)",
-   "text": "O stream: com Accept: text/event-stream, um evento snapshot com o estado atual, um status em cada mudança, um heartbeat a cada 15 segundos e um expired quando o"
+   "text": "O stream: com Accept: text/event-stream, um evento snapshot com o estado atual, um status em cada mudança, um heartbeat a cada 5 segundos e um expired quando o "
   },
   "pt:Payments:2958870d55": {
    "page": "Payments",
@@ -5664,12 +5664,12 @@
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "A page showing a QR code or a link can switch to “paid” the moment the payment happens — even when the payer paid on another device. Every session read with you"
   },
-  "en:Payments:3d162f3f4d": {
+  "en:Payments:89db0a383b": {
    "page": "Payments",
    "kind": "LI",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler/{payment_sessions.go (safeDTO, STATIC_QR/DYNAMIC_QR, refund_source), payment_authz.go (rejectClientPayeeFields, authorizeDeveloperSubAccount), payment_links.go}; core/api/src/routes/payment_sessions.rs (one session per purpose + reference); sdk/typescript/src/client.ts (createPaymentLink types in 0.13.0)",
-   "text": "The stream: with Accept: text/event-stream, a snapshot event with the current status, a status on each change, a heartbeat every 15 seconds and an expired when "
+   "text": "The stream: with Accept: text/event-stream, a snapshot event with the current status, a status on each change, a heartbeat every 5 seconds and an expired when t"
   },
   "en:Payments:7e25c549ce": {
    "page": "Payments",
@@ -12069,19 +12069,19 @@
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "the endpoint is disabled; enable it first"
   },
-  "pt:Reference-spec:37e0067aeb": {
+  "pt:Reference-spec:6becbb2329": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "Para uma página no browser: o estado de uma sessão de pagamento em tempo real, por Server-Sent Events — um snapshot, um evento status em cada mudança, um heartb"
   },
-  "en:Reference-spec:c9baae4f24": {
+  "en:Reference-spec:f16b99b40f": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-   "text": "For a browser page: a Payment Session’s status in real time, over Server-Sent Events — a snapshot, a status event on each change, a heartbeat every 15 s, and a "
+   "text": "For a browser page: a Payment Session’s status in real time, over Server-Sent Events — a snapshot, a status event on each change, a heartbeat every 5 s, and a c"
   },
   "pt:Reference-spec:d2c91327e2": {
    "page": "Reference-spec",

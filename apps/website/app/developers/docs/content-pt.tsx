@@ -741,7 +741,7 @@ export function PtPayments({ copy }: { copy: CopyFn }) {
                 screenOnly: 'Só para o ecrã',
               }} />
               <UL>
-                <LI><strong>O stream:</strong> com <Code>Accept: text/event-stream</Code>, um evento <Code>snapshot</Code> com o estado atual, um <Code>status</Code> em cada mudança, um heartbeat a cada 15 segundos e um <Code>expired</Code> quando o token expira. Fecha num estado final: <Code>PAID</Code>, <Code>EXPIRED</Code>, <Code>CANCELLED</Code> ou <Code>FAILED</Code>. Com <Code>Accept: application/json</Code>, uma leitura única.</LI>
+                <LI><strong>O stream:</strong> com <Code>Accept: text/event-stream</Code>, um evento <Code>snapshot</Code> com o estado atual, um <Code>status</Code> em cada mudança, um heartbeat a cada 5 segundos e um <Code>expired</Code> quando o token expira. Fecha num estado final: <Code>PAID</Code>, <Code>EXPIRED</Code>, <Code>CANCELLED</Code> ou <Code>FAILED</Code>. Com <Code>Accept: application/json</Code>, uma leitura única.</LI>
                 <LI><strong>O token vai no cabeçalho, nunca no endereço:</strong> um token no URL é recusado com <Code>400 REALTIME_TOKEN_IN_URL</Code>. Por isso a página usa <Code>fetch</Code> com leitura em streaming, e não <Code>EventSource</Code>, que não envia cabeçalhos.</LI>
                 <LI><strong>Religar:</strong> se a ligação cair, abra-a de novo — começa com um snapshot novo. Com o token expirado (<Code>401 REALTIME_TOKEN_EXPIRED</Code>), leia a sessão no seu servidor para um token novo.</LI>
                 <LI><strong>Sem stream:</strong> se a ligação não se mantiver (<Code>503 REALTIME_UNAVAILABLE</Code>, rede restrita), a página pergunta ao seu servidor a um intervalo moderado, por exemplo cinco segundos.</LI>

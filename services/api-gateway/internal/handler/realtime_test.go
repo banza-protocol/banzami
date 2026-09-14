@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -196,7 +197,19 @@ func TestRealtime_PerSessionStreamLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp.Body.Close()
-	if resp.StatusCode != http.StatusTooManyRequests || resp.Header.Get("Retry-After") == "" {
-		t.Fatalf("over the per-session limit: %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusTooManyRequests || resp.Header.Get("Retry-After") != strconv.Itoa(int(RealtimeHeartbeat.Seconds())) {
+		t.Fatalf("over the per-session limit: %d Retry-After=%q", resp.StatusCode, resp.Header.Get("Retry-After"))
+	}
+}
+
+// A dead stream behind Cloudflare keeps its place until a write fails, so the
+// heartbeat bounds how long a reloaded page can be refused a stream (measured on
+// the deployed Sandbox: 15 s with a 15 s heartbeat).
+func TestRealtime_HeartbeatBoundsHowLongADeadStreamHoldsItsPlace(t *testing.T) {
+	if RealtimeHeartbeat > 5*time.Second {
+		t.Fatalf("heartbeat %s: an abandoned stream would hold a place for that long behind a proxy", RealtimeHeartbeat)
+	}
+	if RealtimeHeartbeat < time.Second {
+		t.Fatalf("heartbeat %s is below the poll interval; it adds traffic and frees nothing sooner", RealtimeHeartbeat)
 	}
 }

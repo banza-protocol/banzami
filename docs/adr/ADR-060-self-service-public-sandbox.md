@@ -201,7 +201,7 @@ gates read it as its own credential class (`statusToken` in the OpenAPI):
 - `Accept: application/json` — one snapshot `{ session_id, status, amount_minor,
   currency, expires_at, terminal, observed_at }`;
 - `Accept: text/event-stream` — Server-Sent Events: `retry: 3000`, a `snapshot`
-  event, a `status` event on each change, a `: heartbeat` comment every 15 s,
+  event, a `status` event on each change, a `: heartbeat` comment every 5 s,
   an `expired` event at token expiry; the stream closes after a terminal status
   (PAID, EXPIRED, CANCELLED, FAILED). A reconnect starts from a fresh snapshot
   (there is no `Last-Event-ID` replay: the current state is the whole state).
@@ -211,7 +211,11 @@ valid — a URL reaches logs, history and `Referer`), missing `401
 REALTIME_TOKEN_REQUIRED`, bad signature or foreign environment `401
 REALTIME_TOKEN_INVALID`, expired `401 REALTIME_TOKEN_EXPIRED`, another session
 `403 REALTIME_TOKEN_WRONG_RESOURCE`. Limits: 3 streams per session, 20 per IP
-(`429 REALTIME_STREAM_LIMIT`), 120 requests a minute per IP. CORS allows any
+(`429 REALTIME_STREAM_LIMIT`, `Retry-After` = one heartbeat), 120 requests a minute per IP.
+A stream the client abandons keeps its place until the server notices; behind
+Cloudflare that is the next failed write, so the 5 s heartbeat is also the
+longest a reloaded page waits for a place (it was 15 s, measured on the deployed
+Sandbox, until the heartbeat was shortened). CORS allows any
 origin without credentials; the preflight is answered by the CORS middleware.
 The route is exempt from the 60 s request timeout and clears the write
 deadline; the response sets `X-Accel-Buffering: no` for nginx. One watcher per

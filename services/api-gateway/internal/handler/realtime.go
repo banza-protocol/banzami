@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +48,17 @@ import (
 // event history, so Last-Event-ID is accepted and simply answered with the
 // current state.
 //
+// WHY A 5-SECOND HEARTBEAT
+//
+// A stream the client abandons (a reloaded page, a closed tab) holds one of the
+// session's RealtimeMaxPerSession places until the server notices. Directly and
+// through nginx it notices within about two seconds; through Cloudflare the
+// origin connection stays open until the next write fails, so the heartbeat
+// interval IS how long a dead stream keeps its place. At 15 s, a page reloaded
+// three times was refused a stream for 15 s (measured on the deployed Sandbox,
+// tools/e2e/sandbox/realtime-isolation-e2e.mjs). Retry-After on the 429 names the
+// same interval: by then the place has been freed.
+//
 // WHY ONE WATCHER PER SESSION
 //
 // Any number of browsers watching one session share one canonical read per
@@ -55,7 +67,7 @@ import (
 
 const (
 	RealtimePollInterval    = time.Second
-	RealtimeHeartbeat       = 15 * time.Second
+	RealtimeHeartbeat       = 5 * time.Second
 	RealtimeMaxPerSession   = 3
 	RealtimeMaxPerIP        = 20
 	realtimeStreamMediaType = "text/event-stream"
@@ -287,7 +299,7 @@ func (h *RealtimeHandler) stream(w http.ResponseWriter, r *http.Request, session
 	ch, release, ok := h.admit(sessionID, ip)
 	if !ok {
 		realtimeStreamEvents.WithLabelValues("rate_limited").Inc()
-		w.Header().Set("Retry-After", "10")
+		w.Header().Set("Retry-After", strconv.Itoa(int(RealtimeHeartbeat.Seconds())))
 		apierror.Respond(w, r, http.StatusTooManyRequests, "REALTIME_STREAM_LIMIT",
 			fmt.Sprintf("at most %d streams per Payment Session and %d per client", RealtimeMaxPerSession, RealtimeMaxPerIP))
 		return

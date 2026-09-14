@@ -998,8 +998,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/realtime/payment-sessions/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Para uma página no browser: o estado de uma sessão de pagamento em tempo real, por Server-Sent Events — um snapshot, um evento status em cada mudança, um heartbeat a cada 15 s, e o fecho num estado final. Com Accept: application/json, uma leitura única. Abre-se com o token de estado da sessão, nunca com uma chave. Serve o ecrã; não é prova de pagamento.',
-      en: 'For a browser page: a Payment Session’s status in real time, over Server-Sent Events — a snapshot, a status event on each change, a heartbeat every 15 s, and a close on a terminal status. With Accept: application/json, a single read. Opened with the session’s status token, never with a key. It serves the screen; it is not proof of payment.',
+      pt: 'Para uma página no browser: o estado de uma sessão de pagamento em tempo real, por Server-Sent Events — um snapshot, um evento status em cada mudança, um heartbeat a cada 5 s, e o fecho num estado final. Com Accept: application/json, uma leitura única. Abre-se com o token de estado da sessão, nunca com uma chave. Serve o ecrã; não é prova de pagamento.',
+      en: 'For a browser page: a Payment Session’s status in real time, over Server-Sent Events — a snapshot, a status event on each change, a heartbeat every 5 s, and a close on a terminal status. With Accept: application/json, a single read. Opened with the session’s status token, never with a key. It serves the screen; it is not proof of payment.',
     },
     credential: { pt: 'Token de estado bzst_ da sessão, no cabeçalho Authorization — nunca no endereço. Sem chave de API.', en: 'The session’s bzst_ status token, in the Authorization header — never in the URL. No API key.' },
     curl: `curl -N https://sandbox-api.banzami.com/v1/realtime/payment-sessions/payment_session_exemplo \\

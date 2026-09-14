@@ -249,6 +249,30 @@ function resolveLink(href) {
   set('SANDBOX_UNDOCUMENTED_TEST_MAGIC', magic);
 }
 
+// ── realtime: the numbers the pages publish are the gateway's ───────────────
+{
+  const problems = [];
+  const go = readFileSync(join(ROOT, 'services/api-gateway/internal/handler/realtime.go'), 'utf8');
+  const constant = (name, unit = '') => Number(new RegExp(`\\b${name}\\s*=\\s*(\\d+)${unit}`).exec(go)?.[1]);
+  const beat = constant('RealtimeHeartbeat', ' \\* time\\.Second');
+  const perSession = constant('RealtimeMaxPerSession');
+  const perIP = constant('RealtimeMaxPerIP');
+  if (!beat || !perSession || !perIP) problems.push('realtime.go: heartbeat or stream limits not found');
+  const openapi = JSON.parse(readFileSync(join(ROOT, 'docs/developer/openapi/banzami-sandbox.openapi.json'), 'utf8'));
+  const rtDesc = JSON.stringify(openapi.paths?.['/v1/realtime/payment-sessions/{id}'] ?? {});
+  const checks = [
+    ['openapi', rtDesc, [new RegExp(`heartbeat' comment every ${beat} seconds`), new RegExp(`${perSession} streams per session, ${perIP} per IP`)]],
+    ['content-pt.tsx', pages.pt.Payments ?? read('content-pt.tsx'), [new RegExp(`heartbeat a cada ${beat} segundos`)]],
+    ['content-en.tsx', pages.en.Payments ?? read('content-en.tsx'), [new RegExp(`heartbeat every ${beat} seconds`)]],
+    ['reference.tsx', read('reference.tsx'), [new RegExp(`heartbeat a cada ${beat} s\\b`), new RegExp(`heartbeat every ${beat} s\\b`)]],
+  ];
+  for (const [where, text, patterns] of checks) for (const re of patterns) if (!re.test(text)) problems.push(`${where}: does not say ${re.source} (realtime.go)`);
+  for (const [where, text] of [['content-pt.tsx', read('content-pt.tsx')], ['content-en.tsx', read('content-en.tsx')], ['reference.tsx', read('reference.tsx')], ['openapi', rtDesc]]) {
+    for (const m of text.matchAll(/heartbeat (?:a cada|every|' comment every) (\d+)/g)) if (Number(m[1]) !== beat) problems.push(`${where}: heartbeat ${m[1]} s, realtime.go says ${beat} s`);
+  }
+  set('REALTIME_DOCS_NUMBERS_DRIFT', problems);
+}
+
 // ── diagrams: title and description, same in both languages ─────────────────
 {
   const problems = [];
@@ -353,6 +377,7 @@ WEBHOOK_GUIDE_DISABLE_TRUTH=${pass('WEBHOOK_GUIDE_DISABLE_UNTRUE')}
 SANDBOX_TEST_RECIPES_VALID=${pass('SANDBOX_TEST_RECIPES_INVALID')}
 SANDBOX_TESTING_COOKBOOK=${pass('SANDBOX_TEST_RECIPES_INVALID')}
 SANDBOX_UNDOCUMENTED_TEST_MAGIC=${results.SANDBOX_UNDOCUMENTED_TEST_MAGIC.length}
+REALTIME_DOCS_NUMBERS=${pass('REALTIME_DOCS_NUMBERS_DRIFT')}
 DOCS_DIAGRAM_ACCESSIBILITY=${pass('DOCS_DIAGRAM_ACCESSIBILITY_PROBLEMS')}
 DOCS_DIAGRAM_NODE_COUNT=${pass('DOCS_DIAGRAM_NODE_COUNT_PROBLEMS')}
 FINANCIAL_SETUP_BEGINNER_COMPREHENSION=${pass('QUICKSTART_FINANCIAL_SETUP_PROBLEMS')}
