@@ -20,7 +20,6 @@ import {
   NOTE,
   RenameField,
   SettingsTabs,
-  codeOf,
   footprintSentence,
   isArchived,
   messageFor,
@@ -146,30 +145,23 @@ function ProjectSettings() {
 
   const remove = async () => {
     try {
-      await developerApi.deleteProject(activeProject.id, activeProject.name, csrf);
+      const { keys_revoked } = await developerApi.deleteProject(activeProject.id, activeProject.name, csrf);
       await reloadProjects();
-      flash('Projeto eliminado');
+      flash(
+        keys_revoked === 1
+          ? 'Projeto eliminado. 1 chave revogada.'
+          : keys_revoked > 1
+            ? `Projeto eliminado. ${keys_revoked} chaves revogadas.`
+            : 'Projeto eliminado.',
+      );
     } catch (e) {
-      // The footprint was read before the dialog opened. If something was
-      // written in between, the server refuses with the counts as they are NOW
-      // — so re-read them rather than leaving the page asserting the old ones.
-      if (codeOf(e) === 'PROJECT_NOT_EMPTY') reloadFootprint();
       throw new Error(explain(e));
     }
   };
 
-  // What stands between this project and being deleted, as the server counts it.
+  // What the project holds — said in the dialog, never a reason to refuse.
   const f = footprint.state === 'read' ? footprint.footprint : null;
-  const deletable = f?.deletable === true;
-  const deleteUnavailable = (() => {
-    if (!canManage) return denied('eliminar um projeto');
-    if (footprint.state === 'loading') return 'A verificar o que este projeto já contém…';
-    if (footprint.state === 'unreadable') {
-      return 'Não foi possível verificar o que este projeto já contém, por isso a eliminação não é oferecida.';
-    }
-    if (!deletable && f) return `${footprintSentence(f)} Pode ser arquivado, não eliminado.`;
-    return null;
-  })();
+  const deleteUnavailable = canManage ? null : denied('eliminar um projeto');
 
   return frame(
     <>
@@ -228,7 +220,7 @@ function ProjectSettings() {
         </p>
       </Card>
 
-      <DangerZone description="Estas ações afetam apenas este projeto. Nenhuma delas pode ser desfeita a partir da consola.">
+      <DangerZone description="Estas ações afetam apenas este projeto. Arquivar é opcional e mantém o projeto; eliminar remove-o.">
         <DangerAction
           title="Arquivar projeto"
           description={
@@ -249,9 +241,9 @@ function ProjectSettings() {
           title="Eliminar projeto"
           description={
             <>
-              Remove o projeto definitivamente. Só é possível enquanto o projeto não tiver
-              história nenhuma — nenhuma chave alguma vez emitida, nenhum pedido registado,
-              nenhuma ligação financeira.
+              Remove este projeto do seu ambiente de testes, mesmo que já tenha tido chaves, pagamentos
+              ou uma configuração financeira. As chaves deixam de funcionar de imediato e os recursos
+              de teste são encerrados. Não pode ser anulado.
             </>
           }
           actionLabel="Eliminar projeto"
@@ -288,9 +280,20 @@ function ProjectSettings() {
 
       {dialog === 'delete' ? (
         <ConfirmByName
-          title="Eliminar projeto"
-          body="Eliminar remove o projeto e o seu identificador definitivamente. Não há como o recuperar."
-          consequence={f ? footprintSentence(f) : 'Não foi possível ler o que este projeto contém.'}
+          title={`Eliminar "${activeProject.name}"?`}
+          body="Isto remove o projeto do seu ambiente de testes."
+          consequence={
+            <>
+              <ul style={{ margin: '0 0 8px', paddingLeft: 18 }}>
+                <li>as API keys deixam de funcionar no momento em que confirmar;</li>
+                <li>os webhooks e os links e sessões de pagamento em aberto deixam de funcionar;</li>
+                <li>os pagadores de teste e o valor fictício do projeto são encerrados.</li>
+              </ul>
+              {f ? `${footprintSentence(f)} ` : ''}Os registos financeiros e de auditoria necessários
+              para preservar a integridade da plataforma podem ser mantidos internamente. Esta ação
+              não pode ser anulada.
+            </>
+          }
           name={activeProject.name}
           nameLabel="Escreva o nome do projeto para confirmar"
           confirmLabel="Eliminar projeto"

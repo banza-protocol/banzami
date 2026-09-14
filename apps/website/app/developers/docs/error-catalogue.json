@@ -787,6 +787,24 @@
       "idempotency_key": "n/a"
     },
     {
+      "code": "RESOURCE_DELETING",
+      "http": [
+        409
+      ],
+      "family": "state",
+      "source": "core",
+      "meaning": {
+        "pt": "O projeto foi eliminado no Sandbox e já não cria sessões nem links de pagamento. Um pedido autorizado antes de as chaves serem revogadas pode recebê-lo; os pedidos seguintes com essas chaves recebem 401.",
+        "en": "The project was deleted in the Sandbox and no longer creates payment sessions or links. A request authorised before its keys were revoked can receive it; later requests with those keys receive 401."
+      },
+      "action": {
+        "pt": "Não repita. Use uma chave de um projeto ativo.",
+        "en": "Do not retry. Use a key from an active project."
+      },
+      "retry": "no",
+      "idempotency_key": "n/a"
+    },
+    {
       "code": "WALLET_ACCOUNT_INACTIVE",
       "http": [
         409

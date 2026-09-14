@@ -81,12 +81,12 @@ export const MESSAGES: Record<string, string> = {
   // The lifecycle refusals. Each one names what is in the way and what to do
   // instead, because "conflito" tells a developer nothing they can act on. The
   // counts travel in ApiError.details, so a dialog can be specific.
-  WORKSPACE_NOT_EMPTY: 'Este workspace ainda tem projetos ativos. Arquive-os primeiro.',
-  PROJECT_NOT_EMPTY: 'Este projeto já tem histórico. Pode ser arquivado, não eliminado.',
+  WORKSPACE_NOT_EMPTY: 'Este workspace ainda tem projetos ativos. Para o arquivar, arquive-os primeiro — ou elimine o workspace, que elimina também os projetos.',
+  PROJECT_NOT_EMPTY: 'Este projeto já tem histórico e, fora do ambiente de testes, só pode ser arquivado.',
   // Self-service creation limits (developer-api limits.go): archiving frees an
   // active place, not the day's allowance.
-  WORKSPACE_LIMIT_REACHED: 'Chegou ao limite de workspaces: até 10 ativos e 20 criados por dia. Arquive um que já não use.',
-  PROJECT_LIMIT_REACHED: 'Chegou ao limite de projetos deste workspace: até 25 ativos e 50 criados por dia. Arquive um que já não use.',
+  WORKSPACE_LIMIT_REACHED: 'Chegou ao limite de workspaces: até 10 ativos e 20 criados por dia. Elimine ou arquive um que já não use.',
+  PROJECT_LIMIT_REACHED: 'Chegou ao limite de projetos deste workspace: até 25 ativos e 50 criados por dia. Elimine ou arquive um que já não use.',
   ENDPOINT_HAS_DELIVERIES: 'Este endpoint já recebeu entregas. Desative-o em vez de o eliminar.',
   // Reenviar é para uma entrega que falhou. Uma que já foi aceite não se repete:
   // o servidor do integrador recebeu esse evento e agiu sobre ele, e repeti-lo é
@@ -225,6 +225,12 @@ export type Invite = {
  * deleted. Counts are "ever", not "currently": a revoked key is still a
  * credential the project once issued, so it is history and history is archived.
  */
+/** A Sandbox deletion's state (SANDBOX-DELETE-001). */
+export type SandboxDeletion = {
+  status: 'DELETING' | 'DELETED';
+  keys_revoked: number;
+};
+
 export type ProjectFootprint = {
   keys: number;
   request_logs: number;
@@ -622,14 +628,15 @@ export const developerApi = {
     req<Workspace>('/workspaces', { method: 'POST', body: { name }, csrf }),
   renameWorkspace: (wsID: string, name: string, csrf: string) =>
     req<Workspace>(`/workspaces/${wsID}`, { method: 'PATCH', body: { name }, csrf }),
-  // The same pair a project has, one level up. A workspace that never held a
-  // project is DELETED; one that held anything is ARCHIVED, because its projects
-  // carry history. Both bodies repeat the workspace's own name, so neither can
+  // Two separate intents (SANDBOX-DELETE-001). DELETE removes the workspace and
+  // every project in it from the developer's Sandbox, whatever they have done:
+  // keys revoked at once, test resources closed. POST /archive is optional
+  // organisation. Both bodies repeat the workspace's own name, so neither can
   // happen by a mis-click or a replayed request.
   workspaceFootprint: (wsID: string) =>
     req<WorkspaceFootprint>(`/workspaces/${wsID}/footprint`),
   deleteWorkspace: (wsID: string, name: string, csrf: string) =>
-    req<void>(`/workspaces/${wsID}`, { method: 'DELETE', body: { name }, csrf }),
+    req<SandboxDeletion>(`/workspaces/${wsID}`, { method: 'DELETE', body: { name }, csrf }),
   archiveWorkspace: (wsID: string, name: string, csrf: string) =>
     req<{ status: string }>(`/workspaces/${wsID}/archive`, { method: 'POST', body: { name }, csrf }),
   // The person's own live sessions, and the one recovery they have when a
@@ -699,13 +706,14 @@ export const developerApi = {
   // has it in a config file and a deployed container.
   renameProject: (projectID: string, name: string, csrf: string) =>
     req<Project>(`/projects/${projectID}`, { method: 'PATCH', body: { name }, csrf }),
-  // What the project holds, and therefore whether it can be deleted or only
-  // archived. Asked before either is offered, so the dialog states the
-  // consequence instead of discovering it.
+  // What the project holds, so the dialog can say what deleting it closes.
   projectFootprint: (projectID: string) =>
     req<ProjectFootprint>(`/projects/${projectID}/footprint`),
+  // Deleting a Sandbox project is available whatever it has done: its keys stop
+  // working at once and its test resources are closed. DELETING while that
+  // finishes (202), DELETED once it has (200).
   deleteProject: (projectID: string, name: string, csrf: string) =>
-    req<void>(`/projects/${projectID}`, { method: 'DELETE', body: { name }, csrf }),
+    req<SandboxDeletion>(`/projects/${projectID}`, { method: 'DELETE', body: { name }, csrf }),
   archiveProject: (projectID: string, name: string, csrf: string) =>
     req<{ status: string; keys_revoked: number }>(
       `/projects/${projectID}/archive`, { method: 'POST', body: { name }, csrf }),

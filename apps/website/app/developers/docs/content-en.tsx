@@ -1699,8 +1699,8 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Invite</strong> generates a link the Console copies for you. The invitation sets the role; whoever accepts signs in with their own email.</LI>
                 <LI><strong>Leaving a workspace</strong> is always possible, except for the last Owner.</LI>
                 <LI><strong>Transferring ownership</strong> takes two steps: an Owner gives another member the Owner role, then leaves or changes their own role. The workspace is never without an Owner.</LI>
-                <LI><strong>Archive</strong> is refused while projects are active; the Console says how many.</LI>
-                <LI><strong>Delete</strong> is possible only for a workspace with no history. A workspace with history is archived.</LI>
+                <LI><strong>Archive</strong> is optional and only organises; it is refused while projects are active.</LI>
+                <LI><strong>Delete</strong> is available to the Owner, even after activity, and without archiving first. It deletes every project in the workspace, active and archived, revokes the keys and invalidates members and pending invitations.</LI>
               </UL>
 
               <H2 id="activity">Workspace activity</H2>
@@ -1729,9 +1729,20 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               <H2 id="project">Projects</H2>
               <UL>
                 <LI><strong>Project ID</strong> — does not change when you rename the project.</LI>
-                <LI><strong>Delete</strong> — possible while the project has no history: no key ever issued, no request logged, no Financial Setup.</LI>
-                <LI><strong>Archive</strong> — for projects with history. Revokes active keys; from then on they return <Code>401</Code>.</LI>
-                <LI>Archived projects appear under <strong>Show archived</strong>.</LI>
+                <LI><strong>Delete</strong> — available to Owners and Admins, even after test payments, refunds or settlements, and for an archived project too. You confirm by typing the project name.</LI>
+                <LI><strong>Archive</strong> — optional. Revokes active keys; from then on they return <Code>401</Code>. Archived projects appear under <strong>Show archived</strong>.</LI>
+              </UL>
+
+              <H2 id="deleting">What deleting does</H2>
+              <P>In the Sandbox, resources are disposable. Deleting removes the project from your environment immediately, and Banzami closes the rest:</P>
+              <UL>
+                <LI><strong>Immediately</strong> — API keys are revoked and return <Code>401</Code>; the project leaves the lists; realtime tokens are no longer accepted; no new sessions or links can be created.</LI>
+                <LI><strong>Close-out</strong> — test payers are retired, open sessions and links are cancelled, webhooks are disabled and the project's test business is retired if no other project uses it. Fictitious balances are returned through balanced postings; no balance is edited.</LI>
+                <LI><strong>Status</strong> — while the close-out runs, the request returns <Code>202</Code> with <Code>DELETING</Code>; once it finishes, <Code>DELETED</Code>. Repeating the request is safe.</LI>
+                <LI><strong>What remains</strong> — ledger history is not rewritten: payments, refunds and receipts already issued stay verifiable as SANDBOX. Banzami keeps internally only the financial, audit and security records it needs; workspace Activity still shows the deleted project. Request logs are removed.</LI>
+                <LI><strong>The name</strong> is released: a new project with the same name is a new resource, with nothing from the old one.</LI>
+                <LI>A real Business connected with a consent code, or a test business shared with another project, is not affected.</LI>
+                <LI>This applies to the Sandbox only. It gives financial production no equivalent deletion.</LI>
               </UL>
 
               <H2 id="financial">Financial Setup</H2>

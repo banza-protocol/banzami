@@ -19,8 +19,11 @@ export const COVERAGE = {
       { spec: 'invites', pt: /Convidar gera um link/, en: /Invite generates a link/ },
       { spec: 'leave Workspace', pt: /Sair de um workspace é sempre possível/, en: /Leaving a workspace is always possible/ },
       { spec: 'ownership transfer', pt: /Transferir a titularidade faz-se em dois passos/, en: /Transferring ownership takes two steps/ },
-      { spec: 'hard-delete conditions', pt: /Eliminar só é possível num workspace sem histórico/, en: /Delete is possible only for a workspace with no history/ },
-      { spec: 'archive conditions', pt: /Arquivar é recusado enquanto houver projetos ativos/, en: /Archive is refused while projects are active/ },
+      // SANDBOX-DELETE-001 replaced the "only without history" delete rule: a
+      // Sandbox Workspace is deleted after activity, with its Projects, and
+      // archiving is optional. The spec items stay; the substance is the new rule.
+      { spec: 'hard-delete conditions', pt: /Eliminar está disponível para o Owner, mesmo depois de atividade, e sem arquivar primeiro/, en: /Delete is available to the Owner, even after activity, and without archiving first/ },
+      { spec: 'archive conditions', pt: /Arquivar é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos/, en: /Archive is optional and only organises; it is refused while projects are active/ },
       { spec: 'Workspace Activity = administrative\nmembership/ownership audit', pt: /Atividade do workspace[\s\S]{0,300}registo administrativo/, en: /Workspace activity[\s\S]{0,300}administrative record/i },
       { spec: 'Do not confuse the two', pt: /Quem alterou o quê no workspace[\s\S]{0,120}O que a aplicação pediu à API/, en: /Who changed what in the workspace[\s\S]{0,120}What your application asked the API/ },
     ],
@@ -32,8 +35,10 @@ export const COVERAGE = {
       { spec: 'stable Project ID', pt: /Project ID — não muda/, en: /Project ID — does not change/ },
       { spec: 'environment', pt: /environment: SANDBOX|"environment": "SANDBOX"/, en: /environment: SANDBOX|"environment": "SANDBOX"/ },
       { spec: 'rename', pt: /não muda quando altera o nome/, en: /does not change when you rename the project/ },
-      { spec: 'delete empty Project', pt: /Eliminar — possível enquanto o projeto não tiver histórico/, en: /Delete — possible while the project has no history/ },
-      { spec: 'archive financial/historical Project', pt: /Arquivar — para projetos com histórico/, en: /Archive — for projects with history/ },
+      // SANDBOX-DELETE-001: any Sandbox Project is deleted, history or not, and
+      // what deletion keeps and closes is stated; archiving is optional.
+      { spec: 'delete empty Project', pt: /Eliminar — disponível para Owners e Admins, mesmo depois de pagamentos[\s\S]{0,1600}o histórico do ledger não é reescrito/, en: /Delete — available to Owners and Admins, even after test payments[\s\S]{0,1600}ledger history is not rewritten/ },
+      { spec: 'archive financial/historical Project', pt: /Arquivar — opcional\. Revoga as chaves ativas/, en: /Archive — optional\. Revokes active keys/ },
     ],
   },
   DOCS_FINANCIAL_SETUP_COMPLETE: {

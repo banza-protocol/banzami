@@ -1685,8 +1685,8 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Convidar</strong> gera um link que a Consola copia. O convite define o papel; quem o aceita entra com o próprio email.</LI>
                 <LI><strong>Sair de um workspace</strong> é sempre possível, exceto para o último Owner.</LI>
                 <LI><strong>Transferir a titularidade</strong> faz-se em dois passos: um Owner atribui o papel de Owner a outro membro e depois sai ou altera o seu papel. O workspace nunca fica sem Owner.</LI>
-                <LI><strong>Arquivar</strong> é recusado enquanto houver projetos ativos; a Consola indica quantos.</LI>
-                <LI><strong>Eliminar</strong> só é possível num workspace sem histórico. Um workspace com histórico arquiva-se.</LI>
+                <LI><strong>Arquivar</strong> é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos.</LI>
+                <LI><strong>Eliminar</strong> está disponível para o Owner, mesmo depois de atividade, e sem arquivar primeiro. Elimina todos os projetos do workspace, ativos e arquivados, revoga as chaves e invalida os membros e os convites pendentes.</LI>
               </UL>
 
               <H2 id="atividade">Atividade do workspace</H2>
@@ -1715,9 +1715,20 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               <H2 id="projeto">Projetos</H2>
               <UL>
                 <LI><strong>Project ID</strong> — não muda quando altera o nome.</LI>
-                <LI><strong>Eliminar</strong> — possível enquanto o projeto não tiver histórico: nenhuma chave emitida, nenhum pedido registado, nenhuma configuração financeira.</LI>
-                <LI><strong>Arquivar</strong> — para projetos com histórico. Revoga as chaves ativas; a partir daí, respondem <Code>401</Code>.</LI>
-                <LI>Os projetos arquivados aparecem em <strong>Mostrar arquivados</strong>.</LI>
+                <LI><strong>Eliminar</strong> — disponível para Owners e Admins, mesmo depois de pagamentos, reembolsos ou liquidações de teste, e também para um projeto arquivado. Confirma-se escrevendo o nome do projeto.</LI>
+                <LI><strong>Arquivar</strong> — opcional. Revoga as chaves ativas; a partir daí, respondem <Code>401</Code>. Os projetos arquivados aparecem em <strong>Mostrar arquivados</strong>.</LI>
+              </UL>
+
+              <H2 id="eliminar">O que acontece ao eliminar</H2>
+              <P>No Sandbox, os recursos são descartáveis. Eliminar tira o projeto do seu ambiente de imediato e o Banzami encerra o resto:</P>
+              <UL>
+                <LI><strong>De imediato</strong> — as chaves de API são revogadas e respondem <Code>401</Code>; o projeto sai das listas; tokens de tempo real deixam de ser aceites; não se criam novas sessões nem links.</LI>
+                <LI><strong>Encerramento</strong> — os pagadores de teste são retirados, as sessões e os links abertos são cancelados, os webhooks são desativados e o negócio de teste do projeto é retirado, se nenhum outro projeto o usar. Os saldos fictícios são devolvidos por lançamentos equilibrados; nenhum saldo é editado.</LI>
+                <LI><strong>Estado</strong> — enquanto o encerramento decorre, o pedido responde <Code>202</Code> com <Code>DELETING</Code>; quando termina, <Code>DELETED</Code>. Repetir o pedido é seguro.</LI>
+                <LI><strong>O que fica</strong> — o histórico do ledger não é reescrito: pagamentos, reembolsos e comprovativos já emitidos continuam verificáveis como SANDBOX. O Banzami guarda internamente apenas os registos financeiros, de auditoria e de segurança necessários; a Atividade do workspace continua a mostrar o projeto eliminado. Os registos de pedidos são apagados.</LI>
+                <LI><strong>O nome</strong> fica livre: um projeto novo com o mesmo nome é um recurso novo, sem nada do anterior.</LI>
+                <LI>Um Business real ligado por código de consentimento, ou um negócio de teste partilhado com outro projeto, não é afetado.</LI>
+                <LI>Aplica-se apenas ao Sandbox. Não dá à produção financeira nenhuma eliminação equivalente.</LI>
               </UL>
 
               <H2 id="financeiro">Configuração financeira</H2>

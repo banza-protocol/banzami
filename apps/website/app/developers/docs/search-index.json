@@ -779,6 +779,11 @@
   },
   {
    "k": "section",
+   "t": "O que acontece ao eliminar",
+   "h": "/docs/console#eliminar"
+  },
+  {
+   "k": "section",
    "t": "Configuração financeira",
    "h": "/docs/console#financeiro"
   },
@@ -1580,6 +1585,12 @@
    "t": "LINK_NOT_ACTIVE",
    "h": "/docs/errors#error-LINK_NOT_ACTIVE",
    "d": "O link de pagamento já não está ativo: foi pago, expirou ou foi cancelado."
+  },
+  {
+   "k": "error",
+   "t": "RESOURCE_DELETING",
+   "h": "/docs/errors#error-RESOURCE_DELETING",
+   "d": "O projeto foi eliminado no Sandbox e já não cria sessões nem links de pagamento. Um pedido autorizado antes de as chaves serem revogadas pode recebê-lo; os pedidos seguintes com essas chaves recebem 401."
   },
   {
    "k": "error",
@@ -3085,6 +3096,11 @@
   },
   {
    "k": "section",
+   "t": "What deleting does",
+   "h": "/docs/en/console#deleting"
+  },
+  {
+   "k": "section",
    "t": "Financial Setup",
    "h": "/docs/en/console#financial"
   },
@@ -3882,6 +3898,12 @@
    "t": "LINK_NOT_ACTIVE",
    "h": "/docs/en/errors#error-LINK_NOT_ACTIVE",
    "d": "The payment link is no longer active: it was paid, expired or was cancelled."
+  },
+  {
+   "k": "error",
+   "t": "RESOURCE_DELETING",
+   "h": "/docs/en/errors#error-RESOURCE_DELETING",
+   "d": "The project was deleted in the Sandbox and no longer creates payment sessions or links. A request authorised before its keys were revoked can receive it; later requests with those keys receive 401."
   },
   {
    "k": "error",

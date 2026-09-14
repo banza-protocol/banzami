@@ -103,13 +103,23 @@ describe('the two surfaces are two surfaces', () => {
   // project → delete; held one → archive. Both endings must exist in the page,
   // and it must decide between them from what the workspace HOLDS rather than
   // offering one unconditionally.
-  it('offers the ending that matches what the workspace holds', () => {
+  // SANDBOX-DELETE-001: a Sandbox workspace can be deleted whatever it holds,
+  // and archive is optional organisation. Both actions exist, and deletion is
+  // never gated on the footprint — the footprint only describes what closes.
+  it('offers deletion whatever the workspace holds, and archive as a separate option', () => {
     const workspace = code(WORKSPACE_PAGE);
     expect(workspace).toMatch(/Arquivar workspace/);
     expect(workspace).toMatch(/Eliminar workspace/);
-    // Decided from the footprint, not hard-coded.
-    expect(workspace).toMatch(/useWorkspaceFootprint/);
-    expect(workspace).toMatch(/deletable/);
+    expect(workspace).not.toMatch(/deletable/);
+    expect(workspace).not.toMatch(/arquivado e não eliminado/);
+    expect(workspace).toMatch(/revogar as API keys/);
+  });
+
+  it('offers project deletion after activity, never gated on the footprint', () => {
+    const project = code(PROJECT_PAGE);
+    expect(project).toMatch(/Eliminar projeto/);
+    expect(project).not.toMatch(/deletable/);
+    expect(project).not.toMatch(/Pode ser arquivado, não eliminado/);
   });
 
   it('asks what the workspace holds BEFORE offering either ending', () => {

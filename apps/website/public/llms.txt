@@ -141,6 +141,7 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - IDEMPOTENCY_CONFLICT (409): On a request: another request with this key is still in progress. On a settlement: the key was already used for another settlement. Request in progress: wait and retry with the same key. Another settlement: use a new key.
 - IDEMPOTENCY_KEY_CONFLICT (409): The idempotency key was already used on this payment with a different amount or currency. Retry with the original request, or use another key for a different refund.
 - LINK_NOT_ACTIVE (422): The payment link is no longer active: it was paid, expired or was cancelled. Create a new link.
+- RESOURCE_DELETING (409): The project was deleted in the Sandbox and no longer creates payment sessions or links. A request authorised before its keys were revoked can receive it; later requests with those keys receive 401. Do not retry. Use a key from an active project.
 - WALLET_ACCOUNT_INACTIVE (409): The account that should receive the payment is not active. Use an active account.
 - PRIMARY_NOT_CREATABLE (422): An account with purpose PRIMARY cannot be created: the main account comes with the wallet. Use another purpose, for example CAMPAIGN, STORE or EVENT.
 - DELIVERY_ALREADY_SUCCEEDED (409): The delivery already succeeded and is not sent again. Replay only deliveries that failed.
