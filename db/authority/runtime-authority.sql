@@ -47,6 +47,28 @@ REVOKE ALL ON ALL TABLES IN SCHEMA account_identity FROM bl_core_runtime, bl_gat
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA account_identity FROM bl_core_runtime, bl_gateway_runtime, bl_public_api_runtime, bl_developer_api_runtime, bl_admin_api_runtime, bl_app_runtime;
 REVOKE ALL ON SCHEMA account_identity FROM bl_core_runtime, bl_gateway_runtime, bl_public_api_runtime, bl_developer_api_runtime, bl_admin_api_runtime, bl_app_runtime;
 
+-- No routine is callable by a runtime role (none is called directly; trigger functions need no
+-- EXECUTE to fire), no role but the owner creates objects, and nobody gets session-local
+-- objects that could shadow a name another routine resolves.
+REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM PUBLIC, bl_core_runtime, bl_gateway_runtime, bl_public_api_runtime, bl_developer_api_runtime, bl_admin_api_runtime, bl_app_runtime;
+REVOKE ALL ON ALL ROUTINES IN SCHEMA developer FROM PUBLIC, bl_core_runtime, bl_gateway_runtime, bl_public_api_runtime, bl_developer_api_runtime, bl_admin_api_runtime, bl_app_runtime;
+REVOKE ALL ON ALL ROUTINES IN SCHEMA account_identity FROM PUBLIC, bl_core_runtime, bl_gateway_runtime, bl_public_api_runtime, bl_developer_api_runtime, bl_admin_api_runtime, bl_app_runtime;
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE CREATE ON SCHEMA developer FROM PUBLIC;
+REVOKE CREATE ON SCHEMA account_identity FROM PUBLIC;
+DO $$
+BEGIN
+  EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());
+  EXECUTE format('REVOKE TEMPORARY, CREATE ON DATABASE %I FROM bl_core_runtime, bl_gateway_runtime, bl_public_api_runtime, bl_developer_api_runtime, bl_admin_api_runtime, bl_app_runtime', current_database());
+END $$;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN
+    -- A routine a future migration creates is not executable by PUBLIC by default.
+    ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner REVOKE EXECUTE ON ROUTINES FROM PUBLIC;
+  END IF;
+END $$;
+
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN
@@ -246,17 +268,79 @@ BEGIN
   END LOOP;
 END $$;
 
--- The proof, in the same transaction: a financial table any role but Core may write aborts the apply.
-DO $$
-DECLARE bad TEXT;
+-- The proof, in the same transaction: every direct and indirect write path is re-verified, and
+-- any violation aborts the apply (db/authority/verify-authority.sql, also run on its own).
+DO $verify$
+DECLARE v TEXT; problems TEXT[] := ARRAY[]::text[];
 BEGIN
-  SELECT string_agg(format('%s %s on %s', r, p, t), '; ') INTO bad
-    FROM unnest(ARRAY['bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']) r,
-         unnest(ARRAY['public.ledger_accounts', 'public.ledger_postings', 'public.ledger_entries', 'public.wallets', 'public.consumer_wallets', 'public.wallet_accounts', 'public.wallet_account_transfers', 'public.wallet_reservations', 'public.wallet_payments', 'public.transfers', 'public.transactions', 'public.payment_sessions', 'public.payment_links', 'public.refunds', 'public.refund_events', 'public.restitution_allocations', 'public.acquiring_payments', 'public.acquiring_callbacks', 'public.consumer_deposits', 'public.payouts', 'public.app_settlements', 'public.settlements', 'public.operator_fees', 'public.split_sessions', 'public.split_contributions']) t,
-         unnest(ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) p
+  -- 1. direct: INSERT, UPDATE, DELETE, TRUNCATE (MERGE and COPY need the same), REFERENCES or TRIGGER on a financial table.
+  SELECT string_agg(format('%s %s %s', r, p, t), ', ') INTO v
+    FROM unnest(ARRAY['bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[]) r, unnest(ARRAY['public.ledger_accounts', 'public.ledger_postings', 'public.ledger_entries', 'public.wallets', 'public.consumer_wallets', 'public.wallet_accounts', 'public.wallet_account_transfers', 'public.wallet_reservations', 'public.wallet_payments', 'public.transfers', 'public.transactions', 'public.payment_sessions', 'public.payment_links', 'public.refunds', 'public.refund_events', 'public.restitution_allocations', 'public.acquiring_payments', 'public.acquiring_callbacks', 'public.consumer_deposits', 'public.payouts', 'public.app_settlements', 'public.settlements', 'public.operator_fees', 'public.split_sessions', 'public.split_contributions']::text[]) t, unnest(ARRAY['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p
    WHERE to_regclass(t) IS NOT NULL AND has_table_privilege(r, t, p);
-  IF bad IS NOT NULL THEN
-    RAISE EXCEPTION 'NON_CORE_FINANCIAL_TABLE_WRITE_ROLES: %', bad;
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_DIRECT_FINANCIAL_WRITE: ' || v); END IF;
+  -- 2. role membership: no runtime role is a member of anything, so it cannot SET ROLE or inherit.
+  SELECT string_agg(format('%s in %s', u.rolname, g.rolname), ', ') INTO v
+    FROM pg_auth_members am JOIN pg_roles g ON g.oid = am.roleid JOIN pg_roles u ON u.oid = am.member
+   WHERE u.rolname = ANY (ARRAY['bl_core_runtime', 'bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[]);
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_PRIVILEGE_ESCALATION_ROLE_PATHS: ' || v); END IF;
+  SELECT string_agg(rolname, ', ') INTO v FROM pg_roles WHERE rolname = ANY (ARRAY['bl_core_runtime', 'bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[]) AND (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb OR rolreplication);
+  IF v IS NOT NULL THEN problems := problems || ('RUNTIME_ROLE_ATTRIBUTE_BYPASS: ' || v); END IF;
+  -- 3. SECURITY DEFINER routines: only those classified, each with a pinned search_path and no runtime executor.
+  SELECT string_agg(format('%s.%s', n.nspname, p.proname), ', ') INTO v FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE p.prosecdef AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+     AND (format('%s.%s', n.nspname, p.proname) <> ALL (ARRAY[]::text[])
+          OR NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, ARRAY[]::text[])) c WHERE c LIKE 'search_path=%' AND c NOT LIKE '%$user%' AND c NOT LIKE '%pg_temp%'));
+  IF v IS NOT NULL THEN problems := problems || ('UNSAFE_SECURITY_DEFINER_FUNCTIONS: ' || v); END IF;
+  -- 4. routines a runtime role may execute: none, unless classified; and never one that writes a financial table.
+  SELECT string_agg(format('%s may execute %s.%s', r, n.nspname, p.proname), ', ') INTO v
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace,
+         unnest(ARRAY['bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[]) r
+   WHERE n.nspname = ANY (ARRAY['public', 'developer', 'account_identity']::text[]) AND has_function_privilege(r, p.oid, 'EXECUTE')
+     AND (format('%s.%s', n.nspname, p.proname) <> ALL (ARRAY[]::text[]) OR p.prosrc ~* '(insert\s+into|update|delete\s+from|merge\s+into|truncate)\s+(only\s+)?(public\.)?"?(ledger_accounts|ledger_postings|ledger_entries|wallets|consumer_wallets|wallet_accounts|wallet_account_transfers|wallet_reservations|wallet_payments|transfers|transactions|payment_sessions|payment_links|refunds|refund_events|restitution_allocations|acquiring_payments|acquiring_callbacks|consumer_deposits|payouts|app_settlements|settlements|operator_fees|split_sessions|split_contributions)"?\M');
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_EXECUTABLE_ROUTINES: ' || v); END IF;
+  -- 5. a routine that writes a financial table must be classified.
+  SELECT string_agg(format('%s.%s', n.nspname, p.proname), ', ') INTO v FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = ANY (ARRAY['public', 'developer', 'account_identity']::text[]) AND p.prosrc ~* '(insert\s+into|update|delete\s+from|merge\s+into|truncate)\s+(only\s+)?(public\.)?"?(ledger_accounts|ledger_postings|ledger_entries|wallets|consumer_wallets|wallet_accounts|wallet_account_transfers|wallet_reservations|wallet_payments|transfers|transactions|payment_sessions|payment_links|refunds|refund_events|restitution_allocations|acquiring_payments|acquiring_callbacks|consumer_deposits|payouts|app_settlements|settlements|operator_fees|split_sessions|split_contributions)"?\M'
+     AND format('%s.%s', n.nspname, p.proname) <> ALL (ARRAY['public.create_primary_wallet_account']::text[]);
+  IF v IS NOT NULL THEN problems := problems || ('UNCLASSIFIED_FINANCIAL_WRITE_ROUTINES: ' || v); END IF;
+  -- 6. rewrite paths: no non-SELECT rule, no INSTEAD OF trigger, no write privilege on any view.
+  SELECT string_agg(format('rule %s on %s', r.rulename, r.ev_class::regclass), ', ') INTO v FROM pg_rewrite r JOIN pg_class c ON c.oid = r.ev_class JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE r.ev_type <> '1' AND n.nspname = ANY (ARRAY['public', 'developer', 'account_identity']::text[]);
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE: ' || v); END IF;
+  SELECT string_agg(format('instead-of trigger %s on %s', t.tgname, t.tgrelid::regclass), ', ') INTO v FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE NOT t.tgisinternal AND (t.tgtype & 64) <> 0 AND n.nspname = ANY (ARRAY['public', 'developer', 'account_identity']::text[]);
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE: ' || v); END IF;
+  SELECT string_agg(format('%s %s %s.%s', r, p, n.nspname, c.relname), ', ') INTO v FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace,
+         unnest(ARRAY['bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[]) r, unnest(ARRAY['INSERT','UPDATE','DELETE','TRUNCATE']) p
+   WHERE c.relkind IN ('v', 'm', 'f') AND n.nspname = ANY (ARRAY['public', 'developer', 'account_identity']::text[]) AND has_table_privilege(r, c.oid, p);
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE: ' || v); END IF;
+  -- 7. object creation: no runtime role creates in any schema, creates schemas, or holds TEMP.
+  SELECT string_agg(format('%s CREATE on %s', r, n.nspname), ', ') INTO v FROM pg_namespace n,
+         unnest(ARRAY['bl_core_runtime', 'bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[]) r WHERE n.nspname NOT LIKE 'pg\_%' AND n.nspname <> 'information_schema' AND has_schema_privilege(r, n.oid, 'CREATE');
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_SEARCH_PATH_PRIVILEGE_ESCALATION: ' || v); END IF;
+  SELECT string_agg(r, ', ') INTO v FROM unnest(ARRAY['bl_core_runtime', 'bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[]) r WHERE has_database_privilege(r, current_database(), 'TEMP') OR has_database_privilege(r, current_database(), 'CREATE');
+  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_SEARCH_PATH_PRIVILEGE_ESCALATION: TEMP or CREATE on the database for ' || v); END IF;
+  -- 8. default privileges: a future table gives no runtime role but Core a write; a future routine is not PUBLIC.
+  SELECT string_agg(format('%s in %s: %s', d.defaclobjtype, coalesce(d.defaclnamespace::regnamespace::text, '(all)'), a.grantee::regrole), ', ') INTO v
+    FROM pg_default_acl d, aclexplode(d.defaclacl) a
+   WHERE a.grantee <> 0 AND a.grantee::regrole::text = ANY (ARRAY['bl_gateway_runtime', 'bl_public_api_runtime', 'bl_developer_api_runtime', 'bl_admin_api_runtime', 'bl_app_runtime']::text[])
+     AND ((d.defaclobjtype = 'r' AND a.privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER')) OR d.defaclobjtype IN ('f', 'n'));
+  IF v IS NOT NULL THEN problems := problems || ('DATABASE_AUTHORITY_DEFAULT_PRIVILEGES: ' || v); END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') AND NOT EXISTS (
+       SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = (SELECT oid FROM pg_roles WHERE rolname = 'bl_schema_owner') AND d.defaclnamespace = 0 AND d.defaclobjtype = 'f'
+          AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)) THEN
+    problems := problems || 'DATABASE_AUTHORITY_DEFAULT_PRIVILEGES: routines created by bl_schema_owner are executable by PUBLIC by default'::text;
   END IF;
-END $$;
-
+  -- 9. every table with a money or ledger column is financial (and guarded) or classified.
+  SELECT string_agg(DISTINCT c.table_name, ', ') INTO v FROM information_schema.columns c JOIN pg_class k ON k.relname = c.table_name JOIN pg_namespace n ON n.oid = k.relnamespace AND n.nspname = c.table_schema
+   WHERE c.table_schema = 'public' AND k.relkind IN ('r', 'p')
+     AND (c.column_name LIKE '%amount_minor%' OR c.column_name IN ('account_id', 'available_account_id', 'posting_id', 'ledger_posting_id'))
+     AND c.table_name <> ALL (ARRAY['ledger_accounts', 'ledger_postings', 'ledger_entries', 'wallets', 'consumer_wallets', 'wallet_accounts', 'wallet_account_transfers', 'wallet_reservations', 'wallet_payments', 'transfers', 'transactions', 'payment_sessions', 'payment_links', 'refunds', 'refund_events', 'restitution_allocations', 'acquiring_payments', 'acquiring_callbacks', 'consumer_deposits', 'payouts', 'app_settlements', 'settlements', 'operator_fees', 'split_sessions', 'split_contributions', 'transaction_proofs', 'disputes', 'payment_requests', 'consumer_pay_links', 'qr_codes', 'velocity_counters', 'sandbox_test_fundings', 'acquiring_reconciliation_items', 'reconciliation_attempts']::text[]);
+  IF v IS NOT NULL THEN problems := problems || ('UNCLASSIFIED_NEW_FINANCIAL_DB_OBJECTS: ' || v); END IF;
+  SELECT string_agg(t, ', ') INTO v FROM unnest(ARRAY['ledger_accounts', 'ledger_postings', 'ledger_entries', 'wallets', 'consumer_wallets', 'wallet_accounts', 'wallet_account_transfers', 'wallet_reservations', 'wallet_payments', 'transfers', 'transactions', 'payment_sessions', 'payment_links', 'refunds', 'refund_events', 'restitution_allocations', 'acquiring_payments', 'acquiring_callbacks', 'consumer_deposits', 'payouts', 'app_settlements', 'settlements', 'operator_fees', 'split_sessions', 'split_contributions']::text[]) t
+   WHERE to_regclass('public.' || t) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgrelid = to_regclass('public.' || t) AND g.tgname = t || '_core_only_writer');
+  IF v IS NOT NULL THEN problems := problems || ('UNCLASSIFIED_NEW_FINANCIAL_DB_OBJECTS: unguarded financial table ' || v); END IF;
+  IF cardinality(problems) > 0 THEN
+    RAISE EXCEPTION 'DB_AUTHORITY_VIOLATION: %', array_to_string(problems, ' | ');
+  END IF;
+END $verify$;

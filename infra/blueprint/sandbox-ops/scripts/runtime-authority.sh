@@ -31,7 +31,8 @@ for a in "$@"; do [ "$a" = "--keep-legacy-dml" ] && KEEP_LEGACY=1; done
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="${BZ_AUTHORITY_REPO:-$(cd "$HERE/../../../.." && pwd)}"
 SQL="$REPO/db/authority/runtime-authority.sql"
-[ -f "$SQL" ] || { echo "runtime-authority: $SQL missing" >&2; exit 3; }
+VERIFY_SQL="$REPO/db/authority/verify-authority.sql"
+[ -f "$SQL" ] && [ -f "$VERIFY_SQL" ] || { echo "runtime-authority: $SQL or $VERIFY_SQL missing" >&2; exit 3; }
 
 die() { echo "runtime-authority: $*" >&2; exit 1; }
 
@@ -110,6 +111,12 @@ cmd_apply() {
 }
 
 cmd_verify() {
+  # Direct and indirect write authority, against the live catalog. Fails closed.
+  if pg -v "$VERIFY_SQL:/verify.sql:ro" -- -q -f /verify.sql >/dev/null; then
+    echo "DB_AUTHORITY_VERIFY=PASS (no direct or indirect financial write path for a non-Core role)"
+  else
+    echo "DB_AUTHORITY_VERIFY=FAIL"; return 1
+  fi
   pg -- -At -F '|' <<'SQL'
 \echo ROLE|LOGIN|SUPER|BYPASSRLS|FINANCIAL_WRITE_PRIVILEGES|TABLES_WRITABLE|SCHEMAS_READABLE
 WITH fin(t) AS (VALUES ('ledger_accounts'),('ledger_postings'),('ledger_entries'),('wallets'),('consumer_wallets'),('wallet_accounts'),('wallet_account_transfers'),('wallet_reservations'),('wallet_payments'),('transfers'),('transactions'),('payment_sessions'),('payment_links'),('refunds'),('refund_events'),('restitution_allocations'),('acquiring_payments'),('acquiring_callbacks'),('consumer_deposits'),('payouts'),('app_settlements'),('settlements'),('operator_fees'),('split_sessions'),('split_contributions')),

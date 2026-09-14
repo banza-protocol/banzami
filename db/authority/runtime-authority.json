@@ -1,39 +1,107 @@
 {
   "$comment": "Database authority of every runtime identity (WALLET-NATIVE-001, ADR-061 §2). PostgreSQL privilege is the authority; application_name (0144) is detection. tools/db-authority.mjs generates db/authority/runtime-authority.sql from this file and fails the build when the SQL, the financial-table list in 0144, or a service's own write footprint disagree with it.",
   "version": 1,
-  "schemas": ["public", "developer", "account_identity"],
-  "financial_tables": [
-    "ledger_accounts", "ledger_postings", "ledger_entries",
-    "wallets", "consumer_wallets", "wallet_accounts", "wallet_account_transfers", "wallet_reservations",
-    "wallet_payments", "transfers", "transactions", "payment_sessions", "payment_links",
-    "refunds", "refund_events", "restitution_allocations",
-    "acquiring_payments", "acquiring_callbacks", "consumer_deposits", "payouts",
-    "app_settlements", "settlements", "operator_fees", "split_sessions", "split_contributions"
+  "schemas": [
+    "public",
+    "developer",
+    "account_identity"
   ],
-  "never_written_at_runtime": ["public._sqlx_migrations"],
+  "financial_tables": [
+    "ledger_accounts",
+    "ledger_postings",
+    "ledger_entries",
+    "wallets",
+    "consumer_wallets",
+    "wallet_accounts",
+    "wallet_account_transfers",
+    "wallet_reservations",
+    "wallet_payments",
+    "transfers",
+    "transactions",
+    "payment_sessions",
+    "payment_links",
+    "refunds",
+    "refund_events",
+    "restitution_allocations",
+    "acquiring_payments",
+    "acquiring_callbacks",
+    "consumer_deposits",
+    "payouts",
+    "app_settlements",
+    "settlements",
+    "operator_fees",
+    "split_sessions",
+    "split_contributions"
+  ],
+  "not_financial_money_tables": {
+    "transaction_proofs": "receipt evidence about a completed movement; its financial facts are immutable (0125)",
+    "disputes": "case workflow; any restitution moves money through refunds, which are guarded",
+    "payment_requests": "an intent to be paid; nothing moves until a guarded payment exists",
+    "consumer_pay_links": "an intent to be paid; nothing moves until a guarded payment exists",
+    "qr_codes": "a payment interface; nothing moves until a guarded payment exists",
+    "velocity_counters": "risk counters; they limit movements, they are not movements",
+    "sandbox_test_fundings": "Sandbox quota and idempotency reservations; Core posts the credit",
+    "acquiring_reconciliation_items": "reconciliation evidence: detects a mismatch, never corrects the ledger",
+    "reconciliation_attempts": "reconciliation evidence: detects a mismatch, never corrects the ledger"
+  },
+  "financial_write_routines": {
+    "public.create_primary_wallet_account": "trigger on wallets (Core-written): creates the PRIMARY wallet account; SECURITY INVOKER, so it writes only with the privileges of the statement that fired it"
+  },
+  "security_definer_routines": {},
+  "executable_routines": {},
+  "never_written_at_runtime": [
+    "public._sqlx_migrations"
+  ],
   "roles": {
     "bl_core_runtime": {
       "service": "core-api-staging",
-      "source": ["core"],
+      "source": [
+        "core"
+      ],
       "purpose": "Banzami Core: the only runtime identity with write authority over financial state.",
-      "read_schemas": ["public"],
-      "write": { "all_tables_in": ["public"] }
+      "read_schemas": [
+        "public"
+      ],
+      "write": {
+        "all_tables_in": [
+          "public"
+        ]
+      }
     },
     "bl_gateway_runtime": {
       "service": "api-gateway-staging",
-      "source": ["services/api-gateway"],
+      "source": [
+        "services/api-gateway"
+      ],
       "purpose": "Public API gateway, webhook delivery, realtime, proofs, Business onboarding. Calls Core for every financial operation.",
-      "read_schemas": ["public", "developer"],
+      "read_schemas": [
+        "public",
+        "developer"
+      ],
       "write": {
         "tables": [
-          "developer.dev_api_request_logs", "developer.dev_project_sandbox_binding",
-          "public.business_link_codes", "public.handle_registry", "public.merchant_access_log",
-          "public.merchant_activation_tokens", "public.merchant_app_credentials", "public.merchant_app_sessions",
-          "public.merchant_application_documents", "public.merchant_applications", "public.merchant_compliance",
-          "public.merchant_kyb_documents", "public.merchant_kyb_events", "public.merchant_profiles",
-          "public.merchant_team_members", "public.transaction_proof_corrections", "public.transaction_proof_verifications",
-          "public.transaction_proofs", "public.webhook_deliveries", "public.webhook_delivery_attempts",
-          "public.webhook_endpoints", "public.webhook_events"
+          "developer.dev_api_request_logs",
+          "developer.dev_project_sandbox_binding",
+          "public.business_link_codes",
+          "public.handle_registry",
+          "public.merchant_access_log",
+          "public.merchant_activation_tokens",
+          "public.merchant_app_credentials",
+          "public.merchant_app_sessions",
+          "public.merchant_application_documents",
+          "public.merchant_applications",
+          "public.merchant_compliance",
+          "public.merchant_kyb_documents",
+          "public.merchant_kyb_events",
+          "public.merchant_profiles",
+          "public.merchant_team_members",
+          "public.transaction_proof_corrections",
+          "public.transaction_proof_verifications",
+          "public.transaction_proofs",
+          "public.webhook_deliveries",
+          "public.webhook_delivery_attempts",
+          "public.webhook_endpoints",
+          "public.webhook_events"
         ],
         "implied_by_triggers": {
           "public.merchants": "merchant_compliance_projects_verified (0122) updates merchants.verified when the gateway writes merchant_compliance"
@@ -42,41 +110,81 @@
     },
     "bl_public_api_runtime": {
       "service": "public-api-staging",
-      "source": ["services/public-api"],
+      "source": [
+        "services/public-api"
+      ],
       "purpose": "Consumer API and Sandbox test payers. Calls Core for every financial operation.",
-      "read_schemas": ["public"],
+      "read_schemas": [
+        "public"
+      ],
       "write": {
         "tables": [
-          "public.customer_compliance", "public.kyc_cases", "public.kyc_documents", "public.kyc_events",
-          "public.kyc_evidence", "public.public_api_credentials", "public.sandbox_test_fundings", "public.sandbox_test_payers"
+          "public.customer_compliance",
+          "public.kyc_cases",
+          "public.kyc_documents",
+          "public.kyc_events",
+          "public.kyc_evidence",
+          "public.public_api_credentials",
+          "public.sandbox_test_fundings",
+          "public.sandbox_test_payers"
         ]
       }
     },
     "bl_developer_api_runtime": {
       "service": "developer-api",
-      "source": ["services/developer-api"],
+      "source": [
+        "services/developer-api"
+      ],
       "purpose": "Developer Console, accounts and the single key authority (ADR-046). Calls Core for every financial operation.",
-      "read_schemas": ["public", "developer", "account_identity"],
+      "read_schemas": [
+        "public",
+        "developer",
+        "account_identity"
+      ],
       "write": {
         "tables": [
-          "account_identity.audit_events", "account_identity.identity_otp_codes", "account_identity.identity_sessions",
-          "account_identity.identity_users", "developer.audit_events", "developer.dev_api_keys",
-          "developer.dev_project_sandbox_binding", "developer.dev_projects", "developer.dev_workspace_invites",
-          "developer.dev_workspace_members", "developer.dev_workspaces", "public.webhook_deliveries", "public.webhook_endpoints"
+          "account_identity.audit_events",
+          "account_identity.identity_otp_codes",
+          "account_identity.identity_sessions",
+          "account_identity.identity_users",
+          "developer.audit_events",
+          "developer.dev_api_keys",
+          "developer.dev_project_sandbox_binding",
+          "developer.dev_projects",
+          "developer.dev_workspace_invites",
+          "developer.dev_workspace_members",
+          "developer.dev_workspaces",
+          "public.webhook_deliveries",
+          "public.webhook_endpoints"
         ]
       }
     },
     "bl_admin_api_runtime": {
       "service": "admin-api",
-      "source": ["services/admin-api"],
+      "source": [
+        "services/admin-api"
+      ],
       "purpose": "BANZADMIN operator API: operator accounts, KYC review, compliance cases, platform settings. Calls Core for every financial operation.",
-      "read_schemas": ["public"],
+      "read_schemas": [
+        "public"
+      ],
       "write": {
         "tables": [
-          "public.admin_audit_log", "public.admin_login_attempts", "public.admin_mfa", "public.admin_mfa_recovery_codes",
-          "public.admin_notifications", "public.admin_password_reset_tokens", "public.admin_users",
-          "public.compliance_case_notes", "public.compliance_cases", "public.customer_compliance", "public.kyc_cases",
-          "public.kyc_events", "public.kyc_reviews", "public.platform_settings", "public.platform_settings_history"
+          "public.admin_audit_log",
+          "public.admin_login_attempts",
+          "public.admin_mfa",
+          "public.admin_mfa_recovery_codes",
+          "public.admin_notifications",
+          "public.admin_password_reset_tokens",
+          "public.admin_users",
+          "public.compliance_case_notes",
+          "public.compliance_cases",
+          "public.customer_compliance",
+          "public.kyc_cases",
+          "public.kyc_events",
+          "public.kyc_reviews",
+          "public.platform_settings",
+          "public.platform_settings_history"
         ]
       }
     },
@@ -84,8 +192,18 @@
       "service": null,
       "source": [],
       "purpose": "Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority.",
-      "read_schemas": ["public", "developer", "account_identity"],
-      "write": { "all_non_financial_tables_in": ["public", "developer", "account_identity"] }
+      "read_schemas": [
+        "public",
+        "developer",
+        "account_identity"
+      ],
+      "write": {
+        "all_non_financial_tables_in": [
+          "public",
+          "developer",
+          "account_identity"
+        ]
+      }
     }
   },
   "not_runtime": {

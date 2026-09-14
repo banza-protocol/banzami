@@ -29,6 +29,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = process.env.BZ_DB_AUTHORITY_ROOT ?? resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const MANIFEST = 'db/authority/runtime-authority.json';
 const SQL_OUT = 'db/authority/runtime-authority.sql';
+const VERIFY_OUT = 'db/authority/verify-authority.sql';
 const GUARD = 'db/migrations/0144_value_moves_inside_external_rails_are_boundaries.sql';
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 
@@ -147,6 +148,24 @@ export function generate(m) {
     L.push(`REVOKE ALL ON SCHEMA ${s} FROM ${roles.join(', ')};`);
   }
   L.push('');
+  L.push('-- No routine is callable by a runtime role (none is called directly; trigger functions need no');
+  L.push('-- EXECUTE to fire), no role but the owner creates objects, and nobody gets session-local');
+  L.push('-- objects that could shadow a name another routine resolves.');
+  for (const s of m.schemas) L.push(`REVOKE ALL ON ALL ROUTINES IN SCHEMA ${s} FROM PUBLIC, ${roles.join(', ')};`);
+  for (const s of m.schemas) L.push(`REVOKE CREATE ON SCHEMA ${s} FROM PUBLIC;`);
+  L.push('DO $$');
+  L.push('BEGIN');
+  L.push("  EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());");
+  L.push(`  EXECUTE format('REVOKE TEMPORARY, CREATE ON DATABASE %I FROM ${roles.join(', ')}', current_database());`);
+  L.push('END $$;');
+  L.push('DO $$');
+  L.push('BEGIN');
+  L.push("  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN");
+  L.push('    -- A routine a future migration creates is not executable by PUBLIC by default.');
+  L.push('    ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner REVOKE EXECUTE ON ROUTINES FROM PUBLIC;');
+  L.push('  END IF;');
+  L.push('END $$;');
+  L.push('');
   L.push('DO $$');
   L.push('BEGIN');
   L.push("  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN");
@@ -221,21 +240,111 @@ export function generate(m) {
     L.push('');
   }
 
-  L.push('-- The proof, in the same transaction: a financial table any role but Core may write aborts the apply.');
-  L.push('DO $$');
-  L.push('DECLARE bad TEXT;');
-  L.push('BEGIN');
-  L.push("  SELECT string_agg(format('%s %s on %s', r, p, t), '; ') INTO bad");
-  L.push(`    FROM unnest(ARRAY[${roles.filter((r) => r !== 'bl_core_runtime').map((r) => `'${r}'`).join(', ')}]) r,`);
-  L.push(`         unnest(ARRAY[${fin.map((t) => `'${t}'`).join(', ')}]) t,`);
-  L.push("         unnest(ARRAY['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) p");
-  L.push('   WHERE to_regclass(t) IS NOT NULL AND has_table_privilege(r, t, p);');
-  L.push('  IF bad IS NOT NULL THEN');
-  L.push("    RAISE EXCEPTION 'NON_CORE_FINANCIAL_TABLE_WRITE_ROLES: %', bad;");
-  L.push('  END IF;');
-  L.push('END $$;');
-  L.push('');
+  L.push('-- The proof, in the same transaction: every direct and indirect write path is re-verified, and');
+  L.push('-- any violation aborts the apply (db/authority/verify-authority.sql, also run on its own).');
+  L.push(generateVerify(m));
   return `${L.join('\n')}\n`;
+}
+
+/**
+ * Verification only — changes nothing. Every direct and indirect way a non-Core
+ * runtime role could write financial state, checked against the live catalog.
+ * Any violation raises DB_AUTHORITY_VIOLATION naming it.
+ */
+export function generateVerify(m) {
+  const roles = Object.keys(m.roles);
+  const nonCore = roles.filter((r) => r !== 'bl_core_runtime');
+  const arr = (xs) => `ARRAY[${xs.map((x) => `'${x}'`).join(', ')}]::text[]`;
+  const fin = m.financial_tables.map((t) => `public.${t}`);
+  const finRe = `(insert\\s+into|update|delete\\s+from|merge\\s+into|truncate)\\s+(only\\s+)?(public\\.)?"?(${m.financial_tables.join('|')})"?\\M`;
+  const L = [];
+  L.push('DO $verify$');
+  L.push('DECLARE v TEXT; problems TEXT[] := ARRAY[]::text[];');
+  L.push('BEGIN');
+  L.push('  -- 1. direct: INSERT, UPDATE, DELETE, TRUNCATE (MERGE and COPY need the same), REFERENCES or TRIGGER on a financial table.');
+  L.push("  SELECT string_agg(format('%s %s %s', r, p, t), ', ') INTO v");
+  L.push(`    FROM unnest(${arr(nonCore)}) r, unnest(${arr(fin)}) t, unnest(ARRAY['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p`);
+  L.push("   WHERE to_regclass(t) IS NOT NULL AND has_table_privilege(r, t, p);");
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_DIRECT_FINANCIAL_WRITE: ' || v); END IF;");
+  L.push('  -- 2. role membership: no runtime role is a member of anything, so it cannot SET ROLE or inherit.');
+  L.push("  SELECT string_agg(format('%s in %s', u.rolname, g.rolname), ', ') INTO v");
+  L.push('    FROM pg_auth_members am JOIN pg_roles g ON g.oid = am.roleid JOIN pg_roles u ON u.oid = am.member');
+  L.push(`   WHERE u.rolname = ANY (${arr(roles)});`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_PRIVILEGE_ESCALATION_ROLE_PATHS: ' || v); END IF;");
+  L.push(`  SELECT string_agg(rolname, ', ') INTO v FROM pg_roles WHERE rolname = ANY (${arr(roles)}) AND (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb OR rolreplication);`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('RUNTIME_ROLE_ATTRIBUTE_BYPASS: ' || v); END IF;");
+  L.push('  -- 3. SECURITY DEFINER routines: only those classified, each with a pinned search_path and no runtime executor.');
+  L.push("  SELECT string_agg(format('%s.%s', n.nspname, p.proname), ', ') INTO v FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace");
+  L.push("   WHERE p.prosecdef AND n.nspname NOT IN ('pg_catalog', 'information_schema')");
+  L.push(`     AND (format('%s.%s', n.nspname, p.proname) <> ALL (${arr(Object.keys(m.security_definer_routines))})`);
+  L.push("          OR NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, ARRAY[]::text[])) c WHERE c LIKE 'search_path=%' AND c NOT LIKE '%$user%' AND c NOT LIKE '%pg_temp%'));");
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('UNSAFE_SECURITY_DEFINER_FUNCTIONS: ' || v); END IF;");
+  L.push('  -- 4. routines a runtime role may execute: none, unless classified; and never one that writes a financial table.');
+  L.push("  SELECT string_agg(format('%s may execute %s.%s', r, n.nspname, p.proname), ', ') INTO v");
+  L.push('    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace,');
+  L.push(`         unnest(${arr(nonCore)}) r`);
+  L.push(`   WHERE n.nspname = ANY (${arr(m.schemas)}) AND has_function_privilege(r, p.oid, 'EXECUTE')`);
+  L.push(`     AND (format('%s.%s', n.nspname, p.proname) <> ALL (${arr(Object.keys(m.executable_routines))}) OR p.prosrc ~* '${finRe.replace(/'/g, "''")}');`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_EXECUTABLE_ROUTINES: ' || v); END IF;");
+  L.push('  -- 5. a routine that writes a financial table must be classified.');
+  L.push("  SELECT string_agg(format('%s.%s', n.nspname, p.proname), ', ') INTO v FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace");
+  L.push(`   WHERE n.nspname = ANY (${arr(m.schemas)}) AND p.prosrc ~* '${finRe.replace(/'/g, "''")}'`);
+  L.push(`     AND format('%s.%s', n.nspname, p.proname) <> ALL (${arr(Object.keys(m.financial_write_routines))});`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('UNCLASSIFIED_FINANCIAL_WRITE_ROUTINES: ' || v); END IF;");
+  L.push('  -- 6. rewrite paths: no non-SELECT rule, no INSTEAD OF trigger, no write privilege on any view.');
+  L.push("  SELECT string_agg(format('rule %s on %s', r.rulename, r.ev_class::regclass), ', ') INTO v FROM pg_rewrite r JOIN pg_class c ON c.oid = r.ev_class JOIN pg_namespace n ON n.oid = c.relnamespace");
+  L.push(`   WHERE r.ev_type <> '1' AND n.nspname = ANY (${arr(m.schemas)});`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE: ' || v); END IF;");
+  L.push("  SELECT string_agg(format('instead-of trigger %s on %s', t.tgname, t.tgrelid::regclass), ', ') INTO v FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace");
+  L.push(`   WHERE NOT t.tgisinternal AND (t.tgtype & 64) <> 0 AND n.nspname = ANY (${arr(m.schemas)});`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE: ' || v); END IF;");
+  L.push("  SELECT string_agg(format('%s %s %s.%s', r, p, n.nspname, c.relname), ', ') INTO v FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace,");
+  L.push(`         unnest(${arr(nonCore)}) r, unnest(ARRAY['INSERT','UPDATE','DELETE','TRUNCATE']) p`);
+  L.push(`   WHERE c.relkind IN ('v', 'm', 'f') AND n.nspname = ANY (${arr(m.schemas)}) AND has_table_privilege(r, c.oid, p);`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE: ' || v); END IF;");
+  L.push('  -- 7. object creation: no runtime role creates in any schema, creates schemas, or holds TEMP.');
+  L.push("  SELECT string_agg(format('%s CREATE on %s', r, n.nspname), ', ') INTO v FROM pg_namespace n,");
+  L.push(`         unnest(${arr(roles)}) r WHERE n.nspname NOT LIKE 'pg\\_%' AND n.nspname <> 'information_schema' AND has_schema_privilege(r, n.oid, 'CREATE');`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_SEARCH_PATH_PRIVILEGE_ESCALATION: ' || v); END IF;");
+  L.push(`  SELECT string_agg(r, ', ') INTO v FROM unnest(${arr(roles)}) r WHERE has_database_privilege(r, current_database(), 'TEMP') OR has_database_privilege(r, current_database(), 'CREATE');`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('NON_CORE_SEARCH_PATH_PRIVILEGE_ESCALATION: TEMP or CREATE on the database for ' || v); END IF;");
+  L.push('  -- 8. default privileges: a future table gives no runtime role but Core a write; a future routine is not PUBLIC.');
+  L.push("  SELECT string_agg(format('%s in %s: %s', d.defaclobjtype, coalesce(d.defaclnamespace::regnamespace::text, '(all)'), a.grantee::regrole), ', ') INTO v");
+  L.push('    FROM pg_default_acl d, aclexplode(d.defaclacl) a');
+  L.push(`   WHERE a.grantee <> 0 AND a.grantee::regrole::text = ANY (${arr(nonCore)})`);
+  L.push("     AND ((d.defaclobjtype = 'r' AND a.privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER')) OR d.defaclobjtype IN ('f', 'n'));");
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('DATABASE_AUTHORITY_DEFAULT_PRIVILEGES: ' || v); END IF;");
+  L.push("  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') AND NOT EXISTS (");
+  L.push("       SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = (SELECT oid FROM pg_roles WHERE rolname = 'bl_schema_owner') AND d.defaclnamespace = 0 AND d.defaclobjtype = 'f'");
+  L.push("          AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)) THEN");
+  L.push("    problems := problems || 'DATABASE_AUTHORITY_DEFAULT_PRIVILEGES: routines created by bl_schema_owner are executable by PUBLIC by default'::text;");
+  L.push('  END IF;');
+  L.push('  -- 9. every table with a money or ledger column is financial (and guarded) or classified.');
+  L.push("  SELECT string_agg(DISTINCT c.table_name, ', ') INTO v FROM information_schema.columns c JOIN pg_class k ON k.relname = c.table_name JOIN pg_namespace n ON n.oid = k.relnamespace AND n.nspname = c.table_schema");
+  L.push("   WHERE c.table_schema = 'public' AND k.relkind IN ('r', 'p')");
+  L.push("     AND (c.column_name LIKE '%amount_minor%' OR c.column_name IN ('account_id', 'available_account_id', 'posting_id', 'ledger_posting_id'))");
+  L.push(`     AND c.table_name <> ALL (${arr([...m.financial_tables, ...Object.keys(m.not_financial_money_tables)])});`);
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('UNCLASSIFIED_NEW_FINANCIAL_DB_OBJECTS: ' || v); END IF;");
+  L.push("  SELECT string_agg(t, ', ') INTO v FROM unnest(" + arr(m.financial_tables) + ") t");
+  L.push("   WHERE to_regclass('public.' || t) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pg_trigger g WHERE g.tgrelid = to_regclass('public.' || t) AND g.tgname = t || '_core_only_writer');");
+  L.push("  IF v IS NOT NULL THEN problems := problems || ('UNCLASSIFIED_NEW_FINANCIAL_DB_OBJECTS: unguarded financial table ' || v); END IF;");
+  L.push('  IF cardinality(problems) > 0 THEN');
+  L.push("    RAISE EXCEPTION 'DB_AUTHORITY_VIOLATION: %', array_to_string(problems, ' | ');");
+  L.push('  END IF;');
+  L.push('END $verify$;');
+  return L.join('\n');
+}
+
+export function verifyFile(m) {
+  return `-- GENERATED by tools/db-authority.mjs from db/authority/runtime-authority.json. Do not edit.
+--
+-- Verification only; changes nothing. Raises DB_AUTHORITY_VIOLATION if any non-Core runtime role can
+-- write financial state directly (INSERT/UPDATE/DELETE/TRUNCATE) or indirectly (role membership,
+-- SECURITY DEFINER or executable routines, rules, INSTEAD OF triggers, writable views, object creation
+-- or TEMP, default privileges), or if a table with money columns or a routine that writes one is
+-- unclassified. Run by runtime-authority.sh verify, at the end of every apply, and in CI.
+${generateVerify(m)}
+`;
 }
 
 export function check(m) {
@@ -273,6 +382,15 @@ export function check(m) {
   try { sql = generate(m); } catch (e) { problems.push(e.message); }
   const committed = existsSync(join(ROOT, SQL_OUT)) ? read(SQL_OUT) : '';
   if (sql !== null && committed !== sql) problems.push(`${SQL_OUT} is not what the manifest generates (run node tools/db-authority.mjs --write)`);
+  const verify = verifyFile(m);
+  const committedVerify = existsSync(join(ROOT, VERIFY_OUT)) ? read(VERIFY_OUT) : '';
+  if (committedVerify !== verify) problems.push(`${VERIFY_OUT} is not what the manifest generates (run node tools/db-authority.mjs --write)`);
+  // The money-table classification is the same list the 0144 guard test uses.
+  const guardTest = existsSync(join(ROOT, 'core/ledger/tests/financial_writer_guard.rs')) ? read('core/ledger/tests/financial_writer_guard.rs') : '';
+  const testList = [...(guardTest.match(/NOT_FINANCIAL_STATE[^=]*=\s*&\[([\s\S]*?)\n\];/)?.[1] ?? '').matchAll(/\(\s*"([a-z_]+)"/g)].map((x) => x[1]).sort();
+  const manifestList = Object.keys(m.not_financial_money_tables ?? {}).sort();
+  if (guardTest && testList.join(',') !== manifestList.join(',')) problems.push(`not_financial_money_tables (${manifestList.join(',')}) differs from financial_writer_guard.rs NOT_FINANCIAL_STATE (${testList.join(',')})`);
+  for (const r of Object.keys(m.security_definer_routines ?? {})) if (!m.security_definer_routines[r]?.search_path) problems.push(`security definer routine ${r} declares no pinned search_path`);
   return problems;
 }
 
@@ -280,7 +398,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const m = load();
   if (process.argv.includes('--write')) {
     writeFileSync(join(ROOT, SQL_OUT), generate(m));
-    console.log(`wrote ${SQL_OUT}`);
+    writeFileSync(join(ROOT, VERIFY_OUT), verifyFile(m));
+    console.log(`wrote ${SQL_OUT} and ${VERIFY_OUT}`);
   }
   const problems = check(m);
   for (const p of problems) console.log(`  ✗ ${p}`);

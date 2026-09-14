@@ -308,3 +308,193 @@ async fn core_operations_complete_as_the_core_role(pool: PgPool) {
     );
     assert_eq!(balance(&pool, payer_avail).await, 70_000, "nothing moved");
 }
+
+// ── indirect write authority (WALLET-NATIVE-001 closure) ─────────────────────
+//
+// The direct grants above are necessary, not sufficient. A non-Core role could
+// still reach financial state through a SECURITY DEFINER routine, a role it may
+// SET, TRUNCATE, a rule or INSTEAD OF trigger, a writable view, an object it
+// creates for a privileged routine to resolve, or a default privilege a future
+// migration inherits. `verify-authority.sql` checks every one against the live
+// catalog; each mutation below introduces one path inside a transaction that is
+// rolled back (roles are cluster-wide) and requires the verification to name it.
+
+const VERIFY_SQL: &str = include_str!("../../../../db/authority/verify-authority.sql");
+
+async fn verify_in(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>) -> Result<(), String> {
+    sqlx::raw_sql(VERIFY_SQL)
+        .execute(&mut **tx)
+        .await
+        .map(|_| ())
+        .map_err(|e| {
+            e.as_database_error()
+                .map(|d| d.message().to_string())
+                .unwrap_or_else(|| e.to_string())
+        })
+}
+
+/// Applies `mutation` and verifies, all in one rolled-back transaction.
+async fn verify_after(pool: &PgPool, mutation: &str) -> Result<(), String> {
+    let mut tx = pool.begin().await.unwrap();
+    sqlx::raw_sql(mutation).execute(&mut *tx).await.unwrap();
+    let r = verify_in(&mut tx).await;
+    tx.rollback().await.unwrap();
+    r
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn the_applied_authority_verifies_clean(pool: PgPool) {
+    apply_authority(&pool).await;
+    let mut tx = pool.begin().await.unwrap();
+    verify_in(&mut tx)
+        .await
+        .expect("no direct or indirect path after the apply");
+    tx.rollback().await.unwrap();
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn every_indirect_write_path_is_named_by_the_verification(pool: PgPool) {
+    apply_authority(&pool).await;
+    let cases: [(&str, &str, &str); 8] = [
+        (
+            "A: a SECURITY DEFINER financial writer executable by the gateway",
+            "CREATE FUNCTION public.bz_mut_writer() RETURNS void LANGUAGE sql SECURITY DEFINER AS $$ UPDATE public.wallets SET id = id WHERE false $$;
+             REVOKE ALL ON FUNCTION public.bz_mut_writer() FROM PUBLIC;
+             GRANT EXECUTE ON FUNCTION public.bz_mut_writer() TO bl_gateway_runtime;",
+            "UNSAFE_SECURITY_DEFINER_FUNCTIONS",
+        ),
+        (
+            "B: the gateway made a member of Core",
+            "GRANT bl_core_runtime TO bl_gateway_runtime;",
+            "NON_CORE_PRIVILEGE_ESCALATION_ROLE_PATHS",
+        ),
+        (
+            "C: TRUNCATE on a financial table",
+            "GRANT TRUNCATE ON public.ledger_entries TO bl_public_api_runtime;",
+            "NON_CORE_DIRECT_FINANCIAL_WRITE",
+        ),
+        (
+            "D: a privileged routine that resolves names through an unpinned search_path",
+            "CREATE FUNCTION public.bz_mut_unpinned() RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN PERFORM 1; END $$;
+             REVOKE ALL ON FUNCTION public.bz_mut_unpinned() FROM PUBLIC;",
+            "UNSAFE_SECURITY_DEFINER_FUNCTIONS",
+        ),
+        (
+            "E: a new table holding money, unclassified",
+            "CREATE TABLE public.bz_mut_shadow_balances (id uuid, amount_minor bigint);",
+            "UNCLASSIFIED_NEW_FINANCIAL_DB_OBJECTS",
+        ),
+        (
+            "F: an INSTEAD rule that turns a write on a view into a write on wallets",
+            "CREATE VIEW public.bz_mut_view AS SELECT id FROM public.wallets;
+             CREATE RULE bz_mut_rule AS ON UPDATE TO public.bz_mut_view DO INSTEAD UPDATE public.wallets SET id = NEW.id WHERE id = OLD.id;",
+            "NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE",
+        ),
+        (
+            "G: a default privilege that gives the gateway writes on future tables",
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT INSERT ON TABLES TO bl_gateway_runtime;",
+            "DATABASE_AUTHORITY_DEFAULT_PRIVILEGES",
+        ),
+        (
+            "H: CREATE on a schema in the search path",
+            "GRANT CREATE ON SCHEMA public TO bl_developer_api_runtime;",
+            "NON_CORE_SEARCH_PATH_PRIVILEGE_ESCALATION",
+        ),
+    ];
+    for (name, mutation, counter) in cases {
+        let err = verify_after(&pool, mutation)
+            .await
+            .expect_err(&format!("{name}: the verification must fail"));
+        assert!(
+            err.contains(counter),
+            "{name}: expected {counter}, got: {err}"
+        );
+    }
+    // Every mutation was rolled back: the database verifies clean again.
+    let mut tx = pool.begin().await.unwrap();
+    verify_in(&mut tx).await.expect("clean after the mutations");
+    tx.rollback().await.unwrap();
+}
+
+/// Mutation A is not theoretical: the definer routine would have let the gateway
+/// write a wallet. The gate exists because this works when nothing forbids it.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_definer_routine_would_have_been_a_real_bypass(pool: PgPool) {
+    apply_authority(&pool).await;
+    let mut tx = pool.begin().await.unwrap();
+    sqlx::raw_sql(
+        "CREATE FUNCTION public.bz_mut_writer() RETURNS void LANGUAGE sql SECURITY DEFINER AS $$ UPDATE public.wallets SET id = id WHERE false $$;
+         GRANT EXECUTE ON FUNCTION public.bz_mut_writer() TO bl_gateway_runtime;
+         SET LOCAL application_name = 'api-gateway';
+         SET LOCAL ROLE bl_gateway_runtime;",
+    )
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+    sqlx::query("SELECT public.bz_mut_writer()")
+        .execute(&mut *tx)
+        .await
+        .expect("a definer routine writes with its owner's authority");
+    tx.rollback().await.unwrap();
+}
+
+/// Runs `stmt` with `role` as the SESSION user (as a real login would be), so
+/// SET ROLE and GRANT are judged by the role's own memberships, not the test's.
+async fn as_session(pool: &PgPool, role: &str, stmt: &str) -> Result<(), (String, String)> {
+    let mut tx = pool.begin().await.unwrap();
+    tx.execute("SET LOCAL application_name = 'banzami-core'")
+        .await
+        .unwrap();
+    tx.execute(format!("SET LOCAL SESSION AUTHORIZATION {role}").as_str())
+        .await
+        .unwrap();
+    let r = tx.execute(stmt).await.map(|_| ()).map_err(|e| {
+        let db = e.as_database_error().expect("a database error");
+        (
+            db.code().map(|c| c.to_string()).unwrap_or_default(),
+            db.message().to_string(),
+        )
+    });
+    tx.rollback().await.unwrap();
+    r
+}
+
+/// On the clean database each indirect attempt is refused by PostgreSQL itself.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_non_core_role_has_no_indirect_path(pool: PgPool) {
+    apply_authority(&pool).await;
+    let owner: String = sqlx::query_scalar("SELECT session_user::text")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let set_owner = format!("SET ROLE \"{owner}\"");
+    let attempts: Vec<(&str, &str)> = vec![
+        ("SET ROLE to Core", "SET ROLE bl_core_runtime"),
+        ("SET ROLE to the database owner / superuser", set_owner.as_str()),
+        ("grant itself Core", "GRANT bl_core_runtime TO bl_gateway_runtime"),
+        ("TRUNCATE a financial table", "TRUNCATE public.ledger_entries"),
+        ("MERGE into a financial table", "MERGE INTO public.wallets w USING (SELECT NULL::uuid AS id WHERE false) s ON w.id = s.id WHEN MATCHED THEN UPDATE SET id = w.id"),
+        ("call a routine that writes a financial table", "SELECT public.create_primary_wallet_account()"),
+        ("write through a view", "UPDATE public.business_public_identities SET handle = handle WHERE false"),
+        ("create an object in public", "CREATE TABLE public.bz_probe (id int)"),
+        ("create a session-local object", "CREATE TEMP TABLE bz_probe (id int)"),
+        ("create a schema", "CREATE SCHEMA bz_probe"),
+    ];
+    for role in NON_CORE {
+        for (name, stmt) in &attempts {
+            let r = as_session(&pool, role, stmt).await;
+            let (code, message) = r.expect_err(&format!("{role}: {name} must be refused"));
+            // The one view is not updatable at all (55000) and the role holds no
+            // write privilege on it either; everything else is a privilege refusal.
+            let allowed: &[&str] = if name.contains("view") {
+                &["42501", "55000"]
+            } else {
+                &["42501"]
+            };
+            assert!(
+                allowed.contains(&code.as_str()),
+                "{role}: {name}: refused by PostgreSQL, got {code} {message}"
+            );
+        }
+    }
+}
