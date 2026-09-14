@@ -43,6 +43,18 @@ func (sw *statusWriter) WriteHeader(code int) {
 	sw.ResponseWriter.WriteHeader(code)
 }
 
+// Flush passes a flush through, so a streaming response (realtime status, SSE)
+// reaches the client as it is written rather than when the handler returns.
+func (sw *statusWriter) Flush() {
+	if f, ok := sw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap lets http.ResponseController reach the connection (per-request write
+// deadlines for long-lived streams).
+func (sw *statusWriter) Unwrap() http.ResponseWriter { return sw.ResponseWriter }
+
 // LoggedPath is the request path as it may appear in a log: bearer values
 // (proof references on ANY route, API keys) are cut — see obs.RedactPath.
 //

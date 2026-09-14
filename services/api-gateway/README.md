@@ -80,6 +80,7 @@ mounted**: `/v1/transfers` (SEC-015 / RA-053), `/v1/payment-requests`
 | GET | /v1/public/proofs/{ref} | Public proof verification (exact reference; rate-limited) |
 | GET | /public/pay/{slug} | Payer-safe payment-link view (no internal ids) |
 | GET | /v1/public/pay/{slug} | Payer-safe payment-link view (no internal ids) |
+| GET | /v1/realtime/payment-sessions/{id} | Realtime Payment Session status — snapshot (JSON) or stream (SSE); single-session read-only status token in `Authorization` (ADR-060 §9) |
 | GET | /public/pay/{slug}/status | Has the link's payment been made? |
 | GET | /v1/public/pay/{slug}/status | Has the link's payment been made? |
 | POST | /public/pay/{slug}/pay | Initiate an acquiring payment (per-IP limited) |

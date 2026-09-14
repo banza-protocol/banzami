@@ -144,7 +144,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// caller actually received).
 	r.Use(middleware.APIRequestLog(deps.RequestLogSink))
 	r.Use(chimw.Recoverer)
-	r.Use(chimw.Timeout(60 * time.Second))
+	// Every request is bounded at 60 s except realtime status streams, which end
+	// at a terminal status or their token's expiry (handler/realtime.go).
+	r.Use(func(next http.Handler) http.Handler {
+		return middleware.TimeoutExcept(chimw.Timeout(60*time.Second)(next), next)
+	})
 	r.Use(middleware.RouteSpan)       // enriches the otelhttp span with chi route pattern
 	r.Use(chimw.RequestSize(4 << 20)) // 4 MB global cap — blocks oversized payloads before handlers
 
@@ -190,7 +194,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		WithBindingSeal(deps.BindingSeal).WithWallets(deps.WalletSvc).
 		// The payer sees the Business's public name and @banza, never its
 		// account name ("Sandbox · Doa-Sandbox") — A7-02.
-		WithBusinessIdentities(deps.ProofSvc)
+		WithBusinessIdentities(deps.ProofSvc).
+		WithRealtime(service.NewRealtimeTokens(cfg.JWTSecret, realtimeEnvironment(cfg.Environment)), deps.PaymentSessionSvc)
 	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc).WithWallets(deps.WalletSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc, deps.WebhookSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
@@ -204,9 +209,14 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc, deps.BusinessSelfSvc)
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
 	walletAccountTransferHandler := handler.NewWalletAccountTransferHandler(deps.WalletAccountTransferSvc)
+	// Realtime status tokens are minted where a session is read by its owner and
+	// verified on the public realtime route (ADR-060 §9).
+	realtimeTokens := service.NewRealtimeTokens(cfg.JWTSecret, realtimeEnvironment(cfg.Environment))
 	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc, deps.WalletAccountSvc).
 		WithBindingSeal(deps.BindingSeal).
-		WithPayBaseURL(deps.PayBaseURL)
+		WithPayBaseURL(deps.PayBaseURL).
+		WithRealtime(realtimeTokens)
+	realtimeHandler := handler.NewRealtimeHandler(realtimeTokens, deps.PaymentSessionSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight
@@ -225,6 +235,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// token is the credential; renewal is rate-limited like a sign-in.
 	r.With(credLimit).Post("/v1/merchant/auth/refresh", merchantAuthHandler.Refresh)
 	r.With(credLimit).Post("/v1/merchant/auth/logout", merchantAuthHandler.Logout)
+	// Realtime payment status (ADR-060 §9) — no API key: a single-session,
+	// read-only status token in the Authorization header. Limited per IP before
+	// the handler's own per-session and per-client stream caps.
+	r.With(middleware.RateLimitPerIP(deps.Redis, 120, "realtime")).Get("/v1/realtime/payment-sessions/{id}", realtimeHandler.Status)
+
 	// Public platform mode — read-only, no auth. Lets the website show a SANDBOX
 	// banner without a rebuild. Never leaks internal config.
 	r.Get("/v1/platform-mode", handler.NewPlatformHandler(deps.PlatformSvc).Mode)
@@ -824,4 +839,12 @@ func mountPublicProofVerify(r chi.Router, rdb *redis.Client, proofs *service.Pro
 			return service.ClassifyReference(ref) == service.ReferenceLegacyV0
 		}),
 	).Get("/v1/public/proofs/{ref}", handler.NewProofHandler(proofs, salt).Verify)
+}
+
+// realtimeEnvironment is the environment a status token is bound to.
+func realtimeEnvironment(raw string) string {
+	if env.Parse(raw).IsSandbox() {
+		return "SANDBOX"
+	}
+	return "LIVE"
 }

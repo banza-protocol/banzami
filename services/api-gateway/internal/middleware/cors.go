@@ -1,9 +1,32 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
+
+// RealtimePathPrefix is the public realtime status namespace (ADR-060 §9).
+const RealtimePathPrefix = "/v1/realtime/"
 
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Realtime status is called from the developer's own pages, on any origin,
+		// with a single-session bearer token and never with cookies. Its handler
+		// sets its own CORS headers on GET (handler/realtime.go); the preflight is
+		// answered here with the same wildcard-without-credentials policy.
+		if strings.HasPrefix(r.URL.Path, RealtimePathPrefix) {
+			if r.Method == http.MethodOptions {
+				h := w.Header()
+				h.Set("Access-Control-Allow-Origin", "*")
+				h.Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+				h.Set("Access-Control-Allow-Headers", "Authorization, Accept, Last-Event-ID")
+				h.Set("Access-Control-Max-Age", "600")
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
 		origin := r.Header.Get("Origin")
 		if isAllowedOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -46,4 +69,17 @@ var allowedOrigins = map[string]bool{
 
 func isAllowedOrigin(origin string) bool {
 	return allowedOrigins[origin]
+}
+
+// TimeoutExcept applies chi's request timeout to every route except the
+// realtime namespace, whose streams live until a terminal status or the
+// token's expiry and bound themselves.
+func TimeoutExcept(timeout http.Handler, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, RealtimePathPrefix) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		timeout.ServeHTTP(w, r)
+	})
 }

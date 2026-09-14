@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -29,6 +30,8 @@ type PaymentSessionHandler struct {
 	accounts walletAccountLookup
 	// payBase is the origin of the hosted payer surface. See payURL.
 	payBase string
+	// realtime mints status tokens; nil offers none.
+	realtime *service.RealtimeTokens
 }
 
 func NewPaymentSessionHandler(s service.PaymentSessionService, m merchantLookup, a walletAccountLookup) *PaymentSessionHandler {
@@ -45,6 +48,12 @@ func (h *PaymentSessionHandler) WithBindingSeal(sl bindingSealer) *PaymentSessio
 // WithPayBaseURL supplies the origin of the hosted payer surface — the page a
 // human opens to pay (Banzami ADR-052). Unset keeps the legacy request-host
 // behaviour; see payURL.
+// WithRealtime makes owner reads carry a realtime status token (ADR-060 §9).
+func (h *PaymentSessionHandler) WithRealtime(t *service.RealtimeTokens) *PaymentSessionHandler {
+	h.realtime = t
+	return h
+}
+
 func (h *PaymentSessionHandler) WithPayBaseURL(base string) *PaymentSessionHandler {
 	h.payBase = strings.TrimRight(base, "/")
 	return h
@@ -116,6 +125,17 @@ func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSessi
 	// (sess.MerchantID == principal.MerchantID) before this DTO is built.
 	if s.RefundSource != nil {
 		dto["refund_source"] = s.RefundSource
+	}
+	// A browser-safe capability to watch this session's status: read-only, this
+	// session only, 30 minutes. The owner's backend hands it to its own page;
+	// a new read returns a new token.
+	if h.realtime != nil {
+		tok, exp := h.realtime.Mint(s.SessionID)
+		dto["realtime"] = map[string]any{
+			"token":      tok,
+			"expires_at": exp.Format(time.RFC3339),
+			"url":        "/v1/realtime/payment-sessions/" + s.SessionID,
+		}
 	}
 	return dto
 }

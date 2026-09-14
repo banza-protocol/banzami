@@ -24,6 +24,21 @@ type PaymentLinkHandler struct {
 	merchantSvc service.MerchantService
 	webhookSvc  service.WebhookService
 	identities  businessIdentityLookup
+	realtime    *service.RealtimeTokens
+	linkSession func(ctx context.Context, linkID string) (*service.PaymentSession, error)
+}
+
+// WithRealtime lets the public link view carry a status token for the Payment
+// Session the link belongs to.
+func (h *PaymentLinkHandler) WithRealtime(t *service.RealtimeTokens, sessions service.PaymentSessionService) *PaymentLinkHandler {
+	if t == nil || sessions == nil {
+		return h
+	}
+	h.realtime = t
+	h.linkSession = func(ctx context.Context, linkID string) (*service.PaymentSession, error) {
+		return sessions.GetByInterface(ctx, "link", linkID)
+	}
+	return h
 }
 
 // WithWallets gives the handler what it needs to check that a Business's link
@@ -425,6 +440,18 @@ type publicPaymentLink struct {
 	PaidAt         *time.Time `json:"paid_at"`
 	MerchantName   string     `json:"merchant_name"`
 	MerchantHandle *string    `json:"merchant_handle"`
+	// Realtime lets the hosted page watch the Payment Session this link belongs
+	// to (ADR-060 §9): a single-session, read-only status token. Absent for a
+	// link that belongs to no session. The slug already grants a public status
+	// read, and the token grants no more than that.
+	Realtime *publicRealtime `json:"realtime,omitempty"`
+}
+
+type publicRealtime struct {
+	SessionID string `json:"session_id"`
+	Token     string `json:"token"`
+	ExpiresAt string `json:"expires_at"`
+	URL       string `json:"url"`
 }
 
 func toPublicPaymentLink(link *service.PaymentLink, payee service.BusinessIdentity, paid bool) publicPaymentLink {
@@ -500,7 +527,15 @@ func (h *PaymentLinkHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, http.StatusOK, toPublicPaymentLink(link, payee, h.linkPaid(r.Context(), link)))
+	view := toPublicPaymentLink(link, payee, h.linkPaid(r.Context(), link))
+	if h.realtime != nil && h.linkSession != nil {
+		if sess, serr := h.linkSession(r.Context(), link.ID); serr == nil && sess != nil && sess.SessionID != "" {
+			tok, exp := h.realtime.Mint(sess.SessionID)
+			view.Realtime = &publicRealtime{SessionID: sess.SessionID, Token: tok, ExpiresAt: exp.Format(time.RFC3339),
+				URL: "/v1/realtime/payment-sessions/" + sess.SessionID}
+		}
+	}
+	respond(w, http.StatusOK, view)
 }
 
 // linkSessionStatus is implemented by a link service that can tell the status of
