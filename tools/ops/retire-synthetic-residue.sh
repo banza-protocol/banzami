@@ -23,6 +23,8 @@
 #   merchants        POST core /internal/v1/merchants/:id/suspend
 #   consumers        POST core /internal/v1/consumers/:id/suspend
 #   projects         POST developer-api /internal/v1/projects/:id/retire   (archives, revokes its keys)
+#   self-service Businesses with no live Project
+#                    POST core /internal/v1/sandbox/projects/retire  (Core retires the owning Project)
 # Ledger history stays; retirement is a new posting, not an erased one.
 #
 # Usage:  bash tools/ops/retire-synthetic-residue.sh [--apply]
@@ -31,26 +33,6 @@
 set -uo pipefail
 
 APPLY=0; [ "${1:-}" = "--apply" ] && APPLY=1
-
-for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
-          "$(dirname "$0")/../lib/remote.sh" "$(dirname "$0")/../../tools/ops/lib/remote.sh"; do
-  [ -f "$_p" ] && { . "$_p"; break; }
-done
-command -v remote_self_or_continue >/dev/null 2>&1 \
-  || { echo "✗ tools/ops/lib/remote.sh not found — refusing to run without the host guard" >&2; exit 2; }
-remote_self_or_continue "$@"
-
-CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
-GW=$(docker ps --format '{{.Names}}' | grep api-gateway-staging | head -1)
-DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
-PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
-[ -n "$CORE" ] && [ -n "$GW" ] && [ -n "$DEV" ] && [ -n "$PG" ] || { echo "✗ Sandbox containers not found" >&2; exit 2; }
-PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
-# Read-only: selection and counts. Every change below goes through an API.
-q(){ docker exec -e PGPASSWORD="$PW" -e PGOPTIONS="-c default_transaction_read_only=on" "$PG" \
-       psql -U bl_app_runtime -d banzami_staging -At -F'|' -c "$1" 2>/dev/null; }
-
-RUN="rsr-$(date +%s)"
 
 # ── the shapes ───────────────────────────────────────────────────────────────
 # DOA's own workspaces are out of scope as a whole: the canonical @doa tenant
@@ -74,8 +56,24 @@ P_SEL="p.status = 'ACTIVE' AND EXISTS (SELECT 1 FROM developer.dev_projects dp W
 # binding to a harness project.
 FIX="^(E2E |SYN |SYNTHETIC |E0[0-9] |E1 |E2 |[A-Z]{2,4}[0-9]{4,}$|M[0-9]+$|smoke-|refund-|rf-|seal-|proof-|rcpt-|fixture-|economic-|settle-|pricing-unpriced-|Negocio (Existente|Consola) |Sessao [AB] |Loja Genérica |Recibo [0-9]+$|KYB Atencao |Sandbox · (Cleanroom |External Cleanroom |Final Cleanroom |Setup Probe|readiness-|webhook-retry-|isolation-))"
 MAIL="@(synthetic\\.test|banzami-e2e\\.test|t\\.test|x\\.test|example\\.test)$"
+# Synthetic self-service Businesses (ADR-060) with no live Project — selected by
+# STRUCTURE, not by name. Core provisioned them (kyb SANDBOX_SYNTHETIC, a
+# sandbox_businesses row) for a Project's Financial Setup; the owning Project is
+# archived or deleted, no ACTIVE Project is bound to them and no key can act for
+# them. Their names are `Sandbox · <project name>`, which no shape above matched:
+# on 2026-09-14 this scanner reported 0 synthetic merchants active while 165 of
+# them were. A name is supporting evidence at most; this predicate needs none.
+SB_SEL="EXISTS (SELECT 1 FROM sandbox_businesses sb JOIN merchant_compliance mc ON mc.merchant_id = sb.merchant_id
+                  JOIN developer.dev_projects op ON op.id = sb.project_id
+                 WHERE sb.merchant_id = m.id AND mc.kyb_status = 'SANDBOX_SYNTHETIC'
+                   AND op.status IN ('ARCHIVED','DELETING','DELETED'))
+        AND NOT EXISTS (SELECT 1 FROM developer.dev_project_sandbox_binding lb JOIN developer.dev_projects lp ON lp.id = lb.project_id
+                         WHERE lb.merchant_id = m.id AND lb.state = 'ACTIVE' AND lp.status = 'ACTIVE')
+        AND NOT EXISTS (SELECT 1 FROM developer.dev_api_keys lk
+                         WHERE lk.status = 'ACTIVE' AND (lk.project_id IN (SELECT project_id FROM sandbox_businesses WHERE merchant_id = m.id)
+                            OR lk.project_id IN (SELECT project_id FROM developer.dev_project_sandbox_binding WHERE merchant_id = m.id)))"
 M_SEL="m.id NOT IN ($DOA_MERCHANTS)
-       AND (m.name ~ '$FIX' OR m.email ~* '$MAIL' OR EXISTS (
+       AND (($SB_SEL) OR m.name ~ '$FIX' OR m.email ~* '$MAIL' OR EXISTS (
             SELECT 1 FROM developer.dev_project_sandbox_binding b JOIN developer.dev_projects dp ON dp.id = b.project_id
              WHERE b.merchant_id = m.id AND $P_SHAPE))"
 # Consumers: a machine-numbered handle with no display name, or the two harness
@@ -113,8 +111,46 @@ DEMO_SEL="wa.merchant_id IN ($DOA_MERCHANTS)
 
 bal="COALESCE((SELECT SUM(CASE WHEN e.entry_type='CREDIT' THEN e.amount_minor ELSE -e.amount_minor END) FROM ledger_entries e WHERE e.account_id = %s), 0)"
 
+# The selection, printed without touching the Sandbox — for the selftest, which
+# runs it against a local database with fixtures (retire-synthetic-residue.selftest.mjs).
+if [ "${1:-}" = "--print-selection" ]; then
+  case "${2:-}" in
+    merchants) printf '%s' "$M_SEL" ;;
+    synthetic-businesses) printf '%s' "$SB_SEL" ;;
+    doa-merchants) printf '%s' "$DOA_MERCHANTS" ;;
+    *) echo "usage: --print-selection merchants|synthetic-businesses|doa-merchants" >&2; exit 2 ;;
+  esac
+  exit 0
+fi
+
+for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
+          "$(dirname "$0")/../lib/remote.sh" "$(dirname "$0")/../../tools/ops/lib/remote.sh"; do
+  [ -f "$_p" ] && { . "$_p"; break; }
+done
+command -v remote_self_or_continue >/dev/null 2>&1 \
+  || { echo "✗ tools/ops/lib/remote.sh not found — refusing to run without the host guard" >&2; exit 2; }
+remote_self_or_continue "$@"
+
+CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
+GW=$(docker ps --format '{{.Names}}' | grep api-gateway-staging | head -1)
+DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
+PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
+[ -n "$CORE" ] && [ -n "$GW" ] && [ -n "$DEV" ] && [ -n "$PG" ] || { echo "✗ Sandbox containers not found" >&2; exit 2; }
+PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+# Read-only: selection and counts. Every change below goes through an API.
+q(){ docker exec -e PGPASSWORD="$PW" -e PGOPTIONS="-c default_transaction_read_only=on" "$PG" \
+       psql -U bl_app_runtime -d banzami_staging -At -F'|' -c "$1" 2>/dev/null; }
+
+RUN="rsr-$(date +%s)"
+
+
 inventory(){
   echo "  synthetic merchants active        $(q "SELECT count(*) FROM merchants m WHERE m.status='ACTIVE' AND $M_SEL")"
+  echo "   of which self-service, no live project $(q "SELECT count(*) FROM merchants m WHERE m.status='ACTIVE' AND m.id NOT IN ($DOA_MERCHANTS) AND $SB_SEL")"
+  # Nothing may be active without either being selected here or belonging to DOA's
+  # canonical tenant; a survivor is counted, so it can never hide behind a zero.
+  echo "  DOA canonical tenant merchants    $(q "SELECT count(*) FROM merchants m WHERE m.status='ACTIVE' AND m.id IN ($DOA_MERCHANTS)")"
+  echo "  active merchants no rule selects  $(q "SELECT count(*) FROM merchants m WHERE m.status='ACTIVE' AND m.id NOT IN ($DOA_MERCHANTS) AND NOT ($M_SEL)")"
   echo "  synthetic merchant value (minor)  $(q "SELECT COALESCE(SUM($(printf "$bal" 'w.available_account_id')),0) FROM wallets w JOIN merchants m ON m.id=w.merchant_id WHERE $M_SEL")"
   echo "  synthetic segregated value        $(q "SELECT COALESCE(SUM($(printf "$bal" 'wa.account_id')),0) FROM wallet_accounts wa JOIN merchants m ON m.id=wa.merchant_id WHERE wa.purpose<>'PRIMARY' AND $M_SEL")"
   echo "  synthetic segregated accts active $(q "SELECT count(*) FROM wallet_accounts wa JOIN merchants m ON m.id=wa.merchant_id WHERE wa.purpose<>'PRIMARY' AND wa.status<>'CLOSED' AND $M_SEL")"
@@ -152,14 +188,16 @@ q "SELECT '  ' || rpad(c.handle, 28) || ' ' || c.status || ' ' || COALESCE((SELE
 echo "SELECTED projects active — name"
 q "SELECT '  ' || p.name FROM developer.dev_projects p WHERE $P_SEL ORDER BY p.created_at"
 echo
-echo "merchants that SURVIVE active or holding value (no shape matched) — name, email domain"
+echo "merchants of DOA's canonical tenant — excluded by rule, counted, never retired here"
+q "SELECT '  ' || rpad(m.name, 34) || ' ' || m.status FROM merchants m WHERE m.id IN ($DOA_MERCHANTS) AND m.status = 'ACTIVE' ORDER BY m.created_at"
+echo "merchants that SURVIVE active or holding value (no rule selected, not DOA) — must be empty"
 q "SELECT '  ' || rpad(m.name, 34) || ' @' || split_part(m.email,'@',2) || ' ' || m.status FROM merchants m
-    WHERE NOT ($M_SEL) AND (m.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM wallets w WHERE w.merchant_id = m.id
+    WHERE NOT ($M_SEL) AND m.id NOT IN ($DOA_MERCHANTS) AND (m.status = 'ACTIVE' OR EXISTS (SELECT 1 FROM wallets w WHERE w.merchant_id = m.id
       AND $(printf "$bal" 'w.available_account_id') <> 0)) ORDER BY m.created_at"
-echo "consumers that SURVIVE with a balance — handle"
+echo "consumers not selected that hold a balance — real people (excluded by name: fm65, oxfannio, priscila) or unmatched — handle"
 q "SELECT '  ' || c.handle FROM consumers c JOIN consumer_wallets cw ON cw.consumer_id=c.id
     WHERE NOT ($C_SEL) AND $(printf "$bal" 'cw.available_account_id') <> 0 ORDER BY c.created_at"
-echo "projects that SURVIVE — name"
+echo "active projects not selected — each must be declared in ops/canonical-resources.yaml (checked by tools/check-canonical-resources.mjs) — name"
 q "SELECT '  ' || p.name FROM developer.dev_projects p WHERE p.status='ACTIVE' AND NOT ($P_SEL) ORDER BY p.created_at"
 
 if [ "$APPLY" -eq 0 ]; then echo; echo "dry run — nothing changed. Re-run with --apply."; exit 0; fi
@@ -185,6 +223,14 @@ tally(){ case "$2" in 2*|404) OK[$1]=$(( ${OK[$1]:-0} + 1 ));; *) FAIL[$1]=$(( $
 REASON='synthetic fixture — retired by tools/ops/retire-synthetic-residue.sh (owner decision 2026-09-11)'
 
 echo; echo "applying"
+# 0. Synthetic self-service Businesses with no live Project: Core retires the
+#    owning Project — its payers, its open sessions and links, the Business's
+#    value through balanced postings, then suspends it and ends its webhooks.
+#    State-based and idempotent in Core; the steps below then find nothing left.
+while IFS='|' read -r pid; do [ -n "$pid" ] || continue
+  tally project_core_retire "$(core POST /internal/v1/sandbox/projects/retire "{\"project_id\":\"$pid\",\"requested_by\":\"retire-synthetic-residue\",\"pass_id\":\"$RUN\",\"retire_business\":true}")" "$pid"
+done < <(q "SELECT DISTINCT sb.project_id FROM merchants m JOIN sandbox_businesses sb ON sb.merchant_id = m.id WHERE m.status='ACTIVE' AND m.id NOT IN ($DOA_MERCHANTS) AND $SB_SEL")
+
 # 1. Payouts of synthetic merchants that are still in flight end through their lifecycle.
 while IFS='|' read -r id; do [ -n "$id" ] || continue
   tally payout_fail "$(core POST "/internal/v1/payouts/$id/fail" "{\"reason\":\"$REASON\"}")" "$id"
@@ -239,7 +285,7 @@ while IFS='|' read -r cid; do [ -n "$cid" ] || continue
 done < <(q "SELECT c.id FROM consumers c WHERE c.status='ACTIVE' AND $C_SEL")
 
 echo; echo "results"
-for k in payout_fail link_cancel session_cancel wa_funds wa_close doa_demo_funds doa_demo_close merchant_funds api_key_revoke webhook_off project_retire merchant_suspend consumer_funds consumer_suspend; do
+for k in project_core_retire payout_fail link_cancel session_cancel wa_funds wa_close doa_demo_funds doa_demo_close merchant_funds api_key_revoke webhook_off project_retire merchant_suspend consumer_funds consumer_suspend; do
   printf '  %-18s ok=%-5s failed=%s\n' "$k" "${OK[$k]:-0}" "${FAIL[$k]:-0}"
 done
 echo; echo "AFTER"; inventory

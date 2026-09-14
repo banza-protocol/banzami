@@ -6,7 +6,8 @@
 # forgotten — which is how 267 unreachable workspaces and a dozen fixture
 # identities accumulated before anyone counted.
 #
-# Identities are matched by email, everything else by name. No secrets, no
+# Identities are matched by email, everything else by name. Businesses are
+# additionally classified from structure (tools/lib/sandbox-businesses.mjs). No secrets, no
 # tokens, no key material: names, owners and reasons only.
 
 version: 1
@@ -106,6 +107,22 @@ keys:
     classification: canonical
     authority: integrator
     lifetime: until rotated — rotation is routine and expected
+
+businesses:
+  - resource: Sandbox · Doa-Sandbox
+    owner: contact@doadoa.app (bound to Doa-Sandbox)
+    purpose: The Business that receives DOA's donations in the Public Sandbox — payee of Doa-Sandbox's sealed binding.
+    why_now: >
+      The publicly deployed DOA application pays into it. The classifier accepts
+      this declaration only while the Business is bound ACTIVE to the declared
+      live Project Doa-Sandbox; a declaration alone makes nothing canonical.
+    classification: canonical
+    authority: integrator
+    lifetime: as long as DOA integrates
+
+# Every other ACTIVE Business must be synthetic residue awaiting retirement
+# (classified from structure, never by name) — and that fails the gate until it
+# is retired through Core. See tools/lib/sandbox-businesses.mjs.
 
 # Payee bindings are not listed individually and are not residue.
 #

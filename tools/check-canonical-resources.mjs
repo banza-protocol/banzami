@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { businessEvidenceSql, canonicalSets, classifyBusiness, readSandbox } from './lib/sandbox-businesses.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const REMOTE = process.env.BANZAMI_REMOTE ?? 'root@217.160.9.248';
@@ -108,6 +109,33 @@ for (const [section, label] of SECTIONS) {
   // A declaration for something that no longer exists is stale, not dangerous —
   // reported so the file stays true, and it does not fail the gate.
   if (declaredGone.length) console.log(`  · declared but no longer active (stale entry): ${declaredGone.join(', ')}`);
+}
+
+// Businesses — classified from structure (tools/lib/sandbox-businesses.mjs), not
+// by name. Until 2026-09-14 this gate did not look at Businesses, and reported
+// "0 unclassified" while 165 ACTIVE synthetic test Businesses existed. Every
+// ACTIVE Business is now CANONICAL (declared, and bound to a declared live
+// Project) or SYNTHETIC_RETIREABLE; anything else is UNCLASSIFIED. Retireable
+// residue fails the gate too: it is classified, not accepted.
+{
+  const decl = declared('businesses');
+  if (decl === null) fail('ops/canonical-resources.yaml has no "businesses" section');
+  for (const d of decl ?? []) if (d.missing.length) fail(`businesses: "${d.name}" is missing ${d.missing.join(', ')}`);
+  const rows = JSON.parse(readSandbox(businessEvidenceSql()) || '[]');
+  const canon = canonicalSets(doc);
+  const by = { CANONICAL: [], SYNTHETIC_RETIREABLE: [], UNCLASSIFIED: [] };
+  for (const r of rows) { const c = classifyBusiness(r, canon); by[c.class].push({ r, c }); }
+  const classified = rows.length ? Math.round(((by.CANONICAL.length + by.SYNTHETIC_RETIREABLE.length) / rows.length) * 1000) / 10 : 100;
+  console.log(`\n── BUSINESSES — ${rows.length} active: ${by.CANONICAL.length} canonical, ${by.SYNTHETIC_RETIREABLE.length} synthetic retireable, ${by.UNCLASSIFIED.length} unclassified ──`);
+  console.log(`  ACTIVE_SANDBOX_BUSINESSES_CLASSIFIED=${classified}%`);
+  by.UNCLASSIFIED.length
+    ? fail(`UNCLASSIFIED_ACTIVE_SANDBOX_BUSINESSES = ${by.UNCLASSIFIED.length}: ${by.UNCLASSIFIED.slice(0, 10).map(({ r, c }) => `${r.name} (${c.reason})`).join('; ')}`)
+    : pass('UNCLASSIFIED_ACTIVE_SANDBOX_BUSINESSES = 0');
+  by.SYNTHETIC_RETIREABLE.length
+    ? fail(`ACTIVE_SYNTHETIC_RETIREABLE_BUSINESSES = ${by.SYNTHETIC_RETIREABLE.length} — retire with tools/ops/retire-archived-synthetic-businesses.mjs`)
+    : pass('ACTIVE_SYNTHETIC_RETIREABLE_BUSINESSES = 0');
+  const declaredGone = (decl ?? []).map((d) => d.name).filter((n) => !by.CANONICAL.some(({ r }) => r.name === n));
+  if (declaredGone.length) console.log(`  · declared but not an active canonical Business (stale entry): ${declaredGone.join(', ')}`);
 }
 
 console.log('\n── BINDINGS ──');
