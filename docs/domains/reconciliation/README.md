@@ -1,5 +1,15 @@
 # Domain: Reconciliation
 
+> **Boundary reconciliation (MONEY-MODEL-001, ADR-063).** Besides the settlement
+> statement matching described below, `core/reconciliation/src/boundary.rs`
+> reconciles every boundary operation — cash-in, cash-out, acquirer settlement —
+> against external evidence **by reference**, with the outcomes MATCHED,
+> AMOUNT_MISMATCH, CURRENCY_MISMATCH, MISSING_EXTERNAL, MISSING_INTERNAL,
+> DUPLICATE_EXTERNAL, PENDING and REQUIRES_REVIEW, recorded idempotently in
+> `boundary_reconciliation_runs/items` (0148). It never writes financial state.
+> `financial_position` (`position.rs`) reports obligations, backing, coverage and
+> integrity findings. See [MONEY_MODEL.md](../../architecture/MONEY_MODEL.md).
+
 **Crate:** `banzami-reconciliation`  
 **Module:** `core/reconciliation/`
 

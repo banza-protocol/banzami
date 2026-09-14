@@ -54,31 +54,42 @@ A `fail` from `PENDING` writes no ledger entry — no money was ever committed. 
 
 ## Ledger Entries
 
+Since MONEY-MODEL-001 (ADR-063) a withdrawal reserves the participant's obligation
+when it is processed and extinguishes it against the backing asset only when the
+rail confirms.
+
 ### At `process` (PENDING → PROCESSING)
 
-Funds are committed for disbursement:
+Two paired postings (ADR-031):
 
 ```
-DR  merchant_wallet   (LIABILITY ↓) — merchant's balance is consumed
-CR  bank_account      (ASSET ↓)     — funds leave Banzami's bank balance
+DR  merchant_available      (LIABILITY ↓) net   — the Business's obligation is reserved…
+CR  withdrawals_in_flight   (LIABILITY ↑) net   — …for the withdrawal, not yet executed
+DR  merchant_available      (LIABILITY ↓) fee
+CR  operator_fee_revenue    (REVENUE  ↑) fee
 ```
 
-The `LedgerPostingId` is stored on the payout record for use in reversals.
+No backing asset moves. The net posting id is stored as `ledger_posting_id`.
 
-### At `fail` (if a posting exists) or `mark_returned`
-
-Funds are returned to the merchant:
+### At `confirm` (SENT → CONFIRMED)
 
 ```
-DR  bank_account      (ASSET ↑)     — funds returned to Banzami
-CR  merchant_wallet   (LIABILITY ↑) — merchant's balance restored
+DR  withdrawals_in_flight   (LIABILITY ↓) net   — the obligation is extinguished
+CR  bank_account            (ASSET    ↓) net   — the backing pays it out
 ```
 
-### At `confirm`
+Idempotent on `<key>:confirm`; the status is claimed first so a racing failure
+cannot pay out a restored obligation. A payout processed before ADR-063 (which
+credited the bank at processing) posts nothing here.
 
-No ledger entry. Confirmation is an acknowledgement that the bank has received the funds. The ledger was updated at `process`.
+### At `fail` or `mark_returned`
 
----
+Reversal of exactly what processing posted (net and fee), idempotent on
+`<key>:reverse`. From **SENT** the payout was handed to the rail and may have
+executed, so failing or returning it requires the provider's evidence reference
+(`evidence_ref`), stored in `payouts.failure_evidence_ref`; without it Core answers
+`422 EXTERNAL_EVIDENCE_REQUIRED` and the payout stays SENT. A timeout is not
+evidence. Nothing fails a payout automatically.
 
 ## Invariants
 

@@ -23,6 +23,8 @@
  *                                    a SENT payout can be failed or returned
  *                                    without evidence, or processing moves backing
  *   UNCLASSIFIED_LEDGER_ACCOUNT_TYPES a system account role is missing from 0147
+ *   PREMATURE_LEGAL_TERMS_PUBLIC     public copy calls a balance a deposit,
+ *                                    electronic money or a bank account
  *
  *   node tools/check-money-model.mjs
  *
@@ -252,6 +254,26 @@ zero('UNCLASSIFIED_LEDGER_ACCOUNT_TYPES');
   const position = read('core/reconciliation/src/position.rs');
   for (const cls of [...roles, 'PARTICIPANT_AVAILABLE', 'PARTICIPANT_RESERVED', 'BUSINESS_AVAILABLE', 'BUSINESS_RESERVED', 'UNOWNED_EMPTY']) {
     if (!position.includes(`"${cls}"`)) fail('UNCLASSIFIED_LEDGER_ACCOUNT_TYPES', `financial_position does not account for ${cls}`);
+  }
+}
+
+// ── PREMATURE_LEGAL_TERMS_PUBLIC ────────────────────────────────────────────
+// A Banzami balance is an obligation in the architecture; its LEGAL nature is
+// unconfirmed (docs/regulatory/FUTURE_FINANCIAL_LIVE_OPERATING_MODEL.md §4.1).
+// Public copy must not call it a deposit or electronic money, or a bank account.
+zero('PREMATURE_LEGAL_TERMS_PUBLIC');
+{
+  const PUBLIC = [
+    ...walk('apps/website/app', ['.tsx', '.ts', '.md', '.mdx']), ...walk('apps/website/components', ['.tsx', '.ts']),
+    ...walk('apps/website/lib', ['.ts', '.tsx']), ...walk('apps/pay/app', ['.tsx', '.ts']),
+    ...walk('docs/developer/openapi', ['.json', '.yaml', '.yml']),
+  ].filter((f) => !/\.test\.|\/__tests__\//.test(f));
+  if (existsSync(join(ROOT, 'sdk/typescript/README.md'))) PUBLIC.push('sdk/typescript/README.md');
+  const TERMS = /\b(dep[oó]sitos?|deposits?|dinheiro\s+el[e]?ctr[oó]nico|moeda\s+el[e]?ctr[oó]nica|e-money|electronic\s+money|conta\s+banc[aá]ria\s+banzami|banzami\s+bank\s+account)\b/i;
+  for (const f of PUBLIC) {
+    read(f).split('\n').forEach((l, i) => {
+      if (TERMS.test(l)) fail('PREMATURE_LEGAL_TERMS_PUBLIC', `${f}:${i + 1} ${l.trim().slice(0, 140)}`);
+    });
   }
 }
 

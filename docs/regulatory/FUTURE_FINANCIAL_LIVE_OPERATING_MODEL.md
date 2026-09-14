@@ -38,9 +38,10 @@ change requires explicit founder approval; this document does not assume it.
 | Financial writer | Banzami Core only: PostgreSQL privilege on every financial-state table is granted to Core's role alone, with a connection-name guard as detection | `db/authority/`, migration 0144 |
 | Internal movement | P2P, wallet payments, refunds, application settlements: balanced postings, no external rail | ADR-061 §4 |
 | Cash-in | Funding sessions credited only after provider confirmation (SETTLED) | `core/consumer-wallets/src/funding.rs` |
-| Cash-out | Payouts: PENDING → PROCESSING (posting) → SENT (rail) → CONFIRMED only on the rail's confirmation; FAILED/RETURNED reverse | `core/payouts` |
+| Cash-out | Payouts: PENDING → PROCESSING (obligation reserved in flight) → SENT (rail) → CONFIRMED only on the rail's confirmation, when the backing asset decreases; FAILED from SENT and RETURNED only on the provider's evidence | `core/payouts`, ADR-063 |
 | External acquiring | Hosted acquiring payments through a provider adapter; confirmation via signed, idempotent callbacks | `core/acquiring` |
-| Reconciliation | Detects mismatches between the ledger and external evidence; corrections are new postings | `core/reconciliation`, ANEXO G |
+| Reconciliation | Boundary operations (cash-in, cash-out, acquirer settlement) compared with external evidence by reference; idempotent report; never edits the ledger; corrections are new postings | `core/reconciliation`, ADR-063, ANEXO G |
+| Obligations and backing | Every balance is a LIABILITY; backing and transit are ASSET accounts with an explicit role; a read-only position reports obligations, backing, coverage and integrity findings | ADR-063, [MONEY_MODEL.md](../architecture/MONEY_MODEL.md) |
 | Environment separation | Sandbox keys `bz_test_`; `bz_live_` refused; no Sandbox wallet becomes a Live account; no Sandbox receipt proves Live settlement | ADR-046, ADR-060 |
 | Pilot limits | Funds-in-circulation cap and per-participant limits | ADR-048 |
 
@@ -80,6 +81,35 @@ CONFIRMATION** until an authoritative answer is recorded with its source.
 | 13 | What KYC/KYB and AML/CFT tiers and limits apply to wallets, merchants and applications? | REQUIRES REGULATORY CONFIRMATION |
 | 14 | What reporting, audit and supervisory access is required (including for the ledger and reconciliation)? | REQUIRES REGULATORY CONFIRMATION |
 | 15 | Which outsourcing and data-location rules apply to the infrastructure? | REQUIRES REGULATORY CONFIRMATION |
+
+### 4.1 Safeguarding and backing (MONEY-MODEL-001)
+
+The architecture can represent customer obligations separately from external
+backing positions, Banzami's own revenue and costs, and reconcile them
+([ADR-063](../adr/ADR-063-customer-liabilities-backing-assets-and-reconciliation.md)).
+It holds, as **architectural safety invariants**, that backing plus transit covers
+obligations, that no value is credited before external confirmation, that a
+submitted withdrawal is restored only on the rail's evidence, and that
+reconciliation never edits history. Which of these the law requires, and in what
+form, is unknown:
+
+| # | Question | Status |
+|---|---|---|
+| 16 | What is the legal nature of Banzami stored value, and of the obligation it represents? | REQUIRES REGULATORY CONFIRMATION |
+| 17 | Must customer funds be safeguarded in segregated accounts, and segregated from what (operating funds, fees, other operators)? | REQUIRES REGULATORY CONFIRMATION |
+| 18 | Which institutions may hold backing funds, and may they be spread across several banks or providers? | REQUIRES REGULATORY CONFIRMATION |
+| 19 | What reconciliation frequency is required (intraday, daily), and against which evidence? | REQUIRES REGULATORY CONFIRMATION |
+| 20 | Is 1:1 coverage required at all times, or at defined points, and how is value in transit at an acquirer treated? | REQUIRES REGULATORY CONFIRMATION |
+| 21 | What capital buffer applies in addition to safeguarded funds? | REQUIRES REGULATORY CONFIRMATION |
+| 22 | How are pending withdrawals treated — still customer funds until the rail confirms? | REQUIRES REGULATORY CONFIRMATION |
+| 23 | How must fees be separated from safeguarded customer funds, and when may they be withdrawn? | REQUIRES REGULATORY CONFIRMATION |
+| 24 | What happens to customer funds on Banzami's insolvency? | REQUIRES REGULATORY CONFIRMATION |
+| 25 | What reporting of obligations, backing and reconciliation differences does the BNA require? | REQUIRES REGULATORY CONFIRMATION |
+| 26 | What audit evidence (external auditor, safeguarding attestation) is required, and how often? | REQUIRES REGULATORY CONFIRMATION |
+
+None of these answers is encoded in code. Where the architecture already chooses the
+stricter model (coverage, evidence before restoration), that choice is engineering
+prudence, not a statement of what the law requires.
 
 ## 5. What this document must never become
 

@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const GATE = join(ROOT, 'tools/check-money-model.mjs');
-const COPY = ['core', 'services', 'tools/ops', 'infra/blueprint/sandbox-ops', 'db/migrations', 'db/authority'];
+const COPY = ['core', 'services', 'tools/ops', 'infra/blueprint/sandbox-ops', 'db/migrations', 'db/authority', 'apps/website/app', 'apps/website/components', 'apps/website/lib', 'apps/pay/app', 'docs/developer/openapi', 'sdk/typescript/README.md'];
 const SKIP = /node_modules|\/target(\/|$)|\/\.git\/|\/\.sqlx\//;
 
 function tree() {
@@ -100,6 +100,11 @@ const CASES = [
     name: 'a background job fails stale payouts',
     mutate: (d) => add(d, 'core/jobs/src/payout_timeouts.rs', 'async fn sweep(state: &AppState, id: PayoutId) { let _ = state.payout.fail(id, "timeout".into(), None).await; }\n'),
     expect: fails('AMBIGUOUS_EXTERNAL_RESULT_DOUBLE_SPEND_PATHS'),
+  },
+  {
+    name: 'public copy calls a balance electronic money',
+    mutate: (d) => add(d, 'apps/website/app/faq/money.tsx', 'export const A = () => <p>O saldo Banzami é dinheiro electrónico garantido.</p>;\n'),
+    expect: fails('PREMATURE_LEGAL_TERMS_PUBLIC'),
   },
   {
     name: 'a system role that 0147 does not constrain',

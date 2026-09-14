@@ -598,8 +598,8 @@ jobs:
       # MONEY-MODEL-001 / ADR-063: a balance is an obligation and its backing is
       # explicit — no float money, no ledger rewrite or balance patch, no Live
       # funding path, no payout restored without the rail's evidence, and
-      # reconciliation never writes financial state. The selftest breaks it
-      # thirteen ways. Behaviour is proved by core-api money_model_tests.
+      # reconciliation never writes financial state; public copy never calls a
+      # balance a deposit or electronic money. The selftest breaks it fourteen ways. Behaviour is proved by core-api money_model_tests.
       - name: Money model gate
         run: |
           node tools/check-money-model.mjs
