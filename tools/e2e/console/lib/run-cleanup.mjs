@@ -113,6 +113,26 @@ export function coreRetirementStep({ emailPattern, namePattern }) {
       done`;
 }
 
+/**
+ * Then each Project in scope is retired by developer-api's own route — archived,
+ * keys revoked, an UNSEALED binding disabled — rather than by the SQL below,
+ * which archived the row and left the binding ACTIVE (the canonical-resource
+ * gate caught two on 2026-09-14). The SQL stays only as a fallback for a
+ * developer-api that does not answer.
+ */
+export function productRetirementStep({ emailPattern, namePattern }) {
+  const scope = runProjectsSql({ emailPattern, namePattern });
+  return `
+      DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
+      for pid in $(q "${scope} and p.status not in ('DELETING','DELETED')
+                        and (p.status = 'ACTIVE'
+                             or exists (select 1 from developer.dev_project_sandbox_binding b where b.project_id = p.id and b.state = 'ACTIVE' and b.artifact_created = false)
+                             or exists (select 1 from developer.dev_api_keys k where k.project_id = p.id and k.status = 'ACTIVE'))"); do
+        printf '{"reason":"console harness cleanup","created_by":"console-harness-cleanup"}' \
+          | docker exec -i "$DEV" sh -c "curl -s -o /dev/null -X POST -H \"X-Internal-Key: \$(cat /run/secrets/developer_internal_key)\" -H 'Content-Type: application/json' --data @- http://localhost:8086/internal/v1/projects/$pid/retire"
+      done`;
+}
+
 export function cleanupRun({ emailPattern, namePattern }) {
   assertFixtureEmailPattern(emailPattern);
   const byName = namePattern ? `
@@ -134,6 +154,7 @@ export function cleanupRun({ emailPattern, namePattern }) {
   // suites read from, and archiving it would break the next run and the Console.
   return execFileSync('ssh', [REMOTE, `${PRE}
       ${coreRetirementStep({ emailPattern, namePattern })}
+      ${productRetirementStep({ emailPattern, namePattern })}
       ${byName}
       q "update developer.dev_api_keys k set status='REVOKED', revoked_at=now()
           from developer.dev_projects p join developer.dev_workspaces w on w.id = p.workspace_id

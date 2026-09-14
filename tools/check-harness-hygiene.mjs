@@ -172,8 +172,8 @@ for (const f of consoleFiles) {
     const src = readFileSync(f, 'utf8');
     const short = f.replace(/^tools\/e2e\//, '');
     if (f.endsWith('lib/run-cleanup.mjs')) {
-      if (/\$\{coreRetirementStep\(/.test(src)) console.log(`  ✓ ${short.padEnd(44)} retires through Core before it archives`);
-      else { archiveOnly += 1; bad(short, 'archives fixture projects without retiring them through Core (coreRetirementStep)'); }
+      if (/\$\{coreRetirementStep\(/.test(src) && /\$\{productRetirementStep\(/.test(src)) console.log(`  ✓ ${short.padEnd(44)} retires through Core and developer-api before any SQL fallback`);
+      else { archiveOnly += 1; bad(short, 'archives fixture projects without retiring them through Core (coreRetirementStep) and developer-api (productRetirementStep)'); }
       continue;
     }
     if (!ARCHIVES.test(src)) continue;

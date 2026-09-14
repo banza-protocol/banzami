@@ -13,7 +13,7 @@
  * These hold the two halves that were missing: the destructive statement refuses
  * a non-fixture address itself, and it refuses a pattern that could reach one.
  */
-import { assertFixtureEmailPattern, coreRetirementStep } from './run-cleanup.mjs';
+import { assertFixtureEmailPattern, coreRetirementStep, productRetirementStep } from './run-cleanup.mjs';
 
 let pass = 0, fail = 0;
 const ok = (m) => { pass += 1; console.log(`  ✓ ${m}`); };
@@ -60,6 +60,13 @@ console.log('\ncleanupRun retires through Core before it archives\n');
   retire > -1 && retire < script.indexOf('${byName}') && retire < script.indexOf("p set status='ARCHIVED'")
     ? ok('retires before it archives') : bad('archives without retiring first');
   try { coreRetirementStep({ emailPattern: '%@banzami.com' }); bad('accepted a non-fixture scope'); } catch { ok('refuses a non-fixture scope'); }
+  // The Projects are retired by developer-api's route, which disables an unsealed
+  // binding; the SQL archival left two ACTIVE on 2026-09-14.
+  const product = productRetirementStep({ emailPattern: 'rt01-%abc@banzami-e2e.test', namePattern: 'rt01-%abc' });
+  product.includes('/internal/v1/projects/$pid/retire') ? ok('retires each Project through developer-api') : bad('does not use developer-api\'s retire route');
+  /artifact_created = false/.test(product) ? ok('reaches an archived Project that still holds an unsealed binding') : bad('skips archived Projects with a stranded binding');
+  const pos = script.indexOf('${productRetirementStep(');
+  pos > retire && pos < script.indexOf('${byName}') ? ok('product retirement runs after Core and before the SQL fallback') : bad('product retirement is missing or out of order');
 }
 
 console.log(`\nRUN_CLEANUP_GUARD: PASS=${pass} FAIL=${fail}\n`);
