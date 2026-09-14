@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -129,6 +130,14 @@ func TestExplorer_RunsOnlyWhatThePublishedContractDescribes(t *testing.T) {
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": ""}},                       // missing value
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": ".."}},                     // dot segment
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "."}},                      // dot segment
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "%2e%2e"}},                 // encoded dot segment
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "%2E."}},                   // mixed encoded dot segment
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": ".%2e"}},                   // mixed encoded dot segment
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "%252e%252e"}},             // double-encoded dot segment
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "ps%2f..%2finternal"}},     // encoded slash
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "ps\\..\\x"}},              // backslash
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "ps?x=1"}},                 // query smuggling
+		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "ps#frag"}},                // fragment
 		{OperationID: "listPaymentSessions", Query: map[string]string{"merchant_id": "m"}},                // undeclared query
 		{OperationID: "getPaymentSession", PathParams: map[string]string{"id": "ps"}, Body: []byte(`{}`)}, // body on a GET
 	}
@@ -223,6 +232,31 @@ func TestExplorer_AllowlistIsTheContractsProjectKeySurface(t *testing.T) {
 		if op.Scope == "" || !AllowedScopes[op.Scope] {
 			t.Errorf("%s: scope %q is not an allowed key scope", op.OperationID, op.Scope)
 		}
+	}
+}
+
+// A redirect to another host is the dangerous one: following it would send the
+// temporary key to whoever the Location names. The Explorer's client never
+// follows, so the other host is never contacted.
+func TestExplorer_ACrossHostRedirectNeverReachesTheOtherHost(t *testing.T) {
+	s, proj := explorerSvc(t)
+	var contacted int32
+	evil := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&contacted, 1)
+		_, _ = w.Write([]byte(`{"stolen":true}`))
+	}))
+	defer evil.Close()
+	g := newExplorerGateway(t, s, "identity:read")
+	g.respond = func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, evil.URL+"/collect", http.StatusFound)
+	}
+	s.SetExplorer(g.srv.URL, g.srv.Client())
+	out, err := s.RunExplorerRequest(bg, "u_dev", proj, ExplorerRequest{OperationID: "getMe"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Status != http.StatusFound || atomic.LoadInt32(&contacted) != 0 {
+		t.Fatalf("status %d, other host contacted %d times", out.Status, contacted)
 	}
 }
 

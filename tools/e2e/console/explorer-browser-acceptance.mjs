@@ -130,6 +130,19 @@ try {
   mark('Completing the payment in Test data turns the hosted page paid', confirmed, `page_confirmed=${confirmed} transactions=${status}`);
   await payPage.close();
 
+  // PUBLIC-TRUTH-001 §35: path tricks are refused by the deployed Explorer
+  // before any key is minted or any request reaches the gateway.
+  const tricks = ['..', '%2e%2e', '%2E.', '.%2e', '%252e%252e', 'ps%2f..%2finternal', 'ps\\..\\x', '../../internal/v1/x'];
+  const refused = [];
+  for (const id of tricks) {
+    const r = await call(`/projects/${P}/explorer/requests`, 'POST', { operation_id: 'getPaymentSession', path_params: { id } });
+    refused.push(r.status >= 400 && r.status < 500 ? r.status : `RAN:${r.status}`);
+  }
+  // The control: a plain identifier is run (the gateway answers it), so the
+  // refusals above are the path check and not a broken request shape.
+  const control = await call(`/projects/${P}/explorer/requests`, 'POST', { operation_id: 'getPaymentSession', path_params: { id: 'ps_does_not_exist' } });
+  mark('Encoded and plain dot segments are refused by the deployed Explorer', refused.every((x) => typeof x === 'number') && control.status === 200,
+    `refused=${refused.join(',')} control=${control.status}/${control.body?.status}`);
   mark('No Project secret in web storage, URL or page source', (await storageClean(page)), 'localStorage, sessionStorage, location, outerHTML');
   mark('No secret in any request or response the browser saw', seen.secretIn.length === 0, `requests=${seen.urls} hits=${seen.secretIn.slice(0, 3).join(' | ')}`);
   mark('No call to the Live host', seen.liveCalls.length === 0, `live_calls=${seen.liveCalls.length}`);
@@ -145,12 +158,12 @@ try {
     const sql = `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE name LIKE '${like}%' AND status='ACTIVE') + (SELECT count(*) FROM developer.dev_projects WHERE name LIKE '${like}%' AND status='ACTIVE') + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id=t.project_id WHERE p.name LIKE '${like}%' AND t.retired_at IS NULL)`;
     residue = Number(execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, `PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1); PW=$(docker exec $CORE sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); docker exec -e PGPASSWORD=$PW -e PGOPTIONS='-c default_transaction_read_only=on' $PG psql -U bl_app_runtime -d banzami_staging -At -c "${sql}"`], { encoding: 'utf8' }).trim());
   } catch { /* measured as -1 */ }
-  const ok = steps.length === 10 && steps.every((s) => s.verdict === 'PASS') && residue === 0;
+  const ok = steps.length === 11 && steps.every((s) => s.verdict === 'PASS') && residue === 0;
   const out = join(assuranceDir('sandbox-self-service'), `explorer-browser-${Date.now()}.json`);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${JSON.stringify({ ran_at: new Date().toISOString(), steps, cleanup: done, residue }, null, 2)}\n`);
   console.log(`\ncleanup=${done.join(',')} residue=${residue}`);
-  console.log(`API_EXPLORER_E2E=${ok ? 'PASS' : 'FAIL'} (${steps.filter((s) => s.verdict === 'PASS').length}/10)`);
+  console.log(`API_EXPLORER_E2E=${ok ? 'PASS' : 'FAIL'} (${steps.filter((s) => s.verdict === 'PASS').length}/11)`);
   console.log(`API_EXPLORER_SECRET_LEAKS=${seen.secretIn.length}`);
   console.log(`evidence: ${out}`);
   process.exitCode = ok ? 0 : 1;
