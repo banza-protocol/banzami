@@ -523,6 +523,14 @@ release_config_env() {
       echo "KYB_STORAGE_PROVIDER=r2"
       echo "KYB_STORAGE_BUCKET=banzami-kyb-sandbox"
       echo "KYB_STORAGE_REGION=auto"
+      # Where the Gateway reaches public-api's Sandbox test-payer routes
+      # (ADR-060 §4). The credential is INTERNAL_API_KEY, which both services
+      # read from /run/secrets/core_internal_key. Without this URL the
+      # /v1/sandbox/test-payers routes answer 503 UNAVAILABLE.
+      local papi
+      papi="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
+      [ -n "$papi" ] || papi="${BZSB_PROJECT:-}-public-api-staging"
+      echo "PUBLIC_API_INTERNAL_URL=http://${papi}:8083"
       ;;
     developer-api)
       # Where the Developers Console's financial onboarding reaches the Business
