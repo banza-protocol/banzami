@@ -41,6 +41,8 @@ const walk = (dir) => {
     .map((f) => `${dir}/${f}`);
 };
 
+const walkAll = (dir) => walk(dir);
+
 /** Everything banzami.com renders. The documentation and the Console have gates of their own. */
 const SURFACE = [
   ...['app/page.tsx', 'app/layout.tsx', 'app/not-found.tsx', 'app/developers/page.tsx'].map((f) => `${WEB}/${f}`),
@@ -171,6 +173,14 @@ for (const m of pages.matchAll(/file:\s*'([^']+)'/g)) {
 // ── Cloudflare email obfuscation opt-out ───────────────────────────────────────
 if (!/__html:\s*'<!--email_off-->'/.test(layout) || !/__html:\s*'<!--\/email_off-->'/.test(layout)) {
   findings.PUBLIC_EMAIL_OBFUSCATION_BROKEN.push('app/layout.tsx lost the <!--email_off--> pair: Cloudflare rewrites every mailto into a decoder our CSP blocks');
+}
+// Cloudflare does not nest the markers: a second pair anywhere inside the body
+// closes the page's region at its first closing marker, and every address after
+// it is obfuscated again (the Suporte page, the first time round).
+for (const f of walkAll(`${WEB}/app`).concat(walkAll(`${WEB}/components`), walkAll(`${WEB}/lib`))) {
+  if (f === `${WEB}/app/layout.tsx`) continue;
+  const src = stripComments(read(f));
+  if (/email_off/.test(src)) findings.PUBLIC_EMAIL_OBFUSCATION_BROKEN.push(`${relative(WEB, f)} emits its own email_off marker, which ends the layout's region early`);
 }
 
 let failed = 0;

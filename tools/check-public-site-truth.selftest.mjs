@@ -144,6 +144,11 @@ const CASES = [
     expect: fails('PUBLIC_EMAIL_OBFUSCATION_BROKEN'),
   },
   {
+    name: 'email — a component emits its own email_off pair inside the body',
+    mutate: (d) => edit(d, `${W}/components/MailLink.tsx`, (s) => s.replace('return <a href={href}', "return <span dangerouslySetInnerHTML={{ __html: '<!--email_off-->' }} />; <a href={href}")),
+    expect: fails('PUBLIC_EMAIL_OBFUSCATION_BROKEN'),
+  },
+  {
     name: 'comments do not count — history in a comment passes',
     mutate: (d) => edit(d, `${W}/app/page.tsx`, (s) => s.replace('// What is available today.', '// It used to say DISPONÍVEL NA App Store and em segundos. What is available today.')),
     expect: (c) => c.code === 0,
