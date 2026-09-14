@@ -87,6 +87,42 @@ func (m *memStore) CreateWorkspace(_ context.Context, name, slug, owner string) 
 	return *ws, nil
 }
 
+func (m *memStore) WorkspaceCreationCounts(_ context.Context, userID string, since time.Time) (int, int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	active, created := 0, 0
+	for _, w := range m.workspaces {
+		if w.CreatedBy != userID {
+			continue
+		}
+		if w.Status == "ACTIVE" {
+			active++
+		}
+		if !w.CreatedAt.Before(since) {
+			created++
+		}
+	}
+	return active, created, nil
+}
+
+func (m *memStore) ProjectCreationCounts(_ context.Context, workspaceID string, since time.Time) (int, int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	active, created := 0, 0
+	for _, p := range m.projects {
+		if p.WorkspaceID != workspaceID {
+			continue
+		}
+		if p.Status == "ACTIVE" {
+			active++
+		}
+		if !p.CreatedAt.Before(since) {
+			created++
+		}
+	}
+	return active, created, nil
+}
+
 func (m *memStore) WorkspacesForUser(_ context.Context, userID string) ([]Workspace, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

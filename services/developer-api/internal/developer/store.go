@@ -135,6 +135,9 @@ var (
 	ErrLastOwner   = errors.New("cannot remove or demote the last owner")
 	ErrInviteState = errors.New("invite not acceptable")
 	ErrUnavailable = errors.New("unavailable")
+	// Self-service creation limits (see limits.go).
+	ErrWorkspaceQuota = errors.New("workspace limit reached")
+	ErrProjectQuota   = errors.New("project limit reached")
 	// ErrEnvironmentUndeclared: the process cannot say which financial universe
 	// it serves, so it may not write a row that has to name one. A configuration
 	// fault, surfaced rather than defaulted — the column default is 'LIVE'.
@@ -298,6 +301,12 @@ type Store interface {
 	// CreateWorkspace inserts the workspace and its creator's OWNER membership
 	// atomically.
 	CreateWorkspace(ctx context.Context, name, slug, ownerUserID string) (Workspace, error)
+	// WorkspaceCreationCounts: the user's ACTIVE workspaces it created, and how
+	// many it created (any status) since `since`.
+	WorkspaceCreationCounts(ctx context.Context, userID string, since time.Time) (active, created int, err error)
+	// ProjectCreationCounts: the workspace's ACTIVE projects, and how many were
+	// created in it (any status) since `since`.
+	ProjectCreationCounts(ctx context.Context, workspaceID string, since time.Time) (active, created int, err error)
 	WorkspacesForUser(ctx context.Context, userID string) ([]Workspace, error)
 	Workspace(ctx context.Context, id string) (Workspace, error)
 	// RenameWorkspace changes only the display name. The slug is the workspace's

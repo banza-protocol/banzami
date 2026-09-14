@@ -122,6 +122,9 @@ func (s *Service) CreateWorkspace(ctx context.Context, actor, name, ip, reqID st
 	if name == "" || len(name) > 80 {
 		return Workspace{}, ErrValidation
 	}
+	if err := s.admitWorkspace(ctx, actor); err != nil {
+		return Workspace{}, err
+	}
 	base := slugify(name)
 	if base == "" {
 		base = "workspace"
@@ -487,6 +490,9 @@ func (s *Service) CreateProject(ctx context.Context, actor, wsID, name, ip, reqI
 	name = strings.TrimSpace(name)
 	if name == "" || len(name) > 80 {
 		return Project{}, ErrValidation
+	}
+	if err := s.admitProject(ctx, wsID); err != nil {
+		return Project{}, err
 	}
 	base := slugify(name)
 	if base == "" {

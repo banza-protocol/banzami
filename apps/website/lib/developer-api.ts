@@ -83,6 +83,10 @@ export const MESSAGES: Record<string, string> = {
   // counts travel in ApiError.details, so a dialog can be specific.
   WORKSPACE_NOT_EMPTY: 'Este workspace ainda tem projetos ativos. Arquive-os primeiro.',
   PROJECT_NOT_EMPTY: 'Este projeto já tem histórico. Pode ser arquivado, não eliminado.',
+  // Self-service creation limits (developer-api limits.go): archiving frees an
+  // active place, not the day's allowance.
+  WORKSPACE_LIMIT_REACHED: 'Chegou ao limite de workspaces: até 10 ativos e 20 criados por dia. Arquive um que já não use.',
+  PROJECT_LIMIT_REACHED: 'Chegou ao limite de projetos deste workspace: até 25 ativos e 50 criados por dia. Arquive um que já não use.',
   ENDPOINT_HAS_DELIVERIES: 'Este endpoint já recebeu entregas. Desative-o em vez de o eliminar.',
   // Reenviar é para uma entrega que falhou. Uma que já foi aceite não se repete:
   // o servidor do integrador recebeu esse evento e agiu sobre ele, e repeti-lo é

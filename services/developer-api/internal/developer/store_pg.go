@@ -68,6 +68,22 @@ func (s *pgStore) CreateWorkspace(ctx context.Context, name, slug, owner string)
 	return w, tx.Commit(ctx)
 }
 
+func (s *pgStore) WorkspaceCreationCounts(ctx context.Context, userID string, since time.Time) (int, int, error) {
+	var active, created int
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FILTER (WHERE status = 'ACTIVE'), count(*) FILTER (WHERE created_at >= $2)
+		   FROM developer.dev_workspaces WHERE created_by = $1`, userID, since).Scan(&active, &created)
+	return active, created, err
+}
+
+func (s *pgStore) ProjectCreationCounts(ctx context.Context, workspaceID string, since time.Time) (int, int, error) {
+	var active, created int
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FILTER (WHERE status = 'ACTIVE'), count(*) FILTER (WHERE created_at >= $2)
+		   FROM developer.dev_projects WHERE workspace_id = $1`, workspaceID, since).Scan(&active, &created)
+	return active, created, err
+}
+
 func (s *pgStore) WorkspacesForUser(ctx context.Context, userID string) ([]Workspace, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT w.id, w.name, w.slug, w.created_by, w.status, w.created_at, w.updated_at

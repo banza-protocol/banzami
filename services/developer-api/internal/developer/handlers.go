@@ -3,6 +3,7 @@ package developer
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -953,6 +954,12 @@ func mapErr(w http.ResponseWriter, err error) {
 		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid input")
 	case ErrLastOwner:
 		httpx.Error(w, http.StatusConflict, "LAST_OWNER", "cannot remove or demote the last owner")
+	case ErrWorkspaceQuota:
+		httpx.Error(w, http.StatusTooManyRequests, "WORKSPACE_LIMIT_REACHED",
+			fmt.Sprintf("at most %d active workspaces, and %d created a day — archive one you no longer use", MaxActiveWorkspacesPerUser, MaxWorkspacesCreatedPerDay))
+	case ErrProjectQuota:
+		httpx.Error(w, http.StatusTooManyRequests, "PROJECT_LIMIT_REACHED",
+			fmt.Sprintf("at most %d active projects per workspace, and %d created a day — archive one you no longer use", MaxActiveProjectsPerWorkspace, MaxProjectsCreatedPerDay))
 	case ErrInviteState:
 		httpx.Error(w, http.StatusGone, "INVITE_INVALID", "invite is expired, revoked or already used")
 	default:
