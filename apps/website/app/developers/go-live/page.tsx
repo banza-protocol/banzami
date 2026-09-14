@@ -31,7 +31,7 @@ export default function GoLivePage() {
           AMBIENTE DE PRODUÇÃO
         </p>
         <h1 style={{ margin: '8px 0 0', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em' }}>
-          Live ainda não está disponível
+          Financial Live ainda não está disponível
         </h1>
         <p style={{ margin: '14px 0 26px', fontSize: 15, lineHeight: 1.6, color: '#7a6a6e', fontWeight: 600 }}>
           Uma plataforma, dois ambientes financeiros. A Sandbox está disponível e é self-service. O

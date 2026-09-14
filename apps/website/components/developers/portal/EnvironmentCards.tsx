@@ -30,12 +30,12 @@ export function EnvironmentCards({ compact = false }: { compact?: boolean }) {
       </div>
       <div data-testid="environment-live" style={{ ...card, background: '#FBF8F8' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#2a2024' }}>Live</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#2a2024' }}>Financial Live</h3>
           <span style={badge('#F3EDEC', '#6a5a5e')}>Indisponível</span>
         </div>
         <ul style={{ margin: '10px 0 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.65, color: '#6a5a5e', fontWeight: 600 }}>
-          <li>Requer aprovação institucional.</li>
-          <li>Nenhuma chave <code>bz_live_</code> é emitida; uma chave Sandbox não abre o Live.</li>
+          <li>Sujeito às aprovações regulatórias, contratuais e operacionais aplicáveis.</li>
+          <li>Nenhuma chave <code>bz_live_</code> é emitida; uma chave Sandbox não abre o Financial Live.</li>
           <li>Nada nesta consola o ativa.</li>
         </ul>
         {!compact && (

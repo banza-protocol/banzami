@@ -83,12 +83,13 @@ describe('Dados de teste', () => {
 });
 
 describe('Environment cards', () => {
-  it('Sandbox available; Live unavailable behind institutional approval — never "coming soon"', () => {
+  it('Sandbox available; Financial Live unavailable behind the applicable approvals — never "coming soon"', () => {
     render(<EnvironmentCards />);
     expect(screen.getByTestId('environment-sandbox').textContent).toContain('Disponível');
     const live = screen.getByTestId('environment-live').textContent ?? '';
     expect(live).toContain('Indisponível');
-    expect(live).toContain('aprovação institucional');
+    expect(live).toContain('Financial Live');
+    expect(live).toContain('aprovações regulatórias, contratuais e operacionais');
     expect(document.body.textContent).not.toMatch(/em breve|coming soon/i);
   });
 });
