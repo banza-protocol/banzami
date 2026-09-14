@@ -5,9 +5,14 @@ import { SiteHeader } from '@/components/site/SiteHeader';
 import { CTASection } from '@/components/site/CTASection';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
-import { mailto } from '@/lib/site';
+import { mailto, SITE } from '@/lib/site';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
-export const metadata: Metadata = { title: 'Sobre' };
+export const metadata: Metadata = {
+  title: 'Sobre',
+  description: 'O Banzami é a empresa que constrói uma rede de pagamentos em Kwanza, nativa de carteira, sobre o protocolo aberto BANZA.',
+  alternates: { canonical: 'https://banzami.com/sobre' },
+};
 
 // Os 5 valores de "O que acreditamos" — verbatim de Sobre.dc.html (ícones inline).
 const VALORES: { label: string; icon: ReactNode }[] = [
@@ -70,11 +75,11 @@ export default function SobrePage() {
         <div className="mx-auto max-w-[820px] text-center">
           <p className="m-0 mb-3 text-[14px] font-black tracking-[0.04em] text-cherry">SOBRE</p>
           <h1 className="m-0 text-[clamp(32px,5.4vw,54px)] font-black leading-[1.04] tracking-[-0.03em]">
-            Construímos uma nova forma de mover dinheiro em Angola.
+            Pagamentos em Kwanza, de carteira para carteira.
           </h1>
           <p className="mx-auto m-0 mt-5 max-w-[640px] text-[18px] font-semibold leading-[1.6] text-ink-secondary">
-            O Banzami nasce para tornar pagamentos, transferências e comprovativos mais simples,
-            instantâneos e acessíveis.
+            O Banzami é a empresa que constrói esta rede de pagamentos sobre o protocolo aberto BANZA.
+            Hoje, a plataforma está disponível para developers numa {PUBLIC_TRUTH.sandbox.name}, com dinheiro fictício.
           </p>
         </div>
       </section>
@@ -85,13 +90,13 @@ export default function SobrePage() {
           <Reveal className="rounded-card border border-border-soft bg-white p-8">
             <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.08em] text-cherry">MISSÃO</p>
             <p className="m-0 text-[20px] font-extrabold leading-[1.4] tracking-[-0.01em]">
-              Tornar o dinheiro digital simples, acessível e instantâneo para todos.
+              Tornar os pagamentos digitais em Kwanza simples, verificáveis e acessíveis.
             </p>
           </Reveal>
           <Reveal delay={80} className="rounded-card border border-border-soft bg-white p-8">
             <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.08em] text-cherry">VISÃO</p>
             <p className="m-0 text-[20px] font-extrabold leading-[1.4] tracking-[-0.01em]">
-              Construir uma infraestrutura financeira moderna para pessoas, negócios e programadores.
+              Que qualquer aplicação feita para Angola aceite pagamentos em Kwanza de forma nativa.
             </p>
           </Reveal>
         </div>
@@ -144,31 +149,36 @@ export default function SobrePage() {
         </Reveal>
       </section>
 
-      {/* EQUIPA */}
-      <section className="px-6 pb-2 pt-0">
-        <Reveal className="mx-auto max-w-[760px] rounded-card border border-dashed border-[#E8C8C6] bg-cream-50 px-6 py-9 text-center">
-          <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.08em] text-cherry">EQUIPA</p>
-          <p className="m-0 text-[17px] font-bold leading-[1.55] text-ink-secondary">
-            A equipa fundadora será apresentada em breve.
-          </p>
-        </Reveal>
+      {/* BANZA E BANZAMI */}
+      <section id="banza" className="scroll-mt-28 px-6 pb-2 pt-0">
+        <div className="mx-auto grid max-w-[980px] grid-cols-1 gap-[18px] md:grid-cols-2">
+          <Reveal className="rounded-card border border-border-soft bg-cream-50 p-8">
+            <p className="m-0 mb-[10px] bz-mono text-[13px] font-semibold text-cherry">BANZA</p>
+            <p className="m-0 text-[18px] font-extrabold leading-[1.45]">O protocolo aberto: regras, invariantes e contratos, governados de forma independente do Banzami.</p>
+            <a href={SITE.protocolUrl} target="_blank" rel="noopener" className="mt-4 inline-flex text-[14px] font-extrabold text-cherry no-underline">banza.network ↗</a>
+          </Reveal>
+          <Reveal delay={80} className="rounded-card border border-border-soft bg-white p-8">
+            <p className="m-0 mb-[10px] bz-mono text-[13px] font-semibold text-cherry">Banzami</p>
+            <p className="m-0 text-[18px] font-extrabold leading-[1.45]">O operador de referência: a app, as ferramentas para negócios e a plataforma para developers. Não é o protocolo nem um banco.</p>
+          </Reveal>
+        </div>
       </section>
 
       {/* CLOSING CTA */}
       <section className="px-6 pb-20 pt-14">
         <Reveal className="mx-auto max-w-[760px] rounded-card border border-border-soft bg-[linear-gradient(135deg,#FFF3F1,#FFE6E4)] px-6 py-11 text-center">
           <h3 className="m-0 text-[clamp(24px,3.4vw,32px)] font-black tracking-[-0.025em]">
-            Comece com Banzami
+            Construir com o Banzami
           </h3>
           <p className="m-0 mb-[22px] mt-3 text-[16px] font-semibold text-ink-secondary">
-            A nova forma de pagar, enviar e receber em Kwanza.
+            A {PUBLIC_TRUTH.sandbox.name} está aberta a developers, sem aprovação.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
-              href="/produto#contacto"
+              href="/developers"
               className="inline-flex items-center gap-2 rounded-pill bg-cherry px-7 py-[14px] text-[15px] font-extrabold text-white no-underline shadow-[0_12px_26px_-10px_rgba(181,16,31,.55)] transition-transform hover:-translate-y-0.5"
             >
-              Começar
+              Plataforma para developers
             </Link>
             <a
               href={mailto()}

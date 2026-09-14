@@ -11,15 +11,21 @@ import { QrSyncShowcase } from '@/components/produto/QrSyncShowcase';
 import { AppJourney } from '@/components/produto/AppJourney';
 import { EcosystemFlow } from '@/components/produto/EcosystemFlow';
 import { SITE } from '@/lib/site';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
+import { PUBLISHED_PACKAGES } from '@/app/developers/docs/published-packages';
 
-export const metadata: Metadata = { title: 'Produto' };
+export const metadata: Metadata = {
+  title: 'Produto',
+  description: 'O Banzami: pagar por QR ou para um @banza, com comprovativo verificável. O estado atual de cada produto.',
+  alternates: { canonical: 'https://banzami.com/produto' },
+};
 
 /* ---------- Solução bento grid (6 cards) ---------- */
 const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
   {
     icon: <span className="bz-mono text-[22px] font-semibold text-cherry-dark">@</span>,
-    title: 'Envie para qualquer @banza',
-    desc: 'Envie dinheiro de forma simples usando o handle da pessoa, sem depender de IBANs longos ou processos complicados.',
+    title: 'Pague para um @banza',
+    desc: 'Pague a uma pessoa pelo @banza dela, sem IBAN.',
   },
   {
     icon: (
@@ -30,8 +36,8 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
         <path d="M14 14h3v3M21 14v7h-7" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Receba sem POS caro',
-    desc: 'Pequenos negócios podem receber com QR e app, sem precisar de terminais dispendiosos.',
+    title: 'Receber sem terminal',
+    desc: 'Um negócio recebe por QR ou por link, sem terminal de pagamento.',
   },
   {
     icon: (
@@ -40,8 +46,8 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
         <path d="M9.2 11.6l1.9 1.9 3.7-3.7" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Comprovativo vivo',
-    desc: 'Cada pagamento termina com uma tela de confirmação clara, desenhada para reduzir falsificações e dúvidas.',
+    title: 'Comprovativo verificável',
+    desc: 'Cada pagamento tem um comprovativo com referência, que qualquer pessoa pode verificar.',
   },
   {
     icon: (
@@ -51,7 +57,7 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
       </svg>
     ),
     title: 'Histórico claro',
-    desc: 'Veja envios, recebimentos e confirmações num só lugar, com leitura simples e rápida.',
+    desc: 'Envios, recebimentos e comprovativos num só lugar.',
   },
   {
     icon: (
@@ -60,8 +66,8 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
         <path d="M3 6h18l-1.2 4.2a2.2 2.2 0 01-4.2 0 2.2 2.2 0 01-4.4 0 2.2 2.2 0 01-4.4 0A2.2 2.2 0 014.2 10L3 6z" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Feito para comerciantes',
-    desc: 'De cantinas a táxis e bancas, o Banzami adapta-se ao comércio real do dia a dia em Angola.',
+    title: 'Pensado para comerciantes',
+    desc: 'De cantinas a táxis e bancas: receber por QR, com o valor e a descrição de cada venda.',
   },
   {
     icon: (
@@ -70,12 +76,12 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
         <path d="M3 12l9 5 9-5M3 16.5l9 5 9-5" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Infraestrutura pronta para crescer',
-    desc: 'Produto, comerciante e programador conectados sobre uma base moderna e escalável.',
+    title: 'Uma plataforma para developers',
+    desc: 'A mesma rede, exposta por uma API pública e SDKs publicados.',
   },
 ];
 
-/* ---------- Produtos (estado real de cada um) ---------- */
+/* ---------- Produtos (estado atual de cada um; nada aqui é uma promessa) ---------- */
 const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode }[] = [
   {
     icon: (
@@ -83,11 +89,11 @@ const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode
         <rect x="6" y="2.5" width="12" height="19" rx="3" stroke="#B5101F" strokeWidth="1.7" />
       </svg>
     ),
-    badge: 'EM DESENV.',
-    title: 'App Consumidor',
+    badge: 'EM DESENVOLVIMENTO',
+    title: 'App Banzami',
     desc: (
       <>
-        Carteira Kwanza com <span className="bz-mono text-[12px]">@banza</span>, QR e transferências.
+        Carteira em Kwanza com <span className="bz-mono text-[12px]">@banza</span> e QR. Ainda não está nas lojas.
       </>
     ),
   },
@@ -97,9 +103,9 @@ const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode
         <path d="M4 8h16l-1.2 11.2A2 2 0 0116.8 21H7.2A2 2 0 015.2 19.2L4 8z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" />
       </svg>
     ),
-    badge: 'EM PROGRESSO',
+    badge: 'EM DESENVOLVIMENTO',
     title: 'App Comerciante',
-    desc: 'Aceita pagamentos sem terminal, com QR e links.',
+    desc: 'Receber por QR e por link, sem terminal. Ainda não está nas lojas.',
   },
   {
     icon: (
@@ -108,9 +114,9 @@ const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode
         <path d="M7 14l3-3 2.5 2L17 9" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    badge: 'EM PROGRESSO',
-    title: 'Business Dashboard',
-    desc: 'Saldo, transações, análises e chaves API.',
+    badge: 'SANDBOX · DISPONÍVEL',
+    title: 'Consola',
+    desc: 'Workspaces, projetos, chaves, webhooks e registos de pedidos.',
   },
   {
     icon: (
@@ -118,9 +124,9 @@ const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode
         <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    badge: 'EM DESENV.',
-    title: 'Developer Platform',
-    desc: 'API REST, SDKs, sandbox e webhooks assinados.',
+    badge: 'SANDBOX · DISPONÍVEL',
+    title: `API pública ${PUBLIC_TRUTH.apiVersion}`,
+    desc: 'Pagamentos, reembolsos, webhooks assinados e liquidações.',
   },
   {
     icon: (
@@ -129,9 +135,9 @@ const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode
         <path d="M8 8h2v2H8zM14 8h2v2h-2zM8 14h2v2H8zM14 14h2v2h-2z" fill="#B5101F" />
       </svg>
     ),
-    badge: 'EM PROGRESSO',
-    title: 'QR Payments',
-    desc: 'QR estático e dinâmico para presencial.',
+    badge: 'SANDBOX · DISPONÍVEL',
+    title: 'QR e links de pagamento',
+    desc: 'QR dinâmico e links de pagamento, com dinheiro fictício.',
   },
   {
     icon: (
@@ -140,9 +146,9 @@ const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode
         <path d="M4 12l8 4 8-4M4 17l8 4 8-4" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" />
       </svg>
     ),
-    badge: 'EM PROGRESSO',
-    title: 'SDKs & Checkout',
-    desc: 'TypeScript, Flutter, Python, PHP, Go + pay links.',
+    badge: 'PUBLICADO',
+    title: 'SDKs',
+    desc: PUBLISHED_PACKAGES.map((p) => `${p.name} (${p.registry})`).join(' · '),
   },
 ];
 
@@ -158,18 +164,18 @@ const APP_STEPS: {
 }[] = [
   { n: '01', label: 'Splash', caption: 'entrada visual da app', frame: 'splash' },
   { n: '02', label: 'Boas-vindas', caption: 'primeira apresentação ao utilizador', frame: 'welcome' },
-  { n: '03', label: 'Criar conta', caption: 'escolhe o teu @banza', frame: 'criar' },
+  { n: '03', label: 'Criar conta', caption: 'escolher o @banza', frame: 'criar' },
   { n: '04', label: 'Entrar', caption: 'acesso rápido e simples', frame: 'entrar' },
   { n: '05', label: 'Início', caption: 'saldo, atalhos e ações', frame: 'inicio' },
-  { n: '06', label: 'Scan', caption: 'lê o QR para pagar', frame: 'scan' },
-  { n: '07', label: 'Confirmar', caption: 'confirma valor e destinatário', frame: 'confpag' },
-  { n: '08', label: 'Comprovativo', caption: 'prova viva do pagamento', frame: 'comprovativo', valor: '1 500', para: '@cantina-alex', nota: '1 Kg de Arroz' },
-  { n: '09', label: 'Enviar', caption: 'envia dinheiro em segundos', frame: 'enviar' },
-  { n: '10', label: 'Confirmar envio', caption: 'revê antes de concluir', frame: 'confenvio' },
+  { n: '06', label: 'Scan', caption: 'ler o QR para pagar', frame: 'scan' },
+  { n: '07', label: 'Confirmar', caption: 'confirmar valor e destinatário', frame: 'confpag' },
+  { n: '08', label: 'Comprovativo', caption: 'comprovativo do pagamento', frame: 'comprovativo', valor: '1 500', para: '@cantina-alex', nota: '1 Kg de Arroz' },
+  { n: '09', label: 'Enviar', caption: 'enviar para um @banza', frame: 'enviar' },
+  { n: '10', label: 'Confirmar envio', caption: 'rever antes de concluir', frame: 'confenvio' },
   { n: '11', label: 'Receber', caption: 'QR e link de pagamento', frame: 'receber' },
-  { n: '12', label: 'Histórico', caption: 'acompanha a atividade', frame: 'historico' },
+  { n: '12', label: 'Histórico', caption: 'acompanhar a atividade', frame: 'historico' },
   { n: '13', label: 'Perfil', caption: 'conta, PIN e segurança', frame: 'perfil' },
-  { n: '14', label: 'Partilhar QR', caption: 'recebe via QR partilhável', frame: 'partilhar' },
+  { n: '14', label: 'Partilhar QR', caption: 'receber por QR partilhável', frame: 'partilhar' },
 ];
 
 /* ---------- Tecnologia — 4 cards ---------- */
@@ -215,7 +221,7 @@ const TECH_CARDS: { icon: ReactNode; tag: string; title: string; desc: string }[
     ),
     tag: 'isolado',
     title: 'Separação sandbox / produção',
-    desc: 'Ambientes isolados por princípio. O ambiente de teste nunca toca nos dados nem nos fluxos de produção.',
+    desc: 'A Sandbox é isolada por princípio: dinheiro fictício, chaves e dados próprios. O Financial Live é outro ambiente, hoje indisponível.',
   },
 ];
 
@@ -312,7 +318,7 @@ export default function ProdutoPage() {
           <Reveal className="mb-9 max-w-[720px]">
             <p className="m-0 mb-3 text-[14px] font-black text-cherry">A SOLUÇÃO</p>
             <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Tudo o que precisa para pagar em Angola.
+              Pagar, receber e verificar, numa só app.
             </h2>
             <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
               Do envio entre pessoas ao pagamento por QR, o Banzami junta numa só app o que hoje
@@ -349,10 +355,10 @@ export default function ProdutoPage() {
           <Reveal className="mb-10 max-w-[660px]">
             <p className="m-0 mb-3 text-[14px] font-black text-cherry">PRODUTOS</p>
             <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Para ti, para o teu negócio, para a tua app.
+              Para pessoas, negócios e aplicações.
             </h2>
             <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              Cada produto é uma capacidade da rede — mostramos o estado real de cada um.
+              O estado atual de cada produto. {PUBLIC_TRUTH.live.summary}
             </p>
           </Reveal>
 
@@ -376,7 +382,7 @@ export default function ProdutoPage() {
               </Reveal>
             ))}
 
-            {/* Sandbox — honest L0 dry-run card */}
+            {/* Sandbox — the environment every available product runs in today */}
             <Reveal
               delay={100}
               className="flex flex-col justify-between rounded-[22px] bg-[linear-gradient(140deg,#B5101F,#9A1B22)] p-6 text-white sm:col-span-2"
@@ -388,14 +394,13 @@ export default function ProdutoPage() {
                   </svg>
                 </div>
                 <span className="rounded-pill bg-white/[0.22] px-[9px] py-1 text-[10px] font-black text-white">
-                  L0 · DRY-RUN
+                  {PUBLIC_TRUTH.sandbox.state.toUpperCase()}
                 </span>
               </div>
               <div>
-                <h3 className="m-0 mb-[6px] text-[16px] font-black">Sandbox</h3>
+                <h3 className="m-0 mb-[6px] text-[16px] font-black">{PUBLIC_TRUTH.sandbox.name}</h3>
                 <p className="m-0 text-[13.5px] font-semibold leading-[1.5] text-pink-200">
-                  Ambiente simulado e isolado da produção, para testar sem risco. Operacional ao
-                  nível de conformidade L0.
+                  {PUBLIC_TRUTH.sandbox.summary}
                 </p>
               </div>
             </Reveal>
@@ -413,7 +418,7 @@ export default function ProdutoPage() {
             </h2>
             <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
               Criar conta, pagar, receber e confirmar — tudo em poucos passos.{' '}
-              <span className="text-ink-muted">Arrasta para ver →</span>{' '}
+              <span className="text-ink-muted">Arraste para ver →</span>{' '}
               <Link href="/ecras" className="font-extrabold text-cherry no-underline">
                 Ver todos os ecrãs ↗
               </Link>
@@ -536,13 +541,13 @@ export default function ProdutoPage() {
                   </span>
                 </div>
                 <p className="m-0 text-[14px] font-semibold leading-[1.5] text-ink-soft">
-                  Camada de conformidade e controlo regulatório, com dependências externas ainda não
-                  operacionais. Não prometemos licença bancária.
+                  A verificação de negócios existe na Sandbox. Os controlos exigidos para dinheiro real
+                  fazem parte das aprovações de que o Financial Live depende.
                 </p>
               </div>
             </div>
             <span className="rounded-pill bg-pink-200 px-[13px] py-[7px] text-[11px] font-extrabold tracking-[0.04em] text-cherry-dark">
-              REQUISITO · NÃO OPERACIONAL
+              FINANCIAL LIVE · INDISPONÍVEL
             </span>
           </Reveal>
         </div>
@@ -557,7 +562,7 @@ export default function ProdutoPage() {
               Pagar ainda depende de notas e de screenshots.
             </h2>
             <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              O Banzami substitui tudo por um gesto simples: scan, confirmar, pago.
+              O Banzami propõe um gesto simples: ler, confirmar, pago.
             </p>
           </Reveal>
 
@@ -600,8 +605,7 @@ export default function ProdutoPage() {
                 BANZA é a base.
               </h3>
               <p className="m-0 mb-5 mt-[14px] text-[15.5px] font-semibold leading-[1.55] text-ink-secondary">
-                O protocolo aberto que define regras, interoperabilidade, conformidade e certificação
-                para pagamentos. Não é uma app. Não é um banco. Não é uma carteira. É a infraestrutura
+                O protocolo aberto que define regras, invariantes e contratos para pagamentos. Não é uma app. Não é um banco. Não é uma carteira. É a infraestrutura
                 lógica que permite que operadores construam serviços compatíveis sobre a mesma base.
               </p>
               <a
@@ -618,7 +622,7 @@ export default function ProdutoPage() {
                 'Regras públicas',
                 'Interoperabilidade sem acordos bilaterais',
                 'Conformidade verificável',
-                'Certificação aberta',
+                'Governação independente do Banzami',
               ].map((t) => (
                 <div key={t} className="flex items-center gap-[10px]">
                   <CheckTile />

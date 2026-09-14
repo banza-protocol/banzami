@@ -235,11 +235,11 @@ export function AppScreen({
           <h2 style={{ margin: '10px 0 0', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: '#fff', lineHeight: 1.05 }}>
             Experimente a<br />app Banzami
           </h2>
-          <p style={{ margin: '14px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: 'rgba(255,255,255,.8)' }}>Crie conta, envie dinheiro e veja o comprovativo — tudo aqui mesmo.</p>
+          <p style={{ margin: '14px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: 'rgba(255,255,255,.8)' }}>Uma demonstração dos ecrãs, com dados de exemplo. Nenhum dinheiro se move.</p>
           <div className="flex items-center justify-center" style={{ marginTop: 34, width: 66, height: 66, borderRadius: '50%', background: '#fff' }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7-11-7z" fill="#9A1B22" /></svg>
           </div>
-          <p style={{ margin: '18px 0 0', fontSize: 13, fontWeight: 800, color: '#fff' }}>Toca para começar</p>
+          <p style={{ margin: '18px 0 0', fontSize: 13, fontWeight: 800, color: '#fff' }}>Toque para começar</p>
         </div>
       );
 
@@ -253,7 +253,7 @@ export function AppScreen({
               <LogoTiles size={42} />
             </div>
             <h2 style={{ margin: '24px 0 0', fontSize: 38, fontWeight: 900, letterSpacing: '-.02em', color: '#fff', lineHeight: 1 }}>Banzami</h2>
-            <p style={{ margin: '14px 0 0', fontSize: 16, fontWeight: 600, lineHeight: 1.4, textAlign: 'center', color: 'rgba(255,255,255,.82)' }}>Envie e receba dinheiro instantaneamente em Angola.</p>
+            <p style={{ margin: '14px 0 0', fontSize: 16, fontWeight: 600, lineHeight: 1.4, textAlign: 'center', color: 'rgba(255,255,255,.82)' }}>Pagamentos em Kwanza, de carteira para carteira.</p>
             <div className="anim-spin" style={{ width: 30, height: 30, marginTop: 54, borderRadius: '50%', border: '3px solid rgba(255,255,255,.25)', borderTopColor: '#fff' }} />
           </div>
         </div>
@@ -269,12 +269,12 @@ export function AppScreen({
               <LogoTiles size={30} />
             </div>
             <h2 style={{ margin: '18px 0 0', fontSize: 36, fontWeight: 900, letterSpacing: '-.02em', color: '#fff', lineHeight: 1 }}>Banzami</h2>
-            <p style={{ margin: '12px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: 'rgba(255,255,255,.82)' }}>Envie e receba dinheiro instantaneamente em Angola.</p>
+            <p style={{ margin: '12px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: 'rgba(255,255,255,.82)' }}>Pagamentos em Kwanza, de carteira para carteira.</p>
             <div className="flex flex-col" style={{ marginTop: 'auto', gap: 14, paddingBottom: 6 }}>
               {[
-                { i: (<><rect x="3" y="3" width="7" height="7" rx="1.6" stroke="#fff" strokeWidth="1.8" /><rect x="14" y="3" width="7" height="7" rx="1.6" stroke="#fff" strokeWidth="1.8" /><rect x="3" y="14" width="7" height="7" rx="1.6" stroke="#fff" strokeWidth="1.8" /><path d="M14 14h3v3M21 14v7h-7" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>), t: 'Pague por QR em qualquer loja' },
-                { i: (<path d="M21 3L10 14M21 3l-7 18-4-7-7-4 18-7z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />), t: 'Envie para qualquer @banza' },
-                { i: (<><path d="M4 9l8-5 8 5M5 9v10h14V9" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" /><path d="M3 20h18" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></>), t: 'Multicaixa Express integrado' },
+                { i: (<><rect x="3" y="3" width="7" height="7" rx="1.6" stroke="#fff" strokeWidth="1.8" /><rect x="14" y="3" width="7" height="7" rx="1.6" stroke="#fff" strokeWidth="1.8" /><rect x="3" y="14" width="7" height="7" rx="1.6" stroke="#fff" strokeWidth="1.8" /><path d="M14 14h3v3M21 14v7h-7" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>), t: 'Pague por QR' },
+                { i: (<path d="M21 3L10 14M21 3l-7 18-4-7-7-4 18-7z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />), t: 'Pague para um @banza' },
+                { i: (<><path d="M4 9l8-5 8 5M5 9v10h14V9" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" /><path d="M3 20h18" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></>), t: 'Comprovativo verificável' },
               ].map((r, k) => (
                 <div key={k} className="flex items-center" style={{ gap: 13 }}>
                   <span className="flex shrink-0 items-center justify-center" style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.14)' }}>

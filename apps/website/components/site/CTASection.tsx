@@ -1,7 +1,10 @@
+import Link from 'next/link';
 import { SITE, mailto } from '@/lib/site';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
 import { Reveal } from '../Reveal';
 
-// Shared final CTA — verbatim from BanzamiCTAFooter.dc.html ("Constrói connosco").
+// Shared final CTA. It points at what exists — the public Sandbox — rather than a
+// waitlist, and speaks to the reader as "você", like the rest of the site.
 export function CTASection({ id }: { id?: string }) {
   return (
     <section id={id} className="px-6 py-[clamp(56px,8vw,100px)]">
@@ -10,24 +13,24 @@ export function CTASection({ id }: { id?: string }) {
         <div className="pointer-events-none absolute -bottom-[120px] -right-[50px] h-[320px] w-[320px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.32),rgba(251,210,208,0)_64%)]" />
         <div className="relative">
           <h2 className="m-0 text-[clamp(30px,5vw,52px)] font-black leading-[1.04] tracking-[-0.025em] text-white">
-            Constrói connosco.
+            Construa com o Banzami.
           </h2>
           <p className="mx-auto mt-[18px] max-w-[540px] text-[17px] font-semibold leading-[1.55] text-pink-200">
-            O Banzami está em desenvolvimento ativo. Junta-te à waitlist para acompanhar o
-            lançamento — ou fala connosco se precisares de apoio.
+            A {PUBLIC_TRUTH.sandbox.name} está aberta a developers, sem aprovação e com dinheiro fictício.
+            Para parcerias ou dúvidas, fale connosco.
           </p>
           <div className="mt-[30px] flex flex-wrap justify-center gap-3">
-            <a
-              href={mailto()}
+            <Link
+              href="/developers"
               className="inline-flex items-center gap-2 rounded-[40px] bg-white px-[30px] py-4 text-[16px] font-extrabold text-cherry no-underline transition-transform hover:-translate-y-0.5"
             >
-              Falar connosco
-            </a>
+              Plataforma para developers
+            </Link>
             <a
-              href={mailto('Waitlist Banzami')}
+              href={mailto()}
               className="inline-flex items-center gap-2 rounded-[40px] border border-white/30 bg-white/[0.14] px-7 py-4 text-[16px] font-extrabold text-white no-underline transition-colors hover:bg-white/20"
             >
-              Entrar na waitlist
+              Falar connosco
             </a>
           </div>
           <p className="bz-mono mt-[26px] text-[13px] text-pink-200">{SITE.email}</p>

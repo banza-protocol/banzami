@@ -6,9 +6,12 @@
 //      (SITE.protocolUrl).
 //   2. Prototype `*.dc.html` links → the real existing routes
 //      (/produto, /comerciantes, /developers, /sobre, /suporte). No new routes,
-//      no duplicated pages. "Segurança" maps to /produto#seguranca — the real
-//      existing anchor on the KYC/KYB & AML-CFT compliance section.
-import { SITE, mailto } from './site';
+//      no duplicated pages. "Segurança" maps to /produto#seguranca.
+//
+// PUBLIC-TRUTH-001: every entry names something that exists today and lands on a
+// real page or anchor. Developer detail links to the canonical documentation
+// rather than to sections of banzami.com/developers, which no longer carries it.
+import { SITE, mailto, DOCS_URL, DEVELOPERS_LOGIN_URL } from './site';
 
 export type MegaLink = { label: string; href: string; desc: string };
 
@@ -31,54 +34,50 @@ export const navMenus: NavItem[] = [
     label: 'Produto',
     href: '/produto',
     hasMega: true,
-    subtitle: 'Uma forma simples de pagar, receber e acompanhar pagamentos.',
-    cta: 'Conhecer a app',
+    subtitle: 'Pagar por QR ou para um @banza, com um comprovativo verificável.',
+    cta: 'Ver o produto',
     ctaHref: '/produto',
     visualCaption: 'app banzami',
     links: [
-      { label: 'Como funciona', href: '/#como-funciona', desc: 'Scan, confirmar e pago.' },
-      { label: 'App Banzami', href: '/produto', desc: 'A carteira digital para utilizadores.' },
-      { label: 'Pagar por QR', href: '/produto#solucao', desc: 'Pague com QR de forma clara.' },
-      { label: 'Enviar para @banza', href: '/produto#solucao', desc: 'Envie com um nome simples.' },
-      { label: 'Receber pagamentos', href: '/produto#solucao', desc: 'Por QR, link ou pedido.' },
-      { label: 'Comprovativos e actividade', href: '/produto', desc: 'Movimentos e confirmações num só lugar.' },
+      { label: 'Como funciona', href: '/#como-funciona', desc: 'Ler, confirmar, pago.' },
+      { label: 'App Banzami', href: '/produto#app', desc: 'Ainda não disponível nas lojas.' },
+      { label: 'Pagar por QR', href: '/produto#solucao', desc: 'Um QR por pagamento.' },
+      { label: 'Pagar para um @banza', href: '/produto#solucao', desc: 'Um nome em vez de um IBAN.' },
+      { label: 'Verificar um comprovativo', href: '/verificar', desc: 'Confirme uma referência.' },
+      { label: 'Demonstração da app', href: '/app-demo', desc: 'Os ecrãs, com dados de exemplo.' },
     ],
   },
   {
     label: 'Para comerciantes',
     href: '/comerciantes',
     hasMega: true,
-    subtitle: 'Ferramentas simples para aceitar pagamentos sem terminais caros.',
-    cta: 'Quero aceitar pagamentos',
+    subtitle: 'Receber pagamentos por QR e por link, sem terminal.',
+    cta: 'Ver para comerciantes',
     ctaHref: '/comerciantes',
     visualCaption: 'qr comerciante',
     links: [
-      { label: 'Aceitar pagamentos por QR', href: '/comerciantes', desc: 'Um QR simples e partilhável.' },
-      { label: 'Receber sem terminal caro', href: '/comerciantes', desc: 'Alternativa digital para pequenos negócios.' },
-      { label: 'QR com valor definido', href: '/comerciantes', desc: 'Pedidos com valor e descrição.' },
-      { label: 'Links de pagamento', href: '/comerciantes', desc: 'Partilhe por WhatsApp ou redes.' },
-      { label: 'Gestão de vendas', href: '/comerciantes', desc: 'Pagamentos e actividade recente.' },
-      { label: 'App Comerciante', href: '/comerciantes', desc: 'Pensada para vendas do dia a dia.' },
-      { label: 'Entrar na lista de parceiros', href: mailto('Parceiro'), desc: 'Teste o Banzami no seu negócio.' },
+      { label: 'Receber por QR', href: '/comerciantes#como', desc: 'Um QR com valor e descrição.' },
+      { label: 'Links de pagamento', href: '/comerciantes#como', desc: 'Um endereço para partilhar.' },
+      { label: 'Candidatura de negócio', href: '/comerciantes/candidatura', desc: 'Registar o seu negócio.' },
+      { label: 'Falar com a equipa', href: mailto('Comerciantes'), desc: 'Perguntas sobre o seu negócio.' },
     ],
   },
   {
-    label: 'Para empresas',
+    label: 'Developers',
     href: '/developers',
     hasMega: true,
-    subtitle: 'Infraestrutura preparada para integrar pagamentos nas suas aplicações.',
-    cta: 'Explorar para empresas',
+    subtitle: 'Integre pagamentos nativos de carteira na sua aplicação.',
+    cta: 'Plataforma para developers',
     ctaHref: '/developers',
-    visualCaption: 'apis & sdks',
-    note: 'Algumas capacidades encontram-se em desenvolvimento ou teste interno.',
+    visualCaption: 'api & sdk',
+    note: 'Sandbox pública disponível, com dinheiro fictício. Financial Live indisponível.',
     links: [
-      { label: 'Business Dashboard', href: '/developers', desc: 'Actividade, transacções e configurações.' },
-      { label: 'APIs e SDKs', href: '/developers#api', desc: 'Integre experiências de pagamento.' },
-      { label: 'Checkout e links de pagamento', href: '/developers', desc: 'Fluxos para plataformas digitais.' },
-      { label: 'Sandbox', href: '/developers#sandbox', desc: 'Ambiente isolado para testar.' },
-      { label: 'Webhooks', href: '/developers#webhooks', desc: 'Eventos para manter tudo sincronizado.' },
-      { label: 'Documentação técnica', href: '/developers#docs', desc: 'Guias e referências para equipas.' },
-      { label: 'Falar com a equipa', href: mailto(), desc: 'Integrações e parcerias.' },
+      { label: 'Consola', href: DEVELOPERS_LOGIN_URL, desc: 'Workspaces, projetos, chaves e webhooks.' },
+      { label: 'Documentação', href: `${DOCS_URL}/get-started`, desc: 'Guia de início e conceitos.' },
+      { label: 'Referência da API', href: `${DOCS_URL}/reference`, desc: 'Endpoints, pedidos e respostas.' },
+      { label: 'SDKs', href: `${DOCS_URL}/sdk`, desc: 'Os pacotes publicados.' },
+      { label: 'Testes na Sandbox', href: `${DOCS_URL}/testing`, desc: 'Pagadores de teste e cenários.' },
+      { label: 'Webhooks', href: `${DOCS_URL}/webhooks`, desc: 'Eventos assinados e entregas.' },
     ],
   },
   {
@@ -88,20 +87,16 @@ export const navMenus: NavItem[] = [
   },
   {
     label: 'BANZA',
-    href: '/sobre#sobre',
+    href: '/sobre#banza',
     hasMega: true,
     end: true,
-    subtitle: 'Uma base comum para pagamentos mais claros, interoperáveis e preparados para crescer.',
+    subtitle: 'O protocolo aberto sobre o qual o Banzami é construído.',
     cta: 'Conhecer o BANZA',
     ctaHref: SITE.protocolUrl,
     visualCaption: 'protocolo banza',
     links: [
-      { label: 'O que é o BANZA', href: '/sobre#sobre', desc: 'A visão de uma base comum.' },
-      { label: 'Banzami e BANZA', href: '/sobre#sobre', desc: 'Da visão à experiência prática.' },
-      { label: 'Visão de interoperabilidade', href: '/sobre#sobre', desc: 'Regras comuns, não integrações isoladas.' },
-      { label: 'Princípios técnicos', href: '/sobre#sobre', desc: 'Segurança, consistência e rastreabilidade.' },
-      { label: 'Para parceiros e operadores', href: mailto(), desc: 'Colaborar no ecossistema.' },
-      { label: 'Ver o protocolo', href: SITE.protocolUrl, desc: 'Princípios e documentação.' },
+      { label: 'BANZA e Banzami', href: '/sobre#banza', desc: 'O protocolo e o operador.' },
+      { label: 'Ver o protocolo', href: SITE.protocolUrl, desc: 'banza.network' },
     ],
   },
   {
@@ -109,18 +104,15 @@ export const navMenus: NavItem[] = [
     href: '/sobre',
     hasMega: true,
     end: true,
-    subtitle: 'Estamos a construir uma nova experiência de pagamentos digitais para Angola.',
+    subtitle: 'A empresa que constrói a rede de pagamentos Banzami.',
     cta: 'Falar connosco',
     ctaHref: mailto(),
-    visualCaption: 'equipa banzami',
+    visualCaption: 'banzami',
     links: [
-      { label: 'O Banzami', href: '/sobre', desc: 'A empresa e a visão do produto.' },
-      { label: 'Missão', href: '/sobre', desc: 'Pagamentos simples, claros e acessíveis.' },
-      { label: 'Equipa fundadora', href: '/sobre', desc: 'As pessoas por trás do Banzami.' },
-      { label: 'Roadmap', href: '/sobre', desc: 'O caminho de desenvolvimento.' },
+      { label: 'O Banzami', href: '/sobre', desc: 'A empresa e a missão.' },
+      { label: 'Suporte', href: '/suporte', desc: 'Estado da plataforma e contactos.' },
+      { label: 'Perguntas frequentes', href: '/faq', desc: 'Respostas curtas.' },
       { label: 'Contacto', href: mailto(), desc: 'Fale connosco.' },
-      { label: 'Carreiras', href: mailto('Carreiras'), desc: 'Construir connosco.' },
-      { label: 'Imprensa', href: mailto('Imprensa'), desc: 'Informação institucional.' },
     ],
   },
 ];

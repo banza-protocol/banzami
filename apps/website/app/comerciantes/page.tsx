@@ -6,21 +6,23 @@ import { Reveal } from '@/components/Reveal';
 import { PhoneFrame } from '@/components/app/PhoneFrame';
 import { AppScreen } from '@/components/app/AppScreen';
 import { Mono } from '@/components/primitives';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
 export const metadata: Metadata = {
   title: 'Comerciantes',
   description:
-    'Aceita pagamentos digitais sem terminal físico. Imprime um QR, partilha um link, recebe em segundos dentro da rede. Dashboard, histórico e conciliação em tempo real.',
+    'Receber pagamentos por QR e por link, sem terminal. Disponível hoje na Sandbox pública, com dinheiro fictício.',
+  alternates: { canonical: 'https://banzami.com/comerciantes' },
 };
 
 // COMO COMEÇAR — três passos (Comerciantes.dc.html §COMO COMEÇAR).
 const STEPS: { n: string; title: string; body: React.ReactNode; icon: React.ReactNode }[] = [
   {
     n: '1',
-    title: 'Cria a tua carteira',
+    title: 'Registe o negócio',
     body: (
       <>
-        Registas o negócio e recebes uma carteira e um <Mono>@banza</Mono>.
+        O negócio recebe uma carteira e um <Mono>@banza</Mono>.
       </>
     ),
     icon: (
@@ -33,8 +35,8 @@ const STEPS: { n: string; title: string; body: React.ReactNode; icon: React.Reac
   },
   {
     n: '2',
-    title: 'Gera um QR ou link',
-    body: 'Cola o QR no balcão ou partilha o link por WhatsApp ou SMS.',
+    title: 'Crie um QR ou um link',
+    body: 'Mostre o QR ao balcão ou partilhe o link por mensagem.',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#B5101F" strokeWidth="1.8" />
@@ -52,8 +54,8 @@ const STEPS: { n: string; title: string; body: React.ReactNode; icon: React.Reac
   },
   {
     n: '3',
-    title: 'Recebe em segundos',
-    body: 'O cliente faz scan, confirma e pagas. Creditado na tua carteira, dentro da rede.',
+    title: 'Receba',
+    body: 'O cliente lê o QR e confirma. O pagamento fica registado na carteira do negócio, com comprovativo.',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path
@@ -85,8 +87,8 @@ const ADVANTAGES: {
     ),
   },
   {
-    title: 'Confirmação criptográfica',
-    body: 'Um recibo na carteira substitui o screenshot.',
+    title: 'Comprovativo verificável',
+    body: 'Um comprovativo com referência, em vez de uma captura de ecrã.',
     delay: 50,
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -107,8 +109,8 @@ const ADVANTAGES: {
     ),
   },
   {
-    title: 'Dashboard em tempo real',
-    body: 'Saldo, transações e análises num só painel.',
+    title: 'Estado em tempo real',
+    body: 'O pagamento aparece como pago assim que é confirmado.',
     delay: 100,
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -140,8 +142,8 @@ const ADVANTAGES: {
     ),
   },
   {
-    title: 'Onboarding em minutos',
-    body: 'Sem volume mínimo e sem burocracia de cartão.',
+    title: 'Registo sem terminal',
+    body: 'Sem hardware e sem cartão. A verificação do negócio faz parte do registo.',
     delay: 50,
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -157,8 +159,8 @@ const ADVANTAGES: {
     ),
   },
   {
-    title: 'Creditado na hora',
-    body: 'Creditado no momento da confirmação, dentro da rede.',
+    title: 'Registado na confirmação',
+    body: 'O valor fica na carteira do negócio no momento em que o pagamento é confirmado.',
     delay: 100,
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -185,27 +187,27 @@ export default function ComerciantesPage() {
           <div>
             <span className="mb-[22px] inline-flex items-center gap-2 rounded-pill bg-white px-4 py-2 text-[13px] font-extrabold text-cherry shadow-[0_6px_18px_-8px_rgba(181,16,31,.3)]">
               <span className="h-2 w-2 rounded-full bg-cherry" />
-              Para o teu negócio
+              Para o seu negócio
             </span>
             <h1 className="m-0 text-[clamp(38px,5.4vw,64px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
-              Aceita pagamentos sem terminal.
+              Receba pagamentos sem terminal.
             </h1>
             <p className="m-0 mt-5 max-w-[520px] text-[clamp(16px,1.5vw,19px)] font-semibold leading-[1.55] text-ink-secondary">
-              Imprime um QR, partilha um link, recebe em segundos dentro da rede. Onboarding em
-              minutos, sem hardware e sem volume mínimo.
+              Mostre um QR ou partilhe um link de pagamento, sem hardware. Hoje disponível na{' '}
+              {PUBLIC_TRUTH.sandbox.name}, com dinheiro fictício; {PUBLIC_TRUTH.live.name} indisponível.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a
                 href="/comerciantes/candidatura"
                 className="inline-flex items-center gap-2 rounded-[40px] bg-cherry px-[30px] py-4 text-[16px] font-extrabold text-white no-underline shadow-[0_14px_30px_-10px_rgba(181,16,31,.5)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:bg-cherry-dark"
               >
-                Quero aceitar pagamentos
+                Registar o negócio
               </a>
               <a
-                href="/comerciantes/candidatura"
+                href="/developers"
                 className="inline-flex items-center gap-2 rounded-[40px] bg-white px-7 py-4 text-[16px] font-extrabold text-cherry no-underline shadow-[0_8px_22px_-10px_rgba(0,0,0,.18)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:bg-cream-100"
               >
-                Começar
+                Integrar numa aplicação
               </a>
             </div>
           </div>
@@ -226,7 +228,7 @@ export default function ComerciantesPage() {
           <Reveal className="mx-auto mb-11 max-w-[600px] text-center">
             <p className="m-0 mb-3 text-[14px] font-black text-cherry">COMO COMEÇAR</p>
             <h2 className="m-0 text-[clamp(28px,4vw,44px)] font-black leading-[1.06] tracking-[-0.02em] text-ink">
-              Em três passos, sem burocracia.
+              Em três passos.
             </h2>
           </Reveal>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -258,7 +260,7 @@ export default function ComerciantesPage() {
           <Reveal className="mx-auto mb-11 max-w-[640px] text-center">
             <p className="m-0 mb-3 text-[14px] font-black text-cherry">DOIS CENÁRIOS</p>
             <h2 className="m-0 text-[clamp(28px,4vw,44px)] font-black leading-[1.06] tracking-[-0.02em] text-ink">
-              Recebe de um cliente — ou de uma mesa inteira.
+              Receber de um cliente, ou de vários.
             </h2>
             <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
               O mesmo <Mono>@banza</Mono> aceita um pagamento simples ou vários ao mesmo tempo.
@@ -272,7 +274,7 @@ export default function ComerciantesPage() {
               </span>
               <h3 className="m-0 mb-1.5 text-[20px] font-black text-ink">Um cliente paga ao balcão</h3>
               <p className="m-0 mb-6 text-[14.5px] font-semibold leading-[1.5] text-ink-soft">
-                O cliente lê o teu QR, confirma o valor e recebes na hora.
+                O cliente lê o QR do negócio, confirma o valor e o pagamento fica registado.
               </p>
               <div className="mt-auto flex justify-center pt-1.5">
                 <PhoneFrame>
@@ -287,14 +289,14 @@ export default function ComerciantesPage() {
               className="flex flex-col rounded-[28px] bg-white p-[30px] shadow-[0_24px_60px_-34px_rgba(181,16,31,.28)]"
             >
               <span className="mb-4 self-start rounded-pill bg-pink-200 px-[13px] py-1.5 text-[11px] font-black tracking-[0.04em] text-cherry-dark">
-                PAGAMENTO PARTILHADO
+                VÁRIOS PAGAMENTOS
               </span>
               <h3 className="m-0 mb-1.5 text-[20px] font-black text-ink">
-                Vários clientes dividem a conta
+                Vários clientes pagam ao mesmo @banza
               </h3>
               <p className="m-0 mb-6 text-[14.5px] font-semibold leading-[1.5] text-ink-soft">
-                Cada um paga a sua parte para o mesmo <Mono>@banza</Mono>. Vês tudo conciliado, sem
-                confusão.
+                Cada pagamento chega ao mesmo <Mono>@banza</Mono> com o seu comprovativo, e o histórico
+                mostra-os lado a lado.
               </p>
               <div className="mt-auto flex justify-center pt-1.5">
                 <PhoneFrame>
@@ -334,9 +336,8 @@ export default function ComerciantesPage() {
           {/* Nota honesta — levantamentos dependem de rails de saída ainda não ativos. */}
           <Reveal className="mt-7 rounded-[20px] bg-cream-100 px-6 py-[22px]">
             <p className="m-0 text-[14px] font-semibold leading-[1.6] text-ink-secondary">
-              <strong className="text-cherry-dark">Nota honesta.</strong> Os levantamentos para conta
-              bancária dependem de rails de saída aprovados que ainda não estão ativos — apresentados
-              como capacidade da rede e roadmap, não como serviço comercial já disponível.
+              <strong className="text-cherry-dark">Dinheiro real.</strong> {PUBLIC_TRUTH.live.summary} Sem
+              ele não há pagamentos com dinheiro real nem levantamentos para uma conta bancária.
             </p>
           </Reveal>
         </div>

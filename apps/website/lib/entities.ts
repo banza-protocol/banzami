@@ -78,10 +78,3 @@ export const entities: HomepageEntity[] = [
 export const homepageEntities = entities.filter((e) => e.active && e.showOnHomepage);
 export const homepageCompanies = homepageEntities.filter((e) => e.category === 'company');
 export const homepageMerchants = homepageEntities.filter((e) => e.category === 'merchant');
-
-// Adoption metrics. userCount and dailyTransactionCount stay 0 until a real
-// source exists (no fake data). merchant/company counts derive from the model.
-export const userCount = 0;
-export const merchantCount = homepageMerchants.length;
-export const companyCount = homepageCompanies.length;
-export const dailyTransactionCount = 0;

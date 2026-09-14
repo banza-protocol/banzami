@@ -16,22 +16,22 @@ const STEPS: {
   {
     n: '1',
     title: 'Scan',
-    desc: 'Leia qualquer QR Banzami ou escolha diretamente um @banza.',
-    chips: ['QR instantâneo', '@banza', 'Sem IBAN'],
+    desc: 'Leia um QR Banzami ou escolha um @banza.',
+    chips: ['QR', '@banza', 'Sem IBAN'],
     frame: 'scan',
   },
   {
     n: '2',
     title: 'Confirmar',
-    desc: 'Valide a transação com PIN ou biometria antes do movimento do dinheiro.',
-    chips: ['Face ID', 'PIN seguro', 'Controlo total'],
+    desc: 'Confirme o pagamento com PIN ou biometria antes de ele ser registado.',
+    chips: ['PIN', 'Biometria', 'Confirmação explícita'],
     frame: 'confpag',
   },
   {
     n: '3',
     title: 'Pago',
-    desc: 'O valor é creditado em segundos e o comprovativo fica disponível imediatamente.',
-    chips: ['Instantâneo', 'Comprovativo digital', 'Histórico'],
+    desc: 'O destinatário vê o pagamento concluído e o comprovativo fica disponível.',
+    chips: ['Comprovativo verificável', 'Histórico'],
     frame: 'comprovativo',
     valor: '1 500',
     para: '@cantina-alex',
@@ -55,10 +55,10 @@ export function HowItWorks() {
         <Reveal className="mx-auto mb-[52px] max-w-[640px] text-center">
           <p className="m-0 mb-3 text-[14px] font-black text-cherry">COMO FUNCIONA</p>
           <h2 className="m-0 text-[clamp(28px,4.2vw,48px)] font-black leading-[1.04] tracking-[-0.025em]">
-            Um pagamento em menos de 10 segundos.
+            Ler, confirmar, pago.
           </h2>
           <p className="m-0 mt-[18px] text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-            Sem IBANs, sem terminais complexos, sem esperas — apenas três gestos naturais.
+            Sem IBAN e sem terminal: o pagamento começa num QR ou num @banza.
           </p>
         </Reveal>
 
@@ -116,7 +116,7 @@ export function HowItWorks() {
         <div className="mt-[50px] flex flex-wrap items-center justify-center gap-[18px]">
           <span className="h-px w-[54px]" style={{ background: '#E8C8C6' }} />
           <p className="m-0 max-w-[520px] text-center text-[13px] font-semibold leading-[1.55] text-ink-muted md:max-w-none md:whitespace-nowrap">
-            O dinheiro move-se entre carteiras Banzami, com registo seguro em ledger de dupla entrada.
+            Cada pagamento é um movimento entre carteiras, registado num ledger de dupla entrada.
           </p>
           <span className="h-px w-[54px]" style={{ background: '#E8C8C6' }} />
         </div>

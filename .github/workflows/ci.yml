@@ -578,10 +578,19 @@ jobs:
           node tools/check-docs-editorial.mjs
           node tools/docs/build-llms-txt.mjs --check
 
-      # Every TypeScript example on the docs and the landing page, compiled
-      # against @banzami/sdk as installed from the public registry.
+      # Every TypeScript example on the docs, compiled against @banzami/sdk as
+      # installed from the public registry.
       - name: Documentation code examples compile
         run: node tools/check-docs-code-examples.mjs
+
+      # PUBLIC-TRUTH-001: banzami.com states the runtime's truth — Sandbox
+      # available, Financial Live unavailable, v1, published SDKs and runtime key
+      # prefixes only, no store badges, licences, competitors or speed promises.
+      # The selftest reintroduces nineteen drifts the site had or could have.
+      - name: Public website truth gate
+        run: |
+          node tools/check-public-site-truth.mjs
+          node tools/check-public-site-truth.selftest.mjs
 
       # An item can read VALIDATED while the files behind it have been deleted.
       # Four did, for months, because nothing had ever opened an evidence

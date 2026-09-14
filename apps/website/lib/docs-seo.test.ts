@@ -32,7 +32,12 @@ describe('documentation SEO (DOCS-PROD-001 §57)', () => {
     expect(xml).not.toMatch(/\/docs(\/en)?\/guides</);
     expect(docsMetadata('pt', 'guides').robots).toEqual({ index: false, follow: true });
     expect(xml).not.toMatch(/login|api-keys|saldos/);
-    const other = await sitemap(new NextRequest('https://banzami.com/sitemap.xml', { headers: { host: 'banzami.com' } }));
+    const other = await sitemap(new NextRequest('https://example.org/sitemap.xml', { headers: { host: 'example.org' } }));
     expect(other.status).toBe(404);
+  });
+  it('lists the public marketing pages on banzami.com, and no docs or Console page', async () => {
+    const xml = await (await sitemap(new NextRequest('https://banzami.com/sitemap.xml', { headers: { host: 'banzami.com' } }))).text();
+    for (const p of ['/', '/developers', '/faq', '/suporte', '/sobre']) expect(xml).toContain(`<loc>https://banzami.com${p}</loc>`);
+    expect(xml).not.toMatch(/\/docs|\/login|activar|estado/);
   });
 });

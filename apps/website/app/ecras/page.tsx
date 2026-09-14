@@ -5,7 +5,11 @@ import { Reveal } from '@/components/Reveal';
 import { PhoneFrame } from '@/components/app/PhoneFrame';
 import { AppScreen, type FrameName } from '@/components/app/AppScreen';
 
-export const metadata: Metadata = { title: 'Ecrãs da app' };
+export const metadata: Metadata = {
+  title: 'Ecrãs da app',
+  description: 'Os ecrãs principais do protótipo da app Banzami, com dados de exemplo.',
+  alternates: { canonical: 'https://banzami.com/ecras' },
+};
 
 // The 8 gallery screens (mono labels mirror Banza App.dc.html).
 const SCREENS: { label: string; frame: FrameName }[] = [
@@ -41,7 +45,7 @@ export default function AppGalleryPage() {
               </h1>
               <p style={{ margin: '14px 0 0', fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: '#6a5a5e' }}>
                 Os ecrãs principais da app — carteira em Kwanza, @banza, QR e histórico.
-                Envie e receba dinheiro instantaneamente em Angola.
+                Pagamentos em Kwanza, de carteira para carteira.
               </p>
             </Reveal>
           </div>

@@ -3,73 +3,60 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { CTASection } from '@/components/site/CTASection';
 import { Footer } from '@/components/site/Footer';
-import { ComingSoonBadge } from '@/components/site/ComingSoonBadge';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
+import { PUBLISHED_PACKAGES } from '@/app/developers/docs/published-packages';
 import { Reveal } from '@/components/Reveal';
 import { mailto } from '@/lib/site';
 
-export const metadata: Metadata = { title: 'FAQ' };
+export const metadata: Metadata = {
+  title: 'FAQ',
+  description: 'Perguntas frequentes sobre o Banzami: a app, os pagamentos, a segurança e a plataforma para developers.',
+  alternates: { canonical: 'https://banzami.com/faq' },
+};
 
-// FAQ content — verbatim from FAQ.dc.html (5 categorias em acordeão).
-// `soon` items render the "Em breve" badge inline before the answer.
+// Every answer states what exists today. Nothing here promises a date or a
+// feature: what is not available says so, and the Sandbox/Live facts come from
+// lib/public-truth.ts, so this page cannot drift from the rest of the site.
 // `linkComerciantes` injects the inline /comerciantes link in the answer.
-type QA = { q: string; a: string; soon?: boolean; linkComerciantes?: boolean };
+type QA = { q: string; a: string; linkComerciantes?: boolean };
 type Category = { title: string; items: QA[] };
 
 const CATEGORIES: Category[] = [
   {
-    title: 'Começar',
+    title: 'Disponibilidade',
     items: [
-      {
-        q: 'Como criar uma conta?',
-        a: 'Descarregue a app Banzami, escolha o seu @banza e defina um PIN. A sua carteira fica pronta em segundos.',
-      },
-      {
-        q: 'Preciso de um banco para usar o Banzami?',
-        a: 'Não. Cada conta Banzami é uma carteira em Kwanza — basta o seu @banza para pagar e receber.',
-      },
       {
         q: 'O Banzami já está disponível?',
-        a: 'Estamos em fase de lançamento. Junte-se cedo para ser dos primeiros a experimentar.',
+        a: `Para developers, sim: a ${PUBLIC_TRUTH.sandbox.name} está disponível, é self-service e usa dinheiro fictício. ${PUBLIC_TRUTH.live.summary}`,
+      },
+      {
+        q: 'Posso descarregar a app Banzami?',
+        a: 'Ainda não. A app Banzami não está disponível na App Store nem no Google Play.',
+      },
+      {
+        q: 'O Banzami guarda o meu dinheiro?',
+        a: 'Hoje não. Sem o Financial Live não há operação com dinheiro real: na Sandbox todos os saldos são fictícios.',
       },
     ],
   },
   {
-    title: 'Pagamentos',
+    title: 'Como funciona',
     items: [
       {
-        q: 'Como pagar com QR?',
-        a: 'Abra a app, toque em Scan, aponte ao QR do comerciante e confirme com o seu PIN. O pagamento é instantâneo.',
+        q: 'O que é uma carteira Banzami?',
+        a: 'Cada conta Banzami é uma carteira em Kwanza, identificada por um @banza — o nome que se usa para pagar e receber, em vez de um IBAN.',
       },
       {
-        q: 'Como enviar dinheiro para um @banza?',
-        a: 'Toque em Enviar, escreva o @banza do destinatário e o valor, e confirme. Sem IBAN, sem números longos.',
+        q: 'Como se paga com QR?',
+        a: 'O pagador lê o QR com a app, confirma com PIN ou biometria e o pagamento fica registado. Na Sandbox, o mesmo percurso corre com pagadores de teste e dinheiro fictício.',
       },
       {
-        q: 'Como funcionam os comprovativos digitais?',
-        a: 'Após cada pagamento recebe um comprovativo com data, valor e referência, guardado no seu histórico.',
+        q: 'Como funcionam os comprovativos?',
+        a: 'Cada operação tem um comprovativo com data, valor e referência. Qualquer pessoa pode verificar a referência em banzami.com/verificar.',
       },
       {
-        q: 'Posso cancelar um pagamento?',
-        a: 'Os pagamentos são instantâneos e irreversíveis. Confirme sempre o valor e o destinatário antes de pagar.',
-      },
-    ],
-  },
-  {
-    title: 'Produtos',
-    items: [
-      {
-        q: 'O que é o Banzami Wallet?',
-        a: 'A sua carteira digital em Kwanza: saldo, pagamentos, comprovativos e histórico, tudo num só lugar.',
-      },
-      {
-        q: 'Como funciona dividir pagamentos?',
-        a: 'Vai permitir dividir uma conta entre várias pessoas, de forma instantânea.',
-        soon: true,
-      },
-      {
-        q: 'O que são pedidos de pagamento?',
-        a: 'Vai permitir pedir dinheiro a alguém em segundos, com um link ou @banza.',
-        soon: true,
+        q: 'Um pagamento pode ser anulado?',
+        a: 'Um pagamento concluído não é anulado; é o recebedor que o pode reembolsar, total ou parcialmente. Confirme sempre o valor e o destinatário antes de pagar.',
       },
     ],
   },
@@ -77,46 +64,46 @@ const CATEGORIES: Category[] = [
     title: 'Segurança',
     items: [
       {
-        q: 'O Banzami é seguro?',
-        a: 'Cada movimento é registado num ledger de dupla entrada e confirmado com PIN ou biometria.',
+        q: 'Como são registados os movimentos?',
+        a: 'Cada movimento é registado num ledger de dupla entrada, que não se edita: uma correção é um novo movimento.',
       },
       {
-        q: 'Como protejo a minha conta?',
-        a: 'Use um PIN forte e ative a biometria do telemóvel. Nunca partilhe o seu PIN com ninguém.',
+        q: 'Como devo proteger a minha conta?',
+        a: 'Nunca partilhe o seu PIN nem um código de verificação com ninguém.',
       },
       {
-        q: 'O que acontece se perder o telemóvel?',
-        a: 'A sua carteira fica protegida pelo PIN. Pode recuperar o acesso noutro dispositivo com a sua identidade.',
+        q: 'Como reporto um problema de segurança?',
+        a: 'Escreva para o endereço de segurança indicado na página de Suporte.',
       },
     ],
   },
   {
-    title: 'Empresas & Developers',
+    title: 'Empresas e developers',
     items: [
       {
-        q: 'Comerciantes podem receber pagamentos?',
-        a: 'Sim. Os comerciantes recebem por QR sem terminal POS — veja a página ',
+        q: 'Um comerciante pode receber pagamentos?',
+        a: 'Os pagamentos de comerciante estão disponíveis na Sandbox, com dinheiro fictício. Veja a página ',
         linkComerciantes: true,
       },
       {
-        q: 'Existe API?',
-        a: 'Sim — uma API REST para criar pagamentos, confirmar transações e receber eventos. Disponível para integração técnica e testes em sandbox.',
+        q: 'Existe uma API?',
+        a: `Sim: uma API REST pública (${PUBLIC_TRUTH.apiVersion}) para pagamentos, reembolsos, webhooks e liquidações, documentada em developers.banzami.com/docs.`,
       },
       {
         q: 'Existem SDKs?',
-        a: 'SDKs oficiais para JavaScript/TypeScript, iOS, Android e REST. Disponível para integração técnica e testes em sandbox.',
+        a: `Estão publicados ${PUBLISHED_PACKAGES.map((p) => `${p.name} (${p.registry})`).join(' e ')}. A lista completa e atual está na documentação.`,
       },
       {
-        q: 'Posso testar antes de ir para produção?',
-        a: 'Sim. O sandbox permite simular pagamentos, confirmações, falhas, reembolsos e webhooks. A produção depende da ativação dos rails externos aprovados.',
+        q: 'Preciso de aprovação para usar a Sandbox?',
+        a: 'Não. Crie a conta na Consola, crie um projeto e receba chaves de teste, sem aprovação de um operador Banzami.',
       },
       {
-        q: 'Qual é a diferença entre sandbox e live?',
-        a: 'Sandbox permite testar integrações sem dinheiro real. Live é o ambiente de produção e só deve ser usado quando a integração e os rails aprovados estiverem ativados.',
+        q: 'Qual é a diferença entre a Sandbox e o Financial Live?',
+        a: `São os dois ambientes financeiros da mesma plataforma. A Sandbox usa dinheiro fictício e está disponível. ${PUBLIC_TRUTH.live.summary}`,
       },
       {
-        q: 'Posso usar a chave live no frontend?',
-        a: 'Não. Chaves secretas live devem ficar apenas no backend. Frontend/mobile só deve usar chaves publicáveis quando esse fluxo estiver disponível.',
+        q: 'Posso usar uma chave secreta no browser ou numa app móvel?',
+        a: 'Não. Uma chave secreta fica sempre no seu servidor. O browser e a app móvel usam uma chave publicável, que só lê.',
       },
     ],
   },
@@ -150,11 +137,6 @@ function FaqItem({ item }: { item: QA }) {
         <Chevron />
       </summary>
       <div className="px-[18px] pb-4 text-[14.5px] font-semibold leading-[1.6] text-ink-secondary">
-        {item.soon && (
-          <span className="mr-[6px] inline-block rounded-pill bg-pink-200 px-2 py-[2px] text-[10px] font-extrabold text-cherry-dark">
-            Em breve
-          </span>
-        )}
         {item.a}
         {item.linkComerciantes && (
           <Link href="/comerciantes" className="font-extrabold text-cherry no-underline">
@@ -180,7 +162,7 @@ export default function FaqPage() {
             Perguntas frequentes
           </h1>
           <p className="m-0 mt-[18px] text-[18px] font-semibold leading-[1.55] text-ink-secondary">
-            Respostas simples sobre como usar o Banzami.
+            O que o Banzami é, e o que está disponível hoje.
           </p>
         </div>
       </section>
@@ -201,7 +183,7 @@ export default function FaqPage() {
           <Reveal className="mt-12 rounded-card border border-border-soft bg-[linear-gradient(135deg,#FFF3F1,#FFE6E4)] px-6 py-10 text-center">
             <h3 className="m-0 text-[24px] font-black tracking-[-0.02em]">Ainda tem dúvidas?</h3>
             <p className="m-0 mb-5 mt-[10px] text-[15px] font-semibold text-ink-secondary">
-              Fale com a equipa Banzami — respondemos depressa.
+              Escreva à equipa Banzami.
             </p>
             <a
               href={mailto()}

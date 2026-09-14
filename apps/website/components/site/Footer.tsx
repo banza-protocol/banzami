@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
 import type { ReactNode } from 'react';
 import { SITE, mailto } from '@/lib/site';
 import { Logo, BrandMark } from './BrandMark';
@@ -9,7 +10,7 @@ import { Logo, BrandMark } from './BrandMark';
 
 type IconKey =
   | 'produtos' | 'sobre' | 'comerciantes' | 'contacto' | 'developers'
-  | 'waitlist' | 'suporte' | 'banza' | 'qr' | 'at' | 'shieldcheck' | 'lock';
+  | 'suporte' | 'banza' | 'qr' | 'at' | 'shieldcheck' | 'lock';
 
 /** Inline SVG icons — stroke style consistent with the navigation. */
 function Icon({ name, size = 18 }: { name: IconKey; size?: number }) {
@@ -20,7 +21,6 @@ function Icon({ name, size = 18 }: { name: IconKey; size?: number }) {
     comerciantes: (<><path d="M4 9l1-4h14l1 4a2.5 2.5 0 01-5 0 2.5 2.5 0 01-5 0 2.5 2.5 0 01-5 0z" {...p} /><path d="M5 11v8h14v-8" {...p} /><path d="M9.5 19v-4h5v4" {...p} /></>),
     contacto: (<><rect x="3" y="5" width="18" height="14" rx="2.5" {...p} /><path d="M3.5 7.5l8.5 6 8.5-6" {...p} /></>),
     developers: (<path d="M8.5 8l-4 4 4 4M15.5 8l4 4-4 4" {...p} />),
-    waitlist: (<><circle cx="9" cy="8" r="3.4" {...p} /><path d="M3.5 19a5.5 5.5 0 0111 0" {...p} /><path d="M18.5 8v5M16 10.5h5" {...p} /></>),
     suporte: (<><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" {...p} /></>),
     banza: (<><path d="M12 3l9 5-9 5-9-5 9-5z" {...p} /><path d="M3 13l9 5 9-5" {...p} /></>),
     qr: (<><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" {...p} /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" {...p} /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" {...p} /><path d="M13.5 13.5h3M20 13.5v.01M13.5 20h6.5M20 16.5v.01M16.5 16.5v3.5" {...p} /></>),
@@ -55,7 +55,7 @@ type ExploreLink = { label: string; href: string; icon: IconKey; external?: bool
 const EXPLORE: ExploreLink[] = [
   { label: 'Produto', href: '/produto', icon: 'produtos' },
   { label: 'Para comerciantes', href: '/comerciantes', icon: 'comerciantes' },
-  { label: 'Para empresas', href: '/developers', icon: 'developers' },
+  { label: 'Developers', href: '/developers', icon: 'developers' },
   { label: 'Segurança', href: '/produto#seguranca', icon: 'shieldcheck' },
   { label: 'BANZA', href: SITE.protocolUrl, icon: 'banza', external: true },
   { label: 'Sobre nós', href: '/sobre', icon: 'sobre' },
@@ -66,7 +66,7 @@ const EXPLORE: ExploreLink[] = [
 const CHIPS: { label: string; icon: IconKey }[] = [
   { label: 'Pagamentos por QR', icon: 'qr' },
   { label: '@banza', icon: 'at' },
-  { label: 'Comprovativo vivo', icon: 'shieldcheck' },
+  { label: 'Comprovativo verificável', icon: 'shieldcheck' },
 ];
 
 /** Internal `/` routes use next/link; mailto/external use a plain anchor. */
@@ -115,11 +115,11 @@ export function Footer() {
             <Logo size={42} markSize={22} />
           </Link>
           <p className="m-0 mt-[18px] text-[18px] font-black leading-[1.25] text-cherry">
-            A carteira Kwanza de Angola.
+            Pagamentos em Kwanza, de carteira para carteira.
           </p>
           <p className="m-0 mt-[14px] max-w-[340px] text-[14.5px] font-semibold leading-[1.6] text-ink-soft">
-            Simples, segura e feita para todos. Pagamentos instantâneos, QR e @handles numa
-            experiência pensada para o dia a dia em Angola.
+            Pagar por QR ou para um @banza, com um comprovativo que qualquer pessoa pode verificar.
+            Construído sobre o protocolo aberto BANZA.
           </p>
           <div className="mt-[22px] flex flex-wrap gap-[10px]">
             {CHIPS.map((c) => (
@@ -143,7 +143,7 @@ export function Footer() {
             ))}
           </div>
           <p className="m-0 mt-[20px] text-[13.5px] font-semibold leading-[1.55] text-ink-muted">
-            Tudo o que precisas para usar, integrar e confiar no Banzami.
+            O produto, a plataforma para developers e o estado atual.
           </p>
         </section>
 
@@ -159,17 +159,16 @@ export function Footer() {
             style={{ border: '40px solid rgba(255,255,255,0.05)' }}
           />
           <div className="relative">
-            <p className="m-0 text-[24px] font-black tracking-[-0.01em]">Explorar Banzami</p>
-            <p className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
-              Descobre uma nova forma de pagar, receber e gerir dinheiro em Kwanza. Simples, rápida e
-              pensada para o dia a dia em Angola.
+            <p className="m-0 text-[24px] font-black tracking-[-0.01em]">Construir com o Banzami</p>
+            <p data-testid="footer-environment-status" className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
+              A {PUBLIC_TRUTH.sandbox.name} está disponível, com dinheiro fictício. O {PUBLIC_TRUTH.live.name} está indisponível.
             </p>
 
             <a
-              href="/app-demo"
+              href="/developers"
               className="bz-foot-cta mt-[22px] flex items-center justify-between rounded-[16px] bg-white px-[20px] py-[16px] text-[15px] font-extrabold text-cherry no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
             >
-              Baixar a app
+              Plataforma para developers
               <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="#B5101F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -179,14 +178,14 @@ export function Footer() {
               href={mailto('Contacto Banzami')}
               className="bz-foot-cta mt-[12px] flex items-center justify-between rounded-[16px] border border-white/25 bg-white/[0.12] px-[20px] py-[16px] text-[15px] font-extrabold text-white no-underline transition hover:bg-white/[0.2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
             >
-              Entrar em contacto
+              Falar connosco
               <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </a>
 
             <p className="m-0 mt-[18px] text-[13px] font-semibold leading-[1.5] text-white/70">
-              Banzami é construído sobre o protocolo aberto <span className="font-black text-white">BANZA</span>.
+              A app Banzami ainda não está disponível nas lojas. <a href="/app-demo" className="font-black text-white underline-offset-2 hover:underline">Ver a demonstração</a>.
             </p>
           </div>
         </section>
@@ -197,11 +196,11 @@ export function Footer() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border border-[rgba(181,16,31,0.10)] bg-white px-[clamp(20px,2.4vw,30px)] py-[18px]">
           <p className="m-0 flex items-center gap-[9px] text-[13.5px] font-semibold text-ink-soft">
             <span className="text-ink-muted"><Icon name="lock" size={16} /></span>
-            Seguro por design. Privacidade por padrão.
+            {PUBLIC_TRUTH.live.name} indisponível · Sandbox com dinheiro fictício
           </p>
           <p className="bz-mono m-0 text-[13px] font-semibold text-ink-muted">© 2026 Banzami</p>
           <p className="m-0 flex items-center gap-[10px] text-[14px] font-black text-ink">
-            Banzami é como Angola paga.
+            Construído sobre o BANZA.
             <span className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-tile bg-cherry shadow-[0_6px_14px_-4px_rgba(181,16,31,.5)]">
               <BrandMark size={17} />
             </span>

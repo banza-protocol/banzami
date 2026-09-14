@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import { CandidaturaForm } from './CandidaturaForm';
 
 export const metadata: Metadata = {
-  title: 'Banzami Business — Crie a sua conta em minutos',
+  title: 'Banzami Business — Registe o seu negócio',
   description:
-    'Registe o seu negócio no Banzami e comece a aceitar pagamentos digitais. Simples, rápido e 100% online. Feito para comerciantes e empresas angolanas.',
+    'Registe o seu negócio no Banzami: dados, documentos e verificação, num formulário online.',
+  alternates: { canonical: 'https://banzami.com/comerciantes/candidatura' },
 };
 
 // Self-contained onboarding page (its own top bar + sidebar + panel), per the

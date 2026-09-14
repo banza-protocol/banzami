@@ -36,8 +36,9 @@ export function PlatformBanner() {
       role="status"
       className="sticky top-0 z-50 flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-[7px] text-[12.5px] leading-none"
     >
-      <span className="font-extrabold text-amber-900">🟡 SANDBOX</span>
-      <span className="font-semibold text-amber-800 max-[440px]:hidden">Esta plataforma encontra-se em ambiente de testes.</span>
+      <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+      <span className="font-extrabold text-amber-900">SANDBOX</span>
+      <span className="font-semibold text-amber-800 max-[440px]:hidden">Dinheiro fictício. O Financial Live está indisponível.</span>
     </div>
   );
 }

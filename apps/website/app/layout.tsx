@@ -10,11 +10,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://banzami.com'),
   title: {
-    default: 'Banzami — A carteira Kwanza de Angola',
+    default: 'Banzami — Pagamentos em Kwanza, de carteira para carteira',
     template: '%s · Banzami',
   },
   description:
-    'O Banzami é a rede de pagamentos wallet-native de Angola. Carteira em Kwanza, paga por QR ou para um @banza, recebe em segundos. Construído sobre o protocolo aberto BANZA.',
+    'Banzami: pagamentos nativos de carteira em Kwanza, por QR ou para um @banza, construídos sobre o protocolo aberto BANZA. Sandbox pública disponível; Financial Live indisponível.',
   applicationName: 'Banzami',
   authors: [{ name: 'Banzami' }],
   manifest: '/site.webmanifest',
@@ -32,16 +32,16 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'pt_AO',
     siteName: 'Banzami',
-    title: 'Banzami — A carteira Kwanza de Angola',
+    title: 'Banzami — Pagamentos em Kwanza, de carteira para carteira',
     description:
-      'A rede de pagamentos wallet-native de Angola. Paga por QR ou para um @banza e recebe em segundos. Construído sobre o protocolo aberto BANZA.',
+      'Pagamentos nativos de carteira em Kwanza, por QR ou para um @banza, construídos sobre o protocolo aberto BANZA. Sandbox pública disponível; Financial Live indisponível.',
     url: 'https://banzami.com',
     images: [{ url: '/brand/banzami_icon.png', width: 1254, height: 1254, alt: 'Banzami' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Banzami — A carteira Kwanza de Angola',
-    description: 'A rede de pagamentos wallet-native de Angola. Construído sobre o protocolo aberto BANZA.',
+    title: 'Banzami — Pagamentos em Kwanza, de carteira para carteira',
+    description: 'Pagamentos nativos de carteira em Kwanza, construídos sobre o protocolo aberto BANZA.',
     images: ['/brand/banzami_icon.png'],
   },
 };
@@ -66,7 +66,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           rel="stylesheet"
         />
       </head>
-      <body><PlatformBanner />{children}</body>
+      {/* Cloudflare's Email Address Obfuscation rewrites every mailto link into
+          /cdn-cgi/l/email-protection and relies on a decoder script our CSP
+          (rightly) blocks, which left the menu, footer and contact links broken
+          on first paint. <!--email_off--> … <!--/email_off--> is Cloudflare's
+          documented opt-out; it is matched in the HTML text, so one pair around
+          the whole body covers every page without weakening the CSP. React can
+          only emit a comment as raw HTML, hence the two constant markers. */}
+      <body>
+        <span hidden dangerouslySetInnerHTML={{ __html: '<!--email_off-->' }} />
+        <PlatformBanner />
+        {children}
+        <span hidden dangerouslySetInnerHTML={{ __html: '<!--/email_off-->' }} />
+      </body>
     </html>
   );
 }

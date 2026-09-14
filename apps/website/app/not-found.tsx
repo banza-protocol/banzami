@@ -13,7 +13,7 @@ export default function NotFound() {
             Página não encontrada.
           </h1>
           <p className="mx-auto mt-4 max-w-[420px] text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-            O endereço que procuras não existe ou foi movido.
+            O endereço que procura não existe ou foi movido.
           </p>
           <Link href="/" className="bz-btn-primary mt-8 !px-7 !py-4 !text-[16px]">
             Voltar ao início

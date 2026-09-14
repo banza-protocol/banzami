@@ -397,13 +397,6 @@ export function BanzamiNav() {
               </svg>
             </NavA>
             <a
-              href={mailto('Waitlist Banzami')}
-              onClick={closeMenu}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 30, background: RED, color: '#fff', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}
-            >
-              Entrar na waitlist
-            </a>
-            <a
               href={mailto()}
               onClick={closeMenu}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 15, borderRadius: 30, border: '1.5px solid rgba(181,16,31,.28)', color: RED, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}

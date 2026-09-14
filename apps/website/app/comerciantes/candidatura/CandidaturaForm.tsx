@@ -827,7 +827,7 @@ export function CandidaturaForm() {
               Banzami Business
             </span>
             <h1 className="m-0 text-[34px] font-black leading-[1.06] tracking-[-0.02em]">
-              Crie a sua conta Business em minutos
+              Registe o seu negócio
             </h1>
             <p className="m-0 mt-4 text-[15.5px] font-semibold leading-[1.55] text-[#6a5a5e]">
               Simples. Rápido. 100% online. Tudo o que precisa para começar a aceitar pagamentos.
@@ -836,8 +836,8 @@ export function CandidaturaForm() {
 
           <div className="flex flex-col gap-[18px]">
             {[
-              { icon: Ic.bolt, title: 'Rápido', text: 'Registe o seu negócio em menos de 5 minutos' },
-              { icon: Ic.shield(RED, 20), title: 'Seguro', text: 'Os seus dados estão protegidos com encriptação de ponta a ponta' },
+              { icon: Ic.bolt, title: 'Simples', text: 'Os dados do negócio e os documentos, num só formulário' },
+              { icon: Ic.shield(RED, 20), title: 'Protegido', text: 'Os dados seguem por uma ligação cifrada (HTTPS)' },
               { icon: Ic.card, title: 'Feito para Angola', text: 'Desenhado para comerciantes e empresas angolanas' },
             ].map((f) => (
               <div key={f.title} className="flex gap-[13px]">
@@ -1418,8 +1418,8 @@ export function CandidaturaForm() {
               <div className="flex items-center gap-[11px]">
                 <span className="flex h-[38px] w-[38px] items-center justify-center rounded-[12px] bg-[#FFF1F0]">{Ic.lock}</span>
                 <div className="leading-[1.3]">
-                  <div className="text-[13.5px] font-extrabold">Os seus dados estão protegidos</div>
-                  <div className="text-[12.5px] font-semibold text-[#9a8a8e]">Encriptação de ponta a ponta</div>
+                  <div className="text-[13.5px] font-extrabold">Ligação cifrada</div>
+                  <div className="text-[12.5px] font-semibold text-[#9a8a8e]">Os dados seguem por HTTPS</div>
                 </div>
               </div>
               <div className="flex items-center gap-3 max-[560px]:flex-col max-[560px]:items-stretch">

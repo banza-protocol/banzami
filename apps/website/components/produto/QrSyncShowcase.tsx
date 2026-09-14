@@ -9,7 +9,7 @@ import { AppScreen, type FrameName } from '@/components/app/AppScreen';
 const STEPS: { chip: string; frame: FrameName }[] = [
   { chip: 'Scan simples', frame: 'scan' },
   { chip: 'Confirmação clara', frame: 'confpag' },
-  { chip: 'Comprovativo imediato', frame: 'comprovativo' },
+  { chip: 'Comprovativo verificável', frame: 'comprovativo' },
 ];
 const PHONE_W = 210;
 const SCALE = PHONE_W / 300;
@@ -34,11 +34,10 @@ export function QrSyncShowcase() {
       <div>
         <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.06em] text-cherry">PAGAMENTO POR QR</p>
         <h3 className="m-0 text-[clamp(24px,3vw,34px)] font-black leading-[1.05] tracking-[-0.02em] text-ink">
-          Pague por QR em segundos
+          Pague por QR
         </h3>
         <p className="m-0 mb-5 mt-[14px] text-[16px] font-semibold leading-[1.55] text-ink-secondary">
-          Escaneie, confirme e conclua o pagamento sem troco, sem terminal complexo e sem esperar por
-          validações confusas.
+          Leia o QR, confirme e conclua o pagamento, sem troco e sem terminal.
         </p>
         <div className="flex flex-wrap gap-[10px]">
           {STEPS.map((s, idx) => {

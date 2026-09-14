@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
 import { PUBLISHED_PACKAGES } from './docs/published-packages';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
 // banzami.com/developers — the developer platform's landing page.
 //
@@ -13,8 +14,8 @@ import { PUBLISHED_PACKAGES } from './docs/published-packages';
 // was how this page came to describe an onboarding, a set of SDKs and an
 // environment model the platform no longer had (PUBLIC-TRUTH-001).
 
-const DOCS = 'https://developers.banzami.com/docs';
-const CONSOLE = 'https://developers.banzami.com/login';
+const DOCS = PUBLIC_TRUTH.docsUrl;
+const CONSOLE = PUBLIC_TRUTH.consoleUrl;
 
 export const metadata: Metadata = {
   title: 'Developers',
@@ -87,7 +88,7 @@ function PlatformDiagram() {
         </svg>
       </div>
       <figcaption className="mt-3 text-[13px] font-semibold text-ink-muted">
-        Na Sandbox pública, o dinheiro é fictício e nada chega a um banco. A ligação a bancos, PSPs e outros rails pertence ao Financial Live.
+        Na Sandbox pública, o dinheiro é fictício e nada chega a um banco. A ligação a bancos e a outros rails de pagamento pertence ao Financial Live.
       </figcaption>
     </figure>
   );
@@ -118,14 +119,14 @@ export default function DevelopersLandingPage() {
 
           <div className="mt-10 grid max-w-[880px] grid-cols-1 gap-4 md:grid-cols-2" data-testid="environment-cards">
             <div className="rounded-[22px] border border-border-soft bg-white p-6 shadow-[0_20px_40px_-34px_rgba(181,16,31,.4)]">
-              <p className="m-0 flex items-center gap-2 text-[13px] font-black tracking-[0.06em] text-ink"><Dot tone="ok" /> SANDBOX PÚBLICA · DISPONÍVEL</p>
+              <p className="m-0 flex items-center gap-2 text-[13px] font-black tracking-[0.06em] text-ink"><Dot tone="ok" /> {PUBLIC_TRUTH.sandbox.name.toUpperCase()} · {PUBLIC_TRUTH.sandbox.state.toUpperCase()}</p>
               <ul className="m-0 mt-3 list-none space-y-1 p-0 text-[15px] font-semibold text-ink-secondary">
                 <li>Totalmente self-service, sem aprovação de um operador Banzami.</li>
                 <li>Dinheiro fictício: nada entra ou sai de um banco.</li>
               </ul>
             </div>
             <div className="rounded-[22px] border border-border-soft bg-[#FBF8F8] p-6">
-              <p className="m-0 flex items-center gap-2 text-[13px] font-black tracking-[0.06em] text-ink"><Dot tone="off" /> FINANCIAL LIVE · INDISPONÍVEL</p>
+              <p className="m-0 flex items-center gap-2 text-[13px] font-black tracking-[0.06em] text-ink"><Dot tone="off" /> {PUBLIC_TRUTH.live.name.toUpperCase()} · {PUBLIC_TRUTH.live.state.toUpperCase()}</p>
               <ul className="m-0 mt-3 list-none space-y-1 p-0 text-[15px] font-semibold text-ink-secondary">
                 <li>Operação financeira real desligada.</li>
                 <li>Sujeito às aprovações regulatórias, contratuais e operacionais aplicáveis.</li>
@@ -197,7 +198,7 @@ export default function DevelopersLandingPage() {
         <Reveal className="relative mx-auto max-w-[1080px] overflow-hidden rounded-[36px] bg-[linear-gradient(150deg,#B5101F,#9A1B22)] p-[clamp(36px,6vw,68px)] text-center">
           <h2 className="m-0 text-[clamp(28px,4.4vw,46px)] font-black leading-[1.05] tracking-[-0.025em] text-white">Comece na Sandbox.</h2>
           <p className="mx-auto mt-4 max-w-[560px] text-[17px] font-semibold leading-[1.55] text-pink-200">
-            Crie a conta, um projeto e a primeira chave — e faça o primeiro pagamento de teste em minutos.
+            Crie a conta, um projeto e uma chave de teste, e faça um pagamento de teste.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <a href={CONSOLE} className="inline-flex items-center rounded-[40px] bg-white px-7 py-[15px] text-[16px] font-extrabold text-cherry no-underline transition-transform hover:-translate-y-0.5">Abrir a Consola</a>

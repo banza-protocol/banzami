@@ -3,7 +3,11 @@ import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { AppDemo } from '@/components/app/AppDemo';
 
-export const metadata: Metadata = { title: 'Demo da app' };
+export const metadata: Metadata = {
+  title: 'Demonstração da app',
+  description: 'Uma demonstração interativa dos ecrãs da app Banzami, com dados de exemplo. A app ainda não está nas lojas.',
+  alternates: { canonical: 'https://banzami.com/app-demo' },
+};
 
 export default function AppDemoPage() {
   return (
@@ -43,7 +47,7 @@ export default function AppDemoPage() {
               Experimente a app Banzami
             </h1>
             <p style={{ margin: '14px 0 0', fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: '#6a5a5e' }}>
-              Crie conta, envie dinheiro e veja o comprovativo — tudo aqui mesmo.
+              Uma demonstração dos ecrãs, com dados de exemplo. Nenhum dinheiro se move.
             </p>
           </div>
 
