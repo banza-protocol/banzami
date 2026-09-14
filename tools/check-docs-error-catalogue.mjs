@@ -25,6 +25,8 @@
  *   DOC_ERRORS_UNDECLARED_FORWARDING a surface handler writes a code it did not choose,
  *                                    from somewhere the catalogue does not declare
  *   DOC_ERRORS_STATUS_DRIFT          the catalogue's HTTP status is not the one the source sends
+ *                                    (as received through the edge: 502/504 arrive as 503)
+ *   DOC_ERRORS_EDGE_UNREADABLE_STATUS a documented 502/504, whose body Cloudflare replaces
  *   DOC_ERROR_CATALOGUE_PT_EN_DRIFT  a meaning or an action missing in one language, or the
  *                                    two languages naming different codes
  *   DOC_ERRORS_INTERNAL_DETAIL       catalogue text that exposes implementation internals
@@ -260,8 +262,19 @@ report('DOC_ERRORS_UNDECLARED_FORWARDING', undeclared, 'codes chosen somewhere t
 
 // ── statuses ────────────────────────────────────────────────────────────────
 const statusDrift = [];
+// What a developer RECEIVES: Cloudflare replaces a 502/504 body with its own page,
+// so every public service answers those as 503 with the JSON intact
+// (services/common/edgestatus). The rewrite counts only where it is wired.
+const edgeWired = ['services/api-gateway/internal/server/server.go', 'services/public-api/internal/server/server.go', 'services/developer-api/internal/server/server.go']
+  .every((f) => existsSync(join(ROOT, f)) && /edgestatus\.Middleware\("\/internal\/"\)/.test(read(f)));
+const received = (s) => (edgeWired && (s === 502 || s === 504) ? 503 : s);
+const edgeUnreadable = [];
+for (const e of errors) for (const c of e.http) if (c === 502 || c === 504) edgeUnreadable.push(`${e.code}: documents ${c}, whose body the edge replaces — a developer never reads this code`);
+const spec = JSON.parse(read('docs/developer/openapi/banzami-sandbox.openapi.json'));
+for (const [path, ops] of Object.entries(spec.paths)) for (const [m, op] of Object.entries(ops)) for (const c of Object.keys(op?.responses ?? {})) if (c === '502' || c === '504') edgeUnreadable.push(`openapi ${m.toUpperCase()} ${path}: documents ${c}`);
+report('DOC_ERRORS_EDGE_UNREADABLE_STATUS', edgeUnreadable, 'a documented status the network edge replaces');
 for (const e of errors) {
-  const derived = [...(statuses.get(e.code) ?? [])].filter((s) => typeof s === 'number');
+  const derived = [...new Set([...(statuses.get(e.code) ?? [])].filter((s) => typeof s === 'number').map(received))];
   if (!derived.length) continue;
   const claimed = new Set(e.http.map(String));
   for (const s of derived) {

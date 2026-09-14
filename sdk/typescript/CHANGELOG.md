@@ -33,7 +33,7 @@ examples for the features below use the Console or HTTP.
 ### Changed
 - A request method may carry a caller-chosen Idempotency-Key, kept across the
   SDK's own retries; `payAsTestPayer` with `simulate: 'TIMEOUT'` therefore
-  retries the 504 with the same key and returns the real result.
+  retries the 503 `SANDBOX_SIMULATED_TIMEOUT` with the same key and returns the real result.
 
 ### Fixed — payment links with a project key
 `createPaymentLink` required `merchantId` and `walletId` and always sent them, and

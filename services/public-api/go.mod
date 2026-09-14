@@ -105,3 +105,7 @@ replace github.com/banzami/banzami/services/common/pushtopic => ../common/pushto
 require github.com/banzami/banzami/services/common/clientip v0.0.0
 
 replace github.com/banzami/banzami/services/common/clientip => ../common/clientip
+
+require github.com/banzami/banzami/services/common/edgestatus v0.0.0
+
+replace github.com/banzami/banzami/services/common/edgestatus => ../common/edgestatus

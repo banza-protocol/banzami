@@ -202,7 +202,7 @@ paid.proof_reference; // a receipt that verifies publicly
 
 // External-rail outcomes are asked for explicitly, never by a magic amount:
 await client.payAsTestPayer(payer.id, { paymentSessionId: other.session_id, simulate: 'DECLINED' });
-// simulate: 'TIMEOUT' pays, answers 504, and the SDK's retry with the same key returns the real result.
+// simulate: 'TIMEOUT' pays, answers 503 SANDBOX_SIMULATED_TIMEOUT, and the SDK's retry with the same key returns the real result.
 
 await client.retireTestPayer(payer.id); // its value is retired by a balanced posting
 ```

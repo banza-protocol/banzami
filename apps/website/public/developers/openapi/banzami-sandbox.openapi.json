@@ -1344,18 +1344,8 @@
               }
             }
           },
-          "502": {
-            "description": "UPSTREAM_ERROR — the source account or pricing could not be resolved, or core failed; the request may have been valid, retry with the same idempotency_key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "503": {
-            "description": "SERVICE_UNAVAILABLE — the beneficiary, the fee destination or a prior settlement could not be checked right now; retry",
+            "description": "SERVICE_UNAVAILABLE — the beneficiary, the fee destination or a prior settlement could not be checked right now; UPSTREAM_ERROR — the source account or pricing could not be resolved, or core failed. Retry with the same idempotency_key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2706,7 +2696,7 @@
               }
             }
           },
-          "502": {
+          "503": {
             "description": "RETIREMENT_FAILED — not fully retired this time; repeat the request",
             "content": {
               "application/json": {
@@ -2962,28 +2952,8 @@
               }
             }
           },
-          "502": {
-            "description": "PAYMENT_NOT_CONFIRMED — the money moved but completion was not confirmed; repeat the same request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "503": {
-            "description": "PROVIDER_UNAVAILABLE — simulate PROVIDER_UNAVAILABLE; nothing moved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SimulatedError"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "SANDBOX_SIMULATED_TIMEOUT — simulate TIMEOUT; the payment was made; repeat with the same Idempotency-Key to read it",
+            "description": "PROVIDER_UNAVAILABLE — simulate PROVIDER_UNAVAILABLE; nothing moved (Retry-After). SANDBOX_SIMULATED_TIMEOUT — simulate TIMEOUT; the payment was made; repeat with the same Idempotency-Key to read it. Tell them apart by code. PAYMENT_NOT_CONFIRMED — the money moved but completion was not confirmed; repeat the same request.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4912,7 +4882,7 @@
               "PROVIDER_UNAVAILABLE",
               "TIMEOUT"
             ],
-            "description": "An external-rail outcome, requested explicitly. DECLINED and PROVIDER_UNAVAILABLE move nothing. TIMEOUT pays and answers 504; repeat with the same Idempotency-Key to read the real result."
+            "description": "An external-rail outcome, requested explicitly. DECLINED and PROVIDER_UNAVAILABLE move nothing. TIMEOUT pays and answers 503 SANDBOX_SIMULATED_TIMEOUT; repeat with the same Idempotency-Key to read the real result."
           }
         }
       },

@@ -1772,12 +1772,12 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 SETTLEMENT_NOT_COMPLETED | A liquidação foi criada mas não concluída. | A mesma — retoma a liquidação"
   },
-  "pt:Settlements:8c0aaa679d": {
+  "pt:Settlements:6e47a9e49f": {
    "page": "Settlements",
    "kind": "row",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/application_settlements.rs (gross = available balance, fee destination, errors); core/app-settlement/src/domain.rs; services/api-gateway/internal/handler/application_settlements.go; apps/website/app/developers/transacoes/page.tsx (no settlement list)",
-   "text": "502 · 503 | Falha temporária. | A mesma"
+   "text": "503 | Falha temporária. | A mesma"
   },
   "pt:Settlements:b1987b43cb": {
    "page": "Settlements",
@@ -3830,12 +3830,12 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Pague como pagador de teste com simulate: \"TIMEOUT\" e uma Idempotency-Key; depois repita o pedido com a mesma chave."
   },
-  "pt:Testing:de6bb6fac6": {
+  "pt:Testing:6381a3128c": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "Primeiro 504 SANDBOX_SIMULATED_TIMEOUT — mas o pagamento foi feito. A repetição responde 200 com o resultado real e não paga de novo."
+   "text": "Primeiro 503 SANDBOX_SIMULATED_TIMEOUT — mas o pagamento foi feito. A repetição responde 200 com o resultado real e não paga de novo."
   },
   "pt:Testing:d334da9326": {
    "page": "Testing",
@@ -6637,12 +6637,12 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 SETTLEMENT_NOT_COMPLETED | The settlement was created but did not complete. | The same — it resumes the settlement"
   },
-  "en:Settlements:c8cb85becc": {
+  "en:Settlements:300eee6d7a": {
    "page": "Settlements",
    "kind": "row",
    "class": "SOURCE",
    "evidence": "core/api/src/routes/application_settlements.rs (gross = available balance, fee destination, errors); core/app-settlement/src/domain.rs; services/api-gateway/internal/handler/application_settlements.go; apps/website/app/developers/transacoes/page.tsx (no settlement list)",
-   "text": "502 · 503 | A temporary failure. | The same"
+   "text": "503 | A temporary failure. | The same"
   },
   "en:Settlements:5c9f86b57a": {
    "page": "Settlements",
@@ -8695,12 +8695,12 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Pay as a test payer with simulate: \"TIMEOUT\" and an Idempotency-Key; then repeat the request with the same key."
   },
-  "en:Testing:8dd6804c51": {
+  "en:Testing:8435073840": {
    "page": "Testing",
    "kind": "recipe-api",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "First 504 SANDBOX_SIMULATED_TIMEOUT — but the payment was made. The repeat answers 200 with the real result and does not pay again."
+   "text": "First 503 SANDBOX_SIMULATED_TIMEOUT — but the payment was made. The repeat answers 200 with the real result and does not pay again."
   },
   "en:Testing:e766c8b0d3": {
    "page": "Testing",

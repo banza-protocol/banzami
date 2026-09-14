@@ -1415,7 +1415,7 @@
     {
       "code": "UPSTREAM_ERROR",
       "http": [
-        502
+        503
       ],
       "family": "server",
       "source": "gateway",
@@ -1559,7 +1559,7 @@
     {
       "code": "SANDBOX_SIMULATED_TIMEOUT",
       "http": [
-        504
+        503
       ],
       "family": "sandbox",
       "source": "gateway",
@@ -1793,7 +1793,7 @@
     {
       "code": "RETIREMENT_FAILED",
       "http": [
-        502
+        503
       ],
       "family": "sandbox",
       "source": "gateway",
@@ -1829,7 +1829,7 @@
     {
       "code": "PAYMENT_NOT_CONFIRMED",
       "http": [
-        502
+        503
       ],
       "family": "server",
       "source": "gateway",

@@ -11,6 +11,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/banzami/banzami/services/common/edgestatus"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
 	"github.com/banzami/banzami/services/developer-api/internal/config"
@@ -43,6 +44,9 @@ func New(cfg *config.Config, deps Deps) http.Handler {
 	// proxy (TRUSTED_PROXY_CIDRS). chi's RealIP believed True-Client-IP,
 	// X-Real-IP and X-Forwarded-For from any peer (A9-09).
 	r.Use(cfg.ClientIP.Middleware)
+	// Cloudflare replaces a 502/504 body with its own page: answer 503 with the
+	// JSON intact (outside Timeout, whose deadline answer is a 504).
+	r.Use(edgestatus.Middleware("/internal/"))
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(30 * time.Second))
 	r.Use(cors(cfg.ConsoleOrigin))

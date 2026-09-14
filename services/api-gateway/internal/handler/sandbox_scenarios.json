@@ -30,7 +30,7 @@
       "id": "AMBIGUOUS_TIMEOUT", "group": "payments", "simulated": true,
       "goal": { "pt": "Um resultado ambíguo", "en": "An ambiguous outcome" },
       "trigger": { "pt": "simulate: \"TIMEOUT\" com uma Idempotency-Key; depois repita o pedido com a mesma chave", "en": "simulate: \"TIMEOUT\" with an Idempotency-Key; then repeat the request with the same key" },
-      "result": { "pt": "504 SANDBOX_SIMULATED_TIMEOUT, mas o pagamento foi feito; a repetição responde 200 com o resultado", "en": "504 SANDBOX_SIMULATED_TIMEOUT, but the payment was made; the retry answers 200 with the result" },
+      "result": { "pt": "503 SANDBOX_SIMULATED_TIMEOUT, mas o pagamento foi feito; a repetição responde 200 com o resultado", "en": "503 SANDBOX_SIMULATED_TIMEOUT, but the payment was made; the retry answers 200 with the result" },
       "event": "payment_session.paid"
     },
     {

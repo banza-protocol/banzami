@@ -21,8 +21,9 @@ const COPY = [
   'services/api-gateway/internal/server', 'services/api-gateway/internal/handler',
   'services/api-gateway/internal/middleware', 'services/api-gateway/internal/service',
   'core/api/src/routes', 'services/developer-api/internal', 'services/developer-api/cmd',
-  'services/public-api/internal/handler',
+  'services/public-api/internal/handler', 'services/public-api/internal/server',
   'apps/website/app/developers/page.tsx', 'apps/website/app/developers/docs',
+  'docs/developer/openapi',
 ];
 
 function tree() {
@@ -159,6 +160,18 @@ const CASES = [
       return JSON.stringify(j, null, 2);
     }),
     expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_INTERNAL_DETAIL) >= 1,
+  },
+  {
+    name: 'E — a public service stops rewriting 502/504, so a documented 503 is not what arrives',
+    mutate: (d) => edit(d, 'services/public-api/internal/server/server.go', (s) => s.replace('r.Use(edgestatus.Middleware("/internal/"))', '')),
+    expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_STATUS_DRIFT) >= 1 && /UPSTREAM_ERROR|PAYMENT_NOT_CONFIRMED/.test(c.out),
+  },
+  {
+    name: 'E — the catalogue documents a 504 the edge would replace',
+    mutate: (d) => edit(d, 'apps/website/app/developers/docs/error-catalogue.json', (s) => {
+      const j = JSON.parse(s); j.errors.find((e) => e.code === 'SANDBOX_SIMULATED_TIMEOUT').http = [504]; return JSON.stringify(j, null, 2);
+    }),
+    expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_EDGE_UNREADABLE_STATUS) >= 1,
   },
 ];
 

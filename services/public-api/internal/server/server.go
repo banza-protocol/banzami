@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/banzami/banzami/services/common/edgestatus"
 	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 
@@ -77,6 +78,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	// X-Real-IP and X-Forwarded-For from any peer (A9-09).
 	r.Use(cfg.ClientIP.Middleware)
 	r.Use(middleware.Logger)
+	// Cloudflare replaces a 502/504 body with its own page: answer 503 with the
+	// JSON intact (outside Timeout, whose deadline answer is a 504).
+	r.Use(edgestatus.Middleware("/internal/"))
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))
 	// Every body this API takes is a small JSON document. The edge allowed 10 MB

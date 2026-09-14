@@ -5,7 +5,7 @@
 - API: https://sandbox-api.banzami.com/v1 (Sandbox). Authentication: Authorization: Bearer bz_test_sk_… (project secret key, server-side only).
 - Financial Live: unavailable (fail-closed). bz_live_ keys are refused.
 - Amounts are integers in minor units: 100 = 1 Kz.
-- Server SDK: @banzami/sdk (npm install @banzami/sdk), current version 0.13.0. OpenAPI: https://developers.banzami.com/developers/openapi/banzami-sandbox.openapi.json
+- Server SDK: @banzami/sdk (npm install @banzami/sdk), current version 0.14.0. OpenAPI: https://developers.banzami.com/developers/openapi/banzami-sandbox.openapi.json
 - Portuguese pages: https://developers.banzami.com/docs · English pages: https://developers.banzami.com/docs/en
 
 ## Get started
@@ -176,7 +176,7 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - RATE_LIMITED (429): Too many requests. Nothing was executed. Wait for Retry-After, then retry with the same key.
 - INTERNAL_ERROR (500): A failure on Banzami’s side. Retry with the same key. If it persists, contact support with the request_id.
 - QR_RENDER_FAILED (500): The QR image could not be generated. Retry the request.
-- UPSTREAM_ERROR (502): A Banzami service failed. Your request may be valid. Retry with the same key.
+- UPSTREAM_ERROR (503): A Banzami service failed. Your request may be valid. Retry with the same key.
 - SERVICE_UNAVAILABLE (503): The service is temporarily unavailable. Retry with the same key, with increasing backoff.
 - UNAVAILABLE (503): The service is temporarily unavailable. Retry with the same key, with increasing backoff.
 - SANDBOX_ONLY (403): The operation exists only in the Sandbox: test data, test payers, scenarios and test events. The key is not a Sandbox key. Use a bz_test_sk_ key from a Sandbox Project. Live has no test data.
@@ -184,7 +184,7 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - INTERFACE_UNAVAILABLE (422): The session does not offer the interface named in via: no payment link, or no dynamic QR (an open-amount session is paid by link). Use via LINK, or create the session with the interface you want to test.
 - PAYMENT_DECLINED (402): A Sandbox simulation requested with simulate DECLINED: the external rail declined. Nothing moved. The response carries simulated: true. Handle it as a real decline: tell the payer and allow another attempt. To pay, repeat without simulate.
 - PROVIDER_UNAVAILABLE (503): A Sandbox simulation requested with simulate PROVIDER_UNAVAILABLE: the external provider is unavailable. Nothing moved. The response carries simulated: true. Handle it as a real outage: retry later with increasing backoff. To pay, repeat without simulate.
-- SANDBOX_SIMULATED_TIMEOUT (504): A Sandbox simulation requested with simulate TIMEOUT: the payment was made, but the answer did not arrive in time. The client does not know the outcome. The response carries simulated: true. Do not pay again. Retry with the same Idempotency-Key to read the outcome, or read the session with GET /v1/payment-sessions/{id}.
+- SANDBOX_SIMULATED_TIMEOUT (503): A Sandbox simulation requested with simulate TIMEOUT: the payment was made, but the answer did not arrive in time. The client does not know the outcome. The response carries simulated: true. Do not pay again. Retry with the same Idempotency-Key to read the outcome, or read the session with GET /v1/payment-sessions/{id}.
 - ENDPOINT_DISABLED (409): The webhook endpoint is disabled and receives no events, test events included. Enable the endpoint again and send the test event again.
 - REALTIME_TOKEN_REQUIRED (401): The realtime status request carries no Authorization: Bearer bzst_… Send the session's realtime.token in the Authorization header.
 - REALTIME_TOKEN_IN_URL (400): The status token was sent in the URL (query string). It is refused even if valid: a URL ends up in logs, history and Referer headers. Send the token only in the Authorization header, with fetch. Do not use EventSource with the token in the URL.
@@ -197,9 +197,9 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - SANDBOX_QUOTA_EXCEEDED (429): A Project Sandbox limit was reached: 10 active test payers, or 20 top-ups and 10,000,000 in 24 hours. Retire test payers you no longer use, or wait for the 24-hour window to move. Nothing was created or funded.
 - SANDBOX_FUNDING_REFUSED (422): The fictitious top-up was refused by the test payer's balance limits (5,000,000 at most). Nothing was funded. Top up a smaller amount, or spend the payer's balance first.
 - TEST_PAYER_RETIRED (422): The test payer has been retired: it neither pays nor receives top-ups. Its history stays. Create a new test payer.
-- RETIREMENT_FAILED (502): The test payer could not be fully retired right now. Nothing was left half-done that cannot be repeated. Repeat the retirement request.
+- RETIREMENT_FAILED (503): The test payer could not be fully retired right now. Nothing was left half-done that cannot be repeated. Repeat the retirement request.
 - LINK_ALREADY_PAID (409): This payment link has already been paid. A single-use link does not accept a second payment. Read the session or link to confirm the existing payment; do not pay again.
-- PAYMENT_NOT_CONFIRMED (502): The money was transferred, but the payment could not be marked complete right now. Repeat the same request: repeating completes the payment and does not charge twice.
+- PAYMENT_NOT_CONFIRMED (503): The money was transferred, but the payment could not be marked complete right now. Repeat the same request: repeating completes the payment and does not charge twice.
 - QR_NOT_FOUND (404): The session's QR code was not found. Read the session and confirm it still offers DYNAMIC_QR; otherwise pay by link.
 - QR_EXPIRED (422): The QR code expired together with its session. Nothing was paid. Create a new session.
 - QR_ALREADY_USED (422): The dynamic QR code has already been used for a payment. A dynamic QR is paid once. Read the session to confirm the payment; do not pay again.

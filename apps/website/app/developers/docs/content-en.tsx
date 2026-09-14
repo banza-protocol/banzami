@@ -1132,7 +1132,7 @@ export function EnSettlements({ copy }: { copy: CopyFn }) {
                       ['422 SOURCE_NOT_SEGREGATED', 'The source is the Business’s main account.', 'New, with a segregated account'],
                       ['422 BENEFICIARY_NOT_FOUND', 'The @banza has no active wallet in this currency.', 'New, with another beneficiary'],
                       ['422 SETTLEMENT_NOT_COMPLETED', 'The settlement was created but did not complete.', 'The same — it resumes the settlement'],
-                      ['502 · 503', 'A temporary failure.', 'The same'],
+                      ['503', 'A temporary failure.', 'The same'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
                     ))}
@@ -2047,7 +2047,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 event: 'None.', console: 'Logs: the request, with the 503 response.', cleanup: 'None.' }} />
               <RecipeCard lang="en" r={{ id: 'no-answer', title: 'No answer in time', scenario: 'AMBIGUOUS_TIMEOUT',
                 trigger: <>Pay as a test payer with <Code>simulate: &quot;TIMEOUT&quot;</Code> and an <Code>Idempotency-Key</Code>; then repeat the request with the same key.</>,
-                api: <>First <Code>504 SANDBOX_SIMULATED_TIMEOUT</Code> — but the payment was made. The repeat answers <Code>200</Code> with the real result and does not pay again.</>,
+                api: <>First <Code>503 SANDBOX_SIMULATED_TIMEOUT</Code> — but the payment was made. The repeat answers <Code>200</Code> with the real result and does not pay again.</>,
                 event: <><Code>payment_session.paid</Code>, once.</>,
                 console: 'Transactions: a single payment.', cleanup: 'Refund the payment, or reset the Sandbox.',
                 limits: 'This is the case to handle in production: a timeout does not say whether the payment happened. Retry with the same key; never create a new payment.' }} />

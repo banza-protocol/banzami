@@ -899,7 +899,7 @@ export class BanzamiClient {
    * Pay one of your own Payment Sessions (by link or QR) or Payment Links as a
    * test payer, through the same payment path a real payer uses. `simulate`
    * requests an external-rail outcome explicitly; `TIMEOUT` pays and answers
-   * 504, and repeating with the same `idempotencyKey` reads the real result.
+   * 503 `SANDBOX_SIMULATED_TIMEOUT`, and repeating with the same `idempotencyKey` reads the real result.
    */
   payAsTestPayer(id: string, params: PayAsTestPayerParams): Promise<TestPayment> {
     return this.request<TestPayment>(`/sandbox/test-payers/${id}/payments`, {

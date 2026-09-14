@@ -38,7 +38,9 @@ import (
 //
 // External-rail outcomes are explicit (simulate), marked simulated: true, and
 // never silently triggered by a value. DECLINED and PROVIDER_UNAVAILABLE change
-// nothing. TIMEOUT makes the payment and then answers 504, so a client practises
+// nothing. TIMEOUT makes the payment and then answers 503 SANDBOX_SIMULATED_TIMEOUT
+// (not 504: Cloudflare replaces a 504 body, so the code would never arrive —
+// common/edgestatus), so a client practises
 // the ambiguous-outcome rule: repeat with the same Idempotency-Key and read the
 // real result.
 
@@ -361,7 +363,7 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 	cacheKey := p.ProjectID + "|" + key
 
 	// A repeat after a simulated timeout, with the same key — with or without
-	// simulate, so a client's automatic retry of the 504 also lands here —
+	// simulate, so a client's automatic retry of the 503 also lands here —
 	// reads the real result instead of paying again.
 	if key != "" {
 		if o, found := h.storedOutcome(r.Context(), cacheKey); found {
@@ -456,7 +458,7 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 	}
 	if in.Simulate == SimulateTimeout {
 		h.storeOutcome(r.Context(), cacheKey, status, raw)
-		writeJSON(w, http.StatusGatewayTimeout, map[string]any{
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
 			"code": "SANDBOX_SIMULATED_TIMEOUT",
 			"message": "Sandbox simulation: no answer arrived in time. The outcome is unknown to the client — " +
 				"repeat the same request with the same Idempotency-Key to read it.",

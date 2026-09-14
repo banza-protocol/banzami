@@ -1118,7 +1118,7 @@ export function PtSettlements({ copy }: { copy: CopyFn }) {
                       ['422 SOURCE_NOT_SEGREGATED', 'A origem é a conta principal do Business.', 'Nova, com uma conta segregada'],
                       ['422 BENEFICIARY_NOT_FOUND', 'O @banza não tem carteira ativa nesta moeda.', 'Nova, com outro beneficiário'],
                       ['422 SETTLEMENT_NOT_COMPLETED', 'A liquidação foi criada mas não concluída.', 'A mesma — retoma a liquidação'],
-                      ['502 · 503', 'Falha temporária.', 'A mesma'],
+                      ['503', 'Falha temporária.', 'A mesma'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
                     ))}
@@ -2033,7 +2033,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 event: 'Nenhum.', console: 'Registos: o pedido, com a resposta 503.', cleanup: 'Nenhuma.' }} />
               <RecipeCard lang="pt" r={{ id: 'sem-resposta', title: 'Sem resposta a tempo', scenario: 'AMBIGUOUS_TIMEOUT',
                 trigger: <>Pague como pagador de teste com <Code>simulate: &quot;TIMEOUT&quot;</Code> e uma <Code>Idempotency-Key</Code>; depois repita o pedido com a mesma chave.</>,
-                api: <>Primeiro <Code>504 SANDBOX_SIMULATED_TIMEOUT</Code> — mas o pagamento foi feito. A repetição responde <Code>200</Code> com o resultado real e não paga de novo.</>,
+                api: <>Primeiro <Code>503 SANDBOX_SIMULATED_TIMEOUT</Code> — mas o pagamento foi feito. A repetição responde <Code>200</Code> com o resultado real e não paga de novo.</>,
                 event: <><Code>payment_session.paid</Code>, uma vez.</>,
                 console: 'Transações: um único pagamento.', cleanup: 'Reembolse o pagamento, ou reponha a Sandbox.',
                 limits: 'É o caso a tratar em produção: um timeout não diz se o pagamento aconteceu. Repita com a mesma chave; nunca crie um pagamento novo.' }} />

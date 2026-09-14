@@ -11,6 +11,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"github.com/banzami/banzami/services/common/clientip"
+	"github.com/banzami/banzami/services/common/edgestatus"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/common/pushtopic"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -143,6 +144,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// to) and above Recoverer (so a recovered panic is logged as the 500 the
 	// caller actually received).
 	r.Use(middleware.APIRequestLog(deps.RequestLogSink))
+	// Cloudflare replaces a 502/504 body with its own page: answer 503 with the
+	// JSON intact (inside the request log, so it records what the caller got;
+	// outside Timeout, whose deadline answer is a 504).
+	r.Use(edgestatus.Middleware("/internal/"))
 	r.Use(chimw.Recoverer)
 	// Every request is bounded at 60 s except realtime status streams, which end
 	// at a terminal status or their token's expiry (handler/realtime.go).

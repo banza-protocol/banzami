@@ -285,7 +285,7 @@ async function fresh() {
     const to = await api(`/v1/sandbox/test-payers/${T}/payments`, 'POST', { payment_session_id: s3.body?.session_id, simulate: 'TIMEOUT' }, { 'Idempotency-Key': `ss_${stamp}_to` });
     const retry = await api(`/v1/sandbox/test-payers/${T}/payments`, 'POST', { payment_session_id: s3.body?.session_id, simulate: 'TIMEOUT' }, { 'Idempotency-Key': `ss_${stamp}_to` });
     const s3read = (await api(`/v1/payment-sessions/${s3.body?.session_id}`)).body?.status;
-    mark(22, dec.status === 402 && dec.body?.simulated === true && stillActive === 'ACTIVE' && to.status === 504 && retry.status === 200 && s3read === 'PAID',
+    mark(22, dec.status === 402 && dec.body?.simulated === true && stillActive === 'ACTIVE' && to.status === 503 && to.body?.code === 'SANDBOX_SIMULATED_TIMEOUT' && retry.status === 200 && s3read === 'PAID',
       `declined=${dec.status} active=${stillActive} timeout=${to.status} retry=${retry.status} final=${s3read}`);
 
     const ex = await call(`/projects/${P}/explorer/requests`, 'POST', { operation_id: 'getMe' });

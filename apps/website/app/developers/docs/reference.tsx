@@ -546,7 +546,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { code: '422 BENEFICIARY_NOT_FOUND', note: { pt: 'o @banza não tem carteira ativa nesta moeda', en: 'the @banza has no active wallet in this currency' } },
       { code: '422 FEE_DESTINATION_*', note: { pt: 'falta o destino da taxa, ou não é elegível (REQUIRED, NOT_FOUND, NOT_ACTIVE, KYB_NOT_APPROVED, WALLET_UNAVAILABLE, TYPE_NOT_ALLOWED, NOT_BUSINESS_ACCOUNT)', en: 'the fee destination is missing or not eligible (REQUIRED, NOT_FOUND, NOT_ACTIVE, KYB_NOT_APPROVED, WALLET_UNAVAILABLE, TYPE_NOT_ALLOWED, NOT_BUSINESS_ACCOUNT)' } },
       { code: '422 SETTLEMENT_NOT_COMPLETED', note: { pt: 'a liquidação foi criada mas não concluída; repita com a mesma idempotency_key para a retomar', en: 'the settlement was created but did not complete; retry with the same idempotency_key to resume it' } },
-      { code: '502 UPSTREAM_ERROR / 503 SERVICE_UNAVAILABLE', note: { pt: 'falha temporária; repita com a mesma idempotency_key', en: 'temporary failure; retry with the same idempotency_key' } },
+      { code: '503 UPSTREAM_ERROR / SERVICE_UNAVAILABLE', note: { pt: 'falha temporária; repita com a mesma idempotency_key', en: 'temporary failure; retry with the same idempotency_key' } },
     ],
     idem: {
       pt: 'Repetir a mesma idempotency_key para a mesma origem e o mesmo beneficiário devolve (200) a liquidação já feita, sem liquidar duas vezes.',
@@ -1205,7 +1205,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
       { code: '409 LINK_ALREADY_PAID', note: { pt: 'o link já foi pago', en: 'the link was already paid' } },
       { code: '422 INSUFFICIENT_FUNDS / INTERFACE_UNAVAILABLE / TEST_PAYER_RETIRED', note: { pt: 'saldo insuficiente, a sessão não oferece essa via, ou pagador retirado', en: 'not enough balance, the session does not offer that via, or a retired payer' } },
       { code: '503 PROVIDER_UNAVAILABLE', note: { pt: 'simulate PROVIDER_UNAVAILABLE; nada se move', en: 'simulate PROVIDER_UNAVAILABLE; nothing moves' } },
-      { code: '504 SANDBOX_SIMULATED_TIMEOUT', note: { pt: 'simulate TIMEOUT: o pagamento foi feito; repita com a mesma chave', en: 'simulate TIMEOUT: the payment was made; repeat with the same key' } },
+      { code: '503 SANDBOX_SIMULATED_TIMEOUT', note: { pt: 'simulate TIMEOUT: o pagamento foi feito; repita com a mesma chave', en: 'simulate TIMEOUT: the payment was made; repeat with the same key' } },
     ],
   },
   {
@@ -1234,7 +1234,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     errors: [
       { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY', note: { pt: 'chave sem sandbox:write, ou chave que não é Sandbox', en: 'key without sandbox:write, or a key that is not a Sandbox key' } },
       { code: '404 NOT_FOUND', note: { pt: 'o pagador não existe ou pertence a outro projeto', en: 'the payer does not exist or belongs to another project' } },
-      { code: '502 RETIREMENT_FAILED', note: { pt: 'não ficou retirado por completo; repita', en: 'not fully retired; repeat the request' } },
+      { code: '503 RETIREMENT_FAILED', note: { pt: 'não ficou retirado por completo; repita', en: 'not fully retired; repeat the request' } },
     ],
   },
 ];

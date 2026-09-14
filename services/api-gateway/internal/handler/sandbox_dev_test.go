@@ -159,14 +159,14 @@ func TestSandboxDev_SimulatedOutcomesAreExplicitAndTimeoutIsRecoverable(t *testi
 		t.Fatalf("TIMEOUT without a key: %d", rec.Code)
 	}
 	rec := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"TIMEOUT"}`, "idem-1")
-	if rec.Code != http.StatusGatewayTimeout || !strings.Contains(rec.Body.String(), "SANDBOX_SIMULATED_TIMEOUT") || len(up.calls) != 1 {
-		t.Fatalf("TIMEOUT must pay and answer 504: %d %s calls=%d", rec.Code, rec.Body, len(up.calls))
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "SANDBOX_SIMULATED_TIMEOUT") || len(up.calls) != 1 {
+		t.Fatalf("TIMEOUT must pay and answer 503 SANDBOX_SIMULATED_TIMEOUT: %d %s calls=%d", rec.Code, rec.Body, len(up.calls))
 	}
 	retry := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own"}`, "idem-1")
 	if retry.Code != http.StatusOK || !strings.Contains(retry.Body.String(), "PAID") || len(up.calls) != 1 {
 		t.Fatalf("the retry must read the real result without paying again: %d %s calls=%d", retry.Code, retry.Body, len(up.calls))
 	}
-	// An SDK retries a 504 with the SAME body and key: that too reads the real
+	// An SDK retries a 503 with the SAME body and key: that too reads the real
 	// result, never a second payment.
 	again := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","simulate":"TIMEOUT"}`, "idem-1")
 	if again.Code != http.StatusOK || len(up.calls) != 1 {

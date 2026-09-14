@@ -112,7 +112,8 @@ refused).
 External-rail outcomes are requested **explicitly** on the test-payer payment:
 `"simulate": "DECLINED" | "PROVIDER_UNAVAILABLE" | "TIMEOUT"`. The response says
 `"simulated": true`. `DECLINED` and `PROVIDER_UNAVAILABLE` change nothing.
-`TIMEOUT` executes the payment and then answers `504 SANDBOX_SIMULATED_TIMEOUT`,
+`TIMEOUT` executes the payment and then answers `503 SANDBOX_SIMULATED_TIMEOUT`
+(not 504: Cloudflare replaces a 504 body, so the code could never arrive),
 so a client learns the ambiguous-outcome rule: retry with the same
 `Idempotency-Key` and read the real result. There are no reserved magic
 handles, amounts or phone numbers. `GET /v1/sandbox/scenarios` returns the
@@ -125,7 +126,7 @@ it — `{ test_payer_id, via, payment_session_id | payment_link_id, status:
 simulated: false }` — never the payee's link view. The real outcome of a
 simulated `TIMEOUT` is kept for 24 hours (Redis) under the Project and the
 `Idempotency-Key`, and ANY repeat with that key — with or without `simulate`,
-so an SDK's automatic retry of the 504 too — reads it instead of paying again.
+so an SDK's automatic retry of the 503 too — reads it instead of paying again.
 
 ### 6. Fictitious value has per-Project quotas
 

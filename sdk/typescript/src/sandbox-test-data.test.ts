@@ -32,7 +32,7 @@ describe('Sandbox test payers', () => {
   it('retries a simulated timeout with the SAME key and body, and returns the real result', async () => {
     let n = 0;
     const f = stub(() => (++n === 1
-      ? json(504, { code: 'SANDBOX_SIMULATED_TIMEOUT', message: 'simulated', simulated: true })
+      ? json(503, { code: 'SANDBOX_SIMULATED_TIMEOUT', message: 'simulated', simulated: true })
       : json(200, { status: 'PAID', transfer_id: 'tr-1', via: 'LINK', simulated: false })));
     const r = await client.payAsTestPayer('tp1', { paymentSessionId: 'ps1', simulate: 'TIMEOUT', idempotencyKey: 'pay-1' });
     expect(r.transfer_id).toBe('tr-1');
