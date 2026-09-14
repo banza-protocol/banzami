@@ -50,6 +50,9 @@ export const STEPS = [
   'Published SDK from the registry: identity is SANDBOX', 'Test payer', 'Fictitious funding, idempotent',
   'API Explorer runs a request with no key in the browser', 'Payment: SDK session, paid by a test payer',
   'Payment Link: created and paid', 'QR: a session paid by its QR', 'Realtime: the stream turns PAID',
+  'External rail down: a wallet payment still completes on the ledger',
+  'External rail down: a rail-dependent payment fails closed, nothing moves',
+  'External rail restored',
   'Webhook: endpoint registered with the SDK, paid event delivered', 'Synthetic webhook test event delivered',
   'Delivery replay', 'Receipt verifies publicly', 'Partial refund', 'Cumulative refund: the rest, then refused',
   'Application settlement: gross = fee + net', 'API logs', 'Workspace Activity is distinct from API logs',
@@ -112,7 +115,7 @@ async function main() {
   const stamp = Date.now().toString(36);
   const like = `cleanroom-${stamp}`;
   const room = mkdtempSync(join(tmpdir(), 'banzami-public-cleanroom-'));
-  let sess; let ws; const projects = [];
+  let sess; let ws; let railKey; const projects = [];
   const call = (method, path, body) => consoleApi(sess, method, path, body);
   try {
     sess = await signIn(`e2e-cleanroom-${stamp}@banzami-e2e.test`);
@@ -131,6 +134,7 @@ async function main() {
     const scopes = ['identity:read', 'payment_sessions:write', 'payment_sessions:read', 'payment_links:write', 'payment_links:read', 'webhooks:write', 'webhooks:read', 'refunds:write', 'refunds:read', 'sandbox:read', 'sandbox:write'];
     const k = await call('POST', `/projects/${P}/keys`, { kind: 'SECRET', name: like, scopes });
     let secret = k.body?.secret;
+    railKey = secret;
     const keyId = k.body?.id;
     const keyAgain = await call('GET', `/projects/${P}/keys`);
     mark(6, k.status === 201 && /^bz_test_sk_/.test(secret ?? '') && !JSON.stringify(keyAgain.body ?? {}).includes(secret), `${k.status} listed_without_secret=${!JSON.stringify(keyAgain.body ?? {}).includes(secret)}`);
@@ -219,6 +223,40 @@ async function main() {
     mark(13, payQr.status === 200 && payQr.body?.via === 'QR' && (await api(`/v1/payment-sessions/${s2.body?.session_id}`)).body?.status === 'PAID', `pay=${payQr.status} via=${payQr.body?.via}`);
     mark(14, seen[0]?.ev === 'snapshot' && seen.some((e) => e.status === 'PAID'), seen.map((e) => `${e.ev}:${e.status}`).join(','));
 
+    // WALLET-NATIVE-001 (ADR-061 §5): the Business's simulated external rail goes
+    // down. A wallet payment is an internal movement and completes; a payment whose
+    // funds cross the rail fails closed with nothing moved; then the rail returns.
+    // SDK 0.14.1 has no external-rail method, so the key calls the documented route.
+    const railDown = await api('/v1/sandbox/external-rail', 'PUT', { state: 'UNAVAILABLE' }, { 'Idempotency-Key': `cr_${stamp}_raildown` });
+    const railRead = await api('/v1/sandbox/external-rail');
+    const balance = async () => (await api(`/v1/sandbox/test-payers/${T}`)).body?.balance_minor;
+    const s3 = await client.createPaymentSession({ purpose: 'ORDER', referenceType: 'PEDIDO', referenceId: `cr_${stamp}_3`, amountMinor: 50000, currency: 'AOA', description: 'Pedido com rail em baixo' });
+    const beforeDown = await balance();
+    const payDown = await payAs({ payment_session_id: s3.session_id }, `cr_${stamp}_raildownpay`);
+    const s3state = (await api(`/v1/payment-sessions/${s3.session_id}`)).body?.status;
+    const afterDown = await balance();
+    mark(15, railDown.status === 200 && railRead.body?.state === 'UNAVAILABLE' && payDown.status === 200 && payDown.body?.rail === 'WALLET' && s3state === 'PAID' && beforeDown - afterDown === 50000,
+      `rail=${railRead.body?.state} pay=${payDown.status} rail_used=${payDown.body?.rail} session=${s3state} debited=${beforeDown - afterDown}`);
+
+    const s4 = await client.createPaymentSession({ purpose: 'ORDER', referenceType: 'PEDIDO', referenceId: `cr_${stamp}_4`, amountMinor: 40000, currency: 'AOA', description: 'Pedido por rail externo' });
+    const beforeClosed = await balance();
+    const simDown = sdk14
+      ? await viaSdk(() => client.payAsTestPayer(T, { paymentSessionId: s4.session_id, simulate: 'DECLINED', idempotencyKey: `cr_${stamp}_railsim` }), 200)
+      : await api(`/v1/sandbox/test-payers/${T}/payments`, 'POST', { payment_session_id: s4.session_id, simulate: 'DECLINED' }, { 'Idempotency-Key': `cr_${stamp}_railsim` });
+    const slug4 = ((s4.interfaces ?? []).find((x) => x.type === 'PAYMENT_LINK')?.value ?? '').split('/').pop();
+    const hosted = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(slug4)}/pay`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    const hostedBody = await hosted.json().catch(() => ({}));
+    const hostedCode = hostedBody?.error?.code ?? hostedBody?.code;
+    const s4state = (await api(`/v1/payment-sessions/${s4.session_id}`)).body?.status;
+    const afterClosed = await balance();
+    mark(16, simDown.status === 503 && simDown.body?.code === 'PROVIDER_UNAVAILABLE' && hosted.status === 503 && hostedCode === 'PROVIDER_UNAVAILABLE' && s4state === 'ACTIVE' && afterClosed === beforeClosed,
+      `simulate=${simDown.status}/${simDown.body?.code} hosted=${hosted.status}/${hostedCode} session=${s4state} payer_unchanged=${afterClosed === beforeClosed}`);
+
+    const railUp = await api('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `cr_${stamp}_railup` });
+    const hostedUp = await fetch(`${GW}/v1/public/pay/${encodeURIComponent(slug4)}/pay`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    mark(17, railUp.status === 200 && (await api('/v1/sandbox/external-rail')).body?.state === 'AVAILABLE' && hostedUp.status === 201,
+      `rail=${railUp.body?.state} hosted_initiation=${hostedUp.status}`);
+
     const deliveries = async (predicate) => {
       const evs = (await api('/v1/webhooks/events?limit=50')).body;
       for (const e of (evs?.data ?? [])) {
@@ -231,29 +269,29 @@ async function main() {
     };
     const paidDelivered = await until(() => deliveries((e) => (e.event_type ?? e.type) === 'payment_session.paid'), 60000, 3000);
     const paidVerified = await until(() => verified('payment_session.paid').length > 0, 30000, 2000);
-    mark(15, Boolean(ep.id) && Boolean(paidDelivered) && paidVerified, `endpoint=${Boolean(ep.id)} delivery_log=${Boolean(paidDelivered)} sdk_signature_verified=${paidVerified}`);
+    mark(18, Boolean(ep.id) && Boolean(paidDelivered) && paidVerified, `endpoint=${Boolean(ep.id)} delivery_log=${Boolean(paidDelivered)} sdk_signature_verified=${paidVerified}`);
     const test = sdk14 ? await viaSdk(() => client.sendWebhookTestEvent(ep.id), 202) : await api(`/v1/webhooks/endpoints/${ep.id}/test`, 'POST');
     const testDelivered = await until(() => deliveries((e) => e.id === test.body?.event_id), 60000, 3000);
     const testVerified = await until(() => verified('webhook.test').length > 0, 30000, 2000);
-    mark(16, test.status === 202 && test.body?.synthetic === true && Boolean(testDelivered) && testVerified, `test=${test.status} delivery_log=${Boolean(testDelivered)} sdk_signature_verified=${testVerified}`);
+    mark(19, test.status === 202 && test.body?.synthetic === true && Boolean(testDelivered) && testVerified, `test=${test.status} delivery_log=${Boolean(testDelivered)} sdk_signature_verified=${testVerified}`);
     const replay = await api(`/v1/webhooks/deliveries/${test.body?.delivery_id}/replay`, 'POST');
     const replayed = await until(async () => {
       const d = ((await api(`/v1/webhooks/events/${test.body?.event_id}/deliveries`)).body?.data ?? [])[0];
       return d && d.status === 'SUCCESS' && (d.attempt_number ?? 0) >= 2 && verified('webhook.test').length >= 2 ? d : null;
     }, 60000, 3000);
-    mark(17, replay.status === 201 && Boolean(replayed), `replay=${replay.status} attempts=${replayed?.attempt_number} received_verified=${verified('webhook.test').length}`);
+    mark(20, replay.status === 201 && Boolean(replayed), `replay=${replay.status} attempts=${replayed?.attempt_number} received_verified=${verified('webhook.test').length}`);
 
     const proof = pay1.body?.proof_reference ? await fetch(`${GW}/v1/public/proofs/${pay1.body.proof_reference}`) : null;
     const proofBody = proof ? await proof.json().catch(() => ({})) : {};
-    mark(18, proof?.status === 200 && proofBody.exists === true, `proof=${proof?.status ?? 'none'}`);
+    mark(21, proof?.status === 200 && proofBody.exists === true, `proof=${proof?.status ?? 'none'}`);
 
     const src = r1.body?.refund_source ?? {};
     const rf1 = await api('/v1/refunds', 'POST', { ...src, amount_minor: 100000, currency: 'AOA', idempotency_key: `cr_${stamp}_rf1`, reason: 'parcial' });
     const rf1again = await api('/v1/refunds', 'POST', { ...src, amount_minor: 100000, currency: 'AOA', idempotency_key: `cr_${stamp}_rf1`, reason: 'parcial' });
-    mark(19, rf1.status === 201 && [200, 201].includes(rf1again.status) && rf1again.body?.id === rf1.body?.id, `refund=${rf1.status} replay_same=${rf1again.body?.id === rf1.body?.id}`);
+    mark(22, rf1.status === 201 && [200, 201].includes(rf1again.status) && rf1again.body?.id === rf1.body?.id, `refund=${rf1.status} replay_same=${rf1again.body?.id === rf1.body?.id}`);
     const rf2 = await api('/v1/refunds', 'POST', { ...src, amount_minor: 200000, currency: 'AOA', idempotency_key: `cr_${stamp}_rf2`, reason: 'resto' });
     const rf3 = await api('/v1/refunds', 'POST', { ...src, amount_minor: 1, currency: 'AOA', idempotency_key: `cr_${stamp}_rf3`, reason: 'excesso' });
-    mark(20, rf2.status === 201 && rf3.status === 422, `rest=${rf2.status} over=${rf3.status} ${rf3.body?.code ?? ''}`);
+    mark(23, rf2.status === 201 && rf3.status === 422, `rest=${rf2.status} over=${rf3.status} ${rf3.body?.code ?? ''}`);
 
     // An application project in the same workspace.
     const pa = await call('POST', `/workspaces/${ws}/projects`, { name: `${like}-campaigns` });
@@ -271,7 +309,7 @@ async function main() {
     const handle = fsA?.readiness?.financial_identity?.handle;
     const st = await apiA('/v1/application-settlements', 'POST', { source_account_id: W, beneficiary_banza_name: `@${benef.body?.handle}`, fee_destination_banza_name: handle, reference_id: `cr_${stamp}`, reason: 'Campanha encerrada', idempotency_key: `cr_${stamp}_settle` });
     const g = st.body?.gross_amount_minor, fee = st.body?.application_fee_minor, net = st.body?.net_amount_minor;
-    mark(21, st.status === 201 && g === 200000 && fee > 0 && g === fee + net, `${st.status} ${st.body?.code ?? ''} gross=${g} fee=${fee} net=${net}`);
+    mark(24, st.status === 201 && g === 200000 && fee > 0 && g === fee + net, `${st.status} ${st.body?.code ?? ''} gross=${g} fee=${fee} net=${net}`);
 
     await sleep(2000);
     const logs = (await call('GET', `/projects/${P}/logs?limit=100`)).body?.logs ?? [];
@@ -279,28 +317,29 @@ async function main() {
     // The refused refund's line names its error, and the log filters on it.
     const refused = (await call('GET', `/projects/${P}/logs?error_code=REFUND_EXCEEDS_CAPTURED&limit=5`)).body?.logs ?? [];
     const line = refused[0] ?? {};
-    mark(22, logs.some((l) => l.path === '/v1/refunds') && explorerLogs.length >= 1 && explorerLogs.every((l) => l.source === 'API_EXPLORER')
+    mark(25, logs.some((l) => l.path === '/v1/refunds') && explorerLogs.length >= 1 && explorerLogs.every((l) => l.source === 'API_EXPLORER')
       && line.status === 422 && line.error_code === 'REFUND_EXCEEDS_CAPTURED' && line.method === 'POST' && typeof line.latency_ms === 'number' && Boolean(line.request_id),
       `logs=${logs.length} explorer=${explorerLogs.length} refused_line=${line.method} ${line.path} ${line.status} ${line.error_code} ${line.latency_ms}ms`);
     const activity = (await call('GET', `/workspaces/${ws}/activity`)).body?.events ?? [];
     const actions = new Set(activity.map((e) => e.action));
-    mark(23, activity.length > 0 && [...actions].some((a) => /key/.test(a)) && !activity.some((e) => /^\/v1\//.test(e.path ?? '')), `activity=${activity.length} actions=${[...actions].slice(0, 6).join(',')}`);
+    mark(26, activity.length > 0 && [...actions].some((a) => /key/.test(a)) && !activity.some((e) => /^\/v1\//.test(e.path ?? '')), `activity=${activity.length} actions=${[...actions].slice(0, 6).join(',')}`);
 
     const rot = await call('POST', `/keys/${keyId}/rotate`);
     const oldKey = await http(secret)('/v1/me');
-    secret = rot.body?.secret;
+    secret = rot.body?.secret; railKey = secret;
     const newKey = await http(secret)('/v1/me');
     client = new BanzamiClient({ apiKey: secret }); api = http(secret);
-    mark(24, rot.status === 200 && oldKey.status === 401 && newKey.status === 200, `rotate=${rot.status} old=${oldKey.status} new=${newKey.status}`);
+    mark(27, rot.status === 200 && oldKey.status === 401 && newKey.status === 200, `rotate=${rot.status} old=${oldKey.status} new=${newKey.status}`);
 
     const reset = await call('POST', `/projects/${P}/sandbox/reset`, { confirm: 'RESET' });
     const payersAfter = (await api('/v1/sandbox/test-payers')).body?.data ?? [];
     const history = (await call('GET', `/projects/${P}/transactions`)).body?.transactions ?? [];
-    mark(25, reset.status === 200 && payersAfter.length === 0 && history.length > 0, `reset=${reset.status} payers=${payersAfter.length} history=${history.length}`);
+    mark(28, reset.status === 200 && payersAfter.length === 0 && history.length > 0, `reset=${reset.status} payers=${payersAfter.length} history=${history.length}`);
   } catch (e) {
     console.error(`  ! aborted: ${String(e.stack ?? e).split('\n').slice(0, 2).join(' | ')}`);
   } finally {
     const done = [];
+    if (sess && railKey) await http(railKey)('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' }, { 'Idempotency-Key': `cr_${stamp}_railfinal` }).catch(() => null);
     if (sess) {
       for (const P of projects.filter(Boolean)) {
         if (P !== projects[0]) done.push((await call('POST', `/projects/${P}/sandbox/reset`, { confirm: 'RESET' })).status);
@@ -315,7 +354,7 @@ async function main() {
       if (ws) { const w = await call('GET', `/workspaces/${ws}`); done.push((await call('POST', `/workspaces/${ws}/archive`, { name: w.body?.name })).status); }
     }
     rmSync(room, { recursive: true, force: true });
-    mark(26, done.length > 0 && done.every((s) => s >= 200 && s < 300), `statuses=${done.join(',')}`);
+    mark(29, done.length > 0 && done.every((s) => s >= 200 && s < 300), `statuses=${done.join(',')}`);
     const left = residue(like);
     const passed = steps.filter((s) => s.verdict === 'PASS').length;
     const verdict = passed === steps.length && left === 0 ? 'PASS' : 'FAIL';
@@ -327,6 +366,8 @@ async function main() {
     console.log(`TIME_TO_FIRST_PAYMENT_MS=${timings.first_payment_ms ?? 'n/a'} (automated)`);
     console.log(`PUBLIC_SANDBOX_CLEANROOM=${verdict} (${passed}/${steps.length})`);
     console.log('PUBLIC_SANDBOX_OPERATOR_INTERVENTIONS=0');
+    const railSteps = steps.slice(14, 17);
+    console.log(`WALLET_NATIVE_PUBLIC_CLEANROOM=${railSteps.every((x) => x.verdict === 'PASS') && verdict === 'PASS' ? 'PASS' : 'FAIL'} (${railSteps.filter((x) => x.verdict === 'PASS').length}/3 rail steps)`);
     console.log(`CLEANROOM_RESIDUE=${left}`);
     console.log(`evidence: ${out}`);
     process.exitCode = verdict === 'PASS' ? 0 : 1;

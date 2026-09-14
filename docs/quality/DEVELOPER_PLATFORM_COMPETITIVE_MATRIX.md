@@ -56,7 +56,7 @@ Verdicts, Banzami against the benchmark's developer outcome (never its vocabular
 
 | Capability | BitPay Angola (class · evidence) | Banzami (LIVE_VERIFIED on the deployed Sandbox) | Verdict |
 |---|---|---|---|
-| Sandbox self-service | USER_SUPPLIED · open to all | Anyone with a mailbox; no operator (cleanroom 26/26, `PUBLIC_SANDBOX_OPERATOR_INTERVENTIONS=0`) | EQUIVALENT |
+| Sandbox self-service | USER_SUPPLIED · open to all | Anyone with a mailbox; no operator (cleanroom 29/29 including the external-rail steps, `PUBLIC_SANDBOX_OPERATOR_INTERVENTIONS=0`) | EQUIVALENT |
 | Zero-human onboarding | USER_SUPPLIED · `POST /v1/sandbox/accounts` returns credentials at once | Email code → workspace → project → Sandbox Financial Setup by use case → key. First SDK call 6.1 s after sign-in (automated). Mailbox ownership is required on purpose: the per-account creation limits and the test-value perimeter hang on an identity | EQUIVALENT — immediate and operator-free in both; Banzami adds a verified identity |
 | Test credentials | USER_SUPPLIED · `sk_test_` / `sk_live_` | `bz_test_sk_`, scoped, rotatable, revocable; a Sandbox key cannot reach Live and no Live key can be minted (isolation 12–13) | EQUIVALENT |
 | Deterministic scenarios | USER_SUPPLIED · test mobile numbers | 29 published scenarios (`GET /v1/sandbox/scenarios`), explicit `simulate` (DECLINED, PROVIDER_UNAVAILABLE, TIMEOUT, DELAYED), real outcomes by doing the real thing; see *Deterministic testing* below | BETTER |
