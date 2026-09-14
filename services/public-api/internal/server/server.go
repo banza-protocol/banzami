@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 
 	"github.com/banzami/banzami/services/common/clientip"
@@ -49,6 +50,9 @@ type Dependencies struct {
 	// PushTopics names the signed-in consumer's FCM topic for
 	// GET /v1/me/push-topic. Nil (no PUSH_TOPIC_KEY) answers null.
 	PushTopics *pushtopic.Namer
+
+	// TestPayers records which Project owns a Sandbox test payer (ADR-060 §4).
+	TestPayers *service.TestPayerStore
 }
 
 // Server wraps the HTTP server lifecycle.
@@ -100,6 +104,23 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	debugPushH := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
 	pushTopicH := handler.NewPushTopicHandler(deps.PushTopics)
 	kycH := handler.NewKycHandler(deps.KycSvc)
+
+	// Sandbox test payers — internal only (ADR-060 §4): reached from the gateway
+	// with the internal key, which has already authenticated the Project key and
+	// supplies the Project. Not mounted without an internal key or outside the
+	// Sandbox, so a LIVE stack has no route to find.
+	if cfg.InternalAPIKey != "" && env.Parse(cfg.Environment).IsSandbox() {
+		testPayerH := handler.NewTestPayerHandler(deps.CoreClient, deps.CredStore, deps.TestPayers, cfg.Environment, paymentLinkH.Pay, qrPayH.Pay)
+		r.Route("/internal/v1/sandbox/test-payers", func(r chi.Router) {
+			r.Use(middleware.InternalKey(cfg.InternalAPIKey))
+			r.Post("/", testPayerH.Create)
+			r.Get("/", testPayerH.List)
+			r.Get("/{id}", testPayerH.Get)
+			r.Post("/{id}/fund", testPayerH.Fund)
+			r.Post("/{id}/payments", testPayerH.Pay)
+			r.Delete("/{id}", testPayerH.Retire)
+		})
+	}
 
 	// Public auth — no JWT required. Rate-limited per IP against brute-force +
 	// account enumeration (the gateway throttles its equivalent endpoints too).

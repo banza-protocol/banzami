@@ -1040,3 +1040,17 @@ var (
 	paymentLinkSlug     = regexp.MustCompile(`^[0-9a-f]{12}$`)
 	consumerPayLinkCode = regexp.MustCompile(`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$`)
 )
+
+// RetireSandboxFunds returns an owner's synthetic balance to transit through
+// Core's balanced retirement posting (Sandbox only; history stays).
+func (c *CorePublicClient) RetireSandboxFunds(ctx context.Context, ownerType, ownerID, reason, retiredBy, idempotencyKey string) error {
+	return c.post(ctx, "/internal/v1/sandbox/retire-funds", map[string]string{
+		"owner_type": ownerType, "owner_id": ownerID, "reason": reason,
+		"retired_by": retiredBy, "idempotency_key": idempotencyKey,
+	}, nil)
+}
+
+// SuspendConsumer suspends a consumer through Core's lifecycle.
+func (c *CorePublicClient) SuspendConsumer(ctx context.Context, consumerID, notes string) error {
+	return c.post(ctx, "/internal/v1/consumers/"+url.PathEscape(consumerID)+"/suspend", map[string]string{"notes": notes}, nil)
+}

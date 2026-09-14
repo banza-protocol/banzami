@@ -67,6 +67,7 @@ func main() {
 
 	core := service.NewCorePublicClient(cfg.CoreAPIURL).WithInternalKey(cfg.CoreInternalKey)
 	creds := service.NewCredentialStore(pool)
+	testPayers := service.NewTestPayerStore(pool)
 
 	// Consumer KYC evidence storage (R2). Optional: a nil storage makes upload
 	// endpoints respond 503 — it never blocks startup.
@@ -106,6 +107,7 @@ func main() {
 	srv := server.New(cfg, server.Dependencies{
 		CoreClient:  core,
 		CredStore:   creds,
+		TestPayers:  testPayers,
 		FCMSvc:      fcmSvc,
 		PushTopics:  pushTopics,
 		KycSvc:      kycSvc,
