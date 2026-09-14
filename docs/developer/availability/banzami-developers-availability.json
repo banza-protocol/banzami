@@ -1,6 +1,6 @@
 {
-  "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | served_pending_capability | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the CURRENT Sandbox/Preview scope only — it is not a Production contract and makes no production/live/external-provider availability claim.",
-  "version": "docs-2026-09-12",
+  "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | served_pending_capability | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the Public Sandbox. Financial Live is not ready: it requires institutional approval and is fail-closed; this file makes no Live or external-provider availability claim.",
+  "version": "docs-2026-09-14",
   "environment": "SANDBOX",
   "capabilities": {
     "console_auth_workspaces_projects_members_keys": {
@@ -63,10 +63,45 @@
       "credential": "developer_key_scoped_or_merchant",
       "note": "POST /v1/application-settlements with the application_settlements:write scope settles a segregated account's whole available balance to a beneficiary @banza at the price Banzami assigned (the request carries no amount or rate). GET /v1/application-settlements/{id} is merchant-credential only — a project key receives 401. Served on the deployed Sandbox; served and exercised on the deployed Sandbox; no released assurance capability records it on its own yet, so it carries no released badge."
     },
+    "sandbox_self_service_financial_setup": {
+      "state": "available_controlled_sandbox",
+      "credential": "console_session_owner_admin",
+      "note": "POST /projects/{id}/financial-setup with a use case (STANDARD | APPLICATION): Core provisions a SANDBOX_SYNTHETIC Business, never verified, classified and priced by policy. No review, no operator (ADR-060)."
+    },
+    "sandbox_test_payers": {
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped",
+      "note": "/v1/sandbox/test-payers with sandbox:read / sandbox:write: Project-owned test payers, fictitious funding within quotas, payments by link or QR through the real payment path, explicit rail simulations."
+    },
+    "sandbox_scenarios": {
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped",
+      "note": "GET /v1/sandbox/scenarios: the deterministic scenario catalogue, held to the testing guide by check-docs-dx."
+    },
+    "realtime_payment_status": {
+      "state": "available_controlled_sandbox",
+      "credential": "status_token",
+      "note": "GET /v1/realtime/payment-sessions/{id} with a session’s bzst_ token in the Authorization header: snapshot, status events, heartbeat, terminal close. Not proof of payment."
+    },
+    "webhook_test_event": {
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped",
+      "note": "POST /v1/webhooks/endpoints/{id}/test: a signed, synthetic webhook.test delivery that moves nothing and can be replayed."
+    },
+    "api_explorer": {
+      "state": "available_controlled_sandbox",
+      "credential": "console_session",
+      "note": "Console API Explorer: published operations run server-side with a 60-second single-scope key; no key in the browser; logged with source API_EXPLORER."
+    },
+    "sandbox_reset": {
+      "state": "available_controlled_sandbox",
+      "credential": "console_session_owner_admin",
+      "note": "Console reset (typed RESET, 5 a day): retires test payers and the Project’s own synthetic Business’s live test data; nothing is deleted."
+    },
     "production_live_rails": {
       "state": "not_available",
       "credential": null,
-      "note": "Production in preparation. No real money. No production key issuance."
+      "note": "Financial Live is NOT READY and fail-closed: it requires institutional approval. No real money. No Live key issuance; bz_live_ keys are refused."
     },
     "pay_checkout_live_rails": {
       "state": "not_approved",

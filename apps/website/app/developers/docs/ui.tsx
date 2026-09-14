@@ -31,20 +31,19 @@ export const TD_MONO: React.CSSProperties = { ...TD, fontFamily: mono, fontSize:
 export const BANZAMI_URL = 'https://banzami.com';
 
 // -- Status vocabulary (fixed) --------------------------------------------------
-export type Tone = 'ok' | 'val' | 'soon' | 'prep';
+// No 'coming soon' and no 'Production in preparation': Financial Live is not
+// ready and requires institutional approval, and the documentation says so in
+// words where it matters (Do Sandbox ao Live) rather than as a promise badge.
+export type Tone = 'ok' | 'val';
 export const BADGES: Record<Tone, { label: string; bg: string; bd: string; fg: string; dot: string }> = {
   ok: { label: 'Disponível em Sandbox', bg: '#EAF7F0', bd: '#CFE9DA', fg: '#1F8A5B', dot: '#1F8A5B' },
   val: { label: 'Em validação contínua no Sandbox', bg: '#FDF3E2', bd: '#F7E4CB', fg: '#B8770A', dot: '#E0930F' },
-  soon: { label: 'Brevemente', bg: '#F3EDEC', bd: '#EBDBD9', fg: '#6a5a5e', dot: '#a89a9e' },
-  prep: { label: 'Produção em preparação', bg: '#FFF1F0', bd: '#F7DAD7', fg: '#9A1B22', dot: '#B5101F' },
 };
 
 // English labels for the SAME badge tones (colours/styles identical).
 export const BADGE_LABELS_EN: Record<Tone, string> = {
   ok: 'Available in Sandbox',
   val: 'Under continuous validation in Sandbox',
-  soon: 'Coming soon',
-  prep: 'Production in preparation',
 };
 
 export function Badge({ tone, children }: { tone: Tone; children?: ReactNode }) {

@@ -1,110 +1,1294 @@
 {
   "info": {
-    "name": "Banzami Sandbox API (Sandbox/Preview — placeholders only)",
-    "description": "Generated from the same verified endpoint set as docs/developer/openapi/banzami-sandbox.openapi.json. Sandbox/Preview documentation scope only: no real money, no live rails, no external providers, not a Production contract. Refunds and transfers are intentionally absent (Pending E2E for developer keys — 403). Set the apiKey variable to YOUR Sandbox test key; the default is an obvious placeholder.",
+    "name": "Banzami Sandbox API",
+    "description": "Banzami Sandbox API docs-2026-09-14, generated from docs/developer/openapi/banzami-sandbox.openapi.json by tools/docs/build-postman.mjs. Public Sandbox: fictitious value; Financial Live is not ready and refuses bz_live_ keys. Set apiKey to YOUR Sandbox secret key (the default is an obvious placeholder), and statusToken to a session’s realtime.token for the realtime route. The hosted payment page for a session is https://pay.banzami.com/pay/{slug}.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    { "key": "baseUrl", "value": "https://sandbox-api.banzami.com" },
-    { "key": "apiKey", "value": "bz_test_sk_XXXX" },
-    { "key": "sessionId", "value": "payment_session_xxx" }
-  ],
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{apiKey}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sandbox-api.banzami.com"
+    },
+    {
+      "key": "apiKey",
+      "value": "bz_test_sk_XXXX"
+    },
+    {
+      "key": "statusToken",
+      "value": "bzst_xxx"
+    }
+  ],
   "item": [
     {
-      "name": "Identity",
+      "name": "identity",
+      "description": "Developer key identity (released developer-key surface)",
       "item": [
         {
-          "name": "GET /v1/me — key identity (first call)",
+          "name": "GET /v1/me — getMe",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/me", "host": ["{{baseUrl}}"], "path": ["v1", "me"] }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "me"
+              ]
+            },
+            "description": "Key identity (first successful call — no SDK required)\n\nReturns the authenticated key's environment, the Project it belongs to ({id, name, ref}), its scopes and status. Requires the identity:read scope. Returns no financial state — see GET /v1/financial-setup. bz_live_ keys are rejected fail-closed."
           }
         },
         {
-          "name": "GET /v1/financial-setup — your Project's financial readiness",
+          "name": "GET /v1/financial-setup — getFinancialSetup",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/financial-setup", "host": ["{{baseUrl}}"], "path": ["v1", "financial-setup"] }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/financial-setup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "financial-setup"
+              ],
+              "query": [
+                {
+                  "key": "fee_destination",
+                  "value": "@my-business",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Your Project's financial readiness\n\nWhether the Project this key belongs to can settle and, if not, exactly what is missing. The key is the authority: nothing in the request names a Project, owner or account. Every field is decided with the rules settlement itself enforces — settlement.ready is true exactly when settlement's prerequisites pass, and each blocker is the refusal a settlement would return. A Project not yet configured answers 200 with financial_setup.state UNCONFIGURED and the blocker FINANCIAL_SETUP_NOT_CONFIGURED. Requires the identity:read scope. SDK: getFinancialSetup()."
+          }
+        },
+        {
+          "name": "GET /v1/integration — getIntegration",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/integration",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "integration"
+              ]
+            },
+            "description": "Business self-profile — refuses project keys\n\nThe consolidated profile of the Business Account behind a merchant session. It names that account's wallet and account ids, which a Project key must never learn, so a developer key is always refused with 403 USE_FINANCIAL_SETUP, whatever its scopes. A project reads the same readiness from GET /v1/financial-setup, which names none of them."
           }
         }
       ]
     },
     {
-      "name": "Payment Sessions",
+      "name": "payment-sessions",
+      "description": "Payment sessions — Sandbox, gated by scope + project binding",
       "item": [
         {
-          "name": "POST /v1/payment-sessions — create",
+          "name": "POST /v1/payment-sessions — createPaymentSession",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "idem_xxx" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-sessions"
+              ]
+            },
+            "description": "Create a payment session\n\nCreates a payment session and returns its id, status and interfaces (link/QR). Credential: developer key with the payment_sessions scope on a project with an ACTIVE binding, or a merchant credential.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"wallet_account_id\": \"wacc_xxx\",\n  \"purpose\": \"ORDER\",\n  \"reference_type\": \"PEDIDO\",\n  \"reference_id\": \"order_123\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}"
+              "raw": "{\n  \"wallet_account_id\": \"wacc_xxx\",\n  \"purpose\": \"ORDER\",\n  \"reference_type\": \"PEDIDO\",\n  \"reference_id\": \"order_123\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /v1/payment-sessions — listPaymentSessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-sessions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             },
-            "url": { "raw": "{{baseUrl}}/v1/payment-sessions", "host": ["{{baseUrl}}"], "path": ["v1", "payment-sessions"] }
+            "description": "List payment sessions\n\nLists the project's payment sessions, newest first, optionally filtered by status. There is no cursor: the response is the most recent sessions up to limit. A limit outside 1–200 is replaced by the default."
           }
         },
         {
-          "name": "GET /v1/payment-sessions — list",
+          "name": "GET /v1/payment-sessions/{id} — getPaymentSession",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/payment-sessions?status=ACTIVE", "host": ["{{baseUrl}}"], "path": ["v1", "payment-sessions"], "query": [{ "key": "status", "value": "ACTIVE" }] }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-sessions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-sessions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "payment_session_xxx"
+                }
+              ]
+            },
+            "description": "Fetch a payment session"
           }
         },
         {
-          "name": "GET /v1/payment-sessions/{id} — fetch",
+          "name": "GET /v1/payment-sessions/{id}/link — getPaymentSessionLink",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/payment-sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["v1", "payment-sessions", "{{sessionId}}"] }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-sessions/:id/link",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-sessions",
+                ":id",
+                "link"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "payment_session_xxx"
+                }
+              ]
+            },
+            "description": "Fetch the session's public payment link"
           }
         },
         {
-          "name": "GET /v1/payment-sessions/{id}/link — public link",
+          "name": "GET /v1/payment-sessions/{id}/qr — getPaymentSessionQr",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/payment-sessions/{{sessionId}}/link", "host": ["{{baseUrl}}"], "path": ["v1", "payment-sessions", "{{sessionId}}", "link"] }
-          }
-        },
-        {
-          "name": "GET /v1/payment-sessions/{id}/qr — QR (json/svg/png)",
-          "request": {
-            "method": "GET",
-            "description": "The session QR encodes the session's hosted pay URL (https://pay.banzami.com/pay/{slug}); any phone camera opens the pay page. Without ?format the value is returned as JSON; ?format=png|svg renders the image (pdf answers 415).",
-            "url": { "raw": "{{baseUrl}}/v1/payment-sessions/{{sessionId}}/qr?format=svg", "host": ["{{baseUrl}}"], "path": ["v1", "payment-sessions", "{{sessionId}}", "qr"], "query": [{ "key": "format", "value": "svg" }] }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-sessions/:id/qr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-sessions",
+                ":id",
+                "qr"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "payment_session_xxx"
+                }
+              ]
+            },
+            "description": "Fetch the session QR (JSON value or rendered image)\n\nThe session QR encodes the session's hosted pay URL (https://pay.banzami.com/pay/{slug}), for a fixed-amount session as for an open-amount one: any phone camera opens the pay page, where the payer pays. (A fixed-amount session used to encode a structured dynamic-QR payload that no route could pay; it is no longer returned.) Without parameters, returns the encodable value as JSON. With ?format=png|svg, returns the rendered image; ?format=pdf answers 415."
           }
         }
       ]
     },
     {
-      "name": "Payment Links",
+      "name": "payment-links",
+      "description": "Payment links — Sandbox, gated by scope + project binding",
       "item": [
         {
-          "name": "POST /v1/payment-links — create",
+          "name": "POST /v1/payment-links — createPaymentLink",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "idem_xxx" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-links"
+              ]
+            },
+            "description": "Create a reusable payment link\n\nCreates a payment link with a public slug (pay.banzami.com/pay/{slug}). Omit amount_minor for an open-amount link. Credential: merchant credential, or developer key with the payment_links scope on a project with an ACTIVE binding.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"wallet_id\": \"wallet_xxx\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}"
-            },
-            "url": { "raw": "{{baseUrl}}/v1/payment-links", "host": ["{{baseUrl}}"], "path": ["v1", "payment-links"] }
+              "raw": "{\n  \"wallet_id\": \"wallet_xxx\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
-          "name": "GET /v1/payment-links — list",
+          "name": "GET /v1/payment-links — listPaymentLinks",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/payment-links", "host": ["{{baseUrl}}"], "path": ["v1", "payment-links"] }
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-links"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List payment links\n\nLists the project's payment links, newest first, a page at a time. Pass next_cursor back as cursor for the next page; its absence means the last page."
+          }
+        },
+        {
+          "name": "GET /v1/payment-links/{id} — getPaymentLink",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-links/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-links",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "payment_link_xxx"
+                }
+              ]
+            },
+            "description": "Retrieve one of your payment links\n\nReturns a payment link by its id — the id returned at creation, not the public slug (a slug, or any id that is not a UUID, answers 404). Credential: developer key with payment_links:read on a project with an ACTIVE binding, or a merchant credential. Another project's link answers 404, indistinguishable from one that does not exist. refund_source is returned only to the owning merchant session, never to a developer key."
+          }
+        },
+        {
+          "name": "DELETE /v1/payment-links/{id} — cancelPaymentLink",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payment-links/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "payment-links",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "payment_link_xxx"
+                }
+              ]
+            },
+            "description": "Cancel one of your payment links\n\nCancels an ACTIVE payment link so it can no longer be paid, and returns it with status CANCELLED. A link is marked paid only by a payment; to close an unpaid link, DELETE /v1/payment-links/{id}. Credential: developer key with payment_links:write on a project with an ACTIVE binding, or a merchant credential. Ownership is checked before anything changes: another project's link answers 404, indistinguishable from one that does not exist. A link that is no longer ACTIVE (USED, EXPIRED or CANCELLED) answers 422 LINK_NOT_ACTIVE."
+          }
+        }
+      ]
+    },
+    {
+      "name": "application-settlements",
+      "description": "Application settlements — close out a segregated account to a beneficiary @banza, priced by Banzami",
+      "item": [
+        {
+          "name": "POST /v1/application-settlements — createApplicationSettlement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/application-settlements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "application-settlements"
+              ]
+            },
+            "description": "Settle one of your segregated accounts to a beneficiary\n\nCloses out a segregated wallet account (for example a CAMPAIGN account) of the owner your project is bound to. Banzami reads the account's available balance as the gross, prices it with the pricing profile Banzami assigned to your business, credits any application fee to the fee destination you name and the net to the beneficiary @banza, and returns the completed settlement. The request carries no amount and no rate: a body carrying any pricing field is refused with PRICING_FIELD_NOT_ACCEPTED. The source must not be the PRIMARY account; a fee destination, when named, must be your own business account, and is required only when your pricing resolves a fee. Credential: developer key with application_settlements:write on a project with an ACTIVE binding, or a merchant credential. An unknown source account answers 404; a source account belonging to another owner answers 403 FORBIDDEN. Replaying the same idempotency_key for the same source and beneficiary returns the settlement it already made, with 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_account_id\": \"wacc_xxx\",\n  \"beneficiary_banza_name\": \"@beneficiary_xxx\",\n  \"fee_destination_banza_name\": \"@my-business\",\n  \"reference_id\": \"campaign_xxx\",\n  \"reason\": \"Campaign closed\",\n  \"idempotency_key\": \"idem_xxx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /v1/application-settlements/{id} — getApplicationSettlement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/application-settlements/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "application-settlements",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "application_settlement_xxx"
+                }
+              ]
+            },
+            "description": "Fetch an application settlement (merchant credential only)\n\nReturns a settlement to the Business Account that created it; any other settlement, including one with no recorded creator, answers 404. Credential: merchant credential ONLY. The route sits on the dual-credential surface, but its handler reads only a merchant session, so a developer key is answered 401 UNAUTHORIZED — and there is no application_settlements:read scope. A project keeps the settlement returned by POST /v1/application-settlements."
+          }
+        }
+      ]
+    },
+    {
+      "name": "refunds",
+      "description": "Refunds of your own payments — Sandbox, gated by scope + project binding",
+      "item": [
+        {
+          "name": "POST /v1/refunds — createRefund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/refunds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "refunds"
+              ]
+            },
+            "description": "Refund an eligible payment\n\nReturns an eligible payment fully or partially. The refund debits the account that RECEIVED the payment, not the owner’s general balance. Credential: developer key with refunds:write, or a merchant credential. Another project’s payment answers 404 — knowing an id is not authority over it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_type\": \"WALLET_PAYMENT\",\n  \"source_id\": \"wallet_payment_xxx\",\n  \"amount_minor\": 50000,\n  \"currency\": \"AOA\",\n  \"idempotency_key\": \"idem_xxx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /v1/refunds — listRefunds",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/refunds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "refunds"
+              ],
+              "query": [
+                {
+                  "key": "source_id",
+                  "value": "wallet_payment_xxx",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List your refunds\n\nLists the refunds of the owner your project is bound to, newest first. The owner comes from the credential; no parameter selects another. Credential: developer key with refunds:read on a project bound to a financial owner, or a merchant credential. There is no cursor: at most limit refunds are returned."
+          }
+        },
+        {
+          "name": "GET /v1/refunds/{id} — getRefund",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/refunds/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "refunds",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "refund_xxx"
+                }
+              ]
+            },
+            "description": "Retrieve one of your refunds\n\nReturns a refund of the owner your project is bound to. The read is scoped to that owner in Core: another project's refund, an unknown id and a malformed id all answer the same 404. Credential: developer key with refunds:read, or a merchant credential."
+          }
+        }
+      ]
+    },
+    {
+      "name": "webhooks",
+      "description": "Webhook endpoints, events and deliveries of your project's owner",
+      "item": [
+        {
+          "name": "POST /v1/webhooks/endpoints — registerWebhookEndpoint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/endpoints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "endpoints"
+              ]
+            },
+            "description": "Register the endpoint that receives your project’s events\n\nRegisters an HTTPS endpoint under the owner your project is bound to. The signing secret is returned exactly once, in this response, and is never readable again. Credential: developer key with webhooks:write. Deliveries are signed over the raw request bytes and carry the banza-signature header.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://your-server.example/webhooks/banzami\",\n  \"events\": [\n    \"payment_session.paid\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /v1/webhooks/endpoints — listWebhookEndpoints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/endpoints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "endpoints"
+              ]
+            },
+            "description": "List your webhook endpoints\n\nLists every endpoint registered under the owner your project is bound to, newest first, including deactivated ones (active: false). The signing secret is never included. Credential: developer key with webhooks:read, or a merchant credential. No pagination."
+          }
+        },
+        {
+          "name": "GET /v1/webhooks/endpoints/{id} — getWebhookEndpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/endpoints/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "endpoints",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "whep_xxx"
+                }
+              ]
+            },
+            "description": "Retrieve one of your webhook endpoints\n\nReturns an endpoint of your project's owner, without its secret. Another project's endpoint answers 404, indistinguishable from one that does not exist. Credential: developer key with webhooks:read, or a merchant credential."
+          }
+        },
+        {
+          "name": "DELETE /v1/webhooks/endpoints/{id} — deactivateWebhookEndpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/endpoints/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "endpoints",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "whep_xxx"
+                }
+              ]
+            },
+            "description": "Deactivate one of your webhook endpoints\n\nStops an endpoint receiving events. It is deactivated, not erased: it is retained for audit and still listed with active: false. Deactivating an already inactive endpoint answers 204 again. Another project's endpoint answers 404. Credential: developer key with webhooks:write, or a merchant credential."
+          }
+        },
+        {
+          "name": "GET /v1/webhooks/endpoints/{id}/health — getWebhookEndpointHealth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/endpoints/:id/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "endpoints",
+                ":id",
+                "health"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "whep_xxx"
+                }
+              ]
+            },
+            "description": "Delivery health of one of your endpoints (last 24 hours)\n\nCounts the endpoint's deliveries created in the last 24 hours by outcome. Another project's endpoint answers 404. Credential: developer key with webhooks:read, or a merchant credential."
+          }
+        },
+        {
+          "name": "POST /v1/webhooks/endpoints/{id}/rotate-secret — rotateWebhookEndpointSecret",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/endpoints/:id/rotate-secret",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "endpoints",
+                ":id",
+                "rotate-secret"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "whep_xxx"
+                }
+              ]
+            },
+            "description": "Rotate an endpoint's signing secret\n\nIssues a new signing secret and returns it exactly once, in this response, as registration does. The cutover is immediate: the next delivery is signed with the new secret, while deliveries already queued keep their signature — update your receiver before rotating. No request body. Another project's endpoint answers 404. Credential: developer key with webhooks:write, or a merchant credential."
+          }
+        },
+        {
+          "name": "GET /v1/webhooks/events — listWebhookEvents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List your recent webhook events\n\nLists the events emitted for the owner your project is bound to, newest first, whether or not an endpoint received them. Credential: developer key with webhooks:read, or a merchant credential. There is no cursor: at most limit events are returned."
+          }
+        },
+        {
+          "name": "GET /v1/webhooks/events/{id}/deliveries — listWebhookDeliveries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/events/:id/deliveries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "events",
+                ":id",
+                "deliveries"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "whevt_xxx"
+                }
+              ]
+            },
+            "description": "Delivery history of one of your events\n\nOne delivery per endpoint the event was sent to, each with every attempt made (oldest first). Another project's event answers 404 — not an empty list. Credential: developer key with webhooks:read, or a merchant credential."
+          }
+        },
+        {
+          "name": "POST /v1/webhooks/deliveries/{id}/replay — replayWebhookDelivery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/deliveries/:id/replay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "deliveries",
+                ":id",
+                "replay"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "whdel_xxx"
+                }
+              ]
+            },
+            "description": "Re-send one of your deliveries\n\nPuts an existing delivery back in the queue as PENDING, keeping its id — one delivery per event per endpoint, so a replay is a further attempt, never a second delivery. For recovery after an endpoint outage; a delivery that already succeeded answers 409 and is not sent again. No request body. Another project's delivery answers 404. Credential: developer key with webhooks:write, or a merchant credential."
+          }
+        },
+        {
+          "name": "POST /v1/webhooks/endpoints/{id}/test — sendWebhookTestEvent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/endpoints/:id/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "endpoints",
+                ":id",
+                "test"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "whep_xxx"
+                }
+              ]
+            },
+            "description": "Send a test event to an endpoint\n\nSandbox only. Creates a synthetic webhook.test event (synthetic: true) and delivers it to this endpoint, signed like any other event, so you can check your receiver and signature verification. It describes no payment and moves nothing; it is not one of the subscribable events, and its delivery can be replayed even after success. Follow it with listWebhookDeliveries. No request body. Credential: Sandbox project key with webhooks:write."
+          }
+        }
+      ]
+    },
+    {
+      "name": "handles",
+      "description": "@banza lookup — confirm a destination exists before naming it",
+      "item": [
+        {
+          "name": "GET /v1/consumers/handle/{handle} — resolveHandle",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/consumers/handle/:handle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "consumers",
+                "handle",
+                ":handle"
+              ],
+              "variable": [
+                {
+                  "key": "handle",
+                  "value": "handle_xxx"
+                }
+              ]
+            },
+            "description": "Confirm a consumer @banza exists\n\nResolves a consumer @banza to its handle and display name — enough to confirm a destination exists before naming it, and nothing more: no id, no wallet, no balance, no status. The lookup is exact after normalisation (a leading @ and upper case are accepted). Only consumer handles resolve here; a Business @banza answers 404. Credential: developer key with customers:read (no project binding required), or a merchant credential."
+          }
+        }
+      ]
+    },
+    {
+      "name": "receipts",
+      "description": "Public verification of a payment receipt by its proof reference. No credential.",
+      "item": [
+        {
+          "name": "GET /v1/public/proofs/{ref} — verifyPublicProof",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/public/proofs/:ref",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "public",
+                "proofs",
+                ":ref"
+              ],
+              "variable": [
+                {
+                  "key": "ref",
+                  "value": "BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+                }
+              ]
+            },
+            "description": "Verify a receipt by its public proof reference\n\nPublic and unauthenticated: the reference is the capability. The current format is SECURE_V1 — BZM- followed by six groups of four symbols from 0-9 and A-Z without I, L, O and U (120 bits). Older eight-symbol references (BZM-XXXX-XXXX) still verify. Matching is EXACT: there is no normalisation, so lower-case letters, spaces or an extra hyphen answer 404 exactly like a reference that does not exist, on purpose. The same verification is the page https://banzami.com/r/{ref} that a receipt QR opens. Rate-limited per client. This is not the eight-character reference the Banzami app shows on a transfer, which is a display aid and does not verify.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "sandbox",
+      "description": "Sandbox test data — deterministic scenarios and test payers owned by your Project. Sandbox keys only; fictitious value.",
+      "item": [
+        {
+          "name": "GET /v1/sandbox/scenarios — listSandboxScenarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/scenarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "scenarios"
+              ]
+            },
+            "description": "List the deterministic Sandbox scenarios\n\nHow to produce each Sandbox outcome, what comes back and which event follows. Every scenario comes from a real operation, except external-rail outcomes, which are requested with simulate and marked simulated: true. There are no magic amounts. Credential: Sandbox project key with sandbox:read."
+          }
+        },
+        {
+          "name": "POST /v1/sandbox/test-payers — createTestPayer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/test-payers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "test-payers"
+              ]
+            },
+            "description": "Create a test payer\n\nCreates a Sandbox consumer owned by your Project, with a wallet and a fictitious opening balance. The PIN is returned once. At most 10 active test payers per Project. Credential: Sandbox project key with sandbox:write.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Maria (teste)\",\n  \"initial_balance_minor\": 1000000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /v1/sandbox/test-payers — listTestPayers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/test-payers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "test-payers"
+              ],
+              "query": [
+                {
+                  "key": "include_retired",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List your test payers\n\nYour Project's test payers, newest first, with their current fictitious balance. Credential: Sandbox project key with sandbox:read."
+          }
+        },
+        {
+          "name": "GET /v1/sandbox/test-payers/{id} — getTestPayer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/test-payers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "test-payers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "tp_xxx"
+                }
+              ]
+            },
+            "description": "Fetch a test payer\n\nOne of your Project's test payers. Another Project's payer answers 404. Credential: Sandbox project key with sandbox:read."
+          }
+        },
+        {
+          "name": "DELETE /v1/sandbox/test-payers/{id} — retireTestPayer",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/test-payers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "test-payers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "tp_xxx"
+                }
+              ]
+            },
+            "description": "Retire a test payer\n\nRetires the payer: its fictitious balance is retired through the ledger and it can no longer pay or be funded. Nothing is deleted; its payments and history stay readable. Credential: Sandbox project key with sandbox:write."
+          }
+        },
+        {
+          "name": "POST /v1/sandbox/test-payers/{id}/fund — fundTestPayer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/test-payers/:id/fund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "test-payers",
+                ":id",
+                "fund"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "tp_xxx"
+                }
+              ]
+            },
+            "description": "Add fictitious value to a test payer\n\nA fictitious top-up through the ledger — never a balance edit. The Idempotency-Key header is required and identifies the top-up. Limits: 2500000 per top-up, a 5000000 payer balance, and 20 top-ups and 10000000 per Project per 24 hours. Credential: Sandbox project key with sandbox:write.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_minor\": 500000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /v1/sandbox/test-payers/{id}/payments — payAsTestPayer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/test-payers/:id/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "test-payers",
+                ":id",
+                "payments"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "tp_xxx"
+                }
+              ]
+            },
+            "description": "Pay as a test payer\n\nPays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_session_id\": \"payment_session_xxx\",\n  \"via\": \"LINK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "realtime",
+      "description": "Realtime status of one Payment Session for a browser page, opened by a short-lived status token — not an API key, and not proof of payment.",
+      "item": [
+        {
+          "name": "GET /v1/realtime/payment-sessions/{id} — watchPaymentSessionStatus",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/realtime/payment-sessions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "realtime",
+                "payment-sessions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "payment_session_xxx"
+                }
+              ]
+            },
+            "description": "Watch a Payment Session's status\n\nFor a browser page. With Accept: text/event-stream, a Server-Sent Events stream: retry, then a snapshot event with the current status, a status event on each change, a ': heartbeat' comment every 15 seconds, and an expired event when the token expires. The stream closes after a terminal status (PAID, EXPIRED, CANCELLED, FAILED). A reconnect starts again from a fresh snapshot. With Accept: application/json, one snapshot. Open it with fetch and the token in the Authorization header — not EventSource, which cannot send it, and never with the token in the URL. Realtime status is for the screen, not proof of payment: fulfil on the signed payment_session.paid webhook or a GET made by your backend. CORS: any origin, no cookies. Limits: 3 streams per session, 20 per IP, 120 requests per minute per IP.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{statusToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "wallet-accounts",
+      "item": [
+        {
+          "name": "POST /v1/wallet-accounts — createWalletAccount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/wallet-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "wallet-accounts"
+              ]
+            },
+            "description": "Open a segregated account under your owner\n\nOpens a wallet account beneath the financial owner your project is bound to. Credential: developer key with wallet_accounts:create, or a merchant credential. The owner is always derived server-side; a client-supplied wallet is refused.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purpose\": \"CAMPAIGN\",\n  \"reference_type\": \"DOA_CAMPAIGN\",\n  \"reference_id\": \"campaign-a\",\n  \"label\": \"Campaign A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /v1/wallet-accounts — listWalletAccounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/wallet-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "wallet-accounts"
+              ],
+              "query": [
+                {
+                  "key": "wallet_id",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List the accounts under your wallet\n\nWith a developer key the listing is scoped to your project's bound wallet and a wallet_id parameter is refused. With a merchant credential, wallet_id names the wallet you own. Requires wallet_accounts:read."
+          }
+        },
+        {
+          "name": "GET /v1/wallet-accounts/{id} — getWalletAccount",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/wallet-accounts/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "wallet-accounts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "id_xxx"
+                }
+              ]
+            },
+            "description": "Retrieve one of your accounts\n\nReturns the account when it belongs to your owner. An account belonging to another owner returns 404 rather than 403: a status code that distinguished them would let one project enumerate another's accounts. Requires wallet_accounts:read."
+          }
+        }
+      ]
+    },
+    {
+      "name": "transfers",
+      "item": [
+        {
+          "name": "POST /v1/wallet-account-transfers — createWalletAccountTransfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/wallet-account-transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "wallet-account-transfers"
+              ]
+            },
+            "description": "Move value between two accounts of your own owner\n\nTransferências (BANZA ADR-052). Moves value between two wallet accounts of the financial owner your project is bound to. Nothing crosses the owner boundary: it is not a payout, not an application settlement, not consumer P2P. Credential: developer key with transfers:write. Both endpoints are validated against the caller’s owner in the gateway and again in Core; an account outside it answers 404, indistinguishable from one that does not exist.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_wallet_account_id\": \"wacc_source_xxx\",\n  \"destination_wallet_account_id\": \"wacc_destination_xxx\",\n  \"amount_minor\": 50000,\n  \"currency\": \"AOA\",\n  \"idempotency_key\": \"idem_xxx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         }
       ]

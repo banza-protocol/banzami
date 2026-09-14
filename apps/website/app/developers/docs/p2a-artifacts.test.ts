@@ -194,18 +194,23 @@ describe('P2A — Postman collection', () => {
     expect(vars.baseUrl).toBe('https://sandbox-api.banzami.com');
     expect(vars.apiKey).toBe('bz_test_sk_XXXX');
   });
-  it('matches the allowed endpoint set (no refunds/transfers/live surfaces)', () => {
+  it('matches the published endpoint set (no consumer transfers, no live surfaces)', () => {
     const raw = JSON.stringify(POSTMAN);
-    for (const bad of ['/v1/refunds', '/v1/transfers', '/v1/payments', 'checkout', 'api.banzami.com/v1', 'bz_live_']) {
+    // Refunds are a published developer route (since DOCS-PROD-001); consumer
+    // P2P transfers and any Live host are not.
+    for (const bad of ['/v1/transfers', '/v1/payments', 'checkout', 'api.banzami.com/v1']) {
       expect(raw.includes(bad), `Postman must not contain "${bad}"`).toBe(false);
     }
-    // Every request URL path is within the allowed set.
+    // Descriptions may say Live keys are refused; no Live key value may appear.
+    expect(/bz_live_(sk|pk)_[A-Za-z0-9]/.test(raw), 'Postman must not carry a Live key').toBe(false);
+    // Every request URL path is a published OpenAPI path (:name ↔ {name}).
     const urls: string[] = [];
     for (const folder of POSTMAN.item) for (const req of folder.item) urls.push(req.request.url.raw);
     for (const u of urls) {
-      const path = u.replace('{{baseUrl}}', '').replace('{{sessionId}}', '{id}').split('?')[0];
+      const path = u.replace('{{baseUrl}}', '').replace(/:(\w+)/g, '{$1}').split('?')[0];
       expect(ALLOWED_PATHS.includes(path), `unexpected Postman path: ${path}`).toBe(true);
     }
+    expect(urls.length).toBe(Object.values(OPENAPI.paths).reduce((n: number, ops) => n + Object.keys(ops as object).length, 0));
   });
   it('sends each request to the path it displays (url.path agrees with url.raw)', () => {
     // Postman sends the structured url.path, not url.raw. The session requests

@@ -518,6 +518,7 @@ jobs:
         run: |
           node tools/check-openapi-route-drift.mjs
           node tools/docs/build-explorer-allowlist.mjs --check
+          node tools/docs/build-postman.mjs --check
 
       # A retired application is easy to half-delete: the directory goes and a
       # deploy entry, a CI job or a doc page stays, and the next reader takes that
