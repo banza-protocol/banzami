@@ -221,6 +221,7 @@ export const PREDICATES = {
   SESSION_RACE: (e) => e.outcomes.every((s) => [201, 401, 409].includes(s)) && e.outcomes.includes(201) && e.outcomes.some((s) => s !== 201) && e.openAfterFinish === 0,
   FUNDING_PAYMENT_RACE: (e) => e.outcomes.every((s) => [200, 401, 409, 422].includes(s)) && e.outcomes.includes(200) && e.outcomes.some((s) => s !== 200) && e.unretired === 0 && e.funded === 0,
   ARCHIVED_PROJECT_DELETED: (e) => e.archive === 200 && [200, 202].includes(e.delete) && e.gone === true,
+  ARCHIVED_WORKSPACE_DELETED: (e) => e.archive === 200 && e.hiddenByDefault === true && e.offered === true && [200, 202].includes(e.delete) && e.gone === true,
   ARCHIVE_REGRESSION: (e) => e.archive === 200 && e.key === 401 && e.listedArchived === true && e.status === 'ARCHIVED' && e.payerRetired === false
     && e.business === 'ACTIVE' && e.workspaceArchive === 409 && e.deleteAfter === 202,
   SHARED_BUSINESS_KEPT: (e) => e.linked === 200 && [200, 202].includes(e.deleteOwner) && e.business === 'ACTIVE' && e.partnerPays === 200,
@@ -444,6 +445,7 @@ async function lifecycleSuite() {
   const dev = await developer('lfc');
   const s = dev.stamp;
   const finished = [];
+  const extraWorkspaces = [];
   try {
     // §50: the external rail is down; deletion does not need it.
     const R = await dev.project(`${dev.like}-rail`, 'STANDARD');
@@ -505,6 +507,16 @@ async function lifecycleSuite() {
     const linked = await dev.call(`/projects/${P2.id}/financial-onboarding/link`, 'POST', { code: code.body?.code });
     const MO = merchantOf(O.id);
 
+    // An archived Workspace is reachable ("Mostrar arquivados") and deletable.
+    const aw = (await dev.call('/workspaces', 'POST', { name: `${dev.like}-arquivo` })).body;
+    const awArchive = await dev.call(`/workspaces/${aw?.id}/archive`, 'POST', { name: aw?.name });
+    const hiddenByDefault = !((await dev.call('/workspaces')).body?.workspaces ?? []).some((w) => w.id === aw?.id);
+    const offered = ((await dev.call('/workspaces?include_archived=true')).body?.workspaces ?? []).some((w) => w.id === aw?.id && w.status === 'ARCHIVED');
+    const awDelete = await dev.call(`/workspaces/${aw?.id}`, 'DELETE', { name: aw?.name });
+    const awGone = !((await dev.call('/workspaces?include_archived=true')).body?.workspaces ?? []).some((w) => w.id === aw?.id);
+    j.mark('ARCHIVED_WORKSPACE_DELETED', 'An archived Workspace is offered on request and deleted', { archive: awArchive.status, hiddenByDefault, offered, delete: awDelete.status, gone: awGone });
+    extraWorkspaces.push(aw?.id);
+
     // §55: archive still does only what it did.
     const V = await dev.project(`${dev.like}-kept`, 'STANDARD');
     const vp = await V.api('/v1/sandbox/test-payers', 'POST', { label: 'V' }, { 'Idempotency-Key': `del_${s}_vp` });
@@ -544,8 +556,8 @@ async function lifecycleSuite() {
     j.steps.push({ key: 'ABORTED', verdict: 'FAIL', evidence: String(e.message ?? e) });
   } finally {
     const cleanup = await dev.cleanup();
-    await until(() => residue([dev.ws]) === 0, 10000, 2000);
-    j.mark('RESIDUE_ZERO', 'The Workspace is deleted through the product and nothing active remains', { cleanup, residue: residue([dev.ws]) });
+    await until(() => residue([dev.ws, ...extraWorkspaces]) === 0, 10000, 2000);
+    j.mark('RESIDUE_ZERO', 'The Workspace is deleted through the product and nothing active remains', { cleanup, residue: residue([dev.ws, ...extraWorkspaces]) });
   }
   return finish(j);
 }
@@ -592,6 +604,7 @@ const GOOD = {
   FUNDING_PAYMENT_RACE: { outcomes: [200, 401], unretired: 0, funded: 0 },
   // (mutations below also include a race that never interleaved)
   ARCHIVED_PROJECT_DELETED: { archive: 200, delete: 202, gone: true },
+  ARCHIVED_WORKSPACE_DELETED: { archive: 200, hiddenByDefault: true, offered: true, delete: 202, gone: true },
   ARCHIVE_REGRESSION: { archive: 200, key: 401, listedArchived: true, status: 'ARCHIVED', payerRetired: false, business: 'ACTIVE', workspaceArchive: 409, deleteAfter: 202 },
   SHARED_BUSINESS_KEPT: { linked: 200, deleteOwner: 202, business: 'ACTIVE', partnerPays: 200 },
   RESIDUE_ZERO: { cleanup: 202, residue: 0 },
@@ -607,7 +620,7 @@ const MUTATIONS = {
   WORKSPACE_AUTHORITY_ENDED: { keyC: 200 }, WORKSPACE_GONE_FOR_EVERYONE: { memberProject: 200 }, PENDING_INVITE_INVALID: { accept: 200 },
   WORKSPACE_TEST_RESOURCES_RETIRED: { businesses: ['SUSPENDED', 'ACTIVE'] }, OTHER_TENANT_UNTOUCHED: { key: 401 }, WORKSPACE_TOMBSTONE: { members: 1 },
   DELETE_WITH_RAIL_DOWN: { status: 503 }, CONCURRENT_DELETES: { requested: 2 }, KEY_RACE: { outcomes: [201, 201, 201] }, SESSION_RACE: { openAfterFinish: 1 },
-  FUNDING_PAYMENT_RACE: { funded: 1 }, ARCHIVED_PROJECT_DELETED: { gone: false }, ARCHIVE_REGRESSION: { payerRetired: true },
+  FUNDING_PAYMENT_RACE: { funded: 1 }, ARCHIVED_PROJECT_DELETED: { gone: false }, ARCHIVED_WORKSPACE_DELETED: { offered: false }, ARCHIVE_REGRESSION: { payerRetired: true },
   SHARED_BUSINESS_KEPT: { business: 'SUSPENDED' }, RESIDUE_ZERO: { residue: 1 },
 };
 
