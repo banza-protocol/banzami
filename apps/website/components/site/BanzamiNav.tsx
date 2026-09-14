@@ -29,8 +29,11 @@ function NavA({
   'aria-haspopup'?: boolean;
 }) {
   if (href.startsWith('/') && !href.startsWith('//')) {
+    // /verificar shares the proof readers' rate limit at the edge (20/min); a
+    // prefetch from every page that shows the menu would spend a visitor's
+    // budget before they ever verify anything.
     return (
-      <Link href={href} onClick={onClick} className={className} style={style} {...rest}>
+      <Link href={href} prefetch={href.startsWith('/verificar') ? false : undefined} onClick={onClick} className={className} style={style} {...rest}>
         {children}
       </Link>
     );

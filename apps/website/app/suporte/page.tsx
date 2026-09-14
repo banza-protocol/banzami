@@ -122,7 +122,7 @@ export default function SuportePage() {
               {h.href.startsWith('http') ? (
                 <a href={h.href} className="mt-auto text-[14px] font-extrabold text-cherry no-underline">{h.label} ↗</a>
               ) : (
-                <Link href={h.href} className="mt-auto text-[14px] font-extrabold text-cherry no-underline">{h.label}</Link>
+                <Link href={h.href} prefetch={h.href === '/verificar' ? false : undefined} className="mt-auto text-[14px] font-extrabold text-cherry no-underline">{h.label}</Link>
               )}
             </Reveal>
           ))}

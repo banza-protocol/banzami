@@ -317,9 +317,9 @@ export default function ProdutoPage() {
         <div className="mx-auto max-w-container">
           <Reveal className="mb-9 max-w-[720px]">
             <p className="m-0 mb-3 text-[14px] font-black text-cherry">A SOLUÇÃO</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
+            <h1 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
               Pagar, receber e verificar, numa só app.
-            </h2>
+            </h1>
             <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
               Do envio entre pessoas ao pagamento por QR, o Banzami junta numa só app o que hoje
               ainda está espalhado entre notas, comprovativos e confirmações lentas.
