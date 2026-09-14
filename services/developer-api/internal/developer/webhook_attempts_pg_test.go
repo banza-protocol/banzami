@@ -16,7 +16,7 @@ import (
 func TestPgStore_WebhookDeliveryAttempts(t *testing.T) {
 	ctx := context.Background()
 	pool := devPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	var reg *string
 	_ = pool.QueryRow(ctx, `SELECT to_regclass('public.webhook_delivery_attempts')::text`).Scan(&reg)
 	if reg == nil {
@@ -79,7 +79,7 @@ func TestPgStore_WebhookDeliveryAttempts(t *testing.T) {
 func TestPgStore_ReplayOfASucceededDeliveryOnlyForSyntheticEvents(t *testing.T) {
 	ctx := context.Background()
 	pool := devPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	var hasSynthetic bool
 	_ = pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='webhook_events' AND column_name='synthetic')`).Scan(&hasSynthetic)
 	if !hasSynthetic {

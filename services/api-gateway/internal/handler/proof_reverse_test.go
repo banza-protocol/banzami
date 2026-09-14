@@ -27,7 +27,7 @@ func TestProofHandler_Reverse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	var reg *string
 	_ = pool.QueryRow(ctx, `SELECT to_regclass('public.transaction_proofs')::text`).Scan(&reg)
 	if reg == nil {

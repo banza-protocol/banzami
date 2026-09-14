@@ -34,7 +34,7 @@ func compliancePoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
 func TestCompliance_SyncAssignNotesResolve(t *testing.T) {
 	ctx := context.Background()
 	pool := compliancePoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewComplianceService(pool, "SANDBOX")
 
 	m := uuid.NewString()
@@ -122,7 +122,7 @@ func TestCompliance_SyncAssignNotesResolve(t *testing.T) {
 func TestCompliance_OpenCountMatchesOpenList(t *testing.T) {
 	ctx := context.Background()
 	pool := compliancePoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewComplianceService(pool, "SANDBOX")
 	for _, st := range []string{"UNASSIGNED", "ASSIGNED", "ESCALATED", "RESOLVED"} {
 		id := uuid.NewString()

@@ -69,7 +69,7 @@ func kycDBOrSkip(t *testing.T) *pgxpool.Pool {
 // URL the storage returns must NEVER appear in the audit snapshot.
 func TestKyc_ReadURL_AuditsAccessWithoutLeakingURL(t *testing.T) {
 	pool := kycDBOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 
 	sub := uuid.NewString()
@@ -131,7 +131,7 @@ func TestKyc_ReadURL_AuditsAccessWithoutLeakingURL(t *testing.T) {
 // internal notes never enter the audit snapshot.
 func TestKyc_Approve_AuditsDecisionNotNotes(t *testing.T) {
 	pool := kycDBOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 
 	sub := uuid.NewString()

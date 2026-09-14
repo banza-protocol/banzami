@@ -33,7 +33,7 @@ func notifPoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
 func TestNotifications_GenerateListLifecycle(t *testing.T) {
 	ctx := context.Background()
 	pool := notifPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	// Seed a merchant + a real KYB "uploaded" event for it (the generation source).
 	m := uuid.NewString()
@@ -116,7 +116,7 @@ func TestNotifications_GenerateListLifecycle(t *testing.T) {
 func TestNotifications_EnvironmentIsolation(t *testing.T) {
 	ctx := context.Background()
 	pool := notifPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	id := uuid.NewString()
 	sk := "test-iso:" + id

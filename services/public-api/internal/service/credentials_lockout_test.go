@@ -25,7 +25,7 @@ func TestVerify_WrongPinsLockTheAccountEvenUnderConcurrency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	seed := func() (string, string) {
 		id := uuid.NewString()
@@ -95,7 +95,7 @@ func TestSessions_SuspensionAndSignOutEndThem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	id := uuid.NewString()
 	handle := "ss" + id[:8]
 	if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status) VALUES ($1,$2,'ACTIVE')`, id, handle); err != nil {
@@ -151,7 +151,7 @@ func TestVerify_ATestPayerDoesNotSignIn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	var reg *string
 	_ = pool.QueryRow(ctx, `SELECT to_regclass('public.sandbox_test_payers')::text`).Scan(&reg)
 	if reg == nil {

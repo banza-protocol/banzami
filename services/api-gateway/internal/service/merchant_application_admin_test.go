@@ -108,7 +108,7 @@ func appAdminPoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
 func TestApprove_ResumesExistingMerchant(t *testing.T) {
 	ctx := context.Background()
 	pool := appAdminPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	merchantID := uuid.NewString()
 	appID := uuid.NewString()
@@ -164,7 +164,7 @@ func TestApprove_ResumesExistingMerchant(t *testing.T) {
 func TestApprove_FreshCreatesAndRecordsMerchant(t *testing.T) {
 	ctx := context.Background()
 	pool := appAdminPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	merchantID := uuid.NewString()
 	appID := uuid.NewString()
@@ -224,7 +224,7 @@ func TestApprove_FreshCreatesAndRecordsMerchant(t *testing.T) {
 func TestApprove_FailsThenResumesWithoutDuplication(t *testing.T) {
 	ctx := context.Background()
 	pool := appAdminPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	merchantID := uuid.NewString()
 	appID := uuid.NewString()

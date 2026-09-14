@@ -31,7 +31,7 @@ func platformPoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
 func TestPlatform_SetModeRules(t *testing.T) {
 	ctx := context.Background()
 	pool := platformPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewPlatformService(pool)
 
 	// Restore whatever the mode was after the test (don't disturb shared state).
@@ -84,7 +84,7 @@ func TestPlatform_SetModeRules(t *testing.T) {
 func TestPlatform_FallbackSandbox(t *testing.T) {
 	ctx := context.Background()
 	pool := platformPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewPlatformService(pool)
 
 	// Temporarily corrupt the stored value; GetMode must fall back to SANDBOX.

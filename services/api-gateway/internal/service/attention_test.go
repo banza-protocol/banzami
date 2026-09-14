@@ -26,7 +26,7 @@ func attentionNow(t *testing.T, s *AttentionService) map[string]int {
 
 func TestAttention_CountsOnlyWhatWaitsForAnOperator(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	svc := NewAttentionService(pool, "SANDBOX")
 	before := attentionNow(t, svc)
@@ -143,7 +143,7 @@ func TestAttention_CountsOnlyWhatWaitsForAnOperator(t *testing.T) {
 // The Candidaturas page filters with the same definition the badge counts.
 func TestAttention_ApplicationsListMatchesTheBadge(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	for _, st := range []string{"SUBMITTED", "UNDER_REVIEW", "REJECTED", "INFORMATION_REQUIRED"} {
 		id := uuid.NewString()
@@ -177,7 +177,7 @@ func TestAttention_ApplicationsListMatchesTheBadge(t *testing.T) {
 // failing the whole summary (Postgres parses every relation in a statement).
 func TestAttention_ToleratesAMissingTable(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	var has bool
 	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.disputes') IS NOT NULL`).Scan(&has); err != nil {

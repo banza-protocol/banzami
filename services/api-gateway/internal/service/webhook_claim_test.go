@@ -39,8 +39,11 @@ func TestClaimDueDeliveries_OneTickOneClaim(t *testing.T) {
 	      VALUES ($1, $2, 'https://example.test/hook', ARRAY['refund.completed'], true, 'sec', 'SANDBOX')`, ep, merchant)
 	must(`INSERT INTO webhook_events (id, merchant_id, event_type, payload, idempotency_key)
 	      VALUES ($1, $2, 'refund.completed', '{"data":{}}'::jsonb, $3)`, ev, merchant, "claim:"+ev)
+	// Due long ago, so it is first in the claim's ORDER BY scheduled_at LIMIT 50
+	// however many other due rows a shared test database holds. Seeded "one
+	// second ago", the test failed whenever fifty older PENDING rows existed.
 	must(`INSERT INTO webhook_deliveries (id, event_id, endpoint_id, status, attempt_count, max_attempts, scheduled_at)
-	      VALUES ($1, $2, $3, 'PENDING', 0, 5, now() - interval '1 second')`, del, ev, ep)
+	      VALUES ($1, $2, $3, 'PENDING', 0, 5, now() - interval '10 years')`, del, ev, ep)
 
 	mine := func(ds []pendingDelivery) int {
 		n := 0

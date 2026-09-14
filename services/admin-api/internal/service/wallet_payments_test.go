@@ -35,7 +35,7 @@ func walletPaymentsPoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
 func TestWalletPaymentsList_PayeeIsPublicIdentity_ReferenceIsTheTransfersProof(t *testing.T) {
 	ctx := context.Background()
 	pool := walletPaymentsPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	m, c := uuid.NewString(), uuid.NewString()
 	handle := "wp" + uuid.NewString()[:8]

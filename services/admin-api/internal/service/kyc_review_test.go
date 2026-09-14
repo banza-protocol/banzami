@@ -64,7 +64,7 @@ func TestKycReviewDecisions_RealDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	var reg *string
 	_ = pool.QueryRow(ctx, `SELECT to_regclass('public.kyc_cases')::text`).Scan(&reg)
 	if reg == nil {
@@ -138,7 +138,7 @@ func TestKycReviewDecisions_RealDB(t *testing.T) {
 func TestKycReview_EnrichmentAndTimeline(t *testing.T) {
 	ctx := context.Background()
 	pool := kycPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewKycReviewService(pool, nil)
 
 	sub := uuid.NewString()
@@ -213,7 +213,7 @@ func TestKycReview_EnrichmentAndTimeline(t *testing.T) {
 func TestKycReview_OnePerConsumer(t *testing.T) {
 	ctx := context.Background()
 	pool := kycPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewKycReviewService(pool, nil)
 
 	sub := uuid.NewString()
@@ -261,7 +261,7 @@ func TestKycReview_OnePerConsumer(t *testing.T) {
 func TestKycReview_ReadEvidenceURL(t *testing.T) {
 	ctx := context.Background()
 	pool := kycPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 
 	sub := uuid.NewString()
 	caseID := seedUnderReviewCase(ctx, t, pool, sub)

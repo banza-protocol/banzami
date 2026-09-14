@@ -22,7 +22,7 @@ func TestProofAdmin_ReturnsOperationSemantics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	var has bool
 	_ = pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.columns
 		WHERE table_name='transaction_proofs' AND column_name='operation_kind')`).Scan(&has)

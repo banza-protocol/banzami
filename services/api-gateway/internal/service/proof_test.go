@@ -38,7 +38,7 @@ var refRe = regexp.MustCompile(`^BZM(?:-[0-9A-HJKMNP-TV-Z]{4}){6}$`)
 func TestProof_EnsureIdempotentHashAndPublic(t *testing.T) {
 	ctx := context.Background()
 	pool := proofPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewProofService(pool, "test-key", "op-hmac-v1", "banzami", "banza", "https://banzami.com/r/")
 
 	txn := uuid.NewString()
@@ -121,7 +121,7 @@ func TestProof_EnsureIdempotentHashAndPublic(t *testing.T) {
 func TestProof_ReversalLifecycle(t *testing.T) {
 	ctx := context.Background()
 	pool := proofPoolOrSkip(ctx, t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	svc := NewProofService(pool, "test-key", "op-hmac-v1", "banzami", "banza", "https://banzami.com/r/")
 
 	confirmed := time.Now().UTC().Truncate(time.Second)

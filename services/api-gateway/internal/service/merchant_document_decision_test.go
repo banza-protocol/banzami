@@ -15,7 +15,7 @@ import (
 // application still under review, or refused with the reason.
 func TestDocumentDecision_NeedsAFileAndAnOpenApplication(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	svc := NewPostgresMerchantDocumentService(pool, nil, 0)
 

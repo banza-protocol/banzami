@@ -47,7 +47,7 @@ func TestPgInvite_ScopedRevokeAndPendingOnlyAccept(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	st := NewPGStore(pool, env.Parse("SANDBOX"))
 
 	ws := func(name string) string {

@@ -47,7 +47,7 @@ func seedKybDoc(t *testing.T, pool *pgxpool.Pool, merchantID, status string) str
 
 func TestKybAdminList_EnrichesMerchant(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	svc := NewPostgresMerchantKybService(pool, kybstorage.NewFakeStorage("banzami-kyb-sandbox"), 5*1024*1024)
 
@@ -91,7 +91,7 @@ func TestKybAdminList_EnrichesMerchant(t *testing.T) {
 // through the database while this constraint stands, which is the point.
 func TestKybDocument_CannotBeOrphaned(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 
 	// 1. Inserting a document for a merchant that does not exist is rejected.
@@ -131,7 +131,7 @@ func TestKybDocument_CannotBeOrphaned(t *testing.T) {
 // counts distinct merchants, not loose documents.
 func TestKybAdminMerchants_AggregatesAndCounts(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	svc := NewPostgresMerchantKybService(pool, kybstorage.NewFakeStorage("banzami-kyb-sandbox"), 5*1024*1024)
 
@@ -192,7 +192,7 @@ func TestKybAdminMerchants_AggregatesAndCounts(t *testing.T) {
 
 func TestKybContext_Timeline_Notes(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	svc := NewPostgresMerchantKybService(pool, kybstorage.NewFakeStorage("banzami-kyb-sandbox"), 5*1024*1024)
 

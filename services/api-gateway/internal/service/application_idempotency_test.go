@@ -13,7 +13,7 @@ import (
 // whoever replayed their key. A replay now answers only the same submission.
 func TestSubmit_AReplayAnswersOnlyTheSameSubmission(t *testing.T) {
 	pool := dbPoolOrSkip(t)
-	defer pool.Close()
+	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	ctx := context.Background()
 	svc := NewPostgresMerchantApplicationService(pool)
 	key := uuid.NewString()
