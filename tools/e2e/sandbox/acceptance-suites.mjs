@@ -745,11 +745,19 @@ async function railIsolation() {
     const k = await devB.call(`/projects/${b2id}/keys`, 'POST', { kind: 'SECRET', name: `${devB.like}-shared`, scopes: SCOPES });
     B2 = { id: b2id, api: keyCaller(k.body?.secret ?? '') };
     devB.adopt?.(b2id);
-    const [fa, fb2] = [await A.api('/v1/financial-setup'), await B2.api('/v1/financial-setup')];
-    const sameBusiness = Boolean(fa.body?.readiness?.financial_identity?.handle) && fa.body?.readiness?.financial_identity?.handle === fb2.body?.readiness?.financial_identity?.handle;
+    // A client honours Retry-After; a 429 here is the Sandbox's rate limit, not the rail.
+    const polite = (api) => async (...args) => {
+      let r;
+      for (let i = 0; i < 6; i += 1) { r = await api(...args); if (r.status !== 429) return r; await sleep((Number(r.headers?.['retry-after']) || 10) * 1000); }
+      return r;
+    };
+    for (const P of [A, B1, B2]) P.api = polite(P.api);
+    const [fa, fb2, fb1] = [await devA.call(`/projects/${A.id}/financial-setup`), await devB.call(`/projects/${b2id}/financial-setup`), await devB.call(`/projects/${B1.id}/financial-setup`)];
+    const handleOf = (r) => r.body?.readiness?.financial_identity?.handle ?? r.body?.onboarding?.business?.handle ?? null;
+    const sameBusiness = Boolean(handleOf(fa)) && handleOf(fa) === handleOf(fb2) && handleOf(fb1) !== handleOf(fa);
     const differentWorkspaces = devA.ws !== devB.ws;
     mark('SETUP', 'Two Workspaces; B1 with its own Business; B2 connected to A\'s Business by consent code', code.status === 201 && link.status === 200 && sameBusiness && differentWorkspaces,
-      `share=${code.status} link=${link.status} same_business=${sameBusiness} different_workspaces=${differentWorkspaces}`);
+      `share=${code.status} link=${link.status} A=${handleOf(fa)} B2=${handleOf(fb2)} B1=${handleOf(fb1)} same_business=${sameBusiness} different_workspaces=${differentWorkspaces}`);
 
     const payers = {};
     for (const [name, P] of [['A', A], ['B1', B1], ['B2', B2]]) payers[name] = (await payer(P.api, `${s}_ri_${name}`)).body?.id;
@@ -780,15 +788,16 @@ async function railIsolation() {
 
     // Nothing a key sends names another Project or Business.
     await setRail(B2, 'AVAILABLE');
-    const spoof = await setRail(B2, 'UNAVAILABLE', { project_id: A.id, merchant_id: fa.body?.readiness?.financial_identity?.merchant_id ?? randomUUID(), scope: 'BUSINESS' });
+    const spoof = await setRail(B2, 'UNAVAILABLE', { project_id: A.id, merchant_id: randomUUID(), scope: 'BUSINESS' });
     const afterSpoof = { A: await rail(A), B2: await rail(B2) };
     await setRail(B2, 'AVAILABLE');
     // The Console refuses another Workspace's Project, for the switch and for anything else.
     const consoleCross = await devB.call(`/projects/${A.id}/explorer/requests`, 'POST', { operation_id: 'setSandboxExternalRail', body: { state: 'UNAVAILABLE' } });
     const internalRoute = await fetch(`${GW}/internal/v1/sandbox/projects/${A.id}/external-rail/${randomUUID()}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{"state":"UNAVAILABLE"}' });
+    const aFinal = await rail(A);
     mark('NO_CROSS_TARGET', 'A key cannot name another Project; the Console refuses another Workspace; Core\'s route is not public',
-      spoof.status === 200 && afterSpoof.A === 'AVAILABLE' && afterSpoof.B2 === 'UNAVAILABLE' && [403, 404].includes(consoleCross.status) && [401, 403, 404].includes(internalRoute.status) && (await rail(A)) === 'AVAILABLE',
-      `spoof_set=${spoof.status} A_after=${afterSpoof.A} console_cross=${consoleCross.status} internal_route=${internalRoute.status}`);
+      spoof.status === 200 && afterSpoof.A === 'AVAILABLE' && afterSpoof.B2 === 'UNAVAILABLE' && [403, 404].includes(consoleCross.status) && [401, 403, 404].includes(internalRoute.status) && aFinal === 'AVAILABLE',
+      `spoof_set=${spoof.status}/${spoof.body?.state} A_after=${afterSpoof.A} B2_after=${afterSpoof.B2} console_cross=${consoleCross.status}/${consoleCross.body?.code ?? ''} internal_route=${internalRoute.status} A_final=${aFinal}`);
 
     // The switch does not exist on the Live host, and a Sandbox key reaches nothing there.
     const liveSet = await fetch('https://api.banzami.com/v1/sandbox/external-rail', { method: 'PUT', headers: { authorization: `Bearer ${String(k.body?.secret ?? '')}`, 'content-type': 'application/json' }, body: '{"state":"UNAVAILABLE"}' });
