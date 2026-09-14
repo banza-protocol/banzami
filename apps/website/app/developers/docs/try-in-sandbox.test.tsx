@@ -7,6 +7,10 @@ import { cleanup, render } from '@testing-library/react';
 import { ResourceReference } from './reference';
 import explorerOperations from './explorer-operations.json';
 
+// The full API reference renders every endpoint with its highlighted examples; in
+// jsdom, under the whole suite's parallel load, that can pass 5 s.
+vi.setConfig({ testTimeout: 30_000 });
+
 afterEach(cleanup);
 
 describe('Try in Sandbox', () => {

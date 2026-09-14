@@ -25,6 +25,10 @@ import EnWebhooksPage from './en/webhooks/page';
 import EnConceptsPage from './en/concepts/page';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
+// The full API reference renders every endpoint with its highlighted examples; in
+// jsdom, under the whole suite's parallel load, that can pass 5 s.
+vi.setConfig({ testTimeout: 30_000 });
+
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: PT/EN corpora = area content + landing pages.
 const PT = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/HomePage.tsx');

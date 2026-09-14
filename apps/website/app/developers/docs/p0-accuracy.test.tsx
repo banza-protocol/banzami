@@ -23,6 +23,10 @@ import PtReferencePage from './reference/page';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
+// The full API reference renders every endpoint with its highlighted examples; in
+// jsdom, under the whole suite's parallel load, that can pass 5 s.
+vi.setConfig({ testTimeout: 30_000 });
+
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: the PT documentation corpus = area content + landing page.
 const DOCS = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/HomePage.tsx');

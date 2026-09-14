@@ -8,6 +8,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { ENDPOINTS, RESOURCE_GROUPS, ResourceReference } from './reference';
 
+// The full API reference renders every endpoint with its highlighted examples; in
+// jsdom, under the whole suite's parallel load, that can pass 5 s.
+vi.setConfig({ testTimeout: 30_000 });
+
 afterEach(cleanup);
 
 describe('Resource reference completeness', () => {

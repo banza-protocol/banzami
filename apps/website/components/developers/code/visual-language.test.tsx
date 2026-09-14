@@ -18,6 +18,10 @@ import { ENDPOINTS, ResourceReference } from '@/app/developers/docs/reference';
 import openapiStatuses from '@/app/developers/docs/openapi-statuses.json';
 import { statusesFrom } from '../../../../../tools/docs/build-openapi-statuses.mjs';
 
+// The full API reference renders every endpoint with its highlighted examples; in
+// jsdom, under the whole suite's parallel load, that can pass 5 s.
+vi.setConfig({ testTimeout: 30_000 });
+
 const ROOT = process.cwd();
 const SPEC = JSON.parse(readFileSync(join(ROOT, 'public/developers/openapi/banzami-sandbox.openapi.json'), 'utf8'));
 const HTTP_VERBS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
