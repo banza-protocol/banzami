@@ -200,6 +200,9 @@ pub enum ComplianceStatus {
     Rejected,
     UnderReview,
     Suspended,
+    /// A synthetic Sandbox test entity (ADR-060). Not a review outcome: it never
+    /// operates as APPROVED, and Core writes it only outside LIVE.
+    SandboxSynthetic,
 }
 
 impl ComplianceStatus {
@@ -210,6 +213,7 @@ impl ComplianceStatus {
             Self::Rejected => "REJECTED",
             Self::UnderReview => "UNDER_REVIEW",
             Self::Suspended => "SUSPENDED",
+            Self::SandboxSynthetic => "SANDBOX_SYNTHETIC",
         }
     }
 
@@ -220,6 +224,7 @@ impl ComplianceStatus {
             "REJECTED" => Some(Self::Rejected),
             "UNDER_REVIEW" => Some(Self::UnderReview),
             "SUSPENDED" => Some(Self::Suspended),
+            "SANDBOX_SYNTHETIC" => Some(Self::SandboxSynthetic),
             _ => None,
         }
     }

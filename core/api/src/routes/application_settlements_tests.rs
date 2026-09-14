@@ -239,7 +239,7 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn fee_guard_accepts_approved_application(pool: PgPool) {
     let (_m, fee) = seed_business_account(&pool, "APPLICATION", "APPROVED").await;
-    routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee))
+    routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee), false)
         .await
         .expect("approved APPLICATION business account is a valid fee destination");
 }
@@ -247,7 +247,7 @@ async fn fee_guard_accepts_approved_application(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn fee_guard_rejects_plain_merchant_type(pool: PgPool) {
     let (_m, fee) = seed_business_account(&pool, "MERCHANT", "APPROVED").await;
-    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee))
+    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee), false)
         .await
         .unwrap_err();
     assert!(format!("{e:?}").contains("TYPE_NOT_ALLOWED"), "got {e:?}");
@@ -256,7 +256,7 @@ async fn fee_guard_rejects_plain_merchant_type(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn fee_guard_rejects_unapproved_kyb(pool: PgPool) {
     let (_m, fee) = seed_business_account(&pool, "APPLICATION", "PENDING").await;
-    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee))
+    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee), false)
         .await
         .unwrap_err();
     assert!(format!("{e:?}").contains("KYB_NOT_APPROVED"), "got {e:?}");
@@ -266,7 +266,7 @@ async fn fee_guard_rejects_unapproved_kyb(pool: PgPool) {
 async fn fee_guard_rejects_non_business_account(pool: PgPool) {
     // A bare ledger account that belongs to no Business Account.
     let orphan = account(&pool, "LIABILITY", "orphan").await;
-    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(orphan))
+    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(orphan), false)
         .await
         .unwrap_err();
     assert!(

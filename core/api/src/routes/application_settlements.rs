@@ -154,6 +154,7 @@ pub struct FeeDestinationEvaluation {
 pub(crate) async fn evaluate_fee_destination(
     pool: &PgPool,
     fee_account: AccountId,
+    state_is_live: bool,
 ) -> Result<FeeDestinationEvaluation, ApiError> {
     let mut ev = FeeDestinationEvaluation::default();
     let Some(merchant_id) = merchant_for_account(pool, fee_account).await else {
@@ -188,7 +189,9 @@ pub(crate) async fn evaluate_fee_destination(
     };
     ev.resolved = true;
     ev.active = status == "ACTIVE";
-    ev.kyb_approved = kyb_status.as_deref() == Some("APPROVED");
+    // APPROVED, or a synthetic Sandbox Business outside LIVE (ADR-060).
+    ev.kyb_approved =
+        super::sandbox_businesses::kyb_allows_application_fee(state_is_live, kyb_status.as_deref());
     ev.wallet_active = wallet_active;
     ev.type_allowed = banzami_merchants::allows_application_fee(&account_type);
 
@@ -216,8 +219,9 @@ pub(crate) async fn evaluate_fee_destination(
 pub(crate) async fn guard_application_fee_destination(
     pool: &PgPool,
     fee_account: AccountId,
+    state_is_live: bool,
 ) -> Result<(), ApiError> {
-    let ev = evaluate_fee_destination(pool, fee_account).await?;
+    let ev = evaluate_fee_destination(pool, fee_account, state_is_live).await?;
     match (ev.blocker, ev.blocker_message) {
         (Some(code), Some(msg)) => Err(ApiError::unprocessable(code, msg)),
         _ => Ok(()),
@@ -373,7 +377,8 @@ pub async fn create(
                 fee: quote.fee_minor,
             })
         })?;
-        guard_application_fee_destination(&state.pool, fee_acct).await?;
+        guard_application_fee_destination(&state.pool, fee_acct, state.environment.is_live())
+            .await?;
         Some(fee_acct)
     } else {
         None

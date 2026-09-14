@@ -788,6 +788,17 @@ async fn main() {
             post(routes::sandbox_business::business_readiness),
         )
         .route(
+            // A synthetic Sandbox Business for a Developer Project (ADR-060):
+            // merchant, wallet, derived handle, SANDBOX_SYNTHETIC compliance, and
+            // the classification and pricing its use case receives. Refuses in LIVE.
+            "/internal/v1/sandbox/businesses",
+            post(routes::sandbox_businesses::provision),
+        )
+        .route(
+            "/internal/v1/sandbox/businesses/use-case",
+            axum::routing::put(routes::sandbox_businesses::change_use_case),
+        )
+        .route(
             // Whether a financial owner can settle, answered by the code that
             // settles: the same pricing resolver and the same ADR-028 evaluation.
             // Read-only; carries no internal identifier in its response.

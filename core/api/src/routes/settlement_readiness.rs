@@ -258,7 +258,8 @@ pub async fn settlement_readiness(
             Some("FEE_DESTINATION_NOT_OWNED")
         }
         (true, Some(acct)) => {
-            let ev: FeeDestinationEvaluation = evaluate_fee_destination(&state.pool, acct).await?;
+            let ev: FeeDestinationEvaluation =
+                evaluate_fee_destination(&state.pool, acct, state.environment.is_live()).await?;
             fd.resolved = ev.resolved;
             fd.active = ev.active;
             fd.kyb_approved = ev.kyb_approved;

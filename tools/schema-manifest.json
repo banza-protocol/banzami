@@ -735,6 +735,121 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "Self-service Public Sandbox (0142 / ADR-060)",
+      "why": "A synthetic Sandbox Business per Project with its own KYB status, Project-owned test payers and their fictitious funding, Project-issued consent codes, short-lived API Explorer keys, the Project's Sandbox use case, and synthetic webhook test events.",
+      "tables": [
+        {
+          "name": "sandbox_businesses",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "use_case",
+              "nullable": false
+            }
+          ]
+        },
+        {
+          "name": "sandbox_test_payers",
+          "columns": [
+            {
+              "name": "consumer_id",
+              "nullable": false
+            },
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "label",
+              "nullable": true
+            },
+            {
+              "name": "retired_at",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "idx_sandbox_test_payers_project"
+          ]
+        },
+        {
+          "name": "sandbox_test_fundings",
+          "columns": [
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "consumer_id",
+              "nullable": false
+            },
+            {
+              "name": "amount_minor",
+              "nullable": false
+            },
+            {
+              "name": "kind",
+              "nullable": false
+            },
+            {
+              "name": "idempotency_key",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "idx_sandbox_test_fundings_project_day"
+          ]
+        },
+        {
+          "name": "business_link_codes",
+          "columns": [
+            {
+              "name": "issued_by_project_id",
+              "nullable": true
+            }
+          ]
+        },
+        {
+          "name": "developer.dev_api_keys",
+          "columns": [
+            {
+              "name": "purpose",
+              "nullable": false
+            },
+            {
+              "name": "expires_at",
+              "nullable": true
+            }
+          ]
+        },
+        {
+          "name": "developer.dev_project_sandbox_binding",
+          "columns": [
+            {
+              "name": "sandbox_use_case",
+              "nullable": true
+            }
+          ]
+        },
+        {
+          "name": "webhook_events",
+          "columns": [
+            {
+              "name": "synthetic",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }
