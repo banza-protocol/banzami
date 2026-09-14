@@ -383,13 +383,11 @@ async fn a_down_rail_neither_submits_nor_confirms_a_payout(pool: PgPool) {
 
     let sent = payouts::mark_sent(State(state.clone()), Path(ids[0].to_string()))
         .await
-        .err()
-        .expect("submission crosses the rail");
+        .expect_err("submission crosses the rail");
     assert_eq!(sent.code, "PROVIDER_UNAVAILABLE");
     let confirmed = payouts::confirm(State(state.clone()), Path(ids[1].to_string()))
         .await
-        .err()
-        .expect("only the rail confirms");
+        .expect_err("only the rail confirms");
     assert_eq!(confirmed.code, "PROVIDER_UNAVAILABLE");
 
     for (id, want) in [(ids[0], "PROCESSING"), (ids[1], "SENT")] {
