@@ -1646,6 +1646,12 @@
   },
   {
    "k": "error",
+   "t": "SANDBOX_VALUE_PERIMETER",
+   "h": "/docs/errors#error-SANDBOX_VALUE_PERIMETER",
+   "d": "Um negócio de teste do Sandbox só liquida para um pagador de teste ou outro negócio de teste, e a sua taxa só vai para um negócio de teste. O valor de teste nunca chega a uma conta real."
+  },
+  {
+   "k": "error",
    "t": "FEE_EXCEEDS_GROSS",
    "h": "/docs/errors#error-FEE_EXCEEDS_GROSS",
    "d": "A taxa calculada seria superior ao montante bruto a liquidar."
@@ -3888,6 +3894,12 @@
    "t": "FEE_DESTINATION_TYPE_NOT_ALLOWED",
    "h": "/docs/en/errors#error-FEE_DESTINATION_TYPE_NOT_ALLOWED",
    "d": "The fee can only go to an APPLICATION or PLATFORM account."
+  },
+  {
+   "k": "error",
+   "t": "SANDBOX_VALUE_PERIMETER",
+   "h": "/docs/en/errors#error-SANDBOX_VALUE_PERIMETER",
+   "d": "A Sandbox test Business settles only to a test payer or another test Business, and its fee goes only to a test Business. Test value never reaches a real account."
   },
   {
    "k": "error",

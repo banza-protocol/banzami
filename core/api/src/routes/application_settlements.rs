@@ -228,6 +228,74 @@ pub(crate) async fn guard_application_fee_destination(
     }
 }
 
+/// ADR-060 §6, the value perimeter: fictitious value issued to test payers and
+/// test Businesses stays among test payers and test Businesses.
+///
+/// A test payer pays only its own Project's Business, and cannot sign in
+/// anywhere to do more. What a synthetic Business receives leaves it only by
+/// settlement, so this is where the perimeter closes: its beneficiary must be an
+/// unretired test payer or a synthetic Business, and so must its fee
+/// destination. Without it one self-service account could issue test value
+/// Project after Project and settle it to any consumer in the Sandbox — or
+/// name a real application's Business as the fee destination — past the
+/// Sandbox-wide funds cap every real Sandbox account shares.
+///
+/// A source that is not a synthetic Business is not this guard's business: a
+/// real Business settles under the rules it already has. LIVE has no synthetic
+/// Businesses, and the guard does nothing there.
+pub(crate) async fn guard_sandbox_value_perimeter(
+    pool: &PgPool,
+    source: AccountId,
+    beneficiary: AccountId,
+    fee: Option<AccountId>,
+    state_is_live: bool,
+) -> Result<(), ApiError> {
+    if state_is_live {
+        return Ok(());
+    }
+    let synthetic_owner = |account: AccountId| async move {
+        sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS (
+               SELECT 1 FROM sandbox_businesses sb
+                WHERE sb.merchant_id IN (
+                  SELECT merchant_id FROM wallets WHERE available_account_id = $1
+                  UNION ALL
+                  SELECT merchant_id FROM wallet_accounts WHERE account_id = $1))",
+        )
+        .bind(account.as_uuid())
+        .fetch_one(pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))
+    };
+    if !synthetic_owner(source).await? {
+        return Ok(());
+    }
+    let beneficiary_is_test_payer: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM sandbox_test_payers tp
+                          JOIN consumer_wallets cw ON cw.consumer_id = tp.consumer_id
+                         WHERE cw.available_account_id = $1 AND tp.retired_at IS NULL)",
+    )
+    .bind(beneficiary.as_uuid())
+    .fetch_one(pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+    if !beneficiary_is_test_payer && !synthetic_owner(beneficiary).await? {
+        return Err(ApiError::unprocessable(
+            "SANDBOX_VALUE_PERIMETER",
+            "a test Business settles only to a test payer or a test Business — test value never reaches a real account",
+        ));
+    }
+    if let Some(fee) = fee {
+        if !synthetic_owner(fee).await? {
+            return Err(ApiError::unprocessable(
+                "SANDBOX_VALUE_PERIMETER",
+                "a test Business's application fee goes only to a test Business — test value never reaches a real account",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Emit an application_settlement.* webhook (idempotent on the settlement id).
 async fn emit_settlement_event(pool: &PgPool, event: &str, s: &serde_json::Value) {
     let (Some(id), Some(src)) = (
@@ -351,6 +419,14 @@ pub async fn create(
         (None, None) => None,
         (a, w) => Some(account_or_wallet(&state.pool, a, w, "application_fee").await?),
     };
+    guard_sandbox_value_perimeter(
+        &state.pool,
+        source_account_id,
+        beneficiary_account_id,
+        named_fee_account,
+        state.environment.is_live(),
+    )
+    .await?;
 
     // The operator's pricing decision FIRST, and the fee destination only when
     // that decision is a fee.

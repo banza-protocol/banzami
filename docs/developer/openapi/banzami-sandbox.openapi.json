@@ -1335,7 +1335,7 @@
             }
           },
           "422": {
-            "description": "SOURCE_NOT_SEGREGATED (source is the PRIMARY account), BENEFICIARY_NOT_FOUND (no active wallet in this currency), NOTHING_TO_SETTLE (zero available balance), FEE_DESTINATION_NOT_FOUND, FEE_DESTINATION_REQUIRED (your pricing resolves a fee and no destination was named), FEE_DESTINATION_NOT_ACTIVE, FEE_DESTINATION_KYB_NOT_APPROVED, FEE_DESTINATION_WALLET_UNAVAILABLE, FEE_DESTINATION_TYPE_NOT_ALLOWED, FEE_DESTINATION_NOT_BUSINESS_ACCOUNT, FEE_EXCEEDS_GROSS, INSUFFICIENT_FUNDS, SETTLEMENT_NOT_COMPLETED",
+            "description": "SOURCE_NOT_SEGREGATED (source is the PRIMARY account), BENEFICIARY_NOT_FOUND (no active wallet in this currency), NOTHING_TO_SETTLE (zero available balance), FEE_DESTINATION_NOT_FOUND, FEE_DESTINATION_REQUIRED (your pricing resolves a fee and no destination was named), FEE_DESTINATION_NOT_ACTIVE, FEE_DESTINATION_KYB_NOT_APPROVED, FEE_DESTINATION_WALLET_UNAVAILABLE, FEE_DESTINATION_TYPE_NOT_ALLOWED, FEE_DESTINATION_NOT_BUSINESS_ACCOUNT, SANDBOX_VALUE_PERIMETER (a test Business settles only to a test payer or a test Business), FEE_EXCEEDS_GROSS, INSUFFICIENT_FUNDS, SETTLEMENT_NOT_COMPLETED",
             "content": {
               "application/json": {
                 "schema": {
@@ -2414,7 +2414,7 @@
         "operationId": "createTestPayer",
         "summary": "Create a test payer",
         "x-banzami-scope": "sandbox:write",
-        "description": "Creates a Sandbox consumer owned by your Project, with a wallet and a fictitious opening balance. The PIN is returned once. At most 10 active test payers per Project. Credential: Sandbox project key with sandbox:write.",
+        "description": "Creates a Sandbox consumer owned by your Project, with a wallet and a fictitious opening balance. A test payer acts only through this API: it pays the Project's own sessions and links and signs in to no app. At most 10 active test payers per Project. Credential: Sandbox project key with sandbox:write.",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -2436,7 +2436,7 @@
         },
         "responses": {
           "201": {
-            "description": "Test payer created; pin appears only here",
+            "description": "Test payer created",
             "content": {
               "application/json": {
                 "schema": {
@@ -2451,8 +2451,7 @@
                   "currency": "AOA",
                   "environment": "SANDBOX",
                   "created_at": "2026-09-14T10:00:00Z",
-                  "retired_at": null,
-                  "pin": "000000"
+                  "retired_at": null
                 }
               }
             }
@@ -4806,10 +4805,6 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
-          },
-          "pin": {
-            "type": "string",
-            "description": "Six digits, returned once in the creation response only — for signing in to the hosted payment page as this payer."
           }
         },
         "required": [

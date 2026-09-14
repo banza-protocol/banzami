@@ -67,6 +67,9 @@ func main() {
 
 	core := service.NewCorePublicClient(cfg.CoreAPIURL).WithInternalKey(cfg.CoreInternalKey)
 	creds := service.NewCredentialStore(pool)
+	if env.Parse(cfg.Environment).IsSandbox() {
+		creds.ConfineTestPayers()
+	}
 	testPayers := service.NewTestPayerStore(pool)
 
 	// Consumer KYC evidence storage (R2). Optional: a nil storage makes upload

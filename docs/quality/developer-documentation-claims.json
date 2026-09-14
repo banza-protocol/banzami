@@ -3403,7 +3403,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Um pagador de teste é um cliente Sandbox do seu projeto, com carteira e saldo fictício. Paga as suas sessões e links pelo mesmo caminho que um cliente real — a "
   },
-  "pt:Testing:25b5e57203": {
+  "pt:Testing:2cb55ecd38": {
    "page": "Testing",
    "kind": "P",
    "class": "GATE",
@@ -8268,7 +8268,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "A test payer is a Sandbox customer of your project, with a wallet and a fictitious balance. It pays your sessions and links through the same path a real custome"
   },
-  "en:Testing:ecb8fa129a": {
+  "en:Testing:10f15ac683": {
    "page": "Testing",
    "kind": "P",
    "class": "GATE",
@@ -12209,19 +12209,19 @@
    "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
    "text": "key without sandbox:read, or a key that is not a Sandbox key"
   },
-  "pt:Reference-spec:e0a9b76de6": {
+  "pt:Reference-spec:7d13808ad9": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-   "text": "Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. O PIN vem só nesta resposta, para entrar na página de pagamento co"
+   "text": "Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. Age só pela API do projeto — não entra em nenhuma app. No máximo 1"
   },
-  "en:Reference-spec:ccf119dd03": {
+  "en:Reference-spec:c3a45d6e48": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-   "text": "Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. The PIN comes only in this response, for signing in to th"
+   "text": "Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. It acts only through the Project’s API — it signs in to n"
   },
   "pt:Reference-spec:98eeae416b": {
    "page": "Reference-spec",
@@ -16926,6 +16926,20 @@
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "FEE_DESTINATION_TYPE_NOT_ALLOWED: The fee can only go to an APPLICATION or PLATFORM account. Name an account of that type. The classification is assigned by Ban"
+  },
+  "pt:Errors-spec:5d2aa53c71": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_VALUE_PERIMETER: Um negócio de teste do Sandbox só liquida para um pagador de teste ou outro negócio de teste, e a sua taxa só vai para um negócio de te"
+  },
+  "en:Errors-spec:e4350f3244": {
+   "page": "Errors-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "SANDBOX_VALUE_PERIMETER: A Sandbox test Business settles only to a test payer or another test Business, and its fee goes only to a test Business. Test value nev"
   },
   "pt:Errors-spec:3cbacd3ea8": {
    "page": "Errors-spec",

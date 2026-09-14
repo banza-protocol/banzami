@@ -250,7 +250,7 @@ async function fresh() {
 
     const payer = await api('/v1/sandbox/test-payers', 'POST', { label: 'Fresh journey payer' }, { 'Idempotency-Key': `ss_${stamp}_p1` });
     const T = payer.body?.id;
-    mark(15, payer.status === 201 && /^\d{6}$/.test(payer.body?.pin ?? '') && payer.body?.balance_minor === 1000000, `${payer.status} balance=${payer.body?.balance_minor}`);
+    mark(15, payer.status === 201 && !('pin' in (payer.body ?? {})) && payer.body?.balance_minor === 1000000, `${payer.status} balance=${payer.body?.balance_minor} pin_returned=${'pin' in (payer.body ?? {})}`);
     const f1 = await api(`/v1/sandbox/test-payers/${T}/fund`, 'POST', { amount_minor: 500000 }, { 'Idempotency-Key': `ss_${stamp}_f1` });
     const f2 = await api(`/v1/sandbox/test-payers/${T}/fund`, 'POST', { amount_minor: 500000 }, { 'Idempotency-Key': `ss_${stamp}_f1` });
     const after = await api(`/v1/sandbox/test-payers/${T}`);

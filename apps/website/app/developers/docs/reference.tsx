@@ -1061,8 +1061,8 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/test-payers',
     tone: 'ok',
     desc: {
-      pt: 'Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. O PIN vem só nesta resposta, para entrar na página de pagamento como esse pagador. No máximo 10 pagadores ativos por projeto.',
-      en: 'Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. The PIN comes only in this response, for signing in to the payment page as that payer. At most 10 active payers per Project.',
+      pt: 'Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. Age só pela API do projeto — não entra em nenhuma app. No máximo 10 pagadores ativos por projeto.',
+      en: 'Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. It acts only through the Project’s API — it signs in to no app. At most 10 active payers per Project.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers \\
@@ -1078,8 +1078,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
   "currency": "AOA",
   "environment": "SANDBOX",
   "created_at": "2026-09-14T10:00:00Z",
-  "retired_at": null,
-  "pin": "<devolvido apenas nesta resposta>"
+  "retired_at": null
 }`,
     errors: [
       { code: '400 INVALID_BODY / INVALID_PARAM', note: { pt: 'um campo desconhecido, label com mais de 60 caracteres, ou saldo fora de 0–1 000 000', en: 'an unknown field, a label over 60 characters, or a balance outside 0–1,000,000' } },

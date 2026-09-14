@@ -144,6 +144,11 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 				"too many wrong PINs — try again in 15 minutes")
 			return
 		}
+		if errors.Is(err, service.ErrTestPayerSignIn) {
+			apierror.Respond(w, r, http.StatusForbidden, "TEST_PAYER_SIGN_IN_UNAVAILABLE",
+				"a Sandbox test payer pays through its Project's API — POST /v1/sandbox/test-payers/{id}/payments — and does not sign in")
+			return
+		}
 		if errors.Is(err, service.ErrConsumerNotActive) {
 			apierror.Respond(w, r, http.StatusForbidden, "ACCOUNT_SUSPENDED",
 				"this account is not active")

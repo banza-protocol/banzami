@@ -1980,7 +1980,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               <P>
                 Na Consola, abra <strong>Dados de teste</strong>: crie um pagador, carregue-o e pague uma sessão pelo seu <Code>session_id</Code>. Pela API, com uma chave com <Code>sandbox:write</Code>:
                 <Code>POST /v1/sandbox/test-payers</Code>, <Code>POST /v1/sandbox/test-payers/{'{id}'}/fund</Code> (com <Code>Idempotency-Key</Code>) e <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>.
-                O PIN do pagador vem só na resposta de criação, para entrar como ele na página de pagamento. <a href="/docs/reference#resource-sandbox" style={a}>Referência dos dados de teste</a>
+                Um pagador de teste age só pela API do seu projeto: não entra em nenhuma app, e o que o seu negócio de teste recebe liquida só para pagadores de teste e negócios de teste — o valor de teste nunca chega a uma conta real. <a href="/docs/reference#resource-sandbox" style={a}>Referência dos dados de teste</a>
               </P>
               <CodeBlock label="curl · pagar uma sessão como pagador de teste" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} />
 

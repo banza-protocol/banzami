@@ -19,6 +19,11 @@ var ErrInvalidCredentials = errors.New("invalid handle or PIN")
 // (suspended or closed), so no session is issued.
 var ErrConsumerNotActive = errors.New("consumer is not active")
 
+// ErrTestPayerSignIn: the credentials belong to a Sandbox test payer, which acts
+// only through its Project's API (ADR-060 §4). A session would let it pay any
+// Business and send to any consumer with test value.
+var ErrTestPayerSignIn = errors.New("a Sandbox test payer does not sign in")
+
 // ErrHandleAlreadyRegistered is returned when the handle is taken.
 var ErrHandleAlreadyRegistered = errors.New("handle already registered")
 
@@ -27,7 +32,16 @@ var ErrHandleAlreadyRegistered = errors.New("handle already registered")
 type CredentialStore struct {
 	pool     *pgxpool.Pool
 	sessions sync.Map // consumer id → sessionEntry (see SessionValid)
+	// confineTestPayers refuses a session to a Sandbox test payer (set in the
+	// Sandbox, where sandbox_test_payers exists; LIVE has no test payers).
+	confineTestPayers bool
 }
+
+// ConfineTestPayers makes sign-in and every session check refuse a Sandbox
+// test payer. A test payer pays only through POST /v1/sandbox/test-payers/{id}/
+// payments, where the gateway names the payee as the Project's own Business;
+// a consumer session would reach every Business and consumer in the Sandbox.
+func (s *CredentialStore) ConfineTestPayers() { s.confineTestPayers = true }
 
 func NewCredentialStore(pool *pgxpool.Pool) *CredentialStore {
 	return &CredentialStore{pool: pool}
@@ -160,6 +174,17 @@ func (s *CredentialStore) Verify(ctx context.Context, handle, rawPin string) (st
 	if status != "ACTIVE" {
 		return "", 0, ErrConsumerNotActive
 	}
+	if s.confineTestPayers {
+		var testPayer bool
+		if err := s.pool.QueryRow(ctx,
+			`SELECT EXISTS (SELECT 1 FROM sandbox_test_payers WHERE consumer_id = $1)`, row.ConsumerID,
+		).Scan(&testPayer); err != nil {
+			return "", 0, fmt.Errorf("test payer check: %w", err)
+		}
+		if testPayer {
+			return "", 0, ErrTestPayerSignIn
+		}
+	}
 	return row.ConsumerID, tokenVersion, nil
 }
 
@@ -185,11 +210,17 @@ func (s *CredentialStore) SessionValid(ctx context.Context, consumerID string, t
 		}
 	}
 	var e sessionEntry
-	err := s.pool.QueryRow(ctx,
-		`SELECT pac.token_version, c.status = 'ACTIVE'
+	query := `SELECT pac.token_version, c.status = 'ACTIVE'
 		   FROM public_api_credentials pac JOIN consumers c ON c.id = pac.consumer_id
-		  WHERE pac.consumer_id = $1`, consumerID,
-	).Scan(&e.version, &e.active)
+		  WHERE pac.consumer_id = $1`
+	if s.confineTestPayers {
+		// A token a test payer obtained before sign-in was refused is not a session.
+		query = `SELECT pac.token_version, c.status = 'ACTIVE'
+		          AND NOT EXISTS (SELECT 1 FROM sandbox_test_payers tp WHERE tp.consumer_id = c.id)
+		   FROM public_api_credentials pac JOIN consumers c ON c.id = pac.consumer_id
+		  WHERE pac.consumer_id = $1`
+	}
+	err := s.pool.QueryRow(ctx, query, consumerID).Scan(&e.version, &e.active)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}

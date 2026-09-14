@@ -1089,6 +1089,24 @@
       "idempotency_key": "new"
     },
     {
+      "code": "SANDBOX_VALUE_PERIMETER",
+      "http": [
+        422
+      ],
+      "family": "settlement",
+      "source": "core",
+      "meaning": {
+        "pt": "Um negócio de teste do Sandbox só liquida para um pagador de teste ou outro negócio de teste, e a sua taxa só vai para um negócio de teste. O valor de teste nunca chega a uma conta real.",
+        "en": "A Sandbox test Business settles only to a test payer or another test Business, and its fee goes only to a test Business. Test value never reaches a real account."
+      },
+      "action": {
+        "pt": "Use como beneficiário um pagador de teste do projeto (POST /v1/sandbox/test-payers) e como destino da taxa o seu próprio negócio de teste.",
+        "en": "Name one of the project's test payers (POST /v1/sandbox/test-payers) as the beneficiary and your own test Business as the fee destination."
+      },
+      "retry": "no",
+      "idempotency_key": "new"
+    },
+    {
       "code": "FEE_EXCEEDS_GROSS",
       "http": [
         422

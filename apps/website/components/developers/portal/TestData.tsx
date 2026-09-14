@@ -23,7 +23,7 @@ const P: CSSProperties = { margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.6, c
 
 type TestPayer = {
   id: string; handle: string; label: string | null; status: string; balance_minor: number | null;
-  currency: string; created_at: string; retired_at: string | null; pin?: string;
+  currency: string; created_at: string; retired_at: string | null;
 };
 type Scenario = { id: string; group: string; simulated: boolean; goal: { pt: string }; trigger: { pt: string }; result: { pt: string }; event?: string | null };
 
@@ -57,7 +57,6 @@ export function TestData() {
   const [scenarios, setScenarios] = useState<Scenario[] | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [pin, setPin] = useState<{ handle: string; pin: string } | null>(null);
 
   const [label, setLabel] = useState('');
   const [fund, setFund] = useState<{ id: string; amount: string; key: string } | null>(null);
@@ -79,12 +78,12 @@ export function TestData() {
   useEffect(() => { void load(); }, [load]);
 
   async function create() {
-    setError(''); setNotice(''); setPin(null);
+    setError(''); setNotice('');
     try {
       const r = await run('createTestPayer', { body: label.trim() ? { label: label.trim() } : {}, idempotency_key: newIdempotencyKey('payer') });
       if (r.status !== 201) { setError(responseError(r.status, r.body)); return; }
       const p = r.body as TestPayer;
-      if (p.pin) setPin({ handle: p.handle, pin: p.pin });
+      setNotice(`@${p.handle} criado.`);
       setLabel('');
       await load();
     } catch (e) { setError(explorerRefusal(e)); }
@@ -154,16 +153,8 @@ export function TestData() {
           </label>
           <button type="button" data-testid="create-payer" onClick={() => void create()} disabled={busy} style={primaryButton(busy)}>Criar pagador</button>
         </div>
-        <p style={FIELD_HINT}>Começa com 10 000 Kz fictícios. Até 10 pagadores ativos por projeto.</p>
+        <p style={FIELD_HINT}>Começa com 10 000 Kz fictícios. Até 10 pagadores ativos por projeto. Um pagador de teste paga só pela API deste projeto, às sessões e links do seu negócio — não entra em nenhuma app.</p>
 
-        {pin && (
-          <div role="note" data-testid="payer-pin" style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: '#FFF6E9', border: '1px solid #F7E4CB' }}>
-            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800 }}>
-              @{pin.handle} · PIN <code style={{ fontFamily: mono, fontSize: 16 }}>{pin.pin}</code>
-            </p>
-            <p style={{ ...FIELD_HINT, marginTop: 4 }}>Mostrado uma vez. Use-o para entrar como este pagador na página de pagamento.</p>
-          </div>
-        )}
 
         {payers === null ? (
           <p style={P}>A carregar…</p>

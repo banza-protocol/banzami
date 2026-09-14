@@ -57,8 +57,6 @@ type testPayerView struct {
 	Environment  string     `json:"environment"`
 	CreatedAt    time.Time  `json:"created_at"`
 	RetiredAt    *time.Time `json:"retired_at"`
-	// PIN is present only in the creation response, once.
-	PIN *string `json:"pin,omitempty"`
 }
 
 func (h *TestPayerHandler) sandboxOnly(w http.ResponseWriter, r *http.Request) (string, bool) {
@@ -160,8 +158,9 @@ func (h *TestPayerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not create the test payer")
 		return
 	}
-	pin := randomString("0123456789", 6)
-	if err := h.creds.Save(r.Context(), consumer.ID, handle, pin); err != nil {
+	// The credential row gives the payer a handle like any consumer's. Its secret
+	// is random and never returned: a test payer does not sign in (ADR-060 §4).
+	if err := h.creds.Save(r.Context(), consumer.ID, handle, randomString("abcdefghijklmnopqrstuvwxyz0123456789", 32)); err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not save the test payer's credentials")
 		return
 	}
@@ -190,9 +189,7 @@ func (h *TestPayerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not read the test payer")
 		return
 	}
-	v := h.view(r.Context(), p)
-	v.PIN = &pin
-	respond(w, http.StatusCreated, v)
+	respond(w, http.StatusCreated, h.view(r.Context(), p))
 }
 
 func refusalCode(err error) string {

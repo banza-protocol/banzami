@@ -1994,7 +1994,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <P>
                 In the Console, open <strong>Test data</strong>: create a payer, top it up and pay a session by its <Code>session_id</Code>. Through the API, with a key holding <Code>sandbox:write</Code>:
                 <Code>POST /v1/sandbox/test-payers</Code>, <Code>POST /v1/sandbox/test-payers/{'{id}'}/fund</Code> (with an <Code>Idempotency-Key</Code>) and <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>.
-                The payer’s PIN comes only in the creation response, for signing in as that payer on the payment page. <a href="/docs/en/reference#resource-sandbox" style={a}>Test data reference</a>
+                A test payer acts only through your project’s API: it does not sign in to any app, and what your test Business receives settles only to test payers and test Businesses — test value never reaches a real account. <a href="/docs/en/reference#resource-sandbox" style={a}>Test data reference</a>
               </P>
               <CodeBlock label="curl · pay a session as a test payer" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} />
 

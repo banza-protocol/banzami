@@ -84,8 +84,11 @@ Public, developer-key, Sandbox-only (gateway `/v1/sandbox/test-payers`):
   generated handle (`tp` + random), display name "Sandbox test payer", and the
   Sandbox registration grant. Ownership is recorded
   (`sandbox_test_payers(consumer_id, project_id, …)`); the Project comes from
-  the authenticated key, never the body. A PIN is generated and returned once,
-  so the payer can sign in on the hosted page like a real payer.
+  the authenticated key, never the body. **A test payer does not sign in.** No
+  PIN is issued (its credential secret is random and never returned), public-api
+  refuses it a token (`403 TEST_PAYER_SIGN_IN_UNAVAILABLE`) and refuses any
+  session it already held. A consumer session would reach every Business and
+  consumer in the Sandbox with value issued outside the Sandbox-wide funds cap.
 - `GET` lists/reads the Project's own payers; `DELETE` retires one (value
   retired by balanced posting, consumer suspended).
 - `POST …/{id}/fund` adds fictitious value within per-Project quotas.
@@ -135,6 +138,22 @@ Project, a grant of at most 10 000 Kz each (`initial_balance_minor`, default
 payer, and at most 20 top-ups and 100 000 Kz of top-ups per Project per 24
 hours; counted per Project and answered with `429 SANDBOX_QUOTA_EXCEEDED`. A
 top-up exceeding the payer's balance cap answers `422 SANDBOX_FUNDING_REFUSED`.
+
+Quotas bound how much test value a Project issues; the **value perimeter**
+bounds where it can go, because nothing bounds how many Projects one
+self-service account opens. Test value stays among test payers and synthetic
+Businesses: a test payer pays only its own Project's sessions and links (the
+gateway names the payee) and never signs in (§4); a synthetic Business's
+application settlement must name an unretired test payer or a synthetic
+Business as beneficiary, and a synthetic Business as fee destination — Core
+answers `422 SANDBOX_VALUE_PERIMETER` otherwise
+(`guard_sandbox_value_perimeter`, real-DB test
+`test_value_stays_among_test_payers_and_test_businesses`). A synthetic Business
+cannot pay out (payouts read `APPROVED` only) and has no Business App user (its
+address is `sandbox+<project>@projects.banzami.test`). Refunds return at most
+what was paid to whoever paid it. Found by the SANDBOX-SELF-SERVICE-001
+security review: before it, a test payer received a PIN and could sign in to the
+consumer surface, and a synthetic Business could settle to any consumer.
 
 ### 7. API Explorer is a server-side broker
 

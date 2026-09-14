@@ -940,7 +940,7 @@
                 "test-payers"
               ]
             },
-            "description": "Create a test payer\n\nCreates a Sandbox consumer owned by your Project, with a wallet and a fictitious opening balance. The PIN is returned once. At most 10 active test payers per Project. Credential: Sandbox project key with sandbox:write.",
+            "description": "Create a test payer\n\nCreates a Sandbox consumer owned by your Project, with a wallet and a fictitious opening balance. A test payer acts only through this API: it pays the Project's own sessions and links and signs in to no app. At most 10 active test payers per Project. Credential: Sandbox project key with sandbox:write.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"label\": \"Maria (teste)\",\n  \"initial_balance_minor\": 1000000\n}",

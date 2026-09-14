@@ -43,7 +43,7 @@ describe('Sandbox test payers', () => {
   });
 
   it('sends only the fields given', async () => {
-    const f = stub(() => json(201, { id: 'tp1', pin: '123456' }));
+    const f = stub(() => json(201, { id: 'tp1', handle: 'tpabc' }));
     await client.createTestPayer({ label: 'Maria' });
     expect(JSON.parse(calls(f)[0][1].body as string)).toEqual({ label: 'Maria' });
     await client.listTestPayers({ includeRetired: true });

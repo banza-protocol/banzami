@@ -136,3 +136,71 @@ func TestSessions_SuspensionAndSignOutEndThem(t *testing.T) {
 		t.Fatal("a suspended consumer's current token is still valid")
 	}
 }
+
+// ADR-060 §4. A test payer is a consumer with test value and no limit shared
+// with the rest of the Sandbox; a session would let it pay any Business and send
+// to any consumer. Its right PIN opens nothing, and a token it already holds is
+// not a session.
+func TestVerify_ATestPayerDoesNotSignIn(t *testing.T) {
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("DATABASE_URL not set — skipping DB-backed credential test")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var reg *string
+	_ = pool.QueryRow(ctx, `SELECT to_regclass('public.sandbox_test_payers')::text`).Scan(&reg)
+	if reg == nil {
+		t.Skip("sandbox_test_payers not migrated in this DB — skipping")
+	}
+	seed := func(testPayer bool) string {
+		id := uuid.NewString()
+		handle := "tpc" + id[:8]
+		if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status) VALUES ($1,$2,'ACTIVE')`, id, handle); err != nil {
+			t.Fatal(err)
+		}
+		h, _ := bcrypt.GenerateFromPassword([]byte("246810"), bcrypt.MinCost)
+		if _, err := pool.Exec(ctx, `INSERT INTO public_api_credentials (consumer_id, handle, pin_hash) VALUES ($1,$2,$3)`, id, handle, string(h)); err != nil {
+			t.Fatal(err)
+		}
+		if testPayer {
+			if _, err := pool.Exec(ctx, `INSERT INTO sandbox_test_payers (consumer_id, project_id) VALUES ($1,$2)`, id, uuid.NewString()); err != nil {
+				t.Fatal(err)
+			}
+		}
+		t.Cleanup(func() {
+			_, _ = pool.Exec(ctx, `DELETE FROM sandbox_test_payers WHERE consumer_id=$1`, id)
+			_, _ = pool.Exec(ctx, `DELETE FROM public_api_credentials WHERE consumer_id=$1`, id)
+			_, _ = pool.Exec(ctx, `DELETE FROM consumers WHERE id=$1`, id)
+		})
+		return handle
+	}
+	tp, person := seed(true), seed(false)
+
+	confined := NewCredentialStore(pool)
+	confined.ConfineTestPayers()
+	if _, _, err := confined.Verify(ctx, tp, "246810"); !errors.Is(err, ErrTestPayerSignIn) {
+		t.Fatalf("a test payer signed in: %v", err)
+	}
+	personID, version, err := confined.Verify(ctx, person, "246810")
+	if err != nil {
+		t.Fatalf("a person could not sign in: %v", err)
+	}
+	if ok, err := confined.SessionValid(ctx, personID, version); err != nil || !ok {
+		t.Fatalf("a person's session: %v %v", ok, err)
+	}
+
+	// A token issued to the test payer before confinement.
+	open := NewCredentialStore(pool)
+	tpID, tpVersion, err := open.Verify(ctx, tp, "246810")
+	if err != nil {
+		t.Fatalf("unconfined store: %v", err)
+	}
+	if ok, _ := confined.SessionValid(ctx, tpID, tpVersion); ok {
+		t.Fatal("a test payer's existing token is still a session")
+	}
+}

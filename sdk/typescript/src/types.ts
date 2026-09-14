@@ -752,8 +752,6 @@ export interface TestPayer {
   environment: 'SANDBOX';
   created_at: string;
   retired_at: string | null;
-  /** Returned once, on creation only. */
-  pin?: string;
 }
 
 export interface CreateTestPayerParams {

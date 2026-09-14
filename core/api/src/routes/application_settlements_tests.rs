@@ -274,3 +274,106 @@ async fn fee_guard_rejects_non_business_account(pool: PgPool) {
         "got {e:?}"
     );
 }
+
+/// A synthetic Business (ADR-060) of `project`, with its wallet's available account.
+async fn seed_synthetic_business(pool: &PgPool, project: Uuid) -> Uuid {
+    let (mid, avail) = seed_business_account(pool, "APPLICATION", "SANDBOX_SYNTHETIC").await;
+    sqlx::query("INSERT INTO sandbox_businesses (merchant_id, project_id, use_case) VALUES ($1, $2, 'APPLICATION')")
+        .bind(mid)
+        .bind(project)
+        .execute(pool)
+        .await
+        .unwrap();
+    avail
+}
+
+/// A consumer with a wallet; a test payer of `project` when one is named.
+async fn seed_consumer(pool: &PgPool, test_payer_of: Option<Uuid>) -> Uuid {
+    let consumer: Uuid =
+        sqlx::query_scalar("INSERT INTO consumers (handle) VALUES ($1) RETURNING id")
+            .bind(format!("c{}", &Uuid::new_v4().simple().to_string()[..12]))
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    let avail = account(pool, "LIABILITY", "c-available").await;
+    let reserved = account(pool, "LIABILITY", "c-reserved").await;
+    sqlx::query("INSERT INTO consumer_wallets (consumer_id, currency, available_account_id, reserved_account_id) VALUES ($1,'AOA',$2,$3)")
+        .bind(consumer).bind(avail).bind(reserved).execute(pool).await.unwrap();
+    if let Some(project) = test_payer_of {
+        sqlx::query("INSERT INTO sandbox_test_payers (consumer_id, project_id) VALUES ($1,$2)")
+            .bind(consumer)
+            .bind(project)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+    avail
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn test_value_stays_among_test_payers_and_test_businesses(pool: PgPool) {
+    let a = AccountId::from_uuid;
+    let project = Uuid::new_v4();
+    let synthetic = seed_synthetic_business(&pool, project).await;
+    let other_synthetic = seed_synthetic_business(&pool, Uuid::new_v4()).await;
+    let test_payer = seed_consumer(&pool, Some(project)).await;
+    let real_consumer = seed_consumer(&pool, None).await;
+    let (_, real_application) = seed_business_account(&pool, "APPLICATION", "APPROVED").await;
+
+    // Inside the perimeter: a test payer, another test Business, its own fee account.
+    for (beneficiary, fee) in [
+        (test_payer, Some(synthetic)),
+        (other_synthetic, None),
+        (test_payer, Some(other_synthetic)),
+    ] {
+        routes::guard_sandbox_value_perimeter(
+            &pool,
+            a(synthetic),
+            a(beneficiary),
+            fee.map(a),
+            false,
+        )
+        .await
+        .expect("inside the perimeter");
+    }
+    // Out of it: a real consumer, a real Business, a real application as fee destination.
+    for (beneficiary, fee) in [
+        (real_consumer, None),
+        (real_application, None),
+        (test_payer, Some(real_application)),
+    ] {
+        let e = routes::guard_sandbox_value_perimeter(
+            &pool,
+            a(synthetic),
+            a(beneficiary),
+            fee.map(a),
+            false,
+        )
+        .await
+        .expect_err("test value left the perimeter");
+        assert_eq!(e.code, "SANDBOX_VALUE_PERIMETER");
+    }
+    // A retired test payer is no longer inside.
+    sqlx::query("UPDATE sandbox_test_payers SET retired_at = now()")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        routes::guard_sandbox_value_perimeter(&pool, a(synthetic), a(test_payer), None, false)
+            .await
+            .is_err()
+    );
+    // A real Business is not this guard's business, and LIVE has no synthetic Businesses.
+    routes::guard_sandbox_value_perimeter(
+        &pool,
+        a(real_application),
+        a(real_consumer),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
+    routes::guard_sandbox_value_perimeter(&pool, a(synthetic), a(real_consumer), None, true)
+        .await
+        .unwrap();
+}

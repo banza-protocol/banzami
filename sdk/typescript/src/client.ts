@@ -861,8 +861,8 @@ export class BanzamiClient {
 
   /**
    * Create a test payer owned by your Project, with a fictitious balance
-   * (1 000 000 by default, at most). The response carries the payer's PIN
-   * once, for signing in to the hosted payment page as that payer.
+   * (1 000 000 by default, at most). A test payer acts only through this
+   * API — it pays your Project's own sessions and links and signs in nowhere.
    */
   createTestPayer(params: CreateTestPayerParams = {}): Promise<TestPayer> {
     return this.request<TestPayer>('/sandbox/test-payers', {
