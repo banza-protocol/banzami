@@ -38,3 +38,16 @@ export const PAYOUT_ACTION_LABEL: Record<PayoutAction, string> = {
   return:  'Devolver',
   fail:    'Marcar falhado',
 };
+
+/**
+ * Whether this action needs the bank's or provider's own reference.
+ *
+ * A SENT levantamento was handed to the rail and may have been executed.
+ * Failing or returning it gives the Business its balance back, so Core accepts
+ * it only with that external evidence (EXTERNAL_EVIDENCE_REQUIRED,
+ * MONEY-MODEL-001) — a timeout is not evidence. Before the rail has it, a fail
+ * needs only a reason.
+ */
+export function needsExternalEvidence(p: Pick<Payout, 'status'>, action: PayoutAction): boolean {
+  return action === 'return' || (action === 'fail' && p.status === 'SENT');
+}

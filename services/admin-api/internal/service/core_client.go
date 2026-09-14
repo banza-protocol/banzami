@@ -180,15 +180,23 @@ func (c *CoreAdminClient) ConfirmPayout(ctx context.Context, id string) (map[str
 	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/confirm", nil, &out)
 }
 
-func (c *CoreAdminClient) FailPayout(ctx context.Context, id, reason string) (map[string]any, error) {
+// FailPayout fails a payout. evidenceRef is the provider's rejection reference:
+// Core refuses to fail a SENT payout without it (EXTERNAL_EVIDENCE_REQUIRED,
+// MONEY-MODEL-001) because the rail may have executed it.
+func (c *CoreAdminClient) FailPayout(ctx context.Context, id, reason, evidenceRef string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/fail",
-		map[string]string{"reason": reason}, &out)
+	body := map[string]string{"reason": reason}
+	if evidenceRef != "" {
+		body["evidence_ref"] = evidenceRef
+	}
+	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/fail", body, &out)
 }
 
-func (c *CoreAdminClient) MarkPayoutReturned(ctx context.Context, id string) (map[string]any, error) {
+// MarkPayoutReturned records the rail's return of a payout, on its evidence.
+func (c *CoreAdminClient) MarkPayoutReturned(ctx context.Context, id, evidenceRef string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/returned", nil, &out)
+	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/returned",
+		map[string]string{"evidence_ref": evidenceRef}, &out)
 }
 
 // ---------------------------------------------------------------------------

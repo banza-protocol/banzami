@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { payoutActions } from './payouts';
+import { needsExternalEvidence, payoutActions } from './payouts';
 
 // Core's PayoutStatus::can_transition_to (core/payouts/src/lib.rs), restated as
 // (from, to) pairs. An action is offered iff Core accepts its transition.
@@ -31,5 +31,15 @@ describe('payoutActions', () => {
     for (const s of ['CONFIRMED', 'FAILED', 'RETURNED', 'SOMETHING_NEW', '']) {
       expect(payoutActions(s)).toEqual([]);
     }
+  });
+});
+
+describe('needsExternalEvidence', () => {
+  it('asks for the rail’s reference exactly where the rail may have executed', () => {
+    expect(needsExternalEvidence({ status: 'SENT' }, 'fail')).toBe(true);
+    expect(needsExternalEvidence({ status: 'SENT' }, 'return')).toBe(true);
+    expect(needsExternalEvidence({ status: 'PENDING' }, 'fail')).toBe(false);
+    expect(needsExternalEvidence({ status: 'PROCESSING' }, 'fail')).toBe(false);
+    expect(needsExternalEvidence({ status: 'SENT' }, 'confirm')).toBe(false);
   });
 });

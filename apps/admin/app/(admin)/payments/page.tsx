@@ -10,6 +10,7 @@ import { useDialog } from '@/components/ui/dialog';
 import { formatMoney, formatDate } from '@/lib/format';
 import { payoutActions, PAYOUT_ACTION_LABEL, type PayoutAction } from '@/lib/payouts';
 import { takeReason } from '@/lib/reason';
+import { needsExternalEvidence } from '@/lib/payouts';
 import { AttentionFilterBar } from '@/components/ui/attention-chip';
 import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
 import { filterByStates } from '@/lib/attention';
@@ -72,6 +73,7 @@ export default function PaymentsPage() {
     const amount = formatMoney(p.amount?.amount_minor, p.amount?.currency);
 
     let reason: string | null = null;
+    let evidence: string | null = null;
     if (action === 'return' || action === 'fail') {
       reason = takeReason(await dialog.prompt({
         title: action === 'return' ? 'Devolver levantamento' : 'Marcar levantamento como falhado',
@@ -81,9 +83,23 @@ export default function PaymentsPage() {
         required: true,
       }));
       if (reason === null) return;
+      // A levantamento sent to the bank may have been executed. Restoring the
+      // Business's balance rests on the bank's own reference that it was not —
+      // a timeout is not that (MONEY-MODEL-001).
+      if (needsExternalEvidence(p, action)) {
+        evidence = takeReason(await dialog.prompt({
+          title: action === 'return' ? 'Referência da devolução' : 'Referência da rejeição',
+          label: action === 'return'
+            ? 'Referência do banco ou do fornecedor que comprova a devolução'
+            : 'Referência do banco ou do fornecedor que comprova que o envio não foi executado',
+          confirmLabel: PAYOUT_ACTION_LABEL[action],
+          required: true,
+        }));
+        if (evidence === null) return;
+      }
     } else {
       const message = {
-        process: `Processar o levantamento ${ref} de ${amount}? O valor sai da carteira do negócio para envio ao banco. Fica registado no log de auditoria.`,
+        process: `Processar o levantamento ${ref} de ${amount}? O valor fica reservado para o levantamento e deixa de estar disponível na carteira do negócio; só sai das contas de suporte quando o banco confirmar. Fica registado no log de auditoria.`,
         sent:    `Marcar o levantamento ${ref} de ${amount} como enviado ao banco? Fica registado no log de auditoria.`,
         confirm: `Confirmar que o banco recebeu o levantamento ${ref} de ${amount}? Esta é uma ação financeira definitiva e fica registada no log de auditoria.`,
       }[action];
@@ -100,8 +116,8 @@ export default function PaymentsPage() {
       if (action === 'process') await api.processPayout(p.id);
       else if (action === 'sent') await api.markPayoutSent(p.id);
       else if (action === 'confirm') await api.confirmPayout(p.id);
-      else if (action === 'return') await api.markPayoutReturned(p.id, reason!);
-      else await api.failPayout(p.id, reason!);
+      else if (action === 'return') await api.markPayoutReturned(p.id, reason!, evidence!);
+      else await api.failPayout(p.id, reason!, evidence ?? undefined);
       toast('success', {
         process: 'Levantamento em processamento.',
         sent:    'Levantamento marcado como enviado.',

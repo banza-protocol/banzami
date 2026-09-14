@@ -49,17 +49,29 @@ describe('Levantamentos — only the actions Core accepts', () => {
     expect(buttons('done')).toEqual([]);
   });
 
-  it('Devolver sends the reason; Cancelar sends nothing', async () => {
+  it('Devolver sends the reason and the bank’s reference; Cancelar at either step sends nothing', async () => {
+    const answer = async (value: string) => {
+      fireEvent.change(await screen.findByRole('textbox'), { target: { value } });
+      fireEvent.submit(screen.getByRole('textbox').closest('form')!);
+      await act(async () => { await Promise.resolve(); });
+    };
     await renderPage();
     fireEvent.click(within(row('sent')).getByRole('button', { name: 'Devolver' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }));
     await act(async () => { await Promise.resolve(); });
     expect(markPayoutReturned).not.toHaveBeenCalled();
 
+    // A reason alone restores nothing: the bank's reference is asked for, and
+    // cancelling there sends nothing either (MONEY-MODEL-001).
     fireEvent.click(within(row('sent')).getByRole('button', { name: 'Devolver' }));
-    fireEvent.change(await screen.findByRole('textbox'), { target: { value: 'Conta encerrada' } });
-    fireEvent.submit(screen.getByRole('textbox').closest('form')!);
+    await answer('Conta encerrada');
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }));
     await act(async () => { await Promise.resolve(); });
-    expect(markPayoutReturned).toHaveBeenCalledWith('sent', 'Conta encerrada');
+    expect(markPayoutReturned).not.toHaveBeenCalled();
+
+    fireEvent.click(within(row('sent')).getByRole('button', { name: 'Devolver' }));
+    await answer('Conta encerrada');
+    await answer('EMIS-RET-0042');
+    expect(markPayoutReturned).toHaveBeenCalledWith('sent', 'Conta encerrada', 'EMIS-RET-0042');
   });
 });

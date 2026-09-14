@@ -99,20 +99,24 @@ func (h *PayoutHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 func (h *PayoutHandler) Fail(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body struct {
-		Reason string `json:"reason"`
+		Reason      string `json:"reason"`
+		EvidenceRef string `json:"evidence_ref"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 	body.Reason = strings.TrimSpace(body.Reason)
+	body.EvidenceRef = strings.TrimSpace(body.EvidenceRef)
 	if body.Reason == "" {
 		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "reason is required")
 		return
 	}
-	result, err := h.core.FailPayout(r.Context(), id, body.Reason)
+	// A SENT payout needs the provider's evidence; Core decides and answers
+	// EXTERNAL_EVIDENCE_REQUIRED, which is passed through as it is.
+	result, err := h.core.FailPayout(r.Context(), id, body.Reason, body.EvidenceRef)
 	if err != nil {
 		handleCoreErr(w, err)
 		return
 	}
-	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "FAILED", "reason": body.Reason})
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "FAILED", "reason": body.Reason, "evidence_ref": body.EvidenceRef})
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -126,19 +130,27 @@ func (h *PayoutHandler) Fail(w http.ResponseWriter, r *http.Request) {
 func (h *PayoutHandler) MarkReturned(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body struct {
-		Reason string `json:"reason"`
+		Reason      string `json:"reason"`
+		EvidenceRef string `json:"evidence_ref"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 	body.Reason = strings.TrimSpace(body.Reason)
+	body.EvidenceRef = strings.TrimSpace(body.EvidenceRef)
 	if body.Reason == "" {
 		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "reason is required")
 		return
 	}
-	result, err := h.core.MarkPayoutReturned(r.Context(), id)
+	// The return restores the participant, so it rests on the provider's return
+	// reference (MONEY-MODEL-001).
+	if body.EvidenceRef == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "evidence_ref (the provider's return reference) is required")
+		return
+	}
+	result, err := h.core.MarkPayoutReturned(r.Context(), id, body.EvidenceRef)
 	if err != nil {
 		handleCoreErr(w, err)
 		return
 	}
-	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "RETURNED", "reason": body.Reason})
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "RETURNED", "reason": body.Reason, "evidence_ref": body.EvidenceRef})
 	writeJSON(w, http.StatusOK, result)
 }

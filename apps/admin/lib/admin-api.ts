@@ -906,11 +906,11 @@ export class AdminApi {
   confirmPayout(id: string):                    Promise<Payout> {
     return this.req(`/admin/v1/payouts/${id}/confirm`, { method: 'POST' });
   }
-  failPayout(id: string, reason: string):       Promise<Payout> {
-    return this.req(`/admin/v1/payouts/${id}/fail`, { method: 'POST', body: JSON.stringify({ reason }) });
+  failPayout(id: string, reason: string, evidenceRef?: string): Promise<Payout> {
+    return this.req(`/admin/v1/payouts/${id}/fail`, { method: 'POST', body: JSON.stringify({ reason, evidence_ref: evidenceRef }) });
   }
-  markPayoutReturned(id: string, reason: string): Promise<Payout> {
-    return this.req(`/admin/v1/payouts/${id}/returned`, { method: 'POST', body: JSON.stringify({ reason }) });
+  markPayoutReturned(id: string, reason: string, evidenceRef: string): Promise<Payout> {
+    return this.req(`/admin/v1/payouts/${id}/returned`, { method: 'POST', body: JSON.stringify({ reason, evidence_ref: evidenceRef }) });
   }
 
   // Wallets
