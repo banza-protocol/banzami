@@ -35,6 +35,13 @@ pub trait PayoutRepository: Send + Sync {
         pricing: &crate::WithdrawalPricing,
         net_minor: i64,
     ) -> Result<(), PayoutError>;
+    /// Record the external evidence that a SENT payout did not execute. Written
+    /// once: evidence already recorded is never replaced.
+    async fn record_failure_evidence(
+        &self,
+        id: PayoutId,
+        evidence_ref: &str,
+    ) -> Result<(), PayoutError>;
     async fn get(&self, id: PayoutId) -> Result<Payout, PayoutError>;
     /// A key belongs to the owner that chose it (A1-06).
     async fn get_by_idempotency_key(
@@ -284,6 +291,21 @@ impl PayoutRepository for PostgresPayoutRepository {
         .await?
         .flatten();
         Ok(code)
+    }
+
+    async fn record_failure_evidence(
+        &self,
+        id: PayoutId,
+        evidence_ref: &str,
+    ) -> Result<(), PayoutError> {
+        sqlx::query(
+            "UPDATE payouts SET failure_evidence_ref = $2 WHERE id = $1 AND failure_evidence_ref IS NULL",
+        )
+        .bind(id.as_uuid())
+        .bind(evidence_ref)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 
     async fn record_pricing(

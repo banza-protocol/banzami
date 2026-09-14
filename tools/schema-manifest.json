@@ -981,6 +981,38 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "A balance is an obligation and its backing is explicit (0147 / MONEY-MODEL-001, ADR-063)",
+      "why": "System accounts carry an economic role and a synthetic flag; withdrawals wait in an in-flight obligation until the rail confirms; a SENT payout fails only on the provider's evidence.",
+      "tables": [
+        {
+          "name": "ledger_accounts",
+          "columns": [
+            {
+              "name": "system_role",
+              "nullable": true
+            },
+            {
+              "name": "synthetic",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "ledger_accounts_one_in_flight_per_currency",
+            "ledger_accounts_one_external_costs_per_currency"
+          ]
+        },
+        {
+          "name": "payouts",
+          "columns": [
+            {
+              "name": "failure_evidence_ref",
+              "nullable": true
+            }
+          ]
+        }
+      ]
     }
   ]
 }

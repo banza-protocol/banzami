@@ -171,12 +171,47 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
             })
         })?;
 
+        // What the acquirer kept (MONEY-MODEL-001). It settles the batch net of
+        // its fee, so transit gives up the gross: the net to backing, the fee to
+        // Banzami's acquirer-fee expense. Moving only the net left the fee in
+        // transit as value no provider held.
+        let fee_posting = if s.fee_amount.amount_minor() > 0 {
+            let expense = banzami_ledger::system::acquirer_fees(s.currency)
+                .ok_or(SettlementError::CurrencyNotSupported(s.currency))?;
+            Some(
+                PostingBuilder::new(
+                    format!("settlement confirmation — batch {id} — acquirer fee"),
+                    format!("settlement:{id}:confirm:fee"),
+                )
+                .debit(expense, s.fee_amount)
+                .credit(self.transit_account_id, s.fee_amount)
+                .build()
+                .map_err(|_| {
+                    SettlementError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
+                        debits_minor: s.fee_amount.amount_minor(),
+                        credits_minor: 0,
+                        currency: s.currency,
+                    })
+                })?,
+            )
+        } else {
+            None
+        };
+
         // Claim SETTLED before posting: a fail that won the race makes this
         // claim fail and nothing is posted; a ledger failure reverts the claim.
         self.repo
             .update_status(id, s.status, SettlementStatus::Settled, None, None)
             .await?;
-        let posted = match self.ledger.post(posting).await {
+        let posted = match async {
+            let net = self.ledger.post(posting).await?;
+            if let Some(fee) = fee_posting {
+                self.ledger.post(fee).await?;
+            }
+            Ok::<_, banzami_ledger::LedgerError>(net)
+        }
+        .await
+        {
             Ok(p) => p,
             Err(e) => {
                 // The claim is given back. If THAT fails too, the batch is
@@ -503,7 +538,18 @@ mod tests {
         assert_eq!(settled.status, SettlementStatus::Settled);
         assert!(settled.settled_at.is_some());
         assert!(settled.ledger_posting_id.is_some());
-        assert_eq!(ledger.posting_count(), 1);
+        // The net to backing, and the acquirer's fee recognised as an expense —
+        // transit gives up the gross (MONEY-MODEL-001).
+        assert_eq!(ledger.posting_count(), 2);
+        let postings = ledger.postings.lock().unwrap();
+        let fee = postings
+            .iter()
+            .find(|p| p.idempotency_key.ends_with(":confirm:fee"))
+            .expect("a fee posting");
+        let expense = banzami_ledger::system::acquirer_fees(Currency::AOA).unwrap();
+        assert!(fee.entries.iter().any(|e| e.account_id == expense
+            && e.entry_type == banzami_ledger::EntryType::Debit
+            && e.amount.amount_minor() == s.fee_amount.amount_minor()));
     }
 
     #[tokio::test]

@@ -12,6 +12,9 @@ use axum::{
 };
 use tower_http::trace::TraceLayer;
 
+use banzami_ledger::system::{
+    acquirer_fees, register_system_account, withdrawals_in_flight, SystemRole,
+};
 use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository};
 use banzami_payment_links::run_expiry_worker as run_pl_expiry_worker;
 use banzami_qr::run_expiry_worker;
@@ -140,6 +143,37 @@ async fn main() {
 
     let environment = CoreEnvironment::from_env();
     tracing::info!(environment = ?environment, "boot: runtime environment");
+
+    // The economic role of each system account (MONEY-MODEL-001, ADR-063): what
+    // backs participant obligations, what is in transit, what Banzami earned. In
+    // the Sandbox they are synthetic — no bank or provider stands behind them. A
+    // configured id that already carries another role stops the boot: Core must
+    // never run with its backing and its revenue swapped.
+    let synthetic = !environment.is_live();
+    for (id, role) in [
+        (transit_account_id, SystemRole::ExternalTransit),
+        (bank_account_id, SystemRole::ExternalBacking),
+        (operator_fee_account_id, SystemRole::OperatorRevenue),
+    ] {
+        register_system_account(&pool, id, role, synthetic)
+            .await
+            .unwrap_or_else(|e| panic!("failed to register system account role: {e}"));
+    }
+    // The two accounts migration 0147 created with fixed ids.
+    for (id, role) in [
+        (
+            withdrawals_in_flight(Currency::AOA).expect("AOA has an in-flight account"),
+            SystemRole::WithdrawalsInFlight,
+        ),
+        (
+            acquirer_fees(Currency::AOA).expect("AOA has an acquirer-fee account"),
+            SystemRole::ExternalCosts,
+        ),
+    ] {
+        register_system_account(&pool, id, role, synthetic)
+            .await
+            .unwrap_or_else(|e| panic!("migration 0147 system account missing: {e}"));
+    }
     if environment.is_live() {
         tracing::warn!("LIVE environment — all sandbox/test funding endpoints are DISABLED");
     }
@@ -848,6 +882,12 @@ async fn main() {
         .route(
             "/internal/v1/admin/audit-log",
             get(routes::admin::query_audit_log),
+        )
+        // The network's financial position and economic integrity (MONEY-MODEL-001).
+        // Read-only: obligations, backing, pending boundary operations, findings.
+        .route(
+            "/internal/v1/admin/financial-position",
+            get(routes::admin::financial_position),
         )
         .route(
             "/internal/v1/admin/acquiring-recon",

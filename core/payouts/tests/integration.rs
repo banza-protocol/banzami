@@ -241,11 +241,27 @@ async fn initiate_to_confirmed_happy_path(pool: PgPool) -> sqlx::Result<()> {
     let fee = gross * bps / 10_000;
     assert!(fee > 0, "a seeded withdrawal rule must charge something");
 
-    let bank_balance_after = fix.ledger.balance(fix.bank_id).await.unwrap();
+    // MONEY-MODEL-001: processing reserves the net obligation in flight; the
+    // backing asset does not move until the rail confirms.
+    let in_flight = banzami_ledger::system::withdrawals_in_flight(Currency::AOA).unwrap();
     assert_eq!(
-        bank_balance_after.amount_minor().abs(),
+        fix.ledger
+            .balance(in_flight)
+            .await
+            .unwrap()
+            .amount_minor()
+            .abs(),
         gross - fee,
-        "the bank leg must carry the net, not the gross"
+        "the in-flight leg must carry the net, not the gross"
+    );
+    assert_eq!(
+        fix.ledger
+            .balance(fix.bank_id)
+            .await
+            .unwrap()
+            .amount_minor(),
+        0,
+        "no backing moves before the rail confirms"
     );
     let fee_balance = fix.ledger.balance(fix.operator_fee_id).await.unwrap();
     assert_eq!(
@@ -259,6 +275,20 @@ async fn initiate_to_confirmed_happy_path(pool: PgPool) -> sqlx::Result<()> {
 
     let confirmed = fix.payout_engine.confirm(payout.id).await.unwrap();
     assert_eq!(confirmed.status, PayoutStatus::Confirmed);
+    assert_eq!(
+        fix.ledger
+            .balance(fix.bank_id)
+            .await
+            .unwrap()
+            .amount_minor()
+            .abs(),
+        gross - fee,
+        "on confirmation the backing pays the net out"
+    );
+    assert_eq!(
+        fix.ledger.balance(in_flight).await.unwrap().amount_minor(),
+        0
+    );
 
     Ok(())
 }
@@ -283,10 +313,10 @@ async fn fail_from_processing_reverses_ledger_entry(pool: PgPool) -> sqlx::Resul
 
     fix.payout_engine.process(payout.id).await.unwrap();
 
-    // Confirm the ledger was updated.
-    let balance_after_process = fix.ledger.balance(fix.bank_id).await.unwrap();
+    // Confirm the ledger was updated: the obligation is in flight.
+    let in_flight = banzami_ledger::system::withdrawals_in_flight(Currency::AOA).unwrap();
     assert_ne!(
-        balance_after_process.amount_minor(),
+        fix.ledger.balance(in_flight).await.unwrap().amount_minor(),
         0,
         "ledger changed at process"
     );
@@ -294,17 +324,28 @@ async fn fail_from_processing_reverses_ledger_entry(pool: PgPool) -> sqlx::Resul
     // Fail: must reverse the ledger entry.
     let failed = fix
         .payout_engine
-        .fail(payout.id, "bank transfer rejected".into())
+        .fail(
+            payout.id,
+            "bank transfer rejected".into(),
+            Some("PROVIDER-REJECT-TEST".into()),
+        )
         .await
         .unwrap();
     assert_eq!(failed.status, PayoutStatus::Failed);
 
-    // Ledger reversal: bank account returns to zero.
-    let balance_after_fail = fix.ledger.balance(fix.bank_id).await.unwrap();
+    // Ledger reversal: nothing left in flight, the bank never moved.
     assert_eq!(
-        balance_after_fail.amount_minor(),
+        fix.ledger.balance(in_flight).await.unwrap().amount_minor(),
         0,
-        "ledger must be reversed — bank balance back to zero after fail"
+        "ledger must be reversed — nothing in flight after fail"
+    );
+    assert_eq!(
+        fix.ledger
+            .balance(fix.bank_id)
+            .await
+            .unwrap()
+            .amount_minor(),
+        0
     );
 
     Ok(())
@@ -330,7 +371,11 @@ async fn mark_returned_from_sent_reverses_ledger_entry(pool: PgPool) -> sqlx::Re
     fix.payout_engine.mark_sent(payout.id).await.unwrap();
 
     // Bank returns the transfer.
-    let returned = fix.payout_engine.mark_returned(payout.id).await.unwrap();
+    let returned = fix
+        .payout_engine
+        .mark_returned(payout.id, "PROVIDER-RETURN-TEST".into())
+        .await
+        .unwrap();
     assert_eq!(returned.status, PayoutStatus::Returned);
 
     // Ledger reversal: funds back to zero on bank account.
@@ -365,7 +410,11 @@ async fn fail_from_pending_writes_no_ledger_entry(pool: PgPool) -> sqlx::Result<
     // Fail before processing — no ledger entry should ever be written.
     let failed = fix
         .payout_engine
-        .fail(payout.id, "cancelled before processing".into())
+        .fail(
+            payout.id,
+            "cancelled before processing".into(),
+            Some("PROVIDER-REJECT-TEST".into()),
+        )
         .await
         .unwrap();
     assert_eq!(failed.status, PayoutStatus::Failed);
@@ -509,8 +558,13 @@ async fn concurrent_fail_and_return_reverse_once(pool: PgPool) -> sqlx::Result<(
         fix.payout_engine.mark_sent(payout.id).await.unwrap();
 
         let (a, b) = tokio::join!(
-            fix.payout_engine.fail(payout.id, "bank rejected".into()),
-            fix.payout_engine.mark_returned(payout.id),
+            fix.payout_engine.fail(
+                payout.id,
+                "bank rejected".into(),
+                Some("PROVIDER-REJECT-TEST".into())
+            ),
+            fix.payout_engine
+                .mark_returned(payout.id, "PROVIDER-RETURN-TEST".into()),
         );
         assert_eq!(
             a.is_ok() as u8 + b.is_ok() as u8,
@@ -553,7 +607,11 @@ async fn a_fail_racing_a_confirm_never_returns_confirmed_money(pool: PgPool) -> 
 
         let (c, f) = tokio::join!(
             fix.payout_engine.confirm(payout.id),
-            fix.payout_engine.fail(payout.id, "bank rejected".into()),
+            fix.payout_engine.fail(
+                payout.id,
+                "bank rejected".into(),
+                Some("PROVIDER-REJECT-TEST".into())
+            ),
         );
         assert_eq!(
             c.is_ok() as u8 + f.is_ok() as u8,

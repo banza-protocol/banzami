@@ -122,6 +122,11 @@ pub enum SettlementError {
     #[error("invalid settlement amounts: gross {gross}, fee {fee}")]
     InvalidAmount { gross: Money, fee: Money },
 
+    /// No acquirer-fee expense account exists for this currency, so a fee in it
+    /// could not be recognised (MONEY-MODEL-001).
+    #[error("acquirer settlement in {0} is not supported")]
+    CurrencyNotSupported(banzami_types::Currency),
+
     #[error("ledger error: {0}")]
     Ledger(#[from] banzami_ledger::LedgerError),
 

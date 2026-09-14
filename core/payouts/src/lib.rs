@@ -194,6 +194,18 @@ pub enum PayoutError {
     #[error("resolved fee {fee} exceeds gross {gross}")]
     FeeExceedsGross { fee: i64, gross: i64 },
 
+    /// A withdrawal in a currency that has no in-flight account has nowhere for
+    /// its obligation to wait while a rail executes it (MONEY-MODEL-001).
+    #[error("withdrawals in {0} are not supported")]
+    CurrencyNotSupported(banzami_types::Currency),
+
+    /// A SENT payout was handed to a rail, which may have executed it. Failing or
+    /// returning it restores the participant's obligation, so it needs the rail's
+    /// own evidence that it did not execute — a timeout is not that evidence
+    /// (MONEY-MODEL-001, ADR-063).
+    #[error("a SENT payout is failed or returned only with the provider's evidence reference")]
+    ExternalEvidenceRequired,
+
     #[error("ledger error: {0}")]
     Ledger(#[from] banzami_ledger::LedgerError),
 

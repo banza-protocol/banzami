@@ -803,3 +803,22 @@ pub async fn get_acquiring_reconciliation_run(
         }).collect::<Vec<_>>(),
     })))
 }
+
+// ---------------------------------------------------------------------------
+// Financial position (MONEY-MODEL-001, ADR-063)
+// ---------------------------------------------------------------------------
+
+/// GET /internal/v1/admin/financial-position
+///
+/// What Banzami owes (participants, Businesses, withdrawals in flight), what
+/// backs it (external backing and transit), what it earned, what is pending at
+/// the rail boundary, and every economic integrity finding. Aggregates only — no
+/// participant is named. Read-only: nothing here can post, correct or reset.
+pub async fn financial_position(
+    State(state): State<AppState>,
+) -> Result<Json<banzami_reconciliation::FinancialPosition>, ApiError> {
+    banzami_reconciliation::financial_position(&state.pool)
+        .await
+        .map(Json)
+        .map_err(|e| ApiError::internal(e.to_string()))
+}

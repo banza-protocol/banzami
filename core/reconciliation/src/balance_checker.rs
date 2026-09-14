@@ -38,6 +38,27 @@ pub async fn run_balance_checker(pool: PgPool, tick_interval: Duration) {
                 tracing::error!(error = %e, "balance_checker: check query failed");
             }
         }
+        // The money model (MONEY-MODEL-001): obligations covered by backing, no
+        // negative obligation or backing position, nothing unexplained in flight,
+        // nothing left on a retired resource. Each finding is the same stable
+        // signal ops alerting matches on.
+        match crate::position::financial_position(&pool).await {
+            Ok(position) => {
+                for f in &position.findings {
+                    tracing::error!(
+                        code = f.code,
+                        currency = %f.currency,
+                        amount_minor = f.amount_minor,
+                        count = f.count,
+                        detail = %f.detail,
+                        "LEDGER INVARIANT VIOLATION: economic integrity"
+                    );
+                }
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "balance_checker: financial position query failed");
+            }
+        }
     }
 }
 

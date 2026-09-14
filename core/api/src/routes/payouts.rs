@@ -197,6 +197,14 @@ fn transition_err(e: PayoutError) -> ApiError {
         PayoutError::InvalidStatusTransition { .. } => {
             ApiError::unprocessable("INVALID_TRANSITION", e.to_string())
         }
+        PayoutError::ExternalEvidenceRequired => ApiError::unprocessable(
+            "EXTERNAL_EVIDENCE_REQUIRED",
+            "this payout was submitted to the rail and may have executed; fail or return it \
+             only with the provider's evidence_ref, or wait for its confirmation",
+        ),
+        PayoutError::CurrencyNotSupported(_) => {
+            ApiError::unprocessable("CURRENCY_NOT_SUPPORTED", e.to_string())
+        }
         // A refused price is a configuration state someone can act on, not an
         // outage. Reporting it as 500 would tell an operator their system is
         // broken when what is missing is a rule they have to write, and would
@@ -262,6 +270,17 @@ pub async fn confirm(
 #[derive(Deserialize)]
 pub struct FailBody {
     pub reason: String,
+    /// The provider's rejection reference. Required to fail a SENT payout: the
+    /// rail may have executed it (MONEY-MODEL-001).
+    #[serde(default)]
+    pub evidence_ref: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+pub struct ReturnBody {
+    /// The provider's return reference.
+    #[serde(default)]
+    pub evidence_ref: String,
 }
 
 pub async fn fail(
@@ -274,7 +293,7 @@ pub async fn fail(
         .map_err(|_| ApiError::bad_request("invalid payout id"))?;
     let p = state
         .payout
-        .fail(pid, body.reason)
+        .fail(pid, body.reason, body.evidence_ref)
         .await
         .map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
@@ -283,13 +302,15 @@ pub async fn fail(
 pub async fn mark_returned(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    body: Option<Json<ReturnBody>>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    let evidence_ref = body.map(|Json(b)| b.evidence_ref).unwrap_or_default();
     let pid: PayoutId = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid payout id"))?;
     let p = state
         .payout
-        .mark_returned(pid)
+        .mark_returned(pid, evidence_ref)
         .await
         .map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))

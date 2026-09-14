@@ -1,9 +1,11 @@
 pub mod balance_checker;
 pub mod engine;
+pub mod position;
 pub mod repository;
 
 pub use balance_checker::{check_ledger_invariants, run_balance_checker, LedgerCheckOutcome};
 pub use engine::{ReconciliationEngine, SettlementView, StaticReconciliationEngine};
+pub use position::{financial_position, CurrencyPosition, FinancialPosition, IntegrityFinding};
 pub use repository::{PostgresReconciliationRepository, ReconciliationRepository};
 
 use chrono::{DateTime, Utc};

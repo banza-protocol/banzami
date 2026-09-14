@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 
+use banzami_ledger::system::withdrawals_in_flight;
 use banzami_ledger::{LedgerEngine, PostingBuilder};
 use banzami_pricing::{PricingContext, PricingRuleProvider};
 use banzami_types::{AccountId, MerchantId, Money, PayoutId};
@@ -27,20 +28,34 @@ pub trait PayoutEngine: Send + Sync {
     /// Create a payout record (Pending). Validates balance; does NOT post the ledger yet.
     async fn initiate(&self, req: CreatePayoutRequest) -> Result<Payout, PayoutError>;
 
-    /// Pending → Processing: post ledger entry (DR available / CR bank).
+    /// Pending → Processing: the obligation is reserved for the withdrawal
+    /// (DR available / CR withdrawals in flight, plus the fee posting). No backing
+    /// asset moves yet: no rail has executed anything.
     async fn process(&self, id: PayoutId) -> Result<Payout, PayoutError>;
 
-    /// Processing → Sent: record bank submission.
+    /// Processing → Sent: record submission to the rail.
     async fn mark_sent(&self, id: PayoutId) -> Result<Payout, PayoutError>;
 
-    /// Sent → Confirmed: bank confirmed receipt (no ledger change — already balanced).
+    /// Sent → Confirmed: the rail executed it. The obligation is extinguished and
+    /// the backing asset decreases (DR withdrawals in flight / CR bank).
     async fn confirm(&self, id: PayoutId) -> Result<Payout, PayoutError>;
 
-    /// Any non-terminal → Failed. Reverses ledger if posting_id exists.
-    async fn fail(&self, id: PayoutId, reason: String) -> Result<Payout, PayoutError>;
+    /// Any non-terminal → Failed. Restores what processing reserved. A SENT
+    /// payout needs `evidence_ref`: the rail may have executed it.
+    async fn fail(
+        &self,
+        id: PayoutId,
+        reason: String,
+        evidence_ref: Option<String>,
+    ) -> Result<Payout, PayoutError>;
 
-    /// Sent → Returned: bank returned funds. Reverses ledger.
-    async fn mark_returned(&self, id: PayoutId) -> Result<Payout, PayoutError>;
+    /// Sent → Returned: the rail returned the funds, on its evidence. Restores
+    /// what processing reserved.
+    async fn mark_returned(
+        &self,
+        id: PayoutId,
+        evidence_ref: String,
+    ) -> Result<Payout, PayoutError>;
 
     async fn get(&self, id: PayoutId) -> Result<Payout, PayoutError>;
     async fn list_for_merchant(
@@ -226,13 +241,20 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             .await?;
         let net = Money::new(gross.amount_minor() - fee_minor, gross.currency);
 
-        // Posting 1 — net to bank. (net == gross when fee == 0.)
+        // Posting 1 — the net obligation moves to withdrawals in flight. (net ==
+        // gross when fee == 0.) It is still owed — to the rail's execution now,
+        // not spendable by the participant — and no backing asset moves until
+        // the rail confirms (MONEY-MODEL-001). This used to credit the bank ASSET
+        // here, so the backing shrank for a withdrawal no rail had executed and a
+        // failure restored the participant from a position that had not moved.
+        let in_flight = withdrawals_in_flight(gross.currency)
+            .ok_or(PayoutError::CurrencyNotSupported(gross.currency))?;
         let net_posting = PostingBuilder::new(
             format!("Payout {} — initiation (net)", payout.id),
             format!("{}:process", payout.idempotency_key),
         )
-        .debit(available_account_id, net) // LIABILITY ↓ by net
-        .credit(self.bank_account_id, net) // ASSET ↓ net leaves to bank
+        .debit(available_account_id, net) // LIABILITY ↓ participant, by net
+        .credit(in_flight, net) // LIABILITY ↑ withdrawals in flight
         .build()
         .map_err(|_| {
             PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
@@ -264,6 +286,58 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         }
 
         Ok(posted)
+    }
+
+    /// Extinguish a confirmed withdrawal's obligation against the backing asset:
+    /// DR withdrawals in flight / CR bank, for the net amount processing moved.
+    ///
+    /// Idempotent on its key. A payout processed before MONEY-MODEL-001 already
+    /// credited the bank at processing; confirming it posts nothing more.
+    async fn post_confirmation(&self, payout: &Payout) -> Result<(), PayoutError> {
+        let net = match payout.ledger_posting_id {
+            Some(id) => Some(self.ledger.get_posting(id).await?),
+            None => {
+                self.ledger
+                    .find_posting_by_key(&format!("{}:process", payout.idempotency_key))
+                    .await?
+            }
+        };
+        let Some(net) = net else {
+            return Err(PayoutError::InvalidStatusTransition {
+                from: payout.status,
+                to: PayoutStatus::Confirmed,
+            });
+        };
+        let Some(in_flight) = withdrawals_in_flight(payout.amount.currency) else {
+            return Err(PayoutError::CurrencyNotSupported(payout.amount.currency));
+        };
+        let Some(credit) = net
+            .entries
+            .iter()
+            .find(|e| e.entry_type == banzami_ledger::EntryType::Credit)
+        else {
+            return Ok(());
+        };
+        if credit.account_id != in_flight {
+            // Legacy shape: the bank was credited at processing.
+            return Ok(());
+        }
+        let posting = PostingBuilder::new(
+            format!("Payout {} — confirmed by the rail", payout.id),
+            format!("{}:confirm", payout.idempotency_key),
+        )
+        .debit(in_flight, credit.amount) // LIABILITY ↓ the obligation is extinguished
+        .credit(self.bank_account_id, credit.amount) // ASSET ↓ the backing pays it out
+        .build()
+        .map_err(|_| {
+            PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
+                debits_minor: credit.amount.amount_minor(),
+                credits_minor: credit.amount.amount_minor(),
+                currency: credit.amount.currency,
+            })
+        })?;
+        self.ledger.post(posting).await?;
+        Ok(())
     }
 
     /// Reverse what a payout's processing actually posted — the net posting and
@@ -482,13 +556,29 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
                 to: PayoutStatus::Confirmed,
             });
         }
-        // Ledger is already balanced from process() — no additional entry needed.
-        self.repo
+        // Claim CONFIRMED first, as fail does: a fail that won the race has
+        // restored the participant from in-flight, and extinguishing the same
+        // obligation against the bank as well would pay it out twice.
+        let confirmed = self
+            .repo
             .update_status(id, payout.status, PayoutStatus::Confirmed, None, None)
-            .await
+            .await?;
+        if let Err(e) = self.post_confirmation(&payout).await {
+            let _ = self
+                .repo
+                .update_status(id, PayoutStatus::Confirmed, payout.status, None, None)
+                .await;
+            return Err(e);
+        }
+        Ok(confirmed)
     }
 
-    async fn fail(&self, id: PayoutId, reason: String) -> Result<Payout, PayoutError> {
+    async fn fail(
+        &self,
+        id: PayoutId,
+        reason: String,
+        evidence_ref: Option<String>,
+    ) -> Result<Payout, PayoutError> {
         let payout = self.repo.get(id).await?;
         if !payout.status.can_transition_to(PayoutStatus::Failed) {
             return Err(PayoutError::InvalidStatusTransition {
@@ -496,12 +586,25 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
                 to: PayoutStatus::Failed,
             });
         }
+        // A SENT payout is in the rail's hands. Without the rail's word that it
+        // did not execute, restoring the participant could leave them paid twice:
+        // once by the rail, once by Banzami. It stays SENT until evidence or a
+        // confirmation arrives.
+        let evidence = evidence_ref
+            .map(|e| e.trim().to_owned())
+            .filter(|e| !e.is_empty());
+        if payout.status == PayoutStatus::Sent && evidence.is_none() {
+            return Err(PayoutError::ExternalEvidenceRequired);
+        }
         // Claim FAILED first; only then give the money back. A confirm (or a
         // return) that won the race makes this claim fail, and nothing moves.
         let failed = self
             .repo
             .update_status(id, payout.status, PayoutStatus::Failed, None, Some(reason))
             .await?;
+        if let Some(evidence) = &evidence {
+            self.repo.record_failure_evidence(id, evidence).await?;
+        }
         // Give back whatever processing posted — found by key, so a payout that
         // moved money without recording its posting is reversed too. A payout
         // that never reached processing finds nothing and reverses nothing.
@@ -515,7 +618,11 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         Ok(failed)
     }
 
-    async fn mark_returned(&self, id: PayoutId) -> Result<Payout, PayoutError> {
+    async fn mark_returned(
+        &self,
+        id: PayoutId,
+        evidence_ref: String,
+    ) -> Result<Payout, PayoutError> {
         let payout = self.repo.get(id).await?;
         if !payout.status.can_transition_to(PayoutStatus::Returned) {
             return Err(PayoutError::InvalidStatusTransition {
@@ -523,10 +630,15 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
                 to: PayoutStatus::Returned,
             });
         }
+        let evidence = evidence_ref.trim().to_owned();
+        if evidence.is_empty() {
+            return Err(PayoutError::ExternalEvidenceRequired);
+        }
         let returned = self
             .repo
             .update_status(id, payout.status, PayoutStatus::Returned, None, None)
             .await?;
+        self.repo.record_failure_evidence(id, &evidence).await?;
         if let Err(e) = self.post_reversal(&payout, "return").await {
             let _ = self
                 .repo
@@ -758,6 +870,14 @@ mod tests {
     }
 
     impl PayoutRepository for MockPayoutRepo {
+        async fn record_failure_evidence(
+            &self,
+            _id: PayoutId,
+            _evidence_ref: &str,
+        ) -> Result<(), PayoutError> {
+            Ok(())
+        }
+
         // The unit tests build their own rules, unpinned, so no profile is
         // needed to match them. The real-DB suite exercises the lookup.
         /// Every financial owner in these tests carries the same assigned
@@ -1126,7 +1246,11 @@ mod tests {
             .unwrap();
 
         let failed = engine
-            .fail(payout.id, "cancelled by operator".into())
+            .fail(
+                payout.id,
+                "cancelled by operator".into(),
+                Some("PROVIDER-REJECT-TEST".into()),
+            )
             .await
             .unwrap();
         assert_eq!(failed.status, PayoutStatus::Failed);
@@ -1154,7 +1278,11 @@ mod tests {
         assert_eq!(avail_after_process.amount_minor(), 60_000);
 
         engine
-            .fail(payout.id, "bank rejected".into())
+            .fail(
+                payout.id,
+                "bank rejected".into(),
+                Some("PROVIDER-REJECT-TEST".into()),
+            )
             .await
             .unwrap();
 
@@ -1183,7 +1311,10 @@ mod tests {
 
         engine.process(payout.id).await.unwrap();
         engine.mark_sent(payout.id).await.unwrap();
-        engine.mark_returned(payout.id).await.unwrap();
+        engine
+            .mark_returned(payout.id, "PROVIDER-RETURN-TEST".into())
+            .await
+            .unwrap();
 
         let avail = engine.ledger.balance(avail_id).await.unwrap().negate();
         assert_eq!(
@@ -1349,7 +1480,16 @@ mod tests {
         init_process(&engine, wallet_id, "w-fee", 100_000).await;
         // gross 100000 → fee 750 → net 99250
         assert_eq!(net_of(&engine, opfee_id).await, 750, "operator fee = 0,75%");
-        assert_eq!(net_of(&engine, bank_id).await, 99_250, "bank receives net");
+        assert_eq!(
+            net_of(&engine, in_flight()).await,
+            99_250,
+            "the net obligation waits in flight"
+        );
+        assert_eq!(
+            net_of(&engine, bank_id).await,
+            0,
+            "no backing moves before the rail confirms"
+        );
         // merchant available reduced by the full gross (200k − 100k)
         assert_eq!(net_of(&engine, avail_id).await, 100_000);
     }
@@ -1359,11 +1499,12 @@ mod tests {
         let (engine, wallet_id, _avail, bank_id, opfee_id) =
             make_engine_with(200_000, vec![withdrawal_rule(75)]);
         init_process(&engine, wallet_id, "w-bal", 100_000).await;
-        // Balanced posting: DR available gross == CR bank net + CR operator_fee fee.
+        // Balanced postings: DR available gross == CR in-flight net + CR operator_fee fee.
         assert_eq!(
-            net_of(&engine, bank_id).await + net_of(&engine, opfee_id).await,
+            net_of(&engine, in_flight()).await + net_of(&engine, opfee_id).await,
             100_000
         );
+        assert_eq!(net_of(&engine, bank_id).await, 0);
     }
 
     #[tokio::test]
@@ -1371,10 +1512,22 @@ mod tests {
         let (engine, wallet_id, avail_id, bank_id, opfee_id) =
             make_engine_with(200_000, vec![withdrawal_rule(75)]);
         let p = init_process(&engine, wallet_id, "w-fail", 100_000).await;
-        engine.fail(p.id, "bank rejected".into()).await.unwrap();
+        engine
+            .fail(
+                p.id,
+                "bank rejected".into(),
+                Some("PROVIDER-REJECT-TEST".into()),
+            )
+            .await
+            .unwrap();
         // Everything back to square one — nothing stranded on the fee account.
         assert_eq!(net_of(&engine, opfee_id).await, 0, "fee reversed");
-        assert_eq!(net_of(&engine, bank_id).await, 0, "bank reversed");
+        assert_eq!(net_of(&engine, bank_id).await, 0, "bank untouched");
+        assert_eq!(
+            net_of(&engine, in_flight()).await,
+            0,
+            "nothing left in flight"
+        );
         assert_eq!(
             net_of(&engine, avail_id).await,
             200_000,
@@ -1388,7 +1541,10 @@ mod tests {
             make_engine_with(200_000, vec![withdrawal_rule(75)]);
         let p = init_process(&engine, wallet_id, "w-ret", 100_000).await;
         engine.mark_sent(p.id).await.unwrap();
-        engine.mark_returned(p.id).await.unwrap();
+        engine
+            .mark_returned(p.id, "PROVIDER-RETURN-TEST".into())
+            .await
+            .unwrap();
         assert_eq!(net_of(&engine, opfee_id).await, 0);
         assert_eq!(net_of(&engine, avail_id).await, 200_000);
     }
@@ -1398,10 +1554,15 @@ mod tests {
         let (engine, wallet_id, avail_id, _bank, opfee_id) =
             make_engine_with(200_000, vec![withdrawal_rule(75)]);
         let p = init_process(&engine, wallet_id, "w-dbl", 100_000).await;
-        engine.fail(p.id, "x".into()).await.unwrap();
+        engine
+            .fail(p.id, "x".into(), Some("PROVIDER-REJECT-TEST".into()))
+            .await
+            .unwrap();
         // A second terminal transition is refused → no second reversal.
         assert!(matches!(
-            engine.fail(p.id, "again".into()).await,
+            engine
+                .fail(p.id, "again".into(), Some("PROVIDER-REJECT-TEST".into()))
+                .await,
             Err(PayoutError::InvalidStatusTransition { .. })
         ));
         assert_eq!(net_of(&engine, opfee_id).await, 0);
@@ -1430,7 +1591,83 @@ mod tests {
             make_engine_with(200_000, vec![withdrawal_rule(75)]);
         init_process(&engine, wallet_id, "w-floor", 13_333).await;
         assert_eq!(net_of(&engine, opfee_id).await, 99);
-        assert_eq!(net_of(&engine, bank_id).await, 13_234);
+        assert_eq!(net_of(&engine, in_flight()).await, 13_234);
+        assert_eq!(net_of(&engine, bank_id).await, 0);
+    }
+
+    fn in_flight() -> AccountId {
+        banzami_ledger::system::withdrawals_in_flight(Currency::AOA).unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_confirmed_withdrawal_extinguishes_the_obligation_against_the_backing() {
+        let (engine, wallet_id, avail_id, bank_id, opfee_id) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        let p = init_process(&engine, wallet_id, "w-confirm", 100_000).await;
+        engine.mark_sent(p.id).await.unwrap();
+        assert_eq!(net_of(&engine, bank_id).await, 0, "SENT is not executed");
+        engine.confirm(p.id).await.unwrap();
+        assert_eq!(
+            net_of(&engine, in_flight()).await,
+            0,
+            "the obligation is extinguished"
+        );
+        assert_eq!(
+            net_of(&engine, bank_id).await,
+            99_250,
+            "the backing pays the net out"
+        );
+        assert_eq!(net_of(&engine, opfee_id).await, 750);
+        assert_eq!(net_of(&engine, avail_id).await, 100_000);
+        // Confirmed is terminal: no second confirmation, no failure after it.
+        assert!(engine.confirm(p.id).await.is_err());
+        assert!(engine
+            .fail(p.id, "late".into(), Some("PROVIDER-REJECT".into()))
+            .await
+            .is_err());
+        assert_eq!(
+            net_of(&engine, bank_id).await,
+            99_250,
+            "paid out exactly once"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_sent_withdrawal_is_not_failed_without_the_rails_evidence() {
+        let (engine, wallet_id, avail_id, bank_id, _opfee) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        let p = init_process(&engine, wallet_id, "w-unknown", 100_000).await;
+        engine.mark_sent(p.id).await.unwrap();
+        // A timeout: the operator does not know whether the rail executed it.
+        for evidence in [None, Some(String::new()), Some("   ".into())] {
+            assert!(matches!(
+                engine.fail(p.id, "provider timeout".into(), evidence).await,
+                Err(PayoutError::ExternalEvidenceRequired)
+            ));
+        }
+        assert!(matches!(
+            engine.mark_returned(p.id, " ".into()).await,
+            Err(PayoutError::ExternalEvidenceRequired)
+        ));
+        assert_eq!(
+            engine.get(p.id).await.unwrap().status,
+            PayoutStatus::Sent,
+            "still SENT"
+        );
+        assert_eq!(
+            net_of(&engine, avail_id).await,
+            100_000,
+            "the participant is not restored blindly"
+        );
+        assert_eq!(
+            net_of(&engine, in_flight()).await,
+            99_250,
+            "the obligation stays in flight"
+        );
+        // The rail's confirmation arrives later: exactly one resolution.
+        engine.confirm(p.id).await.unwrap();
+        assert_eq!(net_of(&engine, bank_id).await, 99_250);
+        assert_eq!(net_of(&engine, avail_id).await, 100_000);
     }
 
     #[tokio::test]
@@ -1718,7 +1955,11 @@ mod tests {
 
         *engine.ledger.refuse_suffix.lock().unwrap() = None;
         engine
-            .fail(payout.id, "bank rejected".into())
+            .fail(
+                payout.id,
+                "bank rejected".into(),
+                Some("PROVIDER-REJECT-TEST".into()),
+            )
             .await
             .unwrap();
         assert_eq!(

@@ -38,6 +38,8 @@ pub mod kyc_data;
 mod link_completion_tests;
 pub mod merchant_profiles;
 pub mod merchants;
+#[cfg(test)]
+mod money_model_tests;
 pub mod onboarding;
 #[cfg(test)]
 mod onboarding_tests;
