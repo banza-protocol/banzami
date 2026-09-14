@@ -38,6 +38,19 @@ The decision is [ADR-062](../adr/ADR-062-sandbox-resources-are-developer-disposa
 | authority gate | The tombstone deletes request logs, which `bl_developer_api_runtime` could not | manifest grant; `DB_AUTHORITY_VERIFY=PASS` on the Sandbox |
 | workspace footprint | A deleted Project counted as active | footprint excludes DELETING/DELETED |
 
+### Residue the pre-fix runs left
+
+The first lifecycle runs ran before fixes `e91b04ba` and `7a0b3966` were deployed,
+and left what those defects produce:
+
+| Item | State | Action |
+|---|---|---|
+| Shared test Business `35a6f38a…` (creator and partner both deleted) | was ACTIVE | retired through Core's own route (`POST /internal/v1/sandbox/projects/retire`, pass `repair-orphan-1`, `requested_by` operator): 5 000 Kz retired by balanced posting, SUSPENDED. No SQL write. One operator repair of acceptance residue, not a step of any developer flow |
+| Retired test payer `4d654f5d…` of deleted Project `1540f933…` | 10 000 Kz fictitious balance | **outstanding**: the same Core pass (`retire_business: true`, no bound Business) sweeps it with the fixed code; the call needs the owner's approval to run |
+
+The runs after the fixes leave neither (lifecycle 10/10, `FUNDING_PAYMENT_RACE`
+funded 0, `SHARED_BUSINESS_KEPT` then residue 0).
+
 ## Lifecycle and financial integrity
 
 | Property | Implementation | Proof |
@@ -127,6 +140,9 @@ payee display is the snapshot taken at issue. E2E `RECEIPT_UNCHANGED`.
 | `public-sandbox-cleanroom.mjs` | 32/32 (delete steps 3/3), residue 0 |
 | `tests/phase0/ledger-reconciliation.sh` | 6/6, book sums to zero |
 | `runtime-authority.sh verify` | `DB_AUTHORITY_VERIFY=PASS` |
+| `acceptance-suites.mjs all` (cleanup = Delete) | scenarios PASS, workbench 10/10, refunds 8/8, wallet-native 16/16, rail isolation 7/7, residue 0 |
+| `responsive.mjs` / `accessibility.mjs` (populated) | 52/52 / 41/41 |
+| `check-canonical-resources.mjs` | 0 unclassified identities, workspaces, projects, keys |
 
 ## Counters
 
@@ -173,7 +189,7 @@ SANDBOX_WORKSPACE_DELETE_E2E=PASS
 SANDBOX_DELETE_REQUIRES_EXTERNAL_PROVIDER=0
 DELETE_RECEIPT_E2E=PASS
 SANDBOX_DELETE_LEDGER_INVARIANTS=PASS
-SANDBOX_DELETE_ACCEPTANCE_RESIDUE=0
+SANDBOX_DELETE_ACCEPTANCE_RESIDUE=1  (pre-fix payer 4d654f5d…, 10 000 Kz; repair pending approval)
 SANDBOX_DELETE_PUBLIC_CLEANROOM=PASS
 SANDBOX_DELETE_OPERATOR_INTERVENTIONS=0
 SANDBOX_DELETE_DOCS=PASS
