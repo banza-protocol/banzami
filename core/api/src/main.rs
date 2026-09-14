@@ -561,6 +561,11 @@ async fn main() {
             post(routes::sandbox_project_deletion::retire),
         )
         .route(
+            // A retired Sandbox Business keeps no pending cash-in (MONEY-MODEL-001, 0149).
+            "/internal/v1/sandbox/businesses/:merchant_id/fail-pending-cash-in",
+            post(routes::sandbox_reset::fail_pending_cash_in_of_retired_business),
+        )
+        .route(
             "/internal/v1/wallets/:wallet_id/accounts",
             get(routes::wallet_accounts::list_for_wallet),
         )

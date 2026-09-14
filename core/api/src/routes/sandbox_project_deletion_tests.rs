@@ -556,3 +556,89 @@ async fn a_retired_business_keeps_no_pending_cash_in_that_could_credit_it(pool: 
     assert_eq!(balance(&pool, f.primary_account).await, 0);
     assert!(book_balanced(&pool).await);
 }
+
+/// A Business retired before retirement failed pending cash-in: the operator
+/// route applies that step — only to a retired Business, once, recorded.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn an_already_retired_business_has_its_pending_cash_in_failed_and_nothing_else(pool: PgPool) {
+    use crate::routes::sandbox_reset::{
+        fail_pending_cash_in_of_retired_business, FailPendingCashInBody,
+    };
+
+    let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
+    let f = business(&st, &pool, transit, Uuid::new_v4()).await;
+    let pending: Uuid = sqlx::query_scalar(
+        "INSERT INTO acquiring_payments (payment_link_id, provider, external_ref, status, amount_minor, currency, instructions, expires_at)
+         VALUES ($1, 'SIMULATED', 'SIM-LEGACY', 'PENDING', 40000, 'AOA', '{}', now()) RETURNING id",
+    )
+    .bind(f.link)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let call = |st| {
+        fail_pending_cash_in_of_retired_business(
+            State(st),
+            axum::extract::Path(f.merchant),
+            Json(FailPendingCashInBody {
+                requested_by: "operator".into(),
+            }),
+        )
+    };
+
+    // Still in use: refused, nothing changes.
+    let refused = call(st.clone()).await.unwrap_err();
+    assert_eq!(refused.code, "BUSINESS_NOT_RETIRED");
+    assert_eq!(
+        status(
+            &pool,
+            "SELECT status FROM acquiring_payments WHERE id=$1",
+            pending
+        )
+        .await,
+        "PENDING"
+    );
+
+    // Retired (as legacy retirement left it): the pending cash-in is failed, once.
+    sqlx::query("UPDATE payment_links SET status = 'CANCELLED' WHERE merchant_id = $1")
+        .bind(f.merchant)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE merchants SET status = 'SUSPENDED' WHERE id = $1")
+        .bind(f.merchant)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let postings = count(&pool, "SELECT count(*) FROM ledger_postings").await;
+    let Json(out) = call(st.clone()).await.unwrap();
+    assert_eq!(out["acquiring_payments_failed"], 1);
+    assert_eq!(
+        status(
+            &pool,
+            "SELECT status FROM acquiring_payments WHERE id=$1",
+            pending
+        )
+        .await,
+        "FAILED"
+    );
+    let Json(again) = call(st.clone()).await.unwrap();
+    assert_eq!(again["acquiring_payments_failed"], 0);
+    assert_eq!(
+        count(&pool, "SELECT count(*) FROM ledger_postings").await,
+        postings,
+        "no value moved"
+    );
+    assert_eq!(
+        count(
+            &pool,
+            "SELECT count(*) FROM audit_log WHERE action = 'SANDBOX_PENDING_CASH_IN_FAILED'"
+        )
+        .await,
+        2
+    );
+
+    // LIVE refuses.
+    let mut live = st.clone();
+    live.environment = CoreEnvironment::Live;
+    assert!(call(live).await.is_err());
+}

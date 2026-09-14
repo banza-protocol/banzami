@@ -283,6 +283,76 @@ pub(crate) async fn fail_pending_cash_in(
     .map_err(|e| ApiError::internal(e.to_string()))
 }
 
+#[derive(Deserialize)]
+pub struct FailPendingCashInBody {
+    pub requested_by: String,
+}
+
+/// POST /internal/v1/sandbox/businesses/:merchant_id/fail-pending-cash-in
+///
+/// Applies retirement's pending-cash-in step to a Business that was retired
+/// before retirement had it (MONEY-MODEL-001): hosted payments still PENDING on
+/// its cancelled links are failed, so no later confirmation can credit it.
+/// Sandbox only; refused for a Business that is not retired (ACTIVE, or with an
+/// ACTIVE link). Moves no value — the payments never credited anything — and is
+/// recorded in the audit log. Idempotent: a second call fails nothing.
+pub async fn fail_pending_cash_in_of_retired_business(
+    State(state): State<AppState>,
+    axum::extract::Path(merchant): axum::extract::Path<Uuid>,
+    Json(body): Json<FailPendingCashInBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    if state.environment.is_live() {
+        return Err(ApiError::forbidden("test data exists only in the Sandbox"));
+    }
+    let by = body.requested_by.trim();
+    if by.is_empty() || by.len() > 200 {
+        return Err(ApiError::bad_request("requested_by is required"));
+    }
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let mut tx = state.pool.begin().await.map_err(db)?;
+    let status: Option<String> =
+        sqlx::query_scalar("SELECT status FROM merchants WHERE id = $1 FOR UPDATE")
+            .bind(merchant)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db)?;
+    let Some(status) = status else {
+        return Err(ApiError::not_found("business not found"));
+    };
+    let active_links: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM payment_links WHERE merchant_id = $1 AND status = 'ACTIVE'",
+    )
+    .bind(merchant)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db)?;
+    if status == "ACTIVE" || active_links > 0 {
+        return Err(ApiError::conflict(
+            "BUSINESS_NOT_RETIRED",
+            "only a retired Business's pending cash-in is failed; this one is still in use",
+        ));
+    }
+    let failed = fail_pending_cash_in(
+        &mut tx,
+        "SELECT id FROM payment_links WHERE merchant_id = $1 AND status = 'CANCELLED'",
+        merchant,
+    )
+    .await?;
+    let result =
+        serde_json::json!({ "merchant_id": merchant, "acquiring_payments_failed": failed });
+    sqlx::query(
+        "INSERT INTO audit_log (actor, action, subject, metadata) VALUES ($1, 'SANDBOX_PENDING_CASH_IN_FAILED', $2, $3)",
+    )
+    .bind(format!("OPERATOR:{by}"))
+    .bind(format!("business:{merchant}"))
+    .bind(&result)
+    .execute(&mut *tx)
+    .await
+    .map_err(db)?;
+    tx.commit().await.map_err(db)?;
+    Ok(Json(result))
+}
+
 #[derive(Default)]
 pub(crate) struct BusinessRetired {
     pub sessions_cancelled: u64,
