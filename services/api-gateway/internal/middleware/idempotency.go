@@ -126,12 +126,23 @@ func Idempotency(rdb *redis.Client) func(http.Handler) http.Handler {
 			}
 			next.ServeHTTP(rec, r)
 
-			if rec.status < 500 {
+			// A response marked pending is not the request's outcome: it is an
+			// acknowledgement that the outcome is still coming (simulate DELAYED).
+			// Caching it would replay "pending" for 24 hours after the result exists.
+			if rec.status < 500 && rec.Header().Get(IdempotencyOutcomeHeader) != IdempotencyOutcomePending {
 				storeIdempotencyResponse(r.Context(), rdb, cacheKey, rec, fingerprint)
 			}
 		})
 	}
 }
+
+// IdempotencyOutcomeHeader, set to IdempotencyOutcomePending by a handler, keeps
+// its response out of the idempotency cache: the same key must reach the handler
+// again, which knows when the real outcome exists.
+const (
+	IdempotencyOutcomeHeader  = "Idempotency-Outcome"
+	IdempotencyOutcomePending = "pending"
+)
 
 func idempotencyCacheKey(merchantID, method, path, idemKey string) string {
 	return fmt.Sprintf("idem:%s:%s:%s:%s", merchantID, method, path, idemKey)

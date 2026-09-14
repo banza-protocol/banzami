@@ -407,6 +407,9 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 	if key != "" {
 		if o, found := h.storedOutcome(r.Context(), cacheKey); found {
 			w.Header().Set("Idempotent-Replayed", "true")
+			if o.status == http.StatusAccepted {
+				w.Header().Set(middleware.IdempotencyOutcomeHeader, middleware.IdempotencyOutcomePending)
+			}
 			writeSandboxRaw(w, o.status, o.body)
 			return
 		}
@@ -623,6 +626,7 @@ func (h *SandboxDevHandler) acceptDelayed(w http.ResponseWriter, r *http.Request
 	} else {
 		time.AfterFunc(h.delay, func() { h.completeDelayed(context.Background(), job) })
 	}
+	w.Header().Set(middleware.IdempotencyOutcomeHeader, middleware.IdempotencyOutcomePending)
 	writeSandboxRaw(w, http.StatusAccepted, body)
 }
 
