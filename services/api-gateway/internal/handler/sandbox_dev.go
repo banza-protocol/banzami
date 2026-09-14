@@ -55,12 +55,19 @@ type devLinkReader interface {
 	Get(ctx context.Context, id string) (*service.PaymentLink, error)
 }
 
+// devQRReader reads a session's dynamic QR: a session read carries the QR's id,
+// not its signed payload, which only the create response returns.
+type devQRReader interface {
+	Get(ctx context.Context, id string) (*service.QrResponse, error)
+}
+
 type SandboxDevHandler struct {
 	publicAPI   string // public-api internal base URL
 	internalKey string
 	http        *http.Client
 	sessions    devSessionReader
 	links       devLinkReader
+	qrs         devQRReader
 
 	// The real outcome of a simulated timeout, by project|Idempotency-Key, for
 	// 24 hours: in Redis when the gateway has it (it survives a restart), in
@@ -84,6 +91,12 @@ func NewSandboxDevHandler(publicAPIURL, internalKey string, sessions devSessionR
 		http: &http.Client{Timeout: 20 * time.Second}, sessions: sessions, links: links,
 		timeouts: map[string]timedOutcome{},
 	}
+}
+
+// WithQRReader lets via: QR pay a session read back from its QR id.
+func (h *SandboxDevHandler) WithQRReader(q devQRReader) *SandboxDevHandler {
+	h.qrs = q
+	return h
 }
 
 // WithOutcomeStore keeps simulated-timeout outcomes in Redis.
@@ -385,11 +398,20 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 			}
 			target["payment_link_slug"] = *s.PaymentLinkSlug
 		case "QR":
-			if s.QrPayload == nil || *s.QrPayload == "" {
+			payload := ""
+			if s.QrPayload != nil {
+				payload = *s.QrPayload
+			}
+			if payload == "" && s.QrCodeID != nil && *s.QrCodeID != "" && h.qrs != nil {
+				if q, qerr := h.qrs.Get(r.Context(), *s.QrCodeID); qerr == nil && q != nil {
+					payload = q.Payload
+				}
+			}
+			if payload == "" {
 				apierror.Respond(w, r, http.StatusUnprocessableEntity, "INTERFACE_UNAVAILABLE", "this session has no dynamic QR (open-amount sessions are paid by link)")
 				return
 			}
-			target["qr_payload"] = *s.QrPayload
+			target["qr_payload"] = payload
 			target["idempotency_key"] = "sbx-qr-" + p.ProjectID + "-" + in.PaymentSessionID
 		default:
 			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "via must be LINK or QR")

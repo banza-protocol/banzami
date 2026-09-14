@@ -207,3 +207,29 @@ func TestSandboxDev_ScopeAndEnvironment(t *testing.T) {
 		t.Fatalf("scenario catalogue: %d", rec.Code)
 	}
 }
+
+type sbxQRs map[string]string
+
+func (q sbxQRs) Get(_ context.Context, id string) (*service.QrResponse, error) {
+	if p, ok := q[id]; ok {
+		return &service.QrResponse{Payload: p}, nil
+	}
+	return nil, service.ErrQrNotFound
+}
+
+// A session read back from the store carries its QR's id, not the signed
+// payload (only the create response does); via QR reads the payload by id.
+func TestSandboxDev_PaysByQRFromASessionReadBack(t *testing.T) {
+	up := newUpstream(t)
+	sessions := sbxSessions{"own": {SessionID: "own", MerchantID: "merchant-A", PaymentLinkSlug: slug("s-own"), QrCodeID: slug("qr-1")}}
+	h := NewSandboxDevHandler(up.srv.URL, "ik", sessions, sbxLinks{})
+	r := sbxRouter(h, principalA())
+	if rec := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","via":"QR"}`, ""); rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("with no QR reader the payload cannot be found: %d", rec.Code)
+	}
+	h.WithQRReader(sbxQRs{"qr-1": "signed-payload"})
+	rec := post(t, r, "/v1/sandbox/test-payers/p1/payments", `{"payment_session_id":"own","via":"QR"}`, "")
+	if rec.Code != http.StatusOK || len(up.calls) != 1 || !strings.Contains(up.calls[0], `"qr_payload":"signed-payload"`) {
+		t.Fatalf("via QR from a read-back session: %d calls=%v", rec.Code, up.calls)
+	}
+}

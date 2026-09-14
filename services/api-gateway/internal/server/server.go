@@ -364,7 +364,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// payers — create, fund, pay as, retire. Mounted only on a Sandbox stack.
 			if env.Parse(cfg.Environment).IsSandbox() {
 				sbx := handler.NewSandboxDevHandler(cfg.PublicAPIInternalURL, cfg.InternalAPIKey, deps.PaymentSessionSvc, deps.PaymentLinkSvc).
-					WithOutcomeStore(deps.Redis)
+					WithOutcomeStore(deps.Redis).
+					WithQRReader(deps.QrSvc)
 				r.Get("/v1/sandbox/scenarios", sbx.Scenarios)
 				r.Route("/v1/sandbox/test-payers", func(r chi.Router) {
 					r.Use(middleware.Idempotency(deps.Redis))
