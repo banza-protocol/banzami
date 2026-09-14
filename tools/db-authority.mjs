@@ -220,8 +220,13 @@ export function generate(m) {
       }
     }
     if (spec.write.all_non_financial_tables_in) {
+      // Tables this role must NOT write even though they are non-financial:
+      // retirement/lifecycle truth (a marker whose deletion would reopen an
+      // eligibility) that only Core writes, in its own transaction. Qualified
+      // with the schema so it matches the loop's `schema.table` names.
+      const roleExcept = (spec.write.except_tables ?? []).map((t) => (t.includes('.') ? t : `public.${t}`));
       for (const s of spec.write.all_non_financial_tables_in) {
-        const excluded = [...fin, ...never].filter((t) => t.startsWith(`${s}.`));
+        const excluded = [...fin, ...never, ...roleExcept].filter((t) => t.startsWith(`${s}.`));
         L.push('DO $$');
         L.push('DECLARE t RECORD;');
         L.push('BEGIN');
@@ -365,6 +370,11 @@ export function check(m) {
       if (m.never_written_at_runtime.includes(t)) problems.push(`${role} is granted write on ${t}`);
       if (!tables.has(t)) problems.push(`${role} is granted ${t}, which no migration creates`);
       if (!spec.read_schemas.includes(t.split('.')[0])) problems.push(`${role} writes ${t} but cannot read schema ${t.split('.')[0]}`);
+    }
+    for (const t of spec.write.except_tables ?? []) {
+      const q = t.includes('.') ? t : `public.${t}`;
+      if (!tables.has(q)) problems.push(`${role} excepts ${t}, which no migration creates`);
+      if (fin.has(q.replace(/^public\./, ''))) problems.push(`${role} lists financial table ${t} as an exception, which is already excluded`);
     }
     if (!spec.source.length) continue;
     const footprint = writeFootprint(spec.source);

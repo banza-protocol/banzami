@@ -229,7 +229,7 @@ SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."platform_settings"'
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."platform_settings_history"', 'bl_admin_api_runtime');
 
 -- ── bl_app_runtime (operator tooling, no container) ──
--- Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority.
+-- Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority, and no write on retirement/lifecycle-truth tables (a host operator must not erase a retirement marker and reopen lifecycle eligibility — MONEY-MODEL-001).
 GRANT USAGE ON SCHEMA public TO bl_app_runtime;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO bl_app_runtime;
 GRANT USAGE ON SCHEMA developer TO bl_app_runtime;
@@ -248,7 +248,7 @@ DO $$
 DECLARE t RECORD;
 BEGIN
   FOR t IN SELECT format('%I.%I', n.nspname, c.relname) AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-           WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND format('%s.%s', n.nspname, c.relname) NOT IN ('public.ledger_accounts', 'public.ledger_postings', 'public.ledger_entries', 'public.wallets', 'public.consumer_wallets', 'public.wallet_accounts', 'public.wallet_account_transfers', 'public.wallet_reservations', 'public.wallet_payments', 'public.transfers', 'public.transactions', 'public.payment_sessions', 'public.payment_links', 'public.refunds', 'public.refund_events', 'public.restitution_allocations', 'public.acquiring_payments', 'public.acquiring_callbacks', 'public.consumer_deposits', 'public.payouts', 'public.app_settlements', 'public.settlements', 'public.operator_fees', 'public.split_sessions', 'public.split_contributions', 'public._sqlx_migrations') LOOP
+           WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND format('%s.%s', n.nspname, c.relname) NOT IN ('public.ledger_accounts', 'public.ledger_postings', 'public.ledger_entries', 'public.wallets', 'public.consumer_wallets', 'public.wallet_accounts', 'public.wallet_account_transfers', 'public.wallet_reservations', 'public.wallet_payments', 'public.transfers', 'public.transactions', 'public.payment_sessions', 'public.payment_links', 'public.refunds', 'public.refund_events', 'public.restitution_allocations', 'public.acquiring_payments', 'public.acquiring_callbacks', 'public.consumer_deposits', 'public.payouts', 'public.app_settlements', 'public.settlements', 'public.operator_fees', 'public.split_sessions', 'public.split_contributions', 'public._sqlx_migrations', 'public.sandbox_retired_projects', 'public.sandbox_test_payers', 'public.sandbox_businesses', 'public.sandbox_link_projects') LOOP
     PERFORM pg_temp.bz_grant('INSERT, UPDATE, DELETE', t.name, 'bl_app_runtime');
   END LOOP;
 END $$;
