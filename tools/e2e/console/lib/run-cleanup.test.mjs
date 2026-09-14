@@ -13,7 +13,7 @@
  * These hold the two halves that were missing: the destructive statement refuses
  * a non-fixture address itself, and it refuses a pattern that could reach one.
  */
-import { assertFixtureEmailPattern } from './run-cleanup.mjs';
+import { assertFixtureEmailPattern, coreRetirementStep } from './run-cleanup.mjs';
 
 let pass = 0, fail = 0;
 const ok = (m) => { pass += 1; console.log(`  ✓ ${m}`); };
@@ -42,6 +42,25 @@ accepts('dpmember-1789216727@banzami-e2e.test');
 accepts('console-rbac-%1789216727@banzami-e2e.test');
 accepts('lifecycle-mtyc89ty@banzami-e2e.test');
 accepts('rt01-%abc@banzami-e2e.test');
+
+// SANDBOX-DELETE-001: archiving alone left synthetic Businesses ACTIVE. The
+// cleanup retires every Project in scope through Core first.
+console.log('\ncleanupRun retires through Core before it archives\n');
+{
+  const step = coreRetirementStep({ emailPattern: 'rt01-%abc@banzami-e2e.test', namePattern: 'rt01-%abc' });
+  step.includes('/internal/v1/sandbox/projects/retire') ? ok('calls Core\'s Project retirement') : bad('does not call Core\'s Project retirement');
+  /sandbox_retired_projects/.test(step) ? ok('skips a Project Core already retired') : bad('would retire the same Project again');
+  /op\.status = 'ACTIVE'/.test(step) && /retire_business":%s/.test(step) ? ok('keeps a Business a live Project outside the run still uses') : bad('retires a Business another live Project uses');
+  const src = (await import('node:fs')).readFileSync(new URL('./run-cleanup.mjs', import.meta.url), 'utf8');
+  const body = src.slice(src.indexOf('export function cleanupRun('));
+  // Order in the script that runs on the host: the retirement step, then the
+  // name-scoped archival, then the scope-wide one.
+  const script = body.slice(body.indexOf("execFileSync('ssh'"));
+  const retire = script.indexOf('${coreRetirementStep(');
+  retire > -1 && retire < script.indexOf('${byName}') && retire < script.indexOf("p set status='ARCHIVED'")
+    ? ok('retires before it archives') : bad('archives without retiring first');
+  try { coreRetirementStep({ emailPattern: '%@banzami.com' }); bad('accepted a non-fixture scope'); } catch { ok('refuses a non-fixture scope'); }
+}
 
 console.log(`\nRUN_CLEANUP_GUARD: PASS=${pass} FAIL=${fail}\n`);
 process.exit(fail === 0 ? 0 : 1);

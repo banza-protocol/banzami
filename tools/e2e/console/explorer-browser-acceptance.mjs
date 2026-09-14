@@ -150,9 +150,8 @@ try {
   console.error(`  ! aborted: ${String(e.stack ?? e).split('\n').slice(0, 2).join(' | ')}`);
 } finally {
   await browser.close();
-  const done = [(await call(`/projects/${P}/sandbox/reset`, 'POST', { confirm: 'RESET' })).status];
-  for (const k of ((await call(`/projects/${P}/keys`)).body?.keys ?? []).filter((x) => x.status === 'ACTIVE')) done.push((await call(`/keys/${k.id}`, 'DELETE')).status);
-  done.push((await call(`/projects/${P}/archive`, 'POST', { name: like })).status, (await call(`/workspaces/${ws}/archive`, 'POST', { name: like })).status);
+  // SANDBOX-DELETE-001: the workspace is deleted — keys, payers, test Business and all.
+  const done = [(await call(`/workspaces/${ws}`, 'DELETE', { name: like })).status];
   let residue = -1;
   try {
     const sql = `SELECT (SELECT count(*) FROM developer.dev_workspaces WHERE name LIKE '${like}%' AND status='ACTIVE') + (SELECT count(*) FROM developer.dev_projects WHERE name LIKE '${like}%' AND status='ACTIVE') + (SELECT count(*) FROM sandbox_test_payers t JOIN developer.dev_projects p ON p.id=t.project_id WHERE p.name LIKE '${like}%' AND t.retired_at IS NULL)`;

@@ -61,15 +61,16 @@ it('a report with the wrong number of steps is refused', () => {
 
 console.log(`\n✓ ${passed}/8 — the summary is derived and cannot contradict its steps`);
 
-// ── complete() never archives a fixture that is still waiting on review ─────
+// ── complete() never deletes a fixture that is still waiting on review ──────
 {
   const { readFileSync: rf } = await import('node:fs');
   const src = rf(new URL('./quickstart-e2e.mjs', import.meta.url), 'utf8');
   const body = src.slice(src.indexOf('async function complete('), src.indexOf('\n}\n', src.indexOf('async function complete(')));
   const guard = body.search(/if \(!ready\) \{[\s\S]*?return finish\(/);
-  const firstArchive = body.indexOf('/archive');
+  // The cleanup is the workspace Delete (SANDBOX-DELETE-001).
+  const firstArchive = body.search(/'DELETE', \{ name:/);
   const firstCreate = body.search(/create(WebhookEndpoint|PaymentSession|WalletAccount|Refund|Settlement)|'POST'/);
-  const ok = guard >= 0 && guard < firstArchive && (firstCreate < 0 || guard < firstCreate);
-  if (!ok) { console.error('  ✗ complete() can reach creation or archive while Financial Setup is not ready'); process.exit(1); }
-  console.log('  ✓ complete() stops before creating or archiving anything while Financial Setup is not ready');
+  const ok = guard >= 0 && firstArchive >= 0 && guard < firstArchive && (firstCreate < 0 || guard < firstCreate);
+  if (!ok) { console.error('  ✗ complete() can reach creation or deletion while Financial Setup is not ready'); process.exit(1); }
+  console.log('  ✓ complete() stops before creating or deleting anything while Financial Setup is not ready');
 }

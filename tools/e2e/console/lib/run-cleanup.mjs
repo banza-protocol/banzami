@@ -76,6 +76,43 @@ export function assertFixtureEmailPattern(emailPattern) {
   return emailPattern;
 }
 
+/**
+ * The Projects a run owns: in workspaces its accounts created, or named with its
+ * tag. The scope every step of the cleanup acts on.
+ */
+export function runProjectsSql({ emailPattern, namePattern }) {
+  assertFixtureEmailPattern(emailPattern);
+  const byName = namePattern ? ` or p.name like '${namePattern}'` : '';
+  return `select p.id from developer.dev_projects p
+           where (p.workspace_id in (select id from developer.dev_workspaces
+                                      where created_by in (select id from account_identity.identity_users where email like '${emailPattern}'))${byName})`;
+}
+
+/**
+ * SANDBOX-DELETE-001: before anything is archived, Core retires every Project in
+ * the run's scope — its test payers, its open sessions and links, and its own
+ * test Business (value closed through balanced postings, then suspended, its
+ * webhooks ended) unless a live Project outside the run still uses that
+ * Business. Archiving alone left 165 synthetic Businesses ACTIVE on the Sandbox.
+ * Core's loopback is the operator path; a Project Core already retired is
+ * skipped, so a second cleanup adds nothing.
+ */
+export function coreRetirementStep({ emailPattern, namePattern }) {
+  const scope = runProjectsSql({ emailPattern, namePattern });
+  return `
+      for pid in $(q "${scope} and not exists (select 1 from sandbox_retired_projects r where r.project_id = p.id)"); do
+        shared=$(q "select count(*) from sandbox_businesses sb
+                      join developer.dev_project_sandbox_binding b on b.merchant_id = sb.merchant_id
+                      join developer.dev_projects op on op.id = b.project_id
+                     where sb.project_id = '$pid' and b.project_id <> '$pid' and b.state = 'ACTIVE' and op.status = 'ACTIVE'
+                       and op.id not in (${scope})")
+        rb=true; [ "\${shared:-0}" = "0" ] || rb=false
+        printf '{"project_id":"%s","requested_by":"console-harness-cleanup","pass_id":"harness-cleanup","retire_business":%s}' "$pid" "$rb" \
+          | docker exec -i "$CORE" curl -s -o /dev/null -X POST -H 'Content-Type: application/json' --data @- \
+              http://localhost:8081/internal/v1/sandbox/projects/retire
+      done`;
+}
+
 export function cleanupRun({ emailPattern, namePattern }) {
   assertFixtureEmailPattern(emailPattern);
   const byName = namePattern ? `
@@ -96,6 +133,7 @@ export function cleanupRun({ emailPattern, namePattern }) {
   // ELSE'S workspace is left alone: the canonical bound project is where these
   // suites read from, and archiving it would break the next run and the Console.
   return execFileSync('ssh', [REMOTE, `${PRE}
+      ${coreRetirementStep({ emailPattern, namePattern })}
       ${byName}
       q "update developer.dev_api_keys k set status='REVOKED', revoked_at=now()
           from developer.dev_projects p join developer.dev_workspaces w on w.id = p.workspace_id

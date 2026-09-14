@@ -144,6 +144,49 @@ for (const f of consoleFiles) {
   console.log(`  ✓ ${short.padEnd(44)} creates console accounts, registers cleanup`);
 }
 
+// ── cleanup that archives without retiring ──────────────────────────────────
+// SANDBOX-DELETE-001. Harnesses that ended their fixtures by ARCHIVING left 165
+// synthetic test Businesses ACTIVE on the Sandbox: archive revokes keys and
+// nothing else. A harness may still archive — archive is a product feature under
+// test — but its cleanup must reach the lifecycle that retires: the product's
+// Delete (a workspace DELETE) or cleanupRun, which retires through Core first.
+{
+  const walk = (d) => {
+    let out = [];
+    let entries = [];
+    try { entries = readdirSync(d, { withFileTypes: true }); } catch { return out; }
+    for (const e of entries) {
+      if (e.name === 'node_modules') continue;
+      const full = join(d, e.name);
+      if (e.isDirectory()) out = out.concat(walk(full));
+      else if (e.name.endsWith('.mjs')) out.push(full);
+    }
+    return out;
+  };
+  const ARCHIVES = /\/(projects|workspaces)\/\$\{[^}]+\}\/archive[`'"]/;
+  const DELETES_WORKSPACE = /\/workspaces\/\$\{[^}]+\}[`'"]\s*,\s*'DELETE'|call\(\s*'DELETE'\s*,\s*`\/workspaces\/\$\{[^}]+\}`/;
+  const USES_RUN_CLEANUP = /\b(registerCleanup|cleanupRun)\s*\(/;
+  let archiveOnly = 0;
+  console.log('\ncleanup lifecycle — archive alone retires nothing\n');
+  for (const f of walk('tools/e2e').filter((x) => !/\.(test|selftest)\.mjs$/.test(x)).sort()) {
+    const src = readFileSync(f, 'utf8');
+    const short = f.replace(/^tools\/e2e\//, '');
+    if (f.endsWith('lib/run-cleanup.mjs')) {
+      if (/\$\{coreRetirementStep\(/.test(src)) console.log(`  ✓ ${short.padEnd(44)} retires through Core before it archives`);
+      else { archiveOnly += 1; bad(short, 'archives fixture projects without retiring them through Core (coreRetirementStep)'); }
+      continue;
+    }
+    if (!ARCHIVES.test(src)) continue;
+    if (DELETES_WORKSPACE.test(src) || USES_RUN_CLEANUP.test(src)) {
+      console.log(`  ✓ ${short.padEnd(44)} archives, and cleans up through ${DELETES_WORKSPACE.test(src) ? 'Delete' : 'cleanupRun'}`);
+    } else {
+      archiveOnly += 1;
+      bad(short, 'cleans up by archiving only — archived fixtures keep their test Business ACTIVE; delete the workspace instead');
+    }
+  }
+  console.log(`\nCURRENT_HARNESS_ARCHIVE_ONLY_CLEANUP_PATHS=${archiveOnly}`);
+}
+
 console.log();
 if (failures === 0) {
   console.log('✓ every harness that mints operator authority can give it back');

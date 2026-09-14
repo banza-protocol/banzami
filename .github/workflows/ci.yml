@@ -725,6 +725,8 @@ jobs:
           node tools/check-harness-hygiene.mjs
           node tools/check-harness-hygiene.selftest.mjs
           node tools/check-harness-hygiene.console.selftest.mjs
+          node tools/check-harness-hygiene.archive.selftest.mjs
+          node tools/e2e/console/lib/run-cleanup.test.mjs
 
       # A proof that runs over ssh must report what happened on the far side.
       # Six assurance scripts and one deploy step were discarding it — the

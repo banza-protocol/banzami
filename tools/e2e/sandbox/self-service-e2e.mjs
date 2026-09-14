@@ -170,22 +170,15 @@ function measureResidue(like) {
 }
 
 async function cleanup(call, projects, workspace) {
-  const done = [];
-  for (const p of projects) {
-    const eps = (await call(`/projects/${p}/webhooks/endpoints`)).body?.endpoints ?? [];
-    for (const e of eps) {
-      const del = await call(`/projects/${p}/webhooks/endpoints/${e.id}`, 'DELETE');
-      done.push(del.status === 409 ? (await call(`/projects/${p}/webhooks/endpoints/${e.id}`, 'PATCH', { active: false })).status : del.status);
-    }
-    for (const k of ((await call(`/projects/${p}/keys`)).body?.keys ?? []).filter((x) => x.status === 'ACTIVE')) done.push((await call(`/keys/${k.id}`, 'DELETE')).status);
-    const pr = await call(`/projects/${p}`);
-    done.push((await call(`/projects/${p}/archive`, 'POST', { name: pr.body?.name })).status);
-  }
-  if (workspace) {
-    const ws = await call(`/workspaces/${workspace}`);
-    done.push((await call(`/workspaces/${workspace}/archive`, 'POST', { name: ws.body?.name })).status);
-  }
-  return done;
+  // SANDBOX-DELETE-001: the product's own Delete is the cleanup. Deleting the
+  // workspace takes its projects with it — keys revoked, test payers and test
+  // Businesses retired through Core, webhooks disabled — so nothing is archived
+  // and no synthetic Business is left ACTIVE.
+  void projects;
+  if (!workspace) return [];
+  const ws = await call(`/workspaces/${workspace}`);
+  if (ws.status !== 200) return [[403, 404].includes(ws.status) ? 200 : ws.status];
+  return [(await call(`/workspaces/${workspace}`, 'DELETE', { name: ws.body?.name })).status];
 }
 
 const SCOPES = ['identity:read', 'payment_sessions:write', 'payment_sessions:read', 'webhooks:write', 'webhooks:read',

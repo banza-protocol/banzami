@@ -416,20 +416,12 @@ async function complete() {
     } catch (e) { mark(13, 'FAIL', String(e.stderr ?? e.message).slice(0, 140)); }
   }
 
-  // Cleanup through the product: revoke keys, deactivate the endpoint, archive
-  // the project and the workspace. Money already moved stays moved — ledger
-  // evidence is immutable and is not residue.
+  // Cleanup through the product's own Delete (SANDBOX-DELETE-001): the workspace
+  // goes with its project — keys revoked, test payers and the test Business
+  // retired through Core, the endpoint disabled. Money already moved stays
+  // moved: ledger evidence is immutable and is not residue.
   const cleanup = [];
-  if (state.created.project) cleanup.push(`sandbox reset: ${(await call(`/projects/${state.created.project}/sandbox/reset`, 'POST', { confirm: 'RESET' })).status}`);
-  for (const k of [state.created.rotatedKeyId]) if (k) cleanup.push(`revoke key: ${(await call(`/keys/${k}`, 'DELETE')).status}`);
-  if (state.created.endpoint) {
-    // With delivery history the endpoint is disabled, not deleted (409 ENDPOINT_HAS_DELIVERIES).
-    const epPath = `/projects/${state.created.project}/webhooks/endpoints/${state.created.endpoint}`;
-    const del = await call(epPath, 'DELETE');
-    cleanup.push(del.status === 409 ? `disable endpoint: ${(await call(epPath, 'PATCH', { active: false })).status}` : `delete endpoint: ${del.status}`);
-  }
-  if (state.created.project) cleanup.push(`archive project: ${(await call(`/projects/${state.created.project}/archive`, 'POST', { name: state.created.projectName })).status}`);
-  if (state.created.workspace) cleanup.push(`archive workspace: ${(await call(`/workspaces/${state.created.workspace}/archive`, 'POST', { name: state.created.workspaceName })).status}`);
+  if (state.created.workspace) cleanup.push(`workspace deleted: ${(await call(`/workspaces/${state.created.workspace}`, 'DELETE', { name: state.created.workspaceName })).status}`);
   state.cleanup = cleanup;
 
   saveState(state);
