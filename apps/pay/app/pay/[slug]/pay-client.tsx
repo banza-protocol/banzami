@@ -5,6 +5,7 @@ import { banzamiQrSvgDataUri } from '@/lib/banzami-qr';
 import { AcquiringPayment, getPaymentLinkStatus, initiatePay } from '@/lib/api';
 import { formatWatTime } from '@/lib/money';
 import { paidToLabel, payeeDisplay, type Payee } from '@/lib/payee';
+import { watchStatus } from '@/lib/realtime-status';
 
 interface Props {
   slug:          string;
@@ -25,6 +26,10 @@ interface Props {
   expiresAt:     string | null;
   /** Whether the external acquiring rail may be offered (LIVE only). */
   externalRailAvailable: boolean;
+  /** The link's Payment Session and its status token, when it has one. */
+  realtime?: { sessionId: string; token: string } | null;
+  /** The gateway origin the browser calls; the realtime route lives there. */
+  gatewayUrl?: string | null;
 }
 
 type Step =
@@ -34,7 +39,9 @@ type Step =
   | { type: 'confirmed' }
   | { type: 'error'; message: string };
 
-const POLL_INTERVAL = 3000;
+// Without a realtime stream (a link with no session, or a stream that could not
+// stay up) the page asks the gateway at this interval instead.
+const POLL_INTERVAL = 5000;
 
 export default function PayClient({
   slug,
@@ -48,6 +55,8 @@ export default function PayClient({
   payUrl,
   expiresAt,
   externalRailAvailable,
+  realtime,
+  gatewayUrl,
 }: Props) {
   const [step, setStep]     = useState<Step>({ type: 'idle' });
   const [expired, setExpired] = useState(false);
@@ -62,8 +71,29 @@ export default function PayClient({
     return () => clearTimeout(t);
   }, [expiresAt]);
 
-  // Poll for payment confirmation
+  // Realtime: the session's status as it changes — a QR paid from a phone turns
+  // this page to "confirmed" in about a second, on any device. The stream is for
+  // the screen only; the payment itself was confirmed by the ledger.
+  const [streaming, setStreaming] = useState(Boolean(realtime));
   useEffect(() => {
+    if (!realtime) return;
+    const stop = watchStatus({
+      sessionId: realtime.sessionId,
+      token: realtime.token,
+      baseUrl: gatewayUrl ?? undefined,
+      onStatus: (s) => {
+        if (s.status === 'PAID') setStep({ type: 'confirmed' });
+        else if (s.status === 'EXPIRED' || s.status === 'CANCELLED' || s.status === 'FAILED') setExpired(true);
+      },
+      // A terminal status has done its job; anything else falls back to polling.
+      onEnd: (reason) => { if (reason !== 'terminal') setStreaming(false); },
+    });
+    return stop;
+  }, [realtime, gatewayUrl]);
+
+  // Poll for payment confirmation when there is no stream
+  useEffect(() => {
+    if (streaming) return;
     if (step.type !== 'instructions' && step.type !== 'idle') return;
     const id = setInterval(async () => {
       try {
@@ -72,7 +102,7 @@ export default function PayClient({
       } catch { /* keep polling */ }
     }, POLL_INTERVAL);
     return () => clearInterval(id);
-  }, [slug, step.type]);
+  }, [slug, step.type, streaming]);
 
   const handlePayWithMulticaixa = useCallback(async () => {
     setStep({ type: 'loading' });

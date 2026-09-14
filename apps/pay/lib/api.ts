@@ -48,6 +48,11 @@ export interface PaymentLink {
   paid?:         boolean;
   expires_at:    string | null;
   paid_at:       string | null;
+  /**
+   * The Payment Session this link belongs to, with a read-only status token
+   * for watching it (ADR-060 §9). Absent for a link that belongs to no session.
+   */
+  realtime?:     { session_id: string; token: string; expires_at: string; path: string };
 }
 
 /** The link's payment has been made — by this link, or by its session's QR. */

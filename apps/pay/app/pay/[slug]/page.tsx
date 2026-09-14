@@ -88,6 +88,8 @@ export default async function PayPage({ params }: Props) {
       deepLink={deepLink}
       payUrl={`https://pay.banzami.com/pay/${link.slug}`}
       expiresAt={link.expires_at}
+      realtime={link.realtime ? { sessionId: link.realtime.session_id, token: link.realtime.token } : null}
+      gatewayUrl={process.env.NEXT_PUBLIC_GATEWAY_URL ?? null}
     />
   );
 }
