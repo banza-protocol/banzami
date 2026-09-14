@@ -63,7 +63,7 @@ console.log('\ncleanupRun retires through Core before it archives\n');
   // The Projects are retired by developer-api's route, which disables an unsealed
   // binding; the SQL archival left two ACTIVE on 2026-09-14.
   const product = productRetirementStep({ emailPattern: 'rt01-%abc@banzami-e2e.test', namePattern: 'rt01-%abc' });
-  product.includes('/internal/v1/projects/$pid/retire') ? ok('retires each Project through developer-api') : bad('does not use developer-api\'s retire route');
+  product.includes('/internal/v1/projects/$PID/retire') ? ok('retires each Project through developer-api') : bad('does not use developer-api\'s retire route');
   /artifact_created = false/.test(product) ? ok('reaches an archived Project that still holds an unsealed binding') : bad('skips archived Projects with a stranded binding');
   const pos = script.indexOf('${productRetirementStep(');
   pos > retire && pos < script.indexOf('${byName}') ? ok('product retirement runs after Core and before the SQL fallback') : bad('product retirement is missing or out of order');

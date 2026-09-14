@@ -129,7 +129,7 @@ export function productRetirementStep({ emailPattern, namePattern }) {
                              or exists (select 1 from developer.dev_project_sandbox_binding b where b.project_id = p.id and b.state = 'ACTIVE' and b.artifact_created = false)
                              or exists (select 1 from developer.dev_api_keys k where k.project_id = p.id and k.status = 'ACTIVE'))"); do
         printf '{"reason":"console harness cleanup","created_by":"console-harness-cleanup"}' \
-          | docker exec -i "$DEV" sh -c "curl -s -o /dev/null -X POST -H \"X-Internal-Key: \$(cat /run/secrets/developer_internal_key)\" -H 'Content-Type: application/json' --data @- http://localhost:8086/internal/v1/projects/$pid/retire"
+          | docker exec -i -e PID="$pid" "$DEV" sh -c 'curl -s -o /dev/null -X POST -H "X-Internal-Key: $(cat /run/secrets/developer_internal_key)" -H "Content-Type: application/json" --data @- "http://localhost:8086/internal/v1/projects/$PID/retire"'
       done`;
 }
 
