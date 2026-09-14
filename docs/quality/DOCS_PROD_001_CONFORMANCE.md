@@ -1,6 +1,6 @@
 # DOCS-PROD-001 — §0–81 conformance matrix
 
-Version 1.0 · audited 2026-09-13 · spec [DOCS_PROD_001_SPEC.md](DOCS_PROD_001_SPEC.md)
+Version 1.0 · audited 2026-09-13, rows 6 and 16 re-audited 2026-09-14 · spec [DOCS_PROD_001_SPEC.md](DOCS_PROD_001_SPEC.md)
 
 One row per spec section, generated against the spec's own headings and checked
 by `tools/check-docs-prod-001-matrix.mjs`: the rows must be exactly the 82
@@ -18,7 +18,7 @@ matrix cannot read complete while a journey is still waiting.
 | 3 | DOCUMENTATION MUST BE SELF-SUFFICIENT | PASS | Cold reader 12/12 PT+EN on deployed pages; coverage gate derives every *_COMPLETE item from the spec. |
 | 4 | INFORMATION ARCHITECTURE | PASS | IA: Início, Começar, Consola, SDKs, Guias, DOA, Referência (erros, eventos, limites), Testar, Segurança, Artefactos, Changelog, Glossário — PT/EN structure gate. |
 | 5 | DOCUMENTATION HOMEPAGE | PASS | Docs home: capability paths, quickstart, DOA, Sandbox available / LIVE unavailable (docs/page.tsx). |
-| 6 | QUICKSTART — REAL AND RUNNABLE | PASS | `tools/e2e/docs/quickstart-e2e.mjs` 12/12 on the deployed Sandbox after BANZADMIN approval of application 920b07c8…: Financial Setup READY, session → pay.banzami.com → PAID, `payment_session.paid` verified by the SDK (duplicate → one effect, tampered refused), Console · Transações lists it. |
+| 6 | QUICKSTART — REAL AND RUNNABLE | PASS | `tools/e2e/docs/quickstart-e2e.mjs run` 12/12 on the deployed Sandbox with no operator step (SANDBOX-SELF-SERVICE-001, 2026-09-14): Financial Setup by use case READY, session → test payer pays → PAID, `payment_session.paid` verified by the SDK, residue 0. The earlier run needed a BANZADMIN approval; that dependency is gone (`DOC_QUICKSTART_OPERATOR_ACTIONS=0`). |
 | 7 | COMPLETE DEVELOPER CONSOLE DOCUMENTATION | PASS | `DOCS_CONSOLE/WORKSPACE/PROJECT/FINANCIAL_SETUP/API_KEYS/WEBHOOKS_COMPLETE=PASS` derived by `tools/check-docs-coverage.mjs`. |
 | 8 | CANONICAL CONCEPT MODEL | PASS | ConceptModelDiagram (SVG) + “A autoridade desce, nunca sobe” in both languages. |
 | 9 | DOA — CANONICAL REFERENCE IMPLEMENTATION | PASS | DOA page; `DOA_DOC_SPECIAL_CASES=0` counted from the harness source; DOA uses only public contracts. |
@@ -28,7 +28,7 @@ matrix cannot read complete while a journey is still waiting.
 | 13 | DOA SOURCE / CONCEPT MAPPING | PASS | DOA ↔ Banzami mapping: owns table, per-campaign account, webhook, receipt, settlement sections. |
 | 14 | SDK DOCUMENTATION | PASS | SDK page: published packages from registry (check-docs-drift registry checks), contract, family table (`banzami/sdk-php`). |
 | 15 | API REFERENCE — OPENAPI v1 IS AUTHORITY | PASS | `DOC_ENDPOINTS_NOT_IN_OPENAPI=0`, `OPENAPI_ENDPOINTS_UNDOCUMENTED=0`, `OPENAPI_OPERATIONS_UNDOCUMENTED=0`, route↔OpenAPI drift gate. |
-| 16 | API EXPLORER — OPTIONAL ONLY IF SAFE | NOT_APPLICABLE | No API explorer is offered. Optional by the spec; an explorer calling the Sandbox with a pasted secret key would teach the thing §29 forbids. |
+| 16 | API EXPLORER — OPTIONAL ONLY IF SAFE | PASS | Implemented safely in SANDBOX-SELF-SERVICE-001: a Console broker — no key in the browser (developer-api mints a one-scope, 60-second Sandbox key per request and revokes it), Sandbox only, allowlist generated from the OpenAPI, logged as `API_EXPLORER`; every runnable reference entry says Try in Sandbox. Browser acceptance `tools/e2e/console/explorer-browser-acceptance.mjs` 10/10 with `API_EXPLORER_SECRET_LEAKS=0` (storage, URL, page source, every request/response) and no Live call. |
 | 17 | MULTI-LANGUAGE CODE EXAMPLES | PASS | Examples: TypeScript (SDK-first) compiled; curl reference checked by drift gate; no Python/PHP examples published because those packages are unpublished and lack payment-session APIs. |
 | 18 | CODE COPY UX | PASS | CodeBlock copy buttons ≥24px and keyboard-reachable (`tools/e2e/docs/sweep.mjs` 314/314). |
 | 19 | AMOUNTS AND CURRENCIES | PASS | Minor units stated (“100 unidades menores = 1 Kz”) and enforced by examples-are-tested money test; glossary “Unidades menores”. |
