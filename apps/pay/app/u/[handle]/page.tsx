@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
   return {
     title: `Pagar @${handle} — Banzami`,
-    description: `Envie dinheiro instantaneamente para @${handle} pelo Banzami.`,
+    description: `Pague a @${handle} a partir da sua carteira Banzami.`,
   };
 }
 

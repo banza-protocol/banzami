@@ -22,7 +22,7 @@ const COPY = [
   'core/api/src', 'core/transfers/Cargo.toml', 'core/ledger/Cargo.toml', 'core/wallets/Cargo.toml', 'core/qr/Cargo.toml',
   'db/migrations/0144_value_moves_inside_external_rails_are_boundaries.sql',
   'services/api-gateway/internal', 'services/public-api/internal', 'tools/ops', 'docs/developer/openapi',
-  'sdk/typescript/src', 'sdk/typescript/README.md', 'README.md', 'apps/website/app/faq', 'apps/website/lib',
+  'sdk/typescript/src', 'sdk/typescript/README.md', 'README.md', 'apps/website/app/faq', 'apps/website/lib', 'apps/pay/app/u',
   'quality/operator-assurance-manifest.yaml', 'docs/adr/ADR-061-wallet-native-rail-decoupled-financial-network.md',
 ];
 function tree() {
@@ -112,6 +112,11 @@ const CASES = [
     name: 'the README restates the model without "not rail-free"',
     mutate: (d) => edit(d, 'README.md', (s) => s.replace(/rail-decoupled, not\s+rail-free,/, 'rail-decoupled,')),
     expect: fails('WALLET_NATIVE_CONCEPT_CONTRADICTIONS'),
+  },
+  {
+    name: 'the hosted payer page promises an instant transfer',
+    mutate: (d) => edit(d, 'apps/pay/app/u/[handle]/page.tsx', (s) => s.replace('a partir da sua carteira Banzami.', 'instantaneamente pelo Banzami.')),
+    expect: fails('PUBLIC_UNMEASURED_INSTANT_CLAIMS'),
   },
   {
     name: 'a test seed that writes a wallet does not count',

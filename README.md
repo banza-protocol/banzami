@@ -298,18 +298,18 @@ ledger, and every operation is idempotent and replay-safe.
 
 ## What the operator enables
 
-Because the operator runs all the financial infrastructure, applications get
-instant Kwanza payments by calling one API and five SDKs — integration in hours,
-not weeks.
+Because the operator runs the financial infrastructure, applications move
+Kwanza between wallets inside the Banzami network by calling one API through the
+SDKs, without building a ledger of their own.
 
 | For | What the operator provides |
 |-----|----------------------------|
-| **Consumers** | a free Kwanza wallet with a human `@banza`; send/receive instantly; pay by QR |
-| **Merchants** | accept payment with no terminal hardware; instant settlement; one dashboard |
+| **Consumers** | a free Kwanza wallet with a human `@banza`; send and receive between wallets; pay by QR |
+| **Merchants** | accept payment with no terminal hardware; the net is credited to the Business wallet when the payment is confirmed; one dashboard |
 | **Developers** | one API + five SDKs; typed clients, idempotency, signed webhooks, full sandbox |
 | **Applications** | wallet-native payments, segregated funds, and app-defined settlement — without building any financial infrastructure |
 
-![Instant payment networks — Pix Brazil, M-Pesa Kenya, UPI India, Banzami Angola](docs/diagrams/banzami-payment-networks-v1.svg)
+![Wallet-native payment networks — Pix Brazil, M-Pesa Kenya, UPI India, Banzami Angola](docs/diagrams/banzami-payment-networks-v1.svg)
 
 ---
 

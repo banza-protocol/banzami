@@ -49,6 +49,7 @@ const findings = {
   RAIL_DECOUPLING_REGULATORY_BYPASS_CLAIMS: [],
   LIVE_EXECUTION_ENABLED: [],
   WALLET_NATIVE_CONCEPT_CONTRADICTIONS: [],
+  PUBLIC_UNMEASURED_INSTANT_CLAIMS: [],
 };
 
 // ── 1. crates that move value inside the network ──────────────────────────────
@@ -126,6 +127,7 @@ for (const f of ['sdk/typescript/src/types.ts', 'sdk/typescript/src/realtime.ts'
 
 // ── 5. public copy: decoupled from rails, never above the law ─────────────────
 const BYPASS = /independente d[oa]s? (?:sistema banc[aá]rio|bancos)|independent of (?:the )?bank(?:ing system|s)|sem (?:precisar d[eo]s? )?(?:bancos|EMIS)\b|(?:substitu\w+|contorn\w+|dispensa\w*) (?:os )?(?:bancos|a EMIS|o EMIS)|replac\w+ (?:the )?banks|bypass\w* (?:the )?(?:banks|EMIS|payment infrastructure|regulation)|(?:PSP|prestador de servi[cç]os de pagamento) (?:licenciad|autorizad)\w*|licensed PSP|institui[cç][aã]o de moeda eletr[oó]nica|electronic money institution|n[aã]o regulad|unregulated money|dinheiro n[aã]o regulado/i;
+const INSTANT = /instantaneamente|pagamentos? instant[aâ]ne\w*|liquida[cç][aã]o instant[aâ]ne\w*|transfer[eê]ncias? instant[aâ]ne\w*|instant (?:payments?|settlement|transfers?)|zero[- ]latency|sempre dispon[ií]vel|always[- ]available|24\/7/i;
 const PUBLIC_COPY = [
   ...walk('apps/website/app', /\.(tsx|ts)$/).filter((f) => !/\.test\./.test(f)),
   ...walk('apps/pay/app', /\.(tsx|ts)$/).filter((f) => !/\.test\./.test(f)),
@@ -138,6 +140,10 @@ for (const f of PUBLIC_COPY) {
   const src = read(f).replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|(^|[^:'"`])\/\/[^\n]*/g, '$1');
   const m = src.match(BYPASS);
   if (m) findings.RAIL_DECOUPLING_REGULATORY_BYPASS_CLAIMS.push(`${f}: "${m[0]}"`);
+  // §68: internal execution may be fast, but no SLO has been measured for public
+  // use, so public copy does not promise instant, zero-latency or always-on.
+  const n = src.match(INSTANT);
+  if (n) findings.PUBLIC_UNMEASURED_INSTANT_CLAIMS.push(`${f}: "${n[0]}"`);
 }
 
 // ── 6. Financial Live stays closed ────────────────────────────────────────────
