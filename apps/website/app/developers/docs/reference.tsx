@@ -1066,8 +1066,8 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/external-rail',
     tone: 'ok',
     desc: {
-      pt: 'O rail externo simulado do negócio Sandbox do seu projeto: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo ledger sem rail externo; um rail externo só é atravessado quando o valor entra ou sai da rede.',
-      en: 'The simulated external rail of your Project’s Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger without an external rail; an external rail is crossed only when value enters or leaves the network.',
+      pt: 'O rail externo simulado que o seu projeto usa para o negócio Sandbox: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo ledger sem rail externo; um rail externo só é atravessado quando o valor entra ou sai da rede.',
+      en: 'The simulated external rail your Project uses for its Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger without an external rail; an external rail is crossed only when value enters or leaves the network.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
     curl: `curl https://sandbox-api.banzami.com/v1/sandbox/external-rail \\
@@ -1086,8 +1086,8 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/external-rail',
     tone: 'ok',
     desc: {
-      pt: 'Coloca o rail externo simulado do seu negócio em UNAVAILABLE ou repõe-no. Com UNAVAILABLE, o pagamento de um pagador de teste a partir da carteira continua a concluir-se; um pagamento com simulate, e um pagamento iniciado pelo rail externo da página alojada, respondem 503 PROVIDER_UNAVAILABLE e nada se move. Afeta só o seu negócio.',
-      en: 'Takes your Business’s simulated external rail down, or brings it back. With UNAVAILABLE, a test payer’s wallet payment still completes; a payment with simulate, and a payment started on the hosted page’s external rail, return 503 PROVIDER_UNAVAILABLE and nothing moves. It affects only your Business.',
+      pt: 'Coloca o rail externo simulado do seu projeto em UNAVAILABLE ou repõe-no. Com UNAVAILABLE, o pagamento de um pagador de teste a partir da carteira continua a concluir-se; um pagamento com simulate, e um pagamento iniciado na página alojada de uma sessão ou link que este projeto criou, respondem 503 PROVIDER_UNAVAILABLE e nada se move. Afeta só este projeto: outro projeto ligado ao mesmo negócio mantém o seu próprio rail.',
+      en: 'Takes your Project’s simulated external rail down, or brings it back. With UNAVAILABLE, a test payer’s wallet payment still completes; a payment with simulate, and a payment started on the hosted page of a session or link this Project created, return 503 PROVIDER_UNAVAILABLE and nothing moves. It affects only this Project: another Project connected to the same Business keeps its own rail.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
     curl: `curl -X PUT https://sandbox-api.banzami.com/v1/sandbox/external-rail \\

@@ -805,6 +805,10 @@ async fn main() {
             get(routes::external_rail::get).put(routes::external_rail::put),
         )
         .route(
+            "/internal/v1/sandbox/projects/:project_id/external-rail/:merchant_id",
+            get(routes::external_rail::get_for_project).put(routes::external_rail::put_for_project),
+        )
+        .route(
             "/internal/v1/sandbox/businesses/use-case",
             axum::routing::put(routes::sandbox_businesses::change_use_case),
         )

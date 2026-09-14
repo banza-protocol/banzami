@@ -38,6 +38,9 @@ pub struct CreateBody {
     pub description: Option<String>,
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
     pub metadata: Option<serde_json::Value>,
+    /// The Developer Project whose key asked (gateway principal; Sandbox only).
+    #[serde(default)]
+    pub sandbox_project_id: Option<String>,
 }
 
 #[derive(sqlx::FromRow)]
@@ -125,6 +128,7 @@ pub async fn create(
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     let merchant_id = Uuid::parse_str(&body.merchant_id)
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+    let creator = super::external_rail::link_project(&state, body.sandbox_project_id.as_deref())?;
     let wa_id = Uuid::parse_str(&body.wallet_account_id)
         .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
     let purpose = body
@@ -220,6 +224,7 @@ pub async fn create(
         })
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
+    super::external_rail::record_link_project(&state, link.id.as_uuid(), creator).await?;
 
     // Interface 2 — a dynamic QR bound to the same wallet_account, when the amount
     // is fixed (a dynamic QR requires a positive amount + expiry). Open-amount

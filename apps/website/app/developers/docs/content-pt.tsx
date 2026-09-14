@@ -634,7 +634,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
                 <LI><strong>Uma verdade financeira:</strong> o saldo deriva do ledger; nenhum serviço o altera diretamente. Sessões, links, QR e liquidações têm o seu próprio estado de fluxo, mas o valor é sempre o do ledger.</LI>
                 <LI><strong>Webhooks e tempo real vêm depois:</strong> são enviados a partir de um movimento já registado. Uma entrega de webhook que falha é repetida; não desfaz o pagamento. O estado em tempo real mostra o resultado; não o decide.</LI>
                 <LI><strong>Reconciliação:</strong> compara o ledger com o que um rail externo reporta e assinala diferenças; uma correção é sempre um novo movimento equilibrado.</LI>
-                <LI><strong>No Sandbox:</strong> o carregamento de um pagador de teste é valor fictício criado pelo Core e não atravessa nenhum rail. Pode colocar o rail externo simulado do seu negócio em baixo e ver esta tabela acontecer. <a href="/docs/testing#rail-externo" style={a}>Testar com o rail externo em baixo</a></LI>
+                <LI><strong>No Sandbox:</strong> o carregamento de um pagador de teste é valor fictício criado pelo Core e não atravessa nenhum rail. Pode colocar o rail externo simulado do seu projeto em baixo e ver esta tabela acontecer. <a href="/docs/testing#rail-externo" style={a}>Testar com o rail externo em baixo</a></LI>
               </UL>
 
               <H2 id="modelo">O modelo de integração</H2>
@@ -2047,7 +2047,7 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
 
 const RECIPES_NOTE = 'Os exemplos usam uma chave de teste do seu projeto. Nada do que é feito no Sandbox move dinheiro real.';
 
-const SAMPLE_CURL_EXTERNAL_RAIL = `# Colocar o rail externo simulado do seu negócio em baixo
+const SAMPLE_CURL_EXTERNAL_RAIL = `# Colocar o rail externo simulado do seu projeto em baixo
 curl -X PUT https://sandbox-api.banzami.com/v1/sandbox/external-rail \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -2121,10 +2121,10 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               <H2 id="rail-externo">Rail externo em baixo</H2>
               <P>
                 O Banzami é desacoplado dos rails externos: o valor que já está na rede move-se pelo Core e pelo ledger sem precisar de nenhum.
-                Para o ver, coloque o rail externo simulado do seu negócio em <Code>UNAVAILABLE</Code>. Um pagamento a partir da carteira de um pagador de teste
+                Para o ver, coloque o rail externo simulado do seu projeto em <Code>UNAVAILABLE</Code>. Um pagamento a partir da carteira de um pagador de teste
                 continua a concluir-se, com <Code>rail: &quot;WALLET&quot;</Code>; um pagamento com <Code>simulate</Code>, que representa um pagamento que atravessa um rail externo,
-                e um pagamento iniciado pelo rail externo da página alojada respondem <Code>503 PROVIDER_UNAVAILABLE</Code> e nada é criado, creditado ou confirmado.
-                O estado é só do seu negócio. Na Consola, em <strong>Dados de teste</strong>, ou pela API: <a href="/docs/concepts#como-o-dinheiro-se-move" style={a}>Como o dinheiro se move</a>
+                e um pagamento iniciado na página alojada de uma sessão ou link criado por este projeto respondem <Code>503 PROVIDER_UNAVAILABLE</Code> e nada é criado, creditado ou confirmado.
+                O estado é só deste projeto: outro projeto ligado ao mesmo negócio não é afetado. Na Consola, em <strong>Dados de teste</strong>, ou pela API: <a href="/docs/concepts#como-o-dinheiro-se-move" style={a}>Como o dinheiro se move</a>
               </P>
               <CodeBlock label="curl · colocar o rail externo em baixo" raw={SAMPLE_CURL_EXTERNAL_RAIL} onCopy={copy} />
 

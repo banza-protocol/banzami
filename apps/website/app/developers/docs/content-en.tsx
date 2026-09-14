@@ -649,7 +649,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                 <LI><strong>One financial truth:</strong> a balance derives from the ledger; no service changes it directly. Sessions, links, QR and settlements have their own workflow state, but the value is always the ledger’s.</LI>
                 <LI><strong>Webhooks and realtime come after:</strong> they are sent from a movement already recorded. A failed webhook delivery is retried; it does not undo the payment. Realtime status shows the result; it does not decide it.</LI>
                 <LI><strong>Reconciliation:</strong> compares the ledger with what an external rail reports and flags differences; a correction is always a new balanced movement.</LI>
-                <LI><strong>In the Sandbox:</strong> a test payer’s top-up is fictitious value created by Core and crosses no rail. You can take your Business’s simulated external rail down and watch this table happen. <a href="/docs/en/testing#external-rail" style={a}>Test with the external rail down</a></LI>
+                <LI><strong>In the Sandbox:</strong> a test payer’s top-up is fictitious value created by Core and crosses no rail. You can take your Project’s simulated external rail down and watch this table happen. <a href="/docs/en/testing#external-rail" style={a}>Test with the external rail down</a></LI>
               </UL>
 
               <H2 id="model">The integration model</H2>
@@ -2061,7 +2061,7 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
 
 const RECIPES_NOTE = 'The examples use a test key from your project. Nothing done in the Sandbox moves real money.';
 
-const SAMPLE_CURL_EXTERNAL_RAIL = `# Take your Business's simulated external rail down
+const SAMPLE_CURL_EXTERNAL_RAIL = `# Take your Project's simulated external rail down
 curl -X PUT https://sandbox-api.banzami.com/v1/sandbox/external-rail \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
@@ -2135,10 +2135,10 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <H2 id="external-rail">External rail down</H2>
               <P>
                 Banzami is decoupled from external rails: value already in the network moves through Core and the ledger without needing one.
-                To see it, set your Business’s simulated external rail to <Code>UNAVAILABLE</Code>. A payment from a test payer’s wallet
+                To see it, set your Project’s simulated external rail to <Code>UNAVAILABLE</Code>. A payment from a test payer’s wallet
                 still completes, with <Code>rail: &quot;WALLET&quot;</Code>; a payment with <Code>simulate</Code>, which stands in for a payment that crosses an external rail,
-                and a payment started on the hosted page’s external rail return <Code>503 PROVIDER_UNAVAILABLE</Code> and nothing is created, credited or confirmed.
-                The state is your Business’s alone. In the Console, under <strong>Test data</strong>, or through the API: <a href="/docs/en/concepts#how-money-moves" style={a}>How money moves</a>
+                and a payment started on the hosted page of a session or link this Project created return <Code>503 PROVIDER_UNAVAILABLE</Code> and nothing is created, credited or confirmed.
+                The state is this Project’s alone: another Project connected to the same Business is unaffected. In the Console, under <strong>Test data</strong>, or through the API: <a href="/docs/en/concepts#how-money-moves" style={a}>How money moves</a>
               </P>
               <CodeBlock label="curl · take the external rail down" raw={SAMPLE_CURL_EXTERNAL_RAIL} onCopy={copy} {...enCopy} />
 

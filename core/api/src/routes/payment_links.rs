@@ -29,6 +29,9 @@ pub struct CreateBody {
     pub currency: String,
     pub description: Option<String>,
     pub expires_at: Option<DateTime<Utc>>,
+    /// The Developer Project whose key asked (gateway principal; Sandbox only).
+    #[serde(default)]
+    pub sandbox_project_id: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -177,6 +180,8 @@ pub async fn create(
     if body.currency.is_empty() {
         return Err(ApiError::bad_request("currency is required"));
     }
+    let creator =
+        crate::routes::external_rail::link_project(&state, body.sandbox_project_id.as_deref())?;
 
     let wallet_account_id = match body.wallet_account_id.as_deref() {
         Some(s) => Some(
@@ -196,6 +201,7 @@ pub async fn create(
     };
 
     let link = state.payment_links.create(req).await.map_err(map_err)?;
+    crate::routes::external_rail::record_link_project(&state, link.id.as_uuid(), creator).await?;
     Ok((StatusCode::CREATED, Json(link.into())))
 }
 

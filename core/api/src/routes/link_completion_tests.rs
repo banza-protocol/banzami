@@ -108,6 +108,7 @@ async fn session(state: &AppState, s: &Seed, reference: &str) -> (Uuid, Uuid) {
             description: Some("Campanha".into()),
             expires_at: None,
             metadata: None,
+            sandbox_project_id: None,
         }),
     )
     .await
@@ -295,6 +296,7 @@ async fn an_open_amount_link_records_what_was_paid(pool: PgPool) {
             currency: "AOA".into(),
             description: None,
             expires_at: None,
+            sandbox_project_id: None,
         }),
     )
     .await

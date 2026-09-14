@@ -535,6 +535,7 @@ async fn a_session_paid_on_the_acquiring_rail_is_paid(pool: PgPool) {
             description: Some("Campanha".into()),
             expires_at: None,
             metadata: None,
+            sandbox_project_id: None,
         }),
     )
     .await
@@ -631,6 +632,7 @@ async fn a_retried_confirmation_pays_a_session_the_first_one_missed(pool: PgPool
             description: None,
             expires_at: None,
             metadata: None,
+            sandbox_project_id: None,
         }),
     )
     .await

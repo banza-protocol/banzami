@@ -32,7 +32,7 @@ use crate::routes::payouts;
 use crate::routes::transfers::{self, SendP2pBody, SendTransferBody};
 use crate::state::{AppState, CoreEnvironment};
 
-async fn account(pool: &PgPool, ty: &str) -> Uuid {
+pub(super) async fn account(pool: &PgPool, ty: &str) -> Uuid {
     sqlx::query_scalar::<_, Uuid>(
         "INSERT INTO ledger_accounts (id, account_type, name, currency) VALUES (gen_random_uuid(), $1, 'acct', 'AOA') RETURNING id",
     )
@@ -42,7 +42,7 @@ async fn account(pool: &PgPool, ty: &str) -> Uuid {
     .unwrap()
 }
 
-async fn build_state(pool: PgPool) -> AppState {
+pub(super) async fn build_state(pool: PgPool) -> AppState {
     let transit = account(&pool, "ASSET").await;
     let bank = account(&pool, "ASSET").await;
     let fee = account(&pool, "REVENUE").await;
@@ -55,7 +55,7 @@ async fn build_state(pool: PgPool) -> AppState {
     )
 }
 
-async fn balance(pool: &PgPool, acct: Uuid) -> i64 {
+pub(super) async fn balance(pool: &PgPool, acct: Uuid) -> i64 {
     sqlx::query_scalar::<_, i64>(
         "SELECT COALESCE(SUM(CASE entry_type WHEN 'CREDIT' THEN amount_minor WHEN 'DEBIT' THEN -amount_minor END),0)::BIGINT
            FROM ledger_entries WHERE account_id = $1",
@@ -66,7 +66,7 @@ async fn balance(pool: &PgPool, acct: Uuid) -> i64 {
     .unwrap()
 }
 
-async fn book_sums_to_zero(pool: &PgPool) -> bool {
+pub(super) async fn book_sums_to_zero(pool: &PgPool) -> bool {
     let unbalanced: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM (
            SELECT posting_id FROM ledger_entries GROUP BY posting_id
@@ -80,7 +80,7 @@ async fn book_sums_to_zero(pool: &PgPool) -> bool {
 
 /// A consumer with an ACTIVE wallet holding `amount` (fictitious value, one
 /// balanced posting from a bank asset). Returns (consumer id, handle, available account).
-async fn funded_consumer(pool: &PgPool, amount: i64) -> (Uuid, String, Uuid) {
+pub(super) async fn funded_consumer(pool: &PgPool, amount: i64) -> (Uuid, String, Uuid) {
     let c = Uuid::new_v4();
     let handle = format!("rail{}", &c.simple().to_string()[..10]);
     sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
@@ -113,14 +113,14 @@ async fn funded_consumer(pool: &PgPool, amount: i64) -> (Uuid, String, Uuid) {
     (c, handle, avail)
 }
 
-struct Business {
-    merchant: Uuid,
-    wallet: Uuid,
-    available: Uuid,
-    link: Uuid,
+pub(super) struct Business {
+    pub(super) merchant: Uuid,
+    pub(super) wallet: Uuid,
+    pub(super) available: Uuid,
+    pub(super) link: Uuid,
 }
 
-async fn business(pool: &PgPool) -> Business {
+pub(super) async fn business(pool: &PgPool) -> Business {
     let merchant = Uuid::new_v4();
     sqlx::query("INSERT INTO merchants (id, name, email, status) VALUES ($1, 'Rail test', 'rail@t.test', 'ACTIVE')")
         .bind(merchant)
@@ -159,7 +159,12 @@ async fn take_rail_down(state: &AppState, merchant: Uuid) {
     assert_eq!(r.state, "UNAVAILABLE");
 }
 
-async fn pay_business(state: &AppState, payer: Uuid, b: &Business, key: &str) -> Result<(), u16> {
+pub(super) async fn pay_business(
+    state: &AppState,
+    payer: Uuid,
+    b: &Business,
+    key: &str,
+) -> Result<(), u16> {
     transfers::send(
         State(state.clone()),
         Json(SendTransferBody {
@@ -177,7 +182,12 @@ async fn pay_business(state: &AppState, payer: Uuid, b: &Business, key: &str) ->
     .map_err(|e| e.status.as_u16())
 }
 
-async fn p2p(state: &AppState, from: &str, to: &str, key: &str) -> Result<(), (u16, String)> {
+pub(super) async fn p2p(
+    state: &AppState,
+    from: &str,
+    to: &str,
+    key: &str,
+) -> Result<(), (u16, String)> {
     transfers::send_p2p(
         State(state.clone()),
         Json(SendP2pBody {
@@ -416,8 +426,7 @@ async fn the_simulator_refuses_in_live(pool: PgPool) {
         }),
     )
     .await
-    .err()
-    .expect("LIVE has no simulated rail");
+    .expect_err("LIVE has no simulated rail");
     assert_eq!(err.status.as_u16(), 403);
     // And in LIVE the Sandbox table is never the answer: the adapter reports its own availability.
     sqlx::query(
@@ -430,4 +439,162 @@ async fn the_simulator_refuses_in_live(pool: PgPool) {
     external_rail::require_external_rail(&live, b.merchant)
         .await
         .expect("LIVE ignores the Sandbox simulator");
+}
+
+// ── 0145: a Project's switch is its own ──────────────────────────────────────
+
+async fn link_for(state: &AppState, b: &Business, project: Option<Uuid>) -> Uuid {
+    let (_, Json(link)) = crate::routes::payment_links::create(
+        State(state.clone()),
+        Json(crate::routes::payment_links::CreateBody {
+            merchant_id: b.merchant.to_string(),
+            wallet_id: b.wallet.to_string(),
+            wallet_account_id: None,
+            amount_minor: Some(25_000),
+            currency: "AOA".into(),
+            description: Some("Pedido".into()),
+            expires_at: None,
+            sandbox_project_id: project.map(|p| p.to_string()),
+        }),
+    )
+    .await
+    .unwrap();
+    Uuid::parse_str(&link.id).unwrap()
+}
+
+async fn set_project_rail(
+    state: &AppState,
+    project: Uuid,
+    merchant: Uuid,
+    to: &str,
+) -> &'static str {
+    let Json(r) = external_rail::put_for_project(
+        State(state.clone()),
+        Path((project, merchant)),
+        Json(SetRailState { state: to.into() }),
+    )
+    .await
+    .unwrap();
+    r.state
+}
+
+async fn project_sees(state: &AppState, project: Uuid, merchant: Uuid) -> &'static str {
+    let Json(r) = external_rail::get_for_project(State(state.clone()), Path((project, merchant)))
+        .await
+        .unwrap();
+    r.state
+}
+
+async fn initiate(state: &AppState, link: Uuid) -> Result<(), u16> {
+    acquiring::initiate_payment(
+        State(state.clone()),
+        Json(InitiateBody {
+            payment_link_id: link.to_string(),
+            amount_minor: 25_000,
+            currency: "AOA".into(),
+        }),
+    )
+    .await
+    .map(|_| ())
+    .map_err(|e| e.status.as_u16())
+}
+
+/// Two Projects — in different Workspaces, one connected to the other's Business
+/// by consent code — share a Business. Each one's switch reaches its own hosted
+/// payments and never the other's.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_projects_rail_switch_never_reaches_another_project_on_the_same_business(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let b = business(&pool).await;
+    let (project_a, project_b) = (Uuid::new_v4(), Uuid::new_v4());
+    let link_a = link_for(&state, &b, Some(project_a)).await;
+    let link_b = link_for(&state, &b, Some(project_b)).await;
+
+    assert_eq!(
+        set_project_rail(&state, project_a, b.merchant, "UNAVAILABLE").await,
+        "UNAVAILABLE"
+    );
+    assert_eq!(
+        project_sees(&state, project_a, b.merchant).await,
+        "UNAVAILABLE"
+    );
+    assert_eq!(
+        project_sees(&state, project_b, b.merchant).await,
+        "AVAILABLE"
+    );
+    assert_eq!(
+        initiate(&state, link_a).await,
+        Err(503),
+        "A's own hosted payment fails closed"
+    );
+    initiate(&state, link_b)
+        .await
+        .expect("B's hosted payment on the same Business is unaffected");
+
+    // Reverse.
+    assert_eq!(
+        set_project_rail(&state, project_a, b.merchant, "AVAILABLE").await,
+        "AVAILABLE"
+    );
+    assert_eq!(
+        set_project_rail(&state, project_b, b.merchant, "UNAVAILABLE").await,
+        "UNAVAILABLE"
+    );
+    assert_eq!(
+        project_sees(&state, project_a, b.merchant).await,
+        "AVAILABLE"
+    );
+    let link_a2 = link_for(&state, &b, Some(project_a)).await;
+    initiate(&state, link_a2)
+        .await
+        .expect("A is unaffected by B");
+    let link_b2 = link_for(&state, &b, Some(project_b)).await;
+    assert_eq!(initiate(&state, link_b2).await, Err(503));
+
+    // Nothing was written to the Business-wide rail, which payouts read.
+    let wide: i64 = sqlx::query_scalar("SELECT count(*) FROM sandbox_external_rail_states")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(wide, 0);
+    external_rail::require_external_rail(&state, b.merchant)
+        .await
+        .expect("a Project's switch does not reach the Business's payouts");
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_link_no_project_created_reads_only_the_business_wide_rail(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let b = business(&pool).await;
+    set_project_rail(&state, Uuid::new_v4(), b.merchant, "UNAVAILABLE").await;
+    initiate(&state, b.link)
+        .await
+        .expect("no Project's switch reaches a link no Project created");
+    take_rail_down(&state, b.merchant).await;
+    let fresh = link_for(&state, &b, None).await;
+    assert_eq!(
+        initiate(&state, fresh).await,
+        Err(503),
+        "the operator's Business-wide rail does"
+    );
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_projects_rail_and_attribution_do_not_exist_in_live(pool: PgPool) {
+    let mut live = build_state(pool.clone()).await;
+    live.environment = CoreEnvironment::Live;
+    let b = business(&pool).await;
+    let err = external_rail::put_for_project(
+        State(live.clone()),
+        Path((Uuid::new_v4(), b.merchant)),
+        Json(SetRailState {
+            state: "UNAVAILABLE".into(),
+        }),
+    )
+    .await
+    .expect_err("LIVE has no simulated rail");
+    assert_eq!(err.status.as_u16(), 403);
+    let err = external_rail::link_project(&live, Some(&Uuid::new_v4().to_string()))
+        .expect_err("LIVE records no Sandbox Project");
+    assert_eq!(err.status.as_u16(), 400);
 }

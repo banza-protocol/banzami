@@ -53,6 +53,9 @@ type CreatePaymentSessionInput struct {
 	Description     string
 	ExpiresAt       *string
 	Metadata        map[string]any
+	// SandboxProjectID is the authenticated developer key's Project, never a
+	// request field; empty for a Business session.
+	SandboxProjectID string
 }
 
 type PaymentSessionService interface {
@@ -104,6 +107,9 @@ func (s *CoreApiPaymentSessionService) Create(ctx context.Context, in CreatePaym
 	}
 	if in.Metadata != nil {
 		body["metadata"] = in.Metadata
+	}
+	if in.SandboxProjectID != "" {
+		body["sandbox_project_id"] = in.SandboxProjectID
 	}
 	var sess PaymentSession
 	if err := s.client.post(ctx, "/internal/v1/payment-sessions", body, &sess); err != nil {

@@ -1136,7 +1136,7 @@
                 "external-rail"
               ]
             },
-            "description": "Read your Business's Sandbox external rail\n\nThe simulated external rail of your project's Sandbox Business. Banzami is rail-decoupled: value already inside the network moves through Banzami Core and its ledger without an external rail; an external rail is crossed only where value enters or leaves the network. Credential: Sandbox project key with sandbox:read."
+            "description": "Read your Project's Sandbox external rail\n\nThe simulated external rail your project uses for its Sandbox Business. Banzami is rail-decoupled: value already inside the network moves through Banzami Core and its ledger without an external rail; an external rail is crossed only where value enters or leaves the network. Credential: Sandbox project key with sandbox:read."
           }
         },
         {
@@ -1164,7 +1164,7 @@
                 "external-rail"
               ]
             },
-            "description": "Take your Business's Sandbox external rail down, or bring it back\n\nSets the simulated external rail of your project's Sandbox Business. With UNAVAILABLE, a test payer's wallet payment to your Business still completes; a payment with simulate, and a payment started on the hosted page's external rail, answer 503 PROVIDER_UNAVAILABLE with nothing moved. It affects only your own Business. Credential: Sandbox project key with sandbox:write.",
+            "description": "Take your Project's Sandbox external rail down, or bring it back\n\nSets the simulated external rail your project uses for its Sandbox Business. With UNAVAILABLE, a test payer's wallet payment to your Business still completes; a payment with simulate, and a payment started on the hosted page of a session or link this project created, answer 503 PROVIDER_UNAVAILABLE with nothing moved. It affects only this project: another project connected to the same Business keeps its own rail. Credential: Sandbox project key with sandbox:write.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"state\": \"UNAVAILABLE\"\n}",

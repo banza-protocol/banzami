@@ -2974,7 +2974,7 @@
             }
           },
           "503": {
-            "description": "PROVIDER_UNAVAILABLE — simulate PROVIDER_UNAVAILABLE, or any simulate while your Business's Sandbox external rail is UNAVAILABLE; nothing moved (Retry-After). SANDBOX_SIMULATED_TIMEOUT — simulate TIMEOUT; the payment was made; repeat with the same Idempotency-Key to read it. Tell them apart by code. PAYMENT_NOT_CONFIRMED — the money moved but completion was not confirmed; repeat the same request.",
+            "description": "PROVIDER_UNAVAILABLE — simulate PROVIDER_UNAVAILABLE, or any simulate while your project's Sandbox external rail is UNAVAILABLE; nothing moved (Retry-After). SANDBOX_SIMULATED_TIMEOUT — simulate TIMEOUT; the payment was made; repeat with the same Idempotency-Key to read it. Tell them apart by code. PAYMENT_NOT_CONFIRMED — the money moved but completion was not confirmed; repeat the same request.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3220,9 +3220,9 @@
           "sandbox"
         ],
         "operationId": "getSandboxExternalRail",
-        "summary": "Read your Business's Sandbox external rail",
+        "summary": "Read your Project's Sandbox external rail",
         "x-banzami-scope": "sandbox:read",
-        "description": "The simulated external rail of your project's Sandbox Business. Banzami is rail-decoupled: value already inside the network moves through Banzami Core and its ledger without an external rail; an external rail is crossed only where value enters or leaves the network. Credential: Sandbox project key with sandbox:read.",
+        "description": "The simulated external rail your project uses for its Sandbox Business. Banzami is rail-decoupled: value already inside the network moves through Banzami Core and its ledger without an external rail; an external rail is crossed only where value enters or leaves the network. Credential: Sandbox project key with sandbox:read.",
         "responses": {
           "200": {
             "description": "The rail state",
@@ -3258,9 +3258,9 @@
           "sandbox"
         ],
         "operationId": "setSandboxExternalRail",
-        "summary": "Take your Business's Sandbox external rail down, or bring it back",
+        "summary": "Take your Project's Sandbox external rail down, or bring it back",
         "x-banzami-scope": "sandbox:write",
-        "description": "Sets the simulated external rail of your project's Sandbox Business. With UNAVAILABLE, a test payer's wallet payment to your Business still completes; a payment with simulate, and a payment started on the hosted page's external rail, answer 503 PROVIDER_UNAVAILABLE with nothing moved. It affects only your own Business. Credential: Sandbox project key with sandbox:write.",
+        "description": "Sets the simulated external rail your project uses for its Sandbox Business. With UNAVAILABLE, a test payer's wallet payment to your Business still completes; a payment with simulate, and a payment started on the hosted page of a session or link this project created, answer 503 PROVIDER_UNAVAILABLE with nothing moved. It affects only this project: another project connected to the same Business keeps its own rail. Credential: Sandbox project key with sandbox:write.",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"

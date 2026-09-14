@@ -177,6 +177,14 @@ func (h *PaymentSessionHandler) resolveActor(w http.ResponseWriter, r *http.Requ
 	return mID, nil, ok
 }
 
+// devProject is the creator Project Core records for a developer-key session.
+func devProject(dev *developerPayee) string {
+	if dev == nil {
+		return ""
+	}
+	return dev.projectID
+}
+
 // POST /v1/payment-sessions
 func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	merchantID, dev, ok := h.resolveActor(w, r, "payment_sessions:write")
@@ -239,16 +247,17 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Core independently re-validates that the wallet_account is owned by this
 	// merchant + ACTIVE — a second authority check at settlement-relevant time.
 	sess, err := h.sessions.Create(r.Context(), service.CreatePaymentSessionInput{
-		MerchantID:      merchantID,
-		WalletAccountID: walletAccountID,
-		Purpose:         body.Purpose,
-		ReferenceType:   body.ReferenceType,
-		ReferenceID:     body.ReferenceID,
-		AmountMinor:     body.AmountMinor,
-		Currency:        body.Currency,
-		Description:     body.Description,
-		ExpiresAt:       body.ExpiresAt,
-		Metadata:        body.Metadata,
+		MerchantID:       merchantID,
+		WalletAccountID:  walletAccountID,
+		Purpose:          body.Purpose,
+		ReferenceType:    body.ReferenceType,
+		ReferenceID:      body.ReferenceID,
+		AmountMinor:      body.AmountMinor,
+		Currency:         body.Currency,
+		Description:      body.Description,
+		ExpiresAt:        body.ExpiresAt,
+		Metadata:         body.Metadata,
+		SandboxProjectID: devProject(dev),
 	})
 	if err != nil {
 		// A deliberate rejection from core keeps its status and its safe reason:

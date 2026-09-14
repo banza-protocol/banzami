@@ -29,24 +29,24 @@ type fakeRails struct {
 	reads int
 }
 
-func (f *fakeRails) GetSandboxExternalRail(_ context.Context, merchantID string) (*service.SandboxExternalRail, error) {
+func (f *fakeRails) GetSandboxExternalRail(_ context.Context, projectID, merchantID string) (*service.SandboxExternalRail, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.reads++
-	s := f.state[merchantID]
+	s := f.state[projectID+"|"+merchantID]
 	if s == "" {
 		s = "AVAILABLE"
 	}
 	return &service.SandboxExternalRail{State: s, Simulated: true}, nil
 }
 
-func (f *fakeRails) SetSandboxExternalRail(_ context.Context, merchantID, state string) (*service.SandboxExternalRail, error) {
+func (f *fakeRails) SetSandboxExternalRail(_ context.Context, projectID, merchantID, state string) (*service.SandboxExternalRail, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.state == nil {
 		f.state = map[string]string{}
 	}
-	f.state[merchantID] = state
+	f.state[projectID+"|"+merchantID] = state
 	return &service.SandboxExternalRail{State: state, Simulated: true}, nil
 }
 
@@ -81,8 +81,8 @@ func railDown(t *testing.T) (*upstream, *fakeRails, http.Handler) {
 	if rec := put(t, router, "/v1/sandbox/external-rail", `{"state":"UNAVAILABLE"}`); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"UNAVAILABLE"`) {
 		t.Fatalf("take the rail down: %d %s", rec.Code, rec.Body)
 	}
-	if rails.state["merchant-A"] != "UNAVAILABLE" {
-		t.Fatalf("the rail of the key's own Business was not the one set: %v", rails.state)
+	if rails.state["proj-A|merchant-A"] != "UNAVAILABLE" || len(rails.state) != 1 {
+		t.Fatalf("the rail of the key's own Project and Business was not the one set: %v", rails.state)
 	}
 	return up, rails, router
 }

@@ -193,6 +193,7 @@ func (h *PaymentLinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		req.MerchantID = dev.merchantID
 		req.WalletID = dev.walletID
 		req.WalletAccountID = dev.walletAccountID
+		req.SandboxProjectID = dev.projectID
 	} else {
 		// A merchant JWT may only create links payable to ITSELF. The body value
 		// used to be trusted, so any merchant could mint a link collecting into

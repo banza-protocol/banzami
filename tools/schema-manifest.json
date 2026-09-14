@@ -877,6 +877,50 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "A Project's simulated rail is its own (0145 / ADR-061 \u00a75)",
+      "why": "Per-(Project, Business) rail switch, and the Project that created each Payment Link, so one developer's switch never reaches another Project sharing the Business.",
+      "tables": [
+        {
+          "name": "sandbox_project_rail_states",
+          "columns": [
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "state",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "nullable": false
+            }
+          ]
+        },
+        {
+          "name": "sandbox_link_projects",
+          "columns": [
+            {
+              "name": "payment_link_id",
+              "nullable": false
+            },
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }

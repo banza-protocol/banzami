@@ -45,6 +45,9 @@ type CreatePaymentLinkRequest struct {
 	Currency        string
 	Description     *string
 	ExpiresAt       *time.Time
+	// SandboxProjectID is the authenticated developer key's Project, never a
+	// request field; empty for a Business link.
+	SandboxProjectID string
 }
 
 type ListPaymentLinksRequest struct {
@@ -94,6 +97,9 @@ func (s *CoreApiPaymentLinkService) Create(ctx context.Context, req CreatePaymen
 	}
 	if req.WalletAccountID != "" {
 		body["wallet_account_id"] = req.WalletAccountID
+	}
+	if req.SandboxProjectID != "" {
+		body["sandbox_project_id"] = req.SandboxProjectID
 	}
 	var link PaymentLink
 	return &link, s.client.post(ctx, "/internal/v1/payment-links", body, &link)

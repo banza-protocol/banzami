@@ -327,7 +327,7 @@
     {
       "operation_id": "getSandboxExternalRail",
       "tag": "sandbox",
-      "summary": "Read your Business's Sandbox external rail",
+      "summary": "Read your Project's Sandbox external rail",
       "method": "GET",
       "path": "/v1/sandbox/external-rail",
       "scope": "sandbox:read",
@@ -341,7 +341,7 @@
     {
       "operation_id": "setSandboxExternalRail",
       "tag": "sandbox",
-      "summary": "Take your Business's Sandbox external rail down, or bring it back",
+      "summary": "Take your Project's Sandbox external rail down, or bring it back",
       "method": "PUT",
       "path": "/v1/sandbox/external-rail",
       "scope": "sandbox:write",

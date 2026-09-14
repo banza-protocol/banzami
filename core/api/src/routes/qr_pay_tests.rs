@@ -664,6 +664,7 @@ async fn a_session_qr_read_back_by_id_pays(pool: PgPool) {
             description: None,
             expires_at: None,
             metadata: None,
+            sandbox_project_id: None,
         }),
     )
     .await

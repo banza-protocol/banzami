@@ -547,13 +547,6 @@
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "Reconciliação: compara o ledger com o que um rail externo reporta e assinala diferenças; uma correção é sempre um novo movimento equilibrado."
   },
-  "pt:Concepts:63f17bf6e7": {
-   "page": "Concepts",
-   "kind": "LI",
-   "class": "SOURCE",
-   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
-   "text": "No Sandbox: o carregamento de um pagador de teste é valor fictício criado pelo Core e não atravessa nenhum rail. Pode colocar o rail externo simulado do seu neg"
-  },
   "pt:Concepts:d8807ad372": {
    "page": "Concepts",
    "kind": "Callout",
@@ -3487,13 +3480,6 @@
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "Na Consola, abra Dados de teste: crie um pagador, carregue-o e pague uma sessão pelo seu session_id. Pela API, com uma chave com sandbox:write: POST /v1/sandbox"
   },
-  "pt:Testing:4f204f248d": {
-   "page": "Testing",
-   "kind": "P",
-   "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "O Banzami é desacoplado dos rails externos: o valor que já está na rede move-se pelo Core e pelo ledger sem precisar de nenhum. Para o ver, coloque o rail exter"
-  },
   "pt:Testing:132dbf8715": {
    "page": "Testing",
    "kind": "P",
@@ -5621,13 +5607,6 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "Reconciliation: compares the ledger with what an external rail reports and flags differences; a correction is always a new balanced movement."
-  },
-  "en:Concepts:1a0fbeb119": {
-   "page": "Concepts",
-   "kind": "LI",
-   "class": "SOURCE",
-   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
-   "text": "In the Sandbox: a test payer’s top-up is fictitious value created by Core and crosses no rail. You can take your Business’s simulated external rail down and wat"
   },
   "en:Concepts:d6107d9389": {
    "page": "Concepts",
@@ -8561,13 +8540,6 @@
    "class": "GATE",
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "In the Console, open Test data: create a payer, top it up and pay a session by its session_id. Through the API, with a key holding sandbox:write: POST /v1/sandb"
-  },
-  "en:Testing:47ef610035": {
-   "page": "Testing",
-   "kind": "P",
-   "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "Banzami is decoupled from external rails: value already in the network moves through Core and the ledger without needing one. To see it, set your Business’s sim"
   },
   "en:Testing:b58ce748e4": {
    "page": "Testing",
@@ -12629,20 +12601,6 @@
    "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
    "text": "key without sandbox:read, or a key that is not a Sandbox key"
   },
-  "pt:Reference-spec:2b7adab9f7": {
-   "page": "Reference-spec",
-   "kind": "spec",
-   "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "O rail externo simulado do negócio Sandbox do seu projeto: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo ledger sem r"
-  },
-  "en:Reference-spec:35619e3e1f": {
-   "page": "Reference-spec",
-   "kind": "spec",
-   "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "The simulated external rail of your Project’s Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger without"
-  },
   "pt:Reference-spec:09fb114ebc": {
    "page": "Reference-spec",
    "kind": "spec",
@@ -12670,20 +12628,6 @@
    "class": "SOURCE",
    "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
    "text": "key without sandbox:read, a key that is not a Sandbox key, or a project with no Financial Setup"
-  },
-  "pt:Reference-spec:2fba16dfa1": {
-   "page": "Reference-spec",
-   "kind": "spec",
-   "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "Coloca o rail externo simulado do seu negócio em UNAVAILABLE ou repõe-no. Com UNAVAILABLE, o pagamento de um pagador de teste a partir da carteira continua a co"
-  },
-  "en:Reference-spec:03852e4057": {
-   "page": "Reference-spec",
-   "kind": "spec",
-   "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "Takes your Business’s simulated external rail down, or brings it back. With UNAVAILABLE, a test payer’s wallet payment still completes; a payment with simulate,"
   },
   "pt:Reference-spec:509b2f8086": {
    "page": "Reference-spec",
@@ -18144,6 +18088,62 @@
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "INVALID_WALLET_ACCOUNT: The wallet account that receives this QR code is no longer active. Check the account with GET /v1/wallet-accounts/{id} and create the se"
+  },
+  "pt:Concepts:798897fb95": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "No Sandbox: o carregamento de um pagador de teste é valor fictício criado pelo Core e não atravessa nenhum rail. Pode colocar o rail externo simulado do seu pro"
+  },
+  "pt:Testing:3854dc5a42": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "O Banzami é desacoplado dos rails externos: o valor que já está na rede move-se pelo Core e pelo ledger sem precisar de nenhum. Para o ver, coloque o rail exter"
+  },
+  "en:Concepts:1ce5acc52d": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "In the Sandbox: a test payer’s top-up is fictitious value created by Core and crosses no rail. You can take your Project’s simulated external rail down and watc"
+  },
+  "en:Testing:72e1fd1f08": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "Banzami is decoupled from external rails: value already in the network moves through Core and the ledger without needing one. To see it, set your Project’s simu"
+  },
+  "pt:Reference-spec:840ffa4090": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "O rail externo simulado que o seu projeto usa para o negócio Sandbox: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo l"
+  },
+  "en:Reference-spec:610bf4e029": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "The simulated external rail your Project uses for its Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger"
+  },
+  "pt:Reference-spec:b46bc4509b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "Coloca o rail externo simulado do seu projeto em UNAVAILABLE ou repõe-no. Com UNAVAILABLE, o pagamento de um pagador de teste a partir da carteira continua a co"
+  },
+  "en:Reference-spec:cbcbcbf368": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "text": "Takes your Project’s simulated external rail down, or brings it back. With UNAVAILABLE, a test payer’s wallet payment still completes; a payment with simulate, "
   }
  }
 }

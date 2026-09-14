@@ -26,11 +26,11 @@ func TestSetSandboxExternalRail_SendsJSONToCoresPath(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := NewCoreApiClient(srv.URL, "k")
-	got, err := c.SetSandboxExternalRail(context.Background(), "3f2a6c1e-0000-4000-8000-000000000001", "UNAVAILABLE")
+	got, err := c.SetSandboxExternalRail(context.Background(), "9d1c0b7a-0000-4000-8000-00000000000a", "3f2a6c1e-0000-4000-8000-000000000001", "UNAVAILABLE")
 	if err != nil || got.State != "UNAVAILABLE" {
 		t.Fatalf("set rail: %v %+v (content-type %q)", err, got, gotCT)
 	}
-	if gotMethod != http.MethodPut || gotPath != "/internal/v1/sandbox/external-rail/3f2a6c1e-0000-4000-8000-000000000001" || !strings.Contains(gotBody, `"UNAVAILABLE"`) {
+	if gotMethod != http.MethodPut || gotPath != "/internal/v1/sandbox/projects/9d1c0b7a-0000-4000-8000-00000000000a/external-rail/3f2a6c1e-0000-4000-8000-000000000001" || !strings.Contains(gotBody, `"UNAVAILABLE"`) {
 		t.Fatalf("request: %s %s %s", gotMethod, gotPath, gotBody)
 	}
 }

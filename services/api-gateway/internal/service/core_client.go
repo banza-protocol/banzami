@@ -1259,23 +1259,29 @@ type SandboxExternalRail struct {
 	Simulated bool   `json:"simulated"`
 }
 
-// GetSandboxExternalRail reads the simulated rail state of a Business.
-func (c *CoreApiClient) GetSandboxExternalRail(ctx context.Context, merchantID string) (*SandboxExternalRail, error) {
+// sandboxProjectRailPath is a Project's own simulated rail on the Business its
+// key is bound to (0145): never the Business-wide rail, which only operators set.
+func sandboxProjectRailPath(projectID, merchantID string) string {
+	return "/internal/v1/sandbox/projects/" + url.PathEscape(projectID) + "/external-rail/" + url.PathEscape(merchantID)
+}
+
+// GetSandboxExternalRail reads what a Project's simulated rail is for its Business.
+func (c *CoreApiClient) GetSandboxExternalRail(ctx context.Context, projectID, merchantID string) (*SandboxExternalRail, error) {
 	var out SandboxExternalRail
-	if err := c.get(ctx, "/internal/v1/sandbox/external-rail/"+url.PathEscape(merchantID), &out); err != nil {
+	if err := c.get(ctx, sandboxProjectRailPath(projectID, merchantID), &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-// SetSandboxExternalRail sets the simulated rail state of a Business. Core is
-// the writer; the gateway only relays the Project's request.
-func (c *CoreApiClient) SetSandboxExternalRail(ctx context.Context, merchantID, state string) (*SandboxExternalRail, error) {
+// SetSandboxExternalRail sets a Project's own simulated rail for its Business.
+// Core is the writer; the gateway only relays the Project's request.
+func (c *CoreApiClient) SetSandboxExternalRail(ctx context.Context, projectID, merchantID, state string) (*SandboxExternalRail, error) {
 	data, err := json.Marshal(map[string]string{"state": state})
 	if err != nil {
 		return nil, fmt.Errorf("core-api marshal: %w", err)
 	}
-	req, err := c.newCoreRequest(ctx, http.MethodPut, "/internal/v1/sandbox/external-rail/"+url.PathEscape(merchantID), bytes.NewReader(data))
+	req, err := c.newCoreRequest(ctx, http.MethodPut, sandboxProjectRailPath(projectID, merchantID), bytes.NewReader(data))
 	if errors.Is(err, ErrNotFound) {
 		return nil, err
 	}

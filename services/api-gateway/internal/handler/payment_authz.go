@@ -23,6 +23,10 @@ type developerPayee struct {
 	merchantID      string
 	walletID        string
 	walletAccountID string
+	// projectID is the authenticated key's Project. Core records it as the
+	// creator of a link or session, so the Project's own simulated rail — and
+	// no other Project's — governs its hosted payments (0145).
+	projectID string
 }
 
 // developerPaymentAuthority resolves the developer-key payment authority for the
@@ -76,7 +80,7 @@ func resolveDeveloperPaymentAuthority(w http.ResponseWriter, r *http.Request, sc
 			"this project is not provisioned to accept payments")
 		return nil, true, true
 	}
-	payee := &developerPayee{merchantID: dp.MerchantID, walletID: dp.WalletID, walletAccountID: dp.WalletAccountID}
+	payee := &developerPayee{merchantID: dp.MerchantID, walletID: dp.WalletID, walletAccountID: dp.WalletAccountID, projectID: dp.ProjectID}
 	if seal == nil {
 		return payee, false, true
 	}

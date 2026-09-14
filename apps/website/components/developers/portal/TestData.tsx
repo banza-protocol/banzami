@@ -268,7 +268,7 @@ export function TestData() {
       <Card style={{ padding: 22, marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>Rail externo simulado</h2>
         <p style={P}>
-          O valor que já está no Banzami move-se pelo Core e pelo ledger, sem rail externo. Coloque o rail externo simulado do seu negócio em baixo para o ver:
+          O valor que já está no Banzami move-se pelo Core e pelo ledger, sem rail externo. Coloque o rail externo simulado deste projeto em baixo para o ver (só este projeto é afetado):
           os pagamentos a partir da carteira continuam a concluir-se; um pagamento com simulação, que atravessa o rail, responde PROVIDER_UNAVAILABLE e nada se move.{' '}
           <DocsLink href="/docs/testing#rail-externo">Rail externo em baixo</DocsLink>
         </p>

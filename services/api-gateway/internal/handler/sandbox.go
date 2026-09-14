@@ -97,10 +97,11 @@ type SandboxDevHandler struct {
 	rails devExternalRails
 }
 
-// devExternalRails is Core's Sandbox external rail simulator, by Business.
+// devExternalRails is Core's Sandbox external rail simulator, by Project and
+// Business: one Project's switch never reaches another Project (0145).
 type devExternalRails interface {
-	GetSandboxExternalRail(ctx context.Context, merchantID string) (*service.SandboxExternalRail, error)
-	SetSandboxExternalRail(ctx context.Context, merchantID, state string) (*service.SandboxExternalRail, error)
+	GetSandboxExternalRail(ctx context.Context, projectID, merchantID string) (*service.SandboxExternalRail, error)
+	SetSandboxExternalRail(ctx context.Context, projectID, merchantID, state string) (*service.SandboxExternalRail, error)
 }
 
 // WithExternalRails wires the Business's simulated external rail.
@@ -128,7 +129,7 @@ func (h *SandboxDevHandler) ExternalRail(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	s, err := h.rails.GetSandboxExternalRail(r.Context(), merchant)
+	s, err := h.rails.GetSandboxExternalRail(r.Context(), p.ProjectID, merchant)
 	if err != nil {
 		respondCoreError(w, r, err, "could not read the Sandbox external rail")
 		return
@@ -158,7 +159,7 @@ func (h *SandboxDevHandler) SetExternalRail(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	s, err := h.rails.SetSandboxExternalRail(r.Context(), merchant, state)
+	s, err := h.rails.SetSandboxExternalRail(r.Context(), p.ProjectID, merchant, state)
 	if err != nil {
 		respondCoreError(w, r, err, "could not set the Sandbox external rail")
 		return
@@ -171,7 +172,7 @@ func (h *SandboxDevHandler) railOwner(w http.ResponseWriter, r *http.Request, p 
 		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "the Sandbox external rail is not available on this deployment")
 		return "", false
 	}
-	if !p.Bound || p.MerchantID == "" {
+	if !p.Bound || p.MerchantID == "" || p.ProjectID == "" {
 		apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE", "this project has no Financial Setup")
 		return "", false
 	}
@@ -507,7 +508,7 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 	if in.Simulate != "" && h.rails != nil {
 		switch in.Simulate {
 		case SimulateDeclined, SimulateProviderUnavailable, SimulateTimeout, SimulateDelayed:
-			if s, err := h.rails.GetSandboxExternalRail(r.Context(), p.MerchantID); err != nil {
+			if s, err := h.rails.GetSandboxExternalRail(r.Context(), p.ProjectID, p.MerchantID); err != nil {
 				respondCoreError(w, r, err, "could not read the Sandbox external rail")
 				return
 			} else if s.State == "UNAVAILABLE" {

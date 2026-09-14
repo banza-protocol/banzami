@@ -62,6 +62,7 @@ fn body(merchant: Uuid, wa: Uuid, amount: Option<i64>, reference: Option<&str>) 
         description: Some("Campanha".into()),
         expires_at: None,
         metadata: None,
+        sandbox_project_id: None,
     }
 }
 
