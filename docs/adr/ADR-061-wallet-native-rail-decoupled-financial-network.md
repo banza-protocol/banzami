@@ -80,8 +80,10 @@ transaction after every migration by
 | `bl_admin_api_runtime` | admin-api | SELECT only | its 15 operator, KYC-review, compliance and settings tables |
 | `bl_app_runtime` | none (operator tooling on the host) | SELECT only | non-financial tables |
 
-No runtime role is superuser, BYPASSRLS, CREATEROLE, CREATEDB, a member of the
-schema owner, or able to write the migration ledger; the SQL aborts its own
+No runtime role is superuser, BYPASSRLS, CREATEROLE, CREATEDB, a member of any
+role, able to execute an application routine, create objects or temporary
+objects, or write the migration ledger (indirect paths are verified, fail-closed,
+by `db/authority/verify-authority.sql`); the SQL aborts its own
 transaction if any non-Core role holds INSERT, UPDATE, DELETE or TRUNCATE on a
 financial table. Migration authority (`bl_migration` → `bl_schema_owner`) and the
 superuser are mounted into no service. `tools/db-authority.mjs` fails the build

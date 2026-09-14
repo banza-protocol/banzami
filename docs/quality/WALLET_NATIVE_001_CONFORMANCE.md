@@ -95,6 +95,51 @@ Reads remain schema-scoped rather than table-scoped: narrowing them per table
 would fail services on paths no suite exercises (BANZADMIN review flows need an
 operator's MFA) and adds nothing to financial authority. Writes are table-scoped.
 
+### Indirect write authority
+
+The direct grants are necessary, not sufficient. Every indirect PostgreSQL path
+was inventoried on the deployed database and is now verified, fail-closed, by
+`db/authority/verify-authority.sql` (generated with the grants; run at the end of
+every authority apply, by `runtime-authority.sh verify`, and in CI).
+
+| Path | Found on the deployed database | Now |
+|---|---|---|
+| Routines | 14, all SECURITY INVOKER trigger functions owned by `bl_schema_owner`; 0 SECURITY DEFINER anywhere; one (`create_primary_wallet_account`) writes a financial table and is classified; EXECUTE held by PUBLIC | EXECUTE revoked from PUBLIC and every runtime role (triggers fire without it); any unclassified SECURITY DEFINER routine, one without a pinned search_path, any routine a runtime role may execute, or any unclassified routine writing a financial table fails verification |
+| Role membership / SET ROLE | runtime roles are members of nothing; no CREATEROLE, BYPASSRLS or superuser | any membership of a runtime role fails verification |
+| TRUNCATE, MERGE, COPY, REFERENCES, TRIGGER on financial tables | none granted to non-Core roles | any of them fails verification |
+| Rules, INSTEAD OF triggers, writable views | 0 rules, 0 INSTEAD OF triggers; one view, not updatable, SELECT only | any of them in the application schemas fails verification |
+| Object creation / search_path | no schema CREATE; database TEMP via PUBLIC | TEMP and PUBLIC schema CREATE revoked; any CREATE or TEMP for a runtime role fails verification |
+| Default privileges | tables: SELECT for services, writes for Core only; routines: PUBLIC EXECUTE by default | routines created by `bl_schema_owner` are no longer executable by PUBLIC; a default granting a non-Core role a write or any routine privilege fails verification |
+| New objects | — | a table with a money or ledger column that is neither financial (guarded by 0144) nor classified, or a financial table without its guard, fails verification |
+
+**Before the apply** the deployed verification failed, naming PUBLIC EXECUTE on the
+14 routines, database TEMP and the routine default — none a write path (invoker
+trigger functions cannot be called directly or write beyond the caller's
+privileges), all now closed. **After:** `DB_AUTHORITY_VERIFY=PASS`.
+
+Deployed proof, each non-Core role naming itself `banzami-core`, 18 attempts each:
+`SET ROLE` to Core, the schema owner, the migration login and the superuser;
+`GRANT` Core to itself; `TRUNCATE` ledger entries and wallets; `MERGE` and `COPY`
+into financial tables; executing the financial-write and guard routines; writing
+through the view; `CREATE TABLE` in public, `CREATE TEMP TABLE`, a `pg_temp`
+function, a schema; a trigger on wallets; `SELECT … FOR UPDATE` on wallets —
+**90/90 refused** by PostgreSQL privilege (the view additionally is not updatable).
+After it: scenarios 31/31 and the application journey 18/18 with Core writing as
+its role; 0 permission errors in any service log.
+
+Mutation proof (`database_authority_tests.rs`, each inside a rolled-back
+transaction): A a SECURITY DEFINER financial writer executable by the gateway, B
+the gateway made a member of Core, C TRUNCATE on a financial table, D a SECURITY
+DEFINER routine with an unpinned search_path, E an unclassified money table, F an
+INSTEAD rule writing wallets through a view, G a default privilege giving the
+gateway writes, H CREATE on public — each named by the verification. A separate
+test shows mutation A would really have let the gateway write a wallet. Removing
+the SECURITY DEFINER or membership check from the verification makes the mutation
+test fail.
+
+Known limitation, unchanged and not a write path: services keep schema-scoped
+reads (tenant and application authorisation remain enforced in the services).
+
 ## Rail simulator isolation
 
 Before: `sandbox_external_rail_states` per Business. A Business can be shared —
@@ -246,12 +291,24 @@ BANZAMI_RAIL_DECOUPLED_MODEL=PASS
 ONE_FINANCIAL_TRUTH=PASS
 ONE_LEDGER_AUTHORITY=PASS
 CORE_ONLY_FINANCIAL_WRITES=PASS
+CORE_ONLY_FINANCIAL_DATABASE_AUTHORITY=PASS
 CORE_FINANCIAL_WRITE_AUTHORITY=PASS
 APPLICATION_NAME_SECURITY_AUTHORITY=0
 NON_CORE_FINANCIAL_TABLE_WRITE_ROLES=0
 NON_CORE_DIRECT_FINANCIAL_INSERT=0
 NON_CORE_DIRECT_FINANCIAL_UPDATE=0
 NON_CORE_DIRECT_FINANCIAL_DELETE=0
+NON_CORE_DIRECT_FINANCIAL_TRUNCATE=0
+NON_CORE_EXECUTABLE_FINANCIAL_WRITE_FUNCTIONS=0
+UNSAFE_SECURITY_DEFINER_FUNCTIONS=0
+NON_CORE_CAN_SET_ROLE_TO_CORE=0
+NON_CORE_PRIVILEGE_ESCALATION_ROLE_PATHS=0
+NON_CORE_FINANCIAL_WRITE_VIA_VIEW_OR_RULE=0
+NON_CORE_SEARCH_PATH_PRIVILEGE_ESCALATION=0
+NON_CORE_INDIRECT_FINANCIAL_WRITE_PATHS=0
+DATABASE_AUTHORITY_DEFAULT_PRIVILEGES=PASS
+UNCLASSIFIED_NEW_FINANCIAL_DB_OBJECTS=0
+INDIRECT_DB_AUTHORITY_MUTATION_PROOF=PASS
 CORE_ONLY_WRITER_MUTATION_PROOF=PASS
 RUNTIME_SERVICE_HAS_MIGRATION_SUPERUSER_CREDENTIALS=0
 DIRECT_BALANCE_MUTATION_PATHS=0
@@ -289,8 +346,8 @@ and the internal architecture documents; the four contradictions found (glossary
 `BANZAMI_REFERENCE.md`, payer page, README) are corrected above, and Multicaixa
 Express appears on the payer page only behind the LIVE-only external-rail flag.
 
-**The canonical security principle.** Only Core has database authority to write
-canonical financial state: PostgreSQL grants INSERT, UPDATE and DELETE on the 25
+**The canonical security principle.** Only Core has database authority — direct
+or indirect — to write canonical financial state: PostgreSQL grants INSERT, UPDATE and DELETE on the 25
 financial tables to `bl_core_runtime` alone; no other runtime role holds them,
 whatever it calls itself. Sandbox simulation controls are scoped to one Project
 and cannot reach another developer or Financial Live.

@@ -128,7 +128,13 @@ source by `tools/db-authority.mjs`). Reads remain schema-scoped: narrowing them 
 table would fail services at runtime on paths no suite exercises (BANZADMIN review
 flows need an operator's MFA), for no gain in financial authority.
 
-Counters: `NON_CORE_FINANCIAL_TABLE_WRITE_ROLES=0`,
+Indirect paths — SECURITY DEFINER or executable routines, role membership and
+`SET ROLE`, TRUNCATE/MERGE/COPY, rules, INSTEAD OF triggers, writable views,
+schema CREATE and TEMP, default privileges, unclassified money tables — are
+verified against the live catalog by `db/authority/verify-authority.sql` at every
+apply and in CI; the deployed database verifies clean.
+
+Counters: `NON_CORE_INDIRECT_FINANCIAL_WRITE_PATHS=0`, `NON_CORE_FINANCIAL_TABLE_WRITE_ROLES=0`,
 `APPLICATION_NAME_SECURITY_AUTHORITY=0`,
 `RUNTIME_SERVICE_HAS_MIGRATION_SUPERUSER_CREDENTIALS=0`.
 
