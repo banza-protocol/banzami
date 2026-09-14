@@ -206,9 +206,11 @@ async function scenarios(sdk) {
     const B = await dev.project('b', 'STANDARD');
     catalogue = ((await A.api('/v1/sandbox/scenarios')).body?.scenarios ?? []).map((x) => x.id);
 
+    // The retry receiver answers its FIRST request 500. It subscribes to nothing
+    // that happens before the test event, so that first request is the test event.
     const run = `scn${s}`;
     sinkOpen(run, { status: 500, fail_first: 1, then_status: 200 });
-    const ep = await A.api('/v1/webhooks/endpoints', 'POST', { url: `${SINK}/${run}`, events: ['payment_session.paid', 'refund.completed'] });
+    const ep = await A.api('/v1/webhooks/endpoints', 'POST', { url: `${SINK}/${run}`, events: ['application_settlement.completed'] });
     const whSecret = ep.body?.secret;
 
     const tp = await payer(A.api, `${s}_1`);
