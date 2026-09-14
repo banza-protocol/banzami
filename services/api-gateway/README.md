@@ -226,6 +226,8 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | POST | /v1/disputes/{id}/evidence | Submit · list evidence |
 | GET | /v1/disputes/{id}/evidence | Submit · list evidence |
 | GET | /v1/sandbox/scenarios | Sandbox scenario catalogue (developer key, `sandbox:read`; Sandbox stack only) |
+| GET | /v1/sandbox/external-rail | The project Business's simulated external rail, AVAILABLE or UNAVAILABLE (developer key, `sandbox:read`; Sandbox stack only; ADR-061) |
+| PUT | /v1/sandbox/external-rail | Take the simulated external rail down or bring it back; wallet payments are unaffected, rail-dependent operations fail closed (developer key, `sandbox:write`; Sandbox stack only; ADR-061) |
 | POST | /v1/sandbox/test-payers | Create a Project-owned test payer (developer key, `sandbox:write`) |
 | GET | /v1/sandbox/test-payers | List the Project's test payers (`sandbox:read`) |
 | GET | /v1/sandbox/test-payers/{id} | Read a test payer (`sandbox:read`) |

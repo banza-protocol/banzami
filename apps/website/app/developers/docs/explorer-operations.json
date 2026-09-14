@@ -82,6 +82,16 @@
       "path": "/v1/refunds/{id}"
     },
     {
+      "operation_id": "getSandboxExternalRail",
+      "method": "GET",
+      "path": "/v1/sandbox/external-rail"
+    },
+    {
+      "operation_id": "setSandboxExternalRail",
+      "method": "PUT",
+      "path": "/v1/sandbox/external-rail"
+    },
+    {
       "operation_id": "listSandboxScenarios",
       "method": "GET",
       "path": "/v1/sandbox/scenarios"

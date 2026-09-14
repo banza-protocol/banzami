@@ -143,6 +143,7 @@ export function RequestLog() {
           <option value="">Todos os métodos</option>
           <option value="GET">GET</option>
           <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
           <option value="DELETE">DELETE</option>
         </select>
         <select

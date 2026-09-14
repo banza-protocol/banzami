@@ -14,7 +14,7 @@ import { EventReference } from './EventReference';
 import { Troubleshooting } from './Troubleshooting';
 import { StageBar, StepCard, NextStepCards, RecipeCard, ChapterFacts, DoDont } from './dx';
 import { EVENT_NAMES } from './events';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram } from './diagrams';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram, MoneyMovementDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import type { CopyFn } from './content-pt';
 
@@ -604,6 +604,53 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
               </div>
               <P><a href="/docs/en/going-live" style={a}>Prepare your integration for Live</a></P>
               <CapabilityCards lang="en" />
+
+              <H2 id="how-money-moves">How money moves</H2>
+              <P>
+                Banzami is a wallet-native payment network. Every participant — a person, a Business, an application — has a wallet and wallet accounts,
+                and every movement between them is a double-entry posting written by Banzami Core to the ledger. A payment to a Business, a transfer between people,
+                the refund of a wallet payment and an application settlement move value <strong>inside</strong> the network and need no external rail
+                to happen.
+              </P>
+              <MoneyMovementDiagram l={{
+                title: 'How money moves in Banzami',
+                desc: 'The external financial system joins the Banzami network at two points: value entering and value leaving. Inside the network, a payer’s wallet pays another person or a Business through Core and the ledger, with no external rail. The developer platform reads that same financial truth.',
+                external: 'External financial system', externalRails: 'banks · EMIS · PSPs · other rails',
+                cashIn: 'value in', cashOut: 'value out',
+                network: 'Banzami network',
+                payer: 'Payer’s wallet', person: 'Another person’s wallet', business: 'Business · accounts',
+                p2p: 'transfer between people', payment: 'payment · QR · link',
+                ledger: 'Banzami Core · double-entry ledger',
+                platform: 'Developer platform: API · SDK · webhooks · realtime',
+                footnote: 'Sandbox: fictitious money and a simulated external rail · Financial Live: unavailable',
+              }} />
+              <P>
+                External rails — banks, EMIS, PSPs — are <strong>interoperability boundaries</strong>: they are crossed when value enters or leaves the network, or when
+                an operation explicitly requires one. Banzami is decoupled from rails, not independent of them, and none of this removes a regulatory obligation.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Operation</th><th style={TH}>Crosses an external rail</th><th style={TH}>With the external rail down</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Wallet payment (session, link, QR)', 'No', 'Completes'],
+                      ['Transfer between people', 'No', 'Completes'],
+                      ['Refund of a wallet payment', 'No', 'Completes'],
+                      ['Application settlement', 'No', 'Completes'],
+                      ['Payment on the hosted page’s external rail', 'Yes', '503 PROVIDER_UNAVAILABLE; nothing is created or credited'],
+                      ['Value in or out through an external rail', 'Yes', 'Does not complete without the rail’s confirmation'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>One financial truth:</strong> a balance derives from the ledger; no service changes it directly. Sessions, links, QR and settlements have their own workflow state, but the value is always the ledger’s.</LI>
+                <LI><strong>Webhooks and realtime come after:</strong> they are sent from a movement already recorded. A failed webhook delivery is retried; it does not undo the payment. Realtime status shows the result; it does not decide it.</LI>
+                <LI><strong>Reconciliation:</strong> compares the ledger with what an external rail reports and flags differences; a correction is always a new balanced movement.</LI>
+                <LI><strong>In the Sandbox:</strong> a test payer’s top-up is fictitious value created by Core and crosses no rail. You can take your Business’s simulated external rail down and watch this table happen. <a href="/docs/en/testing#external-rail" style={a}>Test with the external rail down</a></LI>
+              </UL>
 
               <H2 id="model">The integration model</H2>
               <ConceptModelDiagram l={{
@@ -2014,6 +2061,23 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
 
 const RECIPES_NOTE = 'The examples use a test key from your project. Nothing done in the Sandbox moves real money.';
 
+const SAMPLE_CURL_EXTERNAL_RAIL = `# Take your Business's simulated external rail down
+curl -X PUT https://sandbox-api.banzami.com/v1/sandbox/external-rail \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{"state":"UNAVAILABLE"}'
+# 200 { "state": "UNAVAILABLE", "simulated": true }
+
+# A wallet payment still completes
+# POST /v1/sandbox/test-payers/tp_example/payments {"payment_session_id":"payment_session_example"}
+# 200 { "status": "PAID", "rail": "WALLET", … }
+
+# A payment that crosses the external rail does not
+# POST /v1/sandbox/test-payers/tp_example/payments {"payment_session_id":"…","simulate":"DECLINED"}
+# 503 { "code": "PROVIDER_UNAVAILABLE", "rail": "EXTERNAL_SIMULATED", "simulated": true, … }
+
+# Bring the rail back: -d '{"state":"AVAILABLE"}'`;
+
 const SAMPLE_CURL_TEST_PAYER_PAY = `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_example/payments \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Idempotency-Key: payment_001" \\
@@ -2068,6 +2132,16 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <CodeBlock label="TypeScript · test payer" raw={SAMPLE_TEST_PAYER} onCopy={copy} {...enCopy} />
               <CodeBlock label="curl · pay a session as a test payer" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} {...enCopy} />
 
+              <H2 id="external-rail">External rail down</H2>
+              <P>
+                Banzami is decoupled from external rails: value already in the network moves through Core and the ledger without needing one.
+                To see it, set your Business’s simulated external rail to <Code>UNAVAILABLE</Code>. A payment from a test payer’s wallet
+                still completes, with <Code>rail: &quot;WALLET&quot;</Code>; a payment with <Code>simulate</Code>, which stands in for a payment that crosses an external rail,
+                and a payment started on the hosted page’s external rail return <Code>503 PROVIDER_UNAVAILABLE</Code> and nothing is created, credited or confirmed.
+                The state is your Business’s alone. In the Console, under <strong>Test data</strong>, or through the API: <a href="/docs/en/concepts#how-money-moves" style={a}>How money moves</a>
+              </P>
+              <CodeBlock label="curl · take the external rail down" raw={SAMPLE_CURL_EXTERNAL_RAIL} onCopy={copy} {...enCopy} />
+
               <H2 id="recipe-basics">Keys and readiness</H2>
               <RecipeCard lang="en" r={{ id: 'first-call', title: 'The key works',
                 trigger: <><Code>GET /v1/me</Code> with the key.</>,
@@ -2115,6 +2189,15 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 trigger: <>Pay as a test payer with <Code>simulate: &quot;PROVIDER_UNAVAILABLE&quot;</Code>.</>,
                 api: <><Code>503 PROVIDER_UNAVAILABLE</Code> with <Code>Retry-After</Code> and <Code>simulated: true</Code>. Nothing moves.</>,
                 event: 'None.', console: 'Logs: the request, with the 503 response.', cleanup: 'None.' }} />
+              <RecipeCard lang="en" r={{ id: 'rail-down-wallet', title: 'Pay with the external rail down', scenario: 'EXTERNAL_RAIL_DOWN_WALLET_PAYMENT',
+                trigger: <><Code>PUT /v1/sandbox/external-rail</Code> with <Code>state: &quot;UNAVAILABLE&quot;</Code>; then pay a session as a test payer, from its wallet.</>,
+                api: <><Code>200</Code> with <Code>status: &quot;PAID&quot;</Code> and <Code>rail: &quot;WALLET&quot;</Code>: value moves inside Banzami, with no external rail.</>,
+                event: <><Code>payment_session.paid</Code>.</>,
+                console: 'Transactions: the payment; Test data: the external rail down.', cleanup: <>Bring the rail back with <Code>state: &quot;AVAILABLE&quot;</Code>.</> }} />
+              <RecipeCard lang="en" r={{ id: 'rail-down-fails-closed', title: 'An operation that crosses the rail, with the rail down', scenario: 'EXTERNAL_RAIL_DOWN_FAILS_CLOSED',
+                trigger: <>With the external rail <Code>UNAVAILABLE</Code>, pay with <Code>simulate: &quot;DECLINED&quot;</Code> or start the payment on the hosted page’s external rail.</>,
+                api: <><Code>503 PROVIDER_UNAVAILABLE</Code> with <Code>Retry-After</Code>. Nothing is created, credited or confirmed.</>,
+                event: 'None.', console: 'Logs: the request, with the 503 response.', cleanup: <>Bring the rail back with <Code>state: &quot;AVAILABLE&quot;</Code>.</> }} />
               <RecipeCard lang="en" r={{ id: 'no-answer', title: 'No answer in time', scenario: 'AMBIGUOUS_TIMEOUT',
                 trigger: <>Pay as a test payer with <Code>simulate: &quot;TIMEOUT&quot;</Code> and an <Code>Idempotency-Key</Code>; then repeat the request with the same key.</>,
                 api: <>First <Code>503 SANDBOX_SIMULATED_TIMEOUT</Code> — but the payment was made. The repeat answers <Code>200</Code> with the real result and does not pay again.</>,

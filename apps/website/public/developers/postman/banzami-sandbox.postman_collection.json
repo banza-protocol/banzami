@@ -1108,10 +1108,66 @@
                 }
               ]
             },
-            "description": "Pay as a test payer\n\nPays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write. simulate DELAYED answers 202 PENDING and completes about 10 seconds later.",
+            "description": "Pay as a test payer\n\nPays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer. Without simulate it is a wallet payment: value moves from the test payer's wallet to your Business inside Banzami, through the same path a real payer uses — the session becomes PAID, payment_session.paid is emitted and a receipt is issued — and it does not depend on any external rail (rail: WALLET). simulate stands in for a payment whose funds cross an external rail and requests that rail's outcome explicitly (rail: EXTERNAL_SIMULATED); if your Business's Sandbox external rail is UNAVAILABLE, such a payment answers 503 PROVIDER_UNAVAILABLE and nothing moves. Credential: Sandbox project key with sandbox:write. simulate DELAYED answers 202 PENDING and completes about 10 seconds later.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"payment_session_id\": \"payment_session_xxx\",\n  \"via\": \"LINK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /v1/sandbox/external-rail — getSandboxExternalRail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/external-rail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "external-rail"
+              ]
+            },
+            "description": "Read your Business's Sandbox external rail\n\nThe simulated external rail of your project's Sandbox Business. Banzami is rail-decoupled: value already inside the network moves through Banzami Core and its ledger without an external rail; an external rail is crossed only where value enters or leaves the network. Credential: Sandbox project key with sandbox:read."
+          }
+        },
+        {
+          "name": "PUT /v1/sandbox/external-rail — setSandboxExternalRail",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "idem_xxx"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/external-rail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "external-rail"
+              ]
+            },
+            "description": "Take your Business's Sandbox external rail down, or bring it back\n\nSets the simulated external rail of your project's Sandbox Business. With UNAVAILABLE, a test payer's wallet payment to your Business still completes; a payment with simulate, and a payment started on the hosted page's external rail, answer 503 PROVIDER_UNAVAILABLE with nothing moved. It affects only your own Business. Credential: Sandbox project key with sandbox:write.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state\": \"UNAVAILABLE\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

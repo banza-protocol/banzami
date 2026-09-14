@@ -221,7 +221,7 @@ function resolveLink(href) {
   // What is NOT magic (ADR-060): the published test-payer and scenario routes,
   // and an external-network outcome requested explicitly with one of the four
   // simulate values. Anything else that changes behaviour by its value is.
-  const MAGIC = /\/v1\/sandbox\/(?!test-payers|scenarios)|4242|magic|simulate(?!d)(?!: &quot;(?:DECLINED|PROVIDER_UNAVAILABLE|TIMEOUT|DELAYED)&quot;)|test card|cart[aã]o de teste|montante m[aá]gico|amount_minor:\s*(?:666|13|999|1)\b/i;
+  const MAGIC = /\/v1\/sandbox\/(?!test-payers|scenarios|external-rail)|4242|magic|simulate(?!d)(?!: &quot;(?:DECLINED|PROVIDER_UNAVAILABLE|TIMEOUT|DELAYED)&quot;)|test card|cart[aã]o de teste|montante m[aá]gico|amount_minor:\s*(?:666|13|999|1)\b/i;
   const SCENARIO_IDS = new Set(JSON.parse(readFileSync(join(ROOT, 'services/api-gateway/internal/handler/sandbox_scenarios.json'), 'utf8')).scenarios.map((x) => x.id));
   const sdk = readFileSync(join(ROOT, 'sdk/typescript/src/client.ts'), 'utf8');
   for (const lang of ['pt', 'en']) {

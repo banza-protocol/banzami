@@ -269,6 +269,11 @@
   },
   {
    "k": "section",
+   "t": "Como o dinheiro se move",
+   "h": "/docs/concepts#como-o-dinheiro-se-move"
+  },
+  {
+   "k": "section",
    "t": "O modelo de integração",
    "h": "/docs/concepts#modelo"
   },
@@ -891,6 +896,11 @@
   },
   {
    "k": "section",
+   "t": "Rail externo em baixo",
+   "h": "/docs/testing#rail-externo"
+  },
+  {
+   "k": "section",
    "t": "Chaves e prontidão",
    "h": "/docs/testing#receitas-base"
   },
@@ -973,6 +983,16 @@
    "k": "section",
    "t": "Fornecedor indisponível",
    "h": "/docs/testing#fornecedor-indisponivel"
+  },
+  {
+   "k": "section",
+   "t": "Pagar com o rail externo em baixo",
+   "h": "/docs/testing#rail-em-baixo-carteira"
+  },
+  {
+   "k": "section",
+   "t": "Operação que atravessa o rail, com o rail em baixo",
+   "h": "/docs/testing#rail-em-baixo-fecha"
   },
   {
    "k": "section",
@@ -1315,6 +1335,11 @@
    "k": "endpoint",
    "t": "GET /v1/sandbox/scenarios",
    "h": "/docs/reference#ref-sandbox-scenarios"
+  },
+  {
+   "k": "endpoint",
+   "t": "GET /v1/sandbox/external-rail",
+   "h": "/docs/reference#ref-sandbox-external-rail-get"
   },
   {
    "k": "endpoint",
@@ -1818,7 +1843,7 @@
    "k": "error",
    "t": "PROVIDER_UNAVAILABLE",
    "h": "/docs/errors#error-PROVIDER_UNAVAILABLE",
-   "d": "Simulação Sandbox pedida com simulate PROVIDER_UNAVAILABLE: o fornecedor externo está indisponível. Nada se moveu. A resposta traz simulated: true."
+   "d": "Um rail externo de que a operação precisa está indisponível: simulate PROVIDER_UNAVAILABLE, qualquer simulate com o rail externo Sandbox do seu negócio em UNAVAILABLE, ou um pagamento iniciado pelo rail externo da página alojada nesse estado. Nada foi criado, creditado ou confirmado. Um pagamento a partir da carteira do pagador não depende de rail externo e continua a funcionar."
   },
   {
    "k": "error",
@@ -2555,6 +2580,11 @@
   },
   {
    "k": "section",
+   "t": "How money moves",
+   "h": "/docs/en/concepts#how-money-moves"
+  },
+  {
+   "k": "section",
    "t": "The integration model",
    "h": "/docs/en/concepts#model"
   },
@@ -3170,6 +3200,11 @@
   },
   {
    "k": "section",
+   "t": "External rail down",
+   "h": "/docs/en/testing#external-rail"
+  },
+  {
+   "k": "section",
    "t": "Keys and readiness",
    "h": "/docs/en/testing#recipe-basics"
   },
@@ -3252,6 +3287,16 @@
    "k": "section",
    "t": "Provider unavailable",
    "h": "/docs/en/testing#provider-unavailable"
+  },
+  {
+   "k": "section",
+   "t": "Pay with the external rail down",
+   "h": "/docs/en/testing#rail-down-wallet"
+  },
+  {
+   "k": "section",
+   "t": "An operation that crosses the rail, with the rail down",
+   "h": "/docs/en/testing#rail-down-fails-closed"
   },
   {
    "k": "section",
@@ -3592,6 +3637,11 @@
    "k": "endpoint",
    "t": "GET /v1/sandbox/scenarios",
    "h": "/docs/en/reference#ref-sandbox-scenarios"
+  },
+  {
+   "k": "endpoint",
+   "t": "GET /v1/sandbox/external-rail",
+   "h": "/docs/en/reference#ref-sandbox-external-rail-get"
   },
   {
    "k": "endpoint",
@@ -4095,7 +4145,7 @@
    "k": "error",
    "t": "PROVIDER_UNAVAILABLE",
    "h": "/docs/en/errors#error-PROVIDER_UNAVAILABLE",
-   "d": "A Sandbox simulation requested with simulate PROVIDER_UNAVAILABLE: the external provider is unavailable. Nothing moved. The response carries simulated: true."
+   "d": "An external rail the operation needs is unavailable: simulate PROVIDER_UNAVAILABLE, any simulate while your Business's Sandbox external rail is UNAVAILABLE, or a payment started on the hosted page's external rail in that state. Nothing was created, credited or confirmed. A payment from the payer's wallet does not depend on an external rail and keeps working."
   },
   {
    "k": "error",

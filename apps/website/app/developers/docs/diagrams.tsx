@@ -490,3 +490,74 @@ export function RealtimeChannelsDiagram({ l }: { l: RealtimeChannelsLabels }) {
     </Frame>
   );
 }
+
+// ── how money moves: inside the network, and across its boundary ─────────────
+
+export type MoneyMovementLabels = {
+  title: string;
+  desc?: string;
+  external: string;
+  externalRails: string;
+  cashIn: string;
+  cashOut: string;
+  network: string;
+  payer: string;
+  person: string;
+  business: string;
+  p2p: string;
+  payment: string;
+  ledger: string;
+  platform: string;
+  footnote: string;
+};
+
+/**
+ * ADR-061 in one picture. The external financial system sits outside the
+ * network, joined by two dashed arrows — value entering and leaving. Inside,
+ * wallets pay each other and Businesses through Core and the ledger, drawn solid:
+ * no rail on the path. The developer platform reads that one financial truth.
+ */
+export function MoneyMovementDiagram({ l }: { l: MoneyMovementLabels }) {
+  return (
+    <Frame title={l.title} desc={l.desc} viewBox="0 0 900 560">
+      <defs>
+        <marker id="bz-mm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill={RED} />
+        </marker>
+        <marker id="bz-mm-arrow-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill={INK_SOFT} />
+        </marker>
+      </defs>
+      <rect width="900" height="560" fill={GROUND} rx={14} />
+      {/* the external financial system */}
+      <rect x={150} y={20} width={600} height={70} rx={12} fill="#FFFFFF" stroke={INK_SOFT} strokeWidth={2} strokeDasharray="8 6" />
+      <text x={450} y={50} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.external, 560, 19)} fontWeight={700} fill={INK}>{l.external}</text>
+      <text x={450} y={76} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.externalRails, 560, 15)} fontWeight={600} fill={INK_SOFT}>{l.externalRails}</text>
+      {/* the boundary: value in, value out */}
+      <path d="M330 92 V150" fill="none" stroke={INK_SOFT} strokeWidth={2.2} strokeDasharray="7 5" markerEnd="url(#bz-mm-arrow-soft)" />
+      <text x={318} y={128} textAnchor="end" fontFamily={SANS} fontSize={fitFont(l.cashIn, 250, 15)} fontWeight={700} fill={INK_SOFT}>{l.cashIn}</text>
+      <path d="M570 150 V92" fill="none" stroke={INK_SOFT} strokeWidth={2.2} strokeDasharray="7 5" markerEnd="url(#bz-mm-arrow-soft)" />
+      <text x={582} y={128} fontFamily={SANS} fontSize={fitFont(l.cashOut, 250, 15)} fontWeight={700} fill={INK_SOFT}>{l.cashOut}</text>
+      {/* the network */}
+      <rect x={40} y={156} width={820} height={300} rx={16} fill="#FFFFFF" stroke={RED_SOFT} strokeWidth={2.5} />
+      <text x={64} y={186} fontFamily={SANS} fontSize={fitFont(l.network, 400, 17)} fontWeight={800} fill={RED_DEEP}>{l.network}</text>
+      <rect x={70} y={206} width={220} height={64} rx={12} fill={BLUSH} />
+      <text x={180} y={245} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.payer, 200, 18)} fontWeight={700} fill={INK}>{l.payer}</text>
+      <rect x={610} y={206} width={220} height={64} rx={12} fill={BLUSH} />
+      <text x={720} y={245} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.person, 200, 18)} fontWeight={700} fill={INK}>{l.person}</text>
+      <rect x={610} y={292} width={220} height={64} rx={12} fill={BLUSH} />
+      <text x={720} y={331} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.business, 200, 18)} fontWeight={700} fill={INK}>{l.business}</text>
+      <path d="M292 238 H604" fill="none" stroke={RED} strokeWidth={2.6} markerEnd="url(#bz-mm-arrow)" />
+      <text x={448} y={228} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.p2p, 290, 16)} fontWeight={700} fill={RED_DEEP}>{l.p2p}</text>
+      <path d="M292 256 C420 256 470 324 604 324" fill="none" stroke={RED} strokeWidth={2.6} markerEnd="url(#bz-mm-arrow)" />
+      <text x={448} y={312} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.payment, 250, 16)} fontWeight={700} fill={RED_DEEP}>{l.payment}</text>
+      <rect x={70} y={378} width={760} height={56} rx={12} fill={RED} />
+      <text x={450} y={413} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.ledger, 720, 19)} fontWeight={700} fill="#FFFFFF">{l.ledger}</text>
+      {/* the developer platform reads the one truth */}
+      <path d="M450 458 V482" fill="none" stroke={RED} strokeWidth={2.2} markerEnd="url(#bz-mm-arrow)" />
+      <rect x={150} y={486} width={600} height={46} rx={12} fill="#FFFFFF" stroke={RED_SOFT} strokeWidth={2} />
+      <text x={450} y={515} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.platform, 570, 17)} fontWeight={700} fill={INK}>{l.platform}</text>
+      <text x={450} y={552} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.footnote, 860, 14)} fontWeight={600} fill={INK_SOFT}>{l.footnote}</text>
+    </Frame>
+  );
+}

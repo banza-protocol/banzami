@@ -457,6 +457,32 @@ export const ENDPOINT_META: Record<string, EndpointMeta> = {
     events: [],
     guides: ['testing'],
   },
+  'ref-sandbox-external-rail-get': {
+    scope: 'sandbox:read',
+    params: [AUTH],
+    sdk: null,
+    sdkNote: {
+      pt: 'Sem método no SDK: use o pedido HTTP, ou o botão em Consola → Dados de teste.',
+      en: 'No SDK method: use the HTTP request, or the button under Console → Test data.',
+    },
+    events: [],
+    guides: ['testing', 'concepts'],
+  },
+  'ref-sandbox-external-rail-set': {
+    scope: 'sandbox:write',
+    params: [
+      AUTH, IDEM_HEADER,
+      { in: 'body', name: 'state', type: 'string', required: true,
+        note: { pt: 'AVAILABLE ou UNAVAILABLE', en: 'AVAILABLE or UNAVAILABLE' }, example: 'UNAVAILABLE' },
+    ],
+    sdk: null,
+    sdkNote: {
+      pt: 'Sem método no SDK: use o pedido HTTP, ou o botão em Consola → Dados de teste.',
+      en: 'No SDK method: use the HTTP request, or the button under Console → Test data.',
+    },
+    events: [],
+    guides: ['testing', 'concepts'],
+  },
   'ref-test-payer-create': {
     scope: 'sandbox:write',
     params: [

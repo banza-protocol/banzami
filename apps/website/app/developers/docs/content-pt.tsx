@@ -11,7 +11,7 @@
 import { MailLink } from '@/components/MailLink';
 import type { ReactNode } from 'react';
 import { GlossaryTerm } from './GlossaryTerm';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram } from './diagrams';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram, MoneyMovementDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import { GLOSSARY } from './glossary';
 import { Badge, BODY, Callout, Code, CodeBlock, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
@@ -589,6 +589,53 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
               </div>
               <P><a href="/docs/going-live" style={a}>Preparar a integração para Live</a></P>
               <CapabilityCards lang="pt" />
+
+              <H2 id="como-o-dinheiro-se-move">Como o dinheiro se move</H2>
+              <P>
+                O Banzami é uma rede de pagamentos nativa de carteira. Cada participante — uma pessoa, um negócio, uma aplicação — tem uma carteira e contas de carteira,
+                e cada movimento entre elas é um lançamento de dupla entrada escrito pelo Banzami Core no ledger. Um pagamento a um negócio, uma transferência entre pessoas,
+                o reembolso de um pagamento feito a partir da carteira e uma liquidação de aplicação movem valor <strong>dentro</strong> da rede e não precisam de um rail externo
+                para acontecer.
+              </P>
+              <MoneyMovementDiagram l={{
+                title: 'Como o dinheiro se move no Banzami',
+                desc: 'O sistema financeiro externo liga-se à rede Banzami em dois pontos: a entrada de valor e a saída de valor. Dentro da rede, a carteira de um pagador paga a outra pessoa ou a um negócio através do Core e do ledger, sem rail externo. A plataforma para developers lê essa mesma verdade financeira.',
+                external: 'Sistema financeiro externo', externalRails: 'bancos · EMIS · PSP · outros rails',
+                cashIn: 'entrada de valor', cashOut: 'saída de valor',
+                network: 'Rede Banzami',
+                payer: 'Carteira do pagador', person: 'Carteira de outra pessoa', business: 'Negócio · contas',
+                p2p: 'transferência entre pessoas', payment: 'pagamento · QR · link',
+                ledger: 'Banzami Core · ledger de dupla entrada',
+                platform: 'Plataforma para developers: API · SDK · webhooks · tempo real',
+                footnote: 'Sandbox: dinheiro fictício e rail externo simulado · Financial Live: indisponível',
+              }} />
+              <P>
+                Os rails externos — bancos, EMIS, PSP — são <strong>fronteiras de interoperabilidade</strong>: são atravessados quando o valor entra ou sai da rede, ou quando
+                uma operação o exige explicitamente. O Banzami é desacoplado dos rails, não independente deles, e isto não dispensa nenhuma obrigação regulatória.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Operação</th><th style={TH}>Atravessa um rail externo</th><th style={TH}>Com o rail externo em baixo</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Pagamento a partir da carteira (sessão, link, QR)', 'Não', 'Conclui-se'],
+                      ['Transferência entre pessoas', 'Não', 'Conclui-se'],
+                      ['Reembolso de um pagamento feito a partir da carteira', 'Não', 'Conclui-se'],
+                      ['Liquidação de aplicação', 'Não', 'Conclui-se'],
+                      ['Pagamento pelo rail externo da página alojada', 'Sim', '503 PROVIDER_UNAVAILABLE; nada é criado nem creditado'],
+                      ['Entrada ou saída de valor por um rail externo', 'Sim', 'Não se conclui sem a confirmação do rail'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>Uma verdade financeira:</strong> o saldo deriva do ledger; nenhum serviço o altera diretamente. Sessões, links, QR e liquidações têm o seu próprio estado de fluxo, mas o valor é sempre o do ledger.</LI>
+                <LI><strong>Webhooks e tempo real vêm depois:</strong> são enviados a partir de um movimento já registado. Uma entrega de webhook que falha é repetida; não desfaz o pagamento. O estado em tempo real mostra o resultado; não o decide.</LI>
+                <LI><strong>Reconciliação:</strong> compara o ledger com o que um rail externo reporta e assinala diferenças; uma correção é sempre um novo movimento equilibrado.</LI>
+                <LI><strong>No Sandbox:</strong> o carregamento de um pagador de teste é valor fictício criado pelo Core e não atravessa nenhum rail. Pode colocar o rail externo simulado do seu negócio em baixo e ver esta tabela acontecer. <a href="/docs/testing#rail-externo" style={a}>Testar com o rail externo em baixo</a></LI>
+              </UL>
 
               <H2 id="modelo">O modelo de integração</H2>
               <ConceptModelDiagram l={{
@@ -2000,6 +2047,23 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
 
 const RECIPES_NOTE = 'Os exemplos usam uma chave de teste do seu projeto. Nada do que é feito no Sandbox move dinheiro real.';
 
+const SAMPLE_CURL_EXTERNAL_RAIL = `# Colocar o rail externo simulado do seu negócio em baixo
+curl -X PUT https://sandbox-api.banzami.com/v1/sandbox/external-rail \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{"state":"UNAVAILABLE"}'
+# 200 { "state": "UNAVAILABLE", "simulated": true }
+
+# Um pagamento a partir da carteira continua a concluir-se
+# POST /v1/sandbox/test-payers/tp_exemplo/payments {"payment_session_id":"payment_session_exemplo"}
+# 200 { "status": "PAID", "rail": "WALLET", … }
+
+# Um pagamento que atravessa o rail externo não se conclui
+# POST /v1/sandbox/test-payers/tp_exemplo/payments {"payment_session_id":"…","simulate":"DECLINED"}
+# 503 { "code": "PROVIDER_UNAVAILABLE", "rail": "EXTERNAL_SIMULATED", "simulated": true, … }
+
+# Repor o rail: -d '{"state":"AVAILABLE"}'`;
+
 const SAMPLE_CURL_TEST_PAYER_PAY = `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_exemplo/payments \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Idempotency-Key: pagamento_001" \\
@@ -2054,6 +2118,16 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               <CodeBlock label="TypeScript · pagador de teste" raw={SAMPLE_TEST_PAYER} onCopy={copy} />
               <CodeBlock label="curl · pagar uma sessão como pagador de teste" raw={SAMPLE_CURL_TEST_PAYER_PAY} onCopy={copy} />
 
+              <H2 id="rail-externo">Rail externo em baixo</H2>
+              <P>
+                O Banzami é desacoplado dos rails externos: o valor que já está na rede move-se pelo Core e pelo ledger sem precisar de nenhum.
+                Para o ver, coloque o rail externo simulado do seu negócio em <Code>UNAVAILABLE</Code>. Um pagamento a partir da carteira de um pagador de teste
+                continua a concluir-se, com <Code>rail: &quot;WALLET&quot;</Code>; um pagamento com <Code>simulate</Code>, que representa um pagamento que atravessa um rail externo,
+                e um pagamento iniciado pelo rail externo da página alojada respondem <Code>503 PROVIDER_UNAVAILABLE</Code> e nada é criado, creditado ou confirmado.
+                O estado é só do seu negócio. Na Consola, em <strong>Dados de teste</strong>, ou pela API: <a href="/docs/concepts#como-o-dinheiro-se-move" style={a}>Como o dinheiro se move</a>
+              </P>
+              <CodeBlock label="curl · colocar o rail externo em baixo" raw={SAMPLE_CURL_EXTERNAL_RAIL} onCopy={copy} />
+
               <H2 id="receitas-base">Chaves e prontidão</H2>
               <RecipeCard lang="pt" r={{ id: 'primeira-chamada', title: 'A chave funciona',
                 trigger: <><Code>GET /v1/me</Code> com a chave.</>,
@@ -2101,6 +2175,15 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 trigger: <>Pague como pagador de teste com <Code>simulate: &quot;PROVIDER_UNAVAILABLE&quot;</Code>.</>,
                 api: <><Code>503 PROVIDER_UNAVAILABLE</Code> com <Code>Retry-After</Code> e <Code>simulated: true</Code>. Nada se move.</>,
                 event: 'Nenhum.', console: 'Registos: o pedido, com a resposta 503.', cleanup: 'Nenhuma.' }} />
+              <RecipeCard lang="pt" r={{ id: 'rail-em-baixo-carteira', title: 'Pagar com o rail externo em baixo', scenario: 'EXTERNAL_RAIL_DOWN_WALLET_PAYMENT',
+                trigger: <><Code>PUT /v1/sandbox/external-rail</Code> com <Code>state: &quot;UNAVAILABLE&quot;</Code>; depois pague uma sessão como pagador de teste, a partir da carteira.</>,
+                api: <><Code>200</Code> com <Code>status: &quot;PAID&quot;</Code> e <Code>rail: &quot;WALLET&quot;</Code>: o valor move-se dentro do Banzami, sem rail externo.</>,
+                event: <><Code>payment_session.paid</Code>.</>,
+                console: 'Transações: o pagamento; Dados de teste: o rail externo em baixo.', cleanup: <>Reponha o rail com <Code>state: &quot;AVAILABLE&quot;</Code>.</> }} />
+              <RecipeCard lang="pt" r={{ id: 'rail-em-baixo-fecha', title: 'Operação que atravessa o rail, com o rail em baixo', scenario: 'EXTERNAL_RAIL_DOWN_FAILS_CLOSED',
+                trigger: <>Com o rail externo <Code>UNAVAILABLE</Code>, pague com <Code>simulate: &quot;DECLINED&quot;</Code> ou inicie o pagamento pelo rail externo na página alojada.</>,
+                api: <><Code>503 PROVIDER_UNAVAILABLE</Code> com <Code>Retry-After</Code>. Nada é criado, creditado ou confirmado.</>,
+                event: 'Nenhum.', console: 'Registos: o pedido, com a resposta 503.', cleanup: <>Reponha o rail com <Code>state: &quot;AVAILABLE&quot;</Code>.</> }} />
               <RecipeCard lang="pt" r={{ id: 'sem-resposta', title: 'Sem resposta a tempo', scenario: 'AMBIGUOUS_TIMEOUT',
                 trigger: <>Pague como pagador de teste com <Code>simulate: &quot;TIMEOUT&quot;</Code> e uma <Code>Idempotency-Key</Code>; depois repita o pedido com a mesma chave.</>,
                 api: <>Primeiro <Code>503 SANDBOX_SIMULATED_TIMEOUT</Code> — mas o pagamento foi feito. A repetição responde <Code>200</Code> com o resultado real e não paga de novo.</>,

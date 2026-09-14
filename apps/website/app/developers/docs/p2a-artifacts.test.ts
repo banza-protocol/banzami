@@ -62,6 +62,8 @@ const ALLOWED_PATHS = [
   '/v1/webhooks/endpoints/{id}/test',
   '/v1/realtime/payment-sessions/{id}',
   '/v1/sandbox/scenarios',
+  // ADR-061: the Business's simulated external rail.
+  '/v1/sandbox/external-rail',
   '/v1/sandbox/test-payers',
   '/v1/sandbox/test-payers/{id}',
   '/v1/sandbox/test-payers/{id}/fund',

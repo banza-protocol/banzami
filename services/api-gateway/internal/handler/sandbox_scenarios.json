@@ -48,6 +48,20 @@
       "event": null
     },
     {
+      "id": "EXTERNAL_RAIL_DOWN_WALLET_PAYMENT", "group": "payments", "simulated": false,
+      "goal": { "pt": "Um pagamento dentro do Banzami com o rail externo em baixo", "en": "A payment inside Banzami while the external rail is down" },
+      "trigger": { "pt": "PUT /v1/sandbox/external-rail com state UNAVAILABLE; depois pague uma sessão como pagador de teste, sem simulate", "en": "PUT /v1/sandbox/external-rail with state UNAVAILABLE; then pay a session as a test payer, without simulate" },
+      "result": { "pt": "200 com status PAID e rail WALLET: o valor move-se da carteira do pagador para o negócio pelo Core e pelo ledger, sem nenhum rail externo", "en": "200 with status PAID and rail WALLET: value moves from the payer's wallet to the Business through Core and the ledger, with no external rail" },
+      "event": "payment_session.paid"
+    },
+    {
+      "id": "EXTERNAL_RAIL_DOWN_FAILS_CLOSED", "group": "payments", "simulated": true,
+      "goal": { "pt": "Uma operação que atravessa o rail externo, com o rail em baixo", "en": "An operation that crosses the external rail, with the rail down" },
+      "trigger": { "pt": "Com o rail externo UNAVAILABLE, pague com simulate, ou inicie o pagamento pelo rail externo na página alojada", "en": "With the external rail UNAVAILABLE, pay with simulate, or start the payment on the hosted page's external rail" },
+      "result": { "pt": "503 PROVIDER_UNAVAILABLE; nada é criado, creditado ou confirmado; PUT com state AVAILABLE repõe o rail", "en": "503 PROVIDER_UNAVAILABLE; nothing is created, credited or confirmed; PUT with state AVAILABLE brings the rail back" },
+      "event": null
+    },
+    {
       "id": "INVALID_PARAMETER", "group": "api", "simulated": false,
       "goal": { "pt": "Um parâmetro inválido", "en": "An invalid parameter" },
       "trigger": { "pt": "POST /v1/payment-sessions com amount_minor: 0", "en": "POST /v1/payment-sessions with amount_minor: 0" },

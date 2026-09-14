@@ -49,6 +49,28 @@
         "refunds#create"
       ],
       "server_errors": "forwarded"
+    },
+    {
+      "surface": "SandboxDevHandler.ExternalRail",
+      "core": [
+        "external_rail#get"
+      ],
+      "server_errors": "UPSTREAM_ERROR"
+    },
+    {
+      "surface": "SandboxDevHandler.SetExternalRail",
+      "core": [
+        "external_rail#put"
+      ],
+      "server_errors": "UPSTREAM_ERROR"
+    },
+    {
+      "surface": "SandboxDevHandler.PayAsTestPayer",
+      "core": [
+        "external_rail#get"
+      ],
+      "server_errors": "UPSTREAM_ERROR",
+      "also": "the rail read happens only for a payment with simulate (ADR-061); a wallet payment never calls Core for it"
     }
   ],
   "forwarded_services": [
@@ -1546,12 +1568,12 @@
       "family": "sandbox",
       "source": "gateway",
       "meaning": {
-        "pt": "Simulação Sandbox pedida com simulate PROVIDER_UNAVAILABLE: o fornecedor externo está indisponível. Nada se moveu. A resposta traz simulated: true.",
-        "en": "A Sandbox simulation requested with simulate PROVIDER_UNAVAILABLE: the external provider is unavailable. Nothing moved. The response carries simulated: true."
+        "pt": "Um rail externo de que a operação precisa está indisponível: simulate PROVIDER_UNAVAILABLE, qualquer simulate com o rail externo Sandbox do seu negócio em UNAVAILABLE, ou um pagamento iniciado pelo rail externo da página alojada nesse estado. Nada foi criado, creditado ou confirmado. Um pagamento a partir da carteira do pagador não depende de rail externo e continua a funcionar.",
+        "en": "An external rail the operation needs is unavailable: simulate PROVIDER_UNAVAILABLE, any simulate while your Business's Sandbox external rail is UNAVAILABLE, or a payment started on the hosted page's external rail in that state. Nothing was created, credited or confirmed. A payment from the payer's wallet does not depend on an external rail and keeps working."
       },
       "action": {
-        "pt": "Trate como uma indisponibilidade real: repita mais tarde com espera crescente. Para pagar, repita sem simulate.",
-        "en": "Handle it as a real outage: retry later with increasing backoff. To pay, repeat without simulate."
+        "pt": "Trate como indisponibilidade do rail, não do Banzami: repita mais tarde com espera crescente, ou ofereça o pagamento a partir da carteira. No Sandbox, PUT /v1/sandbox/external-rail com state AVAILABLE repõe o rail.",
+        "en": "Treat it as a rail outage, not a Banzami outage: retry later with increasing backoff, or offer payment from the wallet. In the Sandbox, PUT /v1/sandbox/external-rail with state AVAILABLE brings the rail back."
       },
       "retry": "after_delay",
       "idempotency_key": "same"

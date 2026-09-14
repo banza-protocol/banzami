@@ -263,6 +263,7 @@ func main() {
 	deps := server.Dependencies{
 		Redis:                    rdb,
 		DBPool:                   readinessDBPool,
+		CoreClient:               coreClient,
 		TransactionSvc:           service.NewCoreApiTransactionService(coreClient),
 		WebhookSvc:               webhookSvc,
 		MerchantSvc:              service.NewCoreApiMerchantService(coreClient),

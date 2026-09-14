@@ -512,6 +512,48 @@
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "Preparar a integração para Live"
   },
+  "pt:Concepts:def88038a4": {
+   "page": "Concepts",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "O Banzami é uma rede de pagamentos nativa de carteira. Cada participante — uma pessoa, um negócio, uma aplicação — tem uma carteira e contas de carteira, e cada"
+  },
+  "pt:Concepts:4a9847b5a8": {
+   "page": "Concepts",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Os rails externos — bancos, EMIS, PSP — são fronteiras de interoperabilidade: são atravessados quando o valor entra ou sai da rede, ou quando uma operação o exi"
+  },
+  "pt:Concepts:47befc614f": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Uma verdade financeira: o saldo deriva do ledger; nenhum serviço o altera diretamente. Sessões, links, QR e liquidações têm o seu próprio estado de fluxo, mas o"
+  },
+  "pt:Concepts:c5ec4b5a90": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Webhooks e tempo real vêm depois: são enviados a partir de um movimento já registado. Uma entrega de webhook que falha é repetida; não desfaz o pagamento. O est"
+  },
+  "pt:Concepts:905a33d94b": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Reconciliação: compara o ledger com o que um rail externo reporta e assinala diferenças; uma correção é sempre um novo movimento equilibrado."
+  },
+  "pt:Concepts:63f17bf6e7": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "No Sandbox: o carregamento de um pagador de teste é valor fictício criado pelo Core e não atravessa nenhum rail. Pode colocar o rail externo simulado do seu neg"
+  },
   "pt:Concepts:d8807ad372": {
    "page": "Concepts",
    "kind": "Callout",
@@ -602,6 +644,48 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "Consola | Dados reais do seu projeto | —"
+  },
+  "pt:Concepts:4209a084b3": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Pagamento a partir da carteira (sessão, link, QR) | Não | Conclui-se"
+  },
+  "pt:Concepts:f341894641": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Transferência entre pessoas | Não | Conclui-se"
+  },
+  "pt:Concepts:49f0fa8c19": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Reembolso de um pagamento feito a partir da carteira | Não | Conclui-se"
+  },
+  "pt:Concepts:d5a38893c1": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Liquidação de aplicação | Não | Conclui-se"
+  },
+  "pt:Concepts:ac991d1bcf": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Pagamento pelo rail externo da página alojada | Sim | 503 PROVIDER_UNAVAILABLE; nada é criado nem creditado"
+  },
+  "pt:Concepts:4c064d3ba5": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Entrada ou saída de valor por um rail externo | Sim | Não se conclui sem a confirmação do rail"
   },
   "pt:Concepts:5ba3334c50": {
    "page": "Concepts",
@@ -3403,6 +3487,13 @@
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "Na Consola, abra Dados de teste: crie um pagador, carregue-o e pague uma sessão pelo seu session_id. Pela API, com uma chave com sandbox:write: POST /v1/sandbox"
   },
+  "pt:Testing:4f204f248d": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "O Banzami é desacoplado dos rails externos: o valor que já está na rede move-se pelo Core e pelo ledger sem precisar de nenhum. Para o ver, coloque o rail exter"
+  },
   "pt:Testing:132dbf8715": {
    "page": "Testing",
    "kind": "P",
@@ -3816,6 +3907,76 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nenhuma."
   },
+  "pt:Testing:a0f98ecd12": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PUT /v1/sandbox/external-rail com state: \"UNAVAILABLE\"; depois pague uma sessão como pagador de teste, a partir da carteira."
+  },
+  "pt:Testing:2230fc785f": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "200 com status: \"PAID\" e rail: \"WALLET\": o valor move-se dentro do Banzami, sem rail externo."
+  },
+  "pt:Testing:aabb8610be": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid."
+  },
+  "pt:Testing:f8d2a1016d": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Transações: o pagamento; Dados de teste: o rail externo em baixo."
+  },
+  "pt:Testing:458445ee5c": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Reponha o rail com state: \"AVAILABLE\"."
+  },
+  "pt:Testing:8a11d04d1f": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Com o rail externo UNAVAILABLE, pague com simulate: \"DECLINED\" ou inicie o pagamento pelo rail externo na página alojada."
+  },
+  "pt:Testing:4afb326580": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "503 PROVIDER_UNAVAILABLE com Retry-After. Nada é criado, creditado ou confirmado."
+  },
+  "pt:Testing:307474ad41": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Nenhum."
+  },
+  "pt:Testing:11286d9396": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Registos: o pedido, com a resposta 503."
+  },
+  "pt:Testing:dc030f7a88": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Reponha o rail com state: \"AVAILABLE\"."
+  },
   "pt:Testing:402449087f": {
    "page": "Testing",
    "kind": "recipe-trigger",
@@ -3949,7 +4110,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 BAD_REQUEST."
   },
-  "pt:Testing:307474ad41": {
+  "pt:Testing:b49385f4cc": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -3984,7 +4145,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 INVALID_PARAM, com a mensagem a indicar o parâmetro."
   },
-  "pt:Testing:b49385f4cc": {
+  "pt:Testing:7593186c8e": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -4278,7 +4439,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "404 NOT_FOUND ou 422; nada se move."
   },
-  "pt:Testing:7593186c8e": {
+  "pt:Testing:579bdf0568": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -4313,7 +4474,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 INSUFFICIENT_FUNDS; nada se move."
   },
-  "pt:Testing:579bdf0568": {
+  "pt:Testing:9b52576356": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -4390,7 +4551,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "200 com CONFIRMED; alterada: 404."
   },
-  "pt:Testing:9b52576356": {
+  "pt:Testing:ff46cca071": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -4432,7 +4593,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "429 RATE_LIMITED com Retry-After."
   },
-  "pt:Testing:ff46cca071": {
+  "pt:Testing:9d635631c5": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -5426,6 +5587,48 @@
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "Prepare your integration for Live"
   },
+  "en:Concepts:bde519636e": {
+   "page": "Concepts",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Banzami is a wallet-native payment network. Every participant — a person, a Business, an application — has a wallet and wallet accounts, and every movement betw"
+  },
+  "en:Concepts:b460015800": {
+   "page": "Concepts",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "External rails — banks, EMIS, PSPs — are interoperability boundaries: they are crossed when value enters or leaves the network, or when an operation explicitly "
+  },
+  "en:Concepts:074d5f6480": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "One financial truth: a balance derives from the ledger; no service changes it directly. Sessions, links, QR and settlements have their own workflow state, but t"
+  },
+  "en:Concepts:90d81ea0d2": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Webhooks and realtime come after: they are sent from a movement already recorded. A failed webhook delivery is retried; it does not undo the payment. Realtime s"
+  },
+  "en:Concepts:47a2ddaec5": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Reconciliation: compares the ledger with what an external rail reports and flags differences; a correction is always a new balanced movement."
+  },
+  "en:Concepts:1a0fbeb119": {
+   "page": "Concepts",
+   "kind": "LI",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "In the Sandbox: a test payer’s top-up is fictitious value created by Core and crosses no rail. You can take your Business’s simulated external rail down and wat"
+  },
   "en:Concepts:d6107d9389": {
    "page": "Concepts",
    "kind": "Callout",
@@ -5516,6 +5719,48 @@
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "Console | Your project’s real data | —"
+  },
+  "en:Concepts:67f176bf42": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Wallet payment (session, link, QR) | No | Completes"
+  },
+  "en:Concepts:55a3abc0f5": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Transfer between people | No | Completes"
+  },
+  "en:Concepts:8df618b10f": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Refund of a wallet payment | No | Completes"
+  },
+  "en:Concepts:a65d750434": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Application settlement | No | Completes"
+  },
+  "en:Concepts:182edbb1ce": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Payment on the hosted page’s external rail | Yes | 503 PROVIDER_UNAVAILABLE; nothing is created or credited"
+  },
+  "en:Concepts:31afeccbd9": {
+   "page": "Concepts",
+   "kind": "row",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
+   "text": "Value in or out through an external rail | Yes | Does not complete without the rail’s confirmation"
   },
   "en:Concepts:72f04b49da": {
    "page": "Concepts",
@@ -8317,6 +8562,13 @@
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "In the Console, open Test data: create a payer, top it up and pay a session by its session_id. Through the API, with a key holding sandbox:write: POST /v1/sandb"
   },
+  "en:Testing:47ef610035": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Banzami is decoupled from external rails: value already in the network moves through Core and the ledger without needing one. To see it, set your Business’s sim"
+  },
   "en:Testing:b58ce748e4": {
    "page": "Testing",
    "kind": "P",
@@ -8730,6 +8982,76 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "None."
   },
+  "en:Testing:965d604df3": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "PUT /v1/sandbox/external-rail with state: \"UNAVAILABLE\"; then pay a session as a test payer, from its wallet."
+  },
+  "en:Testing:59d5b89288": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "200 with status: \"PAID\" and rail: \"WALLET\": value moves inside Banzami, with no external rail."
+  },
+  "en:Testing:aabb8610be": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "GATE",
+   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "text": "payment_session.paid."
+  },
+  "en:Testing:d8d730dfaf": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Transactions: the payment; Test data: the external rail down."
+  },
+  "en:Testing:0731026e05": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Bring the rail back with state: \"AVAILABLE\"."
+  },
+  "en:Testing:0dd2ca45e6": {
+   "page": "Testing",
+   "kind": "recipe-trigger",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "With the external rail UNAVAILABLE, pay with simulate: \"DECLINED\" or start the payment on the hosted page’s external rail."
+  },
+  "en:Testing:2a27985230": {
+   "page": "Testing",
+   "kind": "recipe-api",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "503 PROVIDER_UNAVAILABLE with Retry-After. Nothing is created, credited or confirmed."
+  },
+  "en:Testing:6ff3a4367f": {
+   "page": "Testing",
+   "kind": "recipe-event",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "None."
+  },
+  "en:Testing:fc280ffd9e": {
+   "page": "Testing",
+   "kind": "recipe-console",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Logs: the request, with the 503 response."
+  },
+  "en:Testing:cfac416ec8": {
+   "page": "Testing",
+   "kind": "recipe-cleanup",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Bring the rail back with state: \"AVAILABLE\"."
+  },
   "en:Testing:0c0424a581": {
    "page": "Testing",
    "kind": "recipe-trigger",
@@ -8842,7 +9164,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs: the requests sharing the key."
   },
-  "en:Testing:6ff3a4367f": {
+  "en:Testing:ec3216080f": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8863,7 +9185,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 BAD_REQUEST."
   },
-  "en:Testing:ec3216080f": {
+  "en:Testing:116b8badfa": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8877,7 +9199,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs: the refused request."
   },
-  "en:Testing:116b8badfa": {
+  "en:Testing:056950ebd4": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8898,7 +9220,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "400 INVALID_PARAM, with a message naming the parameter."
   },
-  "en:Testing:056950ebd4": {
+  "en:Testing:97e4232ef6": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -8912,7 +9234,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs: the refused request."
   },
-  "en:Testing:97e4232ef6": {
+  "en:Testing:719501c74d": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -8947,7 +9269,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "API Explorer: read the session and choose “Watch the realtime status”."
   },
-  "en:Testing:719501c74d": {
+  "en:Testing:8d01805341": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -9101,7 +9423,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Nothing: the test is local."
   },
-  "en:Testing:8d01805341": {
+  "en:Testing:4a9ef896e2": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -9192,7 +9514,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "404 NOT_FOUND or 422; nothing moves."
   },
-  "en:Testing:4a9ef896e2": {
+  "en:Testing:6179ee27fd": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -9206,7 +9528,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs: the refused request."
   },
-  "en:Testing:6179ee27fd": {
+  "en:Testing:14731f29e3": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -9227,7 +9549,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "422 INSUFFICIENT_FUNDS; nothing moves."
   },
-  "en:Testing:14731f29e3": {
+  "en:Testing:cee011a0e9": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -9241,7 +9563,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Balances: both accounts at zero."
   },
-  "en:Testing:cee011a0e9": {
+  "en:Testing:595b0c06f0": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -9276,7 +9598,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Balances: the account at zero; Financial Setup: readiness."
   },
-  "en:Testing:595b0c06f0": {
+  "en:Testing:130feb05e9": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -9304,7 +9626,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "200 with CONFIRMED; changed: 404."
   },
-  "en:Testing:130feb05e9": {
+  "en:Testing:3eaae835c8": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -9318,7 +9640,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Transactions: the matching payment."
   },
-  "en:Testing:3eaae835c8": {
+  "en:Testing:886e7cce7e": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -9346,7 +9668,7 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "429 RATE_LIMITED with Retry-After."
   },
-  "en:Testing:886e7cce7e": {
+  "en:Testing:72ae35c3c2": {
    "page": "Testing",
    "kind": "recipe-event",
    "class": "SOURCE",
@@ -9360,7 +9682,7 @@
    "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Logs."
   },
-  "en:Testing:72ae35c3c2": {
+  "en:Testing:9cb90bc911": {
    "page": "Testing",
    "kind": "recipe-cleanup",
    "class": "SOURCE",
@@ -12307,6 +12629,104 @@
    "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
    "text": "key without sandbox:read, or a key that is not a Sandbox key"
   },
+  "pt:Reference-spec:2b7adab9f7": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "O rail externo simulado do negócio Sandbox do seu projeto: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo ledger sem r"
+  },
+  "en:Reference-spec:35619e3e1f": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "The simulated external rail of your Project’s Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger without"
+  },
+  "pt:Reference-spec:09fb114ebc": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto · configuração financeira concluída"
+  },
+  "en:Reference-spec:a42c1a48fd": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key · Financial Setup complete"
+  },
+  "pt:Reference-spec:0d9f7a8094": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem sandbox:read, chave que não é Sandbox, ou projeto sem configuração financeira"
+  },
+  "en:Reference-spec:b3bd2e3cd9": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without sandbox:read, a key that is not a Sandbox key, or a project with no Financial Setup"
+  },
+  "pt:Reference-spec:2fba16dfa1": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Coloca o rail externo simulado do seu negócio em UNAVAILABLE ou repõe-no. Com UNAVAILABLE, o pagamento de um pagador de teste a partir da carteira continua a co"
+  },
+  "en:Reference-spec:03852e4057": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "Takes your Business’s simulated external rail down, or brings it back. With UNAVAILABLE, a test payer’s wallet payment still completes; a payment with simulate,"
+  },
+  "pt:Reference-spec:509b2f8086": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Chave secreta Sandbox do projeto · configuração financeira concluída"
+  },
+  "en:Reference-spec:d2a9d1e43e": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
+   "text": "Sandbox project secret key · Financial Setup complete"
+  },
+  "pt:Reference-spec:fb5834cdb1": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "state não é AVAILABLE nem UNAVAILABLE"
+  },
+  "en:Reference-spec:a235e79838": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "state is neither AVAILABLE nor UNAVAILABLE"
+  },
+  "pt:Reference-spec:deea4af97d": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "chave sem sandbox:write, chave que não é Sandbox, ou projeto sem configuração financeira"
+  },
+  "en:Reference-spec:124a14d75b": {
+   "page": "Reference-spec",
+   "kind": "spec",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer (AllowedScopes); scope enforcement in services/api-gateway/internal/handler/*authority*",
+   "text": "key without sandbox:write, a key that is not a Sandbox key, or a project with no Financial Setup"
+  },
   "pt:Reference-spec:7d13808ad9": {
    "page": "Reference-spec",
    "kind": "spec",
@@ -12559,28 +12979,28 @@
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "the Project’s 24-hour limit"
   },
-  "pt:Reference-spec:e67e967277": {
+  "pt:Reference-spec:fb483ba0d5": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
-   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Paga uma sessão (pelo link ou pelo QR dinâmico) ou um link de pagamento do seu projeto como este pagador, pelo mesmo caminho de um pagador real: a sessão fica P"
   },
-  "en:Reference-spec:644520ced7": {
+  "en:Reference-spec:34bf2be26f": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
-   "evidence": "tools/check-webhook-event-catalogue.mjs (emitted ↔ documented, both languages)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Pays one of your Project’s sessions (by its link or dynamic QR) or payment links as this payer, through the same path a real payer uses: the session becomes PAI"
   },
-  "pt:Reference-spec:09fb114ebc": {
+  "pt:Reference-spec:6a87da29ba": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "Chave secreta Sandbox do projeto · configuração financeira concluída"
   },
-  "en:Reference-spec:a42c1a48fd": {
+  "en:Reference-spec:e34a24ed46": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "SOURCE",
@@ -12671,19 +13091,19 @@
    "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
    "text": "not enough balance, the session does not offer that via, or a retired payer"
   },
-  "pt:Reference-spec:b7221bd01d": {
+  "pt:Reference-spec:abdd90c4f4": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "simulate PROVIDER_UNAVAILABLE; nada se move"
+   "text": "simulate PROVIDER_UNAVAILABLE, ou qualquer simulate com o rail externo em UNAVAILABLE; nada se move"
   },
-  "en:Reference-spec:eb8f371d6a": {
+  "en:Reference-spec:ad8293d420": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "simulate PROVIDER_UNAVAILABLE; nothing moves"
+   "text": "simulate PROVIDER_UNAVAILABLE, or any simulate with the external rail UNAVAILABLE; nothing moves"
   },
   "pt:Reference-spec:cd2b8557c1": {
    "page": "Reference-spec",
@@ -13916,6 +14336,48 @@
    "class": "GATE",
    "evidence": "tools/check-docs-code-examples.mjs (compiled against @banzami/sdk from npm) + tools/check-docs-drift.mjs (registry)",
    "text": "In the browser: watchPaymentSessionStatus from @banzami/sdk/realtime, with the token — it takes no key and refuses one. On the server, read the session with get"
+  },
+  "pt:Endpoint-spec:63d9c790b0": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "Sem método no SDK: use o pedido HTTP, ou o botão em Consola → Dados de teste."
+  },
+  "en:Endpoint-spec:381a16078d": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "No SDK method: use the HTTP request, or the button under Console → Test data."
+  },
+  "pt:Endpoint-spec:f1640be92b": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "AVAILABLE ou UNAVAILABLE"
+  },
+  "en:Endpoint-spec:498ba7ba0e": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
+   "text": "AVAILABLE or UNAVAILABLE"
+  },
+  "pt:Endpoint-spec:c185dc8815": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "Sem método no SDK: use o pedido HTTP, ou o botão em Consola → Dados de teste."
+  },
+  "en:Endpoint-spec:90e3b45dc0": {
+   "page": "Endpoint-spec",
+   "kind": "spec",
+   "class": "GATE",
+   "evidence": "tools/check-docs-api-reference.mjs (scope, body, query and path parameters, SDK method, events against the gateway)",
+   "text": "No SDK method: use the HTTP request, or the button under Console → Test data."
   },
   "pt:Endpoint-spec:ff418dd59c": {
    "page": "Endpoint-spec",
@@ -17375,19 +17837,19 @@
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "PAYMENT_DECLINED: A Sandbox simulation requested with simulate DECLINED: the external rail declined. Nothing moved. The response carries simulated: true. Handle"
   },
-  "pt:Errors-spec:800af936fb": {
+  "pt:Errors-spec:99f56c3d65": {
    "page": "Errors-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "PROVIDER_UNAVAILABLE: Simulação Sandbox pedida com simulate PROVIDER_UNAVAILABLE: o fornecedor externo está indisponível. Nada se moveu. A resposta traz simulat"
+   "text": "PROVIDER_UNAVAILABLE: Um rail externo de que a operação precisa está indisponível: simulate PROVIDER_UNAVAILABLE, qualquer simulate com o rail externo Sandbox d"
   },
-  "en:Errors-spec:e8d4cad862": {
+  "en:Errors-spec:5a3130b157": {
    "page": "Errors-spec",
    "kind": "spec",
    "class": "GATE",
    "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
-   "text": "PROVIDER_UNAVAILABLE: A Sandbox simulation requested with simulate PROVIDER_UNAVAILABLE: the external provider is unavailable. Nothing moved. The response carri"
+   "text": "PROVIDER_UNAVAILABLE: An external rail the operation needs is unavailable: simulate PROVIDER_UNAVAILABLE, any simulate while your Business's Sandbox external ra"
   },
   "pt:Errors-spec:0cf1c844e2": {
    "page": "Errors-spec",

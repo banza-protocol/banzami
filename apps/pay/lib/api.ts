@@ -110,6 +110,11 @@ export async function initiatePay(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    // The external rail being down is the rail's outage, not Banzami's, and the
+    // payer can still pay from a Banzami wallet (ADR-061).
+    if ((err as any)?.error?.code === 'PROVIDER_UNAVAILABLE') {
+      throw new Error('O Multicaixa Express está indisponível de momento. Nada foi cobrado. Tente mais tarde ou pague com a app Banzami.');
+    }
     throw new Error((err as any)?.error?.message ?? `API error ${res.status}`);
   }
   return res.json();

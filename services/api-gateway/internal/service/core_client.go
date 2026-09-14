@@ -1251,3 +1251,40 @@ func (c *CoreApiClient) do(req *http.Request, out any) error {
 	}
 	return nil
 }
+
+// SandboxExternalRail is the simulated external rail of one Sandbox Business
+// (ADR-061): AVAILABLE or UNAVAILABLE.
+type SandboxExternalRail struct {
+	State     string `json:"state"`
+	Simulated bool   `json:"simulated"`
+}
+
+// GetSandboxExternalRail reads the simulated rail state of a Business.
+func (c *CoreApiClient) GetSandboxExternalRail(ctx context.Context, merchantID string) (*SandboxExternalRail, error) {
+	var out SandboxExternalRail
+	if err := c.get(ctx, "/internal/v1/sandbox/external-rail/"+url.PathEscape(merchantID), &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SetSandboxExternalRail sets the simulated rail state of a Business. Core is
+// the writer; the gateway only relays the Project's request.
+func (c *CoreApiClient) SetSandboxExternalRail(ctx context.Context, merchantID, state string) (*SandboxExternalRail, error) {
+	data, err := json.Marshal(map[string]string{"state": state})
+	if err != nil {
+		return nil, fmt.Errorf("core-api marshal: %w", err)
+	}
+	req, err := c.newCoreRequest(ctx, http.MethodPut, "/internal/v1/sandbox/external-rail/"+url.PathEscape(merchantID), bytes.NewReader(data))
+	if errors.Is(err, ErrNotFound) {
+		return nil, err
+	}
+	if err != nil {
+		return nil, fmt.Errorf("core-api request: %w", err)
+	}
+	var out SandboxExternalRail
+	if err := c.do(req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

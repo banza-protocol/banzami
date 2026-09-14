@@ -31,6 +31,9 @@ import (
 // Dependencies holds the runtime dependencies injected into the server.
 type Dependencies struct {
 	Redis *redis.Client
+	// CoreClient reaches Core's internal routes directly, for the few handlers that
+	// need a Core call no service wraps (the Sandbox external rail, ADR-061).
+	CoreClient *service.CoreApiClient
 	// DBPool backs the readiness probe. Nil is a legitimate state (the service
 	// starts without a database so /health can answer during provisioning), and
 	// readiness treats nil as NOT ready rather than silently passing — see
@@ -372,6 +375,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				sbx := handler.NewSandboxDevHandler(cfg.PublicAPIInternalURL, cfg.InternalAPIKey, deps.PaymentSessionSvc, deps.PaymentLinkSvc).
 					WithOutcomeStore(deps.Redis).
 					WithQRReader(deps.QrSvc)
+				if deps.CoreClient != nil {
+					sbx.WithExternalRails(deps.CoreClient)
+				}
 				if deps.ProofSvc != nil {
 					sbx.WithReceipts(service.NewReceiptSemantics(deps.ProofSvc.Pool(), deps.ProofSvc))
 				}
@@ -380,6 +386,13 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				// process that serves the routes.
 				go sbx.RunDelayedPayments(context.Background())
 				r.Get("/v1/sandbox/scenarios", sbx.Scenarios)
+				// The Business's simulated external rail (ADR-061): take it down to see
+				// wallet movements continue and rail-dependent operations fail closed.
+				r.Route("/v1/sandbox/external-rail", func(r chi.Router) {
+					r.Use(middleware.Idempotency(deps.Redis))
+					r.Get("/", sbx.ExternalRail)
+					r.Put("/", sbx.SetExternalRail)
+				})
 				r.Route("/v1/sandbox/test-payers", func(r chi.Router) {
 					r.Use(middleware.Idempotency(deps.Redis))
 					r.Post("/", sbx.CreateTestPayer)

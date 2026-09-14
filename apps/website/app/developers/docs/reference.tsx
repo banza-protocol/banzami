@@ -22,7 +22,7 @@ type Bi = { pt: string; en: string };
 
 export type EndpointSpec = {
   id: string;
-  method: 'GET' | 'POST' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
   tone: Tone;
   desc: Bi;
@@ -1061,6 +1061,49 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     ],
   },
   {
+    id: 'ref-sandbox-external-rail-get',
+    method: 'GET',
+    path: '/v1/sandbox/external-rail',
+    tone: 'ok',
+    desc: {
+      pt: 'O rail externo simulado do negócio Sandbox do seu projeto: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo ledger sem rail externo; um rail externo só é atravessado quando o valor entra ou sai da rede.',
+      en: 'The simulated external rail of your Project’s Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger without an external rail; an external rail is crossed only when value enters or leaves the network.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
+    curl: `curl https://sandbox-api.banzami.com/v1/sandbox/external-rail \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "state": "AVAILABLE",
+  "simulated": true
+}`,
+    errors: [
+      { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem sandbox:read, chave que não é Sandbox, ou projeto sem configuração financeira', en: 'key without sandbox:read, a key that is not a Sandbox key, or a project with no Financial Setup' } },
+    ],
+  },
+  {
+    id: 'ref-sandbox-external-rail-set',
+    method: 'PUT',
+    path: '/v1/sandbox/external-rail',
+    tone: 'ok',
+    desc: {
+      pt: 'Coloca o rail externo simulado do seu negócio em UNAVAILABLE ou repõe-no. Com UNAVAILABLE, o pagamento de um pagador de teste a partir da carteira continua a concluir-se; um pagamento com simulate, e um pagamento iniciado pelo rail externo da página alojada, respondem 503 PROVIDER_UNAVAILABLE e nada se move. Afeta só o seu negócio.',
+      en: 'Takes your Business’s simulated external rail down, or brings it back. With UNAVAILABLE, a test payer’s wallet payment still completes; a payment with simulate, and a payment started on the hosted page’s external rail, return 503 PROVIDER_UNAVAILABLE and nothing moves. It affects only your Business.',
+    },
+    credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
+    curl: `curl -X PUT https://sandbox-api.banzami.com/v1/sandbox/external-rail \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{"state":"UNAVAILABLE"}'`,
+    response: `{
+  "state": "UNAVAILABLE",
+  "simulated": true
+}`,
+    errors: [
+      { code: '400 INVALID_BODY / INVALID_PARAM', note: { pt: 'state não é AVAILABLE nem UNAVAILABLE', en: 'state is neither AVAILABLE nor UNAVAILABLE' } },
+      { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem sandbox:write, chave que não é Sandbox, ou projeto sem configuração financeira', en: 'key without sandbox:write, a key that is not a Sandbox key, or a project with no Financial Setup' } },
+    ],
+  },
+  {
     id: 'ref-test-payer-create',
     method: 'POST',
     path: '/v1/sandbox/test-payers',
@@ -1181,8 +1224,8 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/test-payers/{id}/payments',
     tone: 'ok',
     desc: {
-      pt: 'Paga uma sessão (pelo link ou pelo QR dinâmico) ou um link de pagamento do seu projeto como este pagador, pelo mesmo caminho de um pagador real: a sessão fica PAID, payment_session.paid é emitido e o comprovativo é emitido. simulate pede um resultado de rede externa explicitamente; TIMEOUT paga e responde 504, e repetir com a mesma Idempotency-Key lê o resultado real.',
-      en: 'Pays one of your Project’s sessions (by its link or dynamic QR) or payment links as this payer, through the same path a real payer uses: the session becomes PAID, payment_session.paid is emitted and the receipt is issued. simulate requests an external-rail outcome explicitly; TIMEOUT pays and returns 504, and repeating with the same Idempotency-Key reads the real result.',
+      pt: 'Paga uma sessão (pelo link ou pelo QR dinâmico) ou um link de pagamento do seu projeto como este pagador, pelo mesmo caminho de um pagador real: a sessão fica PAID, payment_session.paid é emitido e o comprovativo é emitido. Sem simulate é um pagamento a partir da carteira: o valor move-se dentro do Banzami e não depende de nenhum rail externo (rail: WALLET). simulate representa um pagamento que atravessa um rail externo e pede o resultado desse rail (rail: EXTERNAL_SIMULATED); com o rail externo do seu negócio em UNAVAILABLE responde 503 PROVIDER_UNAVAILABLE. TIMEOUT paga e responde 503, e repetir com a mesma Idempotency-Key lê o resultado real.',
+      en: 'Pays one of your Project’s sessions (by its link or dynamic QR) or payment links as this payer, through the same path a real payer uses: the session becomes PAID, payment_session.paid is emitted and the receipt is issued. Without simulate it is a wallet payment: value moves inside Banzami and depends on no external rail (rail: WALLET). simulate stands in for a payment that crosses an external rail and requests that rail’s outcome (rail: EXTERNAL_SIMULATED); with your Business’s external rail UNAVAILABLE it returns 503 PROVIDER_UNAVAILABLE. TIMEOUT pays and returns 503, and repeating with the same Idempotency-Key reads the real result.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_exemplo/payments \\
@@ -1193,6 +1236,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     response: `{
   "test_payer_id": "tp_exemplo",
   "via": "QR",
+  "rail": "WALLET",
   "payment_session_id": "payment_session_exemplo",
   "status": "PAID",
   "transfer_id": "transfer_exemplo",
@@ -1209,7 +1253,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
       { code: '404 NOT_FOUND', note: { pt: 'o pagador, a sessão ou o link não existem ou são de outro projeto', en: 'the payer, session or link does not exist or belongs to another project' } },
       { code: '409 LINK_ALREADY_PAID', note: { pt: 'o link já foi pago', en: 'the link was already paid' } },
       { code: '422 INSUFFICIENT_FUNDS / INTERFACE_UNAVAILABLE / TEST_PAYER_RETIRED', note: { pt: 'saldo insuficiente, a sessão não oferece essa via, ou pagador retirado', en: 'not enough balance, the session does not offer that via, or a retired payer' } },
-      { code: '503 PROVIDER_UNAVAILABLE', note: { pt: 'simulate PROVIDER_UNAVAILABLE; nada se move', en: 'simulate PROVIDER_UNAVAILABLE; nothing moves' } },
+      { code: '503 PROVIDER_UNAVAILABLE', note: { pt: 'simulate PROVIDER_UNAVAILABLE, ou qualquer simulate com o rail externo em UNAVAILABLE; nada se move', en: 'simulate PROVIDER_UNAVAILABLE, or any simulate with the external rail UNAVAILABLE; nothing moves' } },
       { code: '503 SANDBOX_SIMULATED_TIMEOUT', note: { pt: 'simulate TIMEOUT: o pagamento foi feito; repita com a mesma chave', en: 'simulate TIMEOUT: the payment was made; repeat with the same key' } },
     ],
   },

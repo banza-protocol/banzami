@@ -241,12 +241,12 @@ const checkRoute = (label, method, path, tokens) => {
 };
 {
   const ref = read(`${DOCS}/reference.tsx`);
-  for (const b of ref.matchAll(/method: '(GET|POST|DELETE)',\s*path: '([^']+)'[\s\S]*?errors: \[([\s\S]*?)\n\s*\],/g)) {
+  for (const b of ref.matchAll(/method: '(GET|POST|PUT|DELETE)',\s*path: '([^']+)'[\s\S]*?errors: \[([\s\S]*?)\n\s*\],/g)) {
     const tokens = [...b[3].matchAll(/code: '([^']+)'/g)].flatMap((m) => [...m[1].matchAll(/[A-Z][A-Z0-9_]+\*?/g)].map((x) => x[0]));
     checkRoute('reference.tsx', b[1], b[2], tokens);
   }
   const landing = read('apps/website/app/developers/page.tsx');
-  for (const b of landing.matchAll(/method: '(GET|POST|DELETE)',\s*path: '([^']+)',[\s\S]*?failures: '([^']*)'/g)) {
+  for (const b of landing.matchAll(/method: '(GET|POST|PUT|DELETE)',\s*path: '([^']+)',[\s\S]*?failures: '([^']*)'/g)) {
     checkRoute('developers/page.tsx', b[1], b[2], [...b[3].matchAll(/[A-Z][A-Z0-9_]{2,}/g)].map((x) => x[0]));
   }
   for (const b of landing.matchAll(/\{\s*method: '(GET|POST|DELETE)', path: '([^']+)', desc:/g)) checkRoute('developers/page.tsx', b[1], b[2], []);

@@ -2837,7 +2837,7 @@
         "operationId": "payAsTestPayer",
         "summary": "Pay as a test payer",
         "x-banzami-scope": "sandbox:write",
-        "description": "Pays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer, through the same payment path a real payer uses: the session becomes PAID, payment_session.paid is emitted and a receipt is issued. simulate requests an external-rail outcome explicitly. Credential: Sandbox project key with sandbox:write. simulate DELAYED answers 202 PENDING and completes about 10 seconds later.",
+        "description": "Pays one of your own Payment Sessions (by its link or dynamic QR) or Payment Links as this test payer. Without simulate it is a wallet payment: value moves from the test payer's wallet to your Business inside Banzami, through the same path a real payer uses — the session becomes PAID, payment_session.paid is emitted and a receipt is issued — and it does not depend on any external rail (rail: WALLET). simulate stands in for a payment whose funds cross an external rail and requests that rail's outcome explicitly (rail: EXTERNAL_SIMULATED); if your Business's Sandbox external rail is UNAVAILABLE, such a payment answers 503 PROVIDER_UNAVAILABLE and nothing moves. Credential: Sandbox project key with sandbox:write. simulate DELAYED answers 202 PENDING and completes about 10 seconds later.",
         "parameters": [
           {
             "name": "id",
@@ -2884,7 +2884,8 @@
                   "currency": "AOA",
                   "paid_at": "2026-09-14T10:05:00Z",
                   "proof_reference": "BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX",
-                  "simulated": false
+                  "simulated": false,
+                  "rail": "WALLET"
                 }
               }
             }
@@ -2973,7 +2974,7 @@
             }
           },
           "503": {
-            "description": "PROVIDER_UNAVAILABLE — simulate PROVIDER_UNAVAILABLE; nothing moved (Retry-After). SANDBOX_SIMULATED_TIMEOUT — simulate TIMEOUT; the payment was made; repeat with the same Idempotency-Key to read it. Tell them apart by code. PAYMENT_NOT_CONFIRMED — the money moved but completion was not confirmed; repeat the same request.",
+            "description": "PROVIDER_UNAVAILABLE — simulate PROVIDER_UNAVAILABLE, or any simulate while your Business's Sandbox external rail is UNAVAILABLE; nothing moved (Retry-After). SANDBOX_SIMULATED_TIMEOUT — simulate TIMEOUT; the payment was made; repeat with the same Idempotency-Key to read it. Tell them apart by code. PAYMENT_NOT_CONFIRMED — the money moved but completion was not confirmed; repeat the same request.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3202,6 +3203,124 @@
           },
           "503": {
             "description": "REALTIME_UNAVAILABLE — fall back to GET on your backend at a modest interval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sandbox/external-rail": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "getSandboxExternalRail",
+        "summary": "Read your Business's Sandbox external rail",
+        "x-banzami-scope": "sandbox:read",
+        "description": "The simulated external rail of your project's Sandbox Business. Banzami is rail-decoupled: value already inside the network moves through Banzami Core and its ledger without an external rail; an external rail is crossed only where value enters or leaves the network. Credential: Sandbox project key with sandbox:read.",
+        "responses": {
+          "200": {
+            "description": "The rail state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxExternalRail"
+                },
+                "example": {
+                  "state": "AVAILABLE",
+                  "simulated": true
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE, SANDBOX_ONLY, or PAYMENTS_UNAVAILABLE (the project has no Financial Setup, so no Business and no rail)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "sandbox"
+        ],
+        "operationId": "setSandboxExternalRail",
+        "summary": "Take your Business's Sandbox external rail down, or bring it back",
+        "x-banzami-scope": "sandbox:write",
+        "description": "Sets the simulated external rail of your project's Sandbox Business. With UNAVAILABLE, a test payer's wallet payment to your Business still completes; a payment with simulate, and a payment started on the hosted page's external rail, answer 503 PROVIDER_UNAVAILABLE with nothing moved. It affects only your own Business. Credential: Sandbox project key with sandbox:write.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "AVAILABLE",
+                      "UNAVAILABLE"
+                    ]
+                  }
+                },
+                "required": [
+                  "state"
+                ]
+              },
+              "example": {
+                "state": "UNAVAILABLE"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new rail state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxExternalRail"
+                },
+                "example": {
+                  "state": "UNAVAILABLE",
+                  "simulated": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_BODY; INVALID_PARAM (state is not AVAILABLE or UNAVAILABLE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE, SANDBOX_ONLY, or PAYMENTS_UNAVAILABLE (the project has no Financial Setup, so no Business and no rail)",
             "content": {
               "application/json": {
                 "schema": {
@@ -4958,6 +5077,14 @@
             "enum": [
               false
             ]
+          },
+          "rail": {
+            "type": "string",
+            "enum": [
+              "WALLET",
+              "EXTERNAL_SIMULATED"
+            ],
+            "description": "WALLET: value moved inside Banzami from the test payer's wallet and needed no external rail. EXTERNAL_SIMULATED: the payment stood in for one that crosses an external rail (simulate)."
           }
         },
         "required": [
@@ -4986,6 +5113,12 @@
             "type": "boolean",
             "enum": [
               true
+            ]
+          },
+          "rail": {
+            "type": "string",
+            "enum": [
+              "EXTERNAL_SIMULATED"
             ]
           }
         },
@@ -5071,6 +5204,12 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "rail": {
+            "type": "string",
+            "enum": [
+              "EXTERNAL_SIMULATED"
+            ]
           }
         },
         "required": [
@@ -5079,6 +5218,29 @@
           "status",
           "simulated",
           "completes_after_seconds"
+        ]
+      },
+      "SandboxExternalRail": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ],
+            "description": "AVAILABLE: operations that cross an external rail proceed. UNAVAILABLE: they fail closed with 503 PROVIDER_UNAVAILABLE and nothing is created, credited or confirmed. Movements inside Banzami (wallet payments, refunds of wallet payments, settlements) are never affected."
+          },
+          "simulated": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "state",
+          "simulated"
         ]
       }
     }

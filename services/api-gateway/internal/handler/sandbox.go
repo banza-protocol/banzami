@@ -91,6 +91,90 @@ type SandboxDevHandler struct {
 
 	// delay is how long a simulate DELAYED payment waits before it completes.
 	delay time.Duration
+
+	// rails reads and sets the Business's simulated external rail (ADR-061).
+	rails devExternalRails
+}
+
+// devExternalRails is Core's Sandbox external rail simulator, by Business.
+type devExternalRails interface {
+	GetSandboxExternalRail(ctx context.Context, merchantID string) (*service.SandboxExternalRail, error)
+	SetSandboxExternalRail(ctx context.Context, merchantID, state string) (*service.SandboxExternalRail, error)
+}
+
+// WithExternalRails wires the Business's simulated external rail.
+func (h *SandboxDevHandler) WithExternalRails(r devExternalRails) *SandboxDevHandler {
+	h.rails = r
+	return h
+}
+
+// Payment rails, as a test payment reports them (ADR-061). A payment made from
+// the test payer's wallet moves value inside Banzami and needs no external rail.
+// A payment with simulate stands in for one whose funds cross an external rail,
+// so its outcome depends on that rail.
+const (
+	RailWallet            = "WALLET"
+	RailExternalSimulated = "EXTERNAL_SIMULATED"
+)
+
+// ExternalRail handles GET /v1/sandbox/external-rail.
+func (h *SandboxDevHandler) ExternalRail(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:read")
+	if !ok {
+		return
+	}
+	merchant, ok := h.railOwner(w, r, p)
+	if !ok {
+		return
+	}
+	s, err := h.rails.GetSandboxExternalRail(r.Context(), merchant)
+	if err != nil {
+		respondCoreError(w, r, err, "could not read the Sandbox external rail")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"state": s.State, "simulated": true})
+}
+
+// SetExternalRail handles PUT /v1/sandbox/external-rail {"state": "AVAILABLE"|"UNAVAILABLE"}.
+func (h *SandboxDevHandler) SetExternalRail(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.principal(w, r, "sandbox:write")
+	if !ok {
+		return
+	}
+	var in struct {
+		State string `json:"state"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&in); err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+		return
+	}
+	state := strings.ToUpper(strings.TrimSpace(in.State))
+	if state != "AVAILABLE" && state != "UNAVAILABLE" {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "state must be AVAILABLE or UNAVAILABLE")
+		return
+	}
+	merchant, ok := h.railOwner(w, r, p)
+	if !ok {
+		return
+	}
+	s, err := h.rails.SetSandboxExternalRail(r.Context(), merchant, state)
+	if err != nil {
+		respondCoreError(w, r, err, "could not set the Sandbox external rail")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"state": s.State, "simulated": true})
+}
+
+func (h *SandboxDevHandler) railOwner(w http.ResponseWriter, r *http.Request, p *middleware.DeveloperPrincipal) (string, bool) {
+	if h.rails == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "the Sandbox external rail is not available on this deployment")
+		return "", false
+	}
+	if !p.Bound || p.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE", "this project has no Financial Setup")
+		return "", false
+	}
+	return p.MerchantID, true
 }
 
 // SandboxDelayedCompletion is how long a simulate DELAYED payment is PENDING
@@ -415,19 +499,41 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
+	// simulate stands in for a payment whose funds cross an external rail. If the
+	// Business has taken its simulated rail down, that payment cannot happen —
+	// whatever outcome was asked for — and nothing moves. A payment without
+	// simulate is a wallet payment and never asks (ADR-061).
+	if in.Simulate != "" && h.rails != nil {
+		switch in.Simulate {
+		case SimulateDeclined, SimulateProviderUnavailable, SimulateTimeout, SimulateDelayed:
+			if s, err := h.rails.GetSandboxExternalRail(r.Context(), p.MerchantID); err != nil {
+				respondCoreError(w, r, err, "could not read the Sandbox external rail")
+				return
+			} else if s.State == "UNAVAILABLE" {
+				w.Header().Set("Retry-After", "30")
+				writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+					"code":    "PROVIDER_UNAVAILABLE",
+					"message": "The Business's Sandbox external rail is unavailable, so a payment that crosses it cannot happen. Nothing moved; a payment from the test payer's wallet still works.",
+					"rail":    RailExternalSimulated, "simulated": true, "request_id": w.Header().Get("X-Request-ID"),
+				})
+				return
+			}
+		}
+	}
+
 	switch in.Simulate {
 	case "":
 	case SimulateDeclined:
 		writeJSON(w, http.StatusPaymentRequired, map[string]any{
 			"code": "PAYMENT_DECLINED", "message": "Sandbox simulation: the external rail declined this payment. Nothing moved.",
-			"simulated": true, "request_id": w.Header().Get("X-Request-ID"),
+			"rail": RailExternalSimulated, "simulated": true, "request_id": w.Header().Get("X-Request-ID"),
 		})
 		return
 	case SimulateProviderUnavailable:
 		w.Header().Set("Retry-After", "30")
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
 			"code": "PROVIDER_UNAVAILABLE", "message": "Sandbox simulation: the external provider is unavailable. Nothing moved; retry later.",
-			"simulated": true, "request_id": w.Header().Get("X-Request-ID"),
+			"rail": RailExternalSimulated, "simulated": true, "request_id": w.Header().Get("X-Request-ID"),
 		})
 		return
 	case SimulateTimeout, SimulateDelayed:
@@ -506,7 +612,11 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 		if _, isQR := target["qr_payload"]; isQR {
 			via = "QR"
 		}
-		raw = testPaymentResult(raw, payerID, via, in.PaymentSessionID, in.PaymentLinkID)
+		rail := RailWallet
+		if in.Simulate != "" {
+			rail = RailExternalSimulated
+		}
+		raw = testPaymentResult(raw, payerID, via, rail, in.PaymentSessionID, in.PaymentLinkID)
 		raw = h.withReceipt(r.Context(), raw)
 	}
 	if in.Simulate == SimulateTimeout {
@@ -525,7 +635,7 @@ func (h *SandboxDevHandler) PayAsTestPayer(w http.ResponseWriter, r *http.Reques
 // testPaymentResult gives a test-payer payment ONE response shape whichever
 // consumer path paid it (the link view or the QR payment), with nothing about
 // the payee the developer does not already own.
-func testPaymentResult(raw []byte, payerID, via, sessionID, linkID string) []byte {
+func testPaymentResult(raw []byte, payerID, via, rail, sessionID, linkID string) []byte {
 	var in struct {
 		TransferID    string  `json:"transfer_id"`
 		TransactionID string  `json:"transaction_id"`
@@ -540,6 +650,7 @@ func testPaymentResult(raw []byte, payerID, via, sessionID, linkID string) []byt
 	out := map[string]any{
 		"test_payer_id": payerID,
 		"via":           via,
+		"rail":          rail,
 		"status":        "PAID",
 		"transfer_id":   firstNonEmpty(in.TransferID, in.TransactionID),
 		"amount_minor":  in.AmountMinor,
@@ -603,7 +714,7 @@ func (h *SandboxDevHandler) withReceipt(ctx context.Context, raw []byte) []byte 
 // the real result) and queues the completion.
 func (h *SandboxDevHandler) acceptDelayed(w http.ResponseWriter, r *http.Request, job delayedPayment) {
 	pending := map[string]any{
-		"test_payer_id": job.PayerID, "via": job.Via, "status": "PENDING", "simulated": true,
+		"test_payer_id": job.PayerID, "via": job.Via, "rail": RailExternalSimulated, "status": "PENDING", "simulated": true,
 		"completes_after_seconds": int(math.Ceil(h.delay.Seconds())),
 		"message": "Sandbox simulation: accepted and not yet complete. It completes on its own — watch the webhook, the realtime stream " +
 			"or the session, or repeat this request with the same Idempotency-Key.",
@@ -647,7 +758,7 @@ func (h *SandboxDevHandler) completeDelayed(ctx context.Context, job delayedPaym
 	}
 	// The money has moved: a repeat must stop reading PENDING now, not after the
 	// receipt lookup. Store the result at once, then again with its receipt.
-	raw = testPaymentResult(raw, job.PayerID, job.Via, job.SessionID, job.LinkID)
+	raw = testPaymentResult(raw, job.PayerID, job.Via, RailExternalSimulated, job.SessionID, job.LinkID)
 	h.storeOutcome(cctx, job.CacheKey, status, raw)
 	h.storeOutcome(cctx, job.CacheKey, status, h.withReceipt(cctx, raw))
 	return true

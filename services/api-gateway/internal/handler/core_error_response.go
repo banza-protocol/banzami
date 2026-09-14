@@ -11,6 +11,9 @@ import (
 // keeping the three classes distinct instead of collapsing them into 502.
 //
 //	core 4xx  → that status, with core's own safe reason code
+//	core 503 PROVIDER_UNAVAILABLE → 503 with that code: an external rail the
+//	          operation needs is down (ADR-061). It is the caller's outcome to
+//	          handle, not a Banzami outage, so it is not collapsed into 502.
 //	core 5xx  → 502 UPSTREAM_ERROR
 //	transport → 502 UPSTREAM_ERROR
 //
@@ -23,6 +26,12 @@ import (
 // always gets something meaningful rather than an empty string.
 func respondCoreError(w http.ResponseWriter, r *http.Request, err error, fallbackMsg string) {
 	ce, ok := service.AsCoreError(err)
+	if ok && ce.Status == http.StatusServiceUnavailable && ce.Code == "PROVIDER_UNAVAILABLE" {
+		w.Header().Set("Retry-After", "30")
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "PROVIDER_UNAVAILABLE",
+			"the external rail this operation needs is unavailable; nothing was created, credited or confirmed")
+		return
+	}
 	if !ok || !ce.IsClientError() {
 		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", fallbackMsg)
 		return

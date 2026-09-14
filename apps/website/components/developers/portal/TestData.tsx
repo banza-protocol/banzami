@@ -40,7 +40,7 @@ function responseError(status: number, body: unknown): string {
     NOT_FOUND: 'Não encontrado neste projeto.',
     PAYMENTS_UNAVAILABLE: 'Configure a Sandbox primeiro, em Configuração financeira.',
     PAYMENT_DECLINED: 'Simulação: o rail externo recusou. Nada se moveu.',
-    PROVIDER_UNAVAILABLE: 'Simulação: fornecedor indisponível. Nada se moveu.',
+    PROVIDER_UNAVAILABLE: 'O rail externo de que este pagamento precisa está indisponível (simulação). Nada se moveu. Um pagamento sem simulação, a partir da carteira, continua a funcionar.',
     SANDBOX_SIMULATED_TIMEOUT: 'Simulação: sem resposta a tempo. O pagamento foi feito — repita com a mesma chave para ler o resultado.',
     LINK_ALREADY_PAID: 'Este link já foi pago.',
     LINK_NOT_ACTIVE: 'O link já não está ativo.',
@@ -60,16 +60,18 @@ export function TestData() {
 
   const [label, setLabel] = useState('');
   const [fund, setFund] = useState<{ id: string; amount: string; key: string } | null>(null);
+  const [rail, setRail] = useState<'AVAILABLE' | 'UNAVAILABLE' | null>(null);
   const [pay, setPay] = useState<{ id: string; target: string; kind: 'session' | 'link'; via: 'LINK' | 'QR'; simulate: string; key: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!projectId) return;
     setError('');
     try {
-      const [p, s] = await Promise.all([run('listTestPayers'), run('listSandboxScenarios')]);
+      const [p, s, rl] = await Promise.all([run('listTestPayers'), run('listSandboxScenarios'), run('getSandboxExternalRail')]);
       if (p.status === 200) setPayers(((p.body as { data?: TestPayer[] })?.data) ?? []);
       else setError(responseError(p.status, p.body));
       if (s.status === 200) setScenarios(((s.body as { scenarios?: Scenario[] })?.scenarios) ?? []);
+      if (rl.status === 200) setRail(((rl.body as { state?: 'AVAILABLE' | 'UNAVAILABLE' })?.state) ?? null);
     } catch (e) {
       setError(explorerRefusal(e));
     }
@@ -96,12 +98,6 @@ export function TestData() {
     setError('');
     try {
       const r = await run('fundTestPayer', { path_params: { id: fund.id }, body: { amount_minor: amount }, idempotency_key: fund.key });
-      if (r.status === 202) {
-        const d = r.body as { completes_after_seconds?: number };
-        setNotice(`Aceite, ainda pendente (simulação). O pagamento conclui-se sozinho dentro de cerca de ${d.completes_after_seconds ?? 10} segundos — veja-o chegar em Webhooks ou em Transações.`);
-        setPay(null);
-        return;
-      }
       if (r.status !== 200) { setError(responseError(r.status, r.body)); return; }
       setNotice(`Carregados ${formatMoneyDisplay(amount)} (valor fictício).`);
       setFund(null);
@@ -118,11 +114,30 @@ export function TestData() {
     if (pay.simulate) body.simulate = pay.simulate;
     try {
       const r = await run('payAsTestPayer', { path_params: { id: pay.id }, body, idempotency_key: pay.key });
+      if (r.status === 202) {
+        const d = r.body as { completes_after_seconds?: number };
+        setNotice(`Aceite, ainda pendente (simulação). O pagamento conclui-se sozinho dentro de cerca de ${d.completes_after_seconds ?? 10} segundos — veja-o chegar em Webhooks ou em Transações.`);
+        setPay(null);
+        return;
+      }
       if (r.status !== 200) { setError(responseError(r.status, r.body)); return; }
       const t = r.body as { transfer_id?: string; proof_reference?: string | null };
       setNotice(`Pago. Transferência ${t.transfer_id ?? '—'}${t.proof_reference ? ` · comprovativo ${t.proof_reference}` : ''}.`);
       setPay(null);
       await load();
+    } catch (e) { setError(explorerRefusal(e)); }
+  }
+
+  async function toggleRail() {
+    const next = rail === 'UNAVAILABLE' ? 'AVAILABLE' : 'UNAVAILABLE';
+    setError(''); setNotice('');
+    try {
+      const r = await run('setSandboxExternalRail', { body: { state: next }, idempotency_key: newIdempotencyKey('rail') });
+      if (r.status !== 200) { setError(responseError(r.status, r.body)); return; }
+      setRail(next);
+      setNotice(next === 'UNAVAILABLE'
+        ? 'Rail externo em baixo (simulação). Os pagamentos a partir da carteira continuam; os que atravessam o rail respondem PROVIDER_UNAVAILABLE.'
+        : 'Rail externo reposto.');
     } catch (e) { setError(explorerRefusal(e)); }
   }
 
@@ -232,9 +247,9 @@ export function TestData() {
               </label>
             )}
             <label style={{ display: 'block', marginTop: 10 }}>
-              <span style={FIELD_LABEL}>Resultado da rede externa</span>
+              <span style={FIELD_LABEL}>Pagamento que atravessa um rail externo (simulação)</span>
               <select style={FIELD_INPUT} value={pay.simulate} onChange={(e) => setPay({ ...pay, simulate: e.target.value })}>
-                <option value="">Nenhuma simulação — pagar</option>
+                <option value="">Nenhuma — pagar a partir da carteira</option>
                 <option value="DECLINED">Simular recusa (DECLINED)</option>
                 <option value="PROVIDER_UNAVAILABLE">Simular fornecedor indisponível</option>
                 <option value="TIMEOUT">Simular sem resposta (TIMEOUT)</option>
@@ -248,6 +263,23 @@ export function TestData() {
             </div>
           </div>
         )}
+      </Card>
+
+      <Card style={{ padding: 22, marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>Rail externo simulado</h2>
+        <p style={P}>
+          O valor que já está no Banzami move-se pelo Core e pelo ledger, sem rail externo. Coloque o rail externo simulado do seu negócio em baixo para o ver:
+          os pagamentos a partir da carteira continuam a concluir-se; um pagamento com simulação, que atravessa o rail, responde PROVIDER_UNAVAILABLE e nada se move.{' '}
+          <DocsLink href="/docs/testing#rail-externo">Rail externo em baixo</DocsLink>
+        </p>
+        <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span data-testid="external-rail-state">
+            {rail === null ? <Pill kind="neutral">A carregar…</Pill> : rail === 'AVAILABLE' ? <Pill kind="success">Disponível</Pill> : <Pill kind="neutral">Em baixo</Pill>}
+          </span>
+          <button type="button" data-testid="toggle-external-rail" onClick={() => void toggleRail()} disabled={busy || rail === null} style={SECONDARY_BUTTON}>
+            {rail === 'UNAVAILABLE' ? 'Repor o rail externo' : 'Colocar o rail externo em baixo'}
+          </button>
+        </div>
       </Card>
 
       <Card style={{ padding: 22, marginBottom: 16 }}>

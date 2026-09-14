@@ -325,6 +325,36 @@
       "example_body": null
     },
     {
+      "operation_id": "getSandboxExternalRail",
+      "tag": "sandbox",
+      "summary": "Read your Business's Sandbox external rail",
+      "method": "GET",
+      "path": "/v1/sandbox/external-rail",
+      "scope": "sandbox:read",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": false,
+      "idempotency_required": false,
+      "body": false,
+      "example_body": null
+    },
+    {
+      "operation_id": "setSandboxExternalRail",
+      "tag": "sandbox",
+      "summary": "Take your Business's Sandbox external rail down, or bring it back",
+      "method": "PUT",
+      "path": "/v1/sandbox/external-rail",
+      "scope": "sandbox:write",
+      "path_params": [],
+      "query_params": [],
+      "idempotency": true,
+      "idempotency_required": false,
+      "body": true,
+      "example_body": {
+        "state": "UNAVAILABLE"
+      }
+    },
+    {
       "operation_id": "listSandboxScenarios",
       "tag": "sandbox",
       "summary": "List the deterministic Sandbox scenarios",

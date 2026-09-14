@@ -42,7 +42,7 @@ const sdk = read(join(ROOT, 'sdk/typescript/src/client.ts'));
 
 // ── endpoints as documented ──────────────────────────────────────────────────
 const blocks = [];
-const starts = [...reference.matchAll(/\{\s*\n\s*id: '(ref-[^']+)',\s*method: '(GET|POST|DELETE)',\s*path: '([^']+)'/g)];
+const starts = [...reference.matchAll(/\{\s*\n\s*id: '(ref-[^']+)',\s*method: '(GET|POST|PUT|DELETE)',\s*path: '([^']+)'/g)];
 starts.forEach((m, i) => {
   const end = i + 1 < starts.length ? starts[i + 1].index : reference.indexOf('export const RESTRICTED_ROWS');
   blocks.push({ id: m[1], method: m[2], path: m[3], src: reference.slice(m.index, end) });
