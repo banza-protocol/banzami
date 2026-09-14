@@ -27,9 +27,9 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: the PT documentation corpus = area content + landing page.
 const DOCS = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/HomePage.tsx');
 const OVERVIEW = read('app/developers/page.tsx');
-const WEBHOOK_DIAGRAM = read('components/developers/WebhookFlowDiagram.tsx');
-const SDK_DIAGRAM = read('components/developers/SdkEcosystemDiagram.tsx');
-const SURFACES = { DOCS, OVERVIEW, WEBHOOK_DIAGRAM, SDK_DIAGRAM };
+// The landing page's webhook and SDK diagrams were retired with its API
+// reference (PUBLIC-TRUTH-001); the docs draw their own, checked elsewhere.
+const SURFACES = { DOCS, OVERVIEW };
 
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', class {
@@ -78,13 +78,6 @@ describe('P0 — unverified event vocabulary is banned on every developer surfac
       }
     });
   }
-  it('the webhook diagram uses only verified event names', () => {
-    const listed = WEBHOOK_DIAGRAM.match(/'[a-z_]+\.[a-z_]+'/g) ?? [];
-    for (const raw of listed) {
-      expect(VERIFIED_EVENTS).toContain(raw.replace(/'/g, ''));
-    }
-    expect(listed.length).toBeGreaterThan(0);
-  });
 });
 
 describe('P0 — no fake SDK install commands, SDKs never the primary path', () => {
