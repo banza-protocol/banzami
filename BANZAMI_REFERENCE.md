@@ -164,13 +164,15 @@ O Banzami é uma rede de pagamentos de circuito fechado. Para que o dinheiro ent
 [Bridge de Adquirência do Banzami]
            | validação HMAC, idempotência, reconciliação
            v
-[Ledger BANZA]
+[Ledger do Banzami Core]
            | lançamento de dupla entrada
            v
 [Banzami Wallet do Utilizador]
 ```
 
 Nenhum crédito é definitivo sem confirmação verificada do provedor externo. Capturas de ecrã nunca são aceites como prova de pagamento.
+
+Depois de entrar, o valor move-se dentro da rede — P2P, pagamentos a negócios por QR, link ou sessão — através do Banzami Core e do ledger, sem um rail externo por cada movimento. Os rails externos são fronteiras de interoperabilidade: atravessam-se quando o valor entra ou sai da rede ([ADR-061](docs/adr/ADR-061-wallet-native-rail-decoupled-financial-network.md)). O carregamento real exige o Financial Live, que está NOT READY / FAIL-CLOSED.
 
 ### Pagar por QR
 
@@ -260,11 +262,11 @@ Um link de pagamento é um URL partilhável com um pedido de pagamento pré-conf
 
 ### Levantamentos
 
-O saldo da carteira é transferido para uma conta bancária angolana a pedido — via interface móvel, web ou API. O Banzami inicia a transferência imediatamente via EMIS.
+O saldo da carteira sai da rede para uma conta bancária angolana a pedido — via interface móvel, web ou API. Um levantamento é uma operação dependente de rail externo: o valor é reservado no ledger, a transferência atravessa o rail (EMIS ou banco parceiro) e só fica concluída com a confirmação desse rail; se o rail falhar, a reserva é revertida. Ainda não disponível: não existe adaptador bancário de payouts e o Financial Live está NOT READY / FAIL-CLOSED.
 
 ### A Loja QR
 
-Cada comerciante tem um perfil público permanente em `pay.banzami.com/profiles/@banza`. Partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar instantaneamente.
+Cada comerciante tem um perfil público permanente em `pay.banzami.com/profiles/@banza`. Partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar a partir da sua carteira.
 
 ---
 
