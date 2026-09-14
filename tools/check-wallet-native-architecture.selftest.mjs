@@ -23,7 +23,7 @@ const COPY = [
   'db/migrations/0144_value_moves_inside_external_rails_are_boundaries.sql',
   'services/api-gateway/internal', 'services/public-api/internal', 'tools/ops', 'docs/developer/openapi',
   'sdk/typescript/src', 'sdk/typescript/README.md', 'README.md', 'apps/website/app/faq', 'apps/website/lib',
-  'quality/operator-assurance-manifest.yaml',
+  'quality/operator-assurance-manifest.yaml', 'docs/adr/ADR-061-wallet-native-rail-decoupled-financial-network.md',
 ];
 function tree() {
   const dir = mkdtempSync(join(tmpdir(), 'bz-walletnative-'));
@@ -107,6 +107,11 @@ const CASES = [
     name: 'a Live developer key is accepted',
     mutate: (d) => edit(d, 'services/api-gateway/internal/middleware/developer_auth.go', (s) => s.replace('[]string{"bz_test_sk_", "bz_test_pk_"}', '[]string{"bz_test_sk_", "bz_test_pk_", "bz_live_sk_"}')),
     expect: fails('LIVE_EXECUTION_ENABLED'),
+  },
+  {
+    name: 'the README restates the model without "not rail-free"',
+    mutate: (d) => edit(d, 'README.md', (s) => s.replace(/rail-decoupled, not\s+rail-free,/, 'rail-decoupled,')),
+    expect: fails('WALLET_NATIVE_CONCEPT_CONTRADICTIONS'),
   },
   {
     name: 'a test seed that writes a wallet does not count',

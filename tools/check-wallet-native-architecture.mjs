@@ -48,6 +48,7 @@ const findings = {
   PUBLIC_NATIVE_API_PROVIDER_LEAKAGE: [],
   RAIL_DECOUPLING_REGULATORY_BYPASS_CLAIMS: [],
   LIVE_EXECUTION_ENABLED: [],
+  WALLET_NATIVE_CONCEPT_CONTRADICTIONS: [],
 };
 
 // ── 1. crates that move value inside the network ──────────────────────────────
@@ -146,6 +147,16 @@ if (/bz_live_/.test(prefixes) || !prefixes) findings.LIVE_EXECUTION_ENABLED.push
 if (!/strings\.HasPrefix\(raw, "bz_live_"\)/.test(auth)) findings.LIVE_EXECUTION_ENABLED.push('the developer key path no longer refuses bz_live_ before any lookup');
 const manifest = exists('quality/operator-assurance-manifest.yaml') ? read('quality/operator-assurance-manifest.yaml') : '';
 if (manifest.split(/\n\s*- id: /).some((b) => /public_status:\s*public/.test(b) && /^\s*live:\s*true\b/m.test(b))) findings.LIVE_EXECUTION_ENABLED.push('a public capability declares live: true');
+
+// ── 7. one canonical statement of the model ───────────────────────────────────
+// WALLET-NATIVE-001 §87: the paragraph is the model's single wording. Where it is
+// quoted it is quoted whole — a README that drops "not rail-free" or "does not
+// bypass regulatory requirements" states a different model.
+const CANONICAL = 'Banzami is designed as a wallet-native, ledger-native financial network. Once value is represented inside the Banzami network, eligible transfers and payments between Banzami participants are executed natively through the Banzami Core and ledger rather than requiring an external payment rail for every movement. External rails remain essential interoperability boundaries for funding, withdrawal, external settlement and other rail-dependent operations. This architecture is rail-decoupled, not rail-free, and does not bypass regulatory requirements. Public Sandbox models this architecture with fictitious value; Financial Live remains unavailable and fail-closed until the applicable regulatory, contractual and operational requirements are met.';
+const flat = (t) => t.replace(/^>\s?/gm, '').replace(/\s+/g, ' ');
+for (const f of ['README.md', 'docs/adr/ADR-061-wallet-native-rail-decoupled-financial-network.md']) {
+  if (!exists(f) || !flat(read(f)).includes(CANONICAL)) findings.WALLET_NATIVE_CONCEPT_CONTRADICTIONS.push(`${f}: the canonical wallet-native paragraph is missing or reworded`);
+}
 
 let failed = 0;
 for (const [k, list] of Object.entries(findings)) {

@@ -226,6 +226,6 @@ are recorded, unanswered, in
   table is guarded or classified. Mutation-proven.
 - `services/api-gateway/internal/handler/sandbox_external_rail_test.go` — a wallet
   payment never reads the rail; every `simulate` fails closed when it is down.
-- `tools/check-wallet-native-architecture.mjs` (+ selftest, 12 mutations), in CI.
+- `tools/check-wallet-native-architecture.mjs` (+ selftest, 13 mutations), in CI.
 - Deployed: scenarios 31/31 including both rail scenarios; the Sandbox database
   refuses `UPDATE wallets` from a non-Core connection.
