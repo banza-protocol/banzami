@@ -34,6 +34,13 @@ import type {
   CreateTransferParams,
   WebhookDeliveryRecord,
   WebhookEndpointHealth,
+  WebhookTestEvent,
+  SandboxScenarioCatalogue,
+  TestPayer,
+  TestPayment,
+  CreateTestPayerParams,
+  FundTestPayerParams,
+  PayAsTestPayerParams,
   CreateBusinessApplicationSettlementParams,
   PaymentSession,
   PaymentSessionInterface,
@@ -411,10 +418,13 @@ export class BanzamiClient {
     return status === 429 || status === 502 || status === 503 || status === 504;
   }
 
-  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+  private async request<T>(path: string, init?: RequestInit, callerKey?: string): Promise<T> {
     const method         = (init?.method ?? 'GET').toUpperCase();
     const isPost         = method === 'POST';
-    const idempotencyKey = isPost ? crypto.randomUUID() : undefined;
+    // A caller-chosen key identifies the operation across separate calls (a
+    // top-up, a payment that may time out); otherwise one key per call, the same
+    // across its retries.
+    const idempotencyKey = callerKey ?? (isPost ? crypto.randomUUID() : undefined);
     let lastErr: BanzamiApiError | undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -818,12 +828,95 @@ export class BanzamiClient {
 
   /**
    * Re-queue a delivery that failed, as a further attempt on the same
-   * delivery. One that already succeeded is refused (409): it was received.
+   * delivery. One that already succeeded is refused (409): it was received —
+   * except a delivery of a Sandbox test event (`webhook.test`), which can be
+   * replayed as often as you like, because it moves nothing.
    */
   replayWebhookDelivery(deliveryId: string): Promise<WebhookDeliveryRecord> {
     return this.request<WebhookDeliveryRecord>(
       `/webhooks/deliveries/${deliveryId}/replay`, { method: 'POST' },
     );
+  }
+
+  /**
+   * Sandbox only. Send a synthetic `webhook.test` event to one of your
+   * endpoints, signed like any other event, to check your receiver. It is
+   * marked `synthetic: true`, describes no payment and moves nothing. Follow it
+   * with `listWebhookDeliveries(eventId)`.
+   */
+  sendWebhookTestEvent(endpointId: string): Promise<WebhookTestEvent> {
+    return this.request<WebhookTestEvent>(
+      `/webhooks/endpoints/${endpointId}/test`, { method: 'POST' },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sandbox test data (ADR-060) — Sandbox keys only
+  // ---------------------------------------------------------------------------
+
+  /** The deterministic Sandbox scenarios: how to produce each outcome, and what you get. */
+  listSandboxScenarios(): Promise<SandboxScenarioCatalogue> {
+    return this.request<SandboxScenarioCatalogue>('/sandbox/scenarios');
+  }
+
+  /**
+   * Create a test payer owned by your Project, with a fictitious balance
+   * (1 000 000 by default, at most). The response carries the payer's PIN
+   * once, for signing in to the hosted payment page as that payer.
+   */
+  createTestPayer(params: CreateTestPayerParams = {}): Promise<TestPayer> {
+    return this.request<TestPayer>('/sandbox/test-payers', {
+      method: 'POST',
+      body:   JSON.stringify({
+        ...(params.label !== undefined ? { label: params.label } : {}),
+        ...(params.initialBalanceMinor !== undefined ? { initial_balance_minor: params.initialBalanceMinor } : {}),
+      }),
+    });
+  }
+
+  listTestPayers(params: { includeRetired?: boolean } = {}): Promise<{ data: TestPayer[] }> {
+    return this.request<{ data: TestPayer[] }>(
+      `/sandbox/test-payers${params.includeRetired ? this.qs({ include_retired: 'true' }) : ''}`,
+    );
+  }
+
+  getTestPayer(id: string): Promise<TestPayer> {
+    return this.request<TestPayer>(`/sandbox/test-payers/${id}`);
+  }
+
+  /**
+   * Add fictitious value to a test payer. `idempotencyKey` is required and
+   * identifies the top-up: the same key never funds twice.
+   */
+  fundTestPayer(id: string, params: FundTestPayerParams): Promise<TestPayer> {
+    return this.request<TestPayer>(`/sandbox/test-payers/${id}/fund`, {
+      method: 'POST',
+      body:   JSON.stringify({ amount_minor: params.amountMinor }),
+    }, params.idempotencyKey);
+  }
+
+  /**
+   * Pay one of your own Payment Sessions (by link or QR) or Payment Links as a
+   * test payer, through the same payment path a real payer uses. `simulate`
+   * requests an external-rail outcome explicitly; `TIMEOUT` pays and answers
+   * 504, and repeating with the same `idempotencyKey` reads the real result.
+   */
+  payAsTestPayer(id: string, params: PayAsTestPayerParams): Promise<TestPayment> {
+    return this.request<TestPayment>(`/sandbox/test-payers/${id}/payments`, {
+      method: 'POST',
+      body:   JSON.stringify({
+        ...(params.paymentSessionId ? { payment_session_id: params.paymentSessionId } : {}),
+        ...(params.paymentLinkId ? { payment_link_id: params.paymentLinkId } : {}),
+        ...(params.via ? { via: params.via } : {}),
+        ...(params.amountMinor !== undefined ? { amount_minor: params.amountMinor } : {}),
+        ...(params.simulate ? { simulate: params.simulate } : {}),
+      }),
+    }, params.idempotencyKey);
+  }
+
+  /** Retire a test payer: its fictitious balance is retired, its history stays. */
+  retireTestPayer(id: string): Promise<TestPayer> {
+    return this.request<TestPayer>(`/sandbox/test-payers/${id}`, { method: 'DELETE' });
   }
 
   // ---------------------------------------------------------------------------

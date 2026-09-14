@@ -700,6 +700,101 @@ export interface PaymentSession {
    * never an internal token. NOT a BANZA-normative field (see ADR-018 draft).
    */
   refund_source?: RefundSource;
+  /**
+   * A short-lived, read-only status token for watching this session from a
+   * browser (ADR-060 §9). Present on reads made with your key. Not a secret
+   * key: it opens only this session's public status, for at most 30 minutes.
+   * Pass `token` to `watchPaymentSessionStatus` from `@banzami/sdk/realtime`.
+   */
+  realtime?: PaymentSessionRealtime;
+}
+
+export interface PaymentSessionRealtime {
+  token: string;
+  expires_at: string;
+  /** Path on the API host: /v1/realtime/payment-sessions/{id}. */
+  path: string;
+}
+
+export interface WebhookTestEvent {
+  event_id: string;
+  delivery_id: string;
+  type: 'webhook.test';
+  synthetic: true;
+  status: 'PENDING';
+}
+
+export interface SandboxScenario {
+  id: string;
+  group: string;
+  simulated: boolean;
+  goal: { pt: string; en: string };
+  trigger: { pt: string; en: string };
+  result: { pt: string; en: string };
+  event?: string | null;
+}
+
+export interface SandboxScenarioCatalogue {
+  version: number;
+  note: { pt: string; en: string };
+  scenarios: SandboxScenario[];
+}
+
+export type TestPayerStatus = 'ACTIVE' | 'RETIRED' | 'SUSPENDED' | string;
+
+export interface TestPayer {
+  id: string;
+  handle: string;
+  label: string | null;
+  status: TestPayerStatus;
+  balance_minor: number | null;
+  currency: string;
+  environment: 'SANDBOX';
+  created_at: string;
+  retired_at: string | null;
+  /** Returned once, on creation only. */
+  pin?: string;
+}
+
+export interface CreateTestPayerParams {
+  label?: string;
+  /** 0 to 1 000 000 minor units; 1 000 000 when omitted. */
+  initialBalanceMinor?: number;
+}
+
+export interface FundTestPayerParams {
+  /** 1 to 2 500 000 minor units. */
+  amountMinor: number;
+  idempotencyKey: string;
+}
+
+export type SandboxSimulation = 'DECLINED' | 'PROVIDER_UNAVAILABLE' | 'TIMEOUT';
+
+export interface TestPayment {
+  test_payer_id: string;
+  via: 'LINK' | 'QR';
+  payment_session_id?: string;
+  payment_link_id?: string;
+  status: 'PAID';
+  transfer_id: string;
+  amount_minor: number | null;
+  currency: string;
+  paid_at: string | null;
+  /** The receipt's BZM-… reference, when its proof was established in time. */
+  proof_reference: string | null;
+  simulated: false;
+}
+
+export interface PayAsTestPayerParams {
+  paymentSessionId?: string;
+  /** For a session: LINK (default) or QR. */
+  via?: 'LINK' | 'QR';
+  paymentLinkId?: string;
+  /** For an open amount. */
+  amountMinor?: number;
+  simulate?: SandboxSimulation;
+  /** Required with simulate TIMEOUT; recommended always. */
+  idempotencyKey?: string;
 }
 
 /** The typed source pair returned by refundable-source discovery and accepted

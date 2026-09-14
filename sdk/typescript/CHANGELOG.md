@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — the self-service Sandbox (ADR-060)
+- `listSandboxScenarios()` — the deterministic Sandbox scenarios: how to produce
+  each outcome and what comes back.
+- Test payers owned by your Project: `createTestPayer`, `listTestPayers`,
+  `getTestPayer`, `fundTestPayer` (fictitious value, `idempotencyKey` required),
+  `payAsTestPayer` (pay your own session or link by link or QR, with an explicit
+  `simulate` for external-rail outcomes) and `retireTestPayer`. Sandbox keys only.
+- `sendWebhookTestEvent(endpointId)` — a synthetic `webhook.test` event, signed
+  like any other, that moves nothing and can be replayed.
+- `@banzami/sdk/realtime` — `watchPaymentSessionStatus`, for a browser page: it
+  takes the session's short-lived status token (`session.realtime.token`), never
+  an API key, sends it in the Authorization header over a fetch stream, and
+  reconnects from a fresh snapshot. Refuses anything that is not a `bzst_` token.
+- `PaymentSession.realtime` — `{ token, expires_at, path }` on reads with your key.
+
+### Changed
+- A request method may carry a caller-chosen Idempotency-Key, kept across the
+  SDK's own retries; `payAsTestPayer` with `simulate: 'TIMEOUT'` therefore
+  retries the 504 with the same key and returns the real result.
+
 ### Fixed — payment links with a project key
 `createPaymentLink` required `merchantId` and `walletId` and always sent them, and
 `listPaymentLinks` required `merchantId`. A project key has neither, and the API
