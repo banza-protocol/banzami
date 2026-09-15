@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../config.dart';
 import '../screens/kyc_screen.dart';
 
 /// Shows the consumer's identity-verification state at the top of the home
@@ -43,7 +44,12 @@ class KycBannerContent {
   /// Warning (amber) or error (red) tone.
   final bool warning;
 
-  static KycBannerContent? forCase(KycCase? kycCase) {
+  /// [requiresVerification] is the environment policy
+  /// ([AppConfig.requiresIdentityVerification]). When verification is not
+  /// required (Public Sandbox) the banner never shows, whatever the case status:
+  /// Sandbox value is fictitious and moving it needs no identity check.
+  static KycBannerContent? forCase(KycCase? kycCase, {required bool requiresVerification}) {
+    if (!requiresVerification) return null;
     final status = kycCase?.status;
     switch (status) {
       case KycStatus.approved:
@@ -107,11 +113,19 @@ class _KycStatusBannerState extends State<KycStatusBanner> {
   }
 
   Future<void> _load() async {
+    // Public Sandbox requires no identity verification, so there is nothing to
+    // show and no reason to fetch the case (one canonical policy — no per-widget
+    // kIsWeb/sandbox checks). The KYC domain stays intact for a future Live.
+    if (!AppConfig.requiresIdentityVerification) {
+      if (mounted) setState(() { _content = null; _loaded = false; });
+      return;
+    }
     try {
       final kycCase = await _read();
       if (!mounted) return;
       setState(() {
-        _content = KycBannerContent.forCase(kycCase);
+        _content = KycBannerContent.forCase(
+            kycCase, requiresVerification: AppConfig.requiresIdentityVerification);
         _loaded = true;
       });
     } catch (_) {

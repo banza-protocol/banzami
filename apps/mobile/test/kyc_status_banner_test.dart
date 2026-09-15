@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:banzami_flutter/banzami_flutter.dart';
+import 'package:banzami_mobile/config.dart';
 import 'package:banzami_mobile/widgets/kyc_status_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,5 +84,37 @@ void main() {
     final src = File('lib/widgets/kyc_status_banner.dart').readAsStringSync();
     expect(src, contains('context.read<ConsumerPublicClient>()'));
     expect(src, isNot(contains('context.read<BanzamiClient>()')));
+  });
+
+  // ── Sandbox requires no identity verification (WEB-APP-001 §19/§20) ──────────
+  group('the banner is gated by the environment verification policy', () {
+    KycCase caseWith(String wire) => KycCase.fromJson({'id': 't', 'status': wire});
+
+    test('Public Sandbox (requiresVerification=false): hidden for every non-approved state', () {
+      expect(KycBannerContent.forCase(null, requiresVerification: false), isNull); // NOT_STARTED
+      for (final wire in const [
+        'WAITING_DOCUMENTS', 'DRAFT', 'UNDER_REVIEW', 'DOCUMENTS_RECEIVED',
+        'NEEDS_MORE_INFO', 'REJECTED', 'UNKNOWN',
+      ]) {
+        expect(KycBannerContent.forCase(caseWith(wire), requiresVerification: false), isNull,
+            reason: '\$wire must be hidden when verification is not required');
+      }
+    });
+
+    test('future Live (requiresVerification=true): shows for non-approved, hidden when approved', () {
+      expect(KycBannerContent.forCase(null, requiresVerification: true), isNotNull);
+      expect(KycBannerContent.forCase(caseWith('WAITING_DOCUMENTS'), requiresVerification: true), isNotNull);
+      expect(KycBannerContent.forCase(caseWith('APPROVED'), requiresVerification: true), isNull);
+    });
+
+    test('mutation guard: the policy is the only thing hiding it in Sandbox', () {
+      final c = caseWith('WAITING_DOCUMENTS');
+      expect(KycBannerContent.forCase(c, requiresVerification: false), isNull);
+      expect(KycBannerContent.forCase(c, requiresVerification: true), isNotNull);
+    });
+
+    test('AppConfig is the one policy source: Sandbox never requires verification', () {
+      expect(AppConfig.requiresIdentityVerification, !AppConfig.isSandbox);
+    });
   });
 }

@@ -27,6 +27,24 @@ abstract class AppConfig {
   /// True for sandbox / TestFlight builds. Enables sandbox badge, sandbox fund, etc.
   static bool get isSandbox => _environment == 'sandbox';
 
+  /// Canonical product policy: does the CURRENT environment require consumer
+  /// identity verification (KYC) as a precondition for moving money?
+  ///
+  ///   Public Sandbox → NOT required. Verification is non-blocking and its UI is
+  ///   hidden — Sandbox uses fictitious value only, and a Sandbox consumer
+  ///   registers, receives the test grant, sends/receives P2P, uses QR and test
+  ///   funding without any documents.
+  ///
+  ///   Financial Live → a FUTURE identity/KYC policy decides, subject to
+  ///   regulatory/operational approval. Live is not enabled today and fails
+  ///   closed regardless; this getter must not be read as a promise that KYC will
+  ///   never be required in Live.
+  ///
+  /// This is the ONE source the Consumer UI reads — no scattered kIsWeb/sandbox
+  /// checks in individual widgets. The underlying KYC domain (case model,
+  /// KycScreen, the banner's status rendering) is preserved for Live.
+  static bool get requiresIdentityVerification => !isSandbox;
+
   /// Classify an API base URL by environment, using the EXACT host:
   ///   api.banzami.com          → false (production / live)
   ///   sandbox-api.banzami.com  → true  (sandbox)

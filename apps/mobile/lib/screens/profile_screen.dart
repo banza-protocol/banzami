@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../config.dart';
+
 import '../services/session_service.dart';
 import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_premium_dialog.dart';
@@ -71,15 +73,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(builder: (_) => const SecurityScreen()),
                 ),
               ),
-              const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
-              _RowChevron(
-                icon:  Icons.verified_user_outlined,
-                label: 'Verificar identidade',
-                sub:   'KYC — aumentar limites',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const KycScreen()),
+              // Identity verification is a future-Live concern; the Public
+              // Sandbox does not require it, so this row is hidden there (one
+              // canonical policy — AppConfig.requiresIdentityVerification). The
+              // KycScreen itself is preserved for Live.
+              if (AppConfig.requiresIdentityVerification) ...[
+                const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
+                _RowChevron(
+                  icon:  Icons.verified_user_outlined,
+                  label: 'Verificar identidade',
+                  sub:   'KYC — aumentar limites',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const KycScreen()),
+                  ),
                 ),
-              ),
+              ],
               const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
               _RowChevron(
                 icon:  Icons.notifications_none_rounded,
