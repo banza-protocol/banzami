@@ -57,7 +57,7 @@ function WebGlyph() {
 
 function AppleGlyph() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="31" height="31" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M16.4 12.9c0-2 1.6-3 1.7-3-.9-1.4-2.4-1.5-2.9-1.6-1.2-.1-2.4.7-3 .7s-1.6-.7-2.6-.7c-1.3 0-2.6.8-3.2 2-1.4 2.4-.4 5.9 1 7.8.7.9 1.4 2 2.5 2 1 0 1.3-.6 2.5-.6s1.5.6 2.6.6 1.7-.9 2.4-1.8c.7-1 1-2 1-2.1-.1 0-2-.7-2-2.5zM14.6 6.9c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z" />
     </svg>
   );
@@ -65,7 +65,7 @@ function AppleGlyph() {
 
 function AndroidGlyph() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="29" height="29" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M6 9.5c-.6 0-1 .4-1 1v5c0 .6.4 1 1 1s1-.4 1-1v-5c0-.6-.4-1-1-1zm12 0c-.6 0-1 .4-1 1v5c0 .6.4 1 1 1s1-.4 1-1v-5c0-.6-.4-1-1-1zM7.5 9v8c0 .6.4 1 1 1H9v2.5c0 .6.4 1 1 1s1-.4 1-1V18h2v2.5c0 .6.4 1 1 1s1-.4 1-1V18h.5c.6 0 1-.4 1-1V9h-11zM8 8h8c0-1.7-1-3.1-2.5-3.8l.9-1.6c.1-.2 0-.4-.1-.5-.2-.1-.4 0-.5.1l-.9 1.7c-.5-.2-1-.3-1.6-.3s-1.1.1-1.6.3l-.9-1.7c-.1-.1-.3-.2-.5-.1-.1.1-.2.3-.1.5l.9 1.6C9 4.9 8 6.3 8 8zm2-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5zm4 0c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5z" />
     </svg>
   );
@@ -84,8 +84,20 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
   // One primary (Web) spanning the group's full width on row 1; the two native
   // testers equal-width on row 2, so their outer edges line up exactly with the
   // primary above (HERO_CTA_OUTER_EDGES_ALIGNED, HERO_NATIVE_CTA_DIMENSIONS_EQUAL).
+  //
+  // The two native testers are ONE component: identical premium dark surface,
+  // geometry, typography and shadow — the platform is told apart only by the
+  // white logo (NATIVE_CTA_BACKGROUND_DRIFT=0, ANDROID_CTA_WHITE_VARIANT=0). The
+  // fixed-width icon slot makes both titles start at the same x
+  // (NATIVE_CTA_TEXT_START_ALIGNMENT=PASS).
   const nativeBtn =
-    'group inline-flex items-center gap-3 rounded-[15px] px-4 py-[13px] text-left no-underline transition-transform hover:-translate-y-0.5';
+    'group inline-flex w-full items-center gap-3 rounded-[15px] px-4 py-[14px] text-left text-white no-underline ' +
+    'bg-gradient-to-b from-neutral-900 to-black shadow-[0_12px_26px_-16px_rgba(0,0,0,.55)] ' +
+    'transition-transform hover:-translate-y-0.5 ' +
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cherry';
+  const nativeIconSlot = 'flex w-8 shrink-0 items-center justify-center';
+  const nativeTitle = 'block text-[14px] font-extrabold';
+  const nativeSub = 'block text-[11px] font-semibold text-white/70';
 
   return (
     <>
@@ -110,28 +122,22 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
 
         {/* Row 2 — two equal native testers, outer edges aligned to the primary. */}
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => openFor('IOS')}
-            className={`${nativeBtn} bg-gradient-to-b from-neutral-900 to-black text-white shadow-[0_14px_30px_-16px_rgba(0,0,0,.55)]`}
-          >
-            <AppleGlyph />
+          <button type="button" onClick={() => openFor('IOS')} className={nativeBtn}>
+            <span className={nativeIconSlot}>
+              <AppleGlyph />
+            </span>
             <span className="leading-tight">
-              <span className="block text-[14px] font-extrabold">{t.ios}</span>
-              <span className="block text-[11px] font-semibold text-white/70">{t.iosSub}</span>
+              <span className={nativeTitle}>{t.ios}</span>
+              <span className={nativeSub}>{t.iosSub}</span>
             </span>
           </button>
-          <button
-            type="button"
-            onClick={() => openFor('ANDROID')}
-            className={`${nativeBtn} border border-border-soft bg-white text-ink shadow-[0_10px_26px_-16px_rgba(0,0,0,.35)]`}
-          >
-            <span className="text-[#3DDC84]">
+          <button type="button" onClick={() => openFor('ANDROID')} className={nativeBtn}>
+            <span className={nativeIconSlot}>
               <AndroidGlyph />
             </span>
             <span className="leading-tight">
-              <span className="block text-[14px] font-extrabold">{t.android}</span>
-              <span className="block text-[11px] font-semibold text-ink-muted">{t.androidSub}</span>
+              <span className={nativeTitle}>{t.android}</span>
+              <span className={nativeSub}>{t.androidSub}</span>
             </span>
           </button>
         </div>
