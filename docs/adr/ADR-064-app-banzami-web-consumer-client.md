@@ -37,8 +37,8 @@ only to the authorized Public Sandbox.
 3. **A thin BFF holds the credential.** The Consumer API issues a Bearer token.
    That token never reaches the browser. It lives AES-256-GCM-encrypted inside an
    HttpOnly, `SameSite=Lax` session cookie, opened only on the server; the browser
-   holds an opaque blob. Every Consumer call is made server-side by a Next.js
-   route handler (the BFF), which re-attaches the Bearer. The BFF does session
+   holds an opaque blob. Every Consumer call is made server-side by the BFF host, which re-attaches the
+   Bearer. The BFF does session
    mediation, CSRF, and Consumer-API forwarding — never ledger, balance or
    transfer logic. Core remains the sole financial authority. The BFF has no
    financial-table write authority.
@@ -71,6 +71,48 @@ admin.banzami.com      operator plane (BANZADMIN)
 sandbox-api.banzami.com/consumer   Consumer API (public-api)
 ```
 
+## Amendment (2026-09-15) — one Flutter codebase, three targets
+
+The *client* decision was revised during implementation. App Banzami Web is NOT a
+separate React/Next reimplementation of the Consumer UI. It is the **existing
+Flutter Consumer app** (`apps/mobile`, consumer flavour) compiled to the Web
+target (`flutter build web -t lib/main_consumer_web.dart`). One Consumer UI
+implementation serves iOS, Android and Web; there is no parallel web UI, no second
+design-token set, and no independent web wallet logic.
+
+- `CONSUMER_UI_SOURCE_UNIVERSE = ONE`; `INDEPENDENT_WEB_UI_IMPLEMENTATION = 0`.
+- The evaluated React/Next Consumer app was **retired** (`PARALLEL_CONSUMER_WEB_UI_IMPLEMENTATIONS = 0`).
+  Its BFF/session/CSRF pattern carried over — now as a lean Node host, not Next
+  route handlers.
+- **Platform adaptation happens only at the edges** (see
+  `docs/architecture/APP_BANZAMI_CLIENTS.md` for the adapter matrix). The shared
+  core is the screens, widgets, design system, navigation, models, formatters and
+  the `ConsumerPublicClient`. Only initialisation and transport differ:
+  - native pins TLS with `dart:io`; Web uses the browser TLS stack (a plain
+    credentialed `BrowserClient` — `main_consumer_web.dart`);
+  - native stores the Bearer in the platform keychain; **Web never holds the
+    Bearer** — the same-origin BFF seals it in an HttpOnly cookie and the browser
+    receives a worthless sentinel (`WEB_CONSUMER_BEARER_VISIBLE_TO_JS = 0`,
+    `WEB_FINANCIAL_AUTH_LOCAL_STORAGE = 0`);
+  - native re-locks with a local PIN / biometrics; on Web the session authority is
+    the cookie, so there is no local PIN re-lock (a native affordance) — a 401
+    returns to Welcome. Biometrics are native-only; WebAuthn/passkeys are the
+    future Web equivalent, not part of this milestone.
+- The BFF is a **narrow allow-listed forwarder** at `/consumer/*` (only the known
+  Consumer routes; no arbitrary upstream — `WEB_BFF_ARBITRARY_UPSTREAM_PROXY = 0`),
+  with double-submit CSRF on writes, session rotation at login, and cookie
+  clearing at logout. It is pure Node built-ins; it holds no financial-table write
+  authority.
+- The host also serves the compiled Flutter bundle same-origin with a
+  financial-app CSP (self-hosted CanvasKit — no external CDN; `frame-ancestors`
+  limited to the marketing origins). One reproducible build definition
+  (`apps/app-banzami/build-web.sh`) is shared by CI and the Docker image and fails
+  closed on an unknown environment.
+
+This strengthens, rather than changes, the ADR's identity and security decisions:
+one Consumer universe, the Bearer never in the browser, Core the sole financial
+authority, Financial Live fail-closed.
+
 ## Consequences
 
 - A returning consumer needs only `app.banzami.com`; the marketing page is not a
@@ -92,6 +134,10 @@ sandbox-api.banzami.com/consumer   Consumer API (public-api)
   a credential-theft surface. The BFF keeps it server-side.
 - **A new Web-specific Consumer service** — rejected: it would duplicate Core
   business logic and create a second financial authority. The BFF is a forwarder.
+- **A separate React/Next Consumer web app** — built as a proof, then rejected and
+  retired: a second UI implementation would drift from the native app and double
+  the maintenance of every Consumer screen. Compiling the existing Flutter app to
+  the Web target keeps one Consumer UI universe.
 
 ## Non-goals
 
