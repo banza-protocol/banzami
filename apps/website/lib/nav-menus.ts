@@ -40,7 +40,7 @@ export const navMenus: NavItem[] = [
     visualCaption: 'app banzami',
     links: [
       { label: 'Como funciona', href: '/#como-funciona', desc: 'Ler, confirmar, pago.' },
-      { label: 'App Banzami', href: '/produto#app', desc: 'Ainda não disponível nas lojas.' },
+      { label: 'App Banzami', href: '/produto#app', desc: 'Em testes no iPhone e Android.' },
       { label: 'Pagar por QR', href: '/produto#solucao', desc: 'Um QR por pagamento.' },
       { label: 'Pagar para um @banza', href: '/produto#solucao', desc: 'Um nome em vez de um IBAN.' },
       { label: 'Verificar um comprovativo', href: '/verificar', desc: 'Confirme uma referência.' },

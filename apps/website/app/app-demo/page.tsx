@@ -5,7 +5,7 @@ import { AppDemo } from '@/components/app/AppDemo';
 
 export const metadata: Metadata = {
   title: 'Demonstração da app',
-  description: 'Uma demonstração interativa dos ecrãs da app Banzami, com dados de exemplo. A app ainda não está nas lojas.',
+  description: 'Uma demonstração interativa dos ecrãs da app Banzami, com dados de exemplo. A app está em testes, para testers convidados.',
   alternates: { canonical: 'https://banzami.com/app-demo' },
 };
 

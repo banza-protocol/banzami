@@ -31,7 +31,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: 'Posso descarregar a app Banzami?',
-        a: 'Ainda não. A app Banzami não está disponível na App Store nem no Google Play.',
+        a: 'A App Banzami está em testes, para testers convidados no iPhone (TestFlight) e Android (Google Play) — ainda não está na App Store nem no Google Play para o público. Pode registar o interesse em /testes.',
       },
       {
         q: 'O Banzami guarda o meu dinheiro?',
