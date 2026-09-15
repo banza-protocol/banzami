@@ -30,14 +30,15 @@ class WebDesktopShell extends StatelessWidget {
   //   • DIRECT (app.banzami.com)  → the accepted application device shell, a tall
   //     390×844 iPhone-like viewport. This must NOT change.
   //   • HERO (?embed=phone)       → a deliberate product-showcase geometry: a
-  //     wider + shorter modern phone (440×782). The app lays out for real at
-  //     440 wide, so the balance, CTAs, banner and rows adapt naturally. It stays
-  //     unmistakably a portrait phone (height still well above width), never a
-  //     tablet, and shares the exact bezel / island / radius language.
+  //     gently wider, slightly shorter portrait phone (410×800). The app lays out
+  //     for real at 410 wide, so the balance, CTAs, banner and rows adapt
+  //     naturally. It stays unmistakably a normal portrait phone (height well
+  //     above width — not chunky, never a tablet), and shares the exact bezel /
+  //     island / radius language.
   static const double _phoneW = 390; // DIRECT: logical points the app lays out at
   static const double _phoneH = 844;
-  static const double _heroPhoneW = 440; // HERO: wider, shorter showcase viewport
-  static const double _heroPhoneH = 782;
+  static const double _heroPhoneW = 410; // HERO: gently wider, slightly shorter
+  static const double _heroPhoneH = 800;
   static const double _bezel = 14;
   static const double _outerRadius = 56;
   static const double _innerRadius = 44;
