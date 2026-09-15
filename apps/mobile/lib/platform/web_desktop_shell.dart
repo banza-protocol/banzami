@@ -60,13 +60,11 @@ class WebDesktopShell extends StatelessWidget {
         // blur) and pointer hit-testing is transformed correctly
         // (DEVICE_SHELL_POINTER_ALIGNMENT).
         final fitted = FittedBox(fit: BoxFit.contain, child: device);
-        // Two presentations:
-        //  • embed (homepage hero): the phone FILLS its iframe edge-to-edge — no
-        //    canvas, no margin — so the React container's size and rounded shadow
-        //    frame it (the premium look). Transparent, so the hero shows through.
-        //  • standalone (app.banzami.com): the phone floats on an off-white canvas
-        //    with a drop shadow, capped to a set size so it does not grow to fill
-        //    the whole window.
+        // ONE phone for both: it floats on its canvas with the same drop shadow,
+        // capped to the same size. The only difference is the canvas — the hero
+        // embed keeps it TRANSPARENT so the marketing hero shows through, the
+        // standalone paints an off-white gradient. So the hero phone is exactly
+        // the app.banzami.com phone.
         return DecoratedBox(
           decoration: BoxDecoration(
             gradient: embed
@@ -78,8 +76,12 @@ class WebDesktopShell extends StatelessWidget {
                   ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(embed ? 0.0 : 34.0),
+            padding: const EdgeInsets.all(34.0),
             child: Center(
+              // Same phone, size differs by surface: the standalone is capped so
+              // it does not fill the whole window; the hero embed is uncapped, so
+              // its on-page size is set by the React iframe container — the one
+              // thing that differs between the two.
               child: embed
                   ? fitted
                   : ConstrainedBox(
@@ -113,15 +115,12 @@ class _PhoneDevice extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0B),
           borderRadius: BorderRadius.circular(WebDesktopShell._outerRadius),
-          // Standalone floats on its canvas with a drop shadow. The embed fills
-          // its iframe edge-to-edge, so its shadow comes from the React container
-          // frame instead (a rounded shadow around the whole device).
-          boxShadow: embed
-              ? null
-              : const [
-                  BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
-                  BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
-                ],
+          // The same drop shadow in both surfaces — the hero phone is the same
+          // phone as app.banzami.com, only smaller.
+          boxShadow: const [
+            BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
+            BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(WebDesktopShell._bezel),
