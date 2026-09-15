@@ -18,7 +18,7 @@
 import {
   LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog,
   FileCheck, ScanFace, Inbox, ToggleLeft, ShieldCheck, Tags, Coins, HandCoins, PieChart,
-  SlidersHorizontal, ScrollText, Store, type LucideIcon,
+  SlidersHorizontal, ScrollText, Store, FlaskConical, type LucideIcon,
 } from 'lucide-react';
 import type { AttentionKey } from '@/lib/attention';
 
@@ -39,6 +39,7 @@ export const NAV: NavEntry[] = [
   { href: '/merchant-kyb', label: 'Documentos KYB', Icon: FileCheck, attentionKey: 'kyb_documents' },
   { href: '/consumer-kyc', label: 'Documentos KYC', Icon: ScanFace, attentionKey: 'kyc_documents' },
   { href: '/consumers', label: 'Consumidores', Icon: Users },
+  { href: '/beta-testers', label: 'Beta testers', Icon: FlaskConical },
   { href: '/settlements', label: 'Liquidações', Icon: Layers, attentionKey: 'settlements' },
   { href: '/payments', label: 'Levantamentos', Icon: CreditCard, attentionKey: 'payouts' },
   { href: '/proofs', label: 'Comprovativos', Icon: ShieldCheck },

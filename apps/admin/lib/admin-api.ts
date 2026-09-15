@@ -308,6 +308,44 @@ export interface Consumer {
   created_at:          string;
 }
 
+// Mobile beta tester (APP-BETA-001). Contact detail only — not a financial
+// identity, not a Developer resource, not environment-split.
+export interface BetaTester {
+  id:            string;
+  first_name:    string;
+  last_name:     string;
+  email:         string;
+  wants_ios:     boolean;
+  wants_android: boolean;
+  app_banzami:   boolean;
+  app_merchant:  boolean;
+  device_model?: string;
+  os_version?:   string;
+  country?:      string;
+  source?:       string;
+  status:        'PENDING' | 'INVITED' | 'ACTIVE' | 'REMOVED';
+  note?:         string;
+  created_at:    string;
+  updated_at:    string;
+  invited_at?:   string | null;
+  activated_at?: string | null;
+  removed_at?:   string | null;
+}
+
+export interface BetaTesterList {
+  testers: BetaTester[];
+  total:   number;
+}
+
+export interface BetaTesterFilter {
+  status?:   'PENDING' | 'INVITED' | 'ACTIVE' | 'REMOVED';
+  app?:      'APP_BANZAMI' | 'APP_MERCHANT';
+  platform?: 'IOS' | 'ANDROID';
+  q?:        string;
+  limit?:    number;
+  offset?:   number;
+}
+
 export interface RiskFlag {
   id:          string;
   entity_type: 'MERCHANT' | 'CONSUMER';
@@ -384,6 +422,20 @@ export interface AdminDispute {
 export const ADMIN_API_BASE = (
   process.env.NEXT_PUBLIC_ADMIN_API_URL ?? 'https://admin.banzami.com/api'
 ).replace(/\/+$/, '');
+
+// Build the beta-tester list/export query string. One place, so the list view
+// and the CSV export always filter identically.
+function betaQuery(f: { status?: string; app?: string; platform?: string; q?: string; limit?: number; offset?: number }): string {
+  const p = new URLSearchParams();
+  if (f.status) p.set('status', f.status);
+  if (f.app) p.set('app', f.app);
+  if (f.platform) p.set('platform', f.platform);
+  if (f.q && f.q.trim()) p.set('q', f.q.trim());
+  if (f.limit != null) p.set('limit', String(f.limit));
+  if (f.offset != null) p.set('offset', String(f.offset));
+  const s = p.toString();
+  return s ? `?${s}` : '';
+}
 
 export interface AuthedUser {
   id:        string;
@@ -925,6 +977,24 @@ export class AdminApi {
       headers: { 'Idempotency-Key': idempotencyKey },
       body:    JSON.stringify({ amount_minor: amountMinor, currency, reason }),
     });
+  }
+
+  // Mobile beta testers (APP-BETA-001). Not environment-split: one global
+  // registry the public site writes and the operator works from.
+  listBetaTesters(filter: BetaTesterFilter = {}): Promise<BetaTesterList> {
+    return this.req(`/admin/v1/beta-testers${betaQuery(filter)}`);
+  }
+  setBetaTesterStatus(id: string, status: 'INVITED' | 'ACTIVE' | 'REMOVED', note?: string): Promise<BetaTester> {
+    return this.req(`/admin/v1/beta-testers/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify(note !== undefined ? { status, note } : { status }),
+    });
+  }
+  /** Absolute URL for the CSV export of the current view. A same-origin GET the
+   *  browser sends the session cookie with; the download itself is a navigation,
+   *  not a fetch, so no CSRF token is needed (it is a read). */
+  betaExportUrl(filter: BetaTesterFilter = {}): string {
+    return `${this.base}/admin/v1/beta-testers/export.csv${betaQuery(filter)}`;
   }
 
   // Consumers
