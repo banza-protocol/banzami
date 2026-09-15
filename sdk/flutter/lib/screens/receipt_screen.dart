@@ -879,13 +879,45 @@ class _DetailRow extends StatelessWidget {
       fontFamily: mono ? BanzamiTextStyles.moneyFontFamily : null,
       letterSpacing: mono ? 0.2 : null,
     );
+
+    // The value pins to the row's trailing edge — as a whole for a short value
+    // (Align.centerRight, so it hugs the right instead of drifting to the middle
+    // of its column) and per line for a wrapping value (textAlign.right, so the
+    // date and the operation stay right-aligned on every line, not centred).
+    final Widget valueText = Text(
+      value,
+      style: valueStyle,
+      textAlign: TextAlign.right,
+      softWrap: true,
+    );
+
+    // Reference/copy row (§7): the value text and the small copy icon travel
+    // together at the right edge — the text right-aligns and wraps within the
+    // remaining width, the icon sits directly after it, no centre drift.
+    final Widget valueArea = trailing == null
+        ? Align(alignment: Alignment.centerRight, child: valueText)
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: valueText),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Icon(trailing,
+                    size: 15, color: Colors.white.withValues(alpha: 0.7)),
+              ),
+            ],
+          );
+
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label and value share the row: a long label ("Referência do
-          // comerciante") wraps instead of pushing the value off-screen.
+          // Labels are left-aligned and share one leading edge; a long label
+          // ("Referência do comerciante") wraps within its column instead of
+          // pushing the value off-screen. The value column owns the wider,
+          // trailing-aligned right side — the primary information.
           Flexible(
             flex: 2,
             child: Text(
@@ -896,20 +928,7 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: BanzamiSpacing.md),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: valueStyle,
-              textAlign: TextAlign.right,
-              softWrap: true,
-            ),
-          ),
-          if (trailing != null) ...[
-            const SizedBox(width: 6),
-            Icon(trailing,
-                size: 15, color: Colors.white.withValues(alpha: 0.7)),
-          ],
+          Expanded(flex: 3, child: valueArea),
         ],
       ),
     );
