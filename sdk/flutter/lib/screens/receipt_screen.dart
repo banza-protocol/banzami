@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../models/receipt.dart';
 import '../models/transfer.dart';
@@ -14,6 +11,7 @@ import '../utils/date_formatter.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/banzami_toast.dart';
 import '../utils/money_format.dart';
+import '../utils/pdf_share.dart';
 import '../utils/screen_security.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_verified_mark.dart';
@@ -330,21 +328,20 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
       return;
     }
     setState(() => _sharing = true);
-    File? file;
     try {
       final bytes = await widget.fetchReceiptPdf!();
-      final dir = await getTemporaryDirectory();
       final ref = _proofRef;
-      file = File(ref == null
-          ? '${dir.path}/Banzami-Comprovativo.pdf'
-          : '${dir.path}/Banzami-Comprovativo-$ref.pdf');
-      await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/pdf')],
+      // The OS share sheet on iOS/Android; a browser download on Web (no temp
+      // filesystem there — that path_provider call is what used to fail).
+      await sharePdfBytes(
+        bytes,
+        ref == null
+            ? 'Banzami-Comprovativo.pdf'
+            : 'Banzami-Comprovativo-$ref.pdf',
         subject: ref == null
             ? 'Comprovativo Banzami'
             : 'Comprovativo Banzami · $ref',
-        sharePositionOrigin: origin,
+        shareOrigin: origin,
       );
     } catch (_) {
       if (mounted) {
@@ -352,12 +349,6 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
             context, 'Não foi possível obter o comprovativo.');
       }
     } finally {
-      // Never accumulate PDFs — delete the temp file after sharing.
-      if (file != null) {
-        try {
-          await file.delete();
-        } catch (_) {}
-      }
       if (mounted) setState(() => _sharing = false);
     }
   }
@@ -551,17 +542,18 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           ),
                           onPressed: _done,
                         ),
-                        const Spacer(),
-                        Flexible(
+                        Expanded(
                           child: Text(
                             'Comprovativo',
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: BanzamiTextStyles.headingSm.copyWith(
                               color: Colors.white.withValues(alpha: 0.75),
                             ),
                           ),
                         ),
-                        const Spacer(),
+                        // Balances the close button so the title stays centred.
                         const SizedBox(width: 48),
                       ]),
                     ),
