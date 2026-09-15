@@ -256,7 +256,7 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
         prefixIcon: prefix == null
             ? null
             : Padding(
-                padding: const EdgeInsets.only(left: 20, right: 2),
+                padding: const EdgeInsets.only(left: 20, right: 0),
                 child: Text(
                   prefix,
                   style: BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),

@@ -402,7 +402,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                       decoration: InputDecoration(
                         // Always-visible '@' (prefixText is hidden until focus).
                         prefixIcon: Padding(
-                          padding: const EdgeInsets.only(left: 12, right: 2),
+                          padding: const EdgeInsets.only(left: 12, right: 0),
                           child: Text('@',
                               style: BanzamiTextStyles.bodyLg
                                   .copyWith(color: BanzamiColors.black)),
