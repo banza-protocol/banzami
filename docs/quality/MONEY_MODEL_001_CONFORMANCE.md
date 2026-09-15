@@ -44,7 +44,7 @@ with fictitious value and synthetic backing.
 | MONEY_MODEL_SANDBOX_E2E | PASS | `tests/phase0/money-model-e2e.sh` 114/114 (run 3 times) |
 | MONEY_MODEL_EXTERNAL_FAILURE_E2E | PASS | E2E G; cleanroom steps 15–17 |
 | RECONCILIATION_SCENARIOS | PASS | DB test; E2E J: MATCHED, DUPLICATE_EXTERNAL, MISSING_INTERNAL, MISSING_EXTERNAL, AMOUNT_MISMATCH, REQUIRES_REVIEW → converged |
-| MONEY_MODEL_PUBLIC_CLEANROOM | PASS | public cleanroom 32/32, residue 0; position before = after, findings `[]`, pending funding 0 |
+| MONEY_MODEL_PUBLIC_CLEANROOM | PASS | public cleanroom 32/32 on the final tree, residue 0; post-cleanroom position findings `[]`, pending cash-in 0 |
 | LIVE_REAL_MONEY_PATHS_ENABLED | 0 | wallet-native gate; Sandbox-only routes refuse LIVE |
 | FINANCIAL_LIVE_STATUS | NOT_READY | — |
 | FINANCIAL_LIVE_FAIL_CLOSED | PASS | acceptance `TEST_SCENARIO_LIVE_FAIL_CLOSED=PASS` |
@@ -127,7 +127,7 @@ Counters:
 | INTERNAL_TESTS_CAN_EXHAUST_PUBLIC_EMAIL_QUOTA | 0 | fixture email capped at 40/day; general suites send no email |
 | EMAIL_PROVIDER_QUOTA_FAILURE_OBSERVABLE | PASS | `reason` on the failure log + `otp.delivery_failed` audit; typed `ProviderError`/`DeliveryReason` (`delivery_error_test.go`) |
 | EMAIL_DELIVERY_FAILURE_FAILS_TRUTHFULLY | PASS | `CODE_NOT_SENT` 503, uniform, no provider/numbers (`TestRequestOTP_DeliveryFailureIsNotAnnouncedAsSent`) |
-| PUBLIC_DEVELOPER_EMAIL_AUTH_E2E | PENDING | blocked until the provider daily quota resets (00:00 UTC); to run on the final tree |
+| PUBLIC_DEVELOPER_EMAIL_AUTH_E2E | PASS | `auth-email-e2e.mjs` 6/6 on the final tree after the quota reset: request → provider accepted → OTP delivered → consumed → session → single-use → authenticates |
 | BL_APP_RUNTIME_CAN_REOPEN_RETIRED_PROJECT | 0 | live probe: DELETE/UPDATE `sandbox_retired_projects` and `sandbox_test_payers` → permission denied; SELECT and other writes intact; Core still retires (SANDBOX-DELETE 37/37) |
 
 Go mutation proofs (5): any address getting a fixture session; fixture sessions
@@ -135,9 +135,10 @@ in Live; a failed send announced as sent; the fixture budget removed; the
 fixture route outside the internal guard. Plus the DB-authority manifest→SQL
 drift check ties the `except_tables` exclusion to the generated grants.
 
-**Final SHAs:** money model core `87078805`, auth/email hardening `d2098e7b`,
-retirement-marker authority `037d353c`. CI green on `88dd85c4` and `d2098e7b`;
-`037d353c` (DB-authority only) in the final CI run.
+**Final money-model SHA:** `037d353c` (money model core `87078805`, auth/email
+hardening `d2098e7b`, retirement-marker authority `037d353c`) — CI green (run
+34908180980). The two real-email suites re-ran and passed on this tree once the
+provider daily quota reset at 00:00 UTC on 2026-09-15.
 
 ## Not in this milestone
 
