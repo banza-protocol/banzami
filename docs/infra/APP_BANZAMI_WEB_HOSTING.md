@@ -2,62 +2,41 @@
 
 Version: 1.0 · WEB-APP-001 (ADR-064).
 
-> **LIVE since 2026-09-15.** `https://app.banzami.com` serves the real Flutter
-> Consumer app with the opaque server-side session, verified end-to-end over the
-> public path (register → 10 000 Kz grant → opaque cookie, no JWT in JS →
-> logout revocation; TLS floor 1.2, Full (strict); CSP/HSTS/noindex).
+> **LIVE and blueprint-managed since 2026-09-15.** `https://app.banzami.com`
+> serves the real Flutter Consumer app with the opaque server-side session,
+> verified end-to-end over the public path (register → 10 000 Kz grant → opaque
+> cookie, no JWT in JS → logout revocation; TLS floor 1.2, Full (strict);
+> CSP/HSTS/noindex).
 >
-> **What is deployed (and the follow-up to make it blueprint-managed):** the
-> cutover was done as **standalone containers** on the sandbox host, not yet
-> through `./deploy.sh`:
-> - `bzsb-app-frontend` (image `app-banzami-web:v1`, built from this repo's
->   `apps/app-banzami/Dockerfile`) on the app network, env
->   `CONSUMER_API_BASE=http://…-public-api-staging:8083` (internal; the edge
->   strips `/consumer`), `SESSION_REDIS_ADDR=bzsb-app-session-redis:6379`,
->   `APP_WEB_SESSION_STORE_KEY` from `/root/app-banzami-web.env` (root-only);
-> - `bzsb-app-session-redis` (dedicated app-plane session store — the stack
->   `redis` is data-plane-only and a frontend must not sit on the DB network);
-> - an additive edge block `/etc/nginx/conf.d/zz-app-banzami.conf` on
->   `bzsbedge-sandbox-edge` (validated with `nginx -t` before reload);
-> - Cloudflare: DNS `A app → 217.160.9.248` (proxied) and the `:2053` Origin
->   Rule (`0b6455ac…`, ruleset version 9) now includes `app.banzami.com`.
+> **Canonical deployment.** `app-frontend` is a first-class Sandbox service:
+> `./deploy.sh app-frontend` bundles the commit, builds it natively on the amd64
+> server (repo-root context → the Flutter Web target + the Node host), and
+> `sandbox-deploy.sh deploy-one` creates/redeploys it. It runs on the application
+> plane only, mounts ONE non-financial secret (the at-rest session-store key,
+> `keep_or_mint_key32` — minted once, never rotated, so a normal deploy never
+> invalidates live sessions), and owns a dedicated app-plane session Redis
+> (`<project>-app-session-redis`; losing it only logs Web sessions out). Redeploy
+> is proven session-surviving; the other sandbox hosts are untouched.
 >
-> **Follow-up (durability):** wire `app-frontend` into the blueprint
-> (`SANDBOX_SERVICES`, the `remote-native-build.sh` build map with **repo-root
-> context**, the validator allow-lists, the compose orchestration, and `SB_APP`
-> so the edge's staged block is used) — otherwise a blueprint redeploy would
-> re-render the edge without the app block and not recreate these standalone
-> containers.
-
-App Banzami Web is the shared Flutter Consumer app compiled to the Web target,
-served by a lean Node host (`apps/app-banzami`) that is also the same-origin
-session BFF. Bringing it live at `app.banzami.com` is the one step that needs
-owner infrastructure access. This runbook is the exact checklist; nothing here
-is destructive.
-
-## What is already in place
-
-- The Flutter Web target (`flutter build web -t lib/main_consumer_web.dart
-  --no-web-resources-cdn`), proven booting and transacting against the live
-  Sandbox through the BFF (register → 10 000 Kz grant → Home → P2P → logout).
-- The host: `server.mjs` + `lib/bff.mjs` + `lib/session_store.mjs` (pure Node
-  built-ins — no npm install), serving the bundle same-origin and mediating
-  `/consumer/*` with an **opaque server-side session** (Redis or file store,
-  Bearer never in the cookie), allow-list, CSRF, rotation, idle/absolute timeout
-  and server-side revocation at logout. Unit tests in `test/` (`node --test`, 11).
-- One reproducible build definition, `apps/app-banzami/build-web.sh`, shared by
-  CI and the Docker image; it fails closed on an unknown environment.
-- The Dockerfile builds the Web target from the shared Flutter sources and runs
-  the Node host. **Its build context is the repository root** (it needs
-  `sdk/flutter` and `apps/mobile`):
-  `docker build -f apps/app-banzami/Dockerfile -t app-banzami-web .`
-- The edge server block for `app.banzami.com` is staged in
-  `infra/nginx/sandbox-edge.conf.template` (variable upstream `${SB_APP}`,
-  wildcard cert). An absent upstream only 502s this host; the edge still starts.
-- TLS: `app.banzami.com` is covered by the existing `*.banzami.com` wildcard cert
-  and the Cloudflare zone's TLS 1.2 floor — no new certificate is needed.
-- `/healthz` returns readiness only (no session, consumer, secret or upstream
-  detail) for the container HEALTHCHECK and the edge.
+> **Cloudflare (infra truth — do not rely on chat history):**
+> - DNS `A app.banzami.com → 217.160.9.248`, **Proxied**, TTL auto (record
+>   `3b22a13eba8a686a932eb8d70593c2cc`).
+> - Origin Rule ruleset `215b731da0d54cbabb56f2be052ede09`, rule
+>   `0b6455ac2dbb40f1ba3071835d389c4f` ("Sandbox hosts → :2053") now includes
+>   `app.banzami.com`; the website/developers rules (:8443) are untouched.
+> - SSL/TLS **Full (strict)**; the wildcard Cloudflare Origin CA (`*.banzami.com`)
+>   already covers app. Verified: TLS 1.0 refused, 1.2/1.3 OK.
+>
+> **Known follow-up — the edge block is still additive, not generated.** The
+> `app.banzami.com` server block is currently a hand-added
+> `conf.d/zz-app-banzami.conf` on `bzsbedge-sandbox-edge` (pointing at the
+> canonical container), because the **deployed edge config has drifted ahead of
+> the repo** (it serves `admin.banzami.com` via `SB_ADMIN_API`/`SB_ADMIN_APP`
+> that the committed `docker-compose.sandbox-edge.yml` does not yet declare).
+> Re-rendering the edge from the repo would drop admin, so the additive block is
+> the safe interim. Moving app into the generated render (`SB_APP` is now declared
+> in the compose; the template already has the block) must be done together with
+> reconciling that pre-existing admin drift, during a deliberate edge redeploy.
 
 ## Verified infrastructure (inspected 2026-09-15, not assumed)
 
