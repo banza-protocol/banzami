@@ -33,6 +33,14 @@ class WebDesktopShell extends StatelessWidget {
   static const double _bottomSafe = 26; // home-indicator area
   static const double _wideBreakpoint = 640;
 
+  // The homepage hero renders the phone inside a 392×744 frame with a 34 margin
+  // each side, so the device fits a 324×676 slot. Cap the shell to that slot so
+  // app.banzami.com shows the phone at the SAME width as the hero, rather than
+  // growing to fill the whole window. The embed is already within this on every
+  // viewport (its iframe is ≤392), so only the standalone view is brought down.
+  static const double _maxSlotW = 324;
+  static const double _maxSlotH = 676;
+
   static bool get _embedPhone {
     if (!kIsWeb) return false;
     return Uri.base.queryParameters['embed'] == 'phone';
@@ -67,11 +75,18 @@ class WebDesktopShell extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(34.0),
             child: Center(
-              // Scale the whole device (bezel + app) to fit, keeping aspect.
-              // FittedBox is a Flutter transform: CanvasKit re-rasterises at
-              // device pixels (no blur) and pointer hit-testing is transformed
-              // correctly (DEVICE_SHELL_POINTER_ALIGNMENT).
-              child: FittedBox(fit: BoxFit.contain, child: device),
+              // Cap the device to the hero's slot so the standalone view matches
+              // the homepage phone width instead of filling the window. On a
+              // smaller area the FittedBox shrinks it further (contain).
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                    maxWidth: _maxSlotW, maxHeight: _maxSlotH),
+                // Scale the whole device (bezel + app) to fit, keeping aspect.
+                // FittedBox is a Flutter transform: CanvasKit re-rasterises at
+                // device pixels (no blur) and pointer hit-testing is transformed
+                // correctly (DEVICE_SHELL_POINTER_ALIGNMENT).
+                child: FittedBox(fit: BoxFit.contain, child: device),
+              ),
             ),
           ),
         );
