@@ -46,6 +46,10 @@ svc_build_spec() {
     # its API origin at build time because NEXT_PUBLIC_* is read by client bundles.
     admin-api)             echo "$REL/services|$REL/services/admin-api/Dockerfile|8082" ;;
     admin-frontend)        echo "$REL/apps/admin|$REL/apps/admin/Dockerfile|3002" ;;
+    # app-frontend — App Banzami Web. UNLIKE the others its build context is the
+    # REPOSITORY ROOT: the image builds the Flutter Web target from the shared
+    # sources (sdk/flutter + apps/mobile) and then packages the Node BFF host.
+    app-frontend)          echo "$REL|$REL/apps/app-banzami/Dockerfile|3007" ;;
     *) return 1 ;;
   esac
 }

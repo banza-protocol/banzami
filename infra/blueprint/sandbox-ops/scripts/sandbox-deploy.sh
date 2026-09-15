@@ -53,6 +53,13 @@ SERVICES=(
   # would have reported Sandbox balances and compliance cases as real money.
   "admin-api|8082|admin-api"
   "admin-frontend|3002|node server.js"
+  # app-frontend — App Banzami Web (WEB-APP-001). The Flutter Consumer app
+  # compiled to the Web target, served behind a same-origin session BFF. Unlike
+  # pay-frontend it holds ONE secret — the at-rest key that encrypts the opaque
+  # server-side session record — but no database URL, no Core credential, and it
+  # never joins the data plane. The third field is what the entrypoint execs:
+  # `node server.mjs` (an ES-module Node host), never `node` alone.
+  "app-frontend|3007|node server.mjs"
 )
 # Services that must never exist in this project.
 #
@@ -321,6 +328,12 @@ secret_exports_for() {
         resend_api_key:RESEND_API_KEY \
         admin_mfa_encryption_key:WEBHOOK_ENCRYPTION_KEY
       ;;
+    app-frontend)
+      # One non-financial secret: the AES-256-GCM key that seals the opaque
+      # session record (holding the upstream Consumer Bearer) at rest. It cannot
+      # move money; it only makes a Redis dump reveal ciphertext.
+      printf '%s\n' app_web_session_store_key:APP_WEB_SESSION_STORE_KEY
+      ;;
   esac
   return 0
 }
@@ -574,6 +587,22 @@ release_config_env() {
       [ -n "$gw" ] || gw="${BZSB_PROJECT:-}-api-gateway-staging"
       echo "GATEWAY_INTERNAL_URL=http://${gw}:8080"
       ;;
+    app-frontend)
+      # Non-secret config, re-applied on every deploy so a later change reaches a
+      # cloned container. NODE_ENV=production makes the host fail closed without
+      # the session-store key. CONSUMER_API_BASE is the INTERNAL public-api (the
+      # edge strips /consumer; the BFF appends /v1/...), resolved from the running
+      # container so a single-service swap does not depend on BZSB_PROJECT. The
+      # session Redis is the dedicated app-plane one created at first deploy.
+      echo "NODE_ENV=production"
+      local afp afr
+      afp="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
+      [ -n "$afp" ] || afp="${BZSB_PROJECT:-}-public-api-staging"
+      echo "CONSUMER_API_BASE=http://${afp}:8083"
+      afr="$(docker ps --format '{{.Names}}' | grep -E -- '-app-session-redis$' | head -1 || true)"
+      [ -n "$afr" ] || afr="${BZSB_PROJECT:-}-app-session-redis"
+      echo "SESSION_REDIS_ADDR=${afr}:6379"
+      ;;
   esac
 }
 
@@ -601,6 +630,61 @@ cmd_deploy_one() {
   #                   internal routes, so it gets the same file-only mounts and
   #                   the same in-process export the other services use — never
   #                   a credential in `-e`, which docker inspect would print.
+  # app-frontend first create — App Banzami Web (WEB-APP-001). Application plane
+  # like the other browser apps, but it is a BFF: it mounts ONE non-financial
+  # secret (the session-store key) and owns a dedicated app-plane session Redis.
+  # Losing that Redis logs Web sessions out and nothing more — a safe failure
+  # mode, never a financial one. No database, no Core credential, no data plane.
+  if [ -z "$cname" ] && [ "$name" = "app-frontend" ]; then
+    local proj appnet secret_dir core_c papi sredis
+    proj="$(docker ps --format '{{.Names}}' | grep -oE '^bzsandbox-[0-9]+-[0-9]+-[0-9]+' | head -1)"
+    [ -n "$proj" ] || die "no bootstrapped Sandbox project found"
+    appnet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-app-' | head -1)"
+    [ -n "$appnet" ] || die "no Sandbox application network found"
+    cname="${proj}-app-frontend"
+    core_c="$(docker ps --format '{{.Names}}' | grep -E -- '-core-api-staging$' | head -1)"
+    [ -n "$core_c" ] || die "core-api-staging is not running — cannot locate the Sandbox secret directory"
+    secret_dir="$(docker inspect "$core_c" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' \
+      | grep '/run/secrets/core_internal_key:' | head -1 | sed 's#/core_internal_key:.*##')"
+    [ -n "$secret_dir" ] && [ -d "$secret_dir" ] || die "cannot locate the Sandbox credential directory"
+    assert_secret_modes "$secret_dir"
+    # The at-rest session-store key: minted once and NEVER rotated (keep_or_mint_key32),
+    # because every opaque session record is sealed under it — a new key would
+    # invalidate every signed-in Web session at the next deploy.
+    keep_or_mint_key32 "$secret_dir/app_web_session_store_key" app_web_session_store_key
+    # A dedicated app-plane session Redis: no host port, app network only. The
+    # stack Redis is data-plane; a frontend must not sit on the DB network.
+    sredis="${proj}-app-session-redis"
+    if ! docker ps --format '{{.Names}}' | grep -qx "$sredis"; then
+      docker rm -f "$sredis" >/dev/null 2>&1 || true
+      docker run -d --name "$sredis" --restart unless-stopped --network "$appnet" \
+        --security-opt "no-new-privileges:true" \
+        --label "$LABEL=1" --label "$LABEL.run=$proj" --label "$LABEL.service=app-session-redis" \
+        redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99 \
+        redis-server --save "" --appendonly no >/dev/null 2>&1 \
+        || { echo "  app-session-redis create FAIL"; return 1; }
+      echo "  app-session-redis created on $appnet (app plane, no host port)"
+    fi
+    papi="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
+    [ -n "$papi" ] || papi="${proj}-public-api-staging"
+    echo "  $name first create on $appnet (application plane; session-store key only)"
+    docker create --name "$cname" --network "$appnet" \
+      --security-opt "no-new-privileges:true" --restart unless-stopped \
+      --label "$LABEL=1" --label "$LABEL.run=$proj" --label "$LABEL.service=$name" \
+      -v "$secret_dir/app_web_session_store_key:/run/secrets/app_web_session_store_key:ro" \
+      -e "NODE_ENV=production" -e "PORT=$port" -e "HOSTNAME=0.0.0.0" \
+      -e "CONSUMER_API_BASE=http://${papi}:8083" \
+      -e "SESSION_REDIS_ADDR=${sredis}:6379" \
+      --entrypoint sh "$tag" -c "$(secret_entrypoint app-frontend "$bin")" >/dev/null 2>&1 \
+      || { echo "  $name first create FAIL"; return 1; }
+    docker start "$cname" >/dev/null 2>&1 || { echo "  $name first start FAIL"; return 1; }
+    local c=0 st
+    while :; do st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohc{{end}}' "$cname" 2>/dev/null)"
+      [ "$st" = healthy ] && { echo "  $name deployed_and_healthy PASS"; return 0; }
+      [ "$st" = nohc ] && { docker exec "$cname" true >/dev/null 2>&1 && { echo "  $name deployed PASS (no healthcheck)"; return 0; }; }
+      c=$((c+1)); [ "$c" -gt 45 ] && { echo "  $name first create FAIL (health timeout)"; docker logs --tail 20 "$cname" 2>&1 | sed 's/^/    /'; return 1; }; sleep 2
+    done
+  fi
   if [ -z "$cname" ] && { [ "$name" = "pay-frontend" ] || [ "$name" = "admin-frontend" ] || [ "$name" = "admin-api" ]; }; then
     local proj appnet datanet
     proj="$(docker ps --format '{{.Names}}' | grep -oE '^bzsandbox-[0-9]+-[0-9]+-[0-9]+' | head -1)"
