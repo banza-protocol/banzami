@@ -177,9 +177,11 @@ Rules:
   other obsolete Sandbox identity. The authority for what survives is the
   allowlist in `ops/canonical-resources.yaml` (`consumers:`), enforced live by
   `tools/check-consumer-residue.mjs`; the retirement runs through
-  `tools/ops/retire-synthetic-residue.sh`. After the retired rows are gone,
-  migration `0152` VALIDATEs the `0151` constraint so the database guarantees
-  every remaining consumer has a declared name. This is a **Sandbox-specific**
+  `tools/ops/retire-synthetic-residue.sh`. Migration `0152` then replaces the
+  unconditional `0151` constraint with an ACTIVE-scoped, validated one, so the
+  database guarantees every **ACTIVE** consumer has a declared name while retired
+  nameless rows are tolerated as immutable history (never backfilled). This is a
+  **Sandbox-specific**
   decision and says nothing about future Financial Live customer migration or
   regulated record retention, which are separate policies (Live is not enabled).
 
