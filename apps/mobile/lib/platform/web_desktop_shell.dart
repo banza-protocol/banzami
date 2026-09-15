@@ -65,19 +65,11 @@ class WebDesktopShell extends StatelessWidget {
         //  • standalone (app.banzami.com) — the whole device, capped and centred
         //    on its off-white canvas with a drop shadow.
         final Widget content = embed
-            // SizedBox.expand forces TIGHT constraints on the FittedBox. Without
-            // it the guard's Stack passes loose constraints, and FittedBox then
-            // shrinks to the device's own aspect (behaving like contain) instead
-            // of filling the iframe width — the phone rendered narrow.
-            ? SizedBox.expand(
-                child: ClipRect(
-                  child: FittedBox(
-                    fit: BoxFit.fitWidth,
-                    alignment: Alignment.topCenter,
-                    child: device,
-                  ),
-                ),
-              )
+            // Hero embed: the WHOLE device, contain-fit (never cropped). The
+            // React iframe is sized to the device's aspect ratio, so contain
+            // fills it edge-to-edge with the complete phone — top bezel to bottom
+            // bezel — visible. Its on-page size is driven by the container.
+            ? Center(child: FittedBox(fit: BoxFit.contain, child: device))
             : Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
