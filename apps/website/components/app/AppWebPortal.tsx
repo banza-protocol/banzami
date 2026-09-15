@@ -19,10 +19,14 @@ const EMBED_URL = 'https://app.banzami.com/?embed=phone';
 export function AppWebPortal() {
   return (
     <div className="flex w-full flex-col items-center">
-      {/* Desktop / tablet: the live Flutter phone, reduced proportionally onto
-          the hero. Transparent frame — the device's own bezel and shadow are
-          drawn by the Flutter shell, so it looks identical to app.banzami.com. */}
-      <div className="relative hidden aspect-[418/872] h-[clamp(496px,74vh,730px)] max-w-full sm:block">
+      {/* Desktop / tablet: the live Flutter phone in the HERO showcase geometry —
+          a wider + shorter portrait device (shell aspect 468/810, vs the direct
+          app's tall 418/872). The Flutter app lays out for real at that wider
+          viewport, so nothing is stretched. Sized to leave intentional breathing
+          space above and below (it does not fill the viewport height), staying
+          within one screen with no hero scroll. Transparent frame — bezel/island
+          are drawn by the Flutter shell. */}
+      <div className="relative hidden aspect-[468/810] h-[clamp(460px,calc(100vh-190px),780px)] max-w-full sm:block">
         <iframe
           title="App Banzami Web · Sandbox"
           src={EMBED_URL}

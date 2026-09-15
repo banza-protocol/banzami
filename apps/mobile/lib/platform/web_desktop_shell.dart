@@ -23,9 +23,21 @@ class WebDesktopShell extends StatelessWidget {
 
   final Widget child;
 
-  // ── Device geometry (one canonical spec, iPhone-like proportions) ───────────
-  static const double _phoneW = 390; // logical points the app lays out at
+  // ── Device geometry ─────────────────────────────────────────────────────────
+  // Two portrait phone geometries, ONE Flutter app (same widgets, same design
+  // system — only the logical viewport differs, so the app performs a REAL
+  // responsive layout at each; nothing is ever stretched or scaled non-uniformly):
+  //   • DIRECT (app.banzami.com)  → the accepted application device shell, a tall
+  //     390×844 iPhone-like viewport. This must NOT change.
+  //   • HERO (?embed=phone)       → a deliberate product-showcase geometry: a
+  //     wider + shorter modern phone (440×782). The app lays out for real at
+  //     440 wide, so the balance, CTAs, banner and rows adapt naturally. It stays
+  //     unmistakably a portrait phone (height still well above width), never a
+  //     tablet, and shares the exact bezel / island / radius language.
+  static const double _phoneW = 390; // DIRECT: logical points the app lays out at
   static const double _phoneH = 844;
+  static const double _heroPhoneW = 440; // HERO: wider, shorter showcase viewport
+  static const double _heroPhoneH = 782;
   static const double _bezel = 14;
   static const double _outerRadius = 56;
   static const double _innerRadius = 44;
@@ -107,8 +119,12 @@ class _PhoneDevice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const w = WebDesktopShell._phoneW + WebDesktopShell._bezel * 2;
-    const h = WebDesktopShell._phoneH + WebDesktopShell._bezel * 2;
+    // Hero uses the wider/shorter showcase viewport; the direct app keeps the
+    // accepted tall geometry. Bezel/island/radius language is shared.
+    final screenW = embed ? WebDesktopShell._heroPhoneW : WebDesktopShell._phoneW;
+    final screenH = embed ? WebDesktopShell._heroPhoneH : WebDesktopShell._phoneH;
+    final w = screenW + WebDesktopShell._bezel * 2;
+    final h = screenH + WebDesktopShell._bezel * 2;
     return SizedBox(
       width: w,
       height: h,
@@ -135,8 +151,8 @@ class _PhoneDevice extends StatelessWidget {
             borderRadius: BorderRadius.circular(WebDesktopShell._innerRadius),
             // DEVICE_SHELL_CONTENT_OVERFLOW=0: the app is clipped to the screen.
             child: SizedBox(
-              width: WebDesktopShell._phoneW,
-              height: WebDesktopShell._phoneH,
+              width: screenW,
+              height: screenH,
               child: Stack(
                 children: [
                   // The REAL app. It believes it is a notched phone: the safe
@@ -145,7 +161,7 @@ class _PhoneDevice extends StatelessWidget {
                   Positioned.fill(
                     child: MediaQuery(
                       data: MediaQuery.of(context).copyWith(
-                        size: const Size(WebDesktopShell._phoneW, WebDesktopShell._phoneH),
+                        size: Size(screenW, screenH),
                         padding: const EdgeInsets.only(
                           top: WebDesktopShell._topSafe,
                           bottom: WebDesktopShell._bottomSafe,

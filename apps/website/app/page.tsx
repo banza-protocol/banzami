@@ -87,27 +87,44 @@ export default function HomePage() {
       <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[78px] md:flex md:min-h-[100svh] md:flex-col md:justify-center md:pb-[clamp(16px,3vh,40px)]">
         <div className="pointer-events-none absolute -right-[120px] -top-[120px] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.7),rgba(251,210,208,0)_66%)]" />
         <div className="pointer-events-none absolute -left-[160px] top-[240px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.12),rgba(232,67,75,0)_66%)]" />
-        <div className="bz-herogrid relative mx-auto grid w-full max-w-container grid-cols-1 items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
+        <div className="bz-herogrid relative mx-auto grid w-full max-w-[1240px] grid-cols-1 items-center gap-12 md:grid-cols-[1fr_1.02fr] lg:gap-16">
+          {/* Left column — three deliberate art-direction zones read as one
+              vertically-centred block against the wider/shorter showcase phone:
+                ZONE A · STORY     — badge + headline + body + environment status
+                ZONE B · ACTION    — the Web / native CTAs (HeroBetaCTA)
+                ZONE C · ECOSYSTEM — the connected-entities rail.
+              Inter-zone spacing is height-aware but BOUNDED (clamp with vh), so
+              the ecosystem sits a comfortable distance below the CTAs with real
+              breathing room beneath it — it is not glued to the column's foot. */}
           <div>
-            <span className="mb-[clamp(10px,2vh,22px)] inline-flex items-center gap-2 rounded-pill bg-white px-3.5 py-1.5 text-[12.5px] font-extrabold text-cherry shadow-[0_5px_14px_-8px_rgba(181,16,31,.28)]">
-              <LiveDot size={8} />Pagamentos em Kwanza, de carteira para carteira
-            </span>
-            <h1 className="m-0 text-[clamp(34px,1.7vw+1.9vh,56px)] font-black leading-[1.03] tracking-[-0.03em] text-ink">
-              O novo caminho do Kwanza.
-            </h1>
-            <p className="m-0 mt-[clamp(10px,1.6vh,20px)] max-w-[568px] text-[clamp(15px,0.55vw+0.8vh,18px)] font-semibold leading-[1.5] text-ink-secondary">
-              O Banzami está a construir uma plataforma financeira nativa de carteira, em que pessoas, negócios e aplicações movem valor numa
-              rede programável, com interoperabilidade com os rails financeiros externos. Construída sobre o protocolo BANZA. Cada
-              conta é uma carteira em Kwanza; paga-se por QR ou para um{' '}
-              <span className="bz-mono font-semibold text-cherry">@banza</span>, com um comprovativo que qualquer
-              pessoa pode verificar.
-            </p>
-            <p data-testid="home-environment-status" className="m-0 mt-[clamp(8px,1.2vh,14px)] max-w-[568px] text-[12.5px] font-semibold leading-[1.45] text-ink-muted">
-              Hoje está disponível a {PUBLIC_TRUTH.sandbox.name}, para developers, com dinheiro fictício.{' '}
-              {PUBLIC_TRUTH.live.summary}
-            </p>
+            {/* ZONE A · STORY */}
+            <div>
+              <span className="mb-[clamp(10px,2vh,22px)] inline-flex items-center gap-2 rounded-pill bg-white px-3.5 py-1.5 text-[12.5px] font-extrabold text-cherry shadow-[0_5px_14px_-8px_rgba(181,16,31,.28)]">
+                <LiveDot size={8} />Pagamentos em Kwanza, de carteira para carteira
+              </span>
+              <h1 className="m-0 text-[clamp(34px,1.7vw+1.9vh,56px)] font-black leading-[1.03] tracking-[-0.03em] text-ink">
+                O novo caminho do Kwanza.
+              </h1>
+              <p className="m-0 mt-[clamp(10px,1.6vh,20px)] max-w-[568px] text-[clamp(15px,0.55vw+0.8vh,18px)] font-semibold leading-[1.5] text-ink-secondary">
+                O Banzami está a construir uma plataforma financeira nativa de carteira, em que pessoas, negócios e aplicações movem valor numa
+                rede programável, com interoperabilidade com os rails financeiros externos. Construída sobre o protocolo BANZA. Cada
+                conta é uma carteira em Kwanza; paga-se por QR ou para um{' '}
+                <span className="bz-mono font-semibold text-cherry">@banza</span>, com um comprovativo que qualquer
+                pessoa pode verificar.
+              </p>
+              <p data-testid="home-environment-status" className="m-0 mt-[clamp(8px,1.2vh,14px)] max-w-[568px] text-[12.5px] font-semibold leading-[1.45] text-ink-muted">
+                Hoje está disponível a {PUBLIC_TRUTH.sandbox.name}, para developers, com dinheiro fictício.{' '}
+                {PUBLIC_TRUTH.live.summary}
+              </p>
+            </div>
+
+            {/* ZONE B · ACTION — bounded STORY→ACTION separation lives on the
+                CTA group's own margin (HeroBetaCTA). */}
             <HeroBetaCTA lang="pt" />
-            <div className="mt-[clamp(12px,2.2vh,28px)] max-w-[540px]">
+
+            {/* ZONE C · ECOSYSTEM — bounded gap below the CTAs, with breathing
+                room beneath (never glued to the very bottom). */}
+            <div className="mt-[clamp(24px,4vh,48px)] max-w-[540px]">
               <p className="m-0 mb-2 text-[11.5px] font-black tracking-[0.08em] text-ink-muted">EMPRESAS E APLICAÇÕES LIGADAS AO BANZAMI</p>
               {/* Auto-scroll marquee — same behaviour as the produto "A APP" rail
                   (AppJourney): pauses on hover, touch or keyboard focus, resumes
