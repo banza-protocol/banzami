@@ -76,6 +76,9 @@ export 'models/qr_payment.dart';
 // Theme
 export 'theme/banzami_theme.dart';
 
+// Policy
+export 'policy/app_privacy_policy.dart';
+
 // Utils
 export 'utils/banzami_toast.dart';
 export 'utils/camera_permission.dart';

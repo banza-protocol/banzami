@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:banzami_flutter/banzami_flutter.dart' show AppPrivacyPolicy;
 
 import '../branding_assets.dart';
 import '../services/session_service.dart';
@@ -103,6 +104,10 @@ class SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
   }
 
   void _showPrivacy() {
+    // The background privacy shield is a product-policy choice. In the current
+    // Sandbox it is OFF, so losing focus (app switch, Control Center, a hidden
+    // browser tab) never covers the app with "Banzami protegido".
+    if (!AppPrivacyPolicy.active.backgroundPrivacyShieldEnabled) return;
     if (!_privacyVisible) setState(() => _privacyVisible = true);
   }
 
@@ -114,6 +119,18 @@ class SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
       return;
     }
     _didReachPaused = false;
+
+    // Foreground relock is a product-policy choice. In the current Sandbox it is
+    // OFF: returning from the background is NOT a security event, so a still-valid
+    // session simply resumes with no PIN. Real auth still applies elsewhere — the
+    // cold-start PIN, session expiry and revocation (via [triggerUnlock]) and
+    // logout are untouched (BACKGROUND_ONLY_PIN_RELOCK=0).
+    if (!AppPrivacyPolicy.active.foregroundRelockEnabled) {
+      debugPrint('[APP-LOCK] _onResumed: foreground relock disabled by policy → resume, no PIN');
+      _pausedAt = null;
+      if (mounted && _privacyVisible) setState(() => _privacyVisible = false);
+      return;
+    }
 
     final ctx = widget.navigatorKey.currentContext;
     final svc = ctx?.read<SessionService>();
@@ -305,6 +322,11 @@ class SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
 
 // =============================================================================
 // Privacy overlay  —  build marker: APPLOCK-GRACE-v3
+//
+// Retained as the platform adapter for AppPrivacyPolicy.backgroundPrivacyShield.
+// It is never shown while that policy flag is false (the current Sandbox), and
+// is kept — not dead code — so a future Live policy can re-enable the shield
+// without rebuilding it (DEAD_BACKGROUND_PRIVACY_UI=0: reusable future component).
 // =============================================================================
 
 class _PrivacyOverlay extends StatelessWidget {

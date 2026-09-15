@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../models/receipt.dart';
 import '../models/transfer.dart';
+import '../policy/app_privacy_policy.dart';
 import '../utils/date_formatter.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/banzami_toast.dart';
@@ -152,21 +153,26 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
 
     WidgetsBinding.instance.addObserver(this);
 
-    BanzamiScreenSecurity.setSecure(true);
-    _captureSub = BanzamiScreenSecurity.captureState.listen(
-      (v) {
-        if (mounted) setState(() => _isCaptured = v);
-      },
-      onError: (_) {},
-      cancelOnError: false,
-    );
-    _screenshotSub = BanzamiScreenSecurity.screenshotTaken.listen(
-      (_) {
-        if (mounted) setState(() => _screenshotTaken = true);
-      },
-      onError: (_) {},
-      cancelOnError: false,
-    );
+    // Screen-capture protection only when the active product policy asks for it.
+    // In the current Public Sandbox it is OFF, so screenshots and recording are
+    // unblocked (useful for QA/testers) and no capture/screenshot overlays arm.
+    if (AppPrivacyPolicy.active.screenCaptureProtectionEnabled) {
+      BanzamiScreenSecurity.setSecure(true);
+      _captureSub = BanzamiScreenSecurity.captureState.listen(
+        (v) {
+          if (mounted) setState(() => _isCaptured = v);
+        },
+        onError: (_) {},
+        cancelOnError: false,
+      );
+      _screenshotSub = BanzamiScreenSecurity.screenshotTaken.listen(
+        (_) {
+          if (mounted) setState(() => _screenshotTaken = true);
+        },
+        onError: (_) {},
+        cancelOnError: false,
+      );
+    }
   }
 
   @override
@@ -184,7 +190,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     _receiptRetry?.cancel();
     _captureSub?.cancel();
     _screenshotSub?.cancel();
-    BanzamiScreenSecurity.setSecure(false);
+    if (AppPrivacyPolicy.active.screenCaptureProtectionEnabled) {
+      BanzamiScreenSecurity.setSecure(false);
+    }
     _ctrl.dispose();
     super.dispose();
   }
@@ -841,9 +849,17 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
           ),
 
           // ── Security overlays (order matters — blackout always on top) ──
-          if (_isCaptured) _buildCaptureOverlay(),
-          if (_screenshotTaken) _buildScreenshotWarning(),
-          if (_isBackground) _buildPrivacyBlackout(),
+          // Gated by the product policy. In the current Sandbox all are OFF, so
+          // the receipt is never covered on capture/recording/background.
+          if (_isCaptured &&
+              AppPrivacyPolicy.active.screenCaptureProtectionEnabled)
+            _buildCaptureOverlay(),
+          if (_screenshotTaken &&
+              AppPrivacyPolicy.active.screenCaptureProtectionEnabled)
+            _buildScreenshotWarning(),
+          if (_isBackground &&
+              AppPrivacyPolicy.active.backgroundPrivacyShieldEnabled)
+            _buildPrivacyBlackout(),
         ],
       ),
     );
