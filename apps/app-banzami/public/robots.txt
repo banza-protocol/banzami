@@ -1,3 +1,0 @@
-# App Banzami Web is an authenticated financial application, never indexed.
-User-agent: *
-Disallow: /

@@ -1,7 +1,4 @@
 /node_modules
-/.next
-/out
-/build
-next-env.d.ts
-*.tsbuildinfo
+/web
+*.log
 .env*.local

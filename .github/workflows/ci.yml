@@ -451,7 +451,7 @@ jobs:
         run: npm test
 
   app-banzami:
-    name: App Banzami Web — typecheck, test, build
+    name: App Banzami Web — BFF host (Node)
     runs-on: ubuntu-latest
 
     steps:
@@ -461,24 +461,52 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/app-banzami/package-lock.json
 
-      - name: Install dependencies
+      # The host is pure Node built-ins — no dependency install step.
+      - name: BFF security unit tests
         working-directory: apps/app-banzami
-        run: npm ci
+        run: node --test test/
 
-      - name: Type-check
+      - name: Server syntax check
         working-directory: apps/app-banzami
-        run: npm run typecheck
+        run: node --check server.mjs
 
-      - name: Run tests
-        working-directory: apps/app-banzami
-        run: npm test
+  # ─── App Banzami — Flutter Web target (one codebase, three targets) ──────────
+  app-banzami-web:
+    name: App Banzami Web — Flutter reproducible build (FLUTTER_TARGET_CI_WEB)
+    runs-on: ubuntu-latest
 
-      - name: Build
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Flutter 3.44.0 (pinned, no third-party action)
+        run: |
+          git clone --depth 1 --branch 3.44.0 https://github.com/flutter/flutter.git "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Resolve dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      # The shared Consumer code must compile for every target; analyze covers
+      # the Dart across iOS, Android and Web (the mobile entrypoints included).
+      - name: Analyze shared Consumer code
+        working-directory: apps/mobile
+        run: flutter analyze lib ../../sdk/flutter/lib
+
+      # The reproducible Web build — same definition the Docker image and the
+      # deploy use. Fails closed on an unknown environment (§82).
+      - name: Build Web target (reproducible)
         working-directory: apps/app-banzami
-        run: npm run build
+        run: ./build-web.sh
+
+      - name: Assert the bundle self-hosts CanvasKit (no external CDN)
+        working-directory: apps/app-banzami
+        run: |
+          grep -q '"useLocalCanvasKit":true' web/flutter_bootstrap.js             || { echo 'Web build must self-host CanvasKit (--no-web-resources-cdn)'; exit 1; }
 
   # ─── TypeScript SDK ─────────────────────────────────────────────────────────
   typescript:
