@@ -82,20 +82,29 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
 ];
 
 /* ---------- Produtos (estado atual de cada um; nada aqui é uma promessa) ---------- */
-const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode }[] = [
+const PRODUTOS: {
+  icon: ReactNode;
+  badge: string;
+  tone?: 'beta';
+  title: string;
+  desc: ReactNode;
+  cta?: { label: string; href: string };
+}[] = [
   {
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="6" y="2.5" width="12" height="19" rx="3" stroke="#B5101F" strokeWidth="1.7" />
       </svg>
     ),
-    badge: 'EM DESENVOLVIMENTO',
+    badge: 'BETA · EM TESTES',
+    tone: 'beta',
     title: 'App Banzami',
     desc: (
       <>
-        Carteira em Kwanza com <span className="bz-mono text-[12px]">@banza</span> e QR. Ainda não está nas lojas.
+        Carteira em Kwanza com <span className="bz-mono text-[12px]">@banza</span> e QR. Em testes no iPhone e Android, para testers convidados.
       </>
     ),
+    cta: { label: 'Participar nos testes', href: '/testes?app=banzami' },
   },
   {
     icon: (
@@ -103,9 +112,11 @@ const PRODUTOS: { icon: ReactNode; badge: string; title: string; desc: ReactNode
         <path d="M4 8h16l-1.2 11.2A2 2 0 0116.8 21H7.2A2 2 0 015.2 19.2L4 8z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" />
       </svg>
     ),
-    badge: 'EM DESENVOLVIMENTO',
+    badge: 'BETA · EM TESTES',
+    tone: 'beta',
     title: 'App Comerciante',
-    desc: 'Receber por QR e por link, sem terminal. Ainda não está nas lojas.',
+    desc: 'Receber por QR e por link, sem terminal. Em testes no iPhone e Android, para testers convidados.',
+    cta: { label: 'Participar nos testes', href: '/testes?app=comerciante' },
   },
   {
     icon: (
@@ -373,12 +384,24 @@ export default function ProdutoPage() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-cream-100">
                     {p.icon}
                   </div>
-                  <span className="rounded-pill bg-pink-200 px-[9px] py-1 text-[10px] font-black text-cherry-dark">
+                  <span
+                    className={`rounded-pill px-[9px] py-1 text-[10px] font-black ${
+                      p.tone === 'beta' ? 'bg-emerald-100 text-emerald-700' : 'bg-pink-200 text-cherry-dark'
+                    }`}
+                  >
                     {p.badge}
                   </span>
                 </div>
                 <h3 className="m-0 mb-[6px] text-[16px] font-black">{p.title}</h3>
                 <p className="m-0 text-[13.5px] font-semibold leading-[1.5] text-ink-soft">{p.desc}</p>
+                {p.cta && (
+                  <Link
+                    href={p.cta.href}
+                    className="mt-3 inline-flex items-center gap-1 text-[13px] font-black text-cherry no-underline transition hover:gap-1.5 hover:text-cherry-dark"
+                  >
+                    {p.cta.label} <span aria-hidden="true">→</span>
+                  </Link>
+                )}
               </Reveal>
             ))}
 

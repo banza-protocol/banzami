@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { AppDemo } from '@/components/app/AppDemo';
 import { AppJourney } from '@/components/produto/AppJourney';
 import { HowItWorks } from '@/components/site/HowItWorks';
+import { HeroBetaCTA } from '@/components/site/HeroBetaCTA';
 import { homepageEntities } from '@/lib/entities';
 import { PUBLISHED_PACKAGES } from '@/app/developers/docs/published-packages';
 import { PUBLIC_TRUTH } from '@/lib/public-truth';
@@ -106,15 +106,7 @@ export default function HomePage() {
               Hoje está disponível a {PUBLIC_TRUTH.sandbox.name}, para developers, com dinheiro fictício.{' '}
               {PUBLIC_TRUTH.live.summary}
             </p>
-            <div className="mt-[22px] flex flex-wrap gap-3">
-              <Link href="/developers" className="inline-flex items-center rounded-[16px] bg-gradient-to-b from-cherry to-cherry-deeper px-6 py-[14px] text-[15px] font-extrabold text-white no-underline shadow-[0_16px_32px_-12px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5">
-                Construir na Sandbox
-              </Link>
-              <Link href="#como-funciona" className="inline-flex items-center rounded-[16px] border border-border-soft bg-white px-6 py-[14px] text-[15px] font-extrabold text-cherry-dark no-underline transition-transform hover:-translate-y-0.5">
-                Como funciona
-              </Link>
-            </div>
-            <p className="m-0 mt-3 text-[12.5px] font-semibold text-ink-muted">A app Banzami ainda não está disponível na App Store nem no Google Play.</p>
+            <HeroBetaCTA lang="pt" />
             <div className="mt-[30px] max-w-[540px]">
               <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">EMPRESAS E APLICAÇÕES LIGADAS AO BANZAMI</p>
               {/* Auto-scroll marquee — same behaviour as the produto "A APP" rail

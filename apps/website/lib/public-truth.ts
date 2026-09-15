@@ -24,6 +24,21 @@ export const PUBLIC_TRUTH = {
   },
   /** The Banzami app is not in the App Store or Google Play. */
   appInStores: false,
+  /**
+   * How the mobile apps are actually distributed today (APP-BETA-001). They are
+   * functional and given to invited testers through TestFlight (iOS) and Google
+   * Play testing (Android) — a private beta, not a public store listing. Status
+   * is BETA_TESTING; both apps are on both platforms. This is the single fact
+   * pages and the beta program state, so the product status never contradicts
+   * itself across surfaces.
+   */
+  appBeta: {
+    status: 'BETA_TESTING' as const,
+    ios: 'TestFlight',
+    android: 'Google Play testing',
+    inviteOnly: true,
+    apps: ['App Banzami', 'App Comerciante'] as const,
+  },
   /** Key prefixes the runtime issues in the Sandbox. */
   keyPrefixes: { secret: 'bz_test_sk_', publishable: 'bz_test_pk_' },
   docsUrl: 'https://developers.banzami.com/docs',
