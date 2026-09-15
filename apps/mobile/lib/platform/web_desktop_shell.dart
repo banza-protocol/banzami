@@ -115,12 +115,17 @@ class _PhoneDevice extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0B),
           borderRadius: BorderRadius.circular(WebDesktopShell._outerRadius),
-          // The same drop shadow in both surfaces — the hero phone is the same
-          // phone as app.banzami.com, only smaller.
-          boxShadow: const [
-            BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
-            BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
-          ],
+          // Standalone (app.banzami.com) floats on its off-white canvas with a
+          // drop shadow. The hero embed has NO shadow: its canvas is transparent
+          // and the shadow would clip against the iframe edge into a grey
+          // rectangle over the marketing hero. The hero phone sits cleanly on the
+          // hero background, nothing behind it.
+          boxShadow: embed
+              ? null
+              : const [
+                  BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
+                  BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
+                ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(WebDesktopShell._bezel),
