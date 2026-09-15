@@ -42,8 +42,8 @@ ENV SESSION_REDIS_ADDR=
 # Consumer Bearer) at rest with AES-256-GCM. REQUIRED in production — the store
 # fails closed without it. A DEDICATED secret from canonical secret management:
 # never the CSRF secret, the cookie id, or any Consumer/Project credential; never
-# shipped to the browser; never logged; never baked into the image.
-ENV APP_WEB_SESSION_STORE_KEY=
+# shipped to the browser; never logged; never baked. Injected at runtime
+# (--env-file), not declared as an ENV here, so no secret-shaped ENV is in the image.
 
 RUN addgroup -S banzami && adduser -S banzami -G banzami
 # The host is pure Node built-ins — no npm dependencies to install.
