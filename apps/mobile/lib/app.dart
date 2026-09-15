@@ -104,6 +104,23 @@ class _BanzamiAppState extends State<BanzamiApp> {
       (uri) => _handleLink(uri, source: 'stream'),
     );
     PushNotificationService.onTap = _handleNotificationTap;
+
+    // On the WEB Consumer app (app.banzami.com), the deep link is the page URL
+    // itself: app.banzami.com/pay/{slug} resumes a payment link — the SAME
+    // payer-facing slug artifact that pay.banzami.com and the QR carry
+    // (PAYER_ARTIFACT_UNIVERSE=ONE), and nothing else (no key, no session, no
+    // authority in the URL). We PARK the slug; _processPendingDeepLink resumes
+    // it after the splash boots and the Consumer authenticates
+    // (auth-then-resume), exactly like a cold-start universal link. Opening the
+    // link never auto-pays — it lands on the payment review screen. The
+    // marketing hero embed (?embed=phone) has no /pay path, so it is untouched.
+    if (kIsWeb) {
+      final segs = Uri.base.pathSegments.where((s) => s.isNotEmpty).toList();
+      if (segs.length >= 2 && segs[0] == 'pay') {
+        debugPrint('[deep-link] web initial pay slug=${segs[1]} — parked');
+        _pendingLinkSlug = segs[1];
+      }
+    }
   }
 
   @override

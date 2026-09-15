@@ -88,6 +88,24 @@ function hostedPageIn(body: unknown): string | undefined {
   return link && link.startsWith('https://pay.banzami.com/') ? link : undefined;
 }
 
+/** The App Banzami Web deep link for a payer-facing PAYMENT_LINK in a response —
+ *  app.banzami.com/pay/{slug}. It carries ONLY the public payer slug (the same
+ *  artifact pay.banzami.com and the QR use — PAYER_ARTIFACT_UNIVERSE=ONE): no
+ *  key, no session, no owner id, no financial authority. The real Consumer app
+ *  authenticates and resumes the payment; opening it never pays. */
+function appWebPayIn(body: unknown): string | undefined {
+  const hosted = hostedPageIn(body);
+  if (!hosted) return undefined;
+  try {
+    const u = new URL(hosted); // https://pay.banzami.com/pay/{slug} | /{slug}
+    const segs = u.pathname.split('/').filter(Boolean);
+    const slug = segs[0] === 'pay' ? segs[1] : (segs.length === 1 ? segs[0] : undefined);
+    return slug ? `https://app.banzami.com/pay/${encodeURIComponent(slug)}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function ApiExplorer() {
   const { activeProject, csrf } = useDeveloperData();
   const projectId = activeProject?.id;
@@ -270,6 +288,11 @@ export function ApiExplorer() {
                         title={response.body !== undefined ? 'Resposta · JSON' : 'Resposta'}
                       />
                     </div>
+                    {appWebPayIn(response.body) && (
+                      <a data-testid="explorer-app-web" href={appWebPayIn(response.body)} target="_blank" rel="noopener noreferrer" style={{ ...primaryButton(), display: 'inline-block', marginTop: 10, marginRight: 8, textDecoration: 'none' }}>
+                        Testar na App Banzami Web ↗
+                      </a>
+                    )}
                     {hostedPageIn(response.body) && (
                       <a data-testid="explorer-hosted-page" href={hostedPageIn(response.body)} target="_blank" rel="noopener noreferrer" style={{ ...SECONDARY_BUTTON, display: 'inline-block', marginTop: 10, marginRight: 8, textDecoration: 'none' }}>
                         Abrir a página de pagamento

@@ -108,6 +108,11 @@ export function AppBanzamiWeb() {
           A sua conta de <b>developer</b> (workspace, projeto, chaves) e a conta de <b>consumidor</b> (@banza,
           carteira) são identidades separadas — abrir a App não o autentica como consumidor.
         </p>
+        <p style={{ margin: '10px 0 0', fontSize: 12.5, fontWeight: 600, color: '#8a7a7e', lineHeight: 1.55 }}>
+          Prefere o <b>checkout hospedado</b>? Ao criar uma Payment Session ou Payment Link no{' '}
+          <Link href="/explorer" style={{ color: '#B5101F', fontWeight: 800, textDecoration: 'none' }}>API Explorer</Link>{' '}
+          tem <b>Testar na App Banzami Web</b> e <b>Abrir a página de pagamento</b> (pay.banzami.com) lado a lado.
+        </p>
         <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12.5, fontWeight: 700 }}>
           <Link href="/docs/payments" style={{ color: '#B5101F', textDecoration: 'none' }}>Testar com a App Banzami Web →</Link>
           <span style={{ color: '#a59699' }}>Nativo (secundário): iPhone · TestFlight — Android · Google Play testing</span>
