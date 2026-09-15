@@ -22,7 +22,7 @@ export function AppWebPortal() {
       {/* Desktop / tablet: the live Flutter phone, reduced proportionally onto
           the hero. Transparent frame — the device's own bezel and shadow are
           drawn by the Flutter shell, so it looks identical to app.banzami.com. */}
-      <div className="relative hidden h-[660px] w-[344px] sm:block">
+      <div className="relative hidden h-[744px] w-[392px] sm:block">
         <iframe
           title="App Banzami Web · Sandbox"
           src={EMBED_URL}
