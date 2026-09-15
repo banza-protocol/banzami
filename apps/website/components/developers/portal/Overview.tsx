@@ -11,7 +11,7 @@ import {
   type WebhookEvent,
 } from '@/lib/developer-api';
 import {
-  IconChart, IconCheck, IconCode, IconFlask, IconSwap, IconWebhookNodes,
+  IconArrowRight, IconChart, IconCheck, IconCode, IconFlask, IconPhone, IconSwap, IconWebhookNodes,
 } from '@/components/developers/portal/icons';
 import { EnvironmentCards } from '@/components/developers/portal/EnvironmentCards';
 import { SandboxChecklist } from '@/components/developers/portal/SandboxChecklist';
@@ -125,6 +125,34 @@ export function Overview() {
         </p>
 
         {projectId && <SandboxChecklist projectId={projectId} />}
+
+        {/* App Banzami Web — the Consumer testing surface, compact (DEV-CONSOLE-
+            APP-WEB-001 §15). Launches the real app; adds no new warning card. */}
+        <Card style={{ padding: 18, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <span style={{ display: 'grid', placeItems: 'center', width: 42, height: 42, borderRadius: 12, background: '#FFF1F0', color: '#B5101F', flex: 'none' }}>
+            <IconPhone size={21} />
+          </span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 900, color: '#2a2024' }}>Teste o lado do consumidor</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#8a7a7e', marginTop: 2 }}>
+              Crie uma conta Sandbox, pague por QR ou link e valide a experiência completa da sua integração.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a
+              href="https://app.banzami.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="overview-open-app-banzami-web"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 15px', borderRadius: 12, background: 'linear-gradient(160deg,#B5101F,#7C1016)', color: '#fff', fontSize: 13.5, fontWeight: 900, textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              Abrir App Banzami Web <IconArrowRight size={15} />
+            </a>
+            <Link href="/app-banzami" style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 14px', borderRadius: 12, border: '1px solid #F2D9D6', color: '#B5101F', fontSize: 13.5, fontWeight: 800, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              Saber mais
+            </Link>
+          </div>
+        </Card>
 
         {state === 'loading' && <Card style={{ padding: 18, fontSize: 13.5, color: '#8a7a7e' }}>A carregar…</Card>}
         {state === 'error' && (

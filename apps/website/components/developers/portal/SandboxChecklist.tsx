@@ -46,8 +46,8 @@ export function SandboxChecklist({ projectId }: { projectId: string }) {
         href: '/explorer', done: (anyLogs?.logs.length ?? 0) > 0,
       },
       {
-        id: 'payer', title: 'Criar um pagador de teste', hint: 'Com saldo fictício, para pagar como um cliente real.',
-        href: '/dados-de-teste', done: (payerLogs?.logs ?? []).some((l) => l.method === 'POST' && ok(l.status) && l.path === '/v1/sandbox/test-payers'),
+        id: 'payer', title: 'Testar como consumidor', hint: 'Abra a App Banzami Web ou crie um pagador de teste.',
+        href: '/app-banzami', done: (payerLogs?.logs ?? []).some((l) => l.method === 'POST' && ok(l.status) && l.path === '/v1/sandbox/test-payers'),
       },
       {
         id: 'pay', title: 'Pagar a primeira sessão', hint: 'Por link ou por QR, e ver o estado mudar em tempo real.',

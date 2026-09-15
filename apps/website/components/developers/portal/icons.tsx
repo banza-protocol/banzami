@@ -165,6 +165,12 @@ export const IconFlask = (p: IconProps) => (
     <path d="M8 3h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
   </S>
 );
+export const IconPhone = (p: IconProps) => (
+  <S {...p}>
+    <rect x="7" y="3" width="10" height="18" rx="2.6" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M10.5 18h3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </S>
+);
 export const IconCheck = (p: IconProps & { strokeWidth?: number }) => (
   <S {...p}>
     <path d="M5 12.5l4 4 10-10" stroke="currentColor" strokeWidth={p.strokeWidth ?? 2} strokeLinecap="round" strokeLinejoin="round" />

@@ -23,6 +23,7 @@ import {
   IconHelp,
   IconKey,
   IconList,
+  IconPhone,
   IconShield,
   IconSwap,
   IconWallet,
@@ -42,6 +43,7 @@ type PortalKey =
   | 'apikeys'
   | 'explorer'
   | 'dados'
+  | 'appbanzami'
   | 'webhooks'
   | 'logs'
   | 'docs'
@@ -58,6 +60,7 @@ const NAV: { key: PortalKey; label: string; href: string; icon: (p: { size?: num
   { key: 'apikeys', label: 'API Keys', href: '/api-keys', icon: IconKey },
   { key: 'explorer', label: 'API Explorer', href: '/explorer', icon: IconCode },
   { key: 'dados', label: 'Dados de teste', href: '/dados-de-teste', icon: IconFlask },
+  { key: 'appbanzami', label: 'App Banzami', href: '/app-banzami', icon: IconPhone },
   { key: 'webhooks', label: 'Webhooks', href: '/webhooks', icon: IconWebhook },
   { key: 'logs', label: 'Logs / Eventos', href: '/logs', icon: IconList },
   { key: 'docs', label: 'Documentação', href: '/docs', icon: IconDoc },
