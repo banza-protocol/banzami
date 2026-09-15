@@ -20,13 +20,13 @@ export function AppWebPortal() {
   return (
     <div className="flex w-full flex-col items-center">
       {/* Desktop / tablet: the live Flutter phone in the HERO showcase geometry —
-          a gently wider, slightly shorter portrait device (shell aspect 422/850,
+          a gently wider, slightly shorter portrait device (shell aspect 416/856,
           vs the direct app's tall 418/872). The Flutter app lays out for real at
-          the 394-wide viewport, so nothing is stretched. Sized to leave
+          the 388-wide viewport, so nothing is stretched. Sized to leave
           intentional breathing space above and below (it does not fill the
           viewport height), staying within one screen with no hero scroll.
           Transparent frame — bezel/island are drawn by the Flutter shell. */}
-      <div className="relative hidden aspect-[422/850] h-[clamp(480px,calc(100vh-170px),810px)] max-w-full sm:block">
+      <div className="relative hidden aspect-[416/856] h-[clamp(480px,calc(100vh-170px),810px)] max-w-full sm:block">
         <iframe
           title="App Banzami Web · Sandbox"
           src={EMBED_URL}
