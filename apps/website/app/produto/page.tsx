@@ -96,15 +96,20 @@ const PRODUTOS: {
         <rect x="6" y="2.5" width="12" height="19" rx="3" stroke="#B5101F" strokeWidth="1.7" />
       </svg>
     ),
-    badge: 'BETA · EM TESTES',
-    tone: 'beta',
+    badge: 'SANDBOX · DISPONÍVEL',
     title: 'App Banzami',
     desc: (
       <>
-        Carteira em Kwanza com <span className="bz-mono text-[12px]">@banza</span> e QR. Em testes no iPhone e Android, para testers convidados.
+        Uma App Banzami — Web, iPhone e Android — a partir de um só código.
+        Carteira em Kwanza com <span className="bz-mono text-[12px]">@banza</span> e QR.
+        <span className="mt-2 block space-y-1 text-[13px] font-semibold">
+          <span className="block"><span className="font-black text-cherry">Web</span> · Sandbox · disponível já no browser</span>
+          <span className="block"><span className="font-black text-ink">iPhone</span> · Beta · em testes (testers convidados)</span>
+          <span className="block"><span className="font-black text-ink">Android</span> · Beta · em testes (testers convidados)</span>
+        </span>
       </>
     ),
-    cta: { label: 'Participar nos testes', href: '/testes?app=banzami' },
+    cta: { label: 'Abrir App Banzami Web', href: 'https://app.banzami.com' },
   },
   {
     icon: (

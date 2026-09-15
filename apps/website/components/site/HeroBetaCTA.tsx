@@ -19,28 +19,41 @@ type Lang = 'pt' | 'en';
 
 const COPY = {
   pt: {
+    web: 'Abrir App Banzami Web',
+    webSub: 'Sandbox · dinheiro fictício',
     ios: 'Testar no iPhone',
     iosSub: 'TestFlight',
     android: 'Testar no Android',
     androidSub: 'Google Play',
-    available: 'Disponível para testers convidados no iPhone e Android.',
+    available: 'Use a Banzami no browser agora — ou teste as apps nativas (iPhone/Android) como tester convidado.',
     modalTitle: 'Participar nos testes da App Banzami',
     modalSubtitle:
       'A App Banzami está em Sandbox: o dinheiro é fictício e nenhum pagamento é real. Convidamos testers por etapas.',
     submit: 'Quero participar',
   },
   en: {
+    web: 'Open App Banzami Web',
+    webSub: 'Sandbox · fictitious money',
     ios: 'Test on iPhone',
     iosSub: 'TestFlight',
     android: 'Test on Android',
     androidSub: 'Google Play',
-    available: 'Available to invited testers on iPhone and Android.',
+    available: 'Use Banzami in your browser now — or test the native apps (iPhone/Android) as an invited tester.',
     modalTitle: 'Join the App Banzami tests',
     modalSubtitle:
       'App Banzami runs in Sandbox: money is fictitious and no payment is real. We invite testers in stages.',
     submit: 'Count me in',
   },
 } as const;
+
+function WebGlyph() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.4 3.9 5.6 3.9 9S14.5 18.6 12 21C9.5 18.6 8.1 15.4 8.1 12S9.5 5.4 12 3z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function AppleGlyph() {
   return (
@@ -74,6 +87,19 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
   return (
     <>
       <div className="mt-[22px] flex flex-wrap gap-3">
+        <a
+          href="https://app.banzami.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="hero-open-app-web"
+          className={`${btn} bg-[linear-gradient(180deg,#B5101F,#9A1B22)] text-white shadow-[0_16px_32px_-14px_rgba(181,16,31,.5)]`}
+        >
+          <WebGlyph />
+          <span className="leading-tight">
+            <span className="block text-[15px] font-extrabold">{t.web}</span>
+            <span className="block text-[11.5px] font-semibold text-white/75">{t.webSub}</span>
+          </span>
+        </a>
         <button
           type="button"
           onClick={() => openFor('IOS')}

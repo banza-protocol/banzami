@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
-import { AppDemo } from '@/components/app/AppDemo';
+import { AppWebPortal } from '@/components/app/AppWebPortal';
 import { AppJourney } from '@/components/produto/AppJourney';
 import { HowItWorks } from '@/components/site/HowItWorks';
 import { HeroBetaCTA } from '@/components/site/HeroBetaCTA';
@@ -126,10 +126,7 @@ export default function HomePage() {
             <div className="absolute h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.1),rgba(232,67,75,0)_70%)]" />
             <div className="anim-floatyB absolute left-[14px] top-10 h-[60px] w-[60px] rounded-[20px] bg-pink-200" />
             <div className="anim-floaty-5 absolute bottom-24 right-1 h-11 w-11 rounded-[13px] bg-cherry-coral opacity-[0.85]" />
-            <AppDemo />
-            <span className="mt-5 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-[9px] text-[12.5px] font-extrabold text-cherry-dark shadow-[0_10px_24px_-12px_rgba(181,16,31,.35)]">
-              <LiveDot size={7} />Toque para navegar na demonstração
-            </span>
+            <AppWebPortal />
           </div>
         </div>
       </section>

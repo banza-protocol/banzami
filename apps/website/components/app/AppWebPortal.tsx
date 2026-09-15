@@ -1,0 +1,90 @@
+'use client';
+
+// The homepage hero's App Banzami surface (WEB-APP-001 §11-§17).
+//
+// This is NOT a recreated Consumer app — there is ONE Consumer implementation and
+// it is the Flutter app served at app.banzami.com. The phone here is a portal:
+// a lazy LIVE preview of the real app (loaded only on interaction — §67), plus a
+// top-level launch. Authenticated use always happens top-level at app.banzami.com
+// (reliable session cookies — §17), never depending on a cross-origin iframe.
+// On phones there is no nested phone frame; the launch is full-screen (§16).
+
+import { useState } from 'react';
+
+const APP_URL = 'https://app.banzami.com/';
+
+function LaunchLink({
+  className,
+  children,
+}: {
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a href={APP_URL} target="_blank" rel="noopener noreferrer" data-testid="portal-open-app" className={className}>
+      {children}
+    </a>
+  );
+}
+
+export function AppWebPortal() {
+  const [live, setLive] = useState(false);
+
+  return (
+    <div className="flex w-full flex-col items-center">
+      {/* Desktop / tablet: the phone is visually central. Mobile skips it. */}
+      <div className="relative hidden sm:block">
+        <div className="relative h-[600px] w-[300px] overflow-hidden rounded-[46px] border-[11px] border-neutral-900 bg-black shadow-[0_44px_100px_-44px_rgba(0,0,0,.55)]">
+          <div className="absolute left-1/2 top-0 z-20 h-[26px] w-[118px] -translate-x-1/2 rounded-b-[15px] bg-neutral-900" />
+          {live ? (
+            <iframe
+              title="App Banzami Web · Sandbox"
+              src={APP_URL}
+              loading="lazy"
+              className="h-full w-full border-0 bg-white"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setLive(true)}
+              data-testid="portal-load-live"
+              className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[linear-gradient(160deg,#E8434B_0%,#B5101F_46%,#9A1B22_100%)] text-white"
+            >
+              <span className="grid h-16 w-16 place-items-center rounded-[20px] bg-white/15 backdrop-blur">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="2" />
+                  <rect x="14" y="3" width="7" height="7" rx="2" fillOpacity=".7" />
+                  <rect x="3" y="14" width="7" height="7" rx="2" fillOpacity=".7" />
+                  <rect x="14" y="14" width="7" height="7" rx="2" />
+                </svg>
+              </span>
+              <span className="mt-1 text-[24px] font-black tracking-[-0.02em]">App Banzami</span>
+              <span className="rounded-pill bg-white/15 px-3 py-[5px] text-[11px] font-bold tracking-[0.14em]">
+                SANDBOX · DINHEIRO FICTÍCIO
+              </span>
+              <span className="mt-3 rounded-pill bg-white px-5 py-[9px] text-[13px] font-extrabold text-cherry shadow-[0_10px_24px_-12px_rgba(0,0,0,.4)]">
+                Ver a app ao vivo
+              </span>
+            </button>
+          )}
+        </div>
+        {live && (
+          <LaunchLink className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill bg-white px-4 py-[9px] text-[12.5px] font-extrabold text-cherry-dark shadow-[0_12px_28px_-12px_rgba(181,16,31,.4)]">
+            Abrir em ecrã completo ↗
+          </LaunchLink>
+        )}
+      </div>
+
+      {/* Mobile: no phone-in-phone — a full launch card (§16). */}
+      <div className="w-full sm:hidden">
+        <LaunchLink className="flex items-center justify-between gap-3 rounded-[22px] bg-[linear-gradient(160deg,#E8434B,#9A1B22)] px-5 py-5 text-white no-underline shadow-[0_24px_50px_-30px_rgba(181,16,31,.6)]">
+          <span className="leading-tight">
+            <span className="block text-[17px] font-black">Abrir App Banzami Web</span>
+            <span className="block text-[12px] font-semibold text-white/80">Sandbox · dinheiro fictício</span>
+          </span>
+          <span className="text-[20px]">↗</span>
+        </LaunchLink>
+      </div>
+    </div>
+  );
+}

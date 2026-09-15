@@ -32,7 +32,7 @@ describe('website vocabulary', () => {
   });
 
   it('the demo receipt uses current receipt words and an illustrative reference', () => {
-    for (const rel of ['components/app/AppDemo.tsx', 'components/app/AppScreen.tsx']) {
+    for (const rel of ['components/app/AppScreen.tsx']) {
       const src = read(rel);
       expect(src, rel).not.toMatch(/0FC11CCE/);
       expect(src, rel).not.toMatch(/label="Método"/);

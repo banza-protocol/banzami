@@ -185,7 +185,7 @@ export function Footer() {
             </a>
 
             <p className="m-0 mt-[18px] text-[13px] font-semibold leading-[1.5] text-white/70">
-              A App Banzami está em testes, para testers convidados no iPhone e Android. <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">Participar nos testes</a> ou <a href="/app-demo" className="font-black text-white underline-offset-2 hover:underline">ver a demonstração</a>.
+              A App Banzami está disponível no browser (Sandbox, dinheiro fictício) e em testes no iPhone e Android. <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Abrir App Banzami Web</a> ou <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">participar nos testes nativos</a>.
             </p>
           </div>
         </section>

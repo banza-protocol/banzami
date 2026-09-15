@@ -1,26 +1,25 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
-import { AppDemo } from '@/components/app/AppDemo';
+import { AppWebPortal } from '@/components/app/AppWebPortal';
 
 export const metadata: Metadata = {
-  title: 'Demonstração da app',
-  description: 'Uma demonstração interativa dos ecrãs da app Banzami, com dados de exemplo. A app está em testes, para testers convidados.',
+  title: 'App Banzami · Sandbox',
+  description:
+    'Crie a sua conta e utilize a Banzami diretamente no browser, com dinheiro fictício. Nenhum dinheiro real é movimentado. Também em testes no iPhone e Android.',
   alternates: { canonical: 'https://banzami.com/app-demo' },
 };
 
-export default function AppDemoPage() {
+export default function AppWebPage() {
   return (
     <main className="overflow-x-hidden bg-white">
       <SiteHeader />
       <section className="bz-section relative overflow-hidden">
-        {/* radial glow */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{ background: 'radial-gradient(circle at 50% 18%,#FFF1F0,#FFFFFF 60%)' }}
         />
-        {/* floating decorative blobs (like the home hero) */}
         <div
           aria-hidden
           className="anim-floaty pointer-events-none absolute"
@@ -34,7 +33,7 @@ export default function AppDemoPage() {
 
         <div className="bz-container relative">
           <div className="mx-auto max-w-[680px] text-center">
-            <p className="bz-eyebrow">Demo interativa</p>
+            <p className="bz-eyebrow">App Banzami · Sandbox</p>
             <h1
               style={{
                 margin: 0,
@@ -44,15 +43,17 @@ export default function AppDemoPage() {
                 color: '#2a2024',
               }}
             >
-              Experimente a app Banzami
+              Experimente a App Banzami
             </h1>
             <p style={{ margin: '14px 0 0', fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: '#6a5a5e' }}>
-              Uma demonstração dos ecrãs, com dados de exemplo. Nenhum dinheiro se move.
+              Crie a sua conta e utilize a Banzami diretamente no browser, com dinheiro fictício.
+              Nenhum dinheiro real é movimentado. A mesma App Banzami está também em testes no
+              iPhone e Android, para testers convidados.
             </p>
           </div>
 
           <div className="mt-12 flex justify-center">
-            <AppDemo />
+            <AppWebPortal />
           </div>
         </div>
       </section>

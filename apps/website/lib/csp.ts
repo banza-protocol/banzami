@@ -81,6 +81,9 @@ export function contentSecurityPolicy(
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
     `connect-src ${connectOrigins(env).join(' ')}`,
+    // The homepage embeds the real App Banzami (app.banzami.com) as a live
+    // preview portal (WEB-APP-001 §11-§15); nothing else may be framed.
+    "frame-src 'self' https://app.banzami.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
