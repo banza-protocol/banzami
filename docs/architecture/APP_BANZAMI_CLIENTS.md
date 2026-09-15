@@ -44,7 +44,7 @@ everything else is identical Flutter code.
 | Entry point | `main_consumer.dart` | `main_consumer_web.dart` (thin bootstrap) |
 | TLS | certificate pinning (`dart:io`) | browser TLS stack |
 | Transport | pinned `http.Client` | credentialed `BrowserClient` (`WebSessionClient`) |
-| Session credential | Bearer in the platform keychain | **Bearer sealed server-side** in an HttpOnly cookie; the browser holds a worthless sentinel |
+| Session credential | Bearer in the platform keychain | **opaque session id** in an HttpOnly cookie → server-side store holds the Bearer; the browser holds neither the Bearer nor a sentinel of value |
 | App lock | local PIN + biometrics | none — the cookie is the session; a 401 → Welcome |
 | Biometrics | `local_auth` | future WebAuthn / passkeys (not this milestone) |
 | QR camera | native `mobile_scanner` | `mobile_scanner` Web (`BarcodeDetector`) + getUserMedia |

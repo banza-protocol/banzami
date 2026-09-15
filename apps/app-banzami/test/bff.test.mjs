@@ -1,25 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  deriveKey, seal, open, newCsrf, timingSafeEqualStr,
+  newCsrf, timingSafeEqualStr,
   parseCookies, serializeCookie, matchRoute, TOKEN_SENTINEL,
 } from '../lib/bff.mjs';
-
-const KEY = deriveKey('x'.repeat(40));
-
-test('session seals and opens round-trip', () => {
-  const s = { token: 'bearer.abc.def', exp: 9999999999, csrf: 'c1', consumerId: 'c', handle: 'h' };
-  const blob = open(seal(s, KEY), KEY);
-  assert.equal(blob.token, s.token);
-  assert.equal(blob.handle, 'h');
-});
-
-test('a tampered or wrong-key blob does not open (AEAD)', () => {
-  const blob = seal({ token: 't', csrf: 'c' }, KEY);
-  assert.equal(open(blob.slice(0, -2) + 'AA', KEY), null); // tampered tag/ct
-  assert.equal(open(blob, deriveKey('y'.repeat(40))), null); // wrong key
-  assert.equal(open('not-base64url!!', KEY), null);
-});
 
 test('CSRF compare is exact and constant-time-safe', () => {
   const c = newCsrf();

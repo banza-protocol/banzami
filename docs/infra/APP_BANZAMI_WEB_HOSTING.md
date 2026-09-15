@@ -13,10 +13,11 @@ is destructive.
 - The Flutter Web target (`flutter build web -t lib/main_consumer_web.dart
   --no-web-resources-cdn`), proven booting and transacting against the live
   Sandbox through the BFF (register → 10 000 Kz grant → Home → P2P → logout).
-- The host: `server.mjs` + `lib/bff.mjs` (pure Node built-ins — no npm install),
-  serving the bundle same-origin and mediating `/consumer/*` with a sealed
-  HttpOnly session, allow-list, CSRF, rotation and logout. BFF unit tests in
-  `test/` (`node --test`).
+- The host: `server.mjs` + `lib/bff.mjs` + `lib/session_store.mjs` (pure Node
+  built-ins — no npm install), serving the bundle same-origin and mediating
+  `/consumer/*` with an **opaque server-side session** (Redis or file store,
+  Bearer never in the cookie), allow-list, CSRF, rotation, idle/absolute timeout
+  and server-side revocation at logout. Unit tests in `test/` (`node --test`, 11).
 - One reproducible build definition, `apps/app-banzami/build-web.sh`, shared by
   CI and the Docker image; it fails closed on an unknown environment.
 - The Dockerfile builds the Web target from the shared Flutter sources and runs
@@ -49,15 +50,19 @@ is destructive.
    - define the container in the Sandbox compose on the app plane (same network
      as `pay-frontend`), exposing port 3007;
    - inject env: `CONSUMER_API_BASE=https://sandbox-api.banzami.com/consumer`,
-     `NODE_ENV=production`, and a **`SESSION_SECRET`** (≥32 bytes, generated once
-     and stored as a deploy secret — the host refuses to seal sessions without it
-     in production);
+     `NODE_ENV=production`, and **`SESSION_REDIS_ADDR`** (`host:port`) pointing at
+     a Redis the app plane can reach — the opaque Web session store (durable
+     across a host restart, safe across replicas). The stack `redis` is on the
+     data plane, so either give `app-frontend` reachability to it or provision a
+     small session Redis on the app plane. Without the env the host falls back to
+     a single-node file store (fine for one replica, not for scale). No
+     cookie-sealing secret is needed — the browser holds only an opaque id;
    - set the edge upstream env `SB_APP` to the app container's `name:3007`.
 
 3. **Deploy**: `./deploy.sh app-frontend` (routes to the Sandbox source-deploy),
    then reload the edge: `docker exec bzsbedge-sandbox-edge nginx -s reload`.
 
-4. **Verify**: `curl -sI https://app.banzami.com/healthz` → 200; open the app,
+4. **Verify**: `curl -s https://app.banzami.com/healthz` → `{"status":"ok","session_store":true}` (503 if the store is unreachable — the host will not claim ready when it cannot authenticate); open the app,
    register a consumer, see the 10 000 Kz grant, send to another consumer. Then
    run the deployed-host acceptance (below).
 

@@ -1,10 +1,10 @@
 // App Banzami Web — the same-origin BFF security core (WEB-APP-001 §6–§14).
 //
-// The browser only ever talks to app.banzami.com. The Consumer API Bearer is a
-// financial credential and MUST NOT reach JS: it is sealed here in an HttpOnly,
-// Secure, SameSite=Lax cookie (AES-256-GCM), opened only server-side, and
-// re-attached to each forwarded Consumer call. The browser holds an opaque blob
-// it cannot read, plus a readable CSRF nonce it echoes on writes.
+// The browser only ever talks to app.banzami.com and holds only an opaque
+// session id (see session_store.mjs) plus a readable CSRF nonce. The Consumer
+// Bearer and identity live server-side, keyed by that id. This module carries the
+// shared primitives: the CSRF compare, cookie (de)serialisation, and the Consumer
+// route allow-list — the security boundary that keeps /consumer/* narrow.
 //
 // This is NOT an open proxy: only the explicitly allow-listed Consumer routes
 // below are ever forwarded (§7). Everything else is 404.
@@ -12,49 +12,12 @@ import crypto from 'node:crypto';
 
 export const SESSION_COOKIE = 'bz_app_session';
 export const CSRF_COOKIE = 'bz_app_csrf';
-const ALG = 'aes-256-gcm';
 
 // The sentinel the browser receives in place of the real Bearer. It is
 // worthless: the BFF ignores any inbound Authorization and uses the sealed
 // cookie. The shared Flutter client only needs a non-empty token to consider
 // itself signed in (WEB_CONSUMER_BEARER_VISIBLE_TO_JS=0).
 export const TOKEN_SENTINEL = 'web-session';
-
-export function deriveKey(secret) {
-  if (secret && secret.length >= 32) {
-    return crypto.createHash('sha256').update(secret).digest();
-  }
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('SESSION_SECRET (>=32 bytes) is required in production');
-  }
-  // Development only — a stable, non-secret key so local sessions survive a
-  // reload. Never reached in production (guarded above).
-  return crypto.createHash('sha256').update('app-banzami-dev-session-key').digest();
-}
-
-export function seal(obj, keyBuf) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALG, keyBuf, iv);
-  const pt = Buffer.from(JSON.stringify(obj), 'utf8');
-  const ct = Buffer.concat([cipher.update(pt), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, ct]).toString('base64url');
-}
-
-export function open(blob, keyBuf) {
-  try {
-    const buf = Buffer.from(blob, 'base64url');
-    const iv = buf.subarray(0, 12);
-    const tag = buf.subarray(12, 28);
-    const ct = buf.subarray(28);
-    const decipher = crypto.createDecipheriv(ALG, keyBuf, iv);
-    decipher.setAuthTag(tag);
-    const pt = Buffer.concat([decipher.update(ct), decipher.final()]);
-    return JSON.parse(pt.toString('utf8'));
-  } catch {
-    return null;
-  }
-}
 
 export function newCsrf() {
   return crypto.randomBytes(24).toString('base64url');

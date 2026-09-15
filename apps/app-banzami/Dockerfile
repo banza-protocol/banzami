@@ -31,10 +31,13 @@ ENV PORT=3007
 ENV HOSTNAME=0.0.0.0
 ENV WEB_ROOT=/app/web
 # The Consumer API the BFF reaches server-side. Overridden per deploy; sandbox
-# only for this milestone. SESSION_SECRET is REQUIRED at runtime (the server
-# refuses to seal sessions without it in production) and injected as a deploy
-# secret — never baked.
+# only for this milestone.
 ENV CONSUMER_API_BASE=https://sandbox-api.banzami.com/consumer
+# The opaque Web session store. SESSION_REDIS_ADDR (host:port) selects the Redis
+# backend (durable across a host restart, safe across replicas); without it the
+# host falls back to a single-node file store. Injected per deploy — the browser
+# never holds the Bearer, so there is no cookie-sealing secret to bake.
+ENV SESSION_REDIS_ADDR=
 
 RUN addgroup -S banzami && adduser -S banzami -G banzami
 # The host is pure Node built-ins — no npm dependencies to install.

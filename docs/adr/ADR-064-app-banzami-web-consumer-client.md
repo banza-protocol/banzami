@@ -91,9 +91,11 @@ design-token set, and no independent web wallet logic.
   - native pins TLS with `dart:io`; Web uses the browser TLS stack (a plain
     credentialed `BrowserClient` — `main_consumer_web.dart`);
   - native stores the Bearer in the platform keychain; **Web never holds the
-    Bearer** — the same-origin BFF seals it in an HttpOnly cookie and the browser
-    receives a worthless sentinel (`WEB_CONSUMER_BEARER_VISIBLE_TO_JS = 0`,
-    `WEB_FINANCIAL_AUTH_LOCAL_STORAGE = 0`);
+    Bearer** — the browser cookie is a high-entropy **opaque session id** and the
+    same-origin BFF keeps the Bearer in a server-side store (Redis; a file for
+    single-node dev) keyed by that id, re-attaching it server-side and revoking it
+    at logout / timeout (`WEB_COOKIE_CONTAINS_UPSTREAM_BEARER = 0`,
+    `WEB_SESSION_SERVER_SIDE = PASS`, `WEB_LOGOUT_SERVER_REVOCATION = PASS`);
   - native re-locks with a local PIN / biometrics; on Web the session authority is
     the cookie, so there is no local PIN re-lock (a native affordance) — a 401
     returns to Welcome. Biometrics are native-only; WebAuthn/passkeys are the
