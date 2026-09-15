@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bz-cherry: #B5101F;
+  --bz-cherry-dark: #9A1B22;
+  --bz-ink: #241D20;
+}
+
+html, body { height: 100%; }
+body {
+  background: #FBF9F9;
+  color: var(--bz-ink);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+/* App shell: a phone-width column centred on larger viewports, full-bleed on
+   phones. No nested "fake phone" — the app itself fills the space (§10/§131). */
+* { -webkit-tap-highlight-color: transparent; }
