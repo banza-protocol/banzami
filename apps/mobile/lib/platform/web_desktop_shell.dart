@@ -33,13 +33,11 @@ class WebDesktopShell extends StatelessWidget {
   static const double _bottomSafe = 26; // home-indicator area
   static const double _wideBreakpoint = 640;
 
-  // The homepage hero renders the phone inside a 392×744 frame with a 34 margin
-  // each side, so the device fits a 324×676 slot. Cap the shell to that slot so
-  // app.banzami.com shows the phone at the SAME width as the hero, rather than
-  // growing to fill the whole window. The embed is already within this on every
-  // viewport (its iframe is ≤392), so only the standalone view is brought down.
-  static const double _maxSlotW = 324;
-  static const double _maxSlotH = 676;
+  // Cap for the standalone (app.banzami.com) device so it does not grow to fill
+  // the whole window. Only the standalone view is capped; the hero embed fills
+  // its own iframe (sized by the React container).
+  static const double _maxSlotW = 352;
+  static const double _maxSlotH = 734;
 
   static bool get _embedPhone {
     if (!kIsWeb) return false;
@@ -57,11 +55,18 @@ class WebDesktopShell extends StatelessWidget {
         if (!embed && !wide) return child;
 
         final device = _PhoneDevice(embed: embed, app: child);
-        // One presentation for both the direct desktop view and the homepage
-        // embed: the phone floats on a canvas with the same shadow. The embed
-        // keeps that canvas TRANSPARENT so the homepage hero shows through and
-        // the device is pixel-identical to app.banzami.com — no drift. The pad
-        // leaves room for the drop shadow so it is never clipped.
+        // Scale the whole device (bezel + app) to fit, keeping aspect. FittedBox
+        // is a Flutter transform: CanvasKit re-rasterises at device pixels (no
+        // blur) and pointer hit-testing is transformed correctly
+        // (DEVICE_SHELL_POINTER_ALIGNMENT).
+        final fitted = FittedBox(fit: BoxFit.contain, child: device);
+        // Two presentations:
+        //  • embed (homepage hero): the phone FILLS its iframe edge-to-edge — no
+        //    canvas, no margin — so the React container's size and rounded shadow
+        //    frame it (the premium look). Transparent, so the hero shows through.
+        //  • standalone (app.banzami.com): the phone floats on an off-white canvas
+        //    with a drop shadow, capped to a set size so it does not grow to fill
+        //    the whole window.
         return DecoratedBox(
           decoration: BoxDecoration(
             gradient: embed
@@ -73,20 +78,15 @@ class WebDesktopShell extends StatelessWidget {
                   ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(34.0),
+            padding: EdgeInsets.all(embed ? 0.0 : 34.0),
             child: Center(
-              // Cap the device to the hero's slot so the standalone view matches
-              // the homepage phone width instead of filling the window. On a
-              // smaller area the FittedBox shrinks it further (contain).
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                    maxWidth: _maxSlotW, maxHeight: _maxSlotH),
-                // Scale the whole device (bezel + app) to fit, keeping aspect.
-                // FittedBox is a Flutter transform: CanvasKit re-rasterises at
-                // device pixels (no blur) and pointer hit-testing is transformed
-                // correctly (DEVICE_SHELL_POINTER_ALIGNMENT).
-                child: FittedBox(fit: BoxFit.contain, child: device),
-              ),
+              child: embed
+                  ? fitted
+                  : ConstrainedBox(
+                      constraints: const BoxConstraints(
+                          maxWidth: _maxSlotW, maxHeight: _maxSlotH),
+                      child: fitted,
+                    ),
             ),
           ),
         );
@@ -113,13 +113,15 @@ class _PhoneDevice extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0B),
           borderRadius: BorderRadius.circular(WebDesktopShell._outerRadius),
-          // The SAME floating shadow in both modes, so the homepage embed is
-          // pixel-identical to app.banzami.com (the reference). The standalone
-          // values are unchanged; the embed now shares them instead of null.
-          boxShadow: const [
-            BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
-            BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
-          ],
+          // Standalone floats on its canvas with a drop shadow. The embed fills
+          // its iframe edge-to-edge, so its shadow comes from the React container
+          // frame instead (a rounded shadow around the whole device).
+          boxShadow: embed
+              ? null
+              : const [
+                  BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
+                  BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
+                ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(WebDesktopShell._bezel),
