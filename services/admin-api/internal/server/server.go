@@ -27,7 +27,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService, proofAdmin *service.ProofAdminService, proofAdminSandbox *service.ProofAdminService, mfa *service.MFAService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService, proofAdmin *service.ProofAdminService, proofAdminSandbox *service.ProofAdminService, mfa *service.MFAService, betaAdmin *service.BetaTesterAdminService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -415,6 +415,17 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// console is meant to remove.
 		adminAuditH := handler.NewAdminAuditHandler(audit)
 		r.With(cap(auth.CapAuditView)).Get("/admin/v1/audit-log", adminAuditH.Query)
+
+		// Mobile beta testers (APP-BETA-001). The public site registers them
+		// (api-gateway); here the operator reads the queue, exports it, and
+		// advances the lifecycle (mark invited / active / removed). PII is behind
+		// beta.view; the lifecycle write behind beta.manage. No money, no step-up —
+		// it is product/onboarding desk work. Every mutation is audited by the
+		// surrounding group.
+		betaH := handler.NewBetaTesterAdminHandler(betaAdmin)
+		r.With(cap(auth.CapBetaView)).Get("/admin/v1/beta-testers", betaH.List)
+		r.With(cap(auth.CapBetaView)).Get("/admin/v1/beta-testers/export.csv", betaH.ExportCSV)
+		r.With(cap(auth.CapBetaManage)).Post("/admin/v1/beta-testers/{id}/status", betaH.SetStatus)
 		r.With(cap(auth.CapRiskResolve)).Post("/admin/v1/risk/acquiring-recon", riskH.RunAcquiringReconciliation)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/acquiring-recon", riskH.ListAcquiringReconciliationRuns)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/acquiring-recon/{id}", riskH.GetAcquiringReconciliationRun)

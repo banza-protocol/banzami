@@ -90,6 +90,7 @@ func main() {
 	var businessLinkCodeSvc service.BusinessLinkCodeService
 	var businessPinResetSvc *service.BusinessPinResetService
 	var merchantAppSvc service.MerchantApplicationService
+	var betaTesterSvc service.BetaTesterService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
 	var merchantKybSvc *service.PostgresMerchantKybService
@@ -185,6 +186,7 @@ func main() {
 		businessLinkCodeSvc = service.NewPostgresBusinessLinkCodeService(dbPool)
 		businessPinResetSvc = service.NewBusinessPinResetService(dbPool)
 		appSvc := service.NewPostgresMerchantApplicationService(dbPool)
+		betaTesterSvc = service.NewPostgresBetaTesterService(dbPool)
 		// Keeps @handle holds honest: alive while Banzami owes a decision,
 		// released when the application closes (handle hold lifecycle).
 		appSvc.StartHoldSweeper(ctx, time.Hour)
@@ -292,6 +294,7 @@ func main() {
 		BusinessLinkCodeSvc:      businessLinkCodeSvc,
 		BusinessPinResetSvc:      businessPinResetSvc,
 		MerchantAppSvc:           merchantAppSvc,
+		BetaTesterSvc:            betaTesterSvc,
 		MerchantAppAdminSvc:      merchantAppAdminSvc,
 		MerchantDocumentSvc:      merchantDocumentSvc,
 		MerchantKybSvc:           merchantKybSvc,

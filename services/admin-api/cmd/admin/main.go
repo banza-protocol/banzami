@@ -91,6 +91,7 @@ func main() {
 	var mfa *service.MFAService
 	var proofAdmin *service.ProofAdminService
 	var proofAdminSandbox *service.ProofAdminService
+	var betaAdmin *service.BetaTesterAdminService
 	if cfg.DatabaseURL != "" {
 		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
 		if perr != nil {
@@ -170,6 +171,7 @@ func main() {
 			slog.Error("[SEC-002] stored MFA secrets were NOT encrypted — they remain in plaintext until the next start")
 		}()
 		proofAdmin = service.NewProofAdminService(pool)
+		betaAdmin = service.NewBetaTesterAdminService(pool)
 
 		// Optional sandbox KYC review: a second pool to banzami_staging lets the
 		// operator review SANDBOX consumer-KYC cases. SANDBOX evidence is signed
@@ -243,7 +245,7 @@ func main() {
 		receiptSrc = src
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox, platform, proofAdmin, proofAdminSandbox, mfa)
+	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox, platform, proofAdmin, proofAdminSandbox, mfa, betaAdmin)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

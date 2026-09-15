@@ -20,6 +20,7 @@ const (
 	CapAuditView       Capability = "audit.view"
 	CapPricingView     Capability = "pricing.view" // read pricing rules (ADR-021)
 	CapFinanceView     Capability = "finance.view" // read operator fees + application settlements (ADR-021)
+	CapBetaView        Capability = "beta.view"    // read the mobile beta-tester queue + export (APP-BETA-001)
 
 	// Operator lifecycle.
 	CapOperatorManage Capability = "operator.manage" // create/update/role/suspend/activate
@@ -59,6 +60,12 @@ const (
 	// CapWalletAccountClose ends a Business's segregated wallet account (it must
 	// be empty, with nothing pending). No role holds it; SUPER_ADMIN only.
 	CapWalletAccountClose Capability = "wallet_account.close"
+
+	// CapBetaManage advances a mobile beta tester through the lifecycle
+	// (mark invited / active / removed) and records a note. It moves no money and
+	// touches no financial resource — it is the product/onboarding desk's job
+	// (APP-BETA-001).
+	CapBetaManage Capability = "beta.manage"
 )
 
 // RoleSuperAdmin holds every capability implicitly (see Can).
@@ -79,6 +86,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapDashboardView, CapApplicationView, CapApplicationProcess, CapApplicationReject,
 		CapMerchantView, CapConsumerView, CapSettlementView, CapPayoutView,
 		CapReconView, CapDisputeView, CapRiskView, CapPricingView, CapFinanceView,
+		CapBetaView, CapBetaManage,
 	),
 
 	// COMPLIANCE — owns KYC/AML/KYB and merchant standing: decides applications
@@ -91,6 +99,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapKybAccept, CapKybReject, CapMerchantSuspend, CapComplianceReview, CapAmlFlag,
 		CapConsumerSuspend, CapRiskView, CapRiskResolve, CapRiskFreeze, CapAuditView,
 		CapPricingView, CapFinanceView,
+		CapBetaView,
 	),
 
 	// SUPPORT — help desk. Read operators/merchants/consumers/payments and reset
@@ -100,6 +109,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapDashboardView, CapOperatorRead, CapOperatorReset, CapApplicationView,
 		CapMerchantView, CapConsumerView, CapSettlementView, CapPayoutView,
 		CapReconView, CapDisputeView, CapRiskView, CapAuditView, CapPricingView, CapFinanceView,
+		CapBetaView,
 	),
 
 	// READ_ONLY — observe everything, change nothing.
@@ -107,6 +117,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapDashboardView, CapOperatorRead, CapApplicationView, CapMerchantView,
 		CapConsumerView, CapSettlementView, CapPayoutView, CapReconView,
 		CapDisputeView, CapRiskView, CapAuditView, CapPricingView, CapFinanceView,
+		CapBetaView,
 	),
 }
 

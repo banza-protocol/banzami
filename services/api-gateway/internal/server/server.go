@@ -68,6 +68,7 @@ type Dependencies struct {
 	BusinessLinkCodeSvc      service.BusinessLinkCodeService
 	BusinessPinResetSvc      *service.BusinessPinResetService
 	MerchantAppSvc           service.MerchantApplicationService
+	BetaTesterSvc            service.BetaTesterService
 	MerchantAppAdminSvc      service.MerchantApplicationAdminService
 	MerchantDocumentSvc      service.MerchantDocumentService
 	MerchantKybSvc           *service.PostgresMerchantKybService
@@ -178,6 +179,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// stack's environment (cfg.Environment) disagrees with the current mode.
 	envGate := service.NewEnvGate(cfg.Environment, deps.PlatformSvc)
 	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate)
+	betaTesterHandler := handler.NewBetaTesterHandler(deps.BetaTesterSvc)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate).WithReadiness(deps.SettlementReadinessSvc)
 	businessOnboardingHandler := handler.NewBusinessOnboardingHandler(deps.MerchantAppSvc, deps.MerchantAppAdminSvc, deps.BusinessLinkCodeSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
@@ -265,6 +267,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// filling in the form; not for a script walking the namespace.
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RateLimitPerIP(deps.Redis, 30, "onboarding"))
+		// Public beta registration (APP-BETA-001): a person leaving their name for
+		// TestFlight / Google Play testing. Rate-limited per IP against mass signup.
+		r.With(middleware.RateLimitPerIPWindow(deps.Redis, 20, 24*time.Hour, "beta-register")).
+			Post("/v1/beta/testers", betaTesterHandler.Register)
 		r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
 		// Each submission reserves an @handle for as long as its application is
 		// open. Thirty a day per address covers a person applying (and

@@ -84,6 +84,7 @@
         "tables": [
           "developer.dev_api_request_logs",
           "developer.dev_project_sandbox_binding",
+          "public.beta_testers",
           "public.business_link_codes",
           "public.handle_registry",
           "public.merchant_access_log",
@@ -180,6 +181,7 @@
           "public.admin_notifications",
           "public.admin_password_reset_tokens",
           "public.admin_users",
+          "public.beta_testers",
           "public.compliance_case_notes",
           "public.compliance_cases",
           "public.customer_compliance",

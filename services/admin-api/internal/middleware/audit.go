@@ -150,6 +150,7 @@ var auditActions = map[string]string{
 	"POST /admin/v1/risk/flags/{id}/resolve":                                    "RISK_RESOLVE",
 	"POST /admin/v1/risk/acquiring-recon":                                       "ACQUIRING_RECON_RUN",
 	"POST /admin/v1/disputes/{id}/resolve":                                      "DISPUTE_RESOLVE",
+	"POST /admin/v1/beta-testers/{id}/status":                                   "SET_BETA_TESTER_STATUS",
 }
 
 func auditAction(method, pattern string) string {
