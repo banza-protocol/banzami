@@ -15,6 +15,7 @@ import 'services/push_notification_service.dart';
 import 'services/session_service.dart';
 import 'services/wallet_refresh_bus.dart';
 import 'branding_assets.dart';
+import 'platform/web_desktop_shell.dart';
 import 'screens/onboarding/welcome_screen.dart';
 import 'screens/splash_screen.dart';
 
@@ -601,7 +602,9 @@ class _BanzamiAppState extends State<BanzamiApp> {
             builder: (_, child) => SecureAppLifecycleGuard(
               key:          _guardKey,
               navigatorKey: _navigatorKey,
-              child:        child!,
+              // On a wide browser, centre the surface at phone width on a neutral
+              // canvas (a no-op off the Web and on narrow viewports).
+              child:        WebDesktopShell(child: child!),
             ),
           );
         },
