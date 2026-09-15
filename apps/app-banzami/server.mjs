@@ -173,16 +173,10 @@ function readBody(req) {
 }
 
 // ── Auth-issuance rate limit (defence-in-depth; backend limits are primary) ──
+// The counter lives in the session store (Redis in production), so a host restart
+// or a second replica cannot reset or bypass it (§13).
 const AUTH_WINDOW_MS = 10 * 60 * 1000;
 const AUTH_MAX = 12;
-const _authHits = new Map();
-function authRateLimited(ip) {
-  const now = Date.now();
-  const arr = (_authHits.get(ip) || []).filter((t) => now - t < AUTH_WINDOW_MS);
-  arr.push(now); _authHits.set(ip, arr);
-  if (_authHits.size > 5000) for (const [k, v] of _authHits) if (!v.some((t) => now - t < AUTH_WINDOW_MS)) _authHits.delete(k);
-  return arr.length > AUTH_MAX;
-}
 function clientIp(req) {
   const xff = req.headers['x-forwarded-for'];
   if (typeof xff === 'string' && xff.length) return xff.split(',')[0].trim();
@@ -196,7 +190,7 @@ async function handleBff(req, res) {
   const route = matchRoute(req.method, upstreamPath);
   if (!route) return sendJson(res, 404, { code: 'NOT_FOUND', message: 'no such route' });
 
-  if (route.authIssue && authRateLimited(clientIp(req))) {
+  if (route.authIssue && await store.rateLimitHit(`auth:${clientIp(req)}`, AUTH_WINDOW_MS, AUTH_MAX)) {
     return sendJson(res, 429, { code: 'RATE_LIMITED', message: 'demasiadas tentativas; tente mais tarde' });
   }
 

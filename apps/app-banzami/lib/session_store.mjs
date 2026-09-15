@@ -125,6 +125,14 @@ class RedisSessionStore {
     await this.r.cmd('DEL', this.prefix + id);
   }
   async ping() { const v = await this.r.cmd('PING'); return v === 'PONG'; }
+  // Fixed-window counter shared across replicas and self-expiring, so a restart
+  // or a second replica cannot reset/bypass it (§13).
+  async rateLimitHit(key, windowMs, max) {
+    const k = 'bzweb:rl:' + key;
+    const n = await this.r.cmd('INCR', k);
+    if (n === 1) await this.r.cmd('PEXPIRE', k, Math.max(1000, windowMs));
+    return n > max;
+  }
   kind() { return `redis(${this.r.host}:${this.r.port})`; }
 }
 
@@ -179,6 +187,16 @@ class FileSessionStore {
     if (this.map.delete(id)) await this._persist();
   }
   async ping() { await this._loaded; return true; }
+  // Single-node fallback: an in-memory sliding window (this backend is single
+  // replica by definition, so there is nothing to share).
+  async rateLimitHit(key, windowMs, max) {
+    this._rl ??= new Map();
+    const now = Date.now();
+    const arr = (this._rl.get(key) || []).filter((t) => now - t < windowMs);
+    arr.push(now); this._rl.set(key, arr);
+    if (this._rl.size > 5000) for (const [k, v] of this._rl) if (!v.some((t) => now - t < windowMs)) this._rl.delete(k);
+    return arr.length > max;
+  }
   kind() { return `file(${this.file})`; }
 }
 

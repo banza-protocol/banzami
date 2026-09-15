@@ -55,4 +55,14 @@ test('an expired record is not returned (TTL floor is 1s)', async () => {
   assert.equal(await store.get(id), null);
 });
 
+test('the rate limiter caps a key and then blocks (§13)', async () => {
+  const store = createSessionStore();
+  let blocked = 0;
+  for (let i = 0; i < 5; i++) if (await store.rateLimitHit('t:key', 60_000, 3)) blocked++;
+  // cap 3 → hits 4 and 5 blocked
+  assert.equal(blocked, 2);
+  // a different key is independent
+  assert.equal(await store.rateLimitHit('t:other', 60_000, 3), false);
+});
+
 test.after(async () => { await fs.rm(file, { force: true }); });
