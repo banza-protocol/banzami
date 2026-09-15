@@ -48,6 +48,56 @@ identities:
     authority: integrator
     lifetime: as long as DOA integrates
 
+consumers:
+  # Consumer @banza accounts allowed to be ACTIVE on the Sandbox. Matched by
+  # handle. Everything else ACTIVE is synthetic residue awaiting retirement
+  # through the canonical consumer lifecycle (ACCOUNT-ONBOARDING-NAME-001 clean-
+  # slate) — checked by tools/check-consumer-residue.mjs, which also fails on any
+  # ACTIVE consumer with a NULL/blank declared name. A declaration alone makes
+  # nothing canonical; the account must be ACTIVE and carry a declared name.
+  - resource: fm65
+    owner: Fidel Monteiro (operator)
+    purpose: The operator's own consumer wallet — the canonical @fm65 identity.
+    why_now: Banzami's own account on its own product; the P2P counterpart every journey sends to.
+    classification: canonical
+    authority: owner
+    lifetime: permanent
+
+  - resource: oxfannio
+    owner: Oxfannio
+    purpose: A real person's consumer wallet used in current acceptance.
+    why_now: Named, owner-declared real account (excluded by name in the retirement tool as well).
+    classification: canonical
+    authority: owner
+    lifetime: permanent
+
+  - resource: priscila
+    owner: Príscila Monteiro
+    purpose: A real person's consumer wallet used in current acceptance.
+    why_now: Named, owner-declared real account.
+    classification: canonical
+    authority: owner
+    lifetime: permanent
+
+  - resource: kiara
+    owner: Kiara Monteiro
+    purpose: A real person's consumer wallet.
+    why_now: Named, owner-declared real account.
+    classification: canonical
+    authority: owner
+    lifetime: permanent
+
+  - resource: qatester15
+    owner: Fidel Monteiro (operator) — standing QA identity
+    purpose: The canonical hand-driven QA consumer (@qatester15, "Kiara Mendes") used to exercise the app across sessions.
+    why_now: >
+      A standing, owner-held test identity deliberately kept (not a per-run
+      fixture) so the consumer app can be re-exercised from a known account
+      without minting a new one each time. It carries a declared name.
+    classification: canonical
+    authority: operator
+    lifetime: standing — retire only when hand QA on this account is retired
+
 workspaces:
   - resource: DOA
     owner: contact@doadoa.app

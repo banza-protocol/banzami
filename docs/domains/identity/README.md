@@ -167,10 +167,21 @@ Rules:
   `personName`: declared name, else `@handle`).
 - **Casing preserved.** Trim leading/trailing whitespace only; no upper/lower/
   title-case normalisation (so `McDonald` is not corrupted).
-- **Legacy.** Consumers created while the name was optional keep a NULL/blank
-  `display_name` and are **not** fake-backfilled; they declare their name through
-  the app's profile-completion flow on next authenticated use — the same wallet,
-  @banza and history, no second account and no duplicate Sandbox grant.
+- **Legacy (Public Sandbox clean-slate, owner decision 2026-09-15).** The Public
+  Sandbox is disposable and follows current-state semantics. Consumers created
+  before full-name enforcement (NULL/blank `display_name`) are **not** migrated
+  through a compatibility UX and are **not** fake-backfilled — there is no
+  legacy name-completion endpoint and no "Complete o seu perfil" flow. They are
+  **retired** through the canonical consumer lifecycle (suspend + balanced value
+  closure via `retire-funds` + session revocation — never SQL), the same as any
+  other obsolete Sandbox identity. The authority for what survives is the
+  allowlist in `ops/canonical-resources.yaml` (`consumers:`), enforced live by
+  `tools/check-consumer-residue.mjs`; the retirement runs through
+  `tools/ops/retire-synthetic-residue.sh`. After the retired rows are gone,
+  migration `0152` VALIDATEs the `0151` constraint so the database guarantees
+  every remaining consumer has a declared name. This is a **Sandbox-specific**
+  decision and says nothing about future Financial Live customer migration or
+  regulated record retention, which are separate policies (Live is not enabled).
 
 Future Live may distinguish `declared_full_name` from a `verified_legal_name`;
 today there is one required declared full name, and verification stays separate.

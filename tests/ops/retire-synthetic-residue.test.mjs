@@ -77,39 +77,39 @@ test("DOA's workspaces are excluded from every merchant and project selection", 
   assert.match(SRC, /P_SHAPE="dp\.workspace_id NOT IN \(\$DOA_WS\)/);
 });
 
-test('real consumers are excluded by name and by shape', () => {
-  // The whole selector, however many shapes it grows. The first form of this
-  // test matched exactly three shapes in sequence, so adding a fourth broke the
-  // parse rather than the protection — and a guard that fails to read the thing
-  // it guards protects nothing.
+test('consumers are retired by allowlist-complement; only declared canonical survive', () => {
+  // ACCOUNT-ONBOARDING-NAME-001 clean-slate: the current Consumer model is
+  // @banza + a required declared name and the Sandbox is disposable, so consumer
+  // selection moved from positive machine-shapes to an ALLOWLIST-COMPLEMENT —
+  // every ACTIVE consumer that is not declared canonical is retired. A real
+  // account is protected by being NAMED in the manifest, not by escaping a
+  // pattern (nothing survives by being forgotten).
   const block = SRC.match(/C_SEL="([\s\S]*?)"\n/);
   assert.ok(block, 'C_SEL not found');
-  const shapes = [...block[1].matchAll(/c\.handle ~ '([^']+)'/g)]
-    .map((x) => new RegExp(x[1].replace(/\\\$/g, '$')));
-  assert.ok(shapes.length >= 6, `expected the six machine shapes, found ${shapes.length}`);
+  const sel = block[1];
+  assert.match(sel, /c\.status = 'ACTIVE'/, 'C_SEL must select ACTIVE consumers');
 
-  const generic = shapes[0];
-  const byShape = (h, name) => (generic.test(h) && !name) || shapes.slice(1).some((r) => r.test(h));
+  const notin = sel.match(/c\.handle NOT IN \(([^)]*)\)/);
+  assert.ok(notin, 'C_SEL must protect the canonical allowlist with NOT IN');
+  const handles = [...notin[1].matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
 
-  // Machine-made handles, each from a harness that actually produced them.
-  for (const h of ['cs87374p', 'd21203s1', 'se497871', 'fin19727', 'ra89698s1', 'rcamtw1j2ce',
-                   'wd22961p', 'k27158s1', 'e2esend92b332', 'e2ercvcffe77',
-                   'shapeprobemtywfz64a', 'app001recvmtywgll7']) {
-    assert.ok(byShape(h, null), h);
+  // The allowlist baked into the tool MUST equal the consumers: section of the
+  // canonical manifest — the single authority (checked live by
+  // tools/check-consumer-residue.mjs).
+  const doc = readFileSync(join(import.meta.dirname, '../../ops/canonical-resources.yaml'), 'utf8');
+  const body = doc.split(/\nconsumers:\n/)[1] ?? '';
+  const cut = body.search(/\n[a-z_]+:\n/);
+  const chunk = cut === -1 ? body : body.slice(0, cut);
+  const declared = [...chunk.matchAll(/\n {2}- resource:\s*(\S+)/g)].map((m) => m[1]).sort();
+  assert.ok(declared.length >= 1, 'the manifest declares at least one canonical consumer');
+  assert.deepStrictEqual(handles, declared,
+    'the retirement allowlist must match ops/canonical-resources.yaml consumers:');
+
+  // Real/canonical accounts survive; a synthetic active handle is not protected.
+  for (const keep of ['fm65', 'oxfannio', 'priscila']) {
+    assert.ok(handles.includes(keep), `${keep} must be preserved`);
   }
-
-  // People. A shape that catches one of these is a shape that closes a real
-  // account, which is the failure this whole selector is built to avoid.
-  assert.ok(!byShape('fm65', 'Fidel'), 'fm65');
-  assert.ok(!byShape('joao2024', 'João'), 'a person who picked digits and a name');
-  assert.ok(!byShape('oxfannio', 'Oxfannio'));
-  assert.ok(!byShape('fidel', null), 'fidel must NOT be reachable by any shape');
-  assert.match(SRC, /c\.handle NOT IN \('fm65','oxfannio','priscila'\)/);
-
-  // @fidel is selected by its exact id and nothing else: it is a handle a person
-  // chose, and the pattern that caught it once would catch somebody else later.
-  assert.match(block[1], /c\.id = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'/,
-    'the APP-001 device account must be selected by exact id, never by a shape');
+  assert.ok(!handles.includes('webqa38742a'), 'a synthetic handle is not in the allowlist');
 });
 
 test('DOA demo accounts are chosen by the harness signature, never by owner alone', () => {

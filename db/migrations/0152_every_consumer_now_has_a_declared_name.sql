@@ -1,0 +1,25 @@
+-- 0152 — Every current consumer now has a declared name: validate the constraint.
+--
+-- ACCOUNT-ONBOARDING-NAME-001 · Sandbox current-state clean-slate. Migration
+-- 0151 added `consumers_display_name_present` as NOT VALID so pre-enforcement
+-- rows were not retro-failed. The Sandbox clean-slate then retired every active
+-- consumer that carried no declared name (through the operator's canonical
+-- consumer-retirement lifecycle — suspend + balanced value closure + session
+-- revocation, never SQL), so no SUPPORTED (active) row violates the check.
+--
+-- VALIDATE CONSTRAINT scans existing rows once and, on success, marks the
+-- constraint validated — from here the database itself guarantees that every
+-- consumer row (new writes AND the rows that remain) has a non-blank
+-- display_name. It takes only a SHARE UPDATE EXCLUSIVE lock (reads and writes
+-- continue). It is a no-op if 0151 is already validated.
+--
+-- PRECONDITION (must hold before this runs — proven by the clean-slate report
+-- and the consumer residue scanner, tools/check-consumer-residue.mjs):
+--   SELECT count(*) FROM consumers WHERE display_name IS NULL OR btrim(display_name) = '';  -- = 0
+-- If any row still violates it, VALIDATE fails loudly rather than corrupting —
+-- retire the offending rows through the canonical lifecycle first, never backfill.
+--
+-- Reversible: the constraint can be returned to NOT VALID only by dropping and
+-- re-adding it (Postgres has no ALTER ... INVALIDATE); 0151's DROP is the undo.
+
+ALTER TABLE consumers VALIDATE CONSTRAINT consumers_display_name_present;

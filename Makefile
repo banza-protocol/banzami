@@ -432,9 +432,15 @@ check-implementation-matrix:
 	node tools/check-implementation-matrix.mjs
 
 # Reads the live Sandbox; not part of check-all, which must run without a host.
-.PHONY: check-canonical-resources
-check-canonical-resources:
+.PHONY: check-canonical-resources check-consumer-residue
+check-canonical-resources: check-consumer-residue
 	node tools/check-canonical-resources.mjs
+
+# Consumer clean-slate gate (ACCOUNT-ONBOARDING-NAME-001): every ACTIVE consumer
+# is declared canonical and carries a declared name; runs as part of the
+# canonical-resources gate.
+check-consumer-residue:
+	node tools/check-consumer-residue.mjs
 
 check-sdk-payment-boundary:
 	node tools/check-sdk-payment-boundary.mjs

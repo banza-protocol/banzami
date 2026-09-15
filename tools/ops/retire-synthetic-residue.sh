@@ -91,14 +91,18 @@ M_SEL="m.id NOT IN ($DOA_MERCHANTS)
 # and the pattern that caught it once would catch somebody else later. Its value
 # is retired through the same balanced posting as any other synthetic value and
 # its ledger history survives untouched; @fm65 remains the canonical identity.
-C_SEL="((c.handle ~ '^[a-z]{1,4}[0-9]{4,}[a-z0-9]*\$' AND c.display_name IS NULL)
-        OR c.handle ~ '^ra[0-9]+s[0-9]+\$' OR c.handle ~ '^rc[ab]m[a-z0-9]{7}\$'
-        OR c.handle ~ '^e2e(send|rcv)[a-z0-9]+\$'
-        OR c.handle ~ '^shapeprobe[a-z0-9]+\$'
-        OR c.handle ~ '^app001recv[a-z0-9]+\$'
-        OR c.handle ~ '^(qspayer|doatutdonor|doatutbenef)[a-z0-9]+\$'
-        OR c.id = 'd6fbc4d2-e913-447c-84f8-3d3b7df677eb')
-       AND c.handle NOT IN ('fm65','oxfannio','priscila')"
+# ACCOUNT-ONBOARDING-NAME-001 clean-slate (owner decision 2026-09-15): the
+# current Consumer model is @banza + a required declared name, and the Sandbox is
+# disposable. For CONSUMERS we therefore invert to an ALLOWLIST-COMPLEMENT: every
+# ACTIVE consumer that is not explicitly declared canonical in
+# ops/canonical-resources.yaml (consumers:) is synthetic residue and is retired
+# through this same balanced lifecycle. The allowlist below MUST stay in sync
+# with that manifest (checked by tools/check-consumer-residue.mjs). A real
+# account is protected by being NAMED there, not by escaping a pattern — which is
+# the point of the manifest: nothing survives by being forgotten. Suspended/
+# closed consumers are already retired and are not reprocessed.
+C_SEL="c.status = 'ACTIVE'
+       AND c.handle NOT IN ('fm65','oxfannio','priscila','kiara','qatester15')"
 # The demo campaign accounts tests/phase0/campaign-payment-segregation.sh opened
 # in DOA's tenants — ten under the canonical @doa project (2026-09-09..11) and
 # eighteen under DOA's earlier "DOA Sandbox" project (2026-09-08). Selected by
