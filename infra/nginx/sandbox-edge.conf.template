@@ -293,6 +293,41 @@ server {
     }
 }
 
+# ─── app.banzami.com — App Banzami Web (WEB-APP-001, ADR-064) ────────────────
+# The consumer financial application in the browser. A thin BFF that reaches the
+# Consumer API (public-api) server-side; the Consumer Bearer never leaves the
+# server. Covered by the wildcard cert like every other host here. The upstream
+# is variable and resolved at request time, so an absent container 502s only this
+# host and never blocks the edge from starting. Requires a Cloudflare DNS record
+# for app.banzami.com and the SB_APP upstream to be provisioned (see
+# docs/infra/APP_BANZAMI_WEB_HOSTING.md).
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name app.banzami.com;
+    access_log /var/log/nginx/access.log bz_redacted;
+
+    ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
+    ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 1m;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header True-Client-IP    $remote_addr;
+    proxy_set_header X-Forwarded-For   $remote_addr;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_connect_timeout 5s;
+    proxy_read_timeout    30s;
+
+    location / {
+        set $sb_app "${SB_APP}";
+        proxy_pass http://$sb_app;
+    }
+}
+
 # ─── checkout.banzami.com — canonical alias, not a second application ────────
 # One payment page, one origin. A second application presenting the same payment
 # would drift, and only one host can carry the Universal Link / App Link
