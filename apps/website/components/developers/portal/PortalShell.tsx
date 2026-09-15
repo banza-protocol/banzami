@@ -8,7 +8,6 @@ import { ToastProvider, useToast, copyText } from './Toast';
 import { DeveloperAuthProvider, useDeveloperAuth } from './DeveloperAuth';
 import { DeveloperDataProvider, useDeveloperData } from './DeveloperData';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
-import { PreviewNotice } from './PreviewNotice';
 import { UserMenu } from './UserMenu';
 import {
   BrandTile,
@@ -497,7 +496,11 @@ function Main({ showBanner, children }: { showBanner: boolean; children: ReactNo
       onClick={onClick}
       style={{ flex: 1, padding: 26, maxWidth: 1200, width: '100%', margin: '0 auto' }}
     >
-      <PreviewNotice />
+      {/* One contextual Sandbox explanation (the beige SandboxBanner, which
+          carries the "why Live" link) — the global top bar + sidebar pill are
+          the persistent signal. The blue PreviewNotice was a second full-width
+          banner saying the same thing; removed to cut the 4× repetition
+          (DEVELOPER_OVERVIEW_SANDBOX_MESSAGE_REDUNDANCY=MINIMAL). */}
       {showBanner ? <SandboxBanner /> : null}
       {children}
     </main>

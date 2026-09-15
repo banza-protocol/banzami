@@ -2113,6 +2113,19 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               </div>
               <P>A lista completa, legível por máquina, está em <Code>GET /v1/sandbox/scenarios</Code> (scope <Code>sandbox:read</Code>): cada cenário tem um id, como provocá-lo e o resultado. Os ids aparecem em cada receita abaixo.</P>
 
+              <H2 id="testar-com-app-banzami-web">Testar com a App Banzami Web</H2>
+              <P>
+                Há três formas complementares de testar o lado do pagador em Sandbox — todas com dinheiro fictício, todas pelo mesmo caminho financeiro do Core (não há uma segunda máquina de estados):
+              </P>
+              <P>
+                <strong>1. App Banzami Web</strong> — o consumidor real, interativo, em <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" style={a}>app.banzami.com</a>. Crie uma conta Banzami Sandbox e pague à mão como um cliente. Ao criar uma Payment Session ou Payment Link no <a href="/explorer" style={a}>API Explorer</a>, o botão <strong>Testar na App Banzami Web</strong> abre <Code>app.banzami.com/pay/{'{slug}'}</Code> — o mesmo slug público pagador (sem chave, sem sessão, sem autoridade no URL); a App autentica e retoma o pagamento (abrir o link nunca paga — cai no ecrã de revisão).{' '}
+                <strong>2. Checkout hospedado</strong> — a página pagadora hospedada em <Code>pay.banzami.com</Code>, pelo botão <strong>Abrir a página de pagamento</strong>.{' '}
+                <strong>3. Pagador de teste</strong> — determinístico, para automação e cenários (abaixo).
+              </P>
+              <P>
+                A sua conta de <strong>developer</strong> e a conta de <strong>consumidor</strong> são identidades separadas: abrir a App não o autentica como consumidor. Depois do pagamento, observe pelo caminho canónico — webhook, <a href="/logs" style={a}>Logs / Eventos</a> e o comprovativo.
+              </P>
+
               <H2 id="pagadores-teste">Pagadores de teste</H2>
               <P>
                 Um pagador de teste é um cliente Sandbox do seu projeto, com carteira e saldo fictício. Paga as suas sessões e links pelo mesmo caminho que um cliente real — a sessão fica <Code>PAID</Code>, o evento é emitido e o comprovativo é emitido.

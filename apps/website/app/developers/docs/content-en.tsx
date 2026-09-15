@@ -2127,6 +2127,19 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               </div>
               <P>The full, machine-readable list is at <Code>GET /v1/sandbox/scenarios</Code> (scope <Code>sandbox:read</Code>): each scenario has an id, how to trigger it and the outcome. The ids appear on each recipe below.</P>
 
+              <H2 id="test-with-the-banzami-web-app">Test with the Banzami Web App</H2>
+              <P>
+                There are three complementary ways to test the payer side in Sandbox — all with fictitious money, all through the same Core financial path (there is no second state machine):
+              </P>
+              <P>
+                <strong>1. Banzami Web App</strong> — the real, interactive Consumer at <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" style={a}>app.banzami.com</a>. Create a Sandbox Banzami account and pay by hand like a customer. When you create a Payment Session or Payment Link in the <a href="/explorer" style={a}>API Explorer</a>, the <strong>Test in the Banzami Web App</strong> button opens <Code>app.banzami.com/pay/{'{slug}'}</Code> — the same public payer slug (no key, no session, no authority in the URL); the app authenticates and resumes the payment (opening the link never pays — it lands on the review screen).{' '}
+                <strong>2. Hosted checkout</strong> — the payer page hosted at <Code>pay.banzami.com</Code>, via the <strong>Open the payment page</strong> button.{' '}
+                <strong>3. Test payer</strong> — deterministic, for automation and scenarios (below).
+              </P>
+              <P>
+                Your <strong>developer</strong> account and the <strong>consumer</strong> account are separate identities: opening the app does not sign you in as a consumer. After payment, observe through the canonical path — webhook, <a href="/logs" style={a}>Logs / Events</a> and the receipt.
+              </P>
+
               <H2 id="test-payers">Test payers</H2>
               <P>
                 A test payer is a Sandbox customer of your project, with a wallet and a fictitious balance. It pays your sessions and links through the same path a real customer uses — the session becomes <Code>PAID</Code>, the event is emitted and the receipt is issued.
