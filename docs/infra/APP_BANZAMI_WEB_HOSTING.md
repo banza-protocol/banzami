@@ -2,6 +2,33 @@
 
 Version: 1.0 · WEB-APP-001 (ADR-064).
 
+> **LIVE since 2026-09-15.** `https://app.banzami.com` serves the real Flutter
+> Consumer app with the opaque server-side session, verified end-to-end over the
+> public path (register → 10 000 Kz grant → opaque cookie, no JWT in JS →
+> logout revocation; TLS floor 1.2, Full (strict); CSP/HSTS/noindex).
+>
+> **What is deployed (and the follow-up to make it blueprint-managed):** the
+> cutover was done as **standalone containers** on the sandbox host, not yet
+> through `./deploy.sh`:
+> - `bzsb-app-frontend` (image `app-banzami-web:v1`, built from this repo's
+>   `apps/app-banzami/Dockerfile`) on the app network, env
+>   `CONSUMER_API_BASE=http://…-public-api-staging:8083` (internal; the edge
+>   strips `/consumer`), `SESSION_REDIS_ADDR=bzsb-app-session-redis:6379`,
+>   `APP_WEB_SESSION_STORE_KEY` from `/root/app-banzami-web.env` (root-only);
+> - `bzsb-app-session-redis` (dedicated app-plane session store — the stack
+>   `redis` is data-plane-only and a frontend must not sit on the DB network);
+> - an additive edge block `/etc/nginx/conf.d/zz-app-banzami.conf` on
+>   `bzsbedge-sandbox-edge` (validated with `nginx -t` before reload);
+> - Cloudflare: DNS `A app → 217.160.9.248` (proxied) and the `:2053` Origin
+>   Rule (`0b6455ac…`, ruleset version 9) now includes `app.banzami.com`.
+>
+> **Follow-up (durability):** wire `app-frontend` into the blueprint
+> (`SANDBOX_SERVICES`, the `remote-native-build.sh` build map with **repo-root
+> context**, the validator allow-lists, the compose orchestration, and `SB_APP`
+> so the edge's staged block is used) — otherwise a blueprint redeploy would
+> re-render the edge without the app block and not recreate these standalone
+> containers.
+
 App Banzami Web is the shared Flutter Consumer app compiled to the Web target,
 served by a lean Node host (`apps/app-banzami`) that is also the same-origin
 session BFF. Bringing it live at `app.banzami.com` is the one step that needs
