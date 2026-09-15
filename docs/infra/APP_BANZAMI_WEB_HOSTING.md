@@ -32,6 +32,43 @@ is destructive.
 - `/healthz` returns readiness only (no session, consumer, secret or upstream
   detail) for the container HEALTHCHECK and the edge.
 
+## Verified infrastructure (inspected 2026-09-15, not assumed)
+
+- **Origin:** the VPS `217.160.9.248`. Two edges run there, split by host port:
+  `:443` → `banzami-website-nginx-1` (serves `banzami.com`, `www`, `developers`);
+  `:2053` → `bzsbedge-sandbox-edge` (serves the **sandbox** hosts: `pay`,
+  `sandbox-api`, `admin`, `checkout`, `developer-api`, `sandbox-webhook`).
+- **Cloudflare reaches the sandbox hosts on origin port `2053`, per hostname.**
+  Proven on the origin: `pay.banzami.com` returns 200 on `:2053` and 503 on
+  `:443`; `developers.banzami.com` is served on `:443`. There is no blanket
+  `*.banzami.com → 2053` rule (developers would break). **`app.banzami.com` must
+  be added to the same origin-port-2053 routing as `pay`** — a DNS record alone
+  sends it to `:443` (the website edge), which 503s for app.
+- **TLS/cert:** the sandbox edge presents a Cloudflare **Origin CA** certificate,
+  SAN `*.banzami.com, banzami.com`, valid to 2041 — it already covers
+  `app.banzami.com`. Full (strict) is satisfied; no new certificate is needed.
+- **Edge block:** the `server { server_name app.banzami.com; … proxy_pass
+  http://$sb_app; }` block is staged in `infra/nginx/sandbox-edge.conf.template`
+  (wildcard cert, variable upstream — absent `SB_APP` only 502s app).
+
+## The exact Cloudflare records the owner creates
+
+1. **DNS** — `TYPE: A · NAME: app · TARGET: 217.160.9.248 · PROXY: Proxied ·
+   TTL: Auto`, with SSL/TLS **Full (strict)**.
+2. **Origin port** — route `app.banzami.com` to origin port **2053** (the sandbox
+   edge), the same mechanism (Cloudflare Origin Rule) that already routes `pay`
+   and `sandbox-api`. This is a separate, required action from the DNS record.
+
+## Provisioning `app-frontend` (executed at cutover)
+
+Registering the service is a validator-gated blueprint change (mirroring
+`pay-frontend`), done as one supervised operation with the deploy:
+
+- `remote-native-build.sh` build map: `app-frontend) echo "$REL|$REL/apps/app-banzami/Dockerfile|3007"` — **build context is the repo root** (the image builds the Web target from `sdk/flutter` + `apps/mobile`), unlike pay/admin whose context is their app dir;
+- add `app-frontend` to `SANDBOX_SERVICES` (source-deploy) and to the sandbox service allow-lists the blueprint validators enforce (`check-sandbox-operational.mjs`, `check-sandbox-release-package.mjs`);
+- define the `app-frontend` container on the app plane with env `CONSUMER_API_BASE=https://sandbox-api.banzami.com/consumer` (or the internal public-api address), `NODE_ENV=production`, `SESSION_REDIS_ADDR` (a Redis the app plane can reach — the stack `redis` is data-plane, so give app-frontend reachability or provision an app-plane session Redis), `APP_WEB_SESSION_STORE_KEY` (dedicated secret), optionally `SESSION_REDIS_PASSWORD`;
+- set the edge `SB_APP` env to `app-frontend:3007` and reload the edge.
+
 ## Owner steps to go live
 
 1. **Cloudflare DNS (owner-only).** Create a **proxied** record for
