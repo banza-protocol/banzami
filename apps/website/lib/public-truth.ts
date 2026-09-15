@@ -21,6 +21,10 @@ export const PUBLIC_TRUTH = {
     state: 'Indisponível',
     summary:
       'O Financial Live permanece indisponível e sujeito às aprovações regulatórias, contratuais e operacionais aplicáveis.',
+    // Concise variant for dense surfaces (e.g. the homepage hero) — same truth,
+    // fewer words. Still says Live is unavailable and gates on approvals.
+    summaryShort:
+      'O Financial Live permanece indisponível, sujeito às aprovações aplicáveis.',
   },
   /** The Banzami app is not in the App Store or Google Play. */
   appInStores: false,

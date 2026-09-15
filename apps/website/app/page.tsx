@@ -87,7 +87,7 @@ export default function HomePage() {
       <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[78px] md:flex md:min-h-[100svh] md:flex-col md:justify-center md:pb-[clamp(16px,3vh,40px)]">
         <div className="pointer-events-none absolute -right-[120px] -top-[120px] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.7),rgba(251,210,208,0)_66%)]" />
         <div className="pointer-events-none absolute -left-[160px] top-[240px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.12),rgba(232,67,75,0)_66%)]" />
-        <div className="bz-herogrid relative mx-auto grid w-full max-w-[1240px] grid-cols-1 items-center gap-12 md:grid-cols-[1fr_1.02fr] lg:gap-16">
+        <div className="bz-herogrid relative mx-auto grid w-full max-w-container grid-cols-1 items-center gap-y-12 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-[clamp(40px,4.5vw,72px)]">
           {/* Left column — three deliberate art-direction zones read as one
               vertically-centred block against the wider/shorter showcase phone:
                 ZONE A · STORY     — badge + headline + body + environment status
@@ -105,16 +105,14 @@ export default function HomePage() {
               <h1 className="m-0 text-[clamp(34px,1.7vw+1.9vh,56px)] font-black leading-[1.03] tracking-[-0.03em] text-ink">
                 O novo caminho do Kwanza.
               </h1>
-              <p className="m-0 mt-[clamp(10px,1.6vh,20px)] max-w-[568px] text-[clamp(15px,0.55vw+0.8vh,18px)] font-semibold leading-[1.5] text-ink-secondary">
-                O Banzami está a construir uma plataforma financeira nativa de carteira, em que pessoas, negócios e aplicações movem valor numa
-                rede programável, com interoperabilidade com os rails financeiros externos. Construída sobre o protocolo BANZA. Cada
-                conta é uma carteira em Kwanza; paga-se por QR ou para um{' '}
-                <span className="bz-mono font-semibold text-cherry">@banza</span>, com um comprovativo que qualquer
-                pessoa pode verificar.
+              <p className="m-0 mt-[clamp(14px,2vh,24px)] max-w-[560px] text-[clamp(15px,0.55vw+0.8vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
+                O Banzami é uma plataforma financeira nativa de carteira para mover Kwanza entre
+                pessoas, negócios e aplicações. Pague por QR ou para um{' '}
+                <span className="bz-mono font-semibold text-cherry">@banza</span> e receba comprovativos verificáveis.
               </p>
-              <p data-testid="home-environment-status" className="m-0 mt-[clamp(8px,1.2vh,14px)] max-w-[568px] text-[12.5px] font-semibold leading-[1.45] text-ink-muted">
-                Hoje está disponível a {PUBLIC_TRUTH.sandbox.name}, para developers, com dinheiro fictício.{' '}
-                {PUBLIC_TRUTH.live.summary}
+              <p data-testid="home-environment-status" className="m-0 mt-[clamp(10px,1.4vh,16px)] max-w-[560px] text-[12.5px] font-semibold leading-[1.5] text-ink-muted">
+                {PUBLIC_TRUTH.sandbox.name} disponível com dinheiro fictício.{' '}
+                {PUBLIC_TRUTH.live.summaryShort}
               </p>
             </div>
 
