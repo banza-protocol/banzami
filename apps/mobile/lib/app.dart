@@ -598,6 +598,12 @@ class _BanzamiAppState extends State<BanzamiApp> {
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             navigatorKey:               _navigatorKey,
+            // No scrollbars — the Consumer app looks and scrolls like the native
+            // mobile apps on every target. On the Web this removes the desktop
+            // scrollbar the browser draws inside scroll views; content still
+            // scrolls with the wheel/trackpad, and inside the homepage embed the
+            // iframe captures the scroll so the app scrolls, not the page.
+            scrollBehavior:             const MaterialScrollBehavior().copyWith(scrollbars: false),
             home:                       SplashScreen(onBootComplete: _onSplashBootComplete),
             builder: (_, child) => SecureAppLifecycleGuard(
               key:          _guardKey,
