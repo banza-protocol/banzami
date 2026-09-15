@@ -252,10 +252,25 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
   InputDecoration _fieldDecoration({required String hint, String? prefix}) =>
       InputDecoration(
         hintText:       hint,
-        prefixText:     prefix,
+        // Always-visible '@' (prefixText is hidden until the field is focused).
+        prefixIcon: prefix == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.only(left: 20, right: 2),
+                child: Text(
+                  prefix,
+                  style: BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
+                ),
+              ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled:         true,
         fillColor:      BanzamiColors.gray100,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: EdgeInsets.only(
+          left:   prefix == null ? 20 : 0,
+          right:  20,
+          top:    18,
+          bottom: 18,
+        ),
         border: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll, borderSide: BorderSide.none,
         ),

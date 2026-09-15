@@ -400,7 +400,15 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                       controller: _handleCtrl,
                       focusNode: _handleFocus,
                       decoration: InputDecoration(
-                        prefixText: '@',
+                        // Always-visible '@' (prefixText is hidden until focus).
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 12, right: 2),
+                          child: Text('@',
+                              style: BanzamiTextStyles.bodyLg
+                                  .copyWith(color: BanzamiColors.black)),
+                        ),
+                        prefixIconConstraints:
+                            const BoxConstraints(minWidth: 0, minHeight: 0),
                         hintText: 'banza do destinatário',
                         errorText: _handleError,
                         suffixIcon: (_searching || _validatingHandle || _busy)
