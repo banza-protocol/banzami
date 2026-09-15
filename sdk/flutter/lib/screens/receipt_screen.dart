@@ -916,9 +916,13 @@ class _DetailRow extends StatelessWidget {
         children: [
           // Labels are left-aligned and share one leading edge; a long label
           // ("Referência do comerciante") wraps within its column instead of
-          // pushing the value off-screen. The value column owns the wider,
-          // trailing-aligned right side — the primary information.
-          Flexible(
+          // pushing the value off-screen. This is Expanded, not Flexible: a
+          // short label ("De", "Data") must still hold its full column width so
+          // the value column reaches the card's true right edge. With Flexible
+          // the short label's unused width fell to the right of the value (the
+          // Row packs to the start), leaving each value floating mid-card at a
+          // different x — the drift this fixes.
+          Expanded(
             flex: 2,
             child: Text(
               label,
@@ -928,6 +932,8 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: BanzamiSpacing.md),
+          // The value column owns the wider, trailing-aligned right side — the
+          // primary information, sharing one right edge across every row.
           Expanded(flex: 3, child: valueArea),
         ],
       ),
