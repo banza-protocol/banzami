@@ -109,9 +109,21 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
-      appBar: const BanzamiAppBar(title: 'Entrar'),
       body: SafeArea(
-        child: _step == _LoginStep.handle ? _buildHandleStep() : _buildPinStep(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title: 'Entrar',
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: _step == _LoginStep.handle
+                  ? _buildHandleStep()
+                  : _buildPinStep(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -137,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
 
-            const Text('O seu @banza', style: BanzamiTextStyles.displayMd),
+            const Text('O seu @banza', style: BanzamiTextStyles.headingMd),
             const SizedBox(height: 8),
             Text(
               'É o nome único que usa para receber pagamentos.',
@@ -156,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             TextFormField(
               controller:      _handleCtrl,
-              decoration:      _fieldDecoration(hint: 'joaosilva', prefix: '@'),
+              decoration:      _fieldDecoration(hint: 'ana', prefix: '@'),
               style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
               cursorColor:     BanzamiColors.primary,
               keyboardType:    TextInputType.visiblePassword,

@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../../widgets/app_screen_header.dart';
 import '../models/merchant_payment_entry.dart';
 import '../services/receipt_file_name.dart';
 import '../services/merchant_session_service.dart';

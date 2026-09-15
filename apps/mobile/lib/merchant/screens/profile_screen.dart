@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../../widgets/app_screen_header.dart';
 import '../../widgets/banzami_premium_dialog.dart';
 import '../services/merchant_reauth.dart';
 import '../services/merchant_session_service.dart';

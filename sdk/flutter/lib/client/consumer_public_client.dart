@@ -56,7 +56,7 @@ class ConsumerRegistration {
 ///   onRequest: (method, path, attempt) => logger.info('$method $path (#$attempt)'),
 ///   onError:   (method, path, err, attempts) => logger.error('$method $path failed after $attempts'),
 /// );
-/// final reg = await client.register(handle: 'joao', pin: '123456');
+/// final reg = await client.register(handle: 'ana', displayName: 'Ana Maria', pin: '123456');
 /// final balance = await client.getBalance();
 /// ```
 class ConsumerPublicClient {
@@ -128,7 +128,7 @@ class ConsumerPublicClient {
   /// Sets [token] internally so subsequent calls are authenticated.
   Future<ConsumerRegistration> register({
     required String handle,
-    String? displayName,
+    required String displayName,
     required String pin,
   }) async {
     final resp = await _call(
@@ -136,7 +136,8 @@ class ConsumerPublicClient {
       path: '/v1/auth/register',
       body: {
         'handle': handle,
-        if (displayName != null) 'display_name': displayName,
+        // Full name is REQUIRED (user-declared; NOT identity verification).
+        'display_name': displayName,
         'pin': pin,
       },
       auth: false,

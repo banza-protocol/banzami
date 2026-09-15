@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
@@ -26,6 +27,18 @@ type AuthHandler struct {
 
 func NewAuthHandler(cfg *config.Config, core *service.CorePublicClient, creds *service.CredentialStore) *AuthHandler {
 	return &AuthHandler{cfg: cfg, core: core, creds: creds}
+}
+
+// hasControlChars reports whether s contains any Unicode control character
+// (rejected in user-declared names). Printable Unicode — accents, apostrophes,
+// hyphens, marks — is allowed.
+func hasControlChars(s string) bool {
+	for _, r := range s {
+		if unicode.IsControl(r) {
+			return true
+		}
+	}
+	return false
 }
 
 // POST /v1/auth/register
@@ -53,9 +66,31 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Full name is REQUIRED at the canonical API boundary (ACCOUNT-ONBOARDING-
+	// NAME-001) — no target (Web/iOS/Android/direct client) may create a
+	// nameless account. It is a user-declared name, NOT identity verification;
+	// Sandbox performs no KYC. Unicode-safe: accents, apostrophes, hyphens, and
+	// one or many words are all valid; only empty, over-length and control
+	// characters are rejected. Casing is preserved (no over-normalisation).
+	name := ""
+	if body.DisplayName != nil {
+		name = strings.TrimSpace(*body.DisplayName)
+	}
+	switch {
+	case name == "":
+		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "full name is required")
+		return
+	case utf8.RuneCountInString(name) > 120:
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "full name is too long")
+		return
+	case hasControlChars(name):
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "full name contains invalid characters")
+		return
+	}
+
 	handle := strings.ToLower(strings.TrimSpace(body.Handle))
 
-	consumer, err := h.core.CreateConsumer(r.Context(), handle, body.DisplayName)
+	consumer, err := h.core.CreateConsumer(r.Context(), handle, &name)
 	if err != nil {
 		if errors.Is(err, service.ErrHandleTaken) {
 			apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "handle is already registered")

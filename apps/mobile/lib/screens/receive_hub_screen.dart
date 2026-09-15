@@ -8,7 +8,6 @@ import '../branding_assets.dart';
 import '../config.dart';
 import '../services/session_service.dart';
 import '../widgets/sandbox_banner.dart';
-import '../widgets/app_screen_header.dart';
 
 // ---------------------------------------------------------------------------
 // Bottom-sheet widget — collects amount + optional note, calls API, pops link

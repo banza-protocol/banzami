@@ -24,23 +24,24 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(
-        backgroundColor:        BanzamiColors.offWhite,
-        foregroundColor:        BanzamiColors.gray900,
-        elevation:              0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon:      const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text('PIN & Segurança', style: BanzamiTextStyles.headingMd),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: BanzamiSpacing.xl,
-          vertical:   BanzamiSpacing.lg,
-        ),
-        children: [
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title: 'PIN & Segurança',
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  BanzamiSpacing.xl,
+                  0,
+                  BanzamiSpacing.xl,
+                  BanzamiSpacing.lg,
+                ),
+                children: [
 
           // ── PIN section ──────────────────────────────────────────────────
           const _SectionLabel(label: 'PIN'),
@@ -100,7 +101,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
           ]),
 
           const SizedBox(height: BanzamiSpacing.xxl),
-        ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

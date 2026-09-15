@@ -105,6 +105,7 @@ export 'widgets/banzami_transfer_item.dart';
 export 'widgets/banzami_components.dart';
 export 'widgets/banzami_verified_mark.dart';
 export 'widgets/p2p_share_card.dart';
+export 'widgets/app_screen_header.dart';
 
 // Screens
 export 'screens/home_screen.dart';

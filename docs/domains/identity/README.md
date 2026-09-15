@@ -132,3 +132,45 @@ The badge is returned on every consumer profile response (`GET /v1/me`, register
 - Suspended consumers cannot initiate transfers but can still receive funds (wallet is unaffected).
 - Closed consumers have their wallets frozen by convention (enforced at the wallet level, not identity level).
 - `verification_badge` is read-only from the consumer's perspective — only admin-key-authenticated requests can set it.
+
+---
+
+## Declared full name (ACCOUNT-ONBOARDING-NAME-001)
+
+Every Consumer has **two** identity facts:
+
+- **`@banza`** — the unique, public, resolvable payment identifier (where value
+  is sent). Example: `@ana`.
+- **Full name** — a **required, user-declared** human-readable name (who a human
+  is dealing with). Example: `Ana Maria`. Stored in the existing
+  `consumers.display_name` column, whose canonical semantics are hereby fixed as
+  *REQUIRED user-declared full name* (we reuse this column rather than adding a
+  parallel `full_name`).
+
+Rules:
+
+- **Required at account creation.** The canonical API boundary
+  (`public-api /v1/auth/register`) rejects an empty / over-long (>120) /
+  control-character name with a typed 4xx (`MISSING_FIELD` / `INVALID_FIELD`).
+  DB defence-in-depth: migration `0151` adds a `NOT VALID` CHECK so no path
+  persists a name-less new row.
+- **Not identity verification.** The full name is user-*declared*. Sandbox
+  performs **no KYC** (`AppConfig.requiresIdentityVerification => !isSandbox`);
+  identity verification is a separate capability (`kyc_*`, ADR-020) and is not
+  required for current Sandbox use. A declared name is never labelled "verified".
+- **Not unique.** Two people may legitimately share a name; the
+  `consumers_handle_key` uniqueness is on `@banza` only. Transfers always resolve
+  by `@banza`, never by name.
+- **Never financial authority.** Authority is the consumer / wallet / handle
+  resolution in Core. The name is display information only — profile, P2P
+  recipient confirmation, history and receipts (`receipt_semantics.go`
+  `personName`: declared name, else `@handle`).
+- **Casing preserved.** Trim leading/trailing whitespace only; no upper/lower/
+  title-case normalisation (so `McDonald` is not corrupted).
+- **Legacy.** Consumers created while the name was optional keep a NULL/blank
+  `display_name` and are **not** fake-backfilled; they declare their name through
+  the app's profile-completion flow on next authenticated use — the same wallet,
+  @banza and history, no second account and no duplicate Sandbox grant.
+
+Future Live may distinguish `declared_full_name` from a `verified_legal_name`;
+today there is one required declared full name, and verification stays separate.

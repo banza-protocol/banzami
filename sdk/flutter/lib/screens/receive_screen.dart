@@ -12,6 +12,7 @@ import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
 import '../utils/banzami_toast.dart';
 import '../utils/qr_logo_utils.dart';
+import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr.dart';
@@ -261,9 +262,16 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   @override
   Widget build(BuildContext context) {
     return BanzamiScaffold(
-      appBar: const BanzamiAppBar(title: 'Receber'),
       body: SafeArea(
-        child: LayoutBuilder(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title: 'Receber',
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: LayoutBuilder(
           builder: (context, constraints) {
             final qrSize = (constraints.maxHeight - 280).clamp(120.0, 220.0);
 
@@ -382,6 +390,9 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
               ),
             );
           },
+              ),
+            ),
+          ],
         ),
       ),
     );

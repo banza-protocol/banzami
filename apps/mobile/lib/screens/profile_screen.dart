@@ -6,7 +6,6 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../config.dart';
 
 import '../services/session_service.dart';
-import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_premium_dialog.dart';
 import 'help_screen.dart';
 import 'kyc_screen.dart';

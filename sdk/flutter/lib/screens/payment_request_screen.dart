@@ -9,6 +9,7 @@ import '../theme/banzami_theme.dart';
 import '../utils/error_messages.dart';
 import '../utils/idempotency_intent.dart';
 import '../utils/money_format.dart';
+import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
 import 'receipt_screen.dart';
@@ -365,6 +366,10 @@ class _BanzamiPaymentRequestScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            AppScreenHeader(
+              title: 'Confirmar pagamento',
+              onBack: () => Navigator.of(context).pop(),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
@@ -586,9 +591,6 @@ class _BanzamiPaymentRequestScreenState
     return PopScope(
       canPop: !_sending,
       child: BanzamiScaffold(
-        appBar: _sending
-            ? null
-            : const BanzamiAppBar(title: 'Confirmar pagamento', showBack: true),
         body: Stack(
           children: [
             if (!_sending) SafeArea(child: _buildReviewUI()),

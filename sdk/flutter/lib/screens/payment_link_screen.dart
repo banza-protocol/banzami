@@ -6,6 +6,7 @@ import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/error_messages.dart';
+import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_components.dart';
 import 'payment_request_screen.dart';
 
@@ -100,18 +101,42 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const BanzamiScaffold(
-        appBar: BanzamiAppBar(title: 'Pagar', showBack: true),
-        body: Center(
-            child: CircularProgressIndicator(color: BanzamiColors.primary)),
+      return Scaffold(
+        backgroundColor: BanzamiColors.offWhite,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppScreenHeader(
+                title: 'Pagar',
+                onBack: () => Navigator.of(context).pop(),
+              ),
+              const Expanded(
+                child: Center(
+                  child:
+                      CircularProgressIndicator(color: BanzamiColors.primary),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
     final link = _link;
     if (_error != null || link == null) {
-      return BanzamiScaffold(
-        appBar: const BanzamiAppBar(title: 'Pagar', showBack: true),
-        body: Center(
+      return Scaffold(
+        backgroundColor: BanzamiColors.offWhite,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppScreenHeader(
+                title: 'Pagar',
+                onBack: () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: Center(
             child: Padding(
           padding: const EdgeInsets.all(BanzamiSpacing.xl),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -133,17 +158,34 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
             ),
           ]),
         )),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
     if (link.status == PaymentLinkStatus.used ||
         link.status == PaymentLinkStatus.expired ||
         link.status == PaymentLinkStatus.cancelled) {
-      return BanzamiScaffold(
-        appBar: const BanzamiAppBar(title: 'Pagar', showBack: true),
-        body: _InvalidView(
-          status: link.status,
-          onClose: () => Navigator.of(context).pop(),
+      return Scaffold(
+        backgroundColor: BanzamiColors.offWhite,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppScreenHeader(
+                title: 'Pagar',
+                onBack: () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: _InvalidView(
+                  status: link.status,
+                  onClose: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

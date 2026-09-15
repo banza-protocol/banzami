@@ -198,6 +198,29 @@ abstract class BanzamiTextStyles {
     color: BanzamiColors.gray900,
   );
 
+  /// Canonical PAGE TITLE — the one title style for every primary Consumer and
+  /// Merchant screen header, root tab and pushed child page alike. Rendered by
+  /// [AppScreenHeader]; screens must never inline their own title size/weight.
+  /// (ACCOUNT-ONBOARDING-NAME-001: single header system, PAGE_TITLE_TYPOGRAPHY
+  /// _SOURCE=CANONICAL.) 28 / w700 / tight tracking.
+  static const TextStyle pageTitle = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+    height: 36 / 28,
+    letterSpacing: -0.5,
+    color: BanzamiColors.gray900,
+  );
+
+  /// Canonical page subtitle beneath [pageTitle] (secondary, muted).
+  static const TextStyle pageSubtitle = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    height: 18 / 12,
+    color: BanzamiColors.gray400,
+  );
+
   /// Amounts use a monospaced face on native (JetBrains Mono, itself falling
   /// back to the platform mono where absent). Web CanvasKit registers no such
   /// family and would render the glyphs blank, so on Web amounts fall back to

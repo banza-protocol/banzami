@@ -13,12 +13,12 @@ enum _Step { enter, confirm }
 /// the session locally.
 class SetupPinScreen extends StatefulWidget {
   final String  handle;
-  final String? displayName;
+  final String  displayName;
 
   const SetupPinScreen({
     super.key,
     required this.handle,
-    this.displayName,
+    required this.displayName,
   });
 
   @override
@@ -150,14 +150,17 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
   Widget build(BuildContext context) {
     return BanzamiScaffold(
       backgroundColor: BanzamiColors.white,
-      appBar: BanzamiAppBar(
-        backgroundColor: BanzamiColors.white,
-        showBack: !_saving,
-        onBack:   _step == _Step.confirm ? _backToEnter : null,
-      ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title:  _title,
+              onBack: (_saving || _step != _Step.confirm) ? null : _backToEnter,
+            ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -166,8 +169,6 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                 children: [
                   const SizedBox(height: 24),
 
-                  Text(_title, style: BanzamiTextStyles.headingLg),
-                  const SizedBox(height: 8),
                   Text(
                     _subtitle,
                     style: BanzamiTextStyles.bodyMd.copyWith(
@@ -194,6 +195,9 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
               ),
             ),
           ),
+              ),
+            ),
+          ],
         ),
       ),
     );

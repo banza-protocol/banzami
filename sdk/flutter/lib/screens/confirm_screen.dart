@@ -6,6 +6,7 @@ import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/error_messages.dart';
 import '../utils/money_format.dart';
+import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_components.dart';
 import 'receipt_screen.dart';
 
@@ -402,10 +403,6 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     return PopScope(
       canPop: !_sending,
       child: BanzamiScaffold(
-        // Hide the AppBar while sending — the overlay fills full-screen.
-        appBar: _sending
-            ? null
-            : const BanzamiAppBar(title: 'Confirmar envio', showBack: true),
         body: Stack(
           children: [
             // ── Review UI ──────────────────────────────────────────────────────
@@ -422,6 +419,10 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        AppScreenHeader(
+                          title: 'Confirmar envio',
+                          onBack: () => Navigator.of(context).pop(),
+                        ),
                         Expanded(
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.fromLTRB(

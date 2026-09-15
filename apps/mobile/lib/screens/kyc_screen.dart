@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../widgets/app_screen_header.dart';
 
 /// Consumer identity verification (KYC) — Banzami ADR-020.
 ///

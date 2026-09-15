@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../../widgets/app_screen_header.dart';
 
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';

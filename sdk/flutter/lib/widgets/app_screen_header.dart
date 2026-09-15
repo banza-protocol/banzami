@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:banzami_flutter/banzami_flutter.dart';
+import 'package:banzami_flutter/theme/banzami_theme.dart';
 
-/// Canonical screen header for every primary screen across both the Consumer
-/// and the Merchant (Business) applications.
+/// Canonical screen header for every primary screen across the Consumer and the
+/// Merchant (Business) applications.
 ///
-/// This is the single source of truth for the title hierarchy: font size,
+/// This is the SINGLE source of truth for the page-title hierarchy — font size,
 /// weight, line-height, letter-spacing and the surrounding spacing all live
-/// here. Changing the typography here changes it for both apps at once — no
-/// per-screen, per-app duplication is allowed.
+/// here, on the [BanzamiTextStyles.pageTitle] / [BanzamiTextStyles.pageSubtitle]
+/// tokens. Changing the typography here changes it for every screen and both
+/// apps at once. No per-screen, per-app title styling is allowed
+/// (ACCOUNT-ONBOARDING-NAME-001: APP_HEADER_VISUAL_SYSTEM=ONE).
 ///
-/// Usage (tab / destination screen, no back button):
-///   AppScreenHeader(title: 'Histórico', subtitle: 'As suas movimentações')
-///   AppScreenHeader(title: 'Receber',   trailing: refreshButton)
+/// Two anatomies, one title family:
+///  • ROOT / destination (no back button):
+///      AppScreenHeader(title: 'Histórico', subtitle: 'As suas movimentações')
+///      AppScreenHeader(title: 'Receber',   trailing: refreshButton)
+///  • CHILD / pushed (a back affordance above the big title):
+///      AppScreenHeader(title: 'Criar conta', onBack: () => Navigator.pop(context))
 ///
-/// Usage (pushed screen, with a back button):
-///   AppScreenHeader(title: 'Nova cobrança', onBack: () => Navigator.pop(context))
+/// Immersive experiences (Welcome/Splash, the full-screen Comprovativo/receipt,
+/// the camera Scan screen, the Home dashboard hero) intentionally do NOT use
+/// this header; those are documented exceptions.
 class AppScreenHeader extends StatelessWidget {
   final String  title;
   final String? subtitle;
@@ -47,19 +53,13 @@ class AppScreenHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: BanzamiTextStyles.displayMd.copyWith(
-                  fontWeight:    FontWeight.w700,
-                  letterSpacing: -0.5,
-                ),
+                // Wrap safely for long PT/EN titles — never truncate a page
+                // title (UNINTENDED_PAGE_TITLE_TRUNCATION=0).
+                style: BanzamiTextStyles.pageTitle,
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 2),
-                Text(
-                  subtitle!,
-                  style: BanzamiTextStyles.bodySm.copyWith(
-                    color: BanzamiColors.gray400,
-                  ),
-                ),
+                Text(subtitle!, style: BanzamiTextStyles.pageSubtitle),
               ],
             ],
           ),

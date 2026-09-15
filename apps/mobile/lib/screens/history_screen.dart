@@ -6,7 +6,6 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../config.dart';
 import '../branding_assets.dart';
 import '../services/session_service.dart';
-import '../widgets/app_screen_header.dart';
 
 enum _HistoryFilter { all, received, sent }
 

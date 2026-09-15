@@ -13,6 +13,7 @@ import '../utils/camera_permission.dart';
 import '../utils/error_messages.dart';
 import '../utils/idempotency_intent.dart';
 import '../utils/qr_parser.dart';
+import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
@@ -371,13 +372,9 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Back button
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              color: BanzamiColors.gray900,
-              padding: const EdgeInsets.fromLTRB(
-                  BanzamiSpacing.md, BanzamiSpacing.md, BanzamiSpacing.md, 0),
-              onPressed: () => Navigator.of(context).pop(),
+            AppScreenHeader(
+              title: 'Enviar',
+              onBack: () => Navigator.of(context).pop(),
             ),
 
             // Scrollable form
@@ -392,10 +389,6 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Large premium title
-                    const Text('Enviar', style: BanzamiTextStyles.displayMd),
-                    const SizedBox(height: BanzamiSpacing.xxl),
-
                     // ── Para quem? ─────────────────────────────────────────
                     Text(
                       'Para quem?',
