@@ -81,51 +81,62 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
     setOpen(true);
   }
 
-  const btn =
-    'group inline-flex items-center gap-3 rounded-[16px] px-5 py-[13px] text-left no-underline transition-transform hover:-translate-y-0.5';
+  // One primary (Web) spanning the group's full width on row 1; the two native
+  // testers equal-width on row 2, so their outer edges line up exactly with the
+  // primary above (HERO_CTA_OUTER_EDGES_ALIGNED, HERO_NATIVE_CTA_DIMENSIONS_EQUAL).
+  const nativeBtn =
+    'group inline-flex items-center gap-3 rounded-[15px] px-4 py-[13px] text-left no-underline transition-transform hover:-translate-y-0.5';
 
   return (
     <>
-      <div className="mt-[22px] flex flex-wrap gap-3">
+      <div className="mt-[22px] max-w-[440px]">
+        {/* Row 1 — primary: open the web app (larger, full width). */}
         <a
           href="https://app.banzami.com"
           target="_blank"
           rel="noopener noreferrer"
           data-testid="hero-open-app-web"
-          className={`${btn} bg-[linear-gradient(180deg,#B5101F,#9A1B22)] text-white shadow-[0_16px_32px_-14px_rgba(181,16,31,.5)]`}
+          className="group flex w-full items-center gap-3.5 rounded-[18px] bg-[linear-gradient(180deg,#B5101F,#9A1B22)] px-5 py-[16px] text-white no-underline shadow-[0_18px_38px_-16px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5"
         >
-          <WebGlyph />
-          <span className="leading-tight">
-            <span className="block text-[15px] font-extrabold">{t.web}</span>
-            <span className="block text-[11.5px] font-semibold text-white/75">{t.webSub}</span>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-white/15">
+            <WebGlyph />
           </span>
+          <span className="leading-tight">
+            <span className="block text-[17px] font-black tracking-[-.01em]">{t.web}</span>
+            <span className="block text-[12px] font-semibold text-white/75">{t.webSub}</span>
+          </span>
+          <span aria-hidden className="ml-auto pl-2 text-[18px] text-white/70">↗</span>
         </a>
-        <button
-          type="button"
-          onClick={() => openFor('IOS')}
-          className={`${btn} bg-gradient-to-b from-neutral-900 to-black text-white shadow-[0_16px_32px_-14px_rgba(0,0,0,.55)]`}
-        >
-          <AppleGlyph />
-          <span className="leading-tight">
-            <span className="block text-[15px] font-extrabold">{t.ios}</span>
-            <span className="block text-[11.5px] font-semibold text-white/70">{t.iosSub}</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => openFor('ANDROID')}
-          className={`${btn} border border-border-soft bg-white text-ink shadow-[0_10px_28px_-16px_rgba(0,0,0,.4)]`}
-        >
-          <span className="text-[#3DDC84]">
-            <AndroidGlyph />
-          </span>
-          <span className="leading-tight">
-            <span className="block text-[15px] font-extrabold">{t.android}</span>
-            <span className="block text-[11.5px] font-semibold text-ink-muted">{t.androidSub}</span>
-          </span>
-        </button>
+
+        {/* Row 2 — two equal native testers, outer edges aligned to the primary. */}
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => openFor('IOS')}
+            className={`${nativeBtn} bg-gradient-to-b from-neutral-900 to-black text-white shadow-[0_14px_30px_-16px_rgba(0,0,0,.55)]`}
+          >
+            <AppleGlyph />
+            <span className="leading-tight">
+              <span className="block text-[14px] font-extrabold">{t.ios}</span>
+              <span className="block text-[11px] font-semibold text-white/70">{t.iosSub}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openFor('ANDROID')}
+            className={`${nativeBtn} border border-border-soft bg-white text-ink shadow-[0_10px_26px_-16px_rgba(0,0,0,.35)]`}
+          >
+            <span className="text-[#3DDC84]">
+              <AndroidGlyph />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-[14px] font-extrabold">{t.android}</span>
+              <span className="block text-[11px] font-semibold text-ink-muted">{t.androidSub}</span>
+            </span>
+          </button>
+        </div>
       </div>
-      <p className="m-0 mt-3 text-[12.5px] font-semibold text-ink-muted">{t.available}</p>
+      <p className="m-0 mt-3 max-w-[440px] text-[12.5px] font-semibold text-ink-muted">{t.available}</p>
 
       <BetaRegisterModal
         open={open}
