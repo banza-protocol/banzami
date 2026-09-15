@@ -22,12 +22,57 @@ export function newSessionId() {
   return crypto.randomBytes(32).toString('base64url');
 }
 
+// ── At-rest encryption of the session record (§2) ─────────────────────────────
+// The record — which holds the upstream Consumer Bearer — is sealed with
+// AES-256-GCM under a dedicated server-side key before it ever reaches Redis or
+// the file. A store-only compromise/dump reveals ciphertext, never the plaintext
+// Bearer. The key is distinct from the CSRF secret, the cookie id and any
+// Consumer/Project credential; it never reaches the browser and is never logged.
+const STORE_ALG = 'aes-256-gcm';
+function storeKey() {
+  const raw = process.env.APP_WEB_SESSION_STORE_KEY;
+  if (raw && raw.length >= 16) return crypto.createHash('sha256').update(raw).digest();
+  if (process.env.NODE_ENV === 'production') {
+    // Fail closed: no plaintext fallback in production.
+    throw new Error('APP_WEB_SESSION_STORE_KEY (>=16 chars) is required in production');
+  }
+  return crypto.createHash('sha256').update('app-web-session-store-dev-key').digest();
+}
+const _STORE_KEY = storeKey();
+
+// Seal a record object → base64url(iv | tag | ciphertext).
+export function sealRecord(obj) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv(STORE_ALG, _STORE_KEY, iv);
+  const pt = Buffer.from(JSON.stringify(obj), 'utf8');
+  const ct = Buffer.concat([cipher.update(pt), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([iv, tag, ct]).toString('base64url');
+}
+// Open a sealed record → object, or null on any tamper/decrypt failure (fail closed).
+export function openRecord(blob) {
+  try {
+    const buf = Buffer.from(blob, 'base64url');
+    if (buf.length < 28) return null;
+    const iv = buf.subarray(0, 12);
+    const tag = buf.subarray(12, 28);
+    const ct = buf.subarray(28);
+    const d = crypto.createDecipheriv(STORE_ALG, _STORE_KEY, iv);
+    d.setAuthTag(tag);
+    const pt = Buffer.concat([d.update(ct), d.final()]);
+    return JSON.parse(pt.toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
 // ── Minimal RESP (Redis) client over node:net — no dependency ─────────────────
 class RedisClient {
-  constructor(addr) {
+  constructor(addr, password) {
     const [host, port] = addr.split(':');
     this.host = host || '127.0.0.1';
     this.port = parseInt(port || '6379', 10);
+    this.password = password || ''; // never logged
     this.sock = null;
     this.connecting = null;
     this.pending = []; // { resolve, reject }
@@ -40,7 +85,13 @@ class RedisClient {
     this.connecting = new Promise((resolve, reject) => {
       const s = net.createConnection({ host: this.host, port: this.port });
       s.setNoDelay(true);
-      s.on('connect', () => { this.sock = s; this.connecting = null; resolve(); });
+      s.on('connect', () => {
+        this.sock = s; this.connecting = null;
+        // AUTH first if the deployed Redis requires a password/ACL. Queued ahead
+        // of any real command; its reply is consumed by the pending queue.
+        if (this.password) this.cmd('AUTH', this.password).catch(() => {});
+        resolve();
+      });
       s.on('data', (d) => this._onData(d));
       s.on('error', (e) => { this._failAll(e); if (this.connecting) { this.connecting = null; reject(e); } });
       s.on('close', () => { this.sock = null; this._failAll(new Error('redis connection closed')); });
@@ -108,15 +159,15 @@ class RedisClient {
 
 class RedisSessionStore {
   constructor(addr, prefix = 'bzweb:sess:') {
-    this.r = new RedisClient(addr);
+    this.r = new RedisClient(addr, process.env.SESSION_REDIS_PASSWORD);
     this.prefix = prefix;
   }
   async get(id) {
     const v = await this.r.cmd('GET', this.prefix + id);
-    return v ? JSON.parse(v) : null;
+    return v ? openRecord(v) : null; // tamper/decrypt failure → null → fail closed
   }
   async set(id, record, ttlMs) {
-    await this.r.cmd('SET', this.prefix + id, JSON.stringify(record), 'PX', Math.max(1000, ttlMs));
+    await this.r.cmd('SET', this.prefix + id, sealRecord(record), 'PX', Math.max(1000, ttlMs));
   }
   async touchTtl(id, ttlMs) {
     await this.r.cmd('PEXPIRE', this.prefix + id, Math.max(1000, ttlMs));
@@ -170,11 +221,13 @@ class FileSessionStore {
     const e = this.map.get(id);
     if (!e) return null;
     if (e.expiresAt <= Date.now()) { this.map.delete(id); await this._persist(); return null; }
-    return e.record;
+    const rec = openRecord(e.ct); // tamper/decrypt failure → null → fail closed
+    if (rec === null) { this.map.delete(id); await this._persist(); return null; }
+    return rec;
   }
   async set(id, record, ttlMs) {
     await this._loaded;
-    this.map.set(id, { record, expiresAt: Date.now() + Math.max(1000, ttlMs) });
+    this.map.set(id, { ct: sealRecord(record), expiresAt: Date.now() + Math.max(1000, ttlMs) });
     await this._persist();
   }
   async touchTtl(id, ttlMs) {

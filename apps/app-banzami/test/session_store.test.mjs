@@ -9,7 +9,7 @@ delete process.env.SESSION_REDIS_ADDR;
 delete process.env.REDIS_ADDR;
 const file = path.join(os.tmpdir(), `bzweb-sess-test-${process.pid}.json`);
 process.env.SESSION_STORE_FILE = file;
-const { createSessionStore, newSessionId } = await import('../lib/session_store.mjs');
+const { createSessionStore, newSessionId, sealRecord, openRecord } = await import('../lib/session_store.mjs');
 
 test('the opaque id is high-entropy and structureless (§3)', () => {
   const a = newSessionId(), b = newSessionId();
@@ -53,6 +53,28 @@ test('an expired record is not returned (TTL floor is 1s)', async () => {
   await store.set(id, { consumerId: 'c1' }, 1000);
   await new Promise((r) => setTimeout(r, 1200));
   assert.equal(await store.get(id), null);
+});
+
+test('the record is encrypted at rest — no plaintext Bearer (§2)', async () => {
+  const rec = { consumerId: 'c1', bearer: 'UPSTREAM_BEARER_SECRET_xyz', csrf: 'n' };
+  const blob = sealRecord(rec);
+  assert.equal(blob.includes('UPSTREAM_BEARER_SECRET_xyz'), false); // ciphertext
+  assert.equal(blob.includes('bearer'), false);
+  assert.deepEqual(openRecord(blob), rec); // round-trips under the store key
+  // and the persisted file must not contain the plaintext either
+  const store = createSessionStore();
+  const id = newSessionId();
+  await store.set(id, rec, 5000);
+  const raw = await fs.readFile(file, 'utf8');
+  assert.equal(raw.includes('UPSTREAM_BEARER_SECRET_xyz'), false);
+});
+
+test('a tampered sealed record is rejected — fail closed (§2)', async () => {
+  const blob = sealRecord({ bearer: 'B' });
+  const tampered = blob.slice(0, -3) + (blob.slice(-3) === 'AAA' ? 'BBB' : 'AAA');
+  assert.equal(openRecord(tampered), null);
+  assert.equal(openRecord('not-a-real-blob'), null);
+  assert.equal(openRecord(''), null);
 });
 
 test('the rate limiter caps a key and then blocks (§13)', async () => {

@@ -35,9 +35,15 @@ ENV WEB_ROOT=/app/web
 ENV CONSUMER_API_BASE=https://sandbox-api.banzami.com/consumer
 # The opaque Web session store. SESSION_REDIS_ADDR (host:port) selects the Redis
 # backend (durable across a host restart, safe across replicas); without it the
-# host falls back to a single-node file store. Injected per deploy — the browser
-# never holds the Bearer, so there is no cookie-sealing secret to bake.
+# host falls back to a single-node file store. SESSION_REDIS_PASSWORD is optional
+# (only if the deployed Redis requires AUTH/ACL). Injected per deploy.
 ENV SESSION_REDIS_ADDR=
+# APP_WEB_SESSION_STORE_KEY encrypts the session record (which holds the upstream
+# Consumer Bearer) at rest with AES-256-GCM. REQUIRED in production — the store
+# fails closed without it. A DEDICATED secret from canonical secret management:
+# never the CSRF secret, the cookie id, or any Consumer/Project credential; never
+# shipped to the browser; never logged; never baked into the image.
+ENV APP_WEB_SESSION_STORE_KEY=
 
 RUN addgroup -S banzami && adduser -S banzami -G banzami
 # The host is pure Node built-ins — no npm dependencies to install.
