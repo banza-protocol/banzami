@@ -75,7 +75,7 @@ const CASES = [
   },
   {
     name: 'live — the homepage store badges come back',
-    mutate: (d) => edit(d, `${W}/app/page.tsx`, (s) => s.replace('Construir na Sandbox', 'DISPONÍVEL NA App Store')),
+    mutate: (d) => edit(d, `${W}/app/page.tsx`, (s) => s.replace('O novo caminho do Kwanza.', 'DISPONÍVEL NA App Store')),
     expect: fails('PUBLIC_SITE_LIVE_CLAIMS'),
   },
   {
@@ -115,7 +115,7 @@ const CASES = [
   },
   {
     name: 'status — the banner goes back to "ambiente de testes" only',
-    mutate: (d) => edit(d, `${W}/components/PlatformBanner.tsx`, (s) => s.replace('Dinheiro fictício. O Financial Live está indisponível.', 'Esta plataforma encontra-se em ambiente de testes.')),
+    mutate: (d) => edit(d, `${W}/components/PlatformBanner.tsx`, (s) => s.replace('Dinheiro fictício — o Financial Live está indisponível.', 'Esta plataforma encontra-se em ambiente de testes.')),
     expect: fails('PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING'),
   },
   {

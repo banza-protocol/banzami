@@ -12,9 +12,9 @@ import (
 )
 
 type fakeBeta struct {
-	n     int
-	last  service.BetaRegistration
-	fail  error
+	n    int
+	last service.BetaRegistration
+	fail error
 }
 
 func (f *fakeBeta) Register(_ context.Context, in service.BetaRegistration) error {
