@@ -55,8 +55,14 @@ is destructive.
      across a host restart, safe across replicas). The stack `redis` is on the
      data plane, so either give `app-frontend` reachability to it or provision a
      small session Redis on the app plane. Without the env the host falls back to
-     a single-node file store (fine for one replica, not for scale). No
-     cookie-sealing secret is needed — the browser holds only an opaque id;
+     a single-node file store (fine for one replica, not for scale). Set
+     `SESSION_REDIS_PASSWORD` if that Redis requires AUTH/ACL; the Redis must have
+     no host-published port (network-isolated, as the stack `redis` already is);
+   - inject **`APP_WEB_SESSION_STORE_KEY`** — a dedicated AES-256-GCM secret that
+     encrypts the session record (and the Bearer it holds) at rest. Required in
+     production; distinct from every other secret; never in the browser, never
+     baked. The browser holds only an opaque id, so there is no cookie-sealing
+     secret;
    - set the edge upstream env `SB_APP` to the app container's `name:3007`.
 
 3. **Deploy**: `./deploy.sh app-frontend` (routes to the Sandbox source-deploy),
