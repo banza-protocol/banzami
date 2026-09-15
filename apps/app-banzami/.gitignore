@@ -2,3 +2,7 @@
 /web
 *.log
 .env*.local
+
+# stray curl cookie jars from manual testing
+*.txt
+!requirements*.txt
