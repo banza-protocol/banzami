@@ -31,6 +31,14 @@
 
   <title>App Banzami</title>
   <link rel="manifest" href="manifest.json">
+  <!--
+    Transparent document background. Standalone is unaffected: the desktop
+    device shell paints its own off-white canvas over the whole viewport. In the
+    homepage embed (?embed=phone) the device shell canvas is transparent, so this
+    lets the marketing hero show through around the floating phone — the app is
+    reduced proportionally onto the hero, nothing behind it.
+  -->
+  <style>html,body{background:transparent;margin:0;}</style>
 </head>
 <body>
   <!--

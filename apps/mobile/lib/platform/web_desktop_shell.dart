@@ -49,7 +49,11 @@ class WebDesktopShell extends StatelessWidget {
         if (!embed && !wide) return child;
 
         final device = _PhoneDevice(embed: embed, app: child);
-        final canvasPad = embed ? 0.0 : 34.0;
+        // One presentation for both the direct desktop view and the homepage
+        // embed: the phone floats on a canvas with the same shadow. The embed
+        // keeps that canvas TRANSPARENT so the homepage hero shows through and
+        // the device is pixel-identical to app.banzami.com — no drift. The pad
+        // leaves room for the drop shadow so it is never clipped.
         return DecoratedBox(
           decoration: BoxDecoration(
             gradient: embed
@@ -61,7 +65,7 @@ class WebDesktopShell extends StatelessWidget {
                   ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(canvasPad),
+            padding: const EdgeInsets.all(34.0),
             child: Center(
               // Scale the whole device (bezel + app) to fit, keeping aspect.
               // FittedBox is a Flutter transform: CanvasKit re-rasterises at
@@ -94,12 +98,13 @@ class _PhoneDevice extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0B),
           borderRadius: BorderRadius.circular(WebDesktopShell._outerRadius),
-          boxShadow: embed
-              ? null
-              : const [
-                  BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
-                  BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
-                ],
+          // The SAME floating shadow in both modes, so the homepage embed is
+          // pixel-identical to app.banzami.com (the reference). The standalone
+          // values are unchanged; the embed now shares them instead of null.
+          boxShadow: const [
+            BoxShadow(color: Color(0x33000000), blurRadius: 60, spreadRadius: 2, offset: Offset(0, 26)),
+            BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4)),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(WebDesktopShell._bezel),
