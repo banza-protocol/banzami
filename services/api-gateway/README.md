@@ -116,6 +116,12 @@ mounted**: `/v1/transfers` (SEC-015 / RA-053), `/v1/payment-requests`
 | POST | /v1/merchant/activation/validate | Is this activation link good? |
 | POST | /v1/merchant/activation/complete | Set the Business app PIN |
 
+### Mobile beta programme (public, per-IP limited)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/beta/testers | Register interest in testing the mobile apps (20/day per IP). No auth, no email; idempotent, non-enumerating (APP-BETA-001) |
+
 ### Project key only (mounted when developer-key auth is active)
 
 | Method | Path | Description |

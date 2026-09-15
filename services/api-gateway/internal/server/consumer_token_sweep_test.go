@@ -37,6 +37,7 @@ var consumerTokenExempt = []*regexp.Regexp{
 	regexp.MustCompile(`^/v1/auth/token$`),    // credential exchange
 	regexp.MustCompile(`^/v1/merchant/auth/(token|lookup|refresh|logout)$`),
 	regexp.MustCompile(`^/v1/merchant/(applications|activation|application-requirements)`), // public onboarding
+	regexp.MustCompile(`^/v1/beta/testers$`),                                               // public beta registration (no JWT)
 	regexp.MustCompile(`^/v1/callbacks/`),                                                  // provider callbacks (HMAC)
 	regexp.MustCompile(`^/v1/(me|financial-setup)$`),                                       // developer-key only
 	regexp.MustCompile(`^/v1/compliance/customers/`),                                       // consumer KYC — the one consumer use
