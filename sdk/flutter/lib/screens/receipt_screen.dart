@@ -876,7 +876,7 @@ class _DetailRow extends StatelessWidget {
     final valueStyle = BanzamiTextStyles.bodyMd.copyWith(
       color: Colors.white,
       fontWeight: FontWeight.w600,
-      fontFamily: mono ? 'JetBrainsMono' : null,
+      fontFamily: mono ? BanzamiTextStyles.moneyFontFamily : null,
       letterSpacing: mono ? 0.2 : null,
     );
     final row = Padding(

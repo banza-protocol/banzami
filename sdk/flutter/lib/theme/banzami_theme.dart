@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 // ---------------------------------------------------------------------------
@@ -197,8 +198,15 @@ abstract class BanzamiTextStyles {
     color: BanzamiColors.gray900,
   );
 
+  /// Amounts use a monospaced face on native (JetBrains Mono, itself falling
+  /// back to the platform mono where absent). Web CanvasKit registers no such
+  /// family and would render the glyphs blank, so on Web amounts fall back to
+  /// the bundled Inter with tabular figures — the same even-width numerals.
+  /// WEB_MISSING_FONT_GLYPHS=0 (WEB-APP-001 §35).
+  static const String moneyFontFamily = kIsWeb ? 'Inter' : 'JetBrains Mono';
+
   static const TextStyle mono = TextStyle(
-    fontFamily: 'JetBrains Mono',
+    fontFamily: moneyFontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 20 / 14,
@@ -207,7 +215,7 @@ abstract class BanzamiTextStyles {
   );
 
   static const TextStyle monoLg = TextStyle(
-    fontFamily: 'JetBrains Mono',
+    fontFamily: moneyFontFamily,
     fontSize: 28,
     fontWeight: FontWeight.w600,
     height: 36 / 28,

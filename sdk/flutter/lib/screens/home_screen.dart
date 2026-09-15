@@ -595,7 +595,7 @@ class _BalanceCard extends StatelessWidget {
                               (error != null ? '— Kz' : '0,00 Kz'))
                           : '• • • • •',
                       style: const TextStyle(
-                        fontFamily: 'JetBrains Mono',
+                        fontFamily: BanzamiTextStyles.moneyFontFamily,
                         fontSize: 36,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -963,7 +963,7 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                                         _fmtKz(_amountKz),
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
-                                          fontFamily: 'JetBrains Mono',
+                                          fontFamily: BanzamiTextStyles.moneyFontFamily,
                                           fontSize: 22,
                                           fontWeight: FontWeight.w700,
                                           color: Color(0xFF78350F),

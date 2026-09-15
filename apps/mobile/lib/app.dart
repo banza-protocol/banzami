@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
@@ -14,6 +15,7 @@ import 'services/push_notification_service.dart';
 import 'services/session_service.dart';
 import 'services/wallet_refresh_bus.dart';
 import 'branding_assets.dart';
+import 'screens/onboarding/welcome_screen.dart';
 import 'screens/splash_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
@@ -576,6 +578,17 @@ class _BanzamiAppState extends State<BanzamiApp> {
           // in again. Only a 401 to the @banza + PIN itself (PinScreen) ends
           // the session and wipes the device.
           client.onUnauthorized = () {
+            if (kIsWeb) {
+              // The Web session is the server's HttpOnly cookie; a 401 means it
+              // is gone. End the local session and return to Welcome — there is
+              // no native PIN re-lock on the Web (§9/§22).
+              context.read<SessionService>().logout();
+              _navigatorKey.currentState?.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                (route) => false,
+              );
+              return;
+            }
             context.read<SessionService>().expireToken();
             _guardKey.currentState?.triggerUnlock(() {});
           };

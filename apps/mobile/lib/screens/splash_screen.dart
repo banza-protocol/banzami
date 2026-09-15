@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
@@ -140,9 +141,14 @@ class _SplashScreenState extends State<SplashScreen>
     final Widget target;
     if (!session.hasSession) {
       target = const WelcomeScreen();
-    } else if (session.isLocked) {
+    } else if (session.isLocked && !kIsWeb) {
       target = const PinScreen();
     } else {
+      // On the Web the session authority is the BFF's HttpOnly cookie, not a
+      // local PIN re-lock (a native affordance — §22). A returning visitor with
+      // a live cookie goes straight to Home; if the cookie is gone the first
+      // Consumer call 401s and app.dart routes back to Welcome.
+      if (kIsWeb && session.isLocked) session.unlock();
       target = const MainScreen();
     }
 
