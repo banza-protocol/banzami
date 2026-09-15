@@ -48,7 +48,7 @@ const COPY = {
 
 function WebGlyph() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M3 12h18M12 3c2.5 2.4 3.9 5.6 3.9 9S14.5 18.6 12 21C9.5 18.6 8.1 15.4 8.1 12S9.5 5.4 12 3z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -57,7 +57,7 @@ function WebGlyph() {
 
 function AppleGlyph() {
   return (
-    <svg width="31" height="31" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M16.4 12.9c0-2 1.6-3 1.7-3-.9-1.4-2.4-1.5-2.9-1.6-1.2-.1-2.4.7-3 .7s-1.6-.7-2.6-.7c-1.3 0-2.6.8-3.2 2-1.4 2.4-.4 5.9 1 7.8.7.9 1.4 2 2.5 2 1 0 1.3-.6 2.5-.6s1.5.6 2.6.6 1.7-.9 2.4-1.8c.7-1 1-2 1-2.1-.1 0-2-.7-2-2.5zM14.6 6.9c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z" />
     </svg>
   );
@@ -65,7 +65,7 @@ function AppleGlyph() {
 
 function AndroidGlyph() {
   return (
-    <svg width="29" height="29" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M6 9.5c-.6 0-1 .4-1 1v5c0 .6.4 1 1 1s1-.4 1-1v-5c0-.6-.4-1-1-1zm12 0c-.6 0-1 .4-1 1v5c0 .6.4 1 1 1s1-.4 1-1v-5c0-.6-.4-1-1-1zM7.5 9v8c0 .6.4 1 1 1H9v2.5c0 .6.4 1 1 1s1-.4 1-1V18h2v2.5c0 .6.4 1 1 1s1-.4 1-1V18h.5c.6 0 1-.4 1-1V9h-11zM8 8h8c0-1.7-1-3.1-2.5-3.8l.9-1.6c.1-.2 0-.4-.1-.5-.2-.1-.4 0-.5.1l-.9 1.7c-.5-.2-1-.3-1.6-.3s-1.1.1-1.6.3l-.9-1.7c-.1-.1-.3-.2-.5-.1-.1.1-.2.3-.1.5l.9 1.6C9 4.9 8 6.3 8 8zm2-1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5zm4 0c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5z" />
     </svg>
   );
@@ -91,37 +91,37 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
   // fixed-width icon slot makes both titles start at the same x
   // (NATIVE_CTA_TEXT_START_ALIGNMENT=PASS).
   const nativeBtn =
-    'group inline-flex w-full items-center gap-3 rounded-[15px] px-4 py-[14px] text-left text-white no-underline ' +
-    'bg-gradient-to-b from-neutral-900 to-black shadow-[0_12px_26px_-16px_rgba(0,0,0,.55)] ' +
+    'group inline-flex w-full items-center gap-2.5 rounded-[13px] px-[13px] py-[10px] text-left text-white no-underline ' +
+    'bg-gradient-to-b from-neutral-900 to-black shadow-[0_10px_22px_-16px_rgba(0,0,0,.55)] ' +
     'transition-transform hover:-translate-y-0.5 ' +
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cherry';
-  const nativeIconSlot = 'flex w-8 shrink-0 items-center justify-center';
-  const nativeTitle = 'block text-[14px] font-extrabold';
-  const nativeSub = 'block text-[11px] font-semibold text-white/70';
+  const nativeIconSlot = 'flex w-6 shrink-0 items-center justify-center';
+  const nativeTitle = 'block text-[13px] font-extrabold';
+  const nativeSub = 'block text-[10.5px] font-semibold text-white/70';
 
   return (
     <>
-      <div className="mt-[22px] max-w-[440px]">
+      <div className="mt-5 max-w-[404px]">
         {/* Row 1 — primary: open the web app (larger, full width). */}
         <a
           href="https://app.banzami.com"
           target="_blank"
           rel="noopener noreferrer"
           data-testid="hero-open-app-web"
-          className="group flex w-full items-center gap-3.5 rounded-[18px] bg-[linear-gradient(180deg,#B5101F,#9A1B22)] px-5 py-[16px] text-white no-underline shadow-[0_18px_38px_-16px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5"
+          className="group flex w-full items-center gap-3 rounded-[15px] bg-[linear-gradient(180deg,#B5101F,#9A1B22)] px-[17px] py-[12px] text-white no-underline shadow-[0_14px_30px_-16px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5"
         >
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-white/15">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-white/15">
             <WebGlyph />
           </span>
           <span className="leading-tight">
-            <span className="block text-[17px] font-black tracking-[-.01em]">{t.web}</span>
-            <span className="block text-[12px] font-semibold text-white/75">{t.webSub}</span>
+            <span className="block text-[15px] font-black tracking-[-.01em]">{t.web}</span>
+            <span className="block text-[11.5px] font-semibold text-white/75">{t.webSub}</span>
           </span>
-          <span aria-hidden className="ml-auto pl-2 text-[18px] text-white/70">↗</span>
+          <span aria-hidden className="ml-auto pl-2 text-[16px] text-white/70">↗</span>
         </a>
 
         {/* Row 2 — two equal native testers, outer edges aligned to the primary. */}
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="mt-2.5 grid grid-cols-2 gap-2.5">
           <button type="button" onClick={() => openFor('IOS')} className={nativeBtn}>
             <span className={nativeIconSlot}>
               <AppleGlyph />
@@ -142,7 +142,7 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
           </button>
         </div>
       </div>
-      <p className="m-0 mt-3 max-w-[440px] text-[12.5px] font-semibold text-ink-muted">{t.available}</p>
+      <p className="m-0 mt-3 max-w-[404px] text-[12px] font-semibold text-ink-muted">{t.available}</p>
 
       <BetaRegisterModal
         open={open}
