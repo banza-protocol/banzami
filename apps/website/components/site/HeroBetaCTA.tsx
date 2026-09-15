@@ -101,7 +101,7 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
 
   return (
     <>
-      <div className="mt-5 max-w-[404px]">
+      <div className="mt-[clamp(12px,2.2vh,20px)] max-w-[404px]">
         {/* Row 1 — primary: open the web app (larger, full width). */}
         <a
           href="https://app.banzami.com"

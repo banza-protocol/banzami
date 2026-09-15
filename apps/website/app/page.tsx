@@ -84,31 +84,31 @@ export default function HomePage() {
       <SiteHeader />
 
       {/* ===================== HERO ===================== */}
-      <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[78px]">
+      <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[78px] md:flex md:min-h-[100svh] md:flex-col md:justify-center md:pb-[clamp(16px,3vh,40px)]">
         <div className="pointer-events-none absolute -right-[120px] -top-[120px] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.7),rgba(251,210,208,0)_66%)]" />
         <div className="pointer-events-none absolute -left-[160px] top-[240px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.12),rgba(232,67,75,0)_66%)]" />
-        <div className="bz-herogrid relative mx-auto grid max-w-container grid-cols-1 items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
+        <div className="bz-herogrid relative mx-auto grid w-full max-w-container grid-cols-1 items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
           <div>
-            <span className="mb-6 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-2 text-[13px] font-extrabold text-cherry shadow-[0_6px_18px_-8px_rgba(181,16,31,.3)]">
+            <span className="mb-[clamp(10px,2vh,22px)] inline-flex items-center gap-2 rounded-pill bg-white px-3.5 py-1.5 text-[12.5px] font-extrabold text-cherry shadow-[0_5px_14px_-8px_rgba(181,16,31,.28)]">
               <LiveDot size={8} />Pagamentos em Kwanza, de carteira para carteira
             </span>
-            <h1 className="m-0 text-[clamp(32px,5.4vw,56px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
+            <h1 className="m-0 text-[clamp(34px,1.7vw+1.9vh,56px)] font-black leading-[1.03] tracking-[-0.03em] text-ink">
               O novo caminho do Kwanza.
             </h1>
-            <p className="m-0 mt-[22px] max-w-[520px] text-[clamp(16px,1.5vw,19px)] font-semibold leading-[1.55] text-ink-secondary">
+            <p className="m-0 mt-[clamp(10px,1.6vh,20px)] max-w-[568px] text-[clamp(15px,0.55vw+0.8vh,18px)] font-semibold leading-[1.5] text-ink-secondary">
               O Banzami está a construir uma plataforma financeira nativa de carteira, em que pessoas, negócios e aplicações movem valor numa
               rede programável, com interoperabilidade com os rails financeiros externos. Construída sobre o protocolo BANZA. Cada
               conta é uma carteira em Kwanza; paga-se por QR ou para um{' '}
               <span className="bz-mono font-semibold text-cherry">@banza</span>, com um comprovativo que qualquer
               pessoa pode verificar.
             </p>
-            <p data-testid="home-environment-status" className="m-0 mt-[14px] max-w-[520px] text-[14px] font-semibold leading-[1.55] text-ink-muted">
+            <p data-testid="home-environment-status" className="m-0 mt-[clamp(8px,1.2vh,14px)] max-w-[568px] text-[12.5px] font-semibold leading-[1.45] text-ink-muted">
               Hoje está disponível a {PUBLIC_TRUTH.sandbox.name}, para developers, com dinheiro fictício.{' '}
               {PUBLIC_TRUTH.live.summary}
             </p>
             <HeroBetaCTA lang="pt" />
-            <div className="mt-[30px] max-w-[540px]">
-              <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">EMPRESAS E APLICAÇÕES LIGADAS AO BANZAMI</p>
+            <div className="mt-[clamp(12px,2.2vh,28px)] max-w-[540px]">
+              <p className="m-0 mb-2 text-[11.5px] font-black tracking-[0.08em] text-ink-muted">EMPRESAS E APLICAÇÕES LIGADAS AO BANZAMI</p>
               {/* Auto-scroll marquee — same behaviour as the produto "A APP" rail
                   (AppJourney): pauses on hover, touch or keyboard focus, resumes
                   after, and honours reduced-motion. Chips duplicated so there is
@@ -124,7 +124,7 @@ export default function HomePage() {
           {/* Live app preview — desktop/tablet only. On mobile the primary
               "Abrir App Banzami Web" CTA (HeroBetaCTA) is the single launch
               affordance, so the phone column is hidden to avoid a duplicate. */}
-          <div className="relative hidden min-h-[680px] flex-col items-center justify-center md:flex">
+          <div className="relative hidden min-h-0 flex-col items-center justify-center md:flex">
             <div className="absolute h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.1),rgba(232,67,75,0)_70%)]" />
             <div className="anim-floatyB absolute left-[14px] top-10 h-[60px] w-[60px] rounded-[20px] bg-pink-200" />
             <div className="anim-floaty-5 absolute bottom-24 right-1 h-11 w-11 rounded-[13px] bg-cherry-coral opacity-[0.85]" />
