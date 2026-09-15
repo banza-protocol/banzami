@@ -55,16 +55,30 @@ class WebDesktopShell extends StatelessWidget {
         if (!embed && !wide) return child;
 
         final device = _PhoneDevice(embed: embed, app: child);
-        // Scale the whole device (bezel + app) to fit, keeping aspect. FittedBox
-        // is a Flutter transform: CanvasKit re-rasterises at device pixels (no
-        // blur) and pointer hit-testing is transformed correctly
-        // (DEVICE_SHELL_POINTER_ALIGNMENT).
-        final fitted = FittedBox(fit: BoxFit.contain, child: device);
-        // ONE phone for both: it floats on its canvas with the same drop shadow,
-        // capped to the same size. The only difference is the canvas — the hero
-        // embed keeps it TRANSPARENT so the marketing hero shows through, the
-        // standalone paints an off-white gradient. So the hero phone is exactly
-        // the app.banzami.com phone.
+        // Two surfaces, one device (CanvasKit re-rasterises at device pixels, so
+        // scaling stays crisp and hit-testing is transformed correctly —
+        // DEVICE_SHELL_POINTER_ALIGNMENT):
+        //  • hero embed — the phone fills the width of its iframe and is cropped
+        //    at the bottom (fitWidth, top-aligned, clipped), so the React
+        //    container's width sets how WIDE it is and its height sets how much
+        //    of the phone shows: a wider, shorter phone that rises from the hero.
+        //  • standalone (app.banzami.com) — the whole device, capped and centred
+        //    on its off-white canvas with a drop shadow.
+        final Widget content = embed
+            ? ClipRect(
+                child: FittedBox(
+                  fit: BoxFit.fitWidth,
+                  alignment: Alignment.topCenter,
+                  child: device,
+                ),
+              )
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                      maxWidth: _maxSlotW, maxHeight: _maxSlotH),
+                  child: FittedBox(fit: BoxFit.contain, child: device),
+                ),
+              );
         return DecoratedBox(
           decoration: BoxDecoration(
             gradient: embed
@@ -76,20 +90,10 @@ class WebDesktopShell extends StatelessWidget {
                   ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(34.0),
-            child: Center(
-              // Same phone, size differs by surface: the standalone is capped so
-              // it does not fill the whole window; the hero embed is uncapped, so
-              // its on-page size is set by the React iframe container — the one
-              // thing that differs between the two.
-              child: embed
-                  ? fitted
-                  : ConstrainedBox(
-                      constraints: const BoxConstraints(
-                          maxWidth: _maxSlotW, maxHeight: _maxSlotH),
-                      child: fitted,
-                    ),
-            ),
+            // The embed fills the iframe edge-to-edge (width drives the size);
+            // the standalone floats with a margin for its shadow.
+            padding: EdgeInsets.all(embed ? 0.0 : 34.0),
+            child: content,
           ),
         );
       },
