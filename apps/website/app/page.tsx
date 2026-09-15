@@ -138,13 +138,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Live app preview — desktop/tablet only. On mobile the primary
-              "Abrir App Banzami Web" CTA (HeroBetaCTA) is the single launch
-              affordance, so the phone column is hidden to avoid a duplicate. */}
-          <div className="relative hidden min-h-0 flex-col items-center justify-center md:flex">
-            <div className="absolute h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.1),rgba(232,67,75,0)_70%)]" />
-            <div className="anim-floatyB absolute left-[14px] top-10 h-[60px] w-[60px] rounded-[20px] bg-pink-200" />
-            <div className="anim-floaty-5 absolute bottom-24 right-1 h-11 w-11 rounded-[13px] bg-cherry-coral opacity-[0.85]" />
+          {/* Live app preview. On mobile it stacks below the copy (sized to the
+              column width); on desktop/tablet it fills the right column. The
+              decorative floaties are desktop-only. */}
+          <div className="relative mt-10 flex min-h-0 flex-col items-center justify-center md:mt-0">
+            <div className="absolute hidden h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.1),rgba(232,67,75,0)_70%)] md:block" />
+            <div className="anim-floatyB absolute left-[14px] top-10 hidden h-[60px] w-[60px] rounded-[20px] bg-pink-200 md:block" />
+            <div className="anim-floaty-5 absolute bottom-24 right-1 hidden h-11 w-11 rounded-[13px] bg-cherry-coral opacity-[0.85] md:block" />
             <AppWebPortal />
           </div>
         </div>

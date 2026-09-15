@@ -13,20 +13,21 @@
 // is the primary CTA in the hero's left column. On phones there is no nested
 // frame — a full-screen launch card (§16).
 
-const APP_URL = 'https://app.banzami.com/';
 const EMBED_URL = 'https://app.banzami.com/?embed=phone';
 
 export function AppWebPortal() {
   return (
     <div className="flex w-full flex-col items-center">
-      {/* Desktop / tablet: the live Flutter phone in the HERO showcase geometry —
-          a gently wider, slightly shorter portrait device (shell aspect 416/856,
-          vs the direct app's tall 418/872). The Flutter app lays out for real at
-          the 388-wide viewport, so nothing is stretched. Sized to leave
-          intentional breathing space above and below (it does not fill the
-          viewport height), staying within one screen with no hero scroll.
-          Transparent frame — bezel/island are drawn by the Flutter shell. */}
-      <div className="relative hidden aspect-[416/856] h-[clamp(480px,calc(100vh-170px),810px)] max-w-full sm:block">
+      {/* The live Flutter phone in the HERO showcase geometry — a gently wider,
+          slightly shorter portrait device (shell aspect 416/856, vs the direct
+          app's tall 418/872). The Flutter app lays out for real at the 388-wide
+          viewport, so nothing is stretched. Shown on EVERY size: on desktop it
+          fills the right column (sized to leave breathing space, no hero scroll);
+          on mobile it sits below the copy, sized to the column width — the
+          "Abrir App Banzami Web" CTA in the left column is the launch affordance,
+          so this is a preview, not a duplicate. Transparent frame — bezel/island
+          are drawn by the Flutter shell. */}
+      <div className="relative aspect-[416/856] h-[clamp(470px,62vh,560px)] max-w-full sm:h-[clamp(480px,calc(100vh-170px),810px)]">
         <iframe
           title="App Banzami Web · Sandbox"
           src={EMBED_URL}
@@ -34,23 +35,6 @@ export function AppWebPortal() {
           data-testid="portal-live-app"
           className="h-full w-full border-0 bg-transparent"
         />
-      </div>
-
-      {/* Mobile: no phone-in-phone — a full launch card (§16). */}
-      <div className="w-full sm:hidden">
-        <a
-          href={APP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="portal-open-app"
-          className="flex items-center justify-between gap-3 rounded-[22px] bg-[linear-gradient(160deg,#E8434B,#9A1B22)] px-5 py-5 text-white no-underline shadow-[0_24px_50px_-30px_rgba(181,16,31,.6)]"
-        >
-          <span className="leading-tight">
-            <span className="block text-[17px] font-black">Abrir App Banzami Web</span>
-            <span className="block text-[12px] font-semibold text-white/80">Sandbox · dinheiro fictício</span>
-          </span>
-          <span className="text-[20px]">↗</span>
-        </a>
       </div>
     </div>
   );
