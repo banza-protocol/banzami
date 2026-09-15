@@ -5,6 +5,11 @@ import './globals.css';
 export const metadata: Metadata = {
   title:       'BANZADMIN — Painel de Operações',
   description: 'Portal interno de operações Banzami.',
+  // The operator console is internal: no page here — the beta-tester queue and
+  // its PII included — may be indexed. The data is auth-gated (a crawler only
+  // ever sees the login screen), and this makes the intent explicit on every
+  // route (APP-BETA-001: admin routes never indexable).
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
