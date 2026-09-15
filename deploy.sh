@@ -99,6 +99,18 @@ _authority_gate() {
         # payment surface — core-api/api-gateway/public-api below still fail
         # closed, and external provider rails remain Stage G.
         : ;;
+      app-frontend)
+        # WEB-APP-001 APPROVED 2026-09-15 — SANDBOX SCOPE ONLY.
+        #
+        # App Banzami Web: the Flutter Consumer app compiled to the Web target,
+        # served at app.banzami.com behind a same-origin opaque-session BFF. The
+        # owner directed the public deployment and its durable, canonical
+        # blueprint integration by name. Bounded exactly as pay-frontend's Stage F
+        # and admin's Stage D approvals are: application plane only, one
+        # non-financial secret (the at-rest session-store key), no database, no
+        # Core credential; the live payment rails below still fail closed.
+        # Revoke by restoring _deny_unapproved for this service.
+        : ;;
       admin-api|admin-frontend)
         # STAGE D APPROVED 2026-09-08 — SANDBOX SCOPE ONLY.
         #
@@ -134,7 +146,7 @@ _authority_gate() {
 # Sandbox services and the new flags (--all, --allow-dirty, --dry-run, --build-only,
 # --deploy-only-from-existing-build, --run-e2e) route here; all other (production)
 # invocations are unchanged. See infra/blueprint/sandbox-ops/scripts/sandbox-source-deploy.sh.
-_SANDBOX_SVCS="developer-api core-api-staging api-gateway-staging public-api-staging pay-frontend admin-api admin-frontend"
+_SANDBOX_SVCS="developer-api core-api-staging api-gateway-staging public-api-staging pay-frontend admin-api admin-frontend app-frontend"
 _route_sandbox() {
   local a s ok hasflag=0 hassvc=0 nonsandbox=0
   for a in "$@"; do case "$a" in
