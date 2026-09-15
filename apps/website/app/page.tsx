@@ -87,7 +87,7 @@ export default function HomePage() {
       <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[78px] md:flex md:min-h-[100svh] md:flex-col md:justify-center md:pb-[clamp(16px,3vh,40px)]">
         <div className="pointer-events-none absolute -right-[120px] -top-[120px] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.7),rgba(251,210,208,0)_66%)]" />
         <div className="pointer-events-none absolute -left-[160px] top-[240px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.12),rgba(232,67,75,0)_66%)]" />
-        <div className="bz-herogrid relative mx-auto grid w-full max-w-container grid-cols-1 items-center gap-y-12 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-[clamp(40px,4.5vw,72px)]">
+        <div className="bz-herogrid relative mx-auto grid w-full max-w-container grid-cols-1 items-center justify-items-stretch gap-y-12 md:grid-cols-[minmax(0,620px)_auto] md:justify-start md:gap-x-[clamp(48px,5vw,84px)]">
           {/* Left column — three deliberate art-direction zones read as one
               vertically-centred block against the wider/shorter showcase phone:
                 ZONE A · STORY     — badge + headline + body + environment status
@@ -105,7 +105,7 @@ export default function HomePage() {
               <h1 className="m-0 text-[clamp(34px,1.7vw+1.9vh,56px)] font-black leading-[1.03] tracking-[-0.03em] text-ink">
                 O novo caminho do Kwanza.
               </h1>
-              <p className="m-0 mt-[clamp(14px,2vh,24px)] max-w-[560px] text-[clamp(15px,0.55vw+0.8vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
+              <p className="m-0 mt-[clamp(14px,2vh,24px)] max-w-[600px] text-[clamp(15px,0.55vw+0.8vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
                 O Banzami é uma plataforma financeira nativa de carteira para mover Kwanza entre
                 pessoas, negócios e aplicações. Pague por QR ou para um{' '}
                 <span className="bz-mono font-semibold text-cherry">@banza</span> e receba comprovativos verificáveis.
