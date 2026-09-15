@@ -30,6 +30,10 @@ ENV NODE_ENV=production
 ENV PORT=3007
 ENV HOSTNAME=0.0.0.0
 ENV WEB_ROOT=/app/web
+# Build identity (passed by the native build as --build-arg BUILD_COMMIT), exposed
+# on /healthz for support/version visibility (WEB-APP-001 §57). Not a secret.
+ARG BUILD_COMMIT=dev
+ENV BANZAMI_BUILD_COMMIT=$BUILD_COMMIT
 # The Consumer API the BFF reaches server-side. Overridden per deploy; sandbox
 # only for this milestone.
 ENV CONSUMER_API_BASE=https://sandbox-api.banzami.com/consumer

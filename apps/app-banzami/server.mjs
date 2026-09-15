@@ -299,7 +299,7 @@ const server = http.createServer(async (req, res) => {
       // Readiness: the app cannot authenticate if the session store is down (§72).
       let storeOk = false;
       try { storeOk = await store.ping(); } catch { storeOk = false; }
-      return sendJson(res, storeOk ? 200 : 503, { status: storeOk ? 'ok' : 'degraded', service: 'app-banzami-web', session_store: storeOk, time: new Date().toISOString() });
+      return sendJson(res, storeOk ? 200 : 503, { status: storeOk ? 'ok' : 'degraded', service: 'app-banzami-web', version: process.env.BANZAMI_BUILD_COMMIT || 'dev', session_store: storeOk, time: new Date().toISOString() });
     }
     if (url === '/consumer' || url.startsWith('/consumer/')) return await handleBff(req, res);
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'method not allowed');
