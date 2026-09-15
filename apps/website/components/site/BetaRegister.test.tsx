@@ -90,6 +90,22 @@ describe('BetaRegisterModal a11y', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('Escape still closes after focus has left the panel (success unmounts the submit button)', () => {
+    // The document-level Escape listener must fire even when the focused element
+    // has moved to <body> — the exact gap the live modal had after the form was
+    // replaced by its success state.
+    const onClose = vi.fn();
+    render(
+      <BetaRegisterModal open onClose={onClose} title="t" labelledById="t">
+        <button type="button">inside</button>
+      </BetaRegisterModal>,
+    );
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    document.body.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('renders nothing when closed', () => {
     const { container } = render(
       <BetaRegisterModal open={false} onClose={() => {}} title="x" labelledById="t">

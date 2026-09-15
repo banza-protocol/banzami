@@ -35,53 +35,71 @@ export function BetaRegisterModal({
     }
   }, [open]);
 
-  // Move focus into the dialog when it opens; return it when it closes.
+  // Move focus into the dialog when it opens; return it when it closes; lock the
+  // page scroll; and keep focus inside even as the dialog's own content changes
+  // (the form is replaced by a success panel, which unmounts the focused submit
+  // button — without this guard focus would fall to <body> and both the Escape
+  // key and the Tab trap would stop working).
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
     if (!panel) return;
-    // Lock the page scroll behind the dialog.
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    // Focus the first focusable control (or the panel itself).
-    const focusables = panel.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input:not([type="hidden"]):not([tabindex="-1"]), select, [tabindex]:not([tabindex="-1"])',
-    );
-    (focusables[0] ?? panel).focus();
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      opener.current?.focus?.();
-    };
-  }, [open]);
 
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    const focusFirst = () => {
+      const f = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input:not([type="hidden"]):not([tabindex="-1"]), select, [tabindex]:not([tabindex="-1"])',
+      );
+      (f[0] ?? panel).focus();
+    };
+    focusFirst();
+
+    // Escape closes from anywhere, even if focus has left the panel (a
+    // document-level listener, not the panel's own onKeyDown, so a lost focus
+    // cannot strand an open dialog).
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose();
-        return;
       }
-      if (e.key !== 'Tab') return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const f = Array.from(
-        panel.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), textarea, input:not([type="hidden"]):not([tabindex="-1"]), select, [tabindex]:not([tabindex="-1"])',
-        ),
-      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
-      if (f.length === 0) return;
-      const first = f[0];
-      const last = f[f.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-    [onClose],
-  );
+    };
+    // If focus escapes the panel (an element unmounted, or a stray Tab), pull it
+    // back — the trap survives content changes.
+    const onFocusIn = (e: FocusEvent) => {
+      if (!panel.contains(e.target as Node)) focusFirst();
+    };
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('focusin', onFocusIn);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('focusin', onFocusIn);
+      opener.current?.focus?.();
+    };
+  }, [open, onClose]);
+
+  // Tab wrap within the panel (the document focusin guard is the backstop).
+  const onKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const f = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input:not([type="hidden"]):not([tabindex="-1"]), select, [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (f.length === 0) return;
+    const first = f[0];
+    const last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, []);
 
   if (!open) return null;
 
