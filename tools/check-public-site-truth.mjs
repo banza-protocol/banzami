@@ -46,9 +46,9 @@ const walkAll = (dir) => walk(dir);
 /** Everything banzami.com renders. The documentation and the Console have gates of their own. */
 const SURFACE = [
   ...['app/page.tsx', 'app/layout.tsx', 'app/not-found.tsx', 'app/developers/page.tsx'].map((f) => `${WEB}/${f}`),
-  ...['app/produto', 'app/comerciantes', 'app/faq', 'app/sobre', 'app/suporte', 'app/verificar', 'app/app-demo', 'app/ecras'].flatMap((d) => walk(`${WEB}/${d}`)),
+  ...['app/produto', 'app/comerciantes', 'app/seguranca', 'app/sobre', 'app/suporte', 'app/verificar'].flatMap((d) => walk(`${WEB}/${d}`)),
   ...['components/site', 'components/app', 'components/produto'].flatMap((d) => walk(`${WEB}/${d}`)),
-  ...['components/PlatformBanner.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts'].map((f) => `${WEB}/${f}`),
+  ...['components/PlatformBanner.tsx', 'components/support/Faq.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts'].map((f) => `${WEB}/${f}`),
 ].filter((f) => existsSync(join(ROOT, f)));
 
 const findings = {
@@ -61,6 +61,8 @@ const findings = {
   PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING: [],
   PUBLIC_SITE_COMPETITOR_MENTIONS: [],
   PUBLIC_SITE_UNSUPPORTED_COPY: [],
+  PUBLIC_SITE_BANZAMI_EMPRESA: [],
+  PUBLIC_SITE_TERMINOLOGY_DRIFT: [],
   PUBLIC_EMAIL_OBFUSCATION_BROKEN: [],
 };
 
@@ -88,6 +90,16 @@ const RULES = [
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /[Ee]m breve|soon:\s*true|[Ww]aitlist|lista de espera/g, 'a roadmap promise or waitlist'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /\b(?:Junta-te|precisares|Constrói connosco|Descobre|Aceita pagamentos|Imprime um|recebes|Vês tudo|procuras|Arrasta para|Toca para|Cria a tua|escolhe o teu|o teu negócio|a tua app)\b/g, 'the "tu" form (the site addresses the reader as "você")'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /encripta[çc][ãa]o de ponta a ponta|end-to-end encrypt/gi, 'an end-to-end encryption claim'],
+  // Banzami is a startup, never publicly described as an "empresa" (§1/§27). This
+  // is semantic: it fires only on constructions that DEFINE Banzami as an empresa
+  // ("Banzami é a empresa", "a empresa Banzami", "empresa que constrói … Banzami"),
+  // so third-party/general uses — "empresas angolanas", "NIF da empresa", "nome da
+  // empresa", "Empresa / ERP", "empresas … ligadas ao Banzami" — pass.
+  ['PUBLIC_SITE_BANZAMI_EMPRESA', /\bBanzami\b\s*,?\s*(?:é|era|será|foi)\s+[^.\n]{0,25}?\bempresas?\b|\b[ao]\s+empresa\s+Banzami\b|\bempresas?\s+que\s+constr[oó]i[^.\n]{0,45}?\bBanzami\b/gi, 'Banzami described as an "empresa" (Banzami is a startup)'],
+  // Retired IA / obsolete public vocabulary (§4/§30).
+  ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /Para empresas/g, 'the retired "Para empresas" navigation concept'],
+  ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /Banzami Wallet/g, '"Banzami Wallet" — the public term is "carteira Banzami"'],
+  ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /App Consumidor|Business Dashboard/g, 'an obsolete product name (use "App Banzami")'],
 ];
 
 const lineOf = (src, i) => src.slice(0, i).split('\n').length;
@@ -158,7 +170,7 @@ for (const f of SURFACE) {
 
 // ── every surface states the environment ───────────────────────────────────────
 const imports = (f) => /from '@\/lib\/public-truth'/.test(read(`${WEB}/${f}`));
-for (const f of ['app/page.tsx', 'app/developers/page.tsx', 'app/faq/page.tsx', 'app/suporte/page.tsx', 'app/comerciantes/page.tsx', 'components/site/Footer.tsx', 'components/site/CTASection.tsx']) {
+for (const f of ['app/page.tsx', 'app/developers/page.tsx', 'app/seguranca/page.tsx', 'app/suporte/page.tsx', 'app/comerciantes/page.tsx', 'app/produto/page.tsx', 'app/sobre/page.tsx', 'components/site/Footer.tsx', 'components/site/CTASection.tsx']) {
   if (!existsSync(join(ROOT, WEB, f)) || !imports(f)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push(`${f} no longer renders the environment facts from lib/public-truth.ts`);
 }
 const layout = stripComments(read(`${WEB}/app/layout.tsx`));

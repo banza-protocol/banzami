@@ -50,7 +50,7 @@ const CASES = [
   { name: 'baseline copy passes', mutate: () => {}, expect: (c) => c.code === 0 && c.counters.PUBLIC_SITE_TRUTH === 'PASS' },
   {
     name: 'legacy — the FAQ documents a /v1/business/ route again',
-    mutate: (d) => edit(d, `${W}/app/faq/page.tsx`, (s) => s.replace("q: 'Existe uma API?',", "q: 'Existe uma API? Veja /v1/business/payments',")),
+    mutate: (d) => edit(d, `${W}/components/support/Faq.tsx`, (s) => s.replace("q: 'Existe uma API?',", "q: 'Existe uma API? Veja /v1/business/payments',")),
     expect: fails('PUBLIC_SITE_LEGACY_API_REFS'),
   },
   {
@@ -59,8 +59,8 @@ const CASES = [
     expect: fails('PUBLIC_SITE_LEGACY_API_REFS'),
   },
   {
-    name: 'SDK — the Produto card lists Python and PHP SDKs again',
-    mutate: (d) => edit(d, `${W}/app/produto/page.tsx`, (s) => s.replace("title: 'SDKs',", "title: 'SDKs Python e PHP',")),
+    name: 'SDK — the FAQ lists Python and PHP SDKs again',
+    mutate: (d) => edit(d, `${W}/components/support/Faq.tsx`, (s) => s.replace("q: 'Existem SDKs?',", "q: 'Existem SDKs? Python e PHP',")),
     expect: fails('PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS'),
   },
   {
@@ -100,7 +100,7 @@ const CASES = [
   },
   {
     name: 'keys — a Stripe-shaped key example appears',
-    mutate: (d) => edit(d, `${W}/app/faq/page.tsx`, (s) => s.replace('Uma chave secreta fica sempre no seu servidor.', 'Uma chave secreta (sk_live_…) fica sempre no seu servidor.')),
+    mutate: (d) => edit(d, `${W}/components/support/Faq.tsx`, (s) => s.replace('Uma chave secreta fica sempre no seu servidor.', 'Uma chave secreta (sk_live_…) fica sempre no seu servidor.')),
     expect: fails('PUBLIC_SITE_KEY_PREFIX_DRIFT'),
   },
   {
@@ -130,8 +130,23 @@ const CASES = [
   },
   {
     name: 'copy — "Em breve" roadmap items return to the menu',
-    mutate: (d) => edit(d, `${W}/lib/nav-menus.ts`, (s) => s.replace("desc: 'Respostas curtas.'", "desc: 'Em breve.'")),
+    mutate: (d) => edit(d, `${W}/lib/nav-menus.ts`, (s) => s.replace("desc: 'Ajuda e estado da plataforma.'", "desc: 'Em breve.'")),
     expect: fails('PUBLIC_SITE_UNSUPPORTED_COPY'),
+  },
+  {
+    name: 'startup — Banzami described as an "empresa" again',
+    mutate: (d) => edit(d, `${W}/app/sobre/page.tsx`, (s) => s.replace('O Banzami é a startup que está a construir esta rede', 'O Banzami é a empresa que constrói esta rede')),
+    expect: fails('PUBLIC_SITE_BANZAMI_EMPRESA'),
+  },
+  {
+    name: 'nav — the retired "Para empresas" concept returns',
+    mutate: (d) => edit(d, `${W}/lib/nav-menus.ts`, (s) => s.replace("label: 'Comerciantes',", "label: 'Para empresas',")),
+    expect: fails('PUBLIC_SITE_TERMINOLOGY_DRIFT'),
+  },
+  {
+    name: 'naming — "Banzami Wallet" appears as a public product name',
+    mutate: (d) => edit(d, `${W}/app/produto/page.tsx`, (s) => s.replace('receba na sua carteira em Kwanza', 'receba no seu Banzami Wallet')),
+    expect: fails('PUBLIC_SITE_TERMINOLOGY_DRIFT'),
   },
   {
     name: 'copy — the "tu" form returns',
