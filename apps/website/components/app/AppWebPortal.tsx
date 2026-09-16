@@ -33,20 +33,12 @@ export function AppWebPortal() {
           src={EMBED_URL}
           loading="lazy"
           data-testid="portal-live-app"
-          // The iframe is itself a keyboard tab stop (focus descends into the
-          // embedded app), but Chromium honors neither an author :focus rule nor
-          // :focus-visible on a focused iframe element — so paint the ring with an
-          // inline style toggled on focus/blur, which does render (WCAG 2.4.7).
-          // The left-column CTA remains the primary launch path.
-          onFocus={(e) => {
-            e.currentTarget.style.outline = '2px solid #B5101F';
-            e.currentTarget.style.outlineOffset = '4px';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.outline = '';
-            e.currentTarget.style.outlineOffset = '';
-          }}
-          className="h-full w-full rounded-[36px] border-0 bg-transparent"
+          // A cross-origin embed (app.banzami.com): once a keyboard user tabs to
+          // it, focus enters the child browsing context and the embedded app
+          // renders its own focus indicators (WCAG 2.4.7 is met inside the frame).
+          // The parent cannot style :focus or observe that ring, and the
+          // left-column "Abrir App Banzami Web" CTA is the primary launch path.
+          className="h-full w-full border-0 bg-transparent"
         />
       </div>
     </div>
