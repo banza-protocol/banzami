@@ -10,8 +10,13 @@ import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
 export const metadata: Metadata = {
   title: 'Sobre',
-  description: 'O Banzami é a empresa que constrói uma rede de pagamentos em Kwanza, nativa de carteira, sobre o protocolo aberto BANZA.',
+  description: 'O Banzami é a startup que está a construir uma rede de pagamentos em Kwanza, nativa de carteira, sobre o protocolo aberto BANZA.',
   alternates: { canonical: 'https://banzami.com/sobre' },
+  openGraph: {
+    title: 'Sobre o Banzami — a startup',
+    description: 'Uma startup a construir uma rede de pagamentos em Kwanza, nativa de carteira, para Angola, sobre o protocolo aberto BANZA.',
+    url: 'https://banzami.com/sobre',
+  },
 };
 
 // Os 5 valores de "O que acreditamos" — verbatim de Sobre.dc.html (ícones inline).
@@ -78,7 +83,7 @@ export default function SobrePage() {
             Pagamentos em Kwanza, de carteira para carteira.
           </h1>
           <p className="mx-auto m-0 mt-5 max-w-[640px] text-[18px] font-semibold leading-[1.6] text-ink-secondary">
-            O Banzami é a empresa que constrói esta rede de pagamentos sobre o protocolo aberto BANZA.
+            O Banzami é a startup que está a construir esta rede de pagamentos sobre o protocolo aberto BANZA.
             Hoje, a plataforma está disponível para developers numa {PUBLIC_TRUTH.sandbox.name}, com dinheiro fictício.
           </p>
         </div>
@@ -160,6 +165,43 @@ export default function SobrePage() {
           <Reveal delay={80} className="rounded-card border border-border-soft bg-white p-8">
             <p className="m-0 mb-[10px] bz-mono text-[13px] font-semibold text-cherry">Banzami</p>
             <p className="m-0 text-[18px] font-extrabold leading-[1.45]">O operador de referência: a app, as ferramentas para negócios e a plataforma para developers. Não é o protocolo nem um banco.</p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* FUNDADORES + ESTADO ATUAL */}
+      <section id="fundadores" className="scroll-mt-28 px-6 pb-2 pt-14">
+        <div className="mx-auto grid max-w-[980px] grid-cols-1 gap-[18px] md:grid-cols-2">
+          <Reveal className="rounded-card border border-border-soft bg-white p-8">
+            <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.08em] text-cherry">FUNDADORES</p>
+            <div className="flex items-center gap-4">
+              <span className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-full bg-[linear-gradient(150deg,#B5101F,#6E0E14)] text-[20px] font-black text-white">FM</span>
+              <div>
+                <p className="m-0 text-[18px] font-black text-ink">Fidel Monteiro</p>
+                <p className="m-0 mt-0.5 text-[14px] font-semibold text-ink-soft">Fundador</p>
+              </div>
+            </div>
+            <p className="m-0 mt-4 text-[14.5px] font-semibold leading-[1.55] text-ink-secondary">
+              O Banzami é construído por uma equipa pequena, focada em fazer bem o essencial: pagamentos
+              corretos, verificáveis e simples de usar.
+            </p>
+          </Reveal>
+          <Reveal delay={80} className="rounded-card border border-border-soft bg-cream-50 p-8">
+            <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.08em] text-cherry">ESTADO ATUAL</p>
+            <ul className="m-0 list-none space-y-2.5 p-0 text-[14.5px] font-semibold leading-[1.5] text-ink-secondary">
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden="true" className="mt-[7px] inline-block h-2 w-2 flex-none rounded-full bg-[#1f9d57]" />
+                <span><strong className="text-ink">{PUBLIC_TRUTH.sandbox.name}</strong> disponível, self-service, com dinheiro fictício.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden="true" className="mt-[7px] inline-block h-2 w-2 flex-none rounded-full bg-[#1f9d57]" />
+                <span><strong className="text-ink">App Banzami Web</strong> disponível; <strong className="text-ink">iPhone e Android</strong> em testes.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span aria-hidden="true" className="mt-[7px] inline-block h-2 w-2 flex-none rounded-full bg-ink-muted" />
+                <span><strong className="text-ink">{PUBLIC_TRUTH.live.name}</strong> indisponível, sujeito às aprovações aplicáveis.</span>
+              </li>
+            </ul>
           </Reveal>
         </div>
       </section>

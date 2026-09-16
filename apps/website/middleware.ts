@@ -94,6 +94,19 @@ export function middleware(req: NextRequest): NextResponse {
   // 308 preserves the method, and the query string is carried over so the
   // Console's own /verify?email=… navigation survives the hop.
   if (MARKETING_HOSTS.includes(host)) {
+    // Routes retired by PUBLIC-WEBSITE-RELEASE-001 → 308 to their canonical owner,
+    // so the redesign never leaves a user-facing 404 (§55).
+    const retired: Record<string, string> = {
+      '/faq': '/suporte#faq',
+      '/ecras': '/produto#app',
+      '/app-demo': 'https://app.banzami.com',
+    };
+    const clean = url.pathname.replace(/\/+$/, '') || '/';
+    if (retired[clean]) {
+      const target = retired[clean];
+      const dest = target.startsWith('http') ? new URL(target) : (() => { const d = url.clone(); const [p, h] = target.split('#'); d.pathname = p; d.hash = h ? `#${h}` : ''; d.search = ''; return d; })();
+      return NextResponse.redirect(dest, 308);
+    }
     if (isConsoleSubPath(url.pathname)) {
       const dest = new URL(marketingToConsoleUrl(url.pathname));
       dest.search = url.search;

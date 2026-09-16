@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { CTASection } from '@/components/site/CTASection';
@@ -7,21 +6,32 @@ import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
 import { type FrameName } from '@/components/app/AppScreen';
 import { ScaledPhone } from '@/components/app/ScaledPhone';
+import { PhoneFrame } from '@/components/app/PhoneFrame';
+import { AppScreen } from '@/components/app/AppScreen';
 import { QrSyncShowcase } from '@/components/produto/QrSyncShowcase';
 import { AppJourney } from '@/components/produto/AppJourney';
-import { EcosystemFlow } from '@/components/produto/EcosystemFlow';
-import { SITE } from '@/lib/site';
 import { PUBLIC_TRUTH } from '@/lib/public-truth';
-import { PUBLISHED_PACKAGES } from '@/app/developers/docs/published-packages';
+
+// /produto — the Consumer App page (PUBLIC-WEBSITE-RELEASE-001 §12).
+// Audience: the person who pays and receives. Merchant acceptance lives on
+// /comerciantes, the developer platform on /developers, trust/security on
+// /seguranca, and the BANZA relationship on /sobre. This page explains ONE thing:
+// the App Banzami — pay/send, receive, receipts — and where to get it.
 
 export const metadata: Metadata = {
-  title: 'Produto',
-  description: 'O Banzami: pagar por QR ou para um @banza, com comprovativo verificável. O estado atual de cada produto.',
+  title: 'App Banzami',
+  description:
+    'A App Banzami: pagar por QR ou para um @banza, receber, e um comprovativo que qualquer pessoa pode verificar. No browser (Sandbox) e em testes no iPhone e Android.',
   alternates: { canonical: 'https://banzami.com/produto' },
+  openGraph: {
+    title: 'App Banzami — pagar, receber e verificar',
+    description: 'Pagar por QR ou para um @banza, com um comprovativo verificável. Uma app: Web, iPhone e Android.',
+    url: 'https://banzami.com/produto',
+  },
 };
 
-/* ---------- Solução bento grid (6 cards) ---------- */
-const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
+// Consumer capabilities only.
+const CAPS: { icon: ReactNode; title: string; desc: string }[] = [
   {
     icon: <span className="bz-mono text-[22px] font-semibold text-cherry-dark">@</span>,
     title: 'Pague para um @banza',
@@ -30,24 +40,11 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
   {
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="3" y="3" width="7" height="7" rx="1.6" stroke="#B5101F" strokeWidth="1.8" />
-        <rect x="14" y="3" width="7" height="7" rx="1.6" stroke="#B5101F" strokeWidth="1.8" />
-        <rect x="3" y="14" width="7" height="7" rx="1.6" stroke="#B5101F" strokeWidth="1.8" />
-        <path d="M14 14h3v3M21 14v7h-7" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M4 12h15M13 6l6 6-6 6" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Receber sem terminal',
-    desc: 'Um negócio recebe por QR ou por link, sem terminal de pagamento.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-        <path d="M9.2 11.6l1.9 1.9 3.7-3.7" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Comprovativo verificável',
-    desc: 'Cada pagamento tem um comprovativo com referência, que qualquer pessoa pode verificar.',
+    title: 'Enviar na hora',
+    desc: 'Envie dinheiro para qualquer @banza, entre pessoas.',
   },
   {
     icon: (
@@ -59,267 +56,31 @@ const SOLUCAO_CARDS: { icon: ReactNode; title: string; desc: string }[] = [
     title: 'Histórico claro',
     desc: 'Envios, recebimentos e comprovativos num só lugar.',
   },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-        <path d="M3 6h18l-1.2 4.2a2.2 2.2 0 01-4.2 0 2.2 2.2 0 01-4.4 0 2.2 2.2 0 01-4.4 0A2.2 2.2 0 014.2 10L3 6z" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Pensado para comerciantes',
-    desc: 'De cantinas a táxis e bancas: receber por QR, com o valor e a descrição de cada venda.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3l9 5-9 5-9-5 9-5z" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-        <path d="M3 12l9 5 9-5M3 16.5l9 5 9-5" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Uma plataforma para developers',
-    desc: 'A mesma rede, exposta por uma API pública e SDKs publicados.',
-  },
 ];
 
-/* ---------- Produtos (estado atual de cada um; nada aqui é uma promessa) ---------- */
-const PRODUTOS: {
-  icon: ReactNode;
-  badge: string;
-  tone?: 'beta';
-  title: string;
-  desc: ReactNode;
-  cta?: { label: string; href: string };
-}[] = [
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="6" y="2.5" width="12" height="19" rx="3" stroke="#B5101F" strokeWidth="1.7" />
-      </svg>
-    ),
-    badge: 'SANDBOX · DISPONÍVEL',
-    title: 'App Banzami',
-    desc: (
-      <>
-        Uma App Banzami — Web, iPhone e Android — a partir de um só código.
-        Carteira em Kwanza com <span className="bz-mono text-[12px]">@banza</span> e QR.
-        <span className="mt-2 block space-y-1 text-[13px] font-semibold">
-          <span className="block"><span className="font-black text-cherry">Web</span> · Sandbox · disponível já no browser</span>
-          <span className="block"><span className="font-black text-ink">iPhone</span> · Beta · em testes (testers convidados)</span>
-          <span className="block"><span className="font-black text-ink">Android</span> · Beta · em testes (testers convidados)</span>
-        </span>
-      </>
-    ),
-    cta: { label: 'Abrir App Banzami Web', href: 'https://app.banzami.com' },
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 8h16l-1.2 11.2A2 2 0 0116.8 21H7.2A2 2 0 015.2 19.2L4 8z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" />
-      </svg>
-    ),
-    badge: 'BETA · EM TESTES',
-    tone: 'beta',
-    title: 'App Comerciante',
-    desc: 'Receber por QR e por link, sem terminal. Em testes no iPhone e Android, para testers convidados.',
-    cta: { label: 'Participar nos testes', href: '/testes?app=comerciante' },
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="3" y="4" width="18" height="14" rx="3" stroke="#B5101F" strokeWidth="1.7" />
-        <path d="M7 14l3-3 2.5 2L17 9" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    badge: 'SANDBOX · DISPONÍVEL',
-    title: 'Consola',
-    desc: 'Workspaces, projetos, chaves, webhooks e registos de pedidos.',
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    badge: 'SANDBOX · DISPONÍVEL',
-    title: `API pública ${PUBLIC_TRUTH.apiVersion}`,
-    desc: 'Pagamentos, reembolsos, webhooks assinados e liquidações.',
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="4" stroke="#B5101F" strokeWidth="1.7" />
-        <path d="M8 8h2v2H8zM14 8h2v2h-2zM8 14h2v2H8zM14 14h2v2h-2z" fill="#B5101F" />
-      </svg>
-    ),
-    badge: 'SANDBOX · DISPONÍVEL',
-    title: 'QR e links de pagamento',
-    desc: 'QR dinâmico e links de pagamento, com dinheiro fictício.',
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 7l8-4 8 4-8 4-8-4z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M4 12l8 4 8-4M4 17l8 4 8-4" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" />
-      </svg>
-    ),
-    badge: 'PUBLICADO',
-    title: 'SDKs',
-    desc: PUBLISHED_PACKAGES.map((p) => `${p.name} (${p.registry})`).join(' · '),
-  },
+// The consumer walkthrough — real app frames.
+const APP_STEPS: { n: string; label: string; caption: string; frame: FrameName; valor?: string; para?: string; nota?: string }[] = [
+  { n: '01', label: 'Boas-vindas', caption: 'primeira entrada na app', frame: 'welcome' },
+  { n: '02', label: 'Criar conta', caption: 'escolher o @banza', frame: 'criar' },
+  { n: '03', label: 'Início', caption: 'saldo, atalhos e ações', frame: 'inicio' },
+  { n: '04', label: 'Ler QR', caption: 'ler o QR para pagar', frame: 'scan' },
+  { n: '05', label: 'Confirmar', caption: 'confirmar valor e destinatário', frame: 'confpag' },
+  { n: '06', label: 'Comprovativo', caption: 'comprovativo do pagamento', frame: 'comprovativo', valor: '1 500', para: '@cantina-alex', nota: '1 Kg de Arroz' },
+  { n: '07', label: 'Enviar', caption: 'enviar para um @banza', frame: 'enviar' },
+  { n: '08', label: 'Receber', caption: 'QR e link de pagamento', frame: 'receber' },
+  { n: '09', label: 'Histórico', caption: 'acompanhar a atividade', frame: 'historico' },
+  { n: '10', label: 'Perfil', caption: 'conta, PIN e segurança', frame: 'perfil' },
 ];
 
-/* ---------- A app — journey screens (horizontal scroll) ---------- */
-const APP_STEPS: {
-  n: string;
-  label: string;
-  caption: string;
-  frame: FrameName;
-  valor?: string;
-  para?: string;
-  nota?: string;
-}[] = [
-  { n: '01', label: 'Splash', caption: 'entrada visual da app', frame: 'splash' },
-  { n: '02', label: 'Boas-vindas', caption: 'primeira apresentação ao utilizador', frame: 'welcome' },
-  { n: '03', label: 'Criar conta', caption: 'escolher o @banza', frame: 'criar' },
-  { n: '04', label: 'Entrar', caption: 'acesso rápido e simples', frame: 'entrar' },
-  { n: '05', label: 'Início', caption: 'saldo, atalhos e ações', frame: 'inicio' },
-  { n: '06', label: 'Scan', caption: 'ler o QR para pagar', frame: 'scan' },
-  { n: '07', label: 'Confirmar', caption: 'confirmar valor e destinatário', frame: 'confpag' },
-  { n: '08', label: 'Comprovativo', caption: 'comprovativo do pagamento', frame: 'comprovativo', valor: '1 500', para: '@cantina-alex', nota: '1 Kg de Arroz' },
-  { n: '09', label: 'Enviar', caption: 'enviar para um @banza', frame: 'enviar' },
-  { n: '10', label: 'Confirmar envio', caption: 'rever antes de concluir', frame: 'confenvio' },
-  { n: '11', label: 'Receber', caption: 'QR e link de pagamento', frame: 'receber' },
-  { n: '12', label: 'Histórico', caption: 'acompanhar a atividade', frame: 'historico' },
-  { n: '13', label: 'Perfil', caption: 'conta, PIN e segurança', frame: 'perfil' },
-  { n: '14', label: 'Partilhar QR', caption: 'receber por QR partilhável', frame: 'partilhar' },
-];
-
-/* ---------- Tecnologia — 4 cards ---------- */
-const TECH_CARDS: { icon: ReactNode; tag: string; title: string; desc: string }[] = [
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 12a8 8 0 0113-6.2M20 12a8 8 0 01-13 6.2" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M17 3.5V7h-3.5M7 20.5V17h3.5" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    tag: 'idempotente',
-    title: 'Atomicidade & idempotência',
-    desc: 'Ou acontece por inteiro, ou não acontece. Repetir a mesma operação devolve o resultado original.',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="5" y="3" width="14" height="18" rx="3" stroke="#B5101F" strokeWidth="1.8" />
-        <path d="M9 8h6M9 12h6M9 16h4" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
-    tag: 'append-only',
-    title: 'Auditoria append-only',
-    desc: 'Os registos são imutáveis e auditáveis, sem mutações silenciosas nem perda de contexto.',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M3 12h4l2.5 6 4-13 2.5 7H21" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    tag: 'traceável',
-    title: 'Traces & observabilidade',
-    desc: 'Cada operação deixa um rasto verificável da origem ao destino, com logs, métricas e contexto.',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3l9 5-9 5-9-5 9-5z" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-        <path d="M3 12l9 5 9-5" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-      </svg>
-    ),
-    tag: 'isolado',
-    title: 'Separação sandbox / produção',
-    desc: 'A Sandbox é isolada por princípio: dinheiro fictício, chaves e dados próprios. O Financial Live é outro ambiente, hoje indisponível.',
-  },
-];
-
-/* ---------- Problema cards ---------- */
-const PROBLEMA: { icon: ReactNode; title: string; desc: string }[] = [
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="2.5" y="6" width="19" height="12" rx="3" stroke="#B5101F" strokeWidth="1.8" />
-        <circle cx="12" cy="12" r="2.6" stroke="#B5101F" strokeWidth="1.8" />
-      </svg>
-    ),
-    title: 'Dinheiro físico',
-    desc: 'Custo e risco para quem paga e para quem recebe.',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="4" y="3" width="16" height="18" rx="3" stroke="#B5101F" strokeWidth="1.8" />
-        <path d="M8 8h8M8 12h8M8 16h5" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
-    title: 'Comprovativos',
-    desc: 'Screenshots de transferências por WhatsApp como "prova".',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" stroke="#B5101F" strokeWidth="1.8" />
-        <path d="M12 7v5l3.5 2" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Confirmações lentas',
-    desc: 'A espera até o dinheiro "aparecer" do outro lado.',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="5" y="2.5" width="14" height="19" rx="3" stroke="#B5101F" strokeWidth="1.8" />
-        <path d="M9 6h6" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
-    title: 'Terminais caros',
-    desc: 'TPA/POS dispendiosos e fora do alcance dos pequenos.',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" />
-        <circle cx="9" cy="8" r="3.2" stroke="#B5101F" strokeWidth="1.8" />
-      </svg>
-    ),
-    title: 'Pequenos de fora',
-    desc: 'Cantinas, táxis e bancas ficam fora do digital.',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Sem APIs simples',
-    desc: 'Sem uma API de pagamentos nativa em Kwanza.',
-  },
-];
-
-/* ---------- shared check icons ---------- */
-function CheckTile({ light }: { light?: boolean }) {
+function AvailabilityRow({ platform, state, tone, note }: { platform: string; state: string; tone: 'ok' | 'beta'; note: string }) {
   return (
-    <span
-      className="inline-flex flex-none items-center justify-center"
-      style={{
-        width: 20,
-        height: 20,
-        borderRadius: 7,
-        background: light ? 'rgba(255,255,255,.18)' : '#FBD2D0',
-      }}
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M5 13l4 4L19 7" stroke={light ? '#fff' : '#9A1B22'} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
+    <div className="flex items-center justify-between gap-4 rounded-[16px] border border-border-soft bg-white px-5 py-4">
+      <div>
+        <p className="m-0 text-[15px] font-black text-ink">{platform}</p>
+        <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-ink-soft">{note}</p>
+      </div>
+      <span className={`flex-none rounded-pill px-[11px] py-[6px] text-[11px] font-black ${tone === 'ok' ? 'bg-emerald-100 text-emerald-700' : 'bg-pink-200 text-cherry-dark'}`}>{state}</span>
+    </div>
   );
 }
 
@@ -328,36 +89,48 @@ export default function ProdutoPage() {
     <main className="overflow-x-hidden bg-white">
       <SiteHeader />
 
-      {/* ===================== SOLUÇÃO ===================== */}
-      <section id="solucao" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
-        <div className="mx-auto max-w-container">
-          <Reveal className="mb-9 max-w-[720px]">
-            <p className="m-0 mb-3 text-[14px] font-black text-cherry">A SOLUÇÃO</p>
-            <h1 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Pagar, receber e verificar, numa só app.
-            </h1>
-            <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              Do envio entre pessoas ao pagamento por QR, o Banzami junta numa só app o que hoje
-              ainda está espalhado entre notas, comprovativos e confirmações lentas.
-            </p>
-          </Reveal>
+      {/* HERO */}
+      <section className="bg-[linear-gradient(180deg,#FFF3F1,#fff)] px-6 pb-12 pt-[124px]">
+        <div className="mx-auto max-w-[860px] text-center">
+          <p className="m-0 mb-3 text-[14px] font-black tracking-[0.04em] text-cherry">APP BANZAMI</p>
+          <h1 className="m-0 text-[clamp(32px,5.2vw,54px)] font-black leading-[1.04] tracking-[-0.03em] text-ink">
+            Pagar, receber e verificar, numa só app.
+          </h1>
+          <p className="mx-auto m-0 mt-5 max-w-[620px] text-[clamp(16px,1.6vw,19px)] font-semibold leading-[1.6] text-ink-secondary">
+            Pague por QR ou para um <span className="bz-mono">@banza</span>, receba na sua carteira em Kwanza,
+            e fique com um comprovativo que qualquer pessoa pode verificar.
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-pill bg-cherry px-7 py-[14px] text-[15px] font-extrabold text-white no-underline shadow-[0_12px_26px_-10px_rgba(181,16,31,.55)] transition-transform hover:-translate-y-0.5">
+              Abrir App Banzami Web ↗
+            </a>
+            <a href="/testes" className="inline-flex items-center gap-2 rounded-pill border border-border-softer bg-white px-7 py-[14px] text-[15px] font-extrabold text-cherry-dark no-underline transition-transform hover:-translate-y-0.5">
+              Testar no iPhone e Android
+            </a>
+          </div>
+          <p className="mx-auto m-0 mt-4 max-w-[520px] text-[13.5px] font-semibold text-ink-muted">
+            App Web disponível na {PUBLIC_TRUTH.sandbox.name}, com dinheiro fictício. {PUBLIC_TRUTH.live.name} indisponível.
+          </p>
+        </div>
+      </section>
 
-          {/* big QR card */}
+      {/* PAGAR E ENVIAR */}
+      <section id="pagar" className="scroll-mt-24 px-6 py-[clamp(48px,7vw,88px)]">
+        <div className="mx-auto max-w-container">
+          <Reveal className="mb-8 max-w-[680px]">
+            <p className="m-0 mb-3 text-[14px] font-black text-cherry">PAGAR E ENVIAR</p>
+            <h2 className="m-0 text-[clamp(26px,3.6vw,40px)] font-black leading-[1.08] tracking-[-0.02em] text-ink">
+              Ler, confirmar, pago.
+            </h2>
+          </Reveal>
           <Reveal className="bz-split mb-4 grid grid-cols-1 items-center gap-[34px] rounded-[28px] border border-border-soft bg-[linear-gradient(135deg,#fff,#FFF1F0)] p-[clamp(26px,3.4vw,40px)] shadow-[0_30px_70px_-40px_rgba(181,16,31,.4)] md:grid-cols-[1.1fr_0.9fr]">
             <QrSyncShowcase />
           </Reveal>
-
-          {/* 6-card grid */}
-          <div className="bz-grid3 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-            {SOLUCAO_CARDS.map((c) => (
-              <div
-                key={c.title}
-                className="rounded-[22px] border border-border-soft bg-white p-6 shadow-[0_16px_40px_-28px_rgba(181,16,31,.3)] transition-all hover:-translate-y-1 hover:shadow-[0_26px_52px_-28px_rgba(181,16,31,.42)]"
-              >
-                <span className="mb-4 flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-[linear-gradient(150deg,#FBD2D0,#FFE7E5)]">
-                  {c.icon}
-                </span>
-                <h2 className="m-0 mb-[7px] text-[18px] font-black text-ink">{c.title}</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {CAPS.map((c) => (
+              <div key={c.title} className="rounded-[22px] border border-border-soft bg-white p-6 shadow-[0_16px_40px_-28px_rgba(181,16,31,.3)]">
+                <span className="mb-4 flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-[linear-gradient(150deg,#FBD2D0,#FFE7E5)]">{c.icon}</span>
+                <h3 className="m-0 mb-[7px] text-[18px] font-black text-ink">{c.title}</h3>
                 <p className="m-0 text-[14.5px] font-semibold leading-[1.5] text-ink-soft">{c.desc}</p>
               </div>
             ))}
@@ -365,103 +138,60 @@ export default function ProdutoPage() {
         </div>
       </section>
 
-      {/* ===================== PRODUTOS ===================== */}
-      <section id="produtos" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
-        <div className="mx-auto max-w-container">
-          <Reveal className="mb-10 max-w-[660px]">
-            <p className="m-0 mb-3 text-[14px] font-black text-cherry">PRODUTOS</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Para pessoas, negócios e aplicações.
+      {/* RECEBER */}
+      <section id="receber" className="scroll-mt-24 bg-[linear-gradient(180deg,#fff,#FFF7F6)] px-6 py-[clamp(48px,7vw,88px)]">
+        <div className="mx-auto grid max-w-container grid-cols-1 items-center gap-12 lg:grid-cols-2">
+          <div>
+            <p className="m-0 mb-3 text-[14px] font-black text-cherry">RECEBER</p>
+            <h2 className="m-0 text-[clamp(26px,3.6vw,40px)] font-black leading-[1.08] tracking-[-0.02em] text-ink">
+              O seu QR e o seu @banza.
             </h2>
-            <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              O estado atual de cada produto. {PUBLIC_TRUTH.live.summary}
+            <p className="m-0 mt-4 max-w-[440px] text-[16px] font-semibold leading-[1.55] text-ink-secondary">
+              Mostre o seu QR ou partilhe o seu <span className="bz-mono">@banza</span> para receber. Cada pagamento
+              chega à sua carteira com o seu comprovativo.
             </p>
-          </Reveal>
-
-          <div className="bz-grid4 grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-4">
-            {PRODUTOS.map((p, i) => (
-              <Reveal
-                key={p.title}
-                delay={(i % 4) * 50}
-                className="rounded-[22px] bg-white p-6 shadow-[0_14px_40px_-24px_rgba(181,16,31,.2)]"
-              >
-                <div className="mb-[14px] flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-cream-100">
-                    {p.icon}
-                  </div>
-                  <span
-                    className={`rounded-pill px-[9px] py-1 text-[10px] font-black ${
-                      p.tone === 'beta' ? 'bg-emerald-100 text-emerald-700' : 'bg-pink-200 text-cherry-dark'
-                    }`}
-                  >
-                    {p.badge}
-                  </span>
-                </div>
-                <h3 className="m-0 mb-[6px] text-[16px] font-black">{p.title}</h3>
-                <p className="m-0 text-[13.5px] font-semibold leading-[1.5] text-ink-soft">{p.desc}</p>
-                {p.cta && (
-                  <Link
-                    href={p.cta.href}
-                    className="mt-3 inline-flex items-center gap-1 text-[13px] font-black text-cherry no-underline transition hover:gap-1.5 hover:text-cherry-dark"
-                  >
-                    {p.cta.label} <span aria-hidden="true">→</span>
-                  </Link>
-                )}
-              </Reveal>
-            ))}
-
-            {/* Sandbox — the environment every available product runs in today */}
-            <Reveal
-              delay={100}
-              className="flex flex-col justify-between rounded-[22px] bg-[linear-gradient(140deg,#B5101F,#9A1B22)] p-6 text-white sm:col-span-2"
-            >
-              <div className="mb-[14px] flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-white/[0.18]">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M9 3v6l-5 9a2 2 0 001.7 3h12.6a2 2 0 001.7-3l-5-9V3" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <span className="rounded-pill bg-white/[0.22] px-[9px] py-1 text-[10px] font-black text-white">
-                  {PUBLIC_TRUTH.sandbox.state.toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <h3 className="m-0 mb-[6px] text-[16px] font-black">{PUBLIC_TRUTH.sandbox.name}</h3>
-                <p className="m-0 text-[13.5px] font-semibold leading-[1.5] text-pink-200">
-                  {PUBLIC_TRUTH.sandbox.summary}
-                </p>
-              </div>
-            </Reveal>
+          </div>
+          <div className="flex justify-center">
+            <PhoneFrame float>
+              <AppScreen frame="receber" />
+            </PhoneFrame>
           </div>
         </div>
       </section>
 
-      {/* ===================== A APP ===================== */}
-      <section id="app" className="px-6 pt-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#FFF7F6,#fff)]">
+      {/* COMPROVATIVOS */}
+      <section id="comprovativos" className="scroll-mt-24 px-6 py-[clamp(48px,7vw,88px)]">
+        <Reveal className="mx-auto flex max-w-container flex-wrap items-center justify-between gap-6 rounded-[28px] border border-border-soft bg-white p-[clamp(26px,3.4vw,40px)] shadow-[0_20px_50px_-40px_rgba(181,16,31,.35)]">
+          <div className="max-w-[600px]">
+            <p className="m-0 mb-3 text-[14px] font-black text-cherry">COMPROVATIVOS</p>
+            <h2 className="m-0 text-[clamp(24px,3.2vw,34px)] font-black tracking-[-0.02em] text-ink">Um comprovativo que se verifica.</h2>
+            <p className="m-0 mt-3 text-[15.5px] font-semibold leading-[1.6] text-ink-secondary">
+              Cada pagamento tem uma referência. Qualquer pessoa pode confirmá-la — sem conta e sem ver dados privados.
+            </p>
+          </div>
+          <a href="/verificar" className="rounded-pill bg-cherry px-7 py-[14px] text-[15px] font-extrabold text-white no-underline">Verificar um comprovativo →</a>
+        </Reveal>
+      </section>
+
+      {/* A APP DE PONTA A PONTA */}
+      <section id="app" className="scroll-mt-24 bg-[linear-gradient(180deg,#FFF7F6,#fff)] px-6 pt-[clamp(48px,7vw,88px)]">
         <div className="mx-auto max-w-container">
           <Reveal className="mb-2 max-w-[660px]">
             <p className="m-0 mb-3 text-[14px] font-black text-cherry">A APP</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              A app Banzami, de ponta a ponta.
+            <h2 className="m-0 text-[clamp(26px,3.6vw,40px)] font-black leading-[1.08] tracking-[-0.02em] text-ink">
+              A App Banzami, de ponta a ponta.
             </h2>
-            <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              Criar conta, pagar, receber e confirmar — tudo em poucos passos.{' '}
-              <span className="text-ink-muted">Arraste para ver →</span>{' '}
-              <Link href="/ecras" className="font-extrabold text-cherry no-underline">
-                Ver todos os ecrãs ↗
-              </Link>
+            <p className="m-0 mt-4 text-[16px] font-semibold leading-[1.55] text-ink-secondary">
+              Criar conta, pagar, receber e confirmar — em poucos passos. <span className="text-ink-muted">Deslize para ver →</span>
             </p>
           </Reveal>
         </div>
-
         <AppJourney>
           {APP_STEPS.map((s) => (
             <div key={s.n} className="w-[216px] flex-none">
               <ScaledPhone frame={s.frame} width={216} valor={s.valor} para={s.para} nota={s.nota} />
               <div className="mt-[14px] flex items-center gap-[9px]">
-                <span className="inline-flex h-[26px] w-[26px] flex-none items-center justify-center rounded-[9px] bg-cherry text-[12px] font-black text-white">
-                  {s.n}
-                </span>
+                <span className="inline-flex h-[26px] w-[26px] flex-none items-center justify-center rounded-[9px] bg-cherry text-[12px] font-black text-white">{s.n}</span>
                 <span className="text-[15px] font-black text-ink">{s.label}</span>
               </div>
               <p className="m-0 ml-[35px] mt-[6px] text-[13px] font-semibold text-ink-soft">{s.caption}</p>
@@ -470,265 +200,29 @@ export default function ProdutoPage() {
         </AppJourney>
       </section>
 
-      {/* ===================== TECNOLOGIA / SEGURANÇA ===================== */}
-      <section id="tecnologia" className="px-6 py-[clamp(64px,9vw,104px)]">
+      {/* UMA APP — WEB / IOS / ANDROID */}
+      <section className="px-6 py-[clamp(48px,7vw,88px)]">
         <div className="mx-auto max-w-container">
-          <Reveal className="mb-9 max-w-[720px]">
-            <p className="m-0 mb-3 text-[14px] font-black text-cherry">TECNOLOGIA & SEGURANÇA</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Confiança é o produto.
+          <Reveal className="mb-8 max-w-[680px]">
+            <p className="m-0 mb-3 text-[14px] font-black text-cherry">UMA APP</p>
+            <h2 className="m-0 text-[clamp(26px,3.6vw,40px)] font-black leading-[1.08] tracking-[-0.02em] text-ink">
+              Web, iPhone e Android — o mesmo Banzami.
             </h2>
-            <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              O saldo nasce do ledger, não de ajustes silenciosos. Cada operação deixa rasto, cada
-              repetição devolve o mesmo resultado, e cada ambiente é isolado para proteger o sistema.
+            <p className="m-0 mt-4 text-[16px] font-semibold leading-[1.55] text-ink-secondary">
+              Uma app a partir de um só código. Hoje disponível no browser, na Sandbox; nativa em testes.
             </p>
           </Reveal>
-
-          {/* ledger engine card */}
-          <Reveal className="bz-split mb-4 grid grid-cols-1 items-center gap-[34px] rounded-[28px] border border-border-soft bg-[linear-gradient(135deg,#fff,#FFF1F0)] p-[clamp(26px,3.4vw,40px)] shadow-[0_30px_70px_-42px_rgba(181,16,31,.4)] md:grid-cols-[1.05fr_0.95fr]">
-            <div>
-              <p className="bz-mono m-0 mb-[10px] text-[12px] font-semibold text-cherry">
-                O MOTOR DE CONFIANÇA
-              </p>
-              <h3 className="m-0 text-[clamp(23px,3vw,32px)] font-black tracking-[-0.02em] text-ink">
-                Ledger de dupla entrada
-              </h3>
-              <p className="m-0 mb-[18px] mt-[14px] text-[15.5px] font-semibold leading-[1.55] text-ink-secondary">
-                Cada lançamento tem origem e destino que se equilibram. O saldo é derivado do ledger,
-                não editado manualmente.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {['imutável', 'idempotente', 'derivado do ledger'].map((t) => (
-                  <span
-                    key={t}
-                    className="bz-mono rounded-pill bg-cream-100 px-[11px] py-[5px] text-[11px] font-semibold tracking-[0.03em] text-cherry"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="relative flex min-h-[248px] items-center justify-center">
-              <div className="anim-pulsering absolute h-[150px] w-[150px] rounded-full border-2 border-[rgba(181,16,31,.16)]" />
-              <div className="anim-pulsering absolute h-[150px] w-[150px] rounded-full border-2 border-[rgba(181,16,31,.16)]" style={{ animationDelay: '1.2s' }} />
-              <div className="anim-spin-slow absolute h-[196px] w-[196px] rounded-full border-[1.5px] border-dashed border-[rgba(181,16,31,.28)]" />
-              <div className="anim-floaty absolute left-[30px] top-[18px] h-[11px] w-[11px] rounded-full bg-cherry-coral" />
-              <div className="anim-floaty-5 absolute bottom-6 right-[34px] h-[9px] w-[9px] rounded-full bg-pink-200" />
-              <div className="anim-floaty-7 absolute right-[26px] top-10 h-[7px] w-[7px] rounded-full bg-cherry" />
-              <div
-                className="relative flex h-[112px] w-[112px] flex-col items-center justify-center rounded-[28px] text-white"
-                style={{
-                  background: 'linear-gradient(150deg,#B5101F,#6E0E14)',
-                  boxShadow: '0 22px 44px -16px rgba(122,16,22,.6)',
-                }}
-              >
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 3v18M5 6.5l7-2.5 7 2.5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M5 6.5l-2 5a3 3 0 006 0l-2-5M19 6.5l-2 5a3 3 0 006 0l-2-5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="mt-[5px] text-[12px] font-extrabold">Ledger</span>
-              </div>
-            </div>
-          </Reveal>
-
-          {/* 4 tech cards */}
-          <div className="bz-grid4 mb-4 grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-4">
-            {TECH_CARDS.map((c) => (
-              <Reveal
-                key={c.title}
-                className="rounded-[22px] border border-border-soft bg-white p-6 shadow-[0_16px_40px_-30px_rgba(181,16,31,.3)] transition-all hover:-translate-y-1 hover:shadow-[0_26px_52px_-30px_rgba(181,16,31,.4)]"
-              >
-                <div className="mb-[14px] flex items-center justify-between">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-cream-100">
-                    {c.icon}
-                  </span>
-                  <span className="bz-mono rounded-pill bg-cream-100 px-[11px] py-[5px] text-[11px] font-semibold tracking-[0.03em] text-cherry">
-                    {c.tag}
-                  </span>
-                </div>
-                <h3 className="m-0 mb-[7px] text-[17px] font-black text-ink">{c.title}</h3>
-                <p className="m-0 text-[14px] font-semibold leading-[1.5] text-ink-soft">{c.desc}</p>
-              </Reveal>
-            ))}
+          <div className="grid max-w-[720px] grid-cols-1 gap-3">
+            <AvailabilityRow platform="App Web" state="SANDBOX · DISPONÍVEL" tone="ok" note="No browser, com dinheiro fictício." />
+            <AvailabilityRow platform="iPhone" state="BETA · EM TESTES" tone="beta" note={`${PUBLIC_TRUTH.appBeta.ios}, para testers convidados.`} />
+            <AvailabilityRow platform="Android" state="BETA · EM TESTES" tone="beta" note={`${PUBLIC_TRUTH.appBeta.android}, para testers convidados.`} />
           </div>
-
-          {/* honest compliance card */}
-          <Reveal className="flex scroll-mt-28 flex-wrap items-center justify-between gap-5 rounded-[24px] border-2 border-pink-200 bg-white p-[clamp(24px,3vw,32px)]">
-            <div id="seguranca" className="flex max-w-[680px] items-center gap-[18px]">
-              <span className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-[15px] bg-cream-100">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" />
-                  <path d="M9.2 11.6l1.9 1.9 3.7-3.7" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <div>
-                <div className="mb-1 flex items-center gap-[10px]">
-                  <h3 className="m-0 text-[18px] font-black text-ink">KYC/KYB & AML-CFT</h3>
-                  <span className="bz-mono rounded-pill bg-cream-100 px-[11px] py-[5px] text-[11px] font-semibold tracking-[0.03em] text-cherry">
-                    compliance
-                  </span>
-                </div>
-                <p className="m-0 text-[14px] font-semibold leading-[1.5] text-ink-soft">
-                  A verificação de negócios existe na Sandbox. Os controlos exigidos para dinheiro real
-                  fazem parte das aprovações de que o Financial Live depende.
-                </p>
-              </div>
-            </div>
-            <span className="rounded-pill bg-pink-200 px-[13px] py-[7px] text-[11px] font-extrabold tracking-[0.04em] text-cherry-dark">
-              FINANCIAL LIVE · INDISPONÍVEL
-            </span>
-          </Reveal>
+          <p className="m-0 mt-5 text-[14px] font-semibold text-ink-secondary">
+            <a href="/testes" className="font-extrabold text-cherry no-underline">Participar nos testes nativos →</a>
+          </p>
         </div>
       </section>
 
-      {/* ===================== PROBLEMA ===================== */}
-      <section id="problema" className="px-6 py-[clamp(64px,9vw,104px)]">
-        <div className="mx-auto max-w-container">
-          <Reveal className="mb-11 max-w-[660px]">
-            <p className="m-0 mb-3 text-[14px] font-black text-cherry">O PROBLEMA</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Pagar ainda depende de notas e de screenshots.
-            </h2>
-            <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              O Banzami propõe um gesto simples: ler, confirmar, pago.
-            </p>
-          </Reveal>
-
-          <div className="bz-grid3 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-            {PROBLEMA.map((p, i) => (
-              <Reveal key={p.title} delay={(i % 3) * 60} className="rounded-[24px] bg-cream-50 p-[26px]">
-                <div className="mb-4 flex h-[46px] w-[46px] items-center justify-center rounded-[16px] bg-white">
-                  {p.icon}
-                </div>
-                <h3 className="m-0 mb-[7px] text-[18px] font-extrabold">{p.title}</h3>
-                <p className="m-0 text-[14.5px] font-semibold leading-[1.5] text-ink-soft">{p.desc}</p>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===================== SOBRE · O ECOSSISTEMA ===================== */}
-      <section id="sobre" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
-        <div className="mx-auto max-w-container">
-          <Reveal className="mb-9 max-w-[760px]">
-            <p className="m-0 mb-3 text-[14px] font-black text-cherry">SOBRE · O ECOSSISTEMA</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,46px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Banzami, construído sobre <span className="bz-mono">BANZA</span>.
-            </h2>
-            <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              O Banzami é o operador de referência construído sobre o protocolo aberto BANZA. O BANZA
-              define as regras. O Banzami transforma essas regras numa experiência de pagamento
-              simples para pessoas e comerciantes em Angola.
-            </p>
-          </Reveal>
-
-          {/* BANZA é a base */}
-          <Reveal className="bz-split mb-4 grid grid-cols-1 items-center gap-[34px] rounded-[28px] border border-border-soft bg-white p-[clamp(26px,3.4vw,40px)] shadow-[0_30px_70px_-42px_rgba(181,16,31,.35)] md:grid-cols-[1.15fr_0.85fr]">
-            <div>
-              <p className="bz-mono m-0 mb-[10px] text-[12px] font-semibold tracking-[0.04em] text-cherry">
-                PROTOCOLO ABERTO
-              </p>
-              <h3 className="m-0 text-[clamp(24px,3vw,34px)] font-black tracking-[-0.02em] text-ink">
-                BANZA é a base.
-              </h3>
-              <p className="m-0 mb-5 mt-[14px] text-[15.5px] font-semibold leading-[1.55] text-ink-secondary">
-                O protocolo aberto que define regras, invariantes e contratos para pagamentos. Não é uma app. Não é um banco. Não é uma carteira. É a infraestrutura
-                lógica que permite que operadores construam serviços compatíveis sobre a mesma base.
-              </p>
-              <a
-                href={SITE.protocolUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-[7px] text-[14px] font-extrabold text-cherry no-underline"
-              >
-                Ver o protocolo BANZA ↗
-              </a>
-            </div>
-            <div className="flex flex-col gap-[13px] rounded-[20px] bg-cream-50 p-6">
-              {[
-                'Regras públicas',
-                'Interoperabilidade sem acordos bilaterais',
-                'Conformidade verificável',
-                'Governação independente do Banzami',
-              ].map((t) => (
-                <div key={t} className="flex items-center gap-[10px]">
-                  <CheckTile />
-                  <span className="text-[14px] font-bold text-[#3a2a2e]">{t}</span>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-
-          {/* O produto / Porquê */}
-          <div className="bz-split mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Reveal className="rounded-[24px] bg-[linear-gradient(150deg,#B5101F,#6E0E14)] p-[30px] text-white shadow-[0_26px_56px_-30px_rgba(122,16,22,.6)]">
-              <p className="bz-mono m-0 mb-2 text-[12px] font-semibold text-pink-200">O PRODUTO</p>
-              <h3 className="m-0 mb-[10px] text-[21px] font-black">Banzami é o produto.</h3>
-              <p className="m-0 mb-[18px] text-[14.5px] font-semibold leading-[1.55] text-white/85">
-                É a carteira e rede de pagamentos construída sobre o BANZA. É aqui que a tecnologia
-                vira experiência real: enviar, receber, pagar por QR, usar @handles e aceitar
-                pagamentos no dia a dia.
-              </p>
-              <div className="flex flex-col gap-[11px]">
-                {[
-                  'Carteira em Kwanza',
-                  'Pagamentos por QR',
-                  'Envios entre utilizadores',
-                  'Ferramentas para comerciantes',
-                ].map((t) => (
-                  <div key={t} className="flex items-center gap-[10px]">
-                    <CheckTile light />
-                    <span className="text-[14px] font-bold text-white">{t}</span>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
-
-            <Reveal
-              delay={80}
-              className="rounded-[24px] border border-border-soft bg-white p-[30px] shadow-[0_20px_50px_-34px_rgba(181,16,31,.3)]"
-            >
-              <p className="bz-mono m-0 mb-2 text-[12px] font-semibold text-cherry">PORQUÊ</p>
-              <h3 className="m-0 mb-[10px] text-[21px] font-black text-ink">Porque isso importa.</h3>
-              <p className="m-0 mb-[18px] text-[14.5px] font-semibold leading-[1.55] text-ink-secondary">
-                A maioria das pessoas não precisa de entender o protocolo — precisa de pagar com
-                confiança. O valor do BANZA está precisamente aí: permitir que produtos como o
-                Banzami sejam mais claros, mais consistentes e mais preparados para crescer sem
-                depender de improviso.
-              </p>
-              <div className="flex flex-col gap-[11px]">
-                {[
-                  'Mais clareza',
-                  'Mais confiança',
-                  'Melhor base para crescer',
-                  'Melhor experiência para quem paga e recebe',
-                ].map((t) => (
-                  <div key={t} className="flex items-center gap-[10px]">
-                    <CheckTile />
-                    <span className="text-[14px] font-bold text-[#3a2a2e]">{t}</span>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
-          </div>
-
-          {/* Do protocolo ao pagamento */}
-          <Reveal className="rounded-[24px] bg-cream-100 p-[clamp(22px,3vw,32px)]">
-            <div className="mb-[18px] flex flex-wrap items-center justify-between gap-[14px]">
-              <div>
-                <h3 className="m-0 text-[20px] font-black text-ink">Do protocolo ao pagamento</h3>
-                <p className="m-0 mt-[6px] text-[14.5px] font-semibold text-ink-secondary">
-                  BANZA define a infraestrutura. Banzami entrega a experiência.
-                </p>
-              </div>
-            </div>
-            <EcosystemFlow />
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ===================== CTA FINAL + FOOTER ===================== */}
       <CTASection id="contacto" />
       <Footer />
     </main>

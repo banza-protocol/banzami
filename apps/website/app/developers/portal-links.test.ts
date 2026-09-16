@@ -16,12 +16,12 @@ const DEV = join(process.cwd(), 'app/developers');
  * Routes that exist on banzami.com but NOT on developers.banzami.com, verified
  * against both hosts rather than assumed:
  *
- *   /sobre /produto /comerciantes /faq /ecras /verificar   404 here, 200 there
+ *   /sobre /produto /comerciantes /seguranca /verificar   404 here, 200 there
  *   /suporte                                               200 on BOTH — the
  *     developer portal serves its own support page, so a relative link is
  *     correct for it and it is deliberately absent from this list.
  */
-const MAIN_SITE_ONLY = ['/sobre', '/produto', '/comerciantes', '/faq', '/ecras', '/verificar'];
+const MAIN_SITE_ONLY = ['/sobre', '/produto', '/comerciantes', '/seguranca', '/verificar'];
 
 function pages(dir: string, acc: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
