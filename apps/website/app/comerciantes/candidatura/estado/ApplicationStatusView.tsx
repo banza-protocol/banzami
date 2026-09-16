@@ -139,7 +139,7 @@ export function ApplicationStatusView() {
   return (
     <Card>
       <div data-testid="application-status" data-status={status.status}>
-        <div className="font-mono text-[12.5px] font-bold text-[#9a8a8e]">
+        <div className="font-mono text-[12.5px] font-bold text-[#807074]">
           Referência {status.application_id.slice(0, 8).toUpperCase()} · @{status.requested_handle}
         </div>
         <h1 className="m-0 mt-2 text-[26px] font-black tracking-[-0.02em]">{copy.title}</h1>
@@ -168,7 +168,7 @@ export function ApplicationStatusView() {
               return (
                 <li key={item.code} className="rounded-[14px] border border-[#f1e3e3] bg-white p-4">
                   <label htmlFor={id} className="block text-[14px] font-extrabold">{item.label}</label>
-                  <div className="mt-0.5 text-[12.5px] font-semibold text-[#9a8a8e]">
+                  <div className="mt-0.5 text-[12.5px] font-semibold text-[#807074]">
                     {item.reason.startsWith('REJECTED') ? `Recusado${item.reason.length > 9 ? ' — ' + item.reason.slice(10) : ''}` : 'Em falta'} ·
                     PDF, JPG ou PNG até 5 MB
                   </div>
@@ -180,7 +180,7 @@ export function ApplicationStatusView() {
                     onChange={(e) => void send(item, e.target.files?.[0])}
                     className="mt-2 text-[13px]"
                   />
-                  {st.status === 'uploading' && <div className="mt-1 text-[12.5px] font-bold text-[#9a8a8e]">A enviar…</div>}
+                  {st.status === 'uploading' && <div className="mt-1 text-[12.5px] font-bold text-[#807074]">A enviar…</div>}
                   {st.status === 'done' && <div className="mt-1 text-[12.5px] font-bold text-[#1f9d57]">Enviado</div>}
                   {st.status === 'error' && <div className="mt-1 text-[12.5px] font-bold text-[#B5101F]">{st.message}</div>}
                 </li>
@@ -218,7 +218,7 @@ export function ApplicationStatusView() {
       )}
       {notice && <p className="mt-3 text-[13.5px] font-bold text-[#6a5a5e]">{notice}</p>}
 
-      <p className="mt-8 text-[13px] font-semibold text-[#9a8a8e]">
+      <p className="mt-8 text-[13px] font-semibold text-[#807074]">
         Dúvidas? <Link href="mailto:contact@banzami.com" className="font-extrabold" style={{ color: RED }}>contact@banzami.com</Link>
       </p>
     </Card>

@@ -20,7 +20,7 @@ const TONE: Record<Tone, string> = {
   brand:   'text-[#B5101F]',
   success: 'text-[#1f9d57]',
   danger:  'text-[#DC2626]',
-  muted:   'text-[#9a8a8e]',
+  muted:   'text-[#807074]',
 };
 
 const ALIGN: Record<Align, string> = {

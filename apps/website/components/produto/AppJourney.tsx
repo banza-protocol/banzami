@@ -10,7 +10,15 @@ import { useEffect, useRef, type ReactNode } from 'react';
 const DEFAULT_CLASS =
   'mx-auto flex max-w-container gap-[26px] overflow-x-auto px-6 pb-7 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(90deg,#000,#000_94%,transparent)] [-webkit-mask-image:linear-gradient(90deg,#000,#000_94%,transparent)]';
 
-export function AppJourney({ children, className }: { children: ReactNode; className?: string }) {
+export function AppJourney({
+  children,
+  className,
+  label = 'Ecrãs da app, deslize para ver mais',
+}: {
+  children: ReactNode;
+  className?: string;
+  label?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
 
@@ -51,6 +59,12 @@ export function AppJourney({ children, className }: { children: ReactNode; class
     <div
       ref={ref}
       data-paused="false"
+      // The rail scrolls, so it must be keyboard-reachable: a focusable region a
+      // keyboard user can tab to and scroll with the arrow keys (axe
+      // scrollable-region-focusable). Focus here also pauses the auto-scroll.
+      tabIndex={0}
+      role="region"
+      aria-label={label}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}

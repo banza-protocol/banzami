@@ -275,7 +275,7 @@ function VerifyInner() {
           marginTop: 18,
           fontSize: 13.5,
           fontWeight: 700,
-          color: '#9a8a8e',
+          color: '#807074',
         }}
       >
         <span>Não recebeu o código?</span>

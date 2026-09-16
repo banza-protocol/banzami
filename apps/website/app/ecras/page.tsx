@@ -60,7 +60,7 @@ export default function AppGalleryPage() {
             {SCREENS.map((s, i) => (
               <Reveal key={s.frame} delay={i * 60}>
                 <div className="flex flex-col items-center" style={{ gap: 14 }}>
-                  <span className="bz-mono" style={{ fontSize: 12, fontWeight: 600, color: '#9a8a8e' }}>{s.label}</span>
+                  <span className="bz-mono" style={{ fontSize: 12, fontWeight: 600, color: '#807074' }}>{s.label}</span>
                   <PhoneFrame float>
                     <AppScreen frame={s.frame} />
                   </PhoneFrame>

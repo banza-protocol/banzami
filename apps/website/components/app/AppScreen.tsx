@@ -303,9 +303,9 @@ export function AppScreen({
               <LogoTiles size={30} />
             </div>
             <h2 style={{ margin: '20px 0 0', fontSize: 28, fontWeight: 900, letterSpacing: '-.02em', color: '#2a2024' }}>Escolha o seu @banza</h2>
-            <p style={{ margin: '11px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: '#9a8088' }}>É o nome único que as pessoas usam para lhe enviar pagamentos.</p>
-            <div style={{ marginTop: 24, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#b09a9c' }}>ana</div>
-            <div style={{ marginTop: 12, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#b09a9c' }}>Nome completo</div>
+            <p style={{ margin: '11px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: '#7c6870' }}>É o nome único que as pessoas usam para lhe enviar pagamentos.</p>
+            <div style={{ marginTop: 24, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#796065' }}>ana</div>
+            <div style={{ marginTop: 12, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#796065' }}>Nome completo</div>
             <div className="cursor-pointer text-center" style={{ marginTop: 'auto', background: gradBtn, borderRadius: 30, padding: 16, color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: ctaShadow }}>Continuar</div>
           </div>
         </div>
@@ -322,8 +322,8 @@ export function AppScreen({
               <LogoTiles size={30} />
             </div>
             <h2 style={{ margin: '22px 0 0', fontSize: 32, fontWeight: 900, letterSpacing: '-.02em', color: '#2a2024' }}>O seu @banza</h2>
-            <p style={{ margin: '12px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: '#9a8088' }}>Entre com a sua conta para continuar.</p>
-            <div style={{ marginTop: 28, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#b09a9c' }}>anamaria</div>
+            <p style={{ margin: '12px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: '#7c6870' }}>Entre com a sua conta para continuar.</p>
+            <div style={{ marginTop: 28, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#796065' }}>anamaria</div>
             <div className="cursor-pointer text-center" style={{ marginTop: 16, background: gradBtn, borderRadius: 30, padding: 16, color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: ctaShadow }}>Continuar</div>
           </div>
         </div>
@@ -337,7 +337,7 @@ export function AppScreen({
           <TitleBar title="Entrar" />
           <div className="flex flex-1 flex-col items-center" style={{ padding: '10px 24px 22px' }}>
             <p style={{ margin: '34px 0 0', fontSize: 26, fontWeight: 900, letterSpacing: '-.02em', color: '#2a2024' }}>Introduza o PIN</p>
-            <p className="bz-mono" style={{ margin: '9px 0 0', fontSize: 15, fontWeight: 600, color: '#9a8088' }}>{uHandle}</p>
+            <p className="bz-mono" style={{ margin: '9px 0 0', fontSize: 15, fontWeight: 600, color: '#7c6870' }}>{uHandle}</p>
             <div className="flex" style={{ margin: '28px 0 0', gap: 15 }}>
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <span key={i} style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #d9c4c2' }} />
@@ -350,7 +350,7 @@ export function AppScreen({
               <span />
               <div className="mx-auto flex cursor-pointer items-center justify-center" style={{ width: 64, height: 64, borderRadius: '50%', background: '#fff', boxShadow: '0 6px 16px -9px rgba(122,16,22,.3)', fontSize: 25, fontWeight: 700, color: '#2a2024' }}>0</div>
               <div className="mx-auto flex cursor-pointer items-center justify-center" style={{ width: 64, height: 64 }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M10 5h10a1 1 0 011 1v12a1 1 0 01-1 1H10l-6-7 6-7z" stroke="#9a8088" strokeWidth="1.7" strokeLinejoin="round" /><path d="M13 9.5l4 5M17 9.5l-4 5" stroke="#9a8088" strokeWidth="1.7" strokeLinecap="round" /></svg>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M10 5h10a1 1 0 011 1v12a1 1 0 01-1 1H10l-6-7 6-7z" stroke="#7c6870" strokeWidth="1.7" strokeLinejoin="round" /><path d="M13 9.5l4 5M17 9.5l-4 5" stroke="#7c6870" strokeWidth="1.7" strokeLinecap="round" /></svg>
               </div>
             </div>
           </div>
@@ -437,8 +437,8 @@ export function AppScreen({
           <div className="flex flex-1 flex-col items-center text-center" style={{ padding: '18px 24px 22px' }}>
             <div className="flex items-center justify-center" style={{ width: 84, height: 84, borderRadius: '50%', background: 'radial-gradient(circle at 38% 30%,#B5101F,#6E0E14)', color: '#fff', fontWeight: 900, fontSize: 34, boxShadow: '0 16px 32px -12px rgba(122,16,22,.5)' }}>C</div>
             <p style={{ margin: '16px 0 0', fontSize: 21, fontWeight: 900, color: '#2a2024' }}>Cantina do Alex</p>
-            <p className="bz-mono" style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 600, color: '#9a8088' }}>@cantina-alex</p>
-            <p style={{ margin: '10px 0 0', fontSize: 14, fontWeight: 600, color: '#9a8088' }}>Solicitou um pagamento</p>
+            <p className="bz-mono" style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 600, color: '#7c6870' }}>@cantina-alex</p>
+            <p style={{ margin: '10px 0 0', fontSize: 14, fontWeight: 600, color: '#7c6870' }}>Solicitou um pagamento</p>
             <div style={{ marginTop: 18, background: gradBtn, color: '#fff', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', padding: '14px 34px', borderRadius: 40, boxShadow: '0 16px 30px -14px rgba(122,16,22,.5)' }}>1 500 Kz</div>
             <p style={{ margin: '16px 0 0', fontSize: 15, fontStyle: 'italic', fontWeight: 600, color: '#7a6a6e' }}>1 Kg de Arroz</p>
             <div className="flex w-full items-center" style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid #EAD9D7', gap: 12 }}>
@@ -446,12 +446,12 @@ export function AppScreen({
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#B5101F" strokeWidth="1.8" /><path d="M3 10h18" stroke="#B5101F" strokeWidth="1.8" /><circle cx="16.5" cy="14.5" r="1.5" fill="#B5101F" /></svg>
               </span>
               <div className="text-left">
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#9a8088' }}>Método de pagamento</p>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#7c6870' }}>Método de pagamento</p>
                 <p style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 800, color: '#2a2024' }}>Saldo Banzami</p>
               </div>
             </div>
             <div className="cursor-pointer w-full text-center" style={{ marginTop: 'auto', background: gradBtn, borderRadius: 30, padding: 16, color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: ctaShadow }}>Pagar 1 500 Kz</div>
-            <p style={{ margin: '12px 0 0', fontSize: 12.5, fontWeight: 600, color: '#9a8088' }}>Pagamento irreversível</p>
+            <p style={{ margin: '12px 0 0', fontSize: 12.5, fontWeight: 600, color: '#7c6870' }}>Pagamento irreversível</p>
           </div>
         </div>
       );
@@ -494,7 +494,7 @@ export function AppScreen({
               ))}
             </div>
           </div>
-          <div className="shrink-0 text-center" style={{ padding: 13, borderTop: '1px solid #F1E2E0', fontSize: 15, fontWeight: 800, color: '#9a8088' }}>Fechar</div>
+          <div className="shrink-0 text-center" style={{ padding: 13, borderTop: '1px solid #F1E2E0', fontSize: 15, fontWeight: 800, color: '#7c6870' }}>Fechar</div>
         </div>
       );
 
@@ -514,7 +514,7 @@ export function AppScreen({
             <p style={{ margin: '20px 0 9px', fontSize: 17, fontWeight: 800, color: '#2a2024' }}>Quanto?</p>
             <div className="flex items-center justify-between" style={{ background: '#F3E4E2', borderRadius: 18, padding: 16 }}>
               <span style={{ fontSize: 22, fontWeight: 900, color: '#2a2024' }}>5 000</span>
-              <span style={{ fontSize: 16, fontWeight: 800, color: '#9a8088' }}>Kz</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#7c6870' }}>Kz</span>
             </div>
             <p style={{ margin: '20px 0 9px', fontSize: 16, fontWeight: 800, color: '#2a2024' }}>Descrição (opcional)</p>
             <div style={{ background: '#F3E4E2', borderRadius: 18, padding: '15px 16px', fontSize: 15, fontWeight: 700, color: '#2a2024' }}>Ajuda financeira</div>
@@ -533,17 +533,17 @@ export function AppScreen({
             <div className="flex items-center" style={{ background: '#fff', borderRadius: 20, padding: 16, gap: 14, boxShadow: '0 10px 26px -18px rgba(181,16,31,.3)' }}>
               <span className="flex items-center justify-center" style={{ width: 50, height: 50, borderRadius: '50%', background: '#6E0E14', color: '#fff', fontWeight: 900, fontSize: 19 }}>D</span>
               <div>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#9a8088' }}>Destinatário</p>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#7c6870' }}>Destinatário</p>
                 <p style={{ margin: '2px 0 0', fontSize: 17, fontWeight: 900, color: '#2a2024' }}>Daniel Fonseca</p>
-                <p className="bz-mono" style={{ margin: '1px 0 6px', fontSize: 13, fontWeight: 600, color: '#9a8088' }}>@daniel</p>
+                <p className="bz-mono" style={{ margin: '1px 0 6px', fontSize: 13, fontWeight: 600, color: '#7c6870' }}>@daniel</p>
                 <span className="inline-flex items-center" style={{ gap: 6, background: '#F3E0DE', color: '#9A1B22', fontSize: 11.5, fontWeight: 800, padding: '4px 10px', borderRadius: 30 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#9A1B22', display: 'inline-block' }} />Endereço Banzami
                 </span>
               </div>
             </div>
             <div className="text-center" style={{ marginTop: 14, background: '#fff', borderRadius: 20, padding: '22px 18px', boxShadow: '0 10px 26px -18px rgba(181,16,31,.3)' }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#9a8088' }}>Vai enviar</p>
-              <p style={{ margin: '8px 0 0', fontSize: 38, fontWeight: 900, letterSpacing: '-.03em', color: '#2a2024' }}>5 000 <span style={{ fontSize: 20, color: '#9a8a8e' }}>Kz</span></p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#7c6870' }}>Vai enviar</p>
+              <p style={{ margin: '8px 0 0', fontSize: 38, fontWeight: 900, letterSpacing: '-.03em', color: '#2a2024' }}>5 000 <span style={{ fontSize: 20, color: '#807074' }}>Kz</span></p>
               <div style={{ height: 1, background: '#EEDFDD', margin: '16px 4px' }} />
               <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#7a6a6e' }}>Ajuda financeira</p>
             </div>
@@ -552,7 +552,7 @@ export function AppScreen({
               <span style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.45, color: '#8a2a2e' }}>Confirme os detalhes antes de enviar. Esta acção é irreversível.</span>
             </div>
             <div className="cursor-pointer text-center" style={{ marginTop: 'auto', background: gradBtn, borderRadius: 30, padding: 16, color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: ctaShadow }}>Confirmar envio</div>
-            <p className="cursor-pointer text-center" style={{ margin: '14px 0 0', fontSize: 15, fontWeight: 800, color: '#9a8088' }}>Cancelar</p>
+            <p className="cursor-pointer text-center" style={{ margin: '14px 0 0', fontSize: 15, fontWeight: 800, color: '#7c6870' }}>Cancelar</p>
           </div>
         </div>
       );
@@ -608,7 +608,7 @@ export function AppScreen({
           <div className="flex flex-1 flex-col overflow-hidden" style={{ padding: '12px 20px 0' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em', color: '#2a2024' }}>Receber</h2>
-              <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: '#9a8088' }}>QR Code e ligação de pagamento</p>
+              <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: '#7c6870' }}>QR Code e ligação de pagamento</p>
             </div>
             <div className="shrink-0 text-center" style={{ marginTop: 12, background: '#fff', borderRadius: 22, padding: 18, boxShadow: '0 12px 30px -20px rgba(181,16,31,.3)' }}>
               <div className="relative mx-auto flex items-center justify-center" style={{ width: 148, height: 148 }}>
@@ -619,9 +619,9 @@ export function AppScreen({
               </div>
               <div className="inline-flex items-center" style={{ marginTop: 14, gap: 8, background: '#F3E4E2', padding: '8px 14px', borderRadius: 30 }}>
                 <span className="bz-mono" style={{ fontSize: 15, fontWeight: 600, color: '#2a2024' }}>{uHandle}</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#9a8a8e" strokeWidth="1.8" /><path d="M5 15V5a2 2 0 012-2h8" stroke="#9a8a8e" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#807074" strokeWidth="1.8" /><path d="M5 15V5a2 2 0 012-2h8" stroke="#807074" strokeWidth="1.8" strokeLinecap="round" /></svg>
               </div>
-              <p style={{ margin: '10px 0 0', fontSize: 12, fontWeight: 700, color: '#9a8a8e' }}>Mostre este código para receber pagamentos</p>
+              <p style={{ margin: '10px 0 0', fontSize: 12, fontWeight: 700, color: '#807074' }}>Mostre este código para receber pagamentos</p>
             </div>
             <div className="flex flex-col" style={{ marginTop: 12, gap: 9 }}>
               <div className="flex items-center justify-center" style={{ background: gradBtn, borderRadius: 26, padding: 14, color: '#fff', fontWeight: 800, fontSize: 15, gap: 9, boxShadow: '0 14px 26px -12px rgba(122,16,22,.5)' }}>
@@ -646,16 +646,16 @@ export function AppScreen({
             <div className="flex items-start justify-between">
               <div>
                 <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em', color: '#2a2024' }}>Histórico</h2>
-                <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: '#9a8088' }}>As suas movimentações</p>
+                <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: '#7c6870' }}>As suas movimentações</p>
               </div>
               <span style={{ fontSize: 13, fontWeight: 900, color: '#9A1B22', background: '#F3E0DE', padding: '5px 12px', borderRadius: 30 }}>50</span>
             </div>
             <div className="flex" style={{ marginTop: 14, gap: 9 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: '#fff', background: '#7C1016', padding: '9px 18px', borderRadius: 30 }}>Todas</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#9a8088', background: '#fff', padding: '9px 16px', borderRadius: 30 }}>Recebidas</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#9a8088', background: '#fff', padding: '9px 16px', borderRadius: 30 }}>Enviadas</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#7c6870', background: '#fff', padding: '9px 16px', borderRadius: 30 }}>Recebidas</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#7c6870', background: '#fff', padding: '9px 16px', borderRadius: 30 }}>Enviadas</span>
             </div>
-            <p style={{ margin: '16px 0 8px', fontSize: 12.5, fontWeight: 700, color: '#9a8a8e' }}>27 mai. 2026</p>
+            <p style={{ margin: '16px 0 8px', fontSize: 12.5, fontWeight: 700, color: '#807074' }}>27 mai. 2026</p>
             <div style={{ background: '#fff', borderRadius: 18, padding: '2px 14px', boxShadow: '0 10px 26px -18px rgba(181,16,31,.3)' }}>
               <ActivityRow initial="D" name="Daniel Fonseca" kind="Enviado" amount="−5 000 Kz" amountColor="#2a2024" date="27/5" border small />
               <ActivityRow initial="J" name="João Silva" kind="Recebido" amount="+1 500 Kz" amountColor="#1f7a45" date="27/5" border small />
@@ -674,7 +674,7 @@ export function AppScreen({
           <StatusBar time="14:30" />
           <div className="flex flex-1 flex-col overflow-y-auto" style={{ padding: '12px 20px 0' }}>
             <h2 style={{ margin: 0, fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: '#2a2024' }}>Perfil</h2>
-            <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: '#9a8088' }}>O seu perfil e definições</p>
+            <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: '#7c6870' }}>O seu perfil e definições</p>
             <div className="flex items-center" style={{ marginTop: 14, borderRadius: 20, padding: '16px 18px', background: 'linear-gradient(150deg,#9A1B22,#6E0E14)', gap: 14 }}>
               <span className="flex items-center justify-center" style={{ width: 52, height: 52, borderRadius: '50%', background: '#6E0E14', border: '2px solid #E8C76A', color: '#fff', fontWeight: 900, fontSize: 20 }}>{u.avatar}</span>
               <div>
@@ -689,7 +689,7 @@ export function AppScreen({
               </div>
               <div className="flex items-center justify-between" style={{ marginTop: 12, background: '#F3E4E2', borderRadius: 14, padding: '13px 14px' }}>
                 <span className="bz-mono" style={{ fontSize: 16, fontWeight: 600, color: '#2a2024' }}>{uHandle}</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#9a8a8e" strokeWidth="1.8" /><path d="M5 15V5a2 2 0 012-2h8" stroke="#9a8a8e" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#807074" strokeWidth="1.8" /><path d="M5 15V5a2 2 0 012-2h8" stroke="#807074" strokeWidth="1.8" strokeLinecap="round" /></svg>
               </div>
             </div>
             <div style={{ marginTop: 14, background: '#fff', borderRadius: 20, padding: '2px 16px', boxShadow: '0 10px 26px -18px rgba(181,16,31,.3)' }}>
@@ -702,7 +702,7 @@ export function AppScreen({
                 title="Notificações" sub="Gerir alertas e notificações"
               />
             </div>
-            <p style={{ margin: '18px 0 8px', fontSize: 12, fontWeight: 800, letterSpacing: '.05em', color: '#9a8a8e' }}>CONTA</p>
+            <p style={{ margin: '18px 0 8px', fontSize: 12, fontWeight: 800, letterSpacing: '.05em', color: '#807074' }}>CONTA</p>
             <div style={{ background: '#fff', borderRadius: 20, padding: '2px 16px', boxShadow: '0 10px 26px -18px rgba(181,16,31,.3)' }}>
               <div className="cursor-pointer flex items-center" style={{ gap: 13, padding: '14px 0', borderBottom: '1px solid #F4E7E5' }}>
                 <span className="flex items-center justify-center" style={{ width: 38, height: 38, borderRadius: 12, background: '#FBE6E4' }}>
@@ -744,11 +744,11 @@ function ActivityRow({
       <span className="flex items-center justify-center" style={{ width: 36, height: 36, borderRadius: '50%', background: '#6E0E14', color: '#fff', fontWeight: 900, fontSize: 13 }}>{initial}</span>
       <div className="flex-1">
         <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#2a2024' }}>{name}</p>
-        <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 700, color: '#9a8a8e' }}>{kind}</p>
+        <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 700, color: '#807074' }}>{kind}</p>
       </div>
       <div className="text-right">
         <p style={{ margin: 0, fontSize: small ? 13.5 : 14, fontWeight: 900, color: amountColor }}>{amount}</p>
-        <p style={{ margin: '1px 0 0', fontSize: 11, fontWeight: 700, color: '#9a8a8e' }}>{date}</p>
+        <p style={{ margin: '1px 0 0', fontSize: 11, fontWeight: 700, color: '#807074' }}>{date}</p>
       </div>
     </div>
   );
@@ -771,7 +771,7 @@ function SettingRow({ icon, title, sub, border }: { icon: ReactNode; title: stri
       </span>
       <div className="flex-1">
         <p style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#2a2024' }}>{title}</p>
-        <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 700, color: '#9a8a8e' }}>{sub}</p>
+        <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 700, color: '#807074' }}>{sub}</p>
       </div>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#c2a8aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </div>
