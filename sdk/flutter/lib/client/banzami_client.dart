@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../models/business_receive_point.dart';
 import '../models/consumer.dart';
 import '../models/merchant.dart';
 import '../models/merchant_kyb.dart';
@@ -479,6 +480,19 @@ class BanzamiClient {
         .map((e) => MerchantWalletAccount.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  /// The Business's stable, printable Receive Point (ADR-065). Reading it
+  /// provisions it on first use; the returned artifact addresses are what the
+  /// Business prints. The QR is persistent — each payment mints a fresh session.
+  Future<MerchantReceivePoint> getReceivePoint() async {
+    final json = await _get('/v1/business/receive-point');
+    return MerchantReceivePoint.fromJson(json);
+  }
+
+  /// Retire the Business's active receive point. The printed QR then fails closed
+  /// on resolve. Zero ledger effect.
+  Future<void> disableReceivePoint() =>
+      _postWithRetry('/v1/business/receive-point/disable', const {});
 
   Future<PaymentLink> createPaymentLink({
     required String merchantId,

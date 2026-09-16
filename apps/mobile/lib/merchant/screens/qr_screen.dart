@@ -1,26 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
-
 
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
 
-/// Ecrã "Receber" — como o negócio recebe um pagamento hoje: uma cobrança
-/// (link de pagamento) cujo QR/link o cliente paga na app Banzami.
+/// Ecrã "Receber" — o QR de recebimento persistente do negócio (ADR-065).
 ///
-/// It used to show a static structured QR (`/v1/qr/static`) as "Mostre este QR
-/// ao cliente". No client can pay one: the consumer surface has no QR-pay route
-/// (withdrawn, RA-053) and the consumer app refuses structured QRs. A
-/// Business's @banza is not a P2P destination either (transfers route to
-/// consumer handles only). So the tab no longer shows a code nobody can pay —
-/// it says what works and opens it.
-class MerchantQrScreen extends StatelessWidget {
+/// O negócio imprime UM QR estável: "este é o meu QR Banzami, podes pagar-me".
+/// Lê-lo aprovisiona-o na primeira utilização. Ao ser lido, resolve a identidade
+/// pública do negócio e o pagador cria uma NOVA sessão de pagamento por cada
+/// pagamento — o QR é persistente, a sessão não. Para um montante específico numa
+/// venda, "Criar cobrança" continua a ser o caminho.
+class MerchantQrScreen extends StatefulWidget {
   const MerchantQrScreen({super.key});
+
+  @override
+  State<MerchantQrScreen> createState() => _MerchantQrScreenState();
+}
+
+class _MerchantQrScreenState extends State<MerchantQrScreen> {
+  MerchantReceivePoint? _point;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    if (!_loading) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final client = context.read<BanzamiClient>();
+      final point = await client.getReceivePoint();
+      if (!mounted) return;
+      setState(() {
+        _point = point.isActive ? point : null;
+        _error = point.isActive ? null : kStaticQrUnavailable;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = banzamiErrorMessage(e);
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final session = context.read<MerchantSessionService>().session;
+    // A Business @banza is not a transfer destination — it is shown only as
+    // identity, never as a payable handle. Read it when a session exists.
+    final merchantName = session?.merchantName;
+    String? handle;
+    if (session != null) handle = session.banzaAddress;
 
     return BanzamiScaffold(
       body: SafeArea(
@@ -28,68 +71,38 @@ class MerchantQrScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const AppScreenHeader(
-              title:    'Receber',
-              subtitle: 'Cobranças por link e QR',
+              title: 'Receber',
+              subtitle: 'O seu QR Banzami — imprima e receba',
             ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: BanzamiSpacing.xl,
-                  vertical:   BanzamiSpacing.lg,
+                  vertical: BanzamiSpacing.lg,
                 ),
                 child: Column(children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(BanzamiSpacing.xl),
-                    decoration: const BoxDecoration(
-                      color:        BanzamiColors.white,
-                      borderRadius: BanzamiRadius.xxlAll,
-                      boxShadow:    BanzamiShadows.card,
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.all(BanzamiSpacing.page),
+                      child: CircularProgressIndicator(
+                          color: BanzamiColors.primary),
+                    )
+                  else if (_point != null)
+                    _ReceivePointCard(
+                      point: _point!,
+                      merchantName: merchantName,
+                      handle: handle,
+                    )
+                  else
+                    _UnavailableCard(
+                      merchantName: merchantName,
+                      handle: handle,
+                      message: _error ?? kStaticQrUnavailable,
                     ),
-                    child: Column(children: [
-                      const Icon(Icons.qr_code_2_rounded,
-                          color: BanzamiColors.primary, size: 48),
-                      const SizedBox(height: BanzamiSpacing.md),
-                      if (session != null) ...[
-                        Text(
-                          session.merchantName,
-                          style:     BanzamiTextStyles.headingSm,
-                          textAlign: TextAlign.center,
-                        ),
-                        if (session.banzaAddress != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            session.banzaAddress!,
-                            style: BanzamiTextStyles.bodyMd.copyWith(
-                              color: BanzamiColors.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                        const SizedBox(height: BanzamiSpacing.md),
-                      ],
-                      Text(
-                        kReceiveHowItWorks,
-                        style: BanzamiTextStyles.bodyMd.copyWith(
-                          color: BanzamiColors.gray600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: BanzamiSpacing.sm),
-                      Text(
-                        kStaticQrUnavailable,
-                        style: BanzamiTextStyles.bodySm.copyWith(
-                          color: BanzamiColors.gray400,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ]),
-                  ),
                   const SizedBox(height: BanzamiSpacing.xl),
                   BanzamiPrimaryButton(
-                    label:     'Criar cobrança',
-                    icon:      Icons.add_circle_outline_rounded,
+                    label: 'Criar cobrança',
+                    icon: Icons.add_circle_outline_rounded,
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ChargeScreen()),
                     ),
@@ -105,11 +118,93 @@ class MerchantQrScreen extends StatelessWidget {
   }
 }
 
-/// What works today: a charge is a payment link with its own QR.
-const String kReceiveHowItWorks =
-    'Crie uma cobrança: o cliente paga pelo link ou pelo QR da cobrança, '
-    'na app Banzami.';
+class _ReceivePointCard extends StatelessWidget {
+  final MerchantReceivePoint point;
+  final String? merchantName;
+  final String? handle;
+  const _ReceivePointCard({required this.point, this.merchantName, this.handle});
 
-/// No dead promise: a counter QR for any amount does not exist yet.
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      if (merchantName != null) ...[
+        Text(merchantName!,
+            style: BanzamiTextStyles.headingSm, textAlign: TextAlign.center),
+        const SizedBox(height: BanzamiSpacing.md),
+      ],
+      BanzamiQrDisplay(
+        payload: point.payUrl,
+        subtitle: handle,
+        size: 240,
+      ),
+      const SizedBox(height: BanzamiSpacing.md),
+      Text(
+        kReceiveHowItWorks,
+        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600),
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: BanzamiSpacing.sm),
+      BanzamiSecondaryButton(
+        label: 'Copiar ligação',
+        onPressed: () {
+          Clipboard.setData(ClipboardData(text: point.payUrl));
+          BanzamiToast.showSuccess(context, 'Ligação copiada');
+        },
+      ),
+    ]);
+  }
+}
+
+class _UnavailableCard extends StatelessWidget {
+  final String? merchantName;
+  final String? handle;
+  final String message;
+  const _UnavailableCard(
+      {this.merchantName, this.handle, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      decoration: const BoxDecoration(
+        color: BanzamiColors.white,
+        borderRadius: BanzamiRadius.xxlAll,
+        boxShadow: BanzamiShadows.card,
+      ),
+      child: Column(children: [
+        const Icon(Icons.qr_code_2_rounded,
+            color: BanzamiColors.primary, size: 48),
+        const SizedBox(height: BanzamiSpacing.md),
+        if (merchantName != null) ...[
+          Text(merchantName!,
+              style: BanzamiTextStyles.headingSm, textAlign: TextAlign.center),
+          if (handle != null) ...[
+            const SizedBox(height: 2),
+            Text(handle!,
+                style: BanzamiTextStyles.bodyMd.copyWith(
+                  color: BanzamiColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center),
+          ],
+          const SizedBox(height: BanzamiSpacing.md),
+        ],
+        Text(
+          message,
+          style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600),
+          textAlign: TextAlign.center,
+        ),
+      ]),
+    );
+  }
+}
+
+/// What works: a persistent receive QR anyone can scan to pay this Business.
+const String kReceiveHowItWorks =
+    'Mostre ou imprima este QR. O cliente lê-o na app Banzami, escreve o '
+    'montante e paga — direto para a sua carteira.';
+
+/// Shown only when the receive point is not available (kept for the fallback).
 const String kStaticQrUnavailable =
-    'O QR fixo de balcão ainda não está disponível nesta versão.';
+    'O seu QR de recebimento ainda não está disponível. Crie uma cobrança.';

@@ -34,6 +34,44 @@ class BusinessReceivePointResolution {
       );
 }
 
+/// The Business's own view of its receive point (ADR-065): the stable slug and
+/// the canonical artifact addresses to print. Carries no wallet/account id.
+class MerchantReceivePoint {
+  final String slug;
+  final String status;
+  final String environment;
+
+  /// The universal-link the printed QR encodes (opens the pay page / the app).
+  final String payUrl;
+
+  /// The deep link the Banzami app intercepts for the same receive point.
+  final String deepLink;
+
+  /// The server-rendered QR image endpoint (svg/png/pdf) for printing.
+  final String qrUrl;
+
+  const MerchantReceivePoint({
+    required this.slug,
+    required this.status,
+    required this.environment,
+    required this.payUrl,
+    required this.deepLink,
+    required this.qrUrl,
+  });
+
+  bool get isActive => status == 'ACTIVE';
+
+  factory MerchantReceivePoint.fromJson(Map<String, dynamic> json) =>
+      MerchantReceivePoint(
+        slug: json['slug'] as String,
+        status: (json['status'] as String?) ?? 'ACTIVE',
+        environment: (json['environment'] as String?) ?? 'SANDBOX',
+        payUrl: (json['pay_url'] as String?) ?? '',
+        deepLink: (json['deep_link'] as String?) ?? '',
+        qrUrl: (json['qr_url'] as String?) ?? '',
+      );
+}
+
 /// A freshly minted Payment Session for a receive-point payment. It carries the
 /// payment-link slug the payer settles against — the receive-point flow reuses the
 /// existing payment-link pay path to move the money.
