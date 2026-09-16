@@ -243,6 +243,29 @@ async function handleBff(req, res) {
   }
   clearTimeout(timer);
 
+  // Streaming passthrough (SSE). The connect timeout above only guards reaching
+  // upstream; once headers arrive we pipe the event stream straight through, no
+  // buffering, until the client disconnects or upstream ends. The Bearer stays
+  // server-side; nothing secret is written to the browser.
+  if (route.stream) {
+    res.writeHead(upstream.status, {
+      ...baseHeaders(),
+      'Content-Type': upstream.headers.get('content-type') || 'text/event-stream',
+      'Cache-Control': 'no-store',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no', // disable proxy buffering (nginx) for SSE
+    });
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+    if (!upstream.body) { res.end(); return; }
+    const { Readable } = await import('node:stream');
+    const nodeStream = Readable.fromWeb(upstream.body);
+    const onClose = () => { try { nodeStream.destroy(); } catch { /* noop */ } };
+    req.on('close', onClose);
+    nodeStream.on('error', () => { try { res.end(); } catch { /* noop */ } });
+    nodeStream.pipe(res);
+    return;
+  }
+
   const ct = upstream.headers.get('content-type') || 'application/json';
   const buf = Buffer.from(await upstream.arrayBuffer());
 

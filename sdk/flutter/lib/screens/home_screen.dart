@@ -113,8 +113,29 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     _load();
   }
 
+  bool _loadInFlight = false;
+  bool _loadQueued = false;
+
+  // One canonical refetch at a time. A burst of refresh signals (realtime +
+  // foreground + fallback arriving together) coalesces into a single in-flight
+  // load; if more signals land while it runs, exactly one more load follows with
+  // the latest state — never a storm of identical requests, never a missed
+  // change. This is the ONE path shared by initial load, pull-to-refresh, and
+  // the realtime controller (CONSUMER-HOME-REALTIME-001).
   Future<void> _load() async {
-    await Future.wait([_loadBalance(), _loadActivity()]);
+    if (_loadInFlight) {
+      _loadQueued = true;
+      return;
+    }
+    _loadInFlight = true;
+    try {
+      do {
+        _loadQueued = false;
+        await Future.wait([_loadBalance(), _loadActivity()]);
+      } while (_loadQueued && mounted);
+    } finally {
+      _loadInFlight = false;
+    }
   }
 
   Future<void> _loadBalance() async {

@@ -71,6 +71,12 @@ export const ALLOWLIST = [
   { m: 'GET', re: `^/v1/me/activity$`, auth: 'required' },
   { m: 'GET', re: `^/v1/me/push-topic$`, auth: 'required' },
 
+  // Consumer wallet realtime — a same-origin SSE stream. The browser opens it
+  // with EventSource (session cookie); the BFF attaches the Bearer upstream and
+  // pipes the event stream back. `stream: true` switches the proxy from buffered
+  // to streaming. Read-only notification channel (CONSUMER-HOME-REALTIME-001).
+  { m: 'GET', re: `^/v1/me/realtime$`, auth: 'required', stream: true },
+
   { m: 'GET', re: `^/v1/consumers/search$`, auth: 'required' },
   { m: 'GET', re: `^/v1/consumers/${G}$`, auth: 'optional' },
 

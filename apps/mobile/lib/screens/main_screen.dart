@@ -4,6 +4,8 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../branding_assets.dart';
 import '../config.dart';
+import '../services/consumer_home_refresh_controller.dart';
+import '../services/consumer_realtime_source.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_service.dart';
 import '../services/transfer_notification_service.dart';
@@ -23,6 +25,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _tab = 0;
   TransferNotificationService? _notifSvc;
+  ConsumerHomeRefreshController? _refreshCtrl;
 
   @override
   void initState() {
@@ -30,8 +33,24 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startNotifications();
+      _startRealtime();
       _refreshProfile();
     });
+  }
+
+  /// CONSUMER-HOME-REALTIME-001 — start the ONE shared Home refresh coordinator.
+  /// It drives [WalletRefreshBus] (the Home's existing single refresh path) from
+  /// an authenticated realtime stream + reconnect + bounded fallback, so an
+  /// incoming payment updates balance and activity with no manual pull. Native
+  /// uses an SSE Bearer connection; Web uses the same-origin BFF EventSource
+  /// (no Bearer in JS).
+  void _startRealtime() {
+    final svc = context.read<SessionService>();
+    final source = createConsumerRealtimeSource(
+      baseUrl: AppConfig.publicApiUrl,
+      bearer: () => svc.session?.token,
+    );
+    _refreshCtrl = ConsumerHomeRefreshController(source: source)..start();
   }
 
   Future<void> _startNotifications() async {
@@ -93,6 +112,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _notifSvc?.stopPolling();
+    _refreshCtrl?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -101,10 +121,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Locking is handled globally by SecureAppLifecycleGuard.
     // MainScreen only manages its own notification polling here.
-    if (state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
       _notifSvc?.stopPolling();
+      _refreshCtrl?.onBackground();
     } else if (state == AppLifecycleState.resumed) {
       _notifSvc?.startPolling();
+      // Native foreground AND web tab-visible (Flutter maps both to resumed):
+      // refresh Home immediately and reconnect the realtime stream, recovering
+      // any payment received while suspended.
+      _refreshCtrl?.onForeground();
     }
   }
 
