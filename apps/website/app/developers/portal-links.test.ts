@@ -50,9 +50,11 @@ describe('Developer portal — cross-host links', () => {
     const login = readFileSync(join(DEV, 'login/page.tsx'), 'utf8');
     expect(login).toContain('Termos de Serviço');
     expect(login).toContain('Política de Privacidade');
-    // Both must be absolute to banzami.com, and open safely.
-    const absolute = (login.match(/https:\/\/banzami\.com\/sobre/g) || []).length;
+    // Both must be absolute to banzami.com, and open safely. Privacy points at the
+    // real privacy page; Terms points at /sobre until an approved Terms doc exists.
+    const absolute = (login.match(/https:\/\/banzami\.com\//g) || []).length;
     expect(absolute, 'both consent links must point at banzami.com').toBeGreaterThanOrEqual(2);
+    expect(login, 'privacy link resolves to the privacy page').toContain('https://banzami.com/privacidade');
     expect(login).toContain('rel="noopener noreferrer"');
   });
 });

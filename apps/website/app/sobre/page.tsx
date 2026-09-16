@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { CTASection } from '@/components/site/CTASection';
+import { CLOSING_CTAS } from '@/lib/closing-ctas';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
-import { mailto, SITE } from '@/lib/site';
+import { SITE } from '@/lib/site';
 import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
 export const metadata: Metadata = {
@@ -215,33 +215,7 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* CLOSING CTA */}
-      <section className="px-6 pb-20 pt-14">
-        <Reveal className="mx-auto max-w-[760px] rounded-card border border-border-soft bg-[linear-gradient(135deg,#FFF3F1,#FFE6E4)] px-6 py-11 text-center">
-          <h3 className="m-0 text-[clamp(24px,3.4vw,32px)] font-black tracking-[-0.025em]">
-            Construir com o Banzami
-          </h3>
-          <p className="m-0 mb-[22px] mt-3 text-[16px] font-semibold text-ink-secondary">
-            A {PUBLIC_TRUTH.sandbox.name} está aberta a developers, sem aprovação.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/developers"
-              className="inline-flex items-center gap-2 rounded-pill bg-cherry px-7 py-[14px] text-[15px] font-extrabold text-white no-underline shadow-[0_12px_26px_-10px_rgba(181,16,31,.55)] transition-transform hover:-translate-y-0.5"
-            >
-              Plataforma para developers
-            </Link>
-            <a
-              href={mailto()}
-              className="inline-flex items-center gap-2 rounded-pill border border-border-softer bg-white px-7 py-[14px] text-[15px] font-extrabold text-cherry-dark no-underline transition-transform hover:-translate-y-0.5"
-            >
-              Fale connosco
-            </a>
-          </div>
-        </Reveal>
-      </section>
-
-      <CTASection />
+      <CTASection {...CLOSING_CTAS.sobre} />
       <Footer />
     </main>
   );

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site/SiteHeader';
+import { CTASection } from '@/components/site/CTASection';
+import { CLOSING_CTAS } from '@/lib/closing-ctas';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
 import { PUBLISHED_PACKAGES } from './docs/published-packages';
@@ -201,18 +203,7 @@ export default function DevelopersLandingPage() {
         </Reveal>
       </section>
 
-      <section className="px-6 pb-[clamp(56px,8vw,100px)] pt-6">
-        <Reveal className="relative mx-auto max-w-[1080px] overflow-hidden rounded-[36px] bg-[linear-gradient(150deg,#B5101F,#9A1B22)] p-[clamp(36px,6vw,68px)] text-center">
-          <h2 className="m-0 text-[clamp(28px,4.4vw,46px)] font-black leading-[1.05] tracking-[-0.025em] text-white">Comece na Sandbox.</h2>
-          <p className="mx-auto mt-4 max-w-[560px] text-[17px] font-semibold leading-[1.55] text-pink-200">
-            Crie a conta, um projeto e uma chave de teste, e faça um pagamento de teste.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a href={CONSOLE} className="inline-flex items-center rounded-[40px] bg-white px-7 py-[15px] text-[16px] font-extrabold text-cherry no-underline transition-transform hover:-translate-y-0.5">Abrir a Consola</a>
-            <a href={`${DOCS}/get-started`} className="inline-flex items-center rounded-[40px] border border-white/30 bg-white/[0.14] px-7 py-[15px] text-[16px] font-extrabold text-white no-underline transition-transform hover:-translate-y-0.5">Quickstart</a>
-          </div>
-        </Reveal>
-      </section>
+      <CTASection {...CLOSING_CTAS.developers} />
 
       <Footer />
     </main>

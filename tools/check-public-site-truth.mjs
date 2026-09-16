@@ -48,7 +48,7 @@ const SURFACE = [
   ...['app/page.tsx', 'app/layout.tsx', 'app/not-found.tsx', 'app/developers/page.tsx'].map((f) => `${WEB}/${f}`),
   ...['app/produto', 'app/comerciantes', 'app/seguranca', 'app/sobre', 'app/suporte', 'app/verificar'].flatMap((d) => walk(`${WEB}/${d}`)),
   ...['components/site', 'components/app', 'components/produto'].flatMap((d) => walk(`${WEB}/${d}`)),
-  ...['components/PlatformBanner.tsx', 'components/support/Faq.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts'].map((f) => `${WEB}/${f}`),
+  ...['components/PlatformBanner.tsx', 'components/support/Faq.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts', 'lib/closing-ctas.ts'].map((f) => `${WEB}/${f}`),
 ].filter((f) => existsSync(join(ROOT, f)));
 
 const findings = {
@@ -171,8 +171,11 @@ for (const f of SURFACE) {
 }
 
 // ── every surface states the environment ───────────────────────────────────────
-const imports = (f) => /from '@\/lib\/public-truth'/.test(read(`${WEB}/${f}`));
-for (const f of ['app/page.tsx', 'app/developers/page.tsx', 'app/seguranca/page.tsx', 'app/suporte/page.tsx', 'app/comerciantes/page.tsx', 'app/produto/page.tsx', 'app/sobre/page.tsx', 'components/site/Footer.tsx', 'components/site/CTASection.tsx']) {
+const imports = (f) => /from '(?:@\/lib|\.)\/public-truth'/.test(read(`${WEB}/${f}`));
+// The canonical closing CTA is presentational (components/site/CTASection.tsx);
+// its environment facts now flow from lib/closing-ctas.ts, which is the file that
+// must stay bound to public-truth (PUBLIC-WEBSITE-CLOSING-CTA-001).
+for (const f of ['app/page.tsx', 'app/developers/page.tsx', 'app/seguranca/page.tsx', 'app/suporte/page.tsx', 'app/comerciantes/page.tsx', 'app/produto/page.tsx', 'app/sobre/page.tsx', 'components/site/Footer.tsx', 'lib/closing-ctas.ts']) {
   if (!existsSync(join(ROOT, WEB, f)) || !imports(f)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push(`${f} no longer renders the environment facts from lib/public-truth.ts`);
 }
 // ── /sobre presents BOTH co-founders (institutional truth) ──────────────────────

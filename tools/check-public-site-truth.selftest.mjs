@@ -95,7 +95,7 @@ const CASES = [
   },
   {
     name: 'sandbox — the old "Candidate um Business" onboarding returns',
-    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('Comece na Sandbox.', 'Candidate um Business para aceder.')),
+    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('Sandbox pública self-service', 'Candidate um Business para aceder')),
     expect: fails('PUBLIC_SITE_SANDBOX_APPROVAL_DRIFT'),
   },
   {
@@ -125,7 +125,7 @@ const CASES = [
   },
   {
     name: 'copy — a speed promise and a waitlist return',
-    mutate: (d) => edit(d, `${W}/components/site/CTASection.tsx`, (s) => s.replace('Construa com o Banzami.', 'Receba em segundos. Entre na waitlist.')),
+    mutate: (d) => edit(d, `${W}/lib/closing-ctas.ts`, (s) => s.replace('Experimente a App Banzami.', 'Receba em segundos. Entre na waitlist.')),
     expect: (c) => fails('PUBLIC_SITE_UNSUPPORTED_COPY')(c) && /speed promise/.test(c.out) && /waitlist/.test(c.out),
   },
   {

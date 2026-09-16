@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { CTASection } from '@/components/site/CTASection';
+import { CLOSING_CTAS } from '@/lib/closing-ctas';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
 import { type FrameName } from '@/components/app/AppScreen';
@@ -223,7 +224,7 @@ export default function ProdutoPage() {
         </div>
       </section>
 
-      <CTASection id="contacto" />
+      <CTASection id="contacto" {...CLOSING_CTAS.produto} />
       <Footer />
     </main>
   );

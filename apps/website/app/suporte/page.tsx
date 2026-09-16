@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { CTASection } from '@/components/site/CTASection';
+import { CLOSING_CTAS } from '@/lib/closing-ctas';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
 import { MailLink } from '@/components/MailLink';
@@ -186,7 +187,7 @@ export default function SuportePage() {
         </div>
       </section>
 
-      <CTASection />
+      <CTASection {...CLOSING_CTAS.suporte} />
       <Footer />
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { CTASection } from '@/components/site/CTASection';
+import { CLOSING_CTAS } from '@/lib/closing-ctas';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
 import { PhoneFrame } from '@/components/app/PhoneFrame';
@@ -454,7 +455,7 @@ export default function ComerciantesPage() {
         </div>
       </section>
 
-      <CTASection />
+      <CTASection {...CLOSING_CTAS.comerciantes} />
       <Footer />
     </main>
   );
