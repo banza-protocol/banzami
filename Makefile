@@ -443,6 +443,21 @@ check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth chec
 	node tools/check-docs-editorial.mjs
 	node tools/docs/build-llms-txt.mjs --check
 
+# BUSINESS-RECEIVE-POINT-001 (ADR-065) — the Receive Point E2E runners.
+# The live and web runners execute against the deployed Sandbox (Phase 10, after
+# the owner applies 0153/0154/0155). `check-business-receive-e2e` is the OFFLINE
+# readiness gate: it statically proves both runners exist and encode the full
+# journey (fresh session per payment, disabled/suspended fail-closed, and — for
+# the web runner — real QR pixels through the real scanner, BYPASS=0).
+.PHONY: business-receive-e2e business-receive-web-e2e check-business-receive-e2e
+business-receive-e2e:
+	BANZAMI_E2E=RUN node tools/e2e/business/business-receive-point-e2e.mjs
+business-receive-web-e2e:
+	BANZAMI_E2E=RUN node tools/e2e/app-web/business-receive-web-e2e.mjs
+check-business-receive-e2e:
+	node tools/e2e/business/business-receive-point-e2e.mjs --check
+	node tools/e2e/app-web/business-receive-web-e2e.mjs --check
+
 .PHONY: check-implementation-matrix
 check-implementation-matrix:
 	node tools/check-implementation-matrix.mjs

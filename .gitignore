@@ -107,3 +107,6 @@ tools/e2e/dev-console/package-lock.json
 # PHPUnit result caches — per-run local state, never shared.
 .phpunit.result.cache
 .phpunit.cache/
+
+# BUSINESS-RECEIVE-POINT-001 web E2E generated camera media (Y4M)
+tools/e2e/app-web/proofs/*.y4m
