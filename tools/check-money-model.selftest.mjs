@@ -103,7 +103,7 @@ const CASES = [
   },
   {
     name: 'public copy calls a balance electronic money',
-    mutate: (d) => add(d, 'apps/website/app/faq/money.tsx', 'export const A = () => <p>O saldo Banzami é dinheiro electrónico garantido.</p>;\n'),
+    mutate: (d) => add(d, 'apps/website/app/suporte/money.tsx', 'export const A = () => <p>O saldo Banzami é dinheiro electrónico garantido.</p>;\n'),
     expect: fails('PREMATURE_LEGAL_TERMS_PUBLIC'),
   },
   {

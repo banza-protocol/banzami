@@ -22,7 +22,7 @@ const COPY = [
   'core/api/src', 'core/transfers/Cargo.toml', 'core/ledger/Cargo.toml', 'core/wallets/Cargo.toml', 'core/qr/Cargo.toml',
   'db/migrations/0144_value_moves_inside_external_rails_are_boundaries.sql',
   'services/api-gateway/internal', 'services/public-api/internal', 'tools/ops', 'docs/developer/openapi',
-  'sdk/typescript/src', 'sdk/typescript/README.md', 'README.md', 'apps/website/app/faq', 'apps/website/lib', 'apps/pay/app/u',
+  'sdk/typescript/src', 'sdk/typescript/README.md', 'README.md', 'apps/website/components/support', 'apps/website/lib', 'apps/pay/app/u',
   'quality/operator-assurance-manifest.yaml', 'docs/adr/ADR-061-wallet-native-rail-decoupled-financial-network.md',
 ];
 function tree() {
@@ -95,7 +95,7 @@ const CASES = [
   },
   {
     name: 'the FAQ says Banzami works without banks',
-    mutate: (d) => edit(d, 'apps/website/app/faq/page.tsx', (s) => s.replace("q: 'Existe uma API?',", "q: 'O Banzami é independente do sistema bancário?',")),
+    mutate: (d) => edit(d, 'apps/website/components/support/Faq.tsx', (s) => s.replace("q: 'Existe uma API?',", "q: 'O Banzami é independente do sistema bancário?',")),
     expect: fails('RAIL_DECOUPLING_REGULATORY_BYPASS_CLAIMS'),
   },
   {
