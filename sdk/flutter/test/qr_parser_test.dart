@@ -212,6 +212,36 @@ void main() {
       expect((r as BanzamiQrPaymentLink).slug, 'slug123');
     });
 
+    test('businessReceivePoint round-trips to a receive point (ADR-065)', () {
+      final r = BanzamiQrParser.parse(
+          BanzamiQrScheme.businessReceivePoint('rcv8k2mZ9qWx4T'));
+      expect(r, isA<BanzamiQrBusinessReceivePoint>());
+      expect((r as BanzamiQrBusinessReceivePoint).slug, 'rcv8k2mZ9qWx4T');
+    });
+
+    test('business receive point web URL resolves the same', () {
+      final r = BanzamiQrParser.parse('https://pay.banzami.com/b/rcv8k2mZ9qWx4T');
+      expect(r, isA<BanzamiQrBusinessReceivePoint>());
+      expect((r as BanzamiQrBusinessReceivePoint).slug, 'rcv8k2mZ9qWx4T');
+    });
+
+    test('business receive point coexists — never mistaken for other artifacts', () {
+      // A receive point is not a handle, payment link, request or split.
+      expect(BanzamiQrParser.parse(BanzamiQrScheme.businessReceivePoint('rcvAbc123')),
+          isA<BanzamiQrBusinessReceivePoint>());
+      expect(BanzamiQrParser.parse(BanzamiQrScheme.payLink('slug123')),
+          isA<BanzamiQrPaymentLink>());
+      expect(BanzamiQrParser.parse(BanzamiQrScheme.handle('fm65', isSandbox: false)),
+          isA<BanzamiQrHandlePayment>());
+    });
+
+    test('a non-slug receive-point segment is rejected (attacker-reachable)', () {
+      expect(BanzamiQrParser.parse('banzami://pay/business/..'),
+          isA<BanzamiQrInvalid>());
+      expect(BanzamiQrParser.parse('https://pay.banzami.com/b/'),
+          isA<BanzamiQrInvalid>());
+    });
+
     test('split resolves to a split payment (matches the core emission)', () {
       final r = BanzamiQrParser.parse(BanzamiQrScheme.split('split-7'));
       expect(r, isA<BanzamiQrSplitPayment>());

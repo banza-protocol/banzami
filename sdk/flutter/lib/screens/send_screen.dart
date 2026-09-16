@@ -270,6 +270,12 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         // home screen (the scanner) — the screen that really exists.
         BanzamiToast.showWarning(context,
             'Este é um link de pagamento. Leia-o em "QR Code", no início.');
+
+      case BanzamiQrBusinessReceivePoint():
+        // ADR-065: a Business receive point is paid from "QR Code" (the scanner),
+        // not sent to. The resolve/session backend is not live yet (dormant).
+        BanzamiToast.showWarning(context,
+            'Este QR ainda não é suportado nesta versão.');
     }
   }
 

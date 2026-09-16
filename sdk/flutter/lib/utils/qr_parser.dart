@@ -82,6 +82,16 @@ class BanzamiQrPaymentLink extends BanzamiQrResult {
   const BanzamiQrPaymentLink({required this.slug});
 }
 
+/// A persistent Business Receive Point (ADR-065) — `pay.banzami.com/b/{slug}` or
+/// `banzami://pay/business/{slug}`. Resolving the slug yields a public Business
+/// identity; the payer then enters an amount and the server mints a FRESH Payment
+/// Session. The QR is stable and reusable; it never itself moves money.
+class BanzamiQrBusinessReceivePoint extends BanzamiQrResult {
+  final String slug;
+  final bool isSandbox;
+  const BanzamiQrBusinessReceivePoint({required this.slug, this.isSandbox = false});
+}
+
 /// Not a recognised Banzami QR payload.
 class BanzamiQrInvalid extends BanzamiQrResult {
   final String reason;
@@ -146,6 +156,13 @@ class BanzamiQrParser {
           }
           return BanzamiQrPaymentLink(slug: segs[1]);
 
+        case 'b':
+          // /b/{slug} — a persistent Business Receive Point (ADR-065).
+          if (segs.length < 2 || !isPaymentSlug(segs[1])) {
+            return const BanzamiQrInvalid('Ponto de recebimento ausente');
+          }
+          return BanzamiQrBusinessReceivePoint(slug: segs[1], isSandbox: sandbox);
+
         default:
           // /{slug} — a bare single-segment path is a merchant payment link.
           if (segs.length == 1) {
@@ -182,6 +199,13 @@ class BanzamiQrParser {
       // form above.
       if (segs.length >= 2 && segs[0] == 'link') {
         return BanzamiQrPaymentLink(slug: segs[1]);
+      }
+
+      // banzami://pay/business/{slug} — a persistent Business Receive Point
+      // (ADR-065). A deep link is attacker-reachable, so a non-slug segment is
+      // never treated as a receive point.
+      if (segs.length >= 2 && segs[0] == 'business' && isPaymentSlug(segs[1])) {
+        return BanzamiQrBusinessReceivePoint(slug: segs[1], isSandbox: isSandbox);
       }
 
       // banzami://pay/{slug} — the Payment Session's DEEP_LINK interface

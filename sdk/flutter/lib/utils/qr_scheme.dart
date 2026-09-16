@@ -45,6 +45,14 @@ class BanzamiQrScheme {
   /// emission (core/api/src/routes/splits.rs) and the parser's `split` case.
   static String split(String id) => '$live://pay/split/$id';
 
+  /// `banzami://pay/business/SLUG` — a persistent Business Receive Point
+  /// (ADR-065). The QR is stable and reusable; scanning it resolves a public
+  /// Business identity and the payer mints a FRESH Payment Session per payment.
+  /// The environment is implicit in the resolving gateway (like [payLink]), so
+  /// there is no sandbox variant. Must match the parser's `business` case and the
+  /// payer-facing web form https://pay.banzami.com/b/SLUG.
+  static String businessReceivePoint(String slug) => '$live://pay/business/$slug';
+
   // ── Prefixes the parser accepts (canonical + legacy). Longest/sandbox first
   //    so a sandbox QR is never matched as live. ───────────────────────────────
 

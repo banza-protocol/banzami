@@ -163,6 +163,22 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       case BanzamiQrPaymentLink(:final slug):
         debugPrint('[QR-SCAN] route=PaymentLink slug=$slug');
         await _openPaymentLink(slug);
+
+      case BanzamiQrBusinessReceivePoint():
+        // ADR-065: a persistent Business receive point resolves to a public
+        // Business identity and mints a FRESH Payment Session after the payer
+        // enters an amount. That resolve/session backend is not live yet, so a
+        // scanned receive point is reported as not-yet-supported. This is dormant
+        // in practice — no receive-point QR can be generated until the backend
+        // and the Business receive screen ship — and is replaced by the real
+        // resolve→amount→session flow when they do.
+        debugPrint('[QR-SCAN] route=BusinessReceivePoint (pending backend)');
+        if (mounted) {
+          setState(() {
+            _error = 'Este QR ainda não é suportado nesta versão.';
+            _step = _ScanStep.error;
+          });
+        }
     }
   }
 
