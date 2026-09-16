@@ -1135,7 +1135,7 @@ export function CandidaturaForm() {
                     <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>
                       Li e aceito os{' '}
                     </span>
-                    <Link href="/suporte" className="font-extrabold text-[#B5101F] underline">
+                    <Link href="/termos" target="_blank" rel="noopener noreferrer" className="font-extrabold text-[#B5101F] underline">
                       termos e condições
                     </Link>
                     <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>

@@ -623,7 +623,11 @@ export function BusinessApplicationForm({
               style={{ marginTop: 3, width: 16, height: 16, accentColor: '#B5101F' }}
             />
             <label htmlFor="fo-terms" style={{ fontSize: 13.5, fontWeight: 700, color: '#2a2024', lineHeight: 1.5 }}>
-              Li e aceito os termos e condições do Banzami Business, e confirmo que os dados são verdadeiros.
+              Li e aceito os{' '}
+              <a href="/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800 }}>
+                termos e condições
+              </a>{' '}
+              do Banzami Business, e confirmo que os dados são verdadeiros.
             </label>
           </div>
           {show('terms') && <p id="fo-terms-error" style={FIELD_ERROR}>{errors.terms}</p>}

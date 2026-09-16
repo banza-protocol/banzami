@@ -152,7 +152,7 @@ export default function DevelopersLoginPage() {
               404s here. A dead link is bad anywhere; on the consent a developer
               is being asked to agree to, it is worse. */}
           Ao continuar, concorda com os nossos{' '}
-          <a href="https://banzami.com/sobre" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
+          <a href="https://banzami.com/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
             Termos de Serviço
           </a>{' '}
           e{' '}
