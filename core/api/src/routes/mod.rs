@@ -49,6 +49,8 @@ pub mod payment_links;
 pub mod payment_sessions;
 #[cfg(test)]
 mod payment_sessions_tests;
+#[cfg(test)]
+mod receive_point_isolation_tests;
 pub mod payouts;
 pub mod pricing_rules;
 pub mod qr;
