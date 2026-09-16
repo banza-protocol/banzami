@@ -67,6 +67,7 @@ type Dependencies struct {
 	MerchantSessionSvc       service.MerchantSessionService
 	BusinessLinkCodeSvc      service.BusinessLinkCodeService
 	BusinessPinResetSvc      *service.BusinessPinResetService
+	BusinessReceivePointSvc  *service.BusinessReceivePointService
 	MerchantAppSvc           service.MerchantApplicationService
 	BetaTesterSvc            service.BetaTesterService
 	MerchantAppAdminSvc      service.MerchantApplicationAdminService
@@ -229,6 +230,16 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	realtimeHandler := handler.NewRealtimeHandler(realtimeTokens, deps.PaymentSessionSvc).
 		WithDeletedProjects(deletedProjectsOrNil(deps.DBPool))
 
+	// Business Receive Point (ADR-065). One operator-local service serves the owner,
+	// public-resolve and internal-mint surfaces; nil (no database) leaves them all
+	// unmounted rather than half-wired.
+	var receivePointHandler *handler.BusinessReceivePointHandler
+	if deps.BusinessReceivePointSvc != nil {
+		receivePointHandler = handler.NewBusinessReceivePointHandler(
+			deps.BusinessReceivePointSvc, deps.PaymentSessionSvc, deps.MerchantSvc,
+			cfg.Environment, deps.PayBaseURL)
+	}
+
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight
 	// per-IP limiter in a separate key space from the general anonymous limit.
@@ -260,6 +271,15 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// The legacy limiter runs INSIDE the generic one and before the handler, so a
 	// 429 is decided without ever asking whether the proof exists.
 	mountPublicProofVerify(r, deps.Redis, deps.ProofSvc, deps.ProofHashSalt, cfg.ProofReaders)
+
+	// Public Business Receive Point resolution (ADR-065) — no auth: a scanned QR
+	// resolves the payer-safe Business identity. Rate-limited per IP: a slug is
+	// unguessable, but the route is an availability oracle, so it gets the same
+	// per-IP ceiling as the other anonymous lookups. Server-resolved and fail-closed.
+	if receivePointHandler != nil {
+		r.With(middleware.RateLimitPerIP(deps.Redis, 60, "receive-point-resolve")).
+			Get("/v1/receive-points/{slug}", receivePointHandler.Resolve)
+	}
 
 	// Public Business onboarding — no JWT required, so rate-limited per IP: a
 	// handle check is an availability oracle and a submission reserves a name
@@ -304,6 +324,12 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// Proactive proof reversal — admin-api on dispute WON_BY_CONSUMER (and any
 		// future core reversal event). Flips the public proof to REVERSED.
 		r.Post("/internal/v1/proofs/reverse", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Reverse)
+		// public-api (the consumer surface) mints a fresh Payment Session for a
+		// scanned Business Receive Point (ADR-065). The authenticated payer is
+		// supplied by the trusted caller; the payee is server-resolved from the slug.
+		if receivePointHandler != nil {
+			r.Post("/internal/v1/receive-points/{slug}/sessions", receivePointHandler.Mint)
+		}
 		// developer-api spends a Business's consent code for a Project.
 		r.Post("/internal/v1/business-link-codes/redeem", businessOnboardingHandler.RedeemLinkCode)
 		r.Post("/internal/v1/business-link-codes/issue-for-project", businessOnboardingHandler.IssueProjectLinkCode)
@@ -447,6 +473,15 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// Official merchant payment receipt (PDF) — Document Engine, real
 			// wallet_payments data.
 			r.Get("/merchant/transactions/{id}/receipt.pdf", receiptHandler.MerchantReceipt)
+
+			// Business Receive Point (ADR-065) — the Business's stable, printable
+			// receive identity. Reading provisions it on first use; the QR is
+			// persistent, each payment mints a fresh session elsewhere.
+			if receivePointHandler != nil {
+				r.Get("/business/receive-point", receivePointHandler.Mine)
+				r.Get("/business/receive-point/qr", receivePointHandler.Qr)
+				r.Post("/business/receive-point/disable", receivePointHandler.Disable)
+			}
 
 			// Webhooks moved to the canonical dual-credential mount below. Keeping a
 			// merchant-only copy here would be the second mount ADR-047 §5 forbids,

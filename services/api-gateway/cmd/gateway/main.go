@@ -89,6 +89,7 @@ func main() {
 	var merchantSessionSvc service.MerchantSessionService
 	var businessLinkCodeSvc service.BusinessLinkCodeService
 	var businessPinResetSvc *service.BusinessPinResetService
+	var businessReceivePointSvc *service.BusinessReceivePointService
 	var merchantAppSvc service.MerchantApplicationService
 	var betaTesterSvc service.BetaTesterService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
@@ -185,6 +186,7 @@ func main() {
 		merchantSessionSvc = service.NewPostgresMerchantSessionService(dbPool)
 		businessLinkCodeSvc = service.NewPostgresBusinessLinkCodeService(dbPool)
 		businessPinResetSvc = service.NewBusinessPinResetService(dbPool)
+		businessReceivePointSvc = service.NewBusinessReceivePointService(dbPool)
 		appSvc := service.NewPostgresMerchantApplicationService(dbPool)
 		betaTesterSvc = service.NewPostgresBetaTesterService(dbPool)
 		// Keeps @handle holds honest: alive while Banzami owes a decision,
@@ -293,6 +295,7 @@ func main() {
 		MerchantSessionSvc:       merchantSessionSvc,
 		BusinessLinkCodeSvc:      businessLinkCodeSvc,
 		BusinessPinResetSvc:      businessPinResetSvc,
+		BusinessReceivePointSvc:  businessReceivePointSvc,
 		MerchantAppSvc:           merchantAppSvc,
 		BetaTesterSvc:            betaTesterSvc,
 		MerchantAppAdminSvc:      merchantAppAdminSvc,
