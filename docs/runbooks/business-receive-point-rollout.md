@@ -63,17 +63,55 @@ in isolation.
 
 ---
 
-## 3. THE two owner DB writes (Sandbox stack)
+## 3. THE single owner ceremony (Sandbox stack)
 
-Both DB writes below are **owner-run**: the auto-mode classifier blocks the
-assistant from executing a Sandbox DB write (the same guard as `retire --apply`),
-so the assistant prepares everything, pushes, deploys the services and does the
-read-only verification — the owner runs these two. The operational DB is
-`banzami_staging` inside the running **`bzsandbox-…-postgres-1`** container
-(internal-only on the docker bridge); the privileged login is the superuser
-`sbadmin`, whose password is the docker secret `/run/secrets/mi_superuser` inside
-that container. Run from a `~/banzami` checkout on the Mac (it has sqlx/psql/node;
-the VM host does not) over an SSH tunnel. Nothing echoes the secret.
+The ceremony is **one owner-run, fail-closed command** that performs BOTH privileged
+DB writes — the migration and the runtime-authority grant — and verifies both, then
+cleans up. The auto-mode classifier blocks the assistant from executing a Sandbox DB
+write (the same guard as `retire --apply`), so the assistant prepares everything
+(push, **stage the hash-verified authority tooling to `/root/brp-ceremony` on the
+VM**, audit least-privilege) and does the read-only verification; the owner runs the
+one command. It deploys nothing. The operational DB is `banzami_staging` inside the
+running **`bzsandbox-…-postgres-1`** container; the privileged login is `sbadmin`
+(docker secret `/run/secrets/mi_superuser`). Run from a `~/banzami` checkout on the
+Mac (it has sqlx/psql/node; the VM host does not). Nothing echoes the secret; the
+tunnel is torn down on exit.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+VM=root@217.160.9.248; PORT=15432
+CTRL="$(mktemp -u "${TMPDIR:-/tmp}/brp-tunnel.XXXXXX")"; cd ~/banzami
+cleanup(){ ssh -S "$CTRL" -O exit "$VM" 2>/dev/null||true; rm -f "$CTRL" 2>/dev/null||true; unset PW DATABASE_URL 2>/dev/null||true; }
+trap cleanup EXIT
+PG="$(ssh "$VM" "docker ps --format '{{.Names}}' | grep -E 'bzsandbox.*-postgres-1' | head -1")"
+IP="$(ssh "$VM" "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $PG")"
+pkill -f "ssh.*-L ${PORT}:" 2>/dev/null||true
+ssh -M -S "$CTRL" -fNT -o ExitOnForwardFailure=yes -L "${PORT}:${IP}:5432" "$VM"
+PW="$(ssh "$VM" "docker exec $PG cat /run/secrets/mi_superuser" | tr -d '[:space:]')"
+export DATABASE_URL="postgresql://sbadmin:${PW}@localhost:${PORT}/banzami_staging"
+# migrate (idempotent; already at 155) — identity + sqlx + drift, never raw psql
+BANZAMI_DB_TARGET=banzami_staging bash tools/migrate-and-verify.sh
+HEAD="$(ssh "$VM" "docker exec $PG sh -c 'PGPASSWORD=\$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc \"select max(version) from _sqlx_migrations\"'" | tr -d '[:space:]')"
+[ "$HEAD" = "155" ] || { echo "head=$HEAD, want 155"; exit 1; }
+# runtime authority (staged, one transaction, on the VM)
+ssh "$VM" "BZ_AUTHORITY_REPO=/root/brp-ceremony bash /root/brp-ceremony/runtime-authority.sh apply"
+ssh "$VM" "BZ_AUTHORITY_REPO=/root/brp-ceremony bash /root/brp-ceremony/runtime-authority.sh verify" | tail -8
+GRANT="$(ssh "$VM" "docker exec $PG sh -c 'PGPASSWORD=\$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc \"select has_table_privilege(''bl_gateway_runtime'',''business_receive_point_mints'',''INSERT'') and has_table_privilege(''bl_gateway_runtime'',''business_receive_points'',''INSERT'')\"'" | tr -d '[:space:]')"
+[ "$GRANT" = "t" ] || { echo "gateway cannot write receive-point tables"; exit 1; }
+OBJ="$(ssh "$VM" "docker exec $PG sh -c 'PGPASSWORD=\$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc \"select (select count(*) from pg_tables where tablename in (''business_receive_points'',''business_receive_point_mints'')) || ''/'' || (select count(*) from pg_indexes where indexname in (''uq_business_receive_points_slug'',''uq_business_receive_points_one_active'',''uq_business_receive_point_mints_scope'',''uq_business_receive_point_mints_core_reference'')) || ''/'' || (select count(*) from information_schema.columns where table_name=''merchant_applications'' and column_name=''terms_version'')\"'" | tr -d '[:space:]')"
+[ "$OBJ" = "2/4/1" ] || { echo "schema objects=$OBJ, want 2/4/1"; exit 1; }
+echo "✓ CEREMONY COMPLETE — 0153/0154/0155 applied, authority granted, verified. No deploy."
+```
+
+If migrate fails the authority step never runs; if authority fails the command stops;
+nothing is deployed. `0153/0154/0155` are already applied (head 155 as of 2026-09-17),
+so the migrate step is an idempotent re-confirm — the real write this leaves is the
+grant. The historical two-step breakdown (3a/3b) is retained below for reference.
+
+**3a — migrate 0153 → 0154 → 0155** through the sanctioned gate
+(`tools/migrate-and-verify.sh` = `sqlx migrate run` + identity + drift gate), never
+raw `psql` for schema (that path caused the 0090–0095 drift):
 
 **3a — migrate 0153 → 0154 → 0155** through the sanctioned gate
 (`tools/migrate-and-verify.sh` = `sqlx migrate run` + identity + drift gate), never
