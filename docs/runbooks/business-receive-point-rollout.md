@@ -60,50 +60,75 @@ in isolation.
 
 ---
 
-## 3. THE migration command (owner TTY, Sandbox stack)
+## 3. THE two owner DB writes (Sandbox stack)
 
-Migrations are applied ONLY through the sanctioned gate (`tools/migrate-and-verify.sh`),
-never `psql` (the `psql` path caused the 0090–0095 drift — see
-`docs/quality/REPAIR_LOG.md`). Run it on an operator TTY with the **Sandbox stack**
-database URL sourced from the stack secret (never typed, never logged). This applies
-**0153 → 0154 → 0155** in order and refuses to proceed on any schema drift.
+Both DB writes below are **owner-run**: the auto-mode classifier blocks the
+assistant from executing a Sandbox DB write (the same guard as `retire --apply`),
+so the assistant prepares everything, pushes, deploys the services and does the
+read-only verification — the owner runs these two. The operational DB is
+`banzami_staging` inside the running **`bzsandbox-…-postgres-1`** container
+(internal-only on the docker bridge); the privileged login is the superuser
+`sbadmin`, whose password is the docker secret `/run/secrets/mi_superuser` inside
+that container. Run from a `~/banzami` checkout on the Mac (it has sqlx/psql/node;
+the VM host does not) over an SSH tunnel. Nothing echoes the secret.
+
+**3a — migrate 0153 → 0154 → 0155** through the sanctioned gate
+(`tools/migrate-and-verify.sh` = `sqlx migrate run` + identity + drift gate), never
+raw `psql` for schema (that path caused the 0090–0095 drift):
 
 ```bash
-# On the Sandbox host, from the deployed source bundle (or the executor image —
-# see docs and the sandbox-migration-execution runbook). DATABASE_URL is sourced
-# from the stack secret; it is never echoed.
-DATABASE_URL="$(cat /run/secrets/sandbox_db_url)" \
-BANZAMI_DB_TARGET="banzami_sandbox" \
+cd ~/banzami
+PG=bzsandbox-20260708184104-1708617-23807-postgres-1
+IP=$(ssh root@217.160.9.248 "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $PG")
+ssh -f -N -L 15432:$IP:5432 root@217.160.9.248
+PW=$(ssh root@217.160.9.248 "docker exec $PG cat /run/secrets/mi_superuser" | tr -d '[:space:]')
+DATABASE_URL="postgresql://sbadmin:$PW@localhost:15432/banzami_staging" \
+  BANZAMI_DB_TARGET=banzami_staging \
   bash tools/migrate-and-verify.sh
 ```
 
-Expected tail:
+Expected tail: `Applied 153… 154 business receive point… 155 receive point mint idempotency` →
+`✓ schema manifest satisfied — no drift.` → `✓ ROLLOUT GATE PASSED`. A non-zero exit
+is a **HARD STOP** (forward-only repair migration, never backfill).
 
-```
-Applied 153/... Applied 154/business receive point ... Applied 155/receive point mint idempotency
-── [4/4] schema-manifest drift detector ──
-✓ schema manifest satisfied — no drift.
-✓ ROLLOUT GATE PASSED
+**3b — apply the new table grants.** The migration is applied as `sbadmin`, so the
+new tables are superuser-owned and the gateway role has no write on them until the
+authority is re-applied. Run the canonical, idempotent authority script on the VM
+from the deployed release bundle (grants + the same per-role passwords, one
+transaction — it does not rotate a password whose secret file already exists):
+
+```bash
+# On the VM, from the unpacked source-deploy release that ./deploy.sh shipped:
+bash <release>/infra/blueprint/sandbox-ops/scripts/runtime-authority.sh apply
+bash <release>/infra/blueprint/sandbox-ops/scripts/runtime-authority.sh verify
 ```
 
-A non-zero exit is a **HARD STOP** — do not deploy the application. Drift is closed
-by a forward-only repair migration, never by backfilling history.
+`bl_gateway_runtime` must end with INSERT/UPDATE/DELETE on `business_receive_points`
+and `business_receive_point_mints` (declared in `db/authority/runtime-authority.json`;
+`node tools/db-authority.mjs` proves it against the gateway code). Until 3b runs, the
+gateway routes resolve but any mint fails on a permission error.
 
 ---
 
-## 4. Deploy order
+## 4. Order
 
-1. **Migrate** — §3. Gate must exit 0.
-2. **core-api** — `./deploy.sh core-api`. Safe to deploy before or after the
-   migration (no schema dependency); ship it so the concurrent-create fix is live.
-3. **api-gateway** — `./deploy.sh api-gateway`. Its receive-point routes mount only
-   now that the tables exist.
-4. **public-api** — `./deploy.sh public-api`. Consumer resolve/pay via the gateway
-   internal surface.
-5. **pay-frontend** — `./deploy.sh pay-frontend` (the `/b/{slug}` page). See the
-   [website/pay deploy note](../../CLAUDE.md) — `pay-frontend`, not `--all`.
-6. **Apps** — the mobile/web app builds ship on their own cadence; the SDK client
-   and screens are already merged.
+The grants step (3b) runs from the deployed release bundle, so the code deploys
+**before** the DB writes. The gateway is nil-guarded on the database, not on the
+tables: its routes mount at start-up, and any receive-point request simply errors
+until 3a+3b land. That window is harmless — no printed QR exists yet — so:
+
+1. **Push** — `git push origin main` (assistant, on the owner's go-ahead).
+2. **Deploy the services** — `./deploy.sh core-api` → `api-gateway` → `public-api`
+   → `pay-frontend` (assistant). This ships the new migrations AND the updated
+   `runtime-authority.sql` into the VM release bundle that 3b needs.
+   `pay-frontend`, never `--all` (see the [website/pay deploy note](../../CLAUDE.md)).
+3. **3a — migrate** (owner) → tables exist.
+4. **3b — apply grants** (owner) → the gateway can write; the feature is live.
+5. **Verify** (assistant, read-only) — §5 smoke.
+
+core-api carries the concurrent-create fix and has no schema dependency, so it is
+safe first. The mobile/web app builds ship on their own cadence; the SDK client and
+screens are already merged.
 
 ---
 
