@@ -108,13 +108,14 @@ func main() {
 	}
 
 	srv := server.New(cfg, server.Dependencies{
-		CoreClient:  core,
-		CredStore:   creds,
-		TestPayers:  testPayers,
-		FCMSvc:      fcmSvc,
-		PushTopics:  pushTopics,
-		KycSvc:      kycSvc,
-		ProofClient: service.NewProofClient(cfg.GatewayInternalURL, cfg.InternalAPIKey),
+		CoreClient:         core,
+		CredStore:          creds,
+		TestPayers:         testPayers,
+		FCMSvc:             fcmSvc,
+		PushTopics:         pushTopics,
+		KycSvc:             kycSvc,
+		ProofClient:        service.NewProofClient(cfg.GatewayInternalURL, cfg.InternalAPIKey),
+		ReceivePointClient: service.NewReceivePointClient(cfg.GatewayInternalURL, cfg.InternalAPIKey),
 	})
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

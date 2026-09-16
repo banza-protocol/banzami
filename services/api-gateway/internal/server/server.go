@@ -328,6 +328,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// scanned Business Receive Point (ADR-065). The authenticated payer is
 		// supplied by the trusted caller; the payee is server-resolved from the slug.
 		if receivePointHandler != nil {
+			// Resolution over the service-credential surface too, so public-api reads
+			// it without contending for the public route's per-IP ceiling (its one IP
+			// serves every consumer). Same handler, same payer-safe body.
+			r.Get("/internal/v1/receive-points/{slug}", receivePointHandler.Resolve)
 			r.Post("/internal/v1/receive-points/{slug}/sessions", receivePointHandler.Mint)
 		}
 		// developer-api spends a Business's consent code for a Project.

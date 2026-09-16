@@ -41,6 +41,7 @@ func TestReceivePoint_SurfacesMountedCorrectly(t *testing.T) {
 		"GET /v1/business/receive-point/qr",
 		"POST /v1/business/receive-point/disable",
 		"GET /v1/receive-points/{slug}",
+		"GET /internal/v1/receive-points/{slug}",
 		"POST /internal/v1/receive-points/{slug}/sessions",
 	} {
 		if !routes[want] {

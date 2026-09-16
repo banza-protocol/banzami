@@ -47,6 +47,9 @@ type Dependencies struct {
 	FCMSvc      *notify.FCMService
 	KycSvc      *service.KycService
 	ProofClient *service.ProofClient // optional; mints receipt proof references
+	// ReceivePointClient reaches the gateway's Business Receive Point surface
+	// (ADR-065). Optional; nil answers RECEIVE_POINT_UNAVAILABLE.
+	ReceivePointClient *service.ReceivePointClient
 
 	// PushTopics names the signed-in consumer's FCM topic for
 	// GET /v1/me/push-topic. Nil (no PUSH_TOPIC_KEY) answers null.
@@ -103,6 +106,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc, deps.ProofClient, cfg.Environment)
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
 	qrPayH := handler.NewQrPayHandler(deps.CoreClient)
+	receivePointH := handler.NewReceivePointHandler(deps.ReceivePointClient)
 	sandboxH := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	consumerRealtimeH := handler.NewConsumerRealtimeHandler(deps.CoreClient)
 	onboardingH := handler.NewOnboardingHandler(deps.CoreClient).WithCredentials(deps.CredStore).WithEnvironment(cfg.Environment)
@@ -161,6 +165,11 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	// Public consumer pay link lookup — no JWT required (pay web app fetches this)
 	r.Get("/v1/consumer-pay-links/{code}", consumerPayLinkH.GetByCode)
 
+	// Public Business Receive Point resolution (ADR-065) — no JWT: the pay web app
+	// (and a consumer before the pay screen) resolves the scanned slug to the
+	// payer-safe Business identity. The gateway server-resolves and fails closed.
+	r.Get("/v1/receive-points/{slug}", receivePointH.Resolve)
+
 	// Authenticated consumer endpoints
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg, sessionsOf(deps.CredStore)))
@@ -216,6 +225,11 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		// session's consumer and is never a body field — that is the entire
 		// difference from the withdrawn merchant route (RA-053).
 		r.Post("/v1/qr/pay", qrPayH.Pay)
+
+		// Paying a scanned Business Receive Point (ADR-065): mint a fresh session
+		// for THIS session's consumer. The payer comes from the token, never the
+		// body; the payee is server-resolved from the slug.
+		r.Post("/v1/receive-points/{slug}/pay", receivePointH.Pay)
 
 		// Consumer identity verification (KYC) — ADR-020. The operator decides
 		// the level; the consumer never sends `requested_level`.
