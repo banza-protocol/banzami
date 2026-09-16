@@ -69,6 +69,9 @@ step('Proof 03 — invalid deep-link', 'proofs/03-invalid-deeplink.mjs');
 step('Proof 05 — realtime incoming payment', 'proofs/05-realtime-incoming-payment.mjs');
 step('Proof 06 — realtime resilience (fallback + visibility)', 'proofs/06-realtime-resilience.mjs');
 
+// 3c. Web QR camera (WEB-QR-CAMERA-001).
+step('Proof 07 — Web QR camera', 'proofs/07-web-qr-camera.mjs');
+
 // 4-5. The generic cleanroom, twice (repeatability) — fresh dev/consumer/payment.
 const run1 = step('Cleanroom run 1', 'app-web-cleanroom.mjs', ['--label', 'run1']);
 const run2 = quick ? true : step('Cleanroom run 2', 'app-web-cleanroom.mjs', ['--label', 'run2']);
