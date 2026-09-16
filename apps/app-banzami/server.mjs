@@ -223,7 +223,7 @@ async function handleBff(req, res) {
 
   // Minimal, safe forwarded header set. Inbound Authorization/Cookie are dropped;
   // the Bearer is injected server-side from the session record only.
-  const fwd = { 'Accept': 'application/json', 'User-Agent': 'Banzami-Web-BFF/1.0' };
+  const fwd = { 'Accept': route.stream ? 'text/event-stream' : 'application/json', 'User-Agent': 'Banzami-Web-BFF/1.0' };
   if (req.headers['content-type']) fwd['Content-Type'] = req.headers['content-type'];
   if (req.headers['idempotency-key']) fwd['Idempotency-Key'] = req.headers['idempotency-key'];
   if (rec && rec.bearer && route.auth !== 'none') fwd['Authorization'] = `Bearer ${rec.bearer}`;

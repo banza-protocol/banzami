@@ -16,6 +16,7 @@
     "playwright": "1.49.1"
   },
   "dependencies": {
+    "@zxing/library": "^0.21.3",
     "qrcode": "^1.5.4"
   }
 }

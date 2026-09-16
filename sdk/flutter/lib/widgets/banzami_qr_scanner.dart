@@ -50,6 +50,14 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      // mobile_scanner's web decoder loads @zxing/library from unpkg.com by
+      // default, which the app's strict CSP (script-src 'self') refuses — so the
+      // decoder never loads and the camera "fails". Point it at the copy served
+      // from our own origin instead (no CSP weakening). No-op on native.
+      MobileScannerPlatform.instance
+          .setBarcodeLibraryScriptUrl('/zxing-library-0.21.3.js');
+    }
     _boot();
   }
 
