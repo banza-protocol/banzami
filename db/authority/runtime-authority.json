@@ -86,6 +86,8 @@
           "developer.dev_project_sandbox_binding",
           "public.beta_testers",
           "public.business_link_codes",
+          "public.business_receive_point_mints",
+          "public.business_receive_points",
           "public.handle_registry",
           "public.merchant_access_log",
           "public.merchant_activation_tokens",

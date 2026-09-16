@@ -132,6 +132,8 @@ SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_api_request_
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_project_sandbox_binding"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."beta_testers"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."business_link_codes"', 'bl_gateway_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."business_receive_point_mints"', 'bl_gateway_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."business_receive_points"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."handle_registry"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."merchant_access_log"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."merchant_activation_tokens"', 'bl_gateway_runtime');
