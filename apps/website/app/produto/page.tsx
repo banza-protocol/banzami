@@ -357,7 +357,7 @@ export default function ProdutoPage() {
                 <span className="mb-4 flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-[linear-gradient(150deg,#FBD2D0,#FFE7E5)]">
                   {c.icon}
                 </span>
-                <h3 className="m-0 mb-[7px] text-[18px] font-black text-ink">{c.title}</h3>
+                <h2 className="m-0 mb-[7px] text-[18px] font-black text-ink">{c.title}</h2>
                 <p className="m-0 text-[14.5px] font-semibold leading-[1.5] text-ink-soft">{c.desc}</p>
               </div>
             ))}

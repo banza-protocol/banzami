@@ -33,9 +33,9 @@ export function QrSyncShowcase() {
     <>
       <div>
         <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.06em] text-cherry">PAGAMENTO POR QR</p>
-        <h3 className="m-0 text-[clamp(24px,3vw,34px)] font-black leading-[1.05] tracking-[-0.02em] text-ink">
+        <h2 className="m-0 text-[clamp(24px,3vw,34px)] font-black leading-[1.05] tracking-[-0.02em] text-ink">
           Pague por QR
-        </h3>
+        </h2>
         <p className="m-0 mb-5 mt-[14px] text-[16px] font-semibold leading-[1.55] text-ink-secondary">
           Leia o QR, confirme e conclua o pagamento, sem troco e sem terminal.
         </p>
