@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -258,30 +259,17 @@ func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions 
 		 ON CONFLICT (payer_id, idempotency_key) DO NOTHING
 		 RETURNING id`, payerID, idempotencyKey, slug, fp).Scan(&mintID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		// Existing operation for this (payer, key): must match the same request.
-		var (
-			existingFP string
-			state      string
-			sessionID  *string
-		)
-		if err := s.pool.QueryRow(ctx,
-			`SELECT id, request_fingerprint, state, session_id FROM business_receive_point_mints
-			  WHERE payer_id=$1 AND idempotency_key=$2`, payerID, idempotencyKey).
-			Scan(&mintID, &existingFP, &state, &sessionID); err != nil {
-			return nil, err
+		// Existing operation for this (payer, key): replay it, wait for a live
+		// concurrent winner, or reclaim a stale/failed attempt.
+		got, done, rerr := s.replayOrReclaim(ctx, sessions, payerID, idempotencyKey, fp, &mintID)
+		if rerr != nil {
+			return nil, rerr
 		}
-		if existingFP != fp {
-			return nil, ErrIdempotencyConflict
+		if done {
+			return got, nil
 		}
-		if state == "SUCCEEDED" && sessionID != nil && *sessionID != "" {
-			if got, err := sessions.Get(ctx, *sessionID); err == nil && got != nil {
-				return got, nil
-			}
-			return &PaymentSession{SessionID: *sessionID}, nil
-		}
-		// PENDING (a prior attempt did not record a result — e.g. a crash). Re-run
-		// the create below: core's reference idempotency returns the same session
-		// if one was already created, or creates it if not.
+		// Reclaimed: fall through to (re)create. Core's reference idempotency
+		// returns the same session if the crashed winner already created one.
 	} else if err != nil {
 		return nil, err
 	}
@@ -307,6 +295,62 @@ func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions 
 		return nil, err
 	}
 	return sess, nil
+}
+
+// replayOrReclaim handles a duplicate (payer, key): it rejects a fingerprint
+// mismatch, replays a SUCCEEDED result, WAITS (bounded) for a live concurrent
+// winner rather than racing a second create into core's reference boundary, and
+// reclaims a stale (crashed) or FAILED attempt so the caller can retry. Returns
+// (session, done). done=false means "reclaimed — the caller should (re)create".
+func (s *BusinessReceivePointService) replayOrReclaim(ctx context.Context, sessions PaymentSessionService, payerID, key, fp string, mintID *string) (*PaymentSession, bool, error) {
+	var existingFP, state string
+	var sid *string
+	var fresh bool
+	if err := s.pool.QueryRow(ctx,
+		`SELECT id, request_fingerprint, state, session_id, (now() - updated_at) < interval '5 seconds'
+		   FROM business_receive_point_mints WHERE payer_id=$1 AND idempotency_key=$2`, payerID, key).
+		Scan(mintID, &existingFP, &state, &sid, &fresh); err != nil {
+		return nil, false, err
+	}
+	if existingFP != fp {
+		return nil, false, ErrIdempotencyConflict
+	}
+	if state == "SUCCEEDED" && sid != nil && *sid != "" {
+		return s.session(ctx, sessions, *sid), true, nil
+	}
+	if state == "PENDING" && fresh {
+		// A live winner is creating: wait for it, bounded — never spin forever.
+		for i := 0; i < 40; i++ {
+			select {
+			case <-ctx.Done():
+				return nil, false, ctx.Err()
+			case <-time.After(50 * time.Millisecond):
+			}
+			var st2 string
+			var sid2 *string
+			if err := s.pool.QueryRow(ctx,
+				`SELECT state, session_id FROM business_receive_point_mints WHERE id=$1`, *mintID).Scan(&st2, &sid2); err != nil {
+				return nil, false, err
+			}
+			if st2 == "SUCCEEDED" && sid2 != nil && *sid2 != "" {
+				return s.session(ctx, sessions, *sid2), true, nil
+			}
+			if st2 == "FAILED" {
+				break
+			}
+		}
+	}
+	// Stale PENDING (a crashed winner) or FAILED: reclaim by re-leasing and let the
+	// caller (re)create. Core's reference boundary prevents a duplicate.
+	_, _ = s.pool.Exec(ctx, `UPDATE business_receive_point_mints SET state='PENDING', updated_at=now() WHERE id=$1`, *mintID)
+	return nil, false, nil
+}
+
+func (s *BusinessReceivePointService) session(ctx context.Context, sessions PaymentSessionService, id string) *PaymentSession {
+	if got, err := sessions.Get(ctx, id); err == nil && got != nil {
+		return got
+	}
+	return &PaymentSession{SessionID: id}
 }
 
 // Disable retires the Business's active receive point (operator/system lifecycle).

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -338,7 +339,7 @@ func TestReceivePoint_MintCrashBeforeCreateRecovers(t *testing.T) {
 	// session (PENDING, no session_id, no core session for the reference).
 	fp := requestFingerprint(slug, "AOA", 1000)
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state) VALUES ($1,$2,$3,$4,'PENDING')`,
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state, updated_at) VALUES ($1,$2,$3,$4,'PENDING', now() - interval '1 hour')`,
 		payer, key, slug, fp); err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +361,7 @@ func TestReceivePoint_MintCrashAfterCreateNoDuplicate(t *testing.T) {
 	// the deterministic reference, but the gateway crashed before recording it.
 	fp := requestFingerprint(slug, "AOA", 1000)
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state) VALUES ($1,$2,$3,$4,'PENDING')`,
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state, updated_at) VALUES ($1,$2,$3,$4,'PENDING', now() - interval '1 hour')`,
 		payer, key, slug, fp); err != nil {
 		t.Fatal(err)
 	}
@@ -444,5 +445,40 @@ func TestReceivePoint_UnknownSlug(t *testing.T) {
 	svc := NewBusinessReceivePointService(pool)
 	if _, _, err := svc.ResolveForPayment(ctx, "totallyunknownslug123"); !errors.Is(err, ErrReceivePointNotFound) {
 		t.Fatalf("unknown slug must be not-found, got %v", err)
+	}
+}
+
+func TestReceivePoint_CoreReferenceIdempotencyIsDbEnforced(t *testing.T) {
+	ctx := context.Background()
+	pool := rpPoolOrSkip(ctx, t)
+	// §0: core's "one session per (merchant, purpose, reference)" is a real partial
+	// unique index, not only a SELECT-then-INSERT comment — so a retry cannot
+	// duplicate even under the create race.
+	var def string
+	if err := pool.QueryRow(ctx,
+		`SELECT indexdef FROM pg_indexes WHERE indexname='payment_sessions_reference_uidx'`).Scan(&def); err != nil {
+		t.Fatalf("expected payment_sessions_reference_uidx (core reference idempotency): %v", err)
+	}
+	for _, want := range []string{"UNIQUE", "merchant_id", "purpose", "reference_type", "reference_id", "reference_id IS NOT NULL"} {
+		if !strings.Contains(def, want) {
+			t.Fatalf("reference idempotency index missing %q: %s", want, def)
+		}
+	}
+}
+
+func TestReceivePoint_MintReferencePrivacyAndDeterminism(t *testing.T) {
+	payer, key, slug := "payer-uuid-123", "super-secret-idempotency-key", "rcvSlugABC123"
+	ref := mintReference(payer, key)
+	if ref != mintReference(payer, key) {
+		t.Fatal("reference must be deterministic")
+	}
+	if mintReference(payer, "other") == ref || mintReference("other", key) == ref {
+		t.Fatal("reference must vary by (payer, key)")
+	}
+	if strings.Contains(ref, payer) || strings.Contains(ref, key) || strings.Contains(ref, slug) {
+		t.Fatal("reference must not embed raw payer/key/slug")
+	}
+	if len(ref) != 64 {
+		t.Fatalf("reference must be a bounded 64-hex digest, got %d", len(ref))
 	}
 }
