@@ -162,6 +162,28 @@ String? _byCode(String code) {
     case 'MERCHANT_INACTIVE':
       return 'Este negócio não está a aceitar pagamentos.';
 
+    // Business Receive Point (ADR-065) — a persistent Business QR that mints a
+    // fresh session per payment. Each of these tells the payer what happened.
+    case 'RECEIVE_POINT_NOT_FOUND':
+      return 'Este QR de recebimento já não existe. Peça um código novo.';
+    case 'RECEIVE_POINT_DISABLED':
+      return 'Este QR de recebimento já não está activo.';
+    case 'BUSINESS_CANNOT_RECEIVE':
+      return 'Este negócio não pode receber pagamentos neste momento.';
+    case 'INVALID_SLUG':
+      return 'Este QR de recebimento é inválido.';
+    case 'INVALID_IDEMPOTENCY_KEY':
+      return 'Não foi possível processar o pagamento. Tente novamente.';
+    case 'MINT_IN_PROGRESS':
+      return 'Um pagamento com esta chave está em curso. Aguarde um momento.';
+    case 'RECEIVE_POINT_UNAVAILABLE':
+      return 'O recebimento está temporariamente indisponível. Tente novamente.';
+
+    // Realtime SSE (CONSUMER-HOME-REALTIME-001). Emitted by public-api but never
+    // registered here — added while wiring the receive-point error guard.
+    case 'STREAMING_UNSUPPORTED':
+      return 'A atualização em tempo real não está disponível aqui.';
+
     // Identity, sign-in, onboarding
     case 'INVALID_CREDENTIALS':
       return '@banza ou PIN incorrectos.';

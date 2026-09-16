@@ -28,6 +28,18 @@ const statusClassCodes = {
   'NOT_FOUND',
   'UNAUTHORIZED',
   'VALIDATION_ERROR',
+  // Sandbox tooling, realtime SSE and retirement infra codes — dev/operator
+  // facing, where the HTTP status class already words it correctly. Reconciled
+  // here with the receive-point work after several features left them adrift.
+  'IDEMPOTENCY_KEY_REQUIRED',
+  'PROJECT_REQUIRED',
+  'REALTIME_STREAM_LIMIT',
+  'REALTIME_UNAVAILABLE',
+  'RETIREMENT_FAILED',
+  'SANDBOX_FUNDING_REFUSED',
+  'SANDBOX_QUOTA_EXCEEDED',
+  'TEST_PAYER_RETIRED',
+  'TEST_PAYER_SIGN_IN_UNAVAILABLE',
 };
 
 class _Emitted {
@@ -56,6 +68,7 @@ const _httpStatus = {
   'Forbidden': 403,
   'NotFound': 404,
   'MethodNotAllowed': 405,
+  'NotAcceptable': 406,
   'Conflict': 409,
   'UnprocessableEntity': 422,
   'TooManyRequests': 429,

@@ -9,6 +9,7 @@ import '../utils/qr_parser.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
 import 'payment_link_screen.dart';
+import 'receive_point_screen.dart';
 import 'payment_request_screen.dart';
 import 'qr_pay_screen.dart';
 import 'send_screen.dart';
@@ -164,22 +165,28 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         debugPrint('[QR-SCAN] route=PaymentLink slug=$slug');
         await _openPaymentLink(slug);
 
-      case BanzamiQrBusinessReceivePoint():
+      case BanzamiQrBusinessReceivePoint(:final slug, :final isSandbox):
         // ADR-065: a persistent Business receive point resolves to a public
         // Business identity and mints a FRESH Payment Session after the payer
-        // enters an amount. That resolve/session backend is not live yet, so a
-        // scanned receive point is reported as not-yet-supported. This is dormant
-        // in practice — no receive-point QR can be generated until the backend
-        // and the Business receive screen ship — and is replaced by the real
-        // resolve→amount→session flow when they do.
-        debugPrint('[QR-SCAN] route=BusinessReceivePoint (pending backend)');
-        if (mounted) {
-          setState(() {
-            _error = 'Este QR ainda não é suportado nesta versão.';
-            _step = _ScanStep.error;
-          });
-        }
+        // enters an amount. The QR is persistent; the session is not.
+        debugPrint('[QR-SCAN] route=BusinessReceivePoint slug=$slug');
+        if (_sandboxMismatch(isSandbox)) return;
+        await _openReceivePoint(slug);
     }
+  }
+
+  Future<void> _openReceivePoint(String slug) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(BanzamiPageRoute(
+      page: BanzamiReceivePointScreen(
+        client: widget.client,
+        slug: slug,
+        ownHandle: widget.ownHandle,
+        isSandbox: widget.isSandbox,
+        onSuccess: (transfer) => widget.onSuccess(transfer),
+      ),
+    ));
+    if (mounted) _rescan();
   }
 
   Future<void> _openPaymentLink(String slug) async {

@@ -19,6 +19,7 @@ import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
 import 'confirm_screen.dart';
 import 'payment_request_screen.dart';
+import 'receive_point_screen.dart';
 import 'qr_pay_screen.dart';
 
 /// P2P send flow — enter recipient @handle, amount, and optional description.
@@ -271,11 +272,19 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         BanzamiToast.showWarning(context,
             'Este é um link de pagamento. Leia-o em "QR Code", no início.');
 
-      case BanzamiQrBusinessReceivePoint():
-        // ADR-065: a Business receive point is paid from "QR Code" (the scanner),
-        // not sent to. The resolve/session backend is not live yet (dormant).
-        BanzamiToast.showWarning(context,
-            'Este QR ainda não é suportado nesta versão.');
+      case BanzamiQrBusinessReceivePoint(:final slug, :final isSandbox):
+        // ADR-065: scanning a Business receive point pays that Business — resolve
+        // its identity and mint a fresh session for the amount the payer enters.
+        if (_sandboxMismatch(isSandbox)) return;
+        Navigator.of(context).push(BanzamiPageRoute(
+          page: BanzamiReceivePointScreen(
+            client: widget.client,
+            slug: slug,
+            ownHandle: widget.ownHandle,
+            isSandbox: widget.isSandbox,
+            onSuccess: widget.onSuccess,
+          ),
+        ));
     }
   }
 
