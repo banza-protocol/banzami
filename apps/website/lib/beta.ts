@@ -1,6 +1,6 @@
 // The mobile beta programme (APP-BETA-001), client side.
 //
-// The apps — App Banzami (consumer) and App Comerciante (merchant) — are
+// The apps — App Banzami (consumer) and App Banzami Business (merchant) — are
 // functional and given to invited testers through TestFlight (iOS) and Google
 // Play testing (Android). This module holds the small amount the public pages
 // and the inline modal share: the two apps, the platforms, the distribution
@@ -38,7 +38,7 @@ export const BETA_APPS: {
   },
   {
     id: 'APP_MERCHANT',
-    name: 'App Comerciante',
+    name: 'App Banzami Business',
     tagline_pt: 'Receber por QR e por link, sem terminal.',
     tagline_en: 'Get paid by QR and by link, with no terminal.',
     ios: true,

@@ -41,7 +41,7 @@ export const PUBLIC_TRUTH = {
     ios: 'TestFlight',
     android: 'Google Play testing',
     inviteOnly: true,
-    apps: ['App Banzami', 'App Comerciante'] as const,
+    apps: ['App Banzami', 'App Banzami Business'] as const,
   },
   /** Key prefixes the runtime issues in the Sandbox. */
   keyPrefixes: { secret: 'bz_test_sk_', publishable: 'bz_test_pk_' },

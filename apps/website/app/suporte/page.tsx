@@ -61,6 +61,13 @@ const TOPICS: { title: string; body: string; href: string; label: string; extern
     icon: <><rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#B5101F" strokeWidth="1.8" /><path d="M8 11V8a4 4 0 018 0v3" stroke="#B5101F" strokeWidth="1.8" strokeLinecap="round" /></>,
   },
   {
+    title: 'App Banzami Business',
+    body: 'Receber por QR e por link, dividir a conta e acompanhar pagamentos.',
+    href: '/comerciantes',
+    label: 'Ver para comerciantes',
+    icon: <><path d="M4 9l1-4h14l1 4a2.5 2.5 0 01-5 0 2.5 2.5 0 01-5 0 2.5 2.5 0 01-5 0z" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" /><path d="M5 11v8h14v-8" stroke="#B5101F" strokeWidth="1.8" strokeLinejoin="round" /></>,
+  },
+  {
     title: 'Sandbox e testes',
     body: 'Testar a App Web e as apps nativas, com dinheiro fictício.',
     href: '/testes',

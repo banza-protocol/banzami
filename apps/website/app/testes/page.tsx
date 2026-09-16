@@ -5,7 +5,7 @@ import type { BetaApp } from '@/lib/beta';
 export const metadata: Metadata = {
   title: 'Testers',
   description:
-    'Ajude-nos a testar as apps do Banzami — App Banzami e App Comerciante — no iPhone (TestFlight) e Android (Google Play). Registe o seu interesse.',
+    'Ajude-nos a testar as apps do Banzami — App Banzami e App Banzami Business — no iPhone (TestFlight) e Android (Google Play). Registe o seu interesse.',
   alternates: {
     canonical: 'https://banzami.com/testes',
     languages: {

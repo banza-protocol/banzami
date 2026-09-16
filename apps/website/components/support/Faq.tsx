@@ -49,6 +49,7 @@ export const FAQ_CATEGORIES: Category[] = [
     title: 'Comerciantes e developers',
     items: [
       { q: 'Um comerciante pode receber pagamentos?', a: 'Os pagamentos de comerciante estão disponíveis na Sandbox, com dinheiro fictício. Veja a página ', linkComerciantes: true },
+      { q: 'Existe uma app para comerciantes?', a: 'Sim, a App Banzami Business: criar cobranças por QR ou por link, dividir a conta por várias pessoas e acompanhar cada pagamento na carteira do negócio. Está disponível no browser, na Sandbox com dinheiro fictício; no iPhone e no Android está em testes.' },
       { q: 'Existe uma API?', a: `Sim: uma API REST pública (${PUBLIC_TRUTH.apiVersion}) para pagamentos, reembolsos, webhooks e liquidações, documentada em developers.banzami.com/docs.` },
       { q: 'Existem SDKs?', a: `Estão publicados ${PUBLISHED_PACKAGES.map((p) => `${p.name} (${p.registry})`).join(' e ')}. A lista completa e atual está na documentação.` },
       { q: 'Preciso de aprovação para usar a Sandbox?', a: 'Não. Crie a conta na Consola, crie um projeto e receba chaves de teste, sem aprovação de um operador Banzami.' },

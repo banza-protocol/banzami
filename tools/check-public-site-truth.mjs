@@ -63,6 +63,7 @@ const findings = {
   PUBLIC_SITE_UNSUPPORTED_COPY: [],
   PUBLIC_SITE_BANZAMI_EMPRESA: [],
   PUBLIC_SITE_TERMINOLOGY_DRIFT: [],
+  PUBLIC_SITE_FOUNDERS_MISSING: [],
   PUBLIC_EMAIL_OBFUSCATION_BROKEN: [],
 };
 
@@ -99,7 +100,8 @@ const RULES = [
   // Retired IA / obsolete public vocabulary (§4/§30).
   ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /Para empresas/g, 'the retired "Para empresas" navigation concept'],
   ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /Banzami Wallet/g, '"Banzami Wallet" — the public term is "carteira Banzami"'],
-  ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /App Consumidor|Business Dashboard/g, 'an obsolete product name (use "App Banzami")'],
+  ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /App Consumidor|Business Dashboard|App Comerciante/g, 'an obsolete product name (use "App Banzami" / "App Banzami Business")'],
+  ['PUBLIC_SITE_TERMINOLOGY_DRIFT', /comprovativo vivo/gi, '"comprovativo vivo" — the public term is "comprovativo verificável"'],
 ];
 
 const lineOf = (src, i) => src.slice(0, i).split('\n').length;
@@ -173,6 +175,13 @@ const imports = (f) => /from '@\/lib\/public-truth'/.test(read(`${WEB}/${f}`));
 for (const f of ['app/page.tsx', 'app/developers/page.tsx', 'app/seguranca/page.tsx', 'app/suporte/page.tsx', 'app/comerciantes/page.tsx', 'app/produto/page.tsx', 'app/sobre/page.tsx', 'components/site/Footer.tsx', 'components/site/CTASection.tsx']) {
   if (!existsSync(join(ROOT, WEB, f)) || !imports(f)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push(`${f} no longer renders the environment facts from lib/public-truth.ts`);
 }
+// ── /sobre presents BOTH co-founders (institutional truth) ──────────────────────
+// PUBLIC-WEBSITE-OFFICIAL-READINESS-001 §5: two co-founders, never one.
+const sobreSrc = read(`${WEB}/app/sobre/page.tsx`);
+for (const founder of ['Jesus Rodrigues Monteiro', 'Fidel Rodrigues Monteiro']) {
+  if (!sobreSrc.includes(founder)) findings.PUBLIC_SITE_FOUNDERS_MISSING.push(`/sobre is missing co-founder "${founder}"`);
+}
+
 const layout = stripComments(read(`${WEB}/app/layout.tsx`));
 if (!/<PlatformBanner\s*\/>/.test(layout)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('app/layout.tsx no longer renders the Sandbox banner on every page');
 const banner = stripComments(read(`${WEB}/components/PlatformBanner.tsx`));

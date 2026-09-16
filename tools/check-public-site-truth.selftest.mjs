@@ -149,6 +149,16 @@ const CASES = [
     expect: fails('PUBLIC_SITE_TERMINOLOGY_DRIFT'),
   },
   {
+    name: 'naming — the retired "App Comerciante" product name returns',
+    mutate: (d) => edit(d, `${W}/lib/public-truth.ts`, (s) => s.replace("'App Banzami Business'", "'App Comerciante'")),
+    expect: fails('PUBLIC_SITE_TERMINOLOGY_DRIFT'),
+  },
+  {
+    name: 'founders — /sobre drops a co-founder (single-founder regression)',
+    mutate: (d) => edit(d, `${W}/app/sobre/page.tsx`, (s) => s.replace('Jesus Rodrigues Monteiro', 'Equipa Banzami')),
+    expect: fails('PUBLIC_SITE_FOUNDERS_MISSING'),
+  },
+  {
     name: 'copy — the "tu" form returns',
     mutate: (d) => edit(d, `${W}/app/not-found.tsx`, (s) => s.replace('O endereço que procura', 'O endereço que procuras')),
     expect: fails('PUBLIC_SITE_UNSUPPORTED_COPY'),

@@ -169,6 +169,29 @@ export default function SobrePage() {
         </div>
       </section>
 
+      {/* FUNDADORES */}
+      <section id="fundadores" className="scroll-mt-28 px-6 pb-2 pt-14">
+        <div className="mx-auto max-w-[980px]">
+          <Reveal>
+            <p className="m-0 mb-[18px] text-[12px] font-black tracking-[0.08em] text-cherry">FUNDADORES</p>
+          </Reveal>
+          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
+            {[
+              { name: 'Jesus Rodrigues Monteiro', initials: 'JM' },
+              { name: 'Fidel Rodrigues Monteiro', initials: 'FM' },
+            ].map((f, i) => (
+              <Reveal key={f.name} delay={i * 80} className="flex items-center gap-4 rounded-card border border-border-soft bg-white p-8">
+                <span className="flex h-[56px] w-[56px] flex-none items-center justify-center rounded-full bg-[linear-gradient(150deg,#B5101F,#6E0E14)] text-[20px] font-black text-white">{f.initials}</span>
+                <div>
+                  <p className="m-0 text-[18px] font-black text-ink">{f.name}</p>
+                  <p className="m-0 mt-0.5 text-[14px] font-semibold text-ink-soft">Co-fundador</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ESTADO ATUAL */}
       <section id="estado" className="scroll-mt-28 px-6 pb-2 pt-14">
         <div className="mx-auto max-w-[980px]">

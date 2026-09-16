@@ -16,7 +16,7 @@ const COPY = {
     title: 'Privacidade — programa de testers',
     updated: 'Última atualização: 16 de setembro de 2026',
     intro:
-      'Esta nota explica os dados que recolhemos quando se inscreve para testar as apps do Banzami (App Banzami e App Comerciante) e como os tratamos.',
+      'Esta nota explica os dados que recolhemos quando se inscreve para testar as apps do Banzami (App Banzami e App Banzami Business) e como os tratamos.',
     sections: [
       {
         h: 'O que recolhemos',
@@ -55,7 +55,7 @@ const COPY = {
     title: 'Privacy — tester programme',
     updated: 'Last updated: 16 September 2026',
     intro:
-      'This note explains the data we collect when you register to test the Banzami apps (App Banzami and App Comerciante) and how we handle it.',
+      'This note explains the data we collect when you register to test the Banzami apps (App Banzami and App Banzami Business) and how we handle it.',
     sections: [
       {
         h: 'What we collect',

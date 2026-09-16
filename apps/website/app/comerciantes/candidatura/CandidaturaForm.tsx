@@ -830,7 +830,7 @@ export function CandidaturaForm() {
               Registe o seu negócio
             </h1>
             <p className="m-0 mt-4 text-[15.5px] font-semibold leading-[1.55] text-[#6a5a5e]">
-              Simples. Rápido. 100% online. Tudo o que precisa para começar a aceitar pagamentos.
+              Simples, rápido e 100% online. Registe o seu negócio para o verificar e testar na Sandbox.
             </p>
           </div>
 

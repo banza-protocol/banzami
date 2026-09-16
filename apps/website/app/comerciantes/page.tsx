@@ -419,6 +419,41 @@ export default function ComerciantesPage() {
         </div>
       </section>
 
+      {/* APP BANZAMI BUSINESS */}
+      <section id="app" className="scroll-mt-24 bg-[linear-gradient(180deg,#fff,#FFF7F6)] px-6 py-[clamp(56px,8vw,96px)]">
+        <div className="mx-auto max-w-container">
+          <Reveal className="mb-8 max-w-[680px]">
+            <p className="m-0 mb-3 text-[14px] font-black text-cherry">A APP</p>
+            <h2 className="m-0 text-[clamp(28px,4vw,44px)] font-black leading-[1.06] tracking-[-0.02em] text-ink">
+              Tudo isto na App Banzami Business.
+            </h2>
+            <p className="m-0 mt-4 max-w-[560px] text-[17px] font-semibold leading-[1.55] text-ink-secondary">
+              Crie cobranças por QR ou por link, divida uma conta e acompanhe cada pagamento na carteira
+              do negócio — tudo numa só app. Hoje pode testá-la na {PUBLIC_TRUTH.sandbox.name}, com dinheiro fictício.
+            </p>
+          </Reveal>
+          <div className="grid max-w-[720px] grid-cols-1 gap-3">
+            <div className="flex items-center justify-between gap-4 rounded-[16px] border border-border-soft bg-white px-5 py-4">
+              <div>
+                <p className="m-0 text-[15px] font-black text-ink">App Banzami Business · Web</p>
+                <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-ink-soft">No browser, com dinheiro fictício.</p>
+              </div>
+              <span className="flex-none rounded-pill bg-emerald-100 px-[11px] py-[6px] text-[11px] font-black text-emerald-700">SANDBOX · DISPONÍVEL</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-[16px] border border-border-soft bg-white px-5 py-4">
+              <div>
+                <p className="m-0 text-[15px] font-black text-ink">iPhone e Android</p>
+                <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-ink-soft">Em testes, para testers convidados.</p>
+              </div>
+              <span className="flex-none rounded-pill bg-pink-200 px-[11px] py-[6px] text-[11px] font-black text-cherry-dark">BETA · EM TESTES</span>
+            </div>
+          </div>
+          <p className="m-0 mt-5 text-[14px] font-semibold text-ink-secondary">
+            <a href="/testes" className="font-extrabold text-cherry no-underline">Participar nos testes nativos →</a>
+          </p>
+        </div>
+      </section>
+
       <CTASection />
       <Footer />
     </main>
