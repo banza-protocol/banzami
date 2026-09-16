@@ -150,6 +150,76 @@ func (s *BusinessReceivePointService) ResolveForPayment(ctx context.Context, slu
 	return &pub, merchantID, nil
 }
 
+// sessionPayee is the server-resolved destination for a mint: the Business and its
+// canonical PRIMARY wallet account (ADR-042). The client never supplies any of it.
+type sessionPayee struct {
+	MerchantID      string
+	WalletAccountID string
+	Currency        string
+}
+
+// resolveForSession re-derives the payee from the slug at session-creation time,
+// using the same canonical path as business_link_codes (merchant ACTIVE → AOA
+// ACTIVE wallet → PRIMARY account). It fails closed if the point is disabled, the
+// business is ineligible, or the receive rails are not ready.
+func (s *BusinessReceivePointService) resolveForSession(ctx context.Context, slug string) (*sessionPayee, error) {
+	var (
+		p          sessionPayee
+		pointStat  string
+		merchStat  string
+		handle     string
+		walletID   string
+	)
+	err := s.pool.QueryRow(ctx,
+		`SELECT rp.status, m.id::text, m.status,
+		        COALESCE((SELECT hr.handle FROM handle_registry hr
+		                   WHERE hr.owner_type='MERCHANT' AND hr.owner_id=m.id
+		                   ORDER BY hr.created_at, hr.handle LIMIT 1), ''),
+		        COALESCE(w.id::text, ''), COALESCE(wa.id::text, ''), COALESCE(w.currency, 'AOA')
+		   FROM business_receive_points rp
+		   JOIN merchants m ON m.id = rp.merchant_id
+		   LEFT JOIN wallets w ON w.merchant_id = m.id AND w.currency = 'AOA' AND w.status = 'ACTIVE'
+		   LEFT JOIN wallet_accounts wa ON wa.wallet_id = w.id AND wa.purpose = 'PRIMARY'
+		  WHERE rp.public_slug = $1`,
+		slug).Scan(&pointStat, &p.MerchantID, &merchStat, &handle, &walletID, &p.WalletAccountID, &p.Currency)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrReceivePointNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if pointStat != "ACTIVE" {
+		return nil, ErrReceivePointDisabled
+	}
+	// Current business eligibility + receive rails ready (handle, wallet, PRIMARY
+	// account) — a stale printed QR never bypasses a later suspension.
+	if merchStat != "ACTIVE" || handle == "" || walletID == "" || p.WalletAccountID == "" {
+		return nil, ErrReceivePointIneligible
+	}
+	return &p, nil
+}
+
+// MintSession turns (public slug + payer amount) into a FRESH canonical Payment
+// Session, using the EXISTING payment-session engine. The payee is resolved
+// server-side from the slug (the client provides only slug + amount); each call
+// yields a new session — the receive point is reused, the session is not.
+func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions PaymentSessionService, slug string, amountMinor int64) (*PaymentSession, error) {
+	payee, err := s.resolveForSession(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+	amt := amountMinor
+	return sessions.Create(ctx, CreatePaymentSessionInput{
+		MerchantID:      payee.MerchantID,      // server-resolved
+		WalletAccountID: payee.WalletAccountID, // server-resolved PRIMARY account
+		AmountMinor:     &amt,
+		Currency:        payee.Currency,
+		Purpose:         "GENERIC",
+		ReferenceType:   "BUSINESS_RECEIVE_POINT",
+		ReferenceID:     slug,
+	})
+}
+
 // Disable retires the Business's active receive point (operator/system lifecycle).
 // After this, the printed QR fails closed on resolve. Zero ledger effect.
 func (s *BusinessReceivePointService) Disable(ctx context.Context, merchantID, environment string) error {
