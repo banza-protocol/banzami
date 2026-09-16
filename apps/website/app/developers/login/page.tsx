@@ -156,7 +156,7 @@ export default function DevelopersLoginPage() {
             Termos de Serviço
           </a>{' '}
           e{' '}
-          <a href="https://banzami.com/sobre" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
+          <a href="https://banzami.com/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
             Política de Privacidade
           </a>
           .
