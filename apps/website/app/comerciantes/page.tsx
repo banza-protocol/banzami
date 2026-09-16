@@ -314,7 +314,7 @@ export default function ComerciantesPage() {
       </section>
 
       {/* VANTAGENS */}
-      <section className="px-6 py-[clamp(56px,8vw,96px)]">
+      <section id="vantagens" className="scroll-mt-24 px-6 py-[clamp(56px,8vw,96px)]">
         <div className="mx-auto max-w-container">
           <Reveal className="mb-10 max-w-[640px]">
             <p className="m-0 mb-3 text-[14px] font-black text-cherry">VANTAGENS</p>
