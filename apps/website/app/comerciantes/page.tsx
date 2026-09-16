@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   description:
     'Receber pagamentos por QR e por link, sem terminal. Disponível hoje na Sandbox pública, com dinheiro fictício.',
   alternates: { canonical: 'https://banzami.com/comerciantes' },
+  openGraph: {
+    title: 'Comerciantes — receber com o Banzami',
+    description: 'Receba pagamentos por QR e por link, sem terminal. Testável hoje na Sandbox, com dinheiro fictício.',
+    url: 'https://banzami.com/comerciantes',
+  },
 };
 
 // COMO COMEÇAR — três passos (Comerciantes.dc.html §COMO COMEÇAR).

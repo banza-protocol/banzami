@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   description:
     'Construa com o Banzami: pagamentos nativos de carteira e integração programável para aplicações feitas para Angola. Sandbox pública self-service; Financial Live indisponível.',
   alternates: { canonical: 'https://banzami.com/developers' },
+  openGraph: {
+    title: 'Developers — a plataforma Banzami',
+    description: 'Pagamentos, QR, webhooks, estado em tempo real, liquidações e comprovativos, numa rede nativa de carteira. Sandbox self-service.',
+    url: 'https://banzami.com/developers',
+  },
 };
 
 const CAPABILITIES: { title: string; body: string; href: string }[] = [
