@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
-	"time"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -200,43 +202,90 @@ func (s *BusinessReceivePointService) resolveForSession(ctx context.Context, slu
 	return &p, nil
 }
 
-// ErrMintKeyRequired is returned when a mint carries no idempotency key.
-var ErrMintKeyRequired = errors.New("idempotency key required")
+var (
+	// ErrMintKeyRequired is returned when a mint carries no idempotency key.
+	ErrMintKeyRequired = errors.New("idempotency key required")
+	// ErrMintKeyTooLong bounds the key.
+	ErrMintKeyTooLong = errors.New("idempotency key too long")
+	// ErrIdempotencyConflict is returned when a key is reused for a DIFFERENT
+	// request (e.g. a different amount) — never a silent wrong-amount replay.
+	ErrIdempotencyConflict = errors.New("idempotency key reused for a different request")
+)
 
-// MintSession turns (public slug + payer amount + idempotency key) into a FRESH
-// canonical Payment Session, using the EXISTING payment-session engine. The payee
-// is resolved server-side from the slug (the client provides only slug + amount);
-// different intentional payments (different keys) each get a new session — the
-// receive point is reused, the session is not.
-//
-// Idempotency is reserve-first: the key is inserted BEFORE any session is created,
-// so concurrent deliveries of the SAME key create exactly one session (the winner
-// creates it and records the id; a loser waits for and returns that same id).
-func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions PaymentSessionService, slug, idempotencyKey string, amountMinor int64) (*PaymentSession, error) {
+const maxMintKeyLen = 200
+
+// mintReference is the deterministic per-(payer,key) reference passed to core, so
+// core's "one session per (merchant, purpose, reference)" idempotency makes a
+// retry return the SAME session after a crash — before or after the session was
+// created. It is opaque and carries no authority.
+func mintReference(payerID, key string) string {
+	sum := sha256.Sum256([]byte("brp-mint:" + payerID + "\x00" + key))
+	return hex.EncodeToString(sum[:])
+}
+
+func requestFingerprint(slug, currency string, amountMinor int64) string {
+	sum := sha256.Sum256([]byte(slug + "\x00" + currency + "\x00" + strconv.FormatInt(amountMinor, 10)))
+	return hex.EncodeToString(sum[:])
+}
+
+// MintSession turns (payer + public slug + amount + idempotency key) into a FRESH
+// canonical Payment Session via the EXISTING engine. The payee is resolved
+// server-side from the slug (the caller supplies only slug + amount). Idempotency
+// is scoped to the payer and bound to the request fingerprint; crash consistency
+// is delegated to core's (merchant, purpose, reference) idempotency by passing a
+// deterministic reference — so a retry (before or after the crash) returns the
+// same session with no duplicate and no unbounded wait.
+func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions PaymentSessionService, payerID, slug, idempotencyKey string, amountMinor int64) (*PaymentSession, error) {
 	if idempotencyKey == "" {
 		return nil, ErrMintKeyRequired
 	}
-	// Reserve the key. If we insert, we own the mint; if not, another delivery of
-	// the same key already does — wait for and return its session.
-	var mintID string
-	err := s.pool.QueryRow(ctx,
-		`INSERT INTO business_receive_point_mints (idempotency_key, receive_point_slug)
-		 VALUES ($1, $2)
-		 ON CONFLICT (idempotency_key) DO NOTHING
-		 RETURNING id`, idempotencyKey, slug).Scan(&mintID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return s.awaitMint(ctx, sessions, idempotencyKey)
+	if len(idempotencyKey) > maxMintKeyLen {
+		return nil, ErrMintKeyTooLong
 	}
+	// Resolve first (read-only, no side effect): current eligibility + payee +
+	// currency. An ineligible business fails closed before any reservation.
+	payee, err := s.resolveForSession(ctx, slug)
 	if err != nil {
+		return nil, err
+	}
+	fp := requestFingerprint(slug, payee.Currency, amountMinor)
+
+	// Reserve the (payer, key). On conflict, replay or reject by fingerprint.
+	var mintID string
+	err = s.pool.QueryRow(ctx,
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint)
+		 VALUES ($1,$2,$3,$4)
+		 ON CONFLICT (payer_id, idempotency_key) DO NOTHING
+		 RETURNING id`, payerID, idempotencyKey, slug, fp).Scan(&mintID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Existing operation for this (payer, key): must match the same request.
+		var (
+			existingFP string
+			state      string
+			sessionID  *string
+		)
+		if err := s.pool.QueryRow(ctx,
+			`SELECT id, request_fingerprint, state, session_id FROM business_receive_point_mints
+			  WHERE payer_id=$1 AND idempotency_key=$2`, payerID, idempotencyKey).
+			Scan(&mintID, &existingFP, &state, &sessionID); err != nil {
+			return nil, err
+		}
+		if existingFP != fp {
+			return nil, ErrIdempotencyConflict
+		}
+		if state == "SUCCEEDED" && sessionID != nil && *sessionID != "" {
+			if got, err := sessions.Get(ctx, *sessionID); err == nil && got != nil {
+				return got, nil
+			}
+			return &PaymentSession{SessionID: *sessionID}, nil
+		}
+		// PENDING (a prior attempt did not record a result — e.g. a crash). Re-run
+		// the create below: core's reference idempotency returns the same session
+		// if one was already created, or creates it if not.
+	} else if err != nil {
 		return nil, err
 	}
 
-	payee, err := s.resolveForSession(ctx, slug)
-	if err != nil {
-		// The reservation is void: a later key reuse must be able to try again.
-		_, _ = s.pool.Exec(ctx, `DELETE FROM business_receive_point_mints WHERE id=$1 AND session_id IS NULL`, mintID)
-		return nil, err
-	}
 	amt := amountMinor
 	sess, err := sessions.Create(ctx, CreatePaymentSessionInput{
 		MerchantID:      payee.MerchantID,      // server-resolved
@@ -245,41 +294,19 @@ func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions 
 		Currency:        payee.Currency,
 		Purpose:         "GENERIC",
 		ReferenceType:   "BUSINESS_RECEIVE_POINT",
-		ReferenceID:     slug,
+		ReferenceID:     mintReference(payerID, idempotencyKey), // deterministic → core dedupes
 	})
 	if err != nil {
-		_, _ = s.pool.Exec(ctx, `DELETE FROM business_receive_point_mints WHERE id=$1 AND session_id IS NULL`, mintID)
+		_, _ = s.pool.Exec(ctx,
+			`UPDATE business_receive_point_mints SET state='FAILED', updated_at=now() WHERE id=$1 AND state='PENDING'`, mintID)
 		return nil, err
 	}
 	if _, err := s.pool.Exec(ctx,
-		`UPDATE business_receive_point_mints SET session_id=$2 WHERE id=$1`, mintID, sess.SessionID); err != nil {
+		`UPDATE business_receive_point_mints SET state='SUCCEEDED', session_id=$2, updated_at=now() WHERE id=$1`,
+		mintID, sess.SessionID); err != nil {
 		return nil, err
 	}
 	return sess, nil
-}
-
-// awaitMint returns the session a concurrent winner minted for the same key,
-// waiting the brief reserve→create window. Bounded; never creates a session.
-func (s *BusinessReceivePointService) awaitMint(ctx context.Context, sessions PaymentSessionService, idempotencyKey string) (*PaymentSession, error) {
-	for i := 0; i < 50; i++ {
-		var sid *string
-		if err := s.pool.QueryRow(ctx,
-			`SELECT session_id FROM business_receive_point_mints WHERE idempotency_key=$1`, idempotencyKey).Scan(&sid); err != nil {
-			return nil, err
-		}
-		if sid != nil && *sid != "" {
-			if got, err := sessions.Get(ctx, *sid); err == nil && got != nil {
-				return got, nil
-			}
-			return &PaymentSession{SessionID: *sid}, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(20 * time.Millisecond):
-		}
-	}
-	return nil, errors.New("mint still in progress")
 }
 
 // Disable retires the Business's active receive point (operator/system lifecycle).

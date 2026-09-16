@@ -148,20 +148,43 @@ func TestReceivePoint_SuspendedBusinessFailsClosed(t *testing.T) {
 	}
 }
 
-// fakeSessions is a PaymentSessionService test double: it captures every Create
-// input and returns a fresh session id per call (proving fresh-session-per-payment
-// without a running core, per §35).
+// fakeSessions models core's Payment Session engine INCLUDING its documented
+// idempotency: one session per (merchant, purpose, reference). Re-creating with
+// the same reference returns the same session — the boundary the mint relies on
+// for crash consistency (per §35, the double mirrors the audited core behaviour).
 type fakeSessions struct {
-	calls []CreatePaymentSessionInput
-	n     int
+	mu      sync.Mutex
+	byRef   map[string]*PaymentSession
+	creates int // sessions actually created (not idempotent replays)
+	calls   []CreatePaymentSessionInput
 }
 
 func (f *fakeSessions) Create(_ context.Context, in CreatePaymentSessionInput) (*PaymentSession, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.byRef == nil {
+		f.byRef = map[string]*PaymentSession{}
+	}
+	ref := in.MerchantID + "\x00" + in.Purpose + "\x00" + in.ReferenceType + "\x00" + in.ReferenceID
+	if s, ok := f.byRef[ref]; ok {
+		return s, nil // core idempotency: same reference → same session
+	}
+	f.creates++
 	f.calls = append(f.calls, in)
-	f.n++
-	return &PaymentSession{SessionID: "sess-" + uuid.NewString(), MerchantID: in.MerchantID, WalletAccountID: in.WalletAccountID, AmountMinor: in.AmountMinor, Status: "CREATED"}, nil
+	s := &PaymentSession{SessionID: "sess-" + uuid.NewString(), MerchantID: in.MerchantID, WalletAccountID: in.WalletAccountID, AmountMinor: in.AmountMinor, Status: "CREATED"}
+	f.byRef[ref] = s
+	return s, nil
 }
-func (f *fakeSessions) Get(context.Context, string) (*PaymentSession, error) { return nil, nil }
+func (f *fakeSessions) Get(_ context.Context, id string) (*PaymentSession, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, s := range f.byRef {
+		if s.SessionID == id {
+			return s, nil
+		}
+	}
+	return nil, nil
+}
 func (f *fakeSessions) List(context.Context, string, string, int) ([]PaymentSession, error) {
 	return nil, nil
 }
@@ -174,9 +197,8 @@ func (f *fakeSessions) GetByInterface(context.Context, string, string) (*Payment
 func seedReceivableBusiness(ctx context.Context, t *testing.T, pool *pgxpool.Pool) (merchantID, primaryAccountID string) {
 	t.Helper()
 	merchantID = seedMerchant(ctx, t, pool, "ACTIVE")
-	_, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`,
-		"loja"+merchantID[:8], merchantID)
-	if err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`,
+		"loja"+merchantID[:8], merchantID); err != nil {
 		t.Fatalf("seed handle: %v", err)
 	}
 	acc := func() string {
@@ -194,15 +216,14 @@ func seedReceivableBusiness(ctx context.Context, t *testing.T, pool *pgxpool.Poo
 		t.Fatalf("seed wallet: %v", err)
 	}
 	if err := pool.QueryRow(ctx,
-		`SELECT wa.id::text FROM wallet_accounts wa JOIN wallets w ON w.id=wa.wallet_id
-		  WHERE w.merchant_id=$1 AND wa.purpose='PRIMARY'`, merchantID).Scan(&primaryAccountID); err != nil {
+		`SELECT wa.id::text FROM wallet_accounts wa JOIN wallets w ON w.id=wa.wallet_id WHERE w.merchant_id=$1 AND wa.purpose='PRIMARY'`,
+		merchantID).Scan(&primaryAccountID); err != nil {
 		t.Fatalf("primary account (trigger): %v", err)
 	}
 	return merchantID, primaryAccountID
 }
 
-func TestReceivePoint_MintFreshSessionPerPayment(t *testing.T) {
-	ctx := context.Background()
+func mintFixture(ctx context.Context, t *testing.T) (*BusinessReceivePointService, *pgxpool.Pool, string, string, string) {
 	pool := rpPoolOrSkip(ctx, t)
 	svc := NewBusinessReceivePointService(pool)
 	m, primaryAcc := seedReceivableBusiness(ctx, t, pool)
@@ -210,30 +231,35 @@ func TestReceivePoint_MintFreshSessionPerPayment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fake := &fakeSessions{}
+	return svc, pool, m, primaryAcc, rp.PublicSlug
+}
 
-	a, err := svc.MintSession(ctx, fake, rp.PublicSlug, "kA-"+uuid.NewString(), 1000)
+func TestReceivePoint_MintFreshSessionPerPayment(t *testing.T) {
+	ctx := context.Background()
+	svc, _, m, primaryAcc, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	payer := "payer-" + uuid.NewString()
+
+	a, err := svc.MintSession(ctx, fake, payer, slug, "k-"+uuid.NewString(), 1000)
 	if err != nil {
 		t.Fatalf("mint A: %v", err)
 	}
-	b, err := svc.MintSession(ctx, fake, rp.PublicSlug, "kB-"+uuid.NewString(), 2500)
+	b, err := svc.MintSession(ctx, fake, payer, slug, "k-"+uuid.NewString(), 2500)
 	if err != nil {
 		t.Fatalf("mint B: %v", err)
 	}
-	// Two intentional payments → two distinct fresh sessions; the point is reused.
 	if a.SessionID == b.SessionID {
-		t.Fatal("same session reused across payments — must be fresh per payment")
+		t.Fatal("distinct payments must be distinct sessions")
 	}
-	if len(fake.calls) != 2 {
-		t.Fatalf("want 2 Create calls, got %d", len(fake.calls))
+	if fake.creates != 2 {
+		t.Fatalf("want 2 sessions created, got %d", fake.creates)
 	}
 	for i, c := range fake.calls {
-		// Payee is SERVER-resolved from the slug — the caller never chose it.
 		if c.MerchantID != m || c.WalletAccountID != primaryAcc {
 			t.Fatalf("call %d payee not server-resolved: %+v", i, c)
 		}
-		if c.ReferenceType != "BUSINESS_RECEIVE_POINT" || c.ReferenceID != rp.PublicSlug {
-			t.Fatalf("call %d reference wrong: %+v", i, c)
+		if c.ReferenceType != "BUSINESS_RECEIVE_POINT" {
+			t.Fatalf("call %d reference type wrong: %+v", i, c)
 		}
 	}
 	if *fake.calls[0].AmountMinor != 1000 || *fake.calls[1].AmountMinor != 2500 {
@@ -241,71 +267,139 @@ func TestReceivePoint_MintFreshSessionPerPayment(t *testing.T) {
 	}
 }
 
-func TestReceivePoint_MintFailsClosedWhenIneligible(t *testing.T) {
-	ctx := context.Background()
-	pool := rpPoolOrSkip(ctx, t)
-	svc := NewBusinessReceivePointService(pool)
-	m, _ := seedReceivableBusiness(ctx, t, pool)
-	rp, _ := svc.EnsureActive(ctx, m, "SANDBOX")
-	if _, err := pool.Exec(ctx, `UPDATE merchants SET status='SUSPENDED' WHERE id=$1`, m); err != nil {
-		t.Fatal(err)
-	}
-	fake := &fakeSessions{}
-	if _, err := svc.MintSession(ctx, fake, rp.PublicSlug, "ki-"+uuid.NewString(), 1000); !errors.Is(err, ErrReceivePointIneligible) {
-		t.Fatalf("suspended business mint must fail closed, got %v", err)
-	}
-	if len(fake.calls) != 0 {
-		t.Fatal("no session may be created for an ineligible business")
-	}
-}
-
 func TestReceivePoint_MintIdempotentSameKey(t *testing.T) {
 	ctx := context.Background()
-	pool := rpPoolOrSkip(ctx, t)
-	svc := NewBusinessReceivePointService(pool)
-	m, _ := seedReceivableBusiness(ctx, t, pool)
-	rp, _ := svc.EnsureActive(ctx, m, "SANDBOX")
+	svc, _, _, _, slug := mintFixture(ctx, t)
 	fake := &fakeSessions{}
-	key := "same-" + uuid.NewString()
+	payer, key := "payer-"+uuid.NewString(), "same-"+uuid.NewString()
 
-	a, err := svc.MintSession(ctx, fake, rp.PublicSlug, key, 1000)
+	a, err := svc.MintSession(ctx, fake, payer, slug, key, 1000)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := svc.MintSession(ctx, fake, rp.PublicSlug, key, 1000)
+	b, err := svc.MintSession(ctx, fake, payer, slug, key, 1000)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if a.SessionID != b.SessionID {
-		t.Fatalf("same idempotency key must return the same session: %q vs %q", a.SessionID, b.SessionID)
+		t.Fatalf("same key+request must replay the same session: %q vs %q", a.SessionID, b.SessionID)
 	}
-	if fake.n != 1 {
-		t.Fatalf("same key must create exactly one session, got %d", fake.n)
+	if fake.creates != 1 {
+		t.Fatalf("same key must create exactly one session, got %d", fake.creates)
+	}
+}
+
+func TestReceivePoint_MintFingerprintConflict(t *testing.T) {
+	ctx := context.Background()
+	svc, _, _, _, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
+
+	if _, err := svc.MintSession(ctx, fake, payer, slug, key, 1000); err != nil {
+		t.Fatal(err)
+	}
+	// same key, DIFFERENT amount → deterministic conflict, never a wrong-amount replay.
+	if _, err := svc.MintSession(ctx, fake, payer, slug, key, 9999); !errors.Is(err, ErrIdempotencyConflict) {
+		t.Fatalf("reused key with different amount must conflict, got %v", err)
+	}
+	if fake.creates != 1 {
+		t.Fatalf("conflict must not create a second session, got %d", fake.creates)
+	}
+}
+
+func TestReceivePoint_MintCrossPayerNoCollision(t *testing.T) {
+	ctx := context.Background()
+	svc, _, _, _, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	key := "shared-key"
+
+	a, err := svc.MintSession(ctx, fake, "payer-A-"+uuid.NewString(), slug, key, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := svc.MintSession(ctx, fake, "payer-B-"+uuid.NewString(), slug, key, 1000)
+	if err != nil {
+		t.Fatalf("a second payer's identical key must be independent, got %v", err)
+	}
+	if a.SessionID == b.SessionID {
+		t.Fatal("two payers sharing a key must not share a session")
+	}
+	if fake.creates != 2 {
+		t.Fatalf("want 2 independent sessions, got %d", fake.creates)
+	}
+}
+
+func TestReceivePoint_MintCrashBeforeCreateRecovers(t *testing.T) {
+	ctx := context.Background()
+	svc, pool, _, _, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
+	// Simulate: a prior attempt reserved the key and crashed BEFORE creating a
+	// session (PENDING, no session_id, no core session for the reference).
+	fp := requestFingerprint(slug, "AOA", 1000)
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state) VALUES ($1,$2,$3,$4,'PENDING')`,
+		payer, key, slug, fp); err != nil {
+		t.Fatal(err)
+	}
+	got, err := svc.MintSession(ctx, fake, payer, slug, key, 1000)
+	if err != nil {
+		t.Fatalf("retry after crash-before-create must recover, got %v", err)
+	}
+	if got.SessionID == "" || fake.creates != 1 {
+		t.Fatalf("recovery must create exactly one session, creates=%d", fake.creates)
+	}
+}
+
+func TestReceivePoint_MintCrashAfterCreateNoDuplicate(t *testing.T) {
+	ctx := context.Background()
+	svc, pool, m, primaryAcc, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
+	// Simulate: a prior attempt reserved the key AND core created the session for
+	// the deterministic reference, but the gateway crashed before recording it.
+	fp := requestFingerprint(slug, "AOA", 1000)
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state) VALUES ($1,$2,$3,$4,'PENDING')`,
+		payer, key, slug, fp); err != nil {
+		t.Fatal(err)
+	}
+	ref := mintReference(payer, key)
+	amt := int64(1000)
+	pre, _ := fake.Create(ctx, CreatePaymentSessionInput{MerchantID: m, WalletAccountID: primaryAcc, AmountMinor: &amt, Currency: "AOA", Purpose: "GENERIC", ReferenceType: "BUSINESS_RECEIVE_POINT", ReferenceID: ref})
+	if fake.creates != 1 {
+		t.Fatal("precondition: one pre-created session")
+	}
+	got, err := svc.MintSession(ctx, fake, payer, slug, key, 1000)
+	if err != nil {
+		t.Fatalf("retry after crash-after-create must recover, got %v", err)
+	}
+	if got.SessionID != pre.SessionID {
+		t.Fatalf("must recover the SAME session, got %q want %q", got.SessionID, pre.SessionID)
+	}
+	if fake.creates != 1 {
+		t.Fatalf("crash-after-create must NOT create a duplicate, creates=%d", fake.creates)
 	}
 }
 
 func TestReceivePoint_MintKeyRaceCreatesOneSession(t *testing.T) {
 	ctx := context.Background()
-	pool := rpPoolOrSkip(ctx, t)
-	svc := NewBusinessReceivePointService(pool)
-	m, _ := seedReceivableBusiness(ctx, t, pool)
-	rp, _ := svc.EnsureActive(ctx, m, "SANDBOX")
+	svc, pool, _, _, slug := mintFixture(ctx, t)
 	fake := &fakeSessions{}
-	key := "race-" + uuid.NewString()
+	payer, key := "payer-"+uuid.NewString(), "race-"+uuid.NewString()
 
 	var wg sync.WaitGroup
 	for i := 0; i < 8; i++ {
 		wg.Add(1)
-		go func() { defer wg.Done(); _, _ = svc.MintSession(ctx, fake, rp.PublicSlug, key, 1000) }()
+		go func() { defer wg.Done(); _, _ = svc.MintSession(ctx, fake, payer, slug, key, 1000) }()
 	}
 	wg.Wait()
-
-	if fake.n != 1 {
-		t.Fatalf("concurrent same-key mints created %d sessions, want exactly 1", fake.n)
+	if fake.creates != 1 {
+		t.Fatalf("concurrent same-key mints created %d sessions, want exactly 1", fake.creates)
 	}
 	var rows int
 	if err := pool.QueryRow(ctx,
-		`SELECT count(*) FROM business_receive_point_mints WHERE idempotency_key=$1`, key).Scan(&rows); err != nil {
+		`SELECT count(*) FROM business_receive_point_mints WHERE payer_id=$1 AND idempotency_key=$2`, payer, key).Scan(&rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows != 1 {
@@ -313,14 +407,34 @@ func TestReceivePoint_MintKeyRaceCreatesOneSession(t *testing.T) {
 	}
 }
 
-func TestReceivePoint_MintRequiresKey(t *testing.T) {
+func TestReceivePoint_MintFailsClosedWhenIneligible(t *testing.T) {
 	ctx := context.Background()
-	pool := rpPoolOrSkip(ctx, t)
-	svc := NewBusinessReceivePointService(pool)
-	m, _ := seedReceivableBusiness(ctx, t, pool)
-	rp, _ := svc.EnsureActive(ctx, m, "SANDBOX")
-	if _, err := svc.MintSession(ctx, &fakeSessions{}, rp.PublicSlug, "", 1000); !errors.Is(err, ErrMintKeyRequired) {
-		t.Fatalf("mint without a key must be rejected, got %v", err)
+	svc, pool, m, _, slug := mintFixture(ctx, t)
+	if _, err := pool.Exec(ctx, `UPDATE merchants SET status='SUSPENDED' WHERE id=$1`, m); err != nil {
+		t.Fatal(err)
+	}
+	fake := &fakeSessions{}
+	if _, err := svc.MintSession(ctx, fake, "payer-"+uuid.NewString(), slug, "k-"+uuid.NewString(), 1000); !errors.Is(err, ErrReceivePointIneligible) {
+		t.Fatalf("suspended business mint must fail closed, got %v", err)
+	}
+	if fake.creates != 0 {
+		t.Fatal("no session may be created for an ineligible business")
+	}
+}
+
+func TestReceivePoint_MintKeyValidation(t *testing.T) {
+	ctx := context.Background()
+	svc, _, _, _, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	if _, err := svc.MintSession(ctx, fake, "p", slug, "", 1000); !errors.Is(err, ErrMintKeyRequired) {
+		t.Fatalf("empty key must be rejected, got %v", err)
+	}
+	long := make([]byte, maxMintKeyLen+1)
+	for i := range long {
+		long[i] = 'x'
+	}
+	if _, err := svc.MintSession(ctx, fake, "p", slug, string(long), 1000); !errors.Is(err, ErrMintKeyTooLong) {
+		t.Fatalf("oversized key must be rejected, got %v", err)
 	}
 }
 
