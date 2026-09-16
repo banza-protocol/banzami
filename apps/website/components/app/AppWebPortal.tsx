@@ -34,10 +34,19 @@ export function AppWebPortal() {
           loading="lazy"
           data-testid="portal-live-app"
           // The iframe is itself a keyboard tab stop (focus descends into the
-          // embedded app), but browsers paint no ring on a focused iframe — give
-          // it a visible focus indicator like every other interactive element
-          // (WCAG 2.4.7). The left-column CTA remains the primary launch path.
-          className="bz-appframe h-full w-full rounded-[36px] border-0 bg-transparent"
+          // embedded app), but Chromium honors neither an author :focus rule nor
+          // :focus-visible on a focused iframe element — so paint the ring with an
+          // inline style toggled on focus/blur, which does render (WCAG 2.4.7).
+          // The left-column CTA remains the primary launch path.
+          onFocus={(e) => {
+            e.currentTarget.style.outline = '2px solid #B5101F';
+            e.currentTarget.style.outlineOffset = '4px';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.outline = '';
+            e.currentTarget.style.outlineOffset = '';
+          }}
+          className="h-full w-full rounded-[36px] border-0 bg-transparent"
         />
       </div>
     </div>
