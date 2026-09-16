@@ -580,10 +580,16 @@ app-web-browser-check:
 app-web-realtime:
 	node tools/e2e/app-web/proofs/05-realtime-incoming-payment.mjs
 
-# WEB-QR-CAMERA-001 — focused proof: the Web QR camera path (allowed/denied/retry/
-# no-camera + a real fake-camera QR media pipeline). Needs the pinned browser.
+# WEB-QR-CAMERA-001 — focused proof: the Web QR camera path. 08 is decoder/deploy
+# integrity (self-hosted ZXing, strict CSP, version pin, root cause); 07 is the
+# runtime camera flows (allowed/denied/retry/no-camera/mobile/release/visibility +
+# a real fake-camera QR media pipeline through self-hosted ZXing + invalid QR).
+# 07 generates its Y4M fixture on demand (gitignored) and cleans it up. Needs the
+# pinned browser. Exits non-zero on any mandatory failure.
 app-web-qr:
+	node tools/e2e/app-web/proofs/08-web-qr-decoder-integrity.mjs
 	node tools/e2e/app-web/proofs/07-web-qr-camera.mjs
+	@rm -f tools/e2e/app-web/fixtures/qr.y4m
 
 # Release-readiness gate — alias of the FULL external Sandbox launch gate.
 assure-release: assure-sandbox-launch
