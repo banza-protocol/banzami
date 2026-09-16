@@ -1,4 +1,8 @@
-# Vendored ZXing decoder — `zxing-library-0.21.3.js`
+# Vendored ZXing decoder — `web/zxing-library-0.21.3.js`
+
+> This note lives here, **outside `web/`**, on purpose: Flutter serves everything
+> under `web/` as a public asset, and vendoring documentation should not be served.
+> The vendored decoder itself must stay in `web/` so it is served from our origin.
 
 ## Why this file exists
 

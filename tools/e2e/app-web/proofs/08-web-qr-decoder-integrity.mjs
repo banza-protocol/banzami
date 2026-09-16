@@ -45,7 +45,9 @@ try {
   // ── 2. Vendor version pinned (served asset == vendored file == canonical) ────
   const vendored = join(REPO, 'apps', 'mobile', 'web', 'zxing-library-0.21.3.js');
   const vendoredSha = existsSync(vendored) ? await sha256File(vendored) : 'MISSING';
-  const readme = join(REPO, 'apps', 'mobile', 'web', 'README-zxing.md');
+  // The README lives OUTSIDE web/ on purpose — Flutter serves everything under
+  // web/, and a vendoring note should not be a public asset.
+  const readme = join(REPO, 'apps', 'mobile', 'README-zxing.md');
   const hasProvenance = existsSync(readme) && /0\.21\.3/.test(readFileSync(readme, 'utf8')) && /SHA-256/i.test(readFileSync(readme, 'utf8'));
   const pinned = liveSha === CANON_SHA256 && vendoredSha === CANON_SHA256 && hasProvenance;
   R.mark('ZXING_VENDOR_VERSION_PINNED', pinned,
