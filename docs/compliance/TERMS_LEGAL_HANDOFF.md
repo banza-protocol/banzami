@@ -1,8 +1,30 @@
 # Terms of Service — Legal Handoff Packet
 
-**Milestone:** PUBLIC-WEBSITE-LEGAL-RELEASE-001
+**Milestone:** PUBLIC-WEBSITE-LEGAL-RELEASE-001 → TERMS-INFRASTRUCTURE-CONSISTENCY-001
 **Status:** `TERMS_INFRASTRUCTURE_READY=PASS` · `TERMS_LEGAL_SOURCE=BLOCKED_ON_HUMAN_APPROVAL`
+`TERMS_STATUS=DRAFT` · `DRAFT_TERMS_VALID_ACCEPTANCE_PATHS=0` · `TERMS_VERSION_STORAGE_READY=PASS`
+`FAKE_LEGACY_TERMS_ACCEPTANCE=0` · `LOGIN_IMPLIES_TERMS_ACCEPTANCE=0` · `VERSIONED_TERMS_ACCEPTANCE_ARCHITECTURE=PASS`
 **Version:** 1.0
+
+## Acceptance model (corrected)
+
+A **valid published-Terms acceptance requires a version**: `status=PUBLISHED` **and**
+`terms_version != NULL` **and** `terms_accepted_at != NULL` **and** the accepted
+version equals the current published version. While the document is **DRAFT**
+(today), no flow can produce this — `terms_version` is always NULL, so every
+acceptance is an **unversioned pre-release acknowledgement**, never treated as
+acceptance of the future published Terms. This is enforced server-side by
+`resolveAcceptedTermsVersion` in the gateway (persists a version only when it
+matches the deploy-time `PublishedTermsVersion`, which is `""` while DRAFT).
+
+### Flow classification (§2)
+
+| Flow | Classification | Notes |
+|---|---|---|
+| Public merchant candidatura | **EXPLICIT_ACCEPTANCE** (checkbox, required) | records unversioned ack while DRAFT |
+| Console Business application | **EXPLICIT_ACCEPTANCE** (checkbox, required) | records unversioned ack while DRAFT |
+| Developer sign-in | **NO_ACCEPTANCE** (was implicit "Ao continuar…"; now "Ao entrar, aplica-se a Política de Privacidade. Consulte também os Termos.") | login ≠ acceptance |
+| Consumer "Termos de uso" | **INFORMATIONAL_ONLY** | no gate; links to /termos on publication (mobile) |
 
 This packet gives legal counsel the factual context to author the Banzami Terms of
 Service. All infrastructure around the document is built and wired; only the
@@ -48,19 +70,26 @@ shape, not a link).
 
 ## 4. Acceptance recording (current backend truth)
 
-- **Recorded:** `merchant_applications.terms_accepted_at` (timestamptz) — set when a
-  business/merchant application is submitted with `terms_accepted: true`
-  (`services/api-gateway/internal/service/merchant_applications.go`,
-  `business_requirements.go`). Verified in the live Sandbox DB.
-- **NOT recorded:** `terms_version`. There is no version column today.
-- **Gap / design (blocked on the real version):** add a nullable
-  `terms_version text` to `merchant_applications`, populate it at submission from
-  `TERMS.version` (the version in effect), and surface it in the admin business
-  detail. **Not implemented now** because recording a placeholder version for real
-  submissions would fabricate a version (violates §12). Implement together with
-  publication of the approved document.
+- **Recorded (when):** `merchant_applications.terms_accepted_at` (timestamptz) — set
+  when an application is submitted with `terms_accepted: true`.
+- **Recorded (which version):** `merchant_applications.terms_version` (text, **nullable**)
+  — added by migration `db/migrations/0153_terms_acceptance_records_a_version.sql`.
+  The gateway persists it via `resolveAcceptedTermsVersion(sent, PublishedTermsVersion)`:
+  a version is stored **only** when a document is published and the applicant
+  accepted exactly that version; otherwise NULL. `PublishedTermsVersion` is `""`
+  today (DRAFT), so every new row is NULL — DRAFT fails closed.
+- **No backfill:** existing rows (pre-release Sandbox submissions with
+  `terms_accepted_at` set) are **not** assigned any version. NULL `terms_version`
+  = unversioned pre-release acknowledgement, never published-Terms acceptance
+  (`UNVERSIONED_ACCEPTANCE_COUNTS_AS_PUBLISHED_TERMS=0`).
+- **Client:** the candidatura and Console forms send `terms_version` only when
+  `isTermsPublished()` (omitted while DRAFT).
 - **Not in the financial ledger.** Terms acceptance creates no financial authority
-  (§10). It stays on the application/identity record.
+  (§10); it stays on the application record.
+- **Apply note:** migration 0153 is applied to Sandbox through the standard
+  operator-TTY migration path (not psql). The `developer-api` proxy layer must
+  forward `terms_version` at publication (currently unthreaded — harmless while
+  DRAFT since no version flows).
 
 ## 5. Identity domains (no authority leakage — §11)
 
@@ -131,7 +160,9 @@ in the policy was autonomously rewritten.
 - [ ] Page becomes indexable (robots flips automatically via `isTermsPublished()`); set canonical (already `/termos`).
 - [ ] Add **Termos** to the footer Legal links (next to Privacidade).
 - [ ] Add `/termos` to the sitemap (`lib/public-pages.ts`).
-- [ ] Add `terms_version` recording to `merchant_applications` + thread through the application API.
+- [x] `terms_version` column + gateway recording + client send (done — migration 0153, `resolveAcceptedTermsVersion`).
+- [ ] Set `PublishedTermsVersion` in the gateway to the approved version and redeploy (this is what turns acceptance from unversioned ack into versioned acceptance).
+- [ ] Thread `terms_version` through the `developer-api` proxy (Console path).
 - [ ] Run acceptance E2E: cannot submit when required acceptance is false; can after explicit acceptance; record stores the current version; no duplicate/fake records.
 - [ ] Re-run official-readiness gates (edge, founders, naming, claims, boundaries, a11y, responsive, SEO, crawl, truth guards, headers).
 - [ ] Then, and only then: `PUBLIC-WEBSITE-OFFICIAL-READINESS-001 = OFFICIAL RELEASE READY`.

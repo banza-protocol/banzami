@@ -317,6 +317,8 @@ export type ApplicationInput = {
   business_activity?: string;
   estimated_volume?: string;
   terms_accepted: boolean;
+  /** Published Terms version accepted; omitted while Terms are DRAFT. */
+  terms_version?: string;
   /** The requested @handle is already this applicant's Business Account. */
   existing_business?: boolean;
 };

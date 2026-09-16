@@ -85,6 +85,7 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		BusinessActivity    string `json:"business_activity"`
 		EstimatedVolume     string `json:"estimated_volume"`
 		TermsAccepted       bool   `json:"terms_accepted"`
+		TermsVersion        string `json:"terms_version"`
 		// The applicant says the requested @handle is already their Business's.
 		// No handle is held; an operator resolves the application by linking it
 		// to that Business, never by creating another.
@@ -140,6 +141,7 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		BusinessActivity:    body.BusinessActivity,
 		EstimatedVolume:     body.EstimatedVolume,
 		TermsAccepted:       body.TermsAccepted,
+		TermsVersion:        body.TermsVersion,
 		ExistingBusiness:    body.ExistingBusiness,
 		// One key per form session: a double click or a retried request returns
 		// the application the first one created.

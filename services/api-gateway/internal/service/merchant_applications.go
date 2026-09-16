@@ -68,6 +68,11 @@ type MerchantApplicationInput struct {
 	// same key returns the application the first one created.
 	IdempotencyKey string
 	TermsAccepted  bool
+	// TermsVersion is the published Terms version the applicant accepted, as sent
+	// by the client. It is only persisted when it matches the server's published
+	// version (see resolveAcceptedTermsVersion) — while Terms are DRAFT nothing is
+	// persisted, so no versioned acceptance can be forged.
+	TermsVersion string
 	// Origin is where the application was started: ApplicationOriginStandalone
 	// (the public form) or ApplicationOriginDeveloperProject (a Project's
 	// Financial Setup, with ProjectID and the Console user who submitted).
@@ -306,6 +311,26 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 	return appID, nil
 }
 
+// PublishedTermsVersion is the currently-published Terms of Service version, or
+// "" while the document is DRAFT (the state today: the human-approved Terms are
+// not yet published; banzami.com/termos is a placeholder). It is deliberately a
+// deploy-time value set only when a real document is published, alongside the
+// website's lib/terms.ts. While it is "", no acceptance can record a version —
+// DRAFT acceptance fails closed (TERMS-INFRASTRUCTURE-CONSISTENCY-001 §1/§14).
+var PublishedTermsVersion = ""
+
+// resolveAcceptedTermsVersion decides which Terms version to persist for an
+// acceptance. It persists a version ONLY when a document is published AND the
+// applicant accepted exactly that published version; otherwise it persists ""
+// (stored as SQL NULL) — an unversioned, pre-release acknowledgement that is
+// never treated as acceptance of the published Terms.
+func resolveAcceptedTermsVersion(sent, published string) string {
+	if published == "" || sent != published {
+		return ""
+	}
+	return published
+}
+
 // insertApplication writes a SUBMITTED application inside the caller's tx.
 func (s *PostgresMerchantApplicationService) insertApplication(ctx context.Context, tx pgx.Tx, appID, env, handle string, in MerchantApplicationInput, keyHash any) error {
 	_, err := tx.Exec(ctx,
@@ -314,15 +339,16 @@ func (s *PostgresMerchantApplicationService) insertApplication(ctx context.Conte
 		    nif, country, province, municipality, city, address, address_reference,
 		    legal_representative, representative_role, representative_email, representative_phone,
 		    business_activity, estimated_volume, claims_existing_business, submit_idempotency_key, terms_accepted_at,
-		    origin, project_id, submitted_by_user_id)
+		    origin, project_id, submitted_by_user_id, terms_version)
 		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23, now(),
-		         $24, $25::uuid, $26::uuid)`,
+		         $24, $25::uuid, $26::uuid, $27)`,
 		appID, env, handle, in.BusinessName, nullStr(in.Category), nullStr(in.Subcategory), in.Email, nullStr(in.Phone),
 		nullStr(in.Nif), nullStr(in.Country), nullStr(in.Province), nullStr(in.Municipality), nullStr(in.City),
 		nullStr(in.Address), nullStr(in.AddressReference),
 		nullStr(in.LegalRepresentative), nullStr(in.RepresentativeRole), nullStr(in.RepresentativeEmail), nullStr(in.RepresentativePhone),
 		nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume), in.ExistingBusiness, keyHash,
 		in.Origin, nullStr(in.ProjectID), nullStr(in.SubmittedByUserID),
+		nullStr(resolveAcceptedTermsVersion(in.TermsVersion, PublishedTermsVersion)),
 	)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.ConstraintName == "uq_merchant_applications_open_per_project" {

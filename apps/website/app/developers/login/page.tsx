@@ -147,17 +147,18 @@ export default function DevelopersLoginPage() {
         </p>
         <div style={{ height: 1, background: '#F2E6E4', margin: '24px 0 18px' }} />
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: '#a89a9e', fontWeight: 600 }}>
-          {/* Absolute, not relative: these pages live on banzami.com, and this
-              page is served from developers.banzami.com — a relative /sobre
-              404s here. A dead link is bad anywhere; on the consent a developer
-              is being asked to agree to, it is worse. */}
-          Ao continuar, concorda com os nossos{' '}
-          <a href="https://banzami.com/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
-            Termos de Serviço
-          </a>{' '}
-          e{' '}
+          {/* Sign-in is authentication, not contractual acceptance: entering the
+              Console does not accept the Terms (TERMS-INFRASTRUCTURE-CONSISTENCY-001
+              §3/§4). The Privacy Policy applies to the data processed at sign-in;
+              the Terms are accepted explicitly, later, when a business is created.
+              Absolute URLs: this page is served from developers.banzami.com. */}
+          Ao entrar, aplica-se a nossa{' '}
           <a href="https://banzami.com/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
             Política de Privacidade
+          </a>
+          . Consulte também os{' '}
+          <a href="https://banzami.com/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
+            Termos de Serviço
           </a>
           .
         </p>

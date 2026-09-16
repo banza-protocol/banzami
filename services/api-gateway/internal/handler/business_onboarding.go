@@ -69,6 +69,7 @@ func (h *BusinessOnboardingHandler) SubmitForProject(w http.ResponseWriter, r *h
 		BusinessActivity    string `json:"business_activity"`
 		EstimatedVolume     string `json:"estimated_volume"`
 		TermsAccepted       bool   `json:"terms_accepted"`
+		TermsVersion        string `json:"terms_version"`
 		IdempotencyKey      string `json:"idempotency_key"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&body); err != nil {
@@ -87,7 +88,7 @@ func (h *BusinessOnboardingHandler) SubmitForProject(w http.ResponseWriter, r *h
 		LegalRepresentative: body.LegalRepresentative, RepresentativeRole: body.RepresentativeRole,
 		RepresentativeEmail: body.RepresentativeEmail, RepresentativePhone: body.RepresentativePhone,
 		BusinessActivity: body.BusinessActivity, EstimatedVolume: body.EstimatedVolume,
-		TermsAccepted: body.TermsAccepted, IdempotencyKey: body.IdempotencyKey,
+		TermsAccepted: body.TermsAccepted, TermsVersion: body.TermsVersion, IdempotencyKey: body.IdempotencyKey,
 		Origin: service.ApplicationOriginDeveloperProject, ProjectID: body.ProjectID,
 		SubmittedByUserID: body.SubmittedByUserID,
 	})

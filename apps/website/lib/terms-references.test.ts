@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { TERMS, TERMS_ROUTE } from './terms';
+import { TERMS, TERMS_ROUTE, isTermsPublished } from './terms';
 
 // PUBLIC-WEBSITE-LEGAL-RELEASE-001 — every public "Terms" reference must resolve
 // to the one canonical route (/termos), never to /sobre, /suporte, '#', or a
@@ -24,6 +24,26 @@ describe('Terms versioning scaffold', () => {
   });
   it('the /termos route exists', () => {
     expect(() => read('app/termos/page.tsx')).not.toThrow();
+  });
+  it('link infrastructure is ready but the document is still DRAFT (not published)', () => {
+    // TERMS_LINK_INFRASTRUCTURE=PASS vs TERMS_DOCUMENT_PUBLICATION_STATUS=DRAFT:
+    // a 200 placeholder does not mean the Terms are legally available.
+    expect(TERMS.status).toBe('DRAFT');
+    expect(isTermsPublished()).toBe(false);
+    expect(TERMS.version).toBeNull();
+  });
+  it('acceptance flows send a Terms version only once published (DRAFT sends none)', () => {
+    for (const f of [
+      'app/comerciantes/candidatura/CandidaturaForm.tsx',
+      'components/developers/portal/BusinessApplicationForm.tsx',
+    ]) {
+      expect(read(f), `${f} gates terms_version on publication`).toContain('isTermsPublished() ? TERMS.version');
+    }
+  });
+  it('developer sign-in does not treat continuing as Terms acceptance', () => {
+    const login = read('app/developers/login/page.tsx');
+    expect(login).not.toContain('concorda com os nossos');
+    expect(login).toContain('Ao entrar, aplica-se a nossa');
   });
   it('a DRAFT (unpublished) Terms page is noindex — no draft text in the index', () => {
     if (TERMS.status !== 'PUBLISHED') {

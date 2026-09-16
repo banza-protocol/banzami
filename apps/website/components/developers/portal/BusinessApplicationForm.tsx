@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { TERMS, isTermsPublished } from '@/lib/terms';
 import { developerApi, ApiError, type FinancialApplicationInput } from '@/lib/developer-api';
 import {
   checkHandle,
@@ -379,6 +380,8 @@ export function BusinessApplicationForm({
       business_activity: f.business_activity.trim(),
       estimated_volume: f.estimated_volume || undefined,
       terms_accepted: true,
+      // Only a PUBLISHED document has a version to accept; omitted while DRAFT.
+      terms_version: isTermsPublished() ? TERMS.version ?? undefined : undefined,
     };
 
     let applicationId: string;

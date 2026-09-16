@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { TERMS, isTermsPublished } from '@/lib/terms';
 import Link from 'next/link';
 import {
   checkHandle,
@@ -650,6 +651,9 @@ export function CandidaturaForm() {
       business_activity: descricao.trim() || undefined,
       estimated_volume: volume || undefined,
       terms_accepted: accepted,
+      // Only a PUBLISHED document has a version to accept; while DRAFT this is
+      // omitted and the server records an unversioned pre-release acknowledgement.
+      terms_version: isTermsPublished() ? TERMS.version ?? undefined : undefined,
       existing_business: handleState.status === 'business' && existingBusiness,
     };
 

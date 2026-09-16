@@ -443,6 +443,8 @@ export type FinancialApplicationInput = {
   business_activity: string;
   estimated_volume?: string;
   terms_accepted: true;
+  /** Published Terms version accepted; omitted while Terms are DRAFT. */
+  terms_version?: string;
 };
 
 /** The public readiness projection (GET /v1/financial-setup, minus project/env). */
