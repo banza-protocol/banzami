@@ -1,39 +1,48 @@
 -- 0155 — Idempotency ledger for receive-point session mints (ADR-065).
 --
--- A payer minting a session from a receive point sends an idempotency key. The
--- key is scoped to the PAYER (two unrelated payers choosing "abc" never collide),
--- and bound to the semantic request via a fingerprint (slug+amount+currency) so a
--- reused key with a different amount is a deterministic conflict, never a silent
--- wrong-amount replay.
+-- A payer minting a session from a receive point sends an idempotency key, scoped
+-- to the PAYER (two unrelated payers choosing "abc" never collide) and bound to
+-- the semantic request via a fingerprint (slug+amount+currency): a reused key with
+-- a different amount is a deterministic conflict, never a silent wrong-amount
+-- replay.
 --
--- Crash consistency is delegated to the EXISTING canonical boundary: core creates
--- one Payment Session per (merchant, purpose, reference) (core/api payment_sessions).
--- The mint passes a deterministic reference derived from (payer, key), so a retry
--- after a crash — before OR after the downstream session was created — re-runs the
--- create and core returns the SAME session. No duplicate, no unbounded wait.
+-- Crash consistency does NOT depend on waiting. It rests on two persisted facts:
+--   * core_reference — a random, opaque, ≥128-bit token generated ONCE at
+--     reservation and reused by every retry. Core creates one Payment Session per
+--     (merchant, purpose, reference) (DB-enforced partial unique index, 0085), so
+--     a retry that re-runs create with the SAME core_reference converges on the
+--     same session — recovering whether the crash was before OR after the session
+--     was created. The reference derives from NO user/client material.
+--   * an atomic lease (owner_token + lease_until): exactly one worker owns a
+--     PENDING reservation at a time; a stale lease is reclaimed by a single winner
+--     (UPDATE ... WHERE state=PENDING AND lease_until < now() RETURNING), and only
+--     the current owner may record success (CAS on owner_token), so a slow
+--     original worker returning after a reclaim cannot corrupt state.
 --
--- This table is not financial state and has no ledger effect; it maps a scoped
--- idempotency key to its request fingerprint and the session that was minted.
---
--- Additive and reversible: DROP TABLE business_receive_point_mints.
+-- Not financial state; zero ledger effect. Additive/reversible: DROP TABLE.
 
 CREATE TABLE IF NOT EXISTS business_receive_point_mints (
-    id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    -- The authenticated payer the key belongs to (scope) — never global.
-    payer_id           TEXT        NOT NULL,
-    idempotency_key    TEXT        NOT NULL,
-    receive_point_slug TEXT        NOT NULL,
-    -- Hash of the semantic request (slug|amount|currency): a reused key with a
-    -- different request is rejected rather than replayed.
-    request_fingerprint TEXT       NOT NULL,
-    state              TEXT        NOT NULL DEFAULT 'PENDING'
-                                     CHECK (state IN ('PENDING','SUCCEEDED','FAILED')),
-    -- Set when SUCCEEDED; the session core returned for this mint.
-    session_id         TEXT,
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    payer_id            TEXT        NOT NULL,
+    idempotency_key     TEXT        NOT NULL,
+    receive_point_slug  TEXT        NOT NULL,
+    request_fingerprint TEXT        NOT NULL,
+    -- Random opaque reference passed to core; stable for all retries of this op.
+    core_reference      TEXT        NOT NULL,
+    state               TEXT        NOT NULL DEFAULT 'PENDING'
+                                      CHECK (state IN ('PENDING','SUCCEEDED','FAILED')),
+    -- Atomic lease ownership.
+    owner_token         UUID        NOT NULL,
+    lease_until         TIMESTAMPTZ NOT NULL,
+    session_id          TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- One idempotent operation per (payer, key): cross-payer keys never collide.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_business_receive_point_mints_scope
     ON business_receive_point_mints (payer_id, idempotency_key);
+
+-- The random reference is globally unique (defence in depth).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_business_receive_point_mints_core_reference
+    ON business_receive_point_mints (core_reference);

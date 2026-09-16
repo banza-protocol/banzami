@@ -336,11 +336,12 @@ func TestReceivePoint_MintCrashBeforeCreateRecovers(t *testing.T) {
 	fake := &fakeSessions{}
 	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
 	// Simulate: a prior attempt reserved the key and crashed BEFORE creating a
-	// session (PENDING, no session_id, no core session for the reference).
+	// session (PENDING, no session_id, expired lease, no core session yet).
 	fp := requestFingerprint(slug, "AOA", 1000)
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state, updated_at) VALUES ($1,$2,$3,$4,'PENDING', now() - interval '1 hour')`,
-		payer, key, slug, fp); err != nil {
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, core_reference, owner_token, lease_until, state)
+		 VALUES ($1,$2,$3,$4,$5, gen_random_uuid(), now() - interval '1 hour', 'PENDING')`,
+		payer, key, slug, fp, "brp_"+uuid.NewString()); err != nil {
 		t.Fatal(err)
 	}
 	got, err := svc.MintSession(ctx, fake, payer, slug, key, 1000)
@@ -357,15 +358,17 @@ func TestReceivePoint_MintCrashAfterCreateNoDuplicate(t *testing.T) {
 	svc, pool, m, primaryAcc, slug := mintFixture(ctx, t)
 	fake := &fakeSessions{}
 	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
-	// Simulate: a prior attempt reserved the key AND core created the session for
-	// the deterministic reference, but the gateway crashed before recording it.
+	// Simulate: a prior attempt reserved the key with a persisted core_reference AND
+	// core created the session for that reference, but the gateway crashed (expired
+	// lease) before recording it.
 	fp := requestFingerprint(slug, "AOA", 1000)
+	ref := "brp_" + uuid.NewString()
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, state, updated_at) VALUES ($1,$2,$3,$4,'PENDING', now() - interval '1 hour')`,
-		payer, key, slug, fp); err != nil {
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, core_reference, owner_token, lease_until, state)
+		 VALUES ($1,$2,$3,$4,$5, gen_random_uuid(), now() - interval '1 hour', 'PENDING')`,
+		payer, key, slug, fp, ref); err != nil {
 		t.Fatal(err)
 	}
-	ref := mintReference(payer, key)
 	amt := int64(1000)
 	pre, _ := fake.Create(ctx, CreatePaymentSessionInput{MerchantID: m, WalletAccountID: primaryAcc, AmountMinor: &amt, Currency: "AOA", Purpose: "GENERIC", ReferenceType: "BUSINESS_RECEIVE_POINT", ReferenceID: ref})
 	if fake.creates != 1 {
@@ -466,19 +469,224 @@ func TestReceivePoint_CoreReferenceIdempotencyIsDbEnforced(t *testing.T) {
 	}
 }
 
-func TestReceivePoint_MintReferencePrivacyAndDeterminism(t *testing.T) {
-	payer, key, slug := "payer-uuid-123", "super-secret-idempotency-key", "rcvSlugABC123"
-	ref := mintReference(payer, key)
-	if ref != mintReference(payer, key) {
-		t.Fatal("reference must be deterministic")
+// -----------------------------------------------------------------------------
+// §11 failure-injection matrix. Scenario → proof:
+//   A crash-before-reservation  → fresh path (TestReceivePoint_MintFreshSessionPerPayment)
+//   B crash-before-core         → TestReceivePoint_MintCrashBeforeCreateRecovers
+//   C crash-after-core          → TestReceivePoint_MintCrashAfterCreateNoDuplicate
+//   D crash-after-persist       → TestReceivePoint_MintReplaysPersistedSuccess (below)
+//   E N-concurrent same key     → TestReceivePoint_MintKeyRaceCreatesOneSession
+//   F stale-lease reclaim race  → TestReceivePoint_MintStaleLeaseReclaimOneWinner (below)
+//   G evicted owner no corrupt  → TestReceivePoint_MintEvictedOwnerCannotCorrupt (below)
+//   H fingerprint conflict      → TestReceivePoint_MintFingerprintConflict
+//   I cross-payer isolation     → TestReceivePoint_MintCrossPayerNoCollision
+// -----------------------------------------------------------------------------
+
+// D — crash-after-persist. A prior process fully completed (row SUCCEEDED with a
+// session_id) and this process never touched it. The retry must replay the exact
+// persisted session and create NOTHING — no create, no lease write.
+func TestReceivePoint_MintReplaysPersistedSuccess(t *testing.T) {
+	ctx := context.Background()
+	svc, pool, m, primaryAcc, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
+	// A completed prior operation: its session exists in core and the mint row is
+	// terminal SUCCEEDED, lease long gone.
+	fp := requestFingerprint(slug, "AOA", 1000)
+	ref := "brp_" + uuid.NewString()
+	amt := int64(1000)
+	prior, _ := fake.Create(ctx, CreatePaymentSessionInput{MerchantID: m, WalletAccountID: primaryAcc, AmountMinor: &amt, Currency: "AOA", Purpose: "GENERIC", ReferenceType: "BUSINESS_RECEIVE_POINT", ReferenceID: ref})
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, core_reference, owner_token, lease_until, state, session_id)
+		 VALUES ($1,$2,$3,$4,$5, gen_random_uuid(), now() - interval '1 hour', 'SUCCEEDED', $6)`,
+		payer, key, slug, fp, ref, prior.SessionID); err != nil {
+		t.Fatal(err)
 	}
-	if mintReference(payer, "other") == ref || mintReference("other", key) == ref {
-		t.Fatal("reference must vary by (payer, key)")
+	createsBefore := fake.creates // 1 (the pre-seeded prior session)
+	got, err := svc.MintSession(ctx, fake, payer, slug, key, 1000)
+	if err != nil {
+		t.Fatalf("replay of a persisted success must not error, got %v", err)
 	}
-	if strings.Contains(ref, payer) || strings.Contains(ref, key) || strings.Contains(ref, slug) {
-		t.Fatal("reference must not embed raw payer/key/slug")
+	if got.SessionID != prior.SessionID {
+		t.Fatalf("must replay the persisted session %q, got %q", prior.SessionID, got.SessionID)
 	}
-	if len(ref) != 64 {
-		t.Fatalf("reference must be a bounded 64-hex digest, got %d", len(ref))
+	if fake.creates != createsBefore {
+		t.Fatalf("replaying a terminal SUCCEEDED row must create nothing, creates %d→%d", createsBefore, fake.creates)
+	}
+}
+
+// F — stale-lease reclaim race. A crashed prior attempt left a PENDING reservation
+// with an EXPIRED lease. Many workers now retry the SAME (payer, key) at once: the
+// contended path is the atomic reclaim UPDATE ... WHERE lease_until < now(), and
+// exactly one worker may win it. All callers converge on one session.
+func TestReceivePoint_MintStaleLeaseReclaimOneWinner(t *testing.T) {
+	ctx := context.Background()
+	svc, pool, _, _, slug := mintFixture(ctx, t)
+	fake := &fakeSessions{}
+	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
+	fp := requestFingerprint(slug, "AOA", 1000)
+	ref := "brp_" + uuid.NewString()
+	// Pre-seed the crashed attempt: PENDING, expired lease, persisted reference, no
+	// session yet. The reclaim path — not the INSERT-ON-CONFLICT path — is contended.
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, core_reference, owner_token, lease_until, state)
+		 VALUES ($1,$2,$3,$4,$5, gen_random_uuid(), now() - interval '1 hour', 'PENDING')`,
+		payer, key, slug, fp, ref); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	results := make([]*PaymentSession, 8)
+	errs := make([]error, 8)
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func(i int) { defer wg.Done(); results[i], errs[i] = svc.MintSession(ctx, fake, payer, slug, key, 1000) }(i)
+	}
+	wg.Wait()
+	var sid string
+	for i := range results {
+		if errs[i] != nil {
+			t.Fatalf("reclaim racer %d errored: %v", i, errs[i])
+		}
+		if sid == "" {
+			sid = results[i].SessionID
+		} else if results[i].SessionID != sid {
+			t.Fatalf("racers diverged: %q vs %q", sid, results[i].SessionID)
+		}
+	}
+	if fake.creates != 1 {
+		t.Fatalf("stale-lease reclaim race created %d sessions, want exactly 1", fake.creates)
+	}
+	// The persisted reference is reused verbatim — reclaim never re-randomises it.
+	if len(fake.calls) != 1 || fake.calls[0].ReferenceID != ref {
+		t.Fatalf("reclaim must reuse the persisted core_reference %q, got %+v", ref, fake.calls)
+	}
+}
+
+// gatedSessions is a session engine whose first Create blocks until released, so a
+// test can interleave an external lease eviction between this call's Create and its
+// success-recording CAS. Models core reference-idempotency like fakeSessions.
+type gatedSessions struct {
+	mu      sync.Mutex
+	byRef   map[string]*PaymentSession
+	creates int
+	entered chan string // receives the ReferenceID when Create is first entered
+	release chan struct{}
+	gated   bool
+}
+
+func newGatedSessions() *gatedSessions {
+	return &gatedSessions{byRef: map[string]*PaymentSession{}, entered: make(chan string, 1), release: make(chan struct{}), gated: true}
+}
+func (g *gatedSessions) preload(ref string, s *PaymentSession) { g.mu.Lock(); g.byRef[ref] = s; g.mu.Unlock() }
+func (g *gatedSessions) Create(_ context.Context, in CreatePaymentSessionInput) (*PaymentSession, error) {
+	g.mu.Lock()
+	if g.gated {
+		g.gated = false
+		g.mu.Unlock()
+		g.entered <- in.ReferenceID
+		<-g.release
+		g.mu.Lock()
+	}
+	defer g.mu.Unlock()
+	if s, ok := g.byRef[in.ReferenceID]; ok {
+		return s, nil // core idempotency: same reference → same session
+	}
+	g.creates++
+	s := &PaymentSession{SessionID: "sess-" + uuid.NewString(), MerchantID: in.MerchantID, AmountMinor: in.AmountMinor, Status: "CREATED"}
+	g.byRef[in.ReferenceID] = s
+	return s, nil
+}
+func (g *gatedSessions) Get(_ context.Context, id string) (*PaymentSession, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for _, s := range g.byRef {
+		if s.SessionID == id {
+			return s, nil
+		}
+	}
+	return nil, nil
+}
+func (g *gatedSessions) List(context.Context, string, string, int) ([]PaymentSession, error) {
+	return nil, nil
+}
+func (g *gatedSessions) GetByInterface(context.Context, string, string) (*PaymentSession, error) {
+	return nil, nil
+}
+
+// G — evicted owner cannot corrupt. Worker O1 reserves the key and enters Create;
+// while it is mid-flight, a reclaimer O2 takes the lease and records its own
+// SUCCEEDED session. O1's success-recording CAS (WHERE owner_token=O1) must no-op,
+// and O1 must defer to O2's session — no duplicate, no overwrite of the winner.
+func TestReceivePoint_MintEvictedOwnerCannotCorrupt(t *testing.T) {
+	ctx := context.Background()
+	svc, pool, _, _, slug := mintFixture(ctx, t)
+	gate := newGatedSessions()
+	payer, key := "payer-"+uuid.NewString(), "k-"+uuid.NewString()
+
+	done := make(chan struct{})
+	var got *PaymentSession
+	var mintErr error
+	go func() { defer close(done); got, mintErr = svc.MintSession(ctx, gate, payer, slug, key, 1000) }()
+
+	// O1 has reserved the row and is now blocked inside Create.
+	ref := <-gate.entered
+	var mintID, o1 string
+	if err := pool.QueryRow(ctx,
+		`SELECT id, owner_token FROM business_receive_point_mints WHERE payer_id=$1 AND idempotency_key=$2`, payer, key).Scan(&mintID, &o1); err != nil {
+		t.Fatal(err)
+	}
+	// A reclaimer O2 wins the lease and completes: it creates the session for the
+	// SAME persisted reference (so cores converge) and records SUCCEEDED.
+	winner := &PaymentSession{SessionID: "sess-winner-" + uuid.NewString(), Status: "CREATED"}
+	gate.preload(ref, winner) // O1's unblocked Create will now return this too
+	o2 := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`UPDATE business_receive_point_mints SET owner_token=$2, state='SUCCEEDED', session_id=$3, lease_until=now()+interval '30 seconds', updated_at=now() WHERE id=$1`,
+		mintID, o2, winner.SessionID); err != nil {
+		t.Fatal(err)
+	}
+	close(gate.release) // let O1 finish Create and attempt its CAS
+
+	<-done
+	if mintErr != nil {
+		t.Fatalf("evicted owner must still return a result, got %v", mintErr)
+	}
+	if got.SessionID != winner.SessionID {
+		t.Fatalf("evicted owner must defer to the winner %q, got %q", winner.SessionID, got.SessionID)
+	}
+	// The row still reflects the winner — O1's late write did not corrupt it.
+	var owner, sid, state string
+	if err := pool.QueryRow(ctx,
+		`SELECT owner_token, session_id, state FROM business_receive_point_mints WHERE id=$1`, mintID).Scan(&owner, &sid, &state); err != nil {
+		t.Fatal(err)
+	}
+	if owner != o2 || sid != winner.SessionID || state != "SUCCEEDED" {
+		t.Fatalf("evicted owner corrupted the row: owner=%q sid=%q state=%q", owner, sid, state)
+	}
+	if gate.creates != 0 {
+		t.Fatalf("both workers shared the persisted reference — no session should be created by the double, got %d", gate.creates)
+	}
+}
+
+func TestReceivePoint_CoreReferenceIsRandomOpaque(t *testing.T) {
+	// §5/§6: the core reference is random and opaque — not derived from any
+	// user/client material, ≥128 bits, and never repeats.
+	seen := map[string]bool{}
+	for i := 0; i < 1000; i++ {
+		ref, err := newCoreReference()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(ref, "brp_") || len(ref) != 4+receivePointSlugLen {
+			t.Fatalf("unexpected reference shape: %q", ref)
+		}
+		if seen[ref] {
+			t.Fatal("core references must not repeat")
+		}
+		seen[ref] = true
+	}
+	// 22 base62 chars ≈ 131 bits of entropy — comfortably ≥ 128.
+	if receivePointSlugLen < 22 {
+		t.Fatalf("insufficient entropy: %d chars", receivePointSlugLen)
 	}
 }

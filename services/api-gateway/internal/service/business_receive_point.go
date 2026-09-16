@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -211,17 +212,23 @@ var (
 	// ErrIdempotencyConflict is returned when a key is reused for a DIFFERENT
 	// request (e.g. a different amount) — never a silent wrong-amount replay.
 	ErrIdempotencyConflict = errors.New("idempotency key reused for a different request")
+	// ErrMintPending is a bounded, retryable outcome when a concurrent operation is
+	// still in flight and could not be resolved within the wait budget.
+	ErrMintPending = errors.New("mint in progress, retry")
 )
 
 const maxMintKeyLen = 200
+const mintLease = 30 * time.Second
 
-// mintReference is the deterministic per-(payer,key) reference passed to core, so
-// core's "one session per (merchant, purpose, reference)" idempotency makes a
-// retry return the SAME session after a crash — before or after the session was
-// created. It is opaque and carries no authority.
-func mintReference(payerID, key string) string {
-	sum := sha256.Sum256([]byte("brp-mint:" + payerID + "\x00" + key))
-	return hex.EncodeToString(sum[:])
+// newCoreReference is a random, opaque, ≥128-bit reference passed to core. It
+// derives from NO user/client material and is generated once per operation, then
+// persisted and reused by every retry (MINT_CORE_REFERENCE_RANDOM_OPAQUE).
+func newCoreReference() (string, error) {
+	slug, err := newSlug() // 22 base62 ≈ 131 bits, same generator as the point slug
+	if err != nil {
+		return "", err
+	}
+	return "brp_" + slug, nil
 }
 
 func requestFingerprint(slug, currency string, amountMinor int64) string {
@@ -231,11 +238,13 @@ func requestFingerprint(slug, currency string, amountMinor int64) string {
 
 // MintSession turns (payer + public slug + amount + idempotency key) into a FRESH
 // canonical Payment Session via the EXISTING engine. The payee is resolved
-// server-side from the slug (the caller supplies only slug + amount). Idempotency
-// is scoped to the payer and bound to the request fingerprint; crash consistency
-// is delegated to core's (merchant, purpose, reference) idempotency by passing a
-// deterministic reference — so a retry (before or after the crash) returns the
-// same session with no duplicate and no unbounded wait.
+// server-side from the slug (the caller supplies only slug + amount).
+//
+// Correctness does NOT depend on sleeping: it rests on the payer-scoped
+// reservation, the request fingerprint, an ATOMIC lease (owner_token + lease_until),
+// a persisted RANDOM core_reference, and core's (merchant, purpose, reference)
+// idempotency. A retry — before or after a crash — re-runs create with the SAME
+// persisted core_reference and converges on the SAME session, with no duplicate.
 func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions PaymentSessionService, payerID, slug, idempotencyKey string, amountMinor int64) (*PaymentSession, error) {
 	if idempotencyKey == "" {
 		return nil, ErrMintKeyRequired
@@ -243,33 +252,39 @@ func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions 
 	if len(idempotencyKey) > maxMintKeyLen {
 		return nil, ErrMintKeyTooLong
 	}
-	// Resolve first (read-only, no side effect): current eligibility + payee +
-	// currency. An ineligible business fails closed before any reservation.
+	// Resolve first (read-only): current eligibility + payee + currency. An
+	// ineligible business fails closed before any reservation.
 	payee, err := s.resolveForSession(ctx, slug)
 	if err != nil {
 		return nil, err
 	}
 	fp := requestFingerprint(slug, payee.Currency, amountMinor)
 
-	// Reserve the (payer, key). On conflict, replay or reject by fingerprint.
-	var mintID string
+	coreRef, err := newCoreReference()
+	if err != nil {
+		return nil, err
+	}
+	owner := uuid.NewString()
+
+	// Reserve the (payer, key). We become the owner if we insert.
+	var mintID, useRef, useOwner string
 	err = s.pool.QueryRow(ctx,
-		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint)
-		 VALUES ($1,$2,$3,$4)
+		`INSERT INTO business_receive_point_mints (payer_id, idempotency_key, receive_point_slug, request_fingerprint, core_reference, owner_token, lease_until)
+		 VALUES ($1,$2,$3,$4,$5,$6, now() + $7::interval)
 		 ON CONFLICT (payer_id, idempotency_key) DO NOTHING
-		 RETURNING id`, payerID, idempotencyKey, slug, fp).Scan(&mintID)
+		 RETURNING id, core_reference, owner_token`,
+		payerID, idempotencyKey, slug, fp, coreRef, owner, mintLease.String()).Scan(&mintID, &useRef, &useOwner)
 	if errors.Is(err, pgx.ErrNoRows) {
-		// Existing operation for this (payer, key): replay it, wait for a live
-		// concurrent winner, or reclaim a stale/failed attempt.
-		got, done, rerr := s.replayOrReclaim(ctx, sessions, payerID, idempotencyKey, fp, &mintID)
-		if rerr != nil {
-			return nil, rerr
+		// A prior operation for this (payer, key) exists: replay it, wait for a live
+		// winner, or atomically reclaim a stale/crashed attempt.
+		got, done, claimedID, claimedRef, claimedOwner, cerr := s.claimExisting(ctx, sessions, payerID, idempotencyKey, fp, owner)
+		if cerr != nil {
+			return nil, cerr
 		}
 		if done {
 			return got, nil
 		}
-		// Reclaimed: fall through to (re)create. Core's reference idempotency
-		// returns the same session if the crashed winner already created one.
+		mintID, useRef, useOwner = claimedID, claimedRef, claimedOwner
 	} else if err != nil {
 		return nil, err
 	}
@@ -282,68 +297,94 @@ func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions 
 		Currency:        payee.Currency,
 		Purpose:         "GENERIC",
 		ReferenceType:   "BUSINESS_RECEIVE_POINT",
-		ReferenceID:     mintReference(payerID, idempotencyKey), // deterministic → core dedupes
+		ReferenceID:     useRef, // persisted random reference → core dedupes on retry
 	})
 	if err != nil {
 		_, _ = s.pool.Exec(ctx,
-			`UPDATE business_receive_point_mints SET state='FAILED', updated_at=now() WHERE id=$1 AND state='PENDING'`, mintID)
+			`UPDATE business_receive_point_mints SET state='FAILED', updated_at=now() WHERE id=$1 AND owner_token=$2 AND state='PENDING'`, mintID, useOwner)
 		return nil, err
 	}
-	if _, err := s.pool.Exec(ctx,
-		`UPDATE business_receive_point_mints SET state='SUCCEEDED', session_id=$2, updated_at=now() WHERE id=$1`,
-		mintID, sess.SessionID); err != nil {
+	// Record success ONLY if we still own the lease (CAS). If a reclaimer took over
+	// while we were creating, our write no-ops and we defer to the current owner —
+	// which re-runs create with the SAME core_reference and gets the SAME session.
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE business_receive_point_mints SET state='SUCCEEDED', session_id=$2, updated_at=now() WHERE id=$1 AND owner_token=$3`,
+		mintID, sess.SessionID, useOwner)
+	if err != nil {
 		return nil, err
+	}
+	if tag.RowsAffected() == 0 {
+		// Lost ownership: return whatever the current owner converges on.
+		return s.awaitSucceeded(ctx, sessions, mintID, sess)
 	}
 	return sess, nil
 }
 
-// replayOrReclaim handles a duplicate (payer, key): it rejects a fingerprint
-// mismatch, replays a SUCCEEDED result, WAITS (bounded) for a live concurrent
-// winner rather than racing a second create into core's reference boundary, and
-// reclaims a stale (crashed) or FAILED attempt so the caller can retry. Returns
-// (session, done). done=false means "reclaimed — the caller should (re)create".
-func (s *BusinessReceivePointService) replayOrReclaim(ctx context.Context, sessions PaymentSessionService, payerID, key, fp string, mintID *string) (*PaymentSession, bool, error) {
-	var existingFP, state string
-	var sid *string
-	var fresh bool
-	if err := s.pool.QueryRow(ctx,
-		`SELECT id, request_fingerprint, state, session_id, (now() - updated_at) < interval '5 seconds'
-		   FROM business_receive_point_mints WHERE payer_id=$1 AND idempotency_key=$2`, payerID, key).
-		Scan(mintID, &existingFP, &state, &sid, &fresh); err != nil {
-		return nil, false, err
-	}
-	if existingFP != fp {
-		return nil, false, ErrIdempotencyConflict
-	}
-	if state == "SUCCEEDED" && sid != nil && *sid != "" {
-		return s.session(ctx, sessions, *sid), true, nil
-	}
-	if state == "PENDING" && fresh {
-		// A live winner is creating: wait for it, bounded — never spin forever.
-		for i := 0; i < 40; i++ {
-			select {
-			case <-ctx.Done():
-				return nil, false, ctx.Err()
-			case <-time.After(50 * time.Millisecond):
+// claimExisting resolves a duplicate (payer, key): reject a fingerprint mismatch,
+// replay a SUCCEEDED result, wait (bounded) for a live winner, or ATOMICALLY
+// reclaim a stale/failed attempt. Returns (session, done) and, when it reclaims,
+// the mint id + persisted core_reference + new owner token to (re)create with.
+func (s *BusinessReceivePointService) claimExisting(ctx context.Context, sessions PaymentSessionService, payerID, key, fp, newOwner string) (*PaymentSession, bool, string, string, string, error) {
+	for i := 0; i < 60; i++ {
+		var id, existingFP, state, coreRef string
+		var sid *string
+		var expired bool
+		if err := s.pool.QueryRow(ctx,
+			`SELECT id, request_fingerprint, state, session_id, core_reference, lease_until < now()
+			   FROM business_receive_point_mints WHERE payer_id=$1 AND idempotency_key=$2`, payerID, key).
+			Scan(&id, &existingFP, &state, &sid, &coreRef, &expired); err != nil {
+			return nil, false, "", "", "", err
+		}
+		if existingFP != fp {
+			return nil, false, "", "", "", ErrIdempotencyConflict
+		}
+		if state == "SUCCEEDED" && sid != nil && *sid != "" {
+			return s.session(ctx, sessions, *sid), true, "", "", "", nil
+		}
+		if (state == "PENDING" && expired) || state == "FAILED" {
+			// Atomically take ownership: exactly one worker wins the reclaim.
+			var reclaimedRef string
+			err := s.pool.QueryRow(ctx,
+				`UPDATE business_receive_point_mints
+				    SET state='PENDING', owner_token=$2, lease_until=now() + $3::interval, updated_at=now()
+				  WHERE id=$1 AND (lease_until < now() OR state='FAILED')
+				 RETURNING core_reference`, id, newOwner, mintLease.String()).Scan(&reclaimedRef)
+			if err == nil {
+				return nil, false, id, reclaimedRef, newOwner, nil // we own it; caller (re)creates
 			}
-			var st2 string
-			var sid2 *string
-			if err := s.pool.QueryRow(ctx,
-				`SELECT state, session_id FROM business_receive_point_mints WHERE id=$1`, *mintID).Scan(&st2, &sid2); err != nil {
-				return nil, false, err
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return nil, false, "", "", "", err
 			}
-			if st2 == "SUCCEEDED" && sid2 != nil && *sid2 != "" {
-				return s.session(ctx, sessions, *sid2), true, nil
-			}
-			if st2 == "FAILED" {
-				break
-			}
+			// Someone else reclaimed first — loop and observe their result.
+		}
+		select {
+		case <-ctx.Done():
+			return nil, false, "", "", "", ctx.Err()
+		case <-time.After(50 * time.Millisecond):
 		}
 	}
-	// Stale PENDING (a crashed winner) or FAILED: reclaim by re-leasing and let the
-	// caller (re)create. Core's reference boundary prevents a duplicate.
-	_, _ = s.pool.Exec(ctx, `UPDATE business_receive_point_mints SET state='PENDING', updated_at=now() WHERE id=$1`, *mintID)
-	return nil, false, nil
+	return nil, false, "", "", "", ErrMintPending
+}
+
+// awaitSucceeded waits (bounded) for the current lease owner to record success,
+// returning that session; falls back to the create result if it cannot read it.
+func (s *BusinessReceivePointService) awaitSucceeded(ctx context.Context, sessions PaymentSessionService, mintID string, fallback *PaymentSession) (*PaymentSession, error) {
+	for i := 0; i < 40; i++ {
+		var state string
+		var sid *string
+		if err := s.pool.QueryRow(ctx, `SELECT state, session_id FROM business_receive_point_mints WHERE id=$1`, mintID).Scan(&state, &sid); err != nil {
+			return nil, err
+		}
+		if state == "SUCCEEDED" && sid != nil && *sid != "" {
+			return s.session(ctx, sessions, *sid), nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+	return fallback, nil
 }
 
 func (s *BusinessReceivePointService) session(ctx context.Context, sessions PaymentSessionService, id string) *PaymentSession {
