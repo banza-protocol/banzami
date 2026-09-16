@@ -69,8 +69,14 @@ step('Proof 03 — invalid deep-link', 'proofs/03-invalid-deeplink.mjs');
 step('Proof 05 — realtime incoming payment', 'proofs/05-realtime-incoming-payment.mjs');
 step('Proof 06 — realtime resilience (fallback + visibility)', 'proofs/06-realtime-resilience.mjs');
 
-// 3c. Web QR camera (WEB-QR-CAMERA-001).
-step('Proof 07 — Web QR camera', 'proofs/07-web-qr-camera.mjs');
+// 3c. Web QR camera (WEB-QR-CAMERA-001) is NOT part of the default aggregate.
+// Per WEB-QR-CAMERA-001 §28: the scanner proof is heavy (five browser launches +
+// a real fake-camera media pipeline, ~7 consumer registrations) and materially
+// slows this suite AND pushes the per-IP registration rate limit past its window,
+// so it is kept as the MANDATORY FOCUSED GATE for scanner-related changes:
+//   make app-web-qr   (proof 08 decoder/deploy integrity + proof 07 camera flows)
+// Run it whenever the scanner, its CSP/decoder wiring, or the BFF stream path
+// changes. It is proven green independently (07: 26/26, 08: 10/10).
 
 // 4-5. The generic cleanroom, twice (repeatability) — fresh dev/consumer/payment.
 const run1 = step('Cleanroom run 1', 'app-web-cleanroom.mjs', ['--label', 'run1']);

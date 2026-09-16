@@ -23,24 +23,65 @@ export async function freshContext(browser, { url = APP + '/', label = 'consumer
   return { context, page, driver };
 }
 
+// The account-creation endpoint rate-limits per IP ("Demasiadas tentativas.
+// Aguarde um momento e tente novamente."). A full suite registers many consumers,
+// so the harness must RESPECT that limit rather than fight it: detect the banner
+// and back off, exactly as a real user would wait a moment and try again.
+const RATE_LIMIT_RE = /Demasiadas tentativas|Too many attempts/i;
+const rateLimitError = () => Object.assign(new Error('registration rate-limited (Demasiadas tentativas)'), { rateLimited: true });
+
+async function registerConsumerOnce(browser, { handle, name, pin, label = 'consumer' }) {
+  const { context, page, driver } = await freshContext(browser, { label });
+  try {
+    const welcome = new WelcomePage(driver);
+    const create = new CreateAccountPage(driver);
+    const pinPage = new PinPage(driver);
+    const home = new HomePage(driver);
+
+    await welcome.reach();
+    await welcome.tapCreateAccount();
+    await create.reach();
+    await create.fill({ handle, name });
+    await create.submit();
+    // Some rate limits surface at account creation, before the PIN step even runs.
+    if (RATE_LIMIT_RE.test(await driver.visibleText())) throw rateLimitError();
+    await pinPage.createDuringOnboarding(pin);
+    await home.reach();
+    return { context, page, driver, home, handle, name };
+  } catch (e) {
+    // Reclassify a failure caused by the rate-limit banner as retryable, and
+    // release this context so the retry starts clean.
+    let banner = false;
+    try { banner = RATE_LIMIT_RE.test(await driver.visibleText()); } catch { /* page gone */ }
+    await context.close().catch(() => {});
+    if (banner || e.rateLimited) throw rateLimitError();
+    throw e;
+  }
+}
+
 /**
- * Register a fresh consumer end-to-end and land on Home.
+ * Register a fresh consumer end-to-end and land on Home. Retries with backoff
+ * when the account-creation rate limit is hit, so a full suite of registrations
+ * stays under the per-IP limit instead of failing spuriously.
  * @returns { context, page, driver, home, handle, name }
  */
-export async function registerConsumer(browser, { handle, name, pin, label = 'consumer' }) {
-  const { context, page, driver } = await freshContext(browser, { label });
-  const welcome = new WelcomePage(driver);
-  const create = new CreateAccountPage(driver);
-  const pinPage = new PinPage(driver);
-  const home = new HomePage(driver);
-
-  await welcome.reach();
-  await welcome.tapCreateAccount();
-  await create.reach();
-  await create.fill({ handle, name });
-  await create.submit();
-  await pinPage.createDuringOnboarding(pin);
-  await home.reach();
-
-  return { context, page, driver, home, handle, name };
+export async function registerConsumer(browser, opts) {
+  const retries = opts.rateLimitRetries ?? 4;
+  const base = opts.rateLimitBackoffMs ?? 45000;
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await registerConsumerOnce(browser, opts);
+    } catch (e) {
+      lastErr = e;
+      if (e.rateLimited && attempt < retries) {
+        const wait = base * (attempt + 1);
+        console.log(`[register:${opts.label ?? 'consumer'}] rate-limited; waiting ${Math.round(wait / 1000)}s then retrying (${attempt + 1}/${retries})`);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
 }
