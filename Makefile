@@ -416,6 +416,7 @@ check-doc-truth:
 check-site-live:
 	node tools/e2e/site/live-crawl.mjs
 	node tools/e2e/site/live-truth-check.mjs
+	node tools/e2e/site/live-evidence.mjs
 
 .PHONY: check-docs-prod
 check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth check-doc-truth check-wallet-native
