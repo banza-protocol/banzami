@@ -104,6 +104,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
 	qrPayH := handler.NewQrPayHandler(deps.CoreClient)
 	sandboxH := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
+	consumerRealtimeH := handler.NewConsumerRealtimeHandler(deps.CoreClient)
 	onboardingH := handler.NewOnboardingHandler(deps.CoreClient).WithCredentials(deps.CredStore).WithEnvironment(cfg.Environment)
 	debugPushH := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
 	pushTopicH := handler.NewPushTopicHandler(deps.PushTopics)
@@ -185,6 +186,11 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Get("/v1/me/wallet", meH.Wallet)
 		r.Get("/v1/me/wallet/balance", meH.Balance)
 		r.Get("/v1/me/activity", activityH.Activity)
+		// Read-only wallet realtime (CONSUMER-HOME-REALTIME-001): SSE stream or a
+		// single JSON snapshot, scoped to this session's consumer. A notification
+		// channel that triggers a canonical refetch — never financial truth, and
+		// no write verb exists under it.
+		r.Get("/v1/me/realtime", consumerRealtimeH.Realtime)
 		// The FCM topic this consumer's notifications are published to — a
 		// keyed name only its own session learns (A6-06).
 		r.Get("/v1/me/push-topic", pushTopicH.Consumer)

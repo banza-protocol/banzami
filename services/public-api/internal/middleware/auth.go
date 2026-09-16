@@ -20,6 +20,12 @@ type Consumer struct {
 	// TokenVersion is the session version the token was issued under; a
 	// sign-out bumps the consumer's version and ends every older token.
 	TokenVersion int
+	// ExpiresAt is the token's own expiry (the JWT `exp` claim). A long-lived
+	// stream (GET /v1/me/realtime) derives its close deadline from it so the
+	// connection never outlives the credential that authorised it. Zero when a
+	// token carries no expiry (jwt.WithExpirationRequired makes that impossible
+	// in practice; callers still treat zero as "unknown, cap conservatively").
+	ExpiresAt time.Time
 }
 
 // SessionChecker says whether a consumer's token is still good: the consumer
@@ -170,9 +176,13 @@ func verifyJWT(tokenStr, secret string) (*Consumer, error) {
 		return nil, errors.New("invalid token claims")
 	}
 
-	return &Consumer{
+	consumer := &Consumer{
 		ID:           c.CustomerID,
 		Scopes:       c.Scopes,
 		TokenVersion: c.TokenVersion,
-	}, nil
+	}
+	if c.ExpiresAt != nil {
+		consumer.ExpiresAt = c.ExpiresAt.Time
+	}
+	return consumer, nil
 }
