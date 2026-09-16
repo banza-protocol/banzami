@@ -46,13 +46,16 @@ All verified on a freshly migrated ephemeral database; concurrency proofs under
 | Web `/b/{slug}` | Resolve, 404→null, single-segment slug encoding, environment deep link |
 | QR artifact | `qr_parser_test` round-trips `banzami://pay/business/{slug}` and `pay.banzami.com/b/{slug}` back to the receive point; traversal-safe |
 | Shared error-code guard | `public_api_error_codes_test` green (receive-point codes carry PT copy; accumulated realtime/sandbox drift reconciled) |
+| **Full Core Rust suite** | `cargo test --workspace` = **739 passed, 0 failed**. The pre-existing consumer-fixture drift (0152) is fully repaired; one legacy consumer-wallets onboarding path that inserted a nameless ACTIVE consumer was fixed to name it after its @banza handle (behavior-preserving) |
+| **E2E runners exist (readiness proven offline)** | `make check-business-receive-e2e` = `LIVE_E2E_RUNNER_READY=PASS`, `WEB_E2E_RUNNER_READY=PASS`, `QR_E2E_BYPASS=0` — both runners encode the full journey; the web runner decodes real QR pixels through the real scanner, no injection |
 
-### Gated ON deploy (cannot be green before the migration)
+### Gated ON deploy — EXECUTION only (the runners already exist)
 
-| Phase | Why gated | Runs after §4 |
-|-------|-----------|---------------|
-| Local full-stack integration (Phase 9) | Needs the gateway reading the real tables | §5 smoke test |
-| E2E runners — native + web camera (Phase 10) | Needs the deployed Sandbox stack + a real scanned QR | §5, then the E2E harness |
+| Phase | Why the *execution* waits | Command (post-3b) |
+|-------|---------------------------|-------------------|
+| Local full-stack integration (Phase 9) | Needs the gateway reading the real tables | §5 smoke |
+| Live Sandbox E2E (Phase 10) | Needs the deployed Sandbox + a provisioned Receive Point | `make business-receive-e2e` |
+| Web fake-camera E2E (Phase 10) | Needs the deployed app-web + a scannable QR | `BRP_SLUG=<slug> make business-receive-web-e2e` |
 
 These are **not** failures — they are downstream of the one migration this runbook
 gates. Nothing about them is unknown; they exercise the same paths already proven
@@ -132,40 +135,86 @@ screens are already merged.
 
 ---
 
-## 5. Post-deploy smoke (Phase 9, ~2 min)
+## 5. Post-deploy verification (Phases 9 & 10)
 
-Against the Sandbox stack, as the operator:
+The E2E **runners already exist** and their offline readiness gate is green before
+the migration:
 
-1. **Owner provisions + reads** — Business App → *Receber*: a QR renders, "Copiar
-   ligação" gives `https://pay.banzami.com/b/<slug>`. (Or `GET /v1/business/receive-point`
-   with a merchant JWT.)
-2. **Public resolve** — open `pay.banzami.com/b/<slug>` in a browser: the Business
-   name + @banza render; a disabled point shows "QR indisponível"; an unknown slug
-   is a 404.
-3. **Consumer mint + pay** — Consumer app → scan the QR → enter an amount → confirm.
-   A fresh Payment Session is minted and settled through the payment-link path; the
-   Business sees the payment. Repeat the scan → a **new** session each time.
-4. **Idempotency** — a double-tap on confirm (same idempotency key) settles **once**.
+```bash
+make check-business-receive-e2e   # offline: both runners encode the full journey
+                                  # LIVE_E2E_RUNNER_READY=PASS, WEB_E2E_RUNNER_READY=PASS,
+                                  # QR_E2E_BYPASS=0
+```
 
-Then hand off to the E2E harness (Phase 10) for native + web-camera runs.
+After 3a+3b, run them against the deployed Sandbox (Phase 10):
+
+```bash
+make business-receive-e2e         # live API journey (BANZAMI_E2E=RUN):
+                                  #   generic Business → persistent Receive Point →
+                                  #   payer-safe resolve → amount A → session A → pay →
+                                  #   receipt → payer debited exactly A → same QR →
+                                  #   amount B → session B → assert same point AND
+                                  #   session A != session B → disabled ⇒ old QR fails →
+                                  #   suspended Business ⇒ fails closed. Replay settles once.
+
+BRP_SLUG=<slug> make business-receive-web-e2e   # web fake-camera (BANZAMI_E2E=RUN):
+                                  #   canonical ECC-H QR pixels → Chromium file-backed
+                                  #   fake camera → real Flutter scanner → self-hosted
+                                  #   ZXing → canonical parser → the receive-point flow.
+                                  #   No injection (BYPASS=0).
+```
+
+Quick manual smoke (~2 min): Business App → *Receber* renders a QR and "Copiar
+ligação" gives `https://pay.banzami.com/b/<slug>`; the browser page resolves the
+Business (a disabled point shows "QR indisponível", an unknown slug is a 404); the
+Consumer app scans → amount → confirm mints a fresh session each scan; a double-tap
+(same idempotency key) settles once.
 
 ---
 
-## 6. Rollback
+## 6. Rollback — additive, never destructive
 
-Additive and reversible. In reverse dependency order:
+Once **operationally applied, 0153/0154/0155 are immutable.** They are additive
+and carry zero ledger effect, so a rollback is an **application** action, not a
+schema one:
 
-1. **Application** — redeploy the previous gateway / public-api / pay-frontend
-   images. With the gateway rolled back, the routes are gone and the tables are
-   inert regardless of whether they still exist.
-2. **Schema (only if required)** — forward-only, on the sanctioned gate:
-   `DROP TABLE business_receive_point_mints;` then
-   `DROP TABLE business_receive_points;` (0155 then 0154). Both are pure additive
-   objects with **zero ledger effect** — no financial state is touched. Remove the
-   Business Receive Point feature from `tools/schema-manifest.json` in the same
-   change so the drift detector stays satisfied.
-3. **Core** — the concurrent-create fix is a strict robustness improvement with no
-   schema dependency; it does not need reverting and should not be.
+1. **Application binaries** — redeploy the previous gateway / public-api /
+   pay-frontend images (and the prior app build). With the gateway rolled back the
+   receive-point routes are gone and the tables are simply dormant.
+2. **Feature disablement, if a live point must stop resolving** — retire the
+   Business's active point through its own lifecycle (`POST
+   /v1/business/receive-point/disable`, or set `status='DISABLED'`). The QR then
+   fails closed. This changes a row's status; it removes no schema and deletes no
+   history.
+3. **Preserve everything additive** — keep `business_receive_points` and
+   `business_receive_point_mints`, keep every receive-point / idempotency row, and
+   keep all Payment Session and financial history. They are compatible with the
+   rolled-back binaries (old clients never query them) and carry the crash-safety
+   record a later re-roll-forward relies on.
+
+**Do NOT**, as a rollback: `DROP TABLE business_receive_points`, drop the
+idempotency table, or delete any receive-point / session / financial row.
+`ROLLBACK_DESTRUCTIVE_SCHEMA_ACTIONS=0`.
+
+### Application-rollback safety (proven by construction)
+
+Rolling back the application build is safe because the change is strictly additive:
+
+- **Old clients keep working** — the SDK/app receive-point code is new surface; a
+  prior build never calls `/v1/receive-points/*` or `/v1/business/receive-point`,
+  so its behaviour is unchanged.
+- **Consumer payment-link / P2P is untouched** — the receive-point mint reuses the
+  existing Payment Session + payment-link rails; nothing in those paths changed
+  except Core's generic concurrent-create convergence (a strict robustness
+  improvement, no schema dependency, safe to keep or revert).
+- **The feature simply goes dormant** — with the gateway rolled back the routes are
+  absent; the additive tables sit unused.
+- **No reconciliation is required** — a receive point is not a wallet, ledger
+  account, session, Project or credential. Only minted Payment Sessions reached
+  Core, and those follow the normal session lifecycle whether or not the tables
+  remain.
+
+`BUSINESS_RECEIVE_APPLICATION_ROLLBACK=PASS`.
 
 There is no data to reconcile: a receive point is not a wallet, ledger account,
 session, Project or credential. Only the minted Payment Sessions reached Core, and
