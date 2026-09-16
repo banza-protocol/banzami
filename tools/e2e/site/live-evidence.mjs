@@ -8,7 +8,7 @@ const M = 'https://banzami.com';
 const D = 'https://developers.banzami.com';
 // Note: "Segurança" is a section anchor (/produto#seguranca), not a standalone
 // route, so the security content is audited as part of /produto.
-const PAGES = [`${M}/`, `${M}/produto`, `${M}/comerciantes`, `${M}/developers`, `${M}/sobre`, `${M}/faq`, `${M}/suporte`, `${D}/docs`, `${D}/docs/en`];
+const PAGES = [`${M}/`, `${M}/produto`, `${M}/comerciantes`, `${M}/developers`, `${M}/seguranca`, `${M}/sobre`, `${M}/suporte`, `${D}/docs`, `${D}/docs/en`];
 const pick = (html, re) => (html.match(re)?.[1] ?? '').trim();
 const meta = (html, prop) => pick(html, new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']*)["']`, 'i'))
   || pick(html, new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${prop}["']`, 'i'));
