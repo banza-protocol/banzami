@@ -13,6 +13,7 @@
     "cleanroom": "node app-web-cleanroom.mjs"
   },
   "devDependencies": {
+    "axe-core": "^4.10.2",
     "playwright": "1.49.1"
   },
   "dependencies": {

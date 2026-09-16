@@ -36,11 +36,13 @@ class BanzamiQrScanner extends StatefulWidget {
 enum _CamError { none, denied, notFound, notReadable, unsupported, generic }
 
 class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
-  final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    facing: CameraFacing.back,
-    autoStart: false, // we start explicitly so we can classify errors + fall back
-  );
+  MobileScannerController _controller = _makeController();
+
+  static MobileScannerController _makeController() => MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        facing: CameraFacing.back,
+        autoStart: false, // we start explicitly so we can classify errors + fall back
+      );
 
   bool _scanned = false;
   bool _starting = true;
@@ -91,7 +93,15 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
 
   Future<void> _retry() async {
     _triedFallback = false;
-    try { await _controller.stop(); } catch (_) { /* not started */ }
+    // A controller that already errored (e.g. permission denied) does not reliably
+    // restart on the web, so recreate it — this is what makes a denied→allowed
+    // transition recover without a page reload.
+    try { await _controller.dispose(); } catch (_) { /* noop */ }
+    _controller = _makeController();
+    if (kIsWeb) {
+      MobileScannerPlatform.instance.setBarcodeLibraryScriptUrl('/zxing-library-0.21.3.js');
+    }
+    if (mounted) setState(() {});
     await _boot();
   }
 

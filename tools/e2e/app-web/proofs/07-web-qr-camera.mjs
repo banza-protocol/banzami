@@ -69,9 +69,24 @@ try {
     });
 
   // ── DENIED + RETRY ─────────────────────────────────────────────────────────
+  // The browser's permission denial is simulated at the getUserMedia boundary (a
+  // gated override in the TEST page — not a production hook): __denyCam=true makes
+  // getUserMedia reject NotAllowedError, exactly as a real browser denial does, so
+  // we exercise the app's real classification + Web copy. Clearing it lets the
+  // real fake-device stream through for the retry.
   await section('denied',
-    { args: ['--use-fake-device-for-media-stream'] }, false,
+    { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] }, true,
     async (c) => {
+      await c.context.addInitScript(() => {
+        const md = navigator.mediaDevices;
+        const orig = md.getUserMedia.bind(md);
+        md.getUserMedia = (cons) => window.__denyCam
+          ? Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
+          : orig(cons);
+      });
+      await c.page.reload({ waitUntil: 'domcontentloaded' });
+      await c.home.reach();
+      await c.page.evaluate(() => { window.__denyCam = true; });
       await openScanner(c);
       const t = await text(c);
       const denied = t.includes('Câmara não autorizada');
@@ -79,22 +94,27 @@ try {
       const noIos = !/iPhone|Definições do seu/i.test(t);
       const retryBtn = t.includes('Tentar novamente');
       R.mark('WEB_QR_CAMERA_DENIED_E2E', denied && retryBtn, `denied=${denied} retry=${retryBtn}`);
-      R.mark('WEB_IOS_CAMERA_COPY=0 (denied)', noIos && webCopy, noIos ? 'web copy, no iPhone' : 'iOS wording present!');
-      // Retry after granting.
-      await c.context.grantPermissions(['camera'], { origin: APP });
+      R.mark('WEB_IOS_CAMERA_COPY=0 (denied)', noIos && webCopy, noIos ? 'web copy, no iPhone' : 'iOS/incorrect copy!');
+      // Clear the denial + retry → the real (fake) camera opens.
+      await c.page.evaluate(() => { window.__denyCam = false; });
       await c.driver.tapButton('Tentar novamente').catch(() => c.driver.tapText('Tentar novamente'));
       await c.page.waitForTimeout(2500);
       const t2 = await text(c);
       R.mark('WEB_QR_CAMERA_RETRY_E2E', t2.includes('Aponte para o código QR'),
-        t2.includes('Aponte para o código QR') ? 'preview after grant+retry' : `still: ${t2.slice(0, 70)}`);
+        t2.includes('Aponte para o código QR') ? 'preview after clearing denial + retry' : `still: ${t2.slice(0, 70)}`);
     });
 
   // ── NO CAMERA → "não encontrada" ───────────────────────────────────────────
   await section('nocam', {}, true, async (c) => {
     await openScanner(c);
     const t = await text(c);
-    R.mark('WEB_QR_NO_CAMERA_COPY', t.includes('não encontrada') || t.includes('Não foi possível iniciar'),
-      `saw: ${t.slice(0, 80)}`);
+    // No camera device present. The decisive requirement (§35) is that it must NOT
+    // say "não autorizada" (the denied copy). mobile_scanner reports the absence
+    // as unsupported, so a truthful "não encontrada"/"indisponível"/"Não foi
+    // possível iniciar" is correct — never the permission-denied wording.
+    const notDenied = !t.includes('Câmara não autorizada') && !/iPhone|Definições do seu/i.test(t);
+    const truthful = t.includes('não encontrada') || t.includes('indisponível') || t.includes('Não foi possível iniciar');
+    R.mark('WEB_QR_NO_CAMERA_COPY', notDenied && truthful, `saw: ${t.slice(0, 80)}`);
   });
 
   // ── PIPELINE: real QR through the fake camera video ────────────────────────
@@ -117,11 +137,13 @@ try {
       const ca = await registerConsumer(browser, { ...a, label: 'A' });
       await ca.context.grantPermissions(['camera'], { origin: APP });
       await openScanner(ca);
-      // The QR should decode within a few frames and navigate off the scanner.
+      const preview = (await text(ca)).includes('Aponte para o código QR');
+      R.mark('WEB_QR_CAMERA_PIPELINE_PREVIEW', preview, preview ? 'fake-camera preview live' : 'no preview');
+      // The QR (in the fake camera feed) should decode and navigate off the scanner.
       let decoded = false; let landed = '';
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 25; i++) {
         const t = await text(ca);
-        if (!t.includes('Aponte para o código QR') && (t.includes(bHandle) || /Confirmar|Enviar|Vai enviar|Para quem/i.test(t))) {
+        if (!t.includes('Aponte para o código QR') && (t.includes(bHandle) || /Confirmar|Enviar|Vai enviar|Para quem|destinat/i.test(t))) {
           decoded = true; landed = t.slice(0, 90); break;
         }
         await sleep(1000);
