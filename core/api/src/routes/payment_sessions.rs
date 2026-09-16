@@ -258,12 +258,28 @@ pub async fn create(
         _ => (None, None),
     };
 
+    // The SELECT above closes the common case, but two creates for the SAME
+    // (merchant, purpose, reference) can both pass it before either commits. The
+    // partial unique index payment_sessions_reference_uidx (0085) then lets exactly
+    // one INSERT win; the loser used to hit the unique violation and surface it as a
+    // 500 — a correct refusal told as a server failure (the RA-043 shape). Instead
+    // we converge: ON CONFLICT on that index DO NOTHING, and a caller that inserted
+    // nothing reads back the canonical session and returns it (200), the same answer
+    // the SELECT fast-path gives sequentially. Generic — every referenced session,
+    // not the receive-point path alone. The conflict is only reachable when a
+    // reference_id is present (the index is partial on reference_id IS NOT NULL);
+    // the loser's freshly created link/QR are unreferenced and inert (their payload
+    // is never returned to anyone), so they credit nothing and disclose nothing.
     let id = Uuid::new_v4();
-    sqlx::query(
+    let inserted = sqlx::query_scalar::<_, Uuid>(
         "INSERT INTO payment_sessions
             (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, purpose,
              reference_type, reference_id, status, payment_link_id, qr_code_id, public_url, expires_at, metadata)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVE',$10,$11,$12,$13,$14)",
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVE',$10,$11,$12,$13,$14)
+         ON CONFLICT (merchant_id, purpose, reference_type, reference_id)
+            WHERE reference_id IS NOT NULL
+         DO NOTHING
+         RETURNING id",
     )
     .bind(id)
     .bind(merchant_id)
@@ -279,9 +295,31 @@ pub async fn create(
     .bind(Option::<String>::None) // public_url filled by the gateway from pay base
     .bind(body.expires_at)
     .bind(body.metadata.clone().unwrap_or_else(|| serde_json::json!({})))
-    .execute(&state.pool)
+    .fetch_optional(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    if inserted.is_none() {
+        // A concurrent create won the reference race. Return the canonical session,
+        // never a unique-violation 500.
+        let existing = sqlx::query_scalar::<_, Uuid>(
+            "SELECT id FROM payment_sessions
+              WHERE merchant_id = $1 AND purpose = $2
+                AND reference_type IS NOT DISTINCT FROM $3
+                AND reference_id   IS NOT DISTINCT FROM $4",
+        )
+        .bind(merchant_id)
+        .bind(&purpose)
+        .bind(&body.reference_type)
+        .bind(&body.reference_id)
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+        return Ok((
+            StatusCode::OK,
+            Json(fetch_session(&state.pool, existing).await?),
+        ));
+    }
 
     // ADR-043 lifecycle: announce the session. The interfaces[] lists the kinds
     // presenting it; every interface credits the same destination_account_ref.

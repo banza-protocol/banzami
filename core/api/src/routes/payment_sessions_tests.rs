@@ -164,6 +164,64 @@ async fn session_is_idempotent_per_reference(pool: PgPool) {
     assert_eq!(a["session_id"], b["session_id"], "same session id");
 }
 
+// The sequential duplicate above is caught by the idempotency SELECT. This proves
+// the OTHER path: many creates for the SAME (merchant, purpose, reference) racing
+// so that more than one passes that SELECT before any commits. The partial unique
+// index then lets exactly one INSERT win; the losers must CONVERGE on the canonical
+// session (200), never surface the unique violation as a 500. Exactly one session
+// row exists whatever the interleaving.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_same_reference_converges_never_500(pool: PgPool) {
+    let (merchant, _wid, wa, _) = seed(&pool).await;
+    let state = build_state(pool.clone()).await;
+
+    let n = 12;
+    let mut handles = Vec::new();
+    for _ in 0..n {
+        let st = state.clone();
+        handles.push(tokio::spawn(async move {
+            routes::create(
+                State(st),
+                Json(body(merchant, wa, Some(1000), Some("camp_race"))),
+            )
+            .await
+        }));
+    }
+
+    let mut ids = Vec::new();
+    let mut created = 0;
+    for h in handles {
+        let (status, Json(s)) = h
+            .await
+            .unwrap()
+            .expect("a racing duplicate must never get a 500");
+        match status {
+            axum::http::StatusCode::CREATED => created += 1,
+            axum::http::StatusCode::OK => {}
+            other => panic!("unexpected status {other}"),
+        }
+        ids.push(s["session_id"].as_str().unwrap().to_string());
+    }
+
+    let first = ids[0].clone();
+    assert!(
+        ids.iter().all(|id| *id == first),
+        "callers diverged onto different sessions: {ids:?}"
+    );
+    let rows: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM payment_sessions WHERE merchant_id=$1 AND reference_id='camp_race'",
+    )
+    .bind(merchant)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(rows, 1, "exactly one session for the reference, got {rows}");
+    assert!(
+        created >= 1,
+        "at least one caller performed the create (created={created})"
+    );
+}
+
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn rejects_foreign_wallet_account(pool: PgPool) {
     let (_m1, _w1, _wa1, _) = seed(&pool).await;
