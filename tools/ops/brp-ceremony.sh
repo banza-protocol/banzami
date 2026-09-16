@@ -39,14 +39,31 @@ ssh "$VM" "BZ_AUTHORITY_REPO=/root/brp-ceremony bash /root/brp-ceremony/runtime-
 
 echo "── [5] verify runtime authority (read-only, sanctioned checker) ──"
 ssh "$VM" "BZ_AUTHORITY_REPO=/root/brp-ceremony bash /root/brp-ceremony/runtime-authority.sh verify" | tail -8
-GRANT="$(ssh "$VM" "docker exec $PG sh -c 'PGPASSWORD=\$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc \"select has_table_privilege(''bl_gateway_runtime'',''business_receive_point_mints'',''INSERT'') and has_table_privilege(''bl_gateway_runtime'',''business_receive_points'',''INSERT'')\"'" | tr -d '[:space:]')"
-[ "$GRANT" = "t" ] || { echo "✗ gateway still cannot write the receive-point tables"; exit 1; }
-echo "  gateway_can_write_receive_point_tables=t ✓"
-
-echo "── [6] verify schema (tables + 4 invariant indexes + terms_version), read-only ──"
-OBJ="$(ssh "$VM" "docker exec $PG sh -c 'PGPASSWORD=\$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc \"select (select count(*) from pg_tables where tablename in (''business_receive_points'',''business_receive_point_mints'')) || ''/'' || (select count(*) from pg_indexes where indexname in (''uq_business_receive_points_slug'',''uq_business_receive_points_one_active'',''uq_business_receive_point_mints_scope'',''uq_business_receive_point_mints_core_reference'')) || ''/'' || (select count(*) from information_schema.columns where table_name=''merchant_applications'' and column_name=''terms_version'')\"'" | tr -d '[:space:]')"
-[ "$OBJ" = "2/4/1" ] || { echo "✗ schema objects = $OBJ, expected 2/4/1 (tables/indexes/column)"; exit 1; }
-echo "  tables/indexes/column=2/4/1 ✓"
+# Robust read-only verify: ship the SQL as a file (a quoted heredoc), so nested
+# ssh→docker→psql quoting cannot mangle the string literals, then pipe it into psql
+# on the VM via stdin. Grants first (gateway writes; public-api does not), then schema.
+VSQL="$(mktemp "${TMPDIR:-/tmp}/brp-verify.XXXXXX.sql")"
+cat > "$VSQL" <<'SQL'
+select 'gw_mints_INSERT='   || has_table_privilege('bl_gateway_runtime','business_receive_point_mints','INSERT')::text;
+select 'gw_mints_UPDATE='   || has_table_privilege('bl_gateway_runtime','business_receive_point_mints','UPDATE')::text;
+select 'gw_points_INSERT='  || has_table_privilege('bl_gateway_runtime','business_receive_points','INSERT')::text;
+select 'gw_points_UPDATE='  || has_table_privilege('bl_gateway_runtime','business_receive_points','UPDATE')::text;
+select 'papi_mints_INSERT=' || has_table_privilege('bl_public_api_runtime','business_receive_point_mints','INSERT')::text;
+select 'tables='  || count(*)::text from pg_tables  where tablename in ('business_receive_points','business_receive_point_mints');
+select 'indexes=' || count(*)::text from pg_indexes where indexname in ('uq_business_receive_points_slug','uq_business_receive_points_one_active','uq_business_receive_point_mints_scope','uq_business_receive_point_mints_core_reference');
+select 'terms_col=' || count(*)::text from information_schema.columns where table_name='merchant_applications' and column_name='terms_version';
+SQL
+scp -q "$VSQL" "$VM:/tmp/brp-verify.sql"
+rm -f "$VSQL"
+V="$(ssh "$VM" "docker exec -i $PG sh -c 'PGPASSWORD=\$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tA' < /tmp/brp-verify.sql; rm -f /tmp/brp-verify.sql" | tr -d '[:space:]')"
+echo "  $V" | tr ';' '\n' | sed 's/^/    /'
+grep -q 'gw_mints_INSERT=true'  <<<"$V" && grep -q 'gw_mints_UPDATE=true'  <<<"$V" \
+  && grep -q 'gw_points_INSERT=true' <<<"$V" && grep -q 'gw_points_UPDATE=true' <<<"$V" \
+  || { echo "✗ gateway cannot write the receive-point tables"; exit 1; }
+grep -q 'papi_mints_INSERT=false' <<<"$V" || { echo "✗ public-api unexpectedly has write on a receive-point table"; exit 1; }
+grep -q 'tables=2' <<<"$V" && grep -q 'indexes=4' <<<"$V" && grep -q 'terms_col=1' <<<"$V" \
+  || { echo "✗ schema objects missing (want tables=2 indexes=4 terms_col=1)"; exit 1; }
+echo "  gateway_writes=OK · public_api_no_write=OK · schema 2/4/1 ✓"
 
 echo
 echo "✓ CEREMONY COMPLETE — migrations 0153/0154/0155 applied, runtime authority granted, verified."
