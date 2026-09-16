@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../models/activity_item.dart';
+import '../models/business_receive_point.dart';
 import '../models/consumer.dart';
 import '../models/consumer_pay_link.dart';
 import '../models/consumer_suggestion.dart';
@@ -311,6 +312,45 @@ class ConsumerPublicClient {
       body: body,
     );
     return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Business Receive Point (ADR-065)
+  // ---------------------------------------------------------------------------
+
+  /// Resolve a scanned Business Receive Point slug to the payer-safe Business
+  /// identity. Public (no auth): the pay surface reads it before sign-in. The
+  /// server re-derives the Business and re-checks eligibility — the client never
+  /// chooses the destination.
+  Future<BusinessReceivePointResolution> resolveReceivePoint(String slug) async {
+    final json = await _call(
+      method: 'GET',
+      path: '/v1/receive-points/${_seg(slug)}',
+      auth: false,
+    );
+    return BusinessReceivePointResolution.fromJson(json);
+  }
+
+  /// Mint a FRESH Payment Session for a scanned Business Receive Point. The payer
+  /// is THIS session's consumer, taken from the token — never a field here. The
+  /// returned session carries the payment-link slug to settle against; the caller
+  /// pays it with [payPaymentLink], reusing the existing settlement path.
+  ///
+  /// [idempotencyKey] makes a retried mint converge on the same session.
+  Future<MintedReceivePointSession> payReceivePoint(
+    String slug, {
+    required int amountMinor,
+    String? idempotencyKey,
+  }) async {
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/receive-points/${_seg(slug)}/pay',
+      body: <String, dynamic>{
+        'amount_minor': amountMinor,
+        'idempotency_key': idempotencyKey ?? _uuid.v4(),
+      },
+    );
+    return MintedReceivePointSession.fromJson(json);
   }
 
   // ---------------------------------------------------------------------------

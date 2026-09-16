@@ -67,6 +67,7 @@ export 'models/payout.dart';
 export 'models/wallet_balance.dart';
 export 'models/transfer.dart';
 export 'models/payment_link.dart';
+export 'models/business_receive_point.dart';
 export 'models/receipt.dart';
 export 'models/project_link_code.dart';
 export 'models/collection.dart';
