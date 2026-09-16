@@ -47,7 +47,7 @@ function platformLabel(t: BetaTester): string {
 function appsLabel(t: BetaTester): string {
   const a: string[] = [];
   if (t.app_banzami) a.push('App Banzami');
-  if (t.app_merchant) a.push('App Comerciante');
+  if (t.app_merchant) a.push('App Banzami Business');
   return a.join(' + ') || '—';
 }
 
@@ -175,7 +175,7 @@ export default function BetaTestersPage() {
           <select value={app} onChange={(e) => setApp(e.target.value as AppFilter)} className="rounded-[10px] border border-[#eadede] bg-white px-2.5 py-1.5 text-[12.5px] font-bold text-[#5a4a4e]">
             <option value="">Todas as apps</option>
             <option value="APP_BANZAMI">App Banzami</option>
-            <option value="APP_MERCHANT">App Comerciante</option>
+            <option value="APP_MERCHANT">App Banzami Business</option>
           </select>
           <select value={platform} onChange={(e) => setPlatform(e.target.value as PlatformFilter)} className="rounded-[10px] border border-[#eadede] bg-white px-2.5 py-1.5 text-[12.5px] font-bold text-[#5a4a4e]">
             <option value="">Todas as plataformas</option>

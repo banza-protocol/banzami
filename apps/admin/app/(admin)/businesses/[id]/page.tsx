@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { AdminApi, type ApplicationBusinessState } from '@/lib/admin-api';
@@ -41,6 +42,9 @@ export default function BusinessPage() {
 
   return (
     <>
+      <Link href="/businesses" className="mb-3 inline-flex items-center gap-1 text-[13px] font-extrabold text-[#B5101F] no-underline hover:underline">
+        ← Comerciantes
+      </Link>
       <div className="mb-5">
         <div className="font-mono text-[14px] font-bold text-[#9a8a8e]">Business Account · {state.merchant_id}</div>
         <h1 data-testid="business-handle" className="m-0 mt-1 font-mono text-[28px] font-black text-[#B5101F]">
@@ -58,7 +62,7 @@ export default function BusinessPage() {
       </div>
 
       {api && state.status === 'ACTIVE' && state.login_activated && state.handle ? (
-        <AppPinReset api={api} merchantId={state.merchant_id} handle={state.handle} />
+        <AppPinReset api={api} merchantId={state.merchant_id} handle={state.handle} accessEmail={state.access_email} />
       ) : null}
 
       <div className="grid grid-cols-2 gap-4 max-[1040px]:grid-cols-1">

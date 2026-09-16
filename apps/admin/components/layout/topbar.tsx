@@ -10,25 +10,42 @@ import { ChangePasswordModal } from '@/components/ui/change-password-modal';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { useDialog } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
+import { navItems } from '@/components/layout/nav-config';
 
-// Title + subtitle per route (README §Header).
-const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
-  { match: (p) => p === '/', title: 'Visão geral', sub: 'Resumo operacional da rede Banzami.' },
-  { match: (p) => p.startsWith('/merchants'), title: 'Comerciantes', sub: 'Candidaturas Business, KYC e gestão de contas.' },
-  { match: (p) => p.startsWith('/consumers'), title: 'Consumidores', sub: 'Carteiras e contas de consumidores.' },
-  { match: (p) => p.startsWith('/beta-testers'), title: 'Beta testers', sub: 'Inscrições para testar as apps móveis (App Banzami e App Comerciante).' },
-  { match: (p) => p.startsWith('/settlements'), title: 'Liquidações', sub: 'Ciclo de liquidação aos comerciantes.' },
-  { match: (p) => p.startsWith('/payments'), title: 'Levantamentos', sub: 'Levantamentos das carteiras dos negócios para o banco.' },
-  { match: (p) => p.startsWith('/reconciliation'), title: 'Reconciliação', sub: 'Conferência de movimentos e divergências.' },
-  { match: (p) => p.startsWith('/disputes'), title: 'Disputas', sub: 'Resolução de disputas de transações.' },
-  { match: (p) => p.startsWith('/risk'), title: 'Risco & Audit', sub: 'Sinalizações de risco e registo de auditoria.' },
-  { match: (p) => p.startsWith('/operators'), title: 'Operadores', sub: 'Gestão de acesso ao BANZADMIN.' },
-];
+// The page title is the label of the active nav item — one source (nav-config),
+// so the sidebar label, the header title and the breadcrumb can never drift
+// (BANZADMIN-IA-NAV-001 §22/§35). Subtitles are optional flavour keyed by route.
+const SUBS: Record<string, string> = {
+  '/': 'Resumo operacional da rede Banzami.',
+  '/compliance/inbox': 'Casos de compliance por resolver.',
+  '/merchants': 'Candidaturas Business: revisão, aprovação e associação.',
+  '/businesses': 'Contas de comerciantes e acesso à App Banzami Business.',
+  '/consumers': 'Carteiras e contas de consumidores.',
+  '/merchant-kyb': 'Documentos KYB de negócios para revisão.',
+  '/consumer-kyc': 'Documentos KYC de consumidores para revisão.',
+  '/beta-testers': 'Inscrições para testar as apps móveis (App Banzami e App Banzami Business).',
+  '/settlements': 'Ciclo de liquidação aos comerciantes.',
+  '/payments': 'Levantamentos das carteiras dos comerciantes para o banco.',
+  '/reconciliation': 'Conferência de movimentos e divergências.',
+  '/disputes': 'Resolução de disputas de transações.',
+  '/risk': 'Sinalizações de risco e registo de auditoria.',
+  '/operators': 'Gestão de acesso ao BANZADMIN.',
+  '/platform-mode': 'Modo da plataforma: SANDBOX ou LIVE.',
+};
+
+function headerFor(pathname: string): { title: string; sub: string } {
+  let best: { href: string; label: string; exact?: boolean } | null = null;
+  for (const it of navItems()) {
+    const active = it.exact ? pathname === it.href : pathname === it.href || pathname.startsWith(it.href + '/');
+    if (active && (!best || it.href.length > best.href.length)) best = it;
+  }
+  return best ? { title: best.label, sub: SUBS[best.href] ?? '' } : { title: 'Admin', sub: '' };
+}
 
 export function Topbar({ user }: { user: AdminUser }) {
   const pathname = usePathname();
   const router = useRouter();
-  const meta = META.find((m) => m.match(pathname)) ?? { title: 'Admin', sub: '' };
+  const meta = headerFor(pathname);
   const dialog = useDialog();
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);

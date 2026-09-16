@@ -63,7 +63,7 @@ export default function FinanceDashboardPage() {
   return (
     <div className="flex flex-col gap-5">
       <header className="rounded-[18px] bg-[#1a1416] px-[26px] py-[22px] text-white">
-        <h1 className="text-[23px] font-black tracking-[-0.02em]">Finanças · Visão geral</h1>
+        <h1 className="text-[23px] font-black tracking-[-0.02em]">Resumo financeiro</h1>
         <p className="mt-1 max-w-[760px] text-[13.5px] text-white/70">
           Agregações apenas de leitura sobre taxas do operador e liquidações de aplicações.
           A receita do operador é a soma das taxas aplicadas. Sem dados inventados.

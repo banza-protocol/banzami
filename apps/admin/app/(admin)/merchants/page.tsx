@@ -85,13 +85,13 @@ export default function MerchantsPage() {
       <div className="mb-[22px] flex items-center gap-[26px] border-b border-[#f1e3e3]">
         <span className="-mb-px inline-flex items-center gap-2 border-b-[2.5px] border-[#B5101F] px-0.5 pb-[14px] text-[15px] font-extrabold text-[#2a2024]">
           <Search size={17} color="#2a2024" strokeWidth={1.8} />
-          Comerciantes
+          Candidaturas
         </span>
         <button
-          onClick={() => toast('info', 'Criação manual de comerciante em breve.')}
+          onClick={() => toast('info', 'Criação manual de candidatura em breve.')}
           className="pb-[14px] text-[15px] font-bold text-[#9a8a8e]"
         >
-          + Criar Comerciante
+          + Criar candidatura
         </button>
       </div>
 

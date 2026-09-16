@@ -94,7 +94,7 @@ export function ApplicationActions({
   const approve = async () => {
     const ok = await dialog.confirm({
       title: 'Aprovar — criar nova Business Account',
-      message: `Aprovar ${app.business_name} e criar uma nova Business Account com ${withAt(app.desired_handle)}: conta, carteira em AOA, acesso à app Business e o perfil de preço por omissão. A classe fica MERCHANT. A ação fica registada no log de auditoria.`,
+      message: `Aprovar ${app.business_name} e criar uma nova Business Account com ${withAt(app.desired_handle)}: conta, carteira em AOA, acesso à App Banzami Business e o perfil de preço por omissão. A classe fica MERCHANT. A ação fica registada no log de auditoria.`,
       confirmLabel: 'Aprovar',
     });
     if (!ok) return;
@@ -328,7 +328,7 @@ export function BusinessStatePanel({ api, app }: { api: AdminApi; app: MerchantA
     <div className="mb-4 rounded-[18px] border border-[#f1e3e3] bg-white p-6">
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h3 className="m-0 text-[15px] font-black">Estado da Business</h3>
-        <a href={`/businesses/${state.merchant_id}`} className="text-[13px] font-extrabold text-[#B5101F]">Abrir a Business →</a>
+        <a href={`/businesses/${state.merchant_id}`} className="text-[13px] font-extrabold text-[#B5101F]">Abrir comerciante →</a>
       </div>
       <div className="mb-3 flex justify-between gap-4 text-[14px]">
         <span className="font-bold text-[#9a8a8e]">Resolução</span>
@@ -412,7 +412,7 @@ export function BusinessStateRows({ state }: { state: ApplicationBusinessState }
     ['Carteira', state.wallet_status ? `${state.wallet_status} · ${state.wallet_currency}` : 'Sem carteira'],
     ['Contas na carteira', String(state.wallet_accounts)],
     ['Perfil de preço', state.pricing_profile ?? 'Não atribuído'],
-    ['Acesso à app Business', state.login_activated ? 'Ativado' : state.login_exists ? 'Por ativar' : 'Sem acesso'],
+    ['Acesso à App Banzami Business', state.login_activated ? 'Ativado' : state.login_exists ? 'Por ativar' : 'Sem acesso'],
     ['Projetos de developer', String(state.developer_projects)],
   ];
   if (r) {

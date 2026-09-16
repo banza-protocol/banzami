@@ -47,9 +47,9 @@ export default function BusinessesPage() {
     <>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="m-0 text-[26px] font-black tracking-[-0.02em]">Negócios</h1>
+          <h1 className="m-0 text-[26px] font-black tracking-[-0.02em]">Comerciantes</h1>
           <p className="m-0 mt-1 text-[14px] font-semibold text-[#9a8a8e]">
-            Cada Business Account pelo @handle que possui — KYB, classe, carteira, projetos e candidaturas numa só página.
+            Cada comerciante pelo @handle que possui — a sua Business Account, KYB, classe, carteira, projetos e candidaturas numa só página.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -66,12 +66,12 @@ export default function BusinessesPage() {
         </div>
       </div>
       {error ? (
-        <ErrorState message="Não foi possível carregar as Business Accounts." />
+        <ErrorState message="Não foi possível carregar os comerciantes." />
       ) : (
         <TableWrap>
           <thead>
             <tr>
-              <Th>Business</Th>
+              <Th>Comerciante</Th>
               <Th>Classe</Th>
               <Th>Verificação</Th>
               <Th>Estado</Th>

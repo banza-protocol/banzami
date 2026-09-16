@@ -226,7 +226,7 @@ export default function MerchantDetailPage() {
 function BackLink({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick} className="mb-4 inline-flex items-center gap-[7px] text-[14px] font-extrabold text-[#9a8a8e] transition hover:text-[#B5101F]">
-      ← Comerciantes
+      ← Candidaturas
     </button>
   );
 }

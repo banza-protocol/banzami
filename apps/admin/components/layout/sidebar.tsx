@@ -7,7 +7,8 @@ import { signOut } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
 import { attentionHref, attentionLabel, attentionPhrase, badgeText, countFor } from '@/lib/attention';
 import { useAttention } from '@/components/layout/attention-provider';
-import { NAV, isSection, type NavItem } from '@/components/layout/nav-config';
+import { navForRole, isSection, type NavItem } from '@/components/layout/nav-config';
+import { getSession } from '@/lib/session';
 
 /**
  * Attention badge. Red (brand token), hidden at 0, "99+" past 99. Two
@@ -64,6 +65,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { summary } = useAttention();
+  // Role scopes only what is SHOWN; admin-api re-authorizes every action.
+  const nav = navForRole(getSession()?.user.role);
 
   // Sign out on the server too (admin-api revokes the session), then leave.
   async function logout() {
@@ -83,7 +86,7 @@ export function Sidebar() {
       </div>
 
       <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-[3px] overflow-y-auto p-3">
-        {NAV.map((entry) => {
+        {nav.map((entry) => {
           if (isSection(entry)) {
             return (
               <div key={entry.section} className="mt-[14px] flex flex-col gap-[3px]">

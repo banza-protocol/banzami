@@ -15,6 +15,9 @@ vi.mock('@/lib/admin-env', () => ({
   ENV_CHANGE_EVENT: 'banzadmin:env',
   useAdminEnv: () => ({ env: 'SANDBOX', setEnv: () => true, liveAvailable: false, ready: true }),
 }));
+// The sidebar scopes what it shows to the operator's role; these tests assert the
+// full SUPER_ADMIN sidebar.
+vi.mock('@/lib/session', () => ({ getSession: () => ({ user: { role: 'SUPER_ADMIN' } }) }));
 
 import { AttentionProvider } from './attention-provider';
 import { Sidebar } from './sidebar';
@@ -88,7 +91,7 @@ describe('Sidebar attention badges', () => {
 
   it('never badges menus that are not queues', async () => {
     await renderWith(async () => summary({ business_applications: 3, payouts: 2, disputes: 1 }));
-    for (const name of [/^Visão geral$/, /^Negócios$/, /^Consumidores$/, /^Comprovativos$/, /^Operadores$/]) {
+    for (const name of [/^Comerciantes$/, /^Consumidores$/, /^Comprovativos$/, /^Operadores$/]) {
       for (const a of screen.getAllByRole('link', { name })) expect(rowBadge(a)).toBeNull();
     }
   });

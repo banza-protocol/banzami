@@ -1517,6 +1517,10 @@ export interface ApplicationBusinessState {
   business_account_type: string;
   kyb_status: string;
   handle: string;
+  /** The account's login/access email — where the PIN-reset link is sent. May be
+   *  a synthetic sandbox address, and differs from the business contact email.
+   *  Optional: older gateway builds omit it. */
+  access_email?: string;
   wallet_status: string | null;
   wallet_currency: string | null;
   wallet_accounts: number;

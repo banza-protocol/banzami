@@ -15,7 +15,7 @@ const label = 'mb-1.5 block text-[12px] font-extrabold uppercase tracking-wide t
  * every device signed in with the old one. The link is emailed to the
  * Business; admin-api shows it here too only while the platform is SANDBOX.
  */
-export function AppPinReset({ api, merchantId, handle }: { api: AdminApi; merchantId: string; handle: string }) {
+export function AppPinReset({ api, merchantId, handle, accessEmail }: { api: AdminApi; merchantId: string; handle: string; accessEmail?: string }) {
   const [typed, setTyped] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -45,7 +45,7 @@ export function AppPinReset({ api, merchantId, handle }: { api: AdminApi; mercha
 
   return (
     <div className="mt-4 rounded-[18px] border border-[#f1e3e3] bg-white p-6" data-testid="app-pin-reset">
-      <h3 className="m-0 mb-2 text-[15px] font-black">PIN da app Business</h3>
+      <h3 className="m-0 mb-2 text-[15px] font-black">PIN da App Banzami Business</h3>
       <p className="m-0 mb-4 text-[13.5px] font-semibold leading-relaxed text-[#7a6a6e]">
         Se o negócio esqueceu o PIN, envie-lhe um link para escolher um novo. O PIN atual continua a funcionar até o
         link ser usado; depois, todos os dispositivos terão de entrar com o novo PIN.
@@ -61,6 +61,16 @@ export function AppPinReset({ api, merchantId, handle }: { api: AdminApi; mercha
         </div>
       ) : (
         <>
+          <div className="mb-4 rounded-[12px] border border-[#f1e3e3] bg-[#FFF7F6] p-3.5">
+            <p className={label}>Enviar link para · email de acesso</p>
+            <p className="m-0 mt-0.5 break-all font-mono text-[14px] font-bold text-[#2a2024]" data-testid="pin-reset-recipient">
+              {accessEmail || 'o email de acesso da conta'}
+            </p>
+            <p className="m-0 mt-2 text-[12.5px] font-semibold leading-relaxed text-[#7a6a6e]">
+              É o email de <strong>acesso</strong> da conta — pode ser diferente do email de contacto do negócio. Na
+              Sandbox, o link também aparece aqui no ecrã depois de enviar.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
             <div>
               <label htmlFor="pin-reset-confirm" className={label}>

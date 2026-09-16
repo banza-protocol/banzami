@@ -426,7 +426,7 @@ function RejectModal({
   }
 
   return (
-    <ModalShell title="Rejeitar documento" subtitle="O motivo é visível para o comerciante na app Business." onClose={onClose}>
+    <ModalShell title="Rejeitar documento" subtitle="O motivo é visível para o comerciante na App Banzami Business." onClose={onClose}>
       <form onSubmit={submit}>
         <div className="flex flex-col gap-2">
           {REJECT_REASONS.map((r) => (

@@ -142,6 +142,10 @@ type BusinessState struct {
 	BusinessAccountType string  `json:"business_account_type"`
 	KybStatus           string  `json:"kyb_status"`
 	Handle              string  `json:"handle"`
+	// AccessEmail is the account's login email (where the PIN-reset link is sent).
+	// It may be a synthetic sandbox address and differs from the business contact
+	// email — the operator sees the true recipient before sending a reset.
+	AccessEmail         string  `json:"access_email"`
 	WalletStatus        *string `json:"wallet_status"`
 	WalletCurrency      *string `json:"wallet_currency"`
 	WalletAccounts      int     `json:"wallet_accounts"`
@@ -199,6 +203,7 @@ func (s *PostgresMerchantApplicationAdminService) BusinessStateForMerchant(ctx c
 		        COALESCE(c.kyb_status,'PENDING'),
 		        COALESCE((SELECT handle FROM handle_registry WHERE owner_type='MERCHANT' AND owner_id=m.id
 		                   ORDER BY handle = $2 DESC, created_at LIMIT 1), ''),
+		        COALESCE(m.email,''),
 		        w.status, w.currency,
 		        (SELECT count(*) FROM wallet_accounts wa WHERE wa.merchant_id = m.id)::int,
 		        pp.code,
@@ -212,6 +217,7 @@ func (s *PostgresMerchantApplicationAdminService) BusinessStateForMerchant(ctx c
 		   LEFT JOIN pricing_profiles pp ON pp.id = m.pricing_profile_id
 		  WHERE m.id = $1`, merchantID, preferHandle).
 		Scan(&st.Name, &st.Status, &st.BusinessAccountType, &st.KybStatus, &st.Handle,
+			&st.AccessEmail,
 			&st.WalletStatus, &st.WalletCurrency, &st.WalletAccounts, &st.PricingProfile,
 			&st.LoginActivated, &st.LoginExists, &st.DeveloperProjects)
 	if errors.Is(err, pgx.ErrNoRows) {
