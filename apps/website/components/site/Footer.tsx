@@ -112,7 +112,7 @@ function ExploreTile({ link }: { link: ExploreLink }) {
 export function Footer() {
   return (
     <footer className="bg-cream-50 px-6 pb-12 pt-14">
-      <div className="mx-auto grid max-w-container grid-cols-1 gap-5 lg:grid-cols-[1fr_1.32fr_1fr]">
+      <div className="mx-auto grid max-w-container grid-cols-1 gap-5 lg:grid-cols-[1fr_1.5fr]">
         {/* ---------- A · Institutional ---------- */}
         <section className="rounded-[28px] border border-[rgba(181,16,31,0.10)] bg-white p-[clamp(26px,2.6vw,36px)] shadow-[0_20px_50px_-40px_rgba(181,16,31,0.35)]">
           <Link href="/" className="inline-flex no-underline">
@@ -151,48 +151,6 @@ export function Footer() {
           </p>
         </section>
 
-        {/* ---------- C · Red CTA card ---------- */}
-        <section
-          className="relative overflow-hidden rounded-[28px] p-[clamp(26px,2.6vw,36px)] text-white shadow-[0_24px_60px_-34px_rgba(181,16,31,0.7)]"
-          style={{ background: 'linear-gradient(158deg,#B5101F,#9A1B22)' }}
-        >
-          {/* faint concentric rings, decorative */}
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-24 -right-20 h-[260px] w-[260px] rounded-full"
-            style={{ border: '40px solid rgba(255,255,255,0.05)' }}
-          />
-          <div className="relative">
-            <p className="m-0 text-[24px] font-black tracking-[-0.01em]">Construir com o Banzami</p>
-            <p data-testid="footer-environment-status" className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
-              A {PUBLIC_TRUTH.sandbox.name} está disponível, com dinheiro fictício. O {PUBLIC_TRUTH.live.name} está indisponível.
-            </p>
-
-            <a
-              href="/developers"
-              className="bz-foot-cta mt-[22px] flex items-center justify-between rounded-[16px] bg-white px-[20px] py-[16px] text-[15px] font-extrabold text-cherry no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
-            >
-              Plataforma para developers
-              <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="#B5101F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </a>
-
-            <a
-              href={mailto('Contacto Banzami')}
-              className="bz-foot-cta mt-[12px] flex items-center justify-between rounded-[16px] border border-white/25 bg-white/[0.12] px-[20px] py-[16px] text-[15px] font-extrabold text-white no-underline transition hover:bg-white/[0.2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
-            >
-              Falar connosco
-              <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </a>
-
-            <p className="m-0 mt-[18px] text-[13px] font-semibold leading-[1.5] text-white/70">
-              A App Banzami está disponível no browser (Sandbox, dinheiro fictício) e em testes no iPhone e Android. <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Abrir App Banzami Web</a> ou <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">participar nos testes nativos</a>.
-            </p>
-          </div>
-        </section>
       </div>
 
       {/* ---------- Bottom bar ---------- */}
@@ -203,6 +161,8 @@ export function Footer() {
             {PUBLIC_TRUTH.live.name} indisponível · Sandbox com dinheiro fictício
           </p>
           <p className="m-0 flex items-center gap-[14px] text-[13px] font-semibold text-ink-muted">
+            <a href={mailto('Contacto Banzami')} className="font-bold text-ink-soft no-underline hover:text-cherry">Contacto</a>
+            <Link href="/suporte" className="font-bold text-ink-soft no-underline hover:text-cherry">Suporte</Link>
             <Link href="/privacidade" className="font-bold text-ink-soft no-underline hover:text-cherry">Privacidade</Link>
             <span className="bz-mono">© 2026 Banzami</span>
           </p>
