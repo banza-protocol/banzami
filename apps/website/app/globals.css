@@ -262,6 +262,10 @@ body {
 .bz-navitem:focus-within > a .bz-chev { transform: rotate(180deg); }
 .bz-toplink:hover { color: #B5101F !important; background: #FFF1F0 !important; }
 .bz-toplink:focus-visible { outline: 2px solid #B5101F; outline-offset: 3px; border-radius: 6px; }
+/* the hero App Banzami embed: an iframe is a keyboard tab stop but browsers paint
+   no ring on it, so give it one explicitly (WCAG 2.4.7). :focus (not
+   :focus-visible) — an iframe element is only focused via keyboard/programmatic. */
+.bz-appframe:focus { outline: 2px solid #B5101F; outline-offset: 4px; border-radius: 36px; }
 /* language toggle (docs header): a segmented control, current language filled */
 .bz-langseg { transition: color .12s ease, background .12s ease; }
 .bz-langseg:hover { color: #241D20 !important; background: rgba(0,0,0,.03); }
