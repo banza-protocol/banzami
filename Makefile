@@ -407,6 +407,16 @@ check-public-site-truth:
 check-doc-truth:
 	node tools/check-doc-truth.mjs
 
+# DOCS-TRUTH-PREMIUM-001 — LIVE verification of the DEPLOYED public surfaces:
+# a broken-link crawl + a rendered-truth check (Financial Live unavailable,
+# Sandbox available, no /v2, no legacy routes, no rail-free/stale-persona). Runs
+# against banzami.com + developers.banzami.com; needs the pinned browser
+# (tools/e2e/app-web). Not part of the offline check-* aggregate.
+.PHONY: check-site-live
+check-site-live:
+	node tools/e2e/site/live-crawl.mjs
+	node tools/e2e/site/live-truth-check.mjs
+
 .PHONY: check-docs-prod
 check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth check-doc-truth check-wallet-native
 	node tools/check-docs-prod-001-spec.mjs
