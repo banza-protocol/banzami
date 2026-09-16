@@ -89,6 +89,32 @@ export async function getPaymentLink(slug: string): Promise<PaymentLink | null> 
   return res.json();
 }
 
+/**
+ * The payer-safe projection of a scanned Business Receive Point (ADR-065). Like
+ * the payment-link payload, it names the Business's PUBLIC identity and nothing
+ * of its internal resources. The QR is persistent; a fresh session is minted per
+ * payment (in the app), so this page carries no amount or session of its own.
+ */
+export interface ReceivePoint {
+  slug:         string;
+  display_name: string;
+  /** The @banza the Business owns, without the "@"; empty when it has none. */
+  handle:       string;
+  currency:     string;
+  status:       'ACTIVE' | 'DISABLED' | 'RETIRED';
+  environment:  'SANDBOX' | 'LIVE';
+}
+
+/** Resolve a scanned receive point to its Business identity, or null if unknown. */
+export async function getReceivePoint(slug: string): Promise<ReceivePoint | null> {
+  const res = await fetch(`${SERVER_GATEWAY_URL}/v1/receive-points/${encodeURIComponent(slug)}`, {
+    next: { revalidate: 0 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
 export async function getPaymentLinkStatus(slug: string): Promise<{ paid: boolean }> {
   const res = await fetch(`${GATEWAY_URL}/public/pay/${encodeURIComponent(slug)}/status`, {
     cache: 'no-store',
