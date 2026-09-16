@@ -81,7 +81,7 @@ raw `psql` for schema (that path caused the 0090–0095 drift):
 
 ```bash
 cd ~/banzami
-PG=bzsandbox-20260708184104-1708617-23807-postgres-1
+PG=$(ssh root@217.160.9.248 "docker ps --format '{{.Names}}' | grep -E 'bzsandbox.*-postgres-1' | head -1")
 IP=$(ssh root@217.160.9.248 "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $PG")
 ssh -f -N -L 15432:$IP:5432 root@217.160.9.248
 PW=$(ssh root@217.160.9.248 "docker exec $PG cat /run/secrets/mi_superuser" | tr -d '[:space:]')
@@ -89,6 +89,13 @@ DATABASE_URL="postgresql://sbadmin:$PW@localhost:15432/banzami_staging" \
   BANZAMI_DB_TARGET=banzami_staging \
   bash tools/migrate-and-verify.sh
 ```
+
+Verified (read-only) 2026-09-17: every operational Sandbox service — api-gateway,
+public-api, core-api — connects to `banzami_staging` in this same
+`bzsandbox-…-postgres-1` container, currently at head **152** (0153/0154/0155
+pending). `BANZAMI_DB_TARGET` is the audited safety label; the real target is the
+DATABASE_URL database name (`banzami_staging`), and the gate's identity check
+cross-verifies the two. This is the exact command that applied 0151/0152.
 
 Expected tail: `Applied 153… 154 business receive point… 155 receive point mint idempotency` →
 `✓ schema manifest satisfied — no drift.` → `✓ ROLLOUT GATE PASSED`. A non-zero exit
