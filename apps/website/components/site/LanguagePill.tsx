@@ -86,7 +86,7 @@ const ACTIVE: CSSProperties = {
 
 const INACTIVE: CSSProperties = {
   ...SEG,
-  color: '#8A7E82',
+  color: '#6F6266',
 };
 
 /**

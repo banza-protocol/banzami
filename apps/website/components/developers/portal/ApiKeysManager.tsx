@@ -478,7 +478,7 @@ export function ApiKeysManager() {
                     <span style={{ display: 'block', fontFamily: mono, fontSize: 11.5, fontWeight: 700, color: on ? '#B5101F' : '#6a5a5e', wordBreak: 'break-all' }}>
                       {sc}
                     </span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, fontWeight: 600, lineHeight: 1.4, color: '#807074' }}>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, fontWeight: 600, lineHeight: 1.4, color: '#746469' }}>
                       {SCOPE_HELP[sc] ?? sc}
                     </span>
                   </span>
@@ -691,7 +691,7 @@ export function ApiKeysManager() {
         </>
       )}
 
-      <p style={{ margin: '14px 2px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: '#807074' }}>
+      <p style={{ margin: '14px 2px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: '#746469' }}>
         <span style={{ color: '#B5101F', display: 'inline-flex' }}>
           <IconShield size={15} />
         </span>

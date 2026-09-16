@@ -65,7 +65,7 @@ export function verdict(p: ProofResult): { tone: 'green' | 'yellow' | 'red'; tit
 function Row({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '11px 0', borderBottom: '1px solid #f3eded' }}>
-      <span style={{ fontSize: 13, fontWeight: 700, color: '#807074' }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: '#746469' }}>{label}</span>
       <span style={{ fontSize: 14, fontWeight: 800, color: '#2a2024', fontFamily: mono ? 'JetBrains Mono, monospace' : undefined, textAlign: 'right', wordBreak: 'break-all' }}>{value || '—'}</span>
     </div>
   );
@@ -83,7 +83,7 @@ export function ProofView({ p, reference }: { p: ProofResult; reference: string 
       {p.exists && (
         <div style={{ padding: '8px 26px 4px' }}>
           <div style={{ padding: '10px 0 12px' }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#807074', letterSpacing: '0.04em' }}>Valor</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#746469', letterSpacing: '0.04em' }}>Valor</div>
             <div style={{ marginTop: 2 }}>
               <MoneyAmount amountMinor={p.amount ?? null} currency={p.currency} size="xl" />
             </div>
@@ -107,7 +107,7 @@ export function ProofView({ p, reference }: { p: ProofResult; reference: string 
               <span>✓ Confirmado pelo operador</span>
             </div>
           )}
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#807074' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#746469' }}>
             Registado no sistema oficial do Banzami · Verificado agora · {nowWAT()}
           </div>
         </div>

@@ -134,7 +134,7 @@ export function WebhookEndpointForm({ onCreated }: { onCreated: (ep: NewWebhookE
               }}>{on ? '✓' : ''}</span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontFamily: mono, fontSize: 11.5, fontWeight: 700, color: on ? '#B5101F' : '#6a5a5e', wordBreak: 'break-all' }}>{name}</span>
-                <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, fontWeight: 600, lineHeight: 1.4, color: '#807074' }}>{help}</span>
+                <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, fontWeight: 600, lineHeight: 1.4, color: '#746469' }}>{help}</span>
               </span>
             </button>
           );

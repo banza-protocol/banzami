@@ -158,7 +158,7 @@ const Ic = {
   ),
   chevron: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="pointer-events-none absolute right-[15px] top-1/2 -translate-y-1/2">
-      <path d="M6 9l6 6 6-6" stroke="#807074" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 9l6 6 6-6" stroke="#746469" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   // small per-document tile icons (step 1 / step 2 tiles)
@@ -322,7 +322,7 @@ function SectionHead({ icon, title, subtitle, action }: { icon: ReactNode; title
         </span>
         <div>
           <h2 className="m-0 text-[20px] font-black tracking-[-0.01em]">{title}</h2>
-          <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#807074]">{subtitle}</p>
+          <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#746469]">{subtitle}</p>
         </div>
       </div>
       {action}
@@ -374,14 +374,14 @@ function Stepper({ step }: { step: number }) {
           style={{
             background: reached ? RED : '#fff',
             borderColor: reached ? RED : '#c9bcbe',
-            color: reached ? '#fff' : '#807074',
+            color: reached ? '#fff' : '#746469',
           }}
         >
           {done ? Ic.check('#fff') : n}
         </div>
         <span
           className="absolute left-1/2 top-[calc(100%+9px)] -translate-x-1/2 whitespace-nowrap text-[13px] font-extrabold"
-          style={{ color: step === n ? RED : '#807074' }}
+          style={{ color: step === n ? RED : '#746469' }}
         >
           {label}
         </span>
@@ -813,7 +813,7 @@ export function CandidaturaForm() {
           </span>
           <div className="leading-[1.25]">
             <div className="text-[14px] font-extrabold text-[#2a2024]">Seguro e confiável</div>
-            <div className="text-[12.5px] font-semibold text-[#807074]">Os seus dados estão protegidos</div>
+            <div className="text-[12.5px] font-semibold text-[#746469]">Os seus dados estão protegidos</div>
           </div>
         </div>
       </div>
@@ -864,7 +864,7 @@ export function CandidaturaForm() {
                 </div>
               ))}
             </div>
-            <p className="m-0 mt-[14px] text-[12.5px] font-semibold leading-[1.5] text-[#807074]">
+            <p className="m-0 mt-[14px] text-[12.5px] font-semibold leading-[1.5] text-[#746469]">
               Documentos em formato PDF, JPG ou PNG. Máx. 5MB por ficheiro.
             </p>
           </div>
@@ -906,7 +906,7 @@ export function CandidaturaForm() {
                   </Field>
                   <Field label="@negócio desejado" error={show1 ? errors.handle : null}>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-[15px] font-semibold text-[#807074]">@</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-[15px] font-semibold text-[#746469]">@</span>
                       <input
                         className={`w-full rounded-[14px] border-[1.5px] ${
                           show1 && !!errors.handle ? ERR_BORDER : OK_BORDER
@@ -1059,7 +1059,7 @@ export function CandidaturaForm() {
                     </span>
                     <div>
                       <h2 className="m-0 text-[19px] font-black tracking-[-0.01em]">Documentos necessários</h2>
-                      <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-[#807074]">
+                      <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-[#746469]">
                         Para analisar a candidatura, precisamos apenas dos documentos essenciais da empresa.
                       </p>
                     </div>
@@ -1161,7 +1161,7 @@ export function CandidaturaForm() {
                   </span>
                   <div>
                     <h2 className="m-0 text-[20px] font-black">Confirme os seus documentos</h2>
-                    <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#807074]">
+                    <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#746469]">
                       Verifique se todos os ficheiros estão enviados e nítidos.
                     </p>
                   </div>
@@ -1195,7 +1195,7 @@ export function CandidaturaForm() {
                             {d.label}
                             {d.optional && <span className="ml-2 text-[12px] font-bold text-[#b09498]">Opcional</span>}
                           </div>
-                          <div className="mt-0.5 flex items-center gap-2 text-[13px] font-bold text-[#807074]">
+                          <div className="mt-0.5 flex items-center gap-2 text-[13px] font-bold text-[#746469]">
                             <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                               {st.error || (up ? (st.sandbox ? 'Documento sandbox pronto' : st.name) : (d.hint ?? 'Toque para enviar (PDF, JPG ou PNG)'))}
                             </span>
@@ -1249,14 +1249,14 @@ export function CandidaturaForm() {
                       carries it, so this screen is the one place it is given. */}
                   {applicationId && (
                     <div className="mx-auto mt-4 max-w-[440px] rounded-[12px] border-[1.5px] border-[#f4e6e6] bg-white px-4 py-3">
-                      <p className="m-0 text-[13px] font-bold text-[#807074]">Referência da candidatura</p>
+                      <p className="m-0 text-[13px] font-bold text-[#746469]">Referência da candidatura</p>
                       <p
                         data-testid="application-reference"
                         className="m-0 mt-1 select-all break-all font-mono text-[14px] font-extrabold text-[#5a4a4e]"
                       >
                         {applicationId}
                       </p>
-                      <p className="m-0 mt-2 text-[12.5px] font-semibold text-[#807074]">
+                      <p className="m-0 mt-2 text-[12.5px] font-semibold text-[#746469]">
                         Guarde esta referência: é com ela que acompanha o estado da candidatura.
                       </p>
                     </div>
@@ -1276,11 +1276,11 @@ export function CandidaturaForm() {
 
                   <div className="mx-auto mt-7 max-w-[400px] rounded-[16px] border-[1.5px] border-[#f4e6e6] bg-white p-5 text-left">
                     <div className="flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">
-                      <span className="text-[#807074]">{existingBusiness ? '@negócio a regularizar' : '@negócio reservado'}</span>
+                      <span className="text-[#746469]">{existingBusiness ? '@negócio a regularizar' : '@negócio reservado'}</span>
                       <span className="font-mono font-extrabold text-[#B5101F]">@{handleDisplay}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">
-                      <span className="text-[#807074]">Email de contacto</span>
+                      <span className="text-[#746469]">Email de contacto</span>
                       <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-extrabold text-[#2a2024]">{email || '—'}</span>
                     </div>
                   </div>
@@ -1319,7 +1319,7 @@ export function CandidaturaForm() {
                                   {Ic.circleCheck(GREEN, 15)} Recebido
                                 </span>
                               ) : u.status === 'uploading' ? (
-                                <span className="flex-none text-[12.5px] font-extrabold text-[#807074]">A enviar…</span>
+                                <span className="flex-none text-[12.5px] font-extrabold text-[#746469]">A enviar…</span>
                               ) : u.status === 'error' ? (
                                 <button
                                   type="button"
@@ -1329,7 +1329,7 @@ export function CandidaturaForm() {
                                   Tentar novamente
                                 </button>
                               ) : (
-                                <span className="flex-none text-[12.5px] font-extrabold text-[#807074]">Pendente</span>
+                                <span className="flex-none text-[12.5px] font-extrabold text-[#746469]">Pendente</span>
                               )}
                             </div>
                           );
@@ -1353,7 +1353,7 @@ export function CandidaturaForm() {
                     </span>
                     <div>
                       <h2 className="m-0 text-[20px] font-black">Reveja antes de enviar</h2>
-                      <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#807074]">Confirme que está tudo correto.</p>
+                      <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#746469]">Confirme que está tudo correto.</p>
                     </div>
                   </div>
 
@@ -1419,7 +1419,7 @@ export function CandidaturaForm() {
                 <span className="flex h-[38px] w-[38px] items-center justify-center rounded-[12px] bg-[#FFF1F0]">{Ic.lock}</span>
                 <div className="leading-[1.3]">
                   <div className="text-[13.5px] font-extrabold">Ligação cifrada</div>
-                  <div className="text-[12.5px] font-semibold text-[#807074]">Os dados seguem por HTTPS</div>
+                  <div className="text-[12.5px] font-semibold text-[#746469]">Os dados seguem por HTTPS</div>
                 </div>
               </div>
               <div className="flex items-center gap-3 max-[560px]:flex-col max-[560px]:items-stretch">
@@ -1473,7 +1473,7 @@ function ReviewCard({ title, children }: { title: string; children: ReactNode })
 function ReviewRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex justify-between gap-[14px]">
-      <span className="text-[#807074]">{label}</span>
+      <span className="text-[#746469]">{label}</span>
       <span className={mono ? 'font-mono text-[#B5101F]' : 'text-right text-[#2a2024]'}>{value}</span>
     </div>
   );
@@ -1484,7 +1484,7 @@ function ReviewRow({ label, value, mono }: { label: string; value: string; mono?
 function HandleBadge({ state }: { state: HandleState }) {
   if (state.status === 'checking')
     return (
-      <span className="absolute right-[14px] top-1/2 -translate-y-1/2 text-[13px] font-bold text-[#807074]">
+      <span className="absolute right-[14px] top-1/2 -translate-y-1/2 text-[13px] font-bold text-[#746469]">
         A verificar…
       </span>
     );

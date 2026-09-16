@@ -80,7 +80,7 @@ function Account() {
           <RenameField label="NOME" value={user?.name ?? ''} onSave={rename} />
         </div>
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#807074', letterSpacing: '.04em' }}>EMAIL</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#746469', letterSpacing: '.04em' }}>EMAIL</div>
           <div style={{ marginTop: 4, fontSize: 14.5, fontWeight: 800 }}>{user?.email ?? '—'}</div>
           <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600 }}>
             O email identifica a conta e é por onde recebe o código de entrada. Não pode ser alterado
@@ -118,7 +118,7 @@ function Account() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
                 <thead>
-                  <tr style={{ textAlign: 'left', color: '#807074', fontSize: 12, fontWeight: 800 }}>
+                  <tr style={{ textAlign: 'left', color: '#746469', fontSize: 12, fontWeight: 800 }}>
                     <th style={{ padding: '8px 12px 8px 0' }}>DISPOSITIVO</th>
                     <th style={{ padding: '8px 12px' }}>ENDEREÇO</th>
                     <th style={{ padding: '8px 12px' }}>ÚLTIMA ATIVIDADE</th>

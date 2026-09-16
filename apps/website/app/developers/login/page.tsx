@@ -136,7 +136,7 @@ export default function DevelopersLoginPage() {
             alignItems: 'center',
             gap: 8,
             fontSize: 12.5,
-            color: '#807074',
+            color: '#746469',
             fontWeight: 700,
           }}
         >

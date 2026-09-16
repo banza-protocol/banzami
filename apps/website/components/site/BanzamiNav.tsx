@@ -203,7 +203,7 @@ export function BanzamiNav() {
                         {m.links?.map((link) => (
                           <NavA key={link.label} className="bz-megalink" href={link.href} onClick={closeMenu}>
                             <span style={{ display: 'block', fontSize: 13.5, fontWeight: 800, color: '#2a2024' }}>{link.label}</span>
-                            <span style={{ display: 'block', fontSize: 11.5, lineHeight: 1.4, color: '#807074', fontWeight: 600, marginTop: 1 }}>
+                            <span style={{ display: 'block', fontSize: 11.5, lineHeight: 1.4, color: '#746469', fontWeight: 600, marginTop: 1 }}>
                               {link.desc}
                             </span>
                           </NavA>

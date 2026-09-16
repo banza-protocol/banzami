@@ -33,7 +33,7 @@ const config: Config = {
           secondary: '#6a5a5e', // Texto secundário
           nav: '#5a4a4e', // Links de nav
           soft: '#7a6a6e',
-          muted: '#807074', // labels, captions — WCAG AA 4.68:1 on white
+          muted: '#746469', // labels, captions — WCAG AA (5.6:1 white, 4.5:1 on pink tints)
         },
         received: '#1f7a45', // Verde (valores recebidos na app)
         border: {
