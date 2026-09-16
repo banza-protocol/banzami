@@ -37,7 +37,7 @@ export function AppWebPortal() {
           // embedded app), but browsers paint no ring on a focused iframe — give
           // it a visible focus indicator like every other interactive element
           // (WCAG 2.4.7). The left-column CTA remains the primary launch path.
-          className="h-full w-full rounded-[36px] border-0 bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#B5101F]"
+          className="h-full w-full rounded-[36px] border-0 bg-transparent focus:outline focus:outline-2 focus:outline-offset-4 focus:outline-[#B5101F]"
         />
       </div>
     </div>
