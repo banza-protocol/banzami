@@ -23,7 +23,7 @@ The portion of a wallet balance that is immediately available for payments or wi
 
 ## @banza
 
-A human-readable payment address uniquely identifying a consumer or merchant on the Banzami network. Format: `@<handle>`. Examples: `@joao.luanda`, `@cantina.central`. Governed by INV-IDENT-001 (global uniqueness). No IBAN, no account number, no card number required. Defined in ADR-013.
+A human-readable payment address uniquely identifying a consumer or merchant on the Banzami network. Format: `@<handle>`. Examples: `@ana`, `@cantina.central`. Governed by INV-IDENT-001 (global uniqueness). No IBAN, no account number, no card number required. Defined in ADR-013.
 
 ---
 
@@ -47,21 +47,40 @@ Angola Obrigação Angolana — the official and primary currency of Banza. ISO 
 
 ## Banzami
 
-The primary payment product built by Banza. The consumer-facing payment network: wallets, QR payments, @handle identity, Banzami Business for merchants, and the Banzami SDK for developers. Defined in ADR-016.
+The wallet-native payment network and Developer Platform — the **reference operator
+built on the BANZA protocol** (BANZA is the protocol; Banzami is the operator/product).
+It provides wallets, QR payments, `@banza` identity, App Banzami for consumers,
+Banzami Business for merchants, and the Banzami SDKs for developers. Grammatical
+gender is masculine: *o Banzami*. Defined in ADR-016 / ADR-025.
 
-**Not:** Banzami ≠ Banza (the organisation). See [Banza](#banzami).
+**Not:** Banzami is not the protocol. BANZA is the protocol; Banzami is built on it.
+See [BANZA](#banza).
+
+---
+
+## App Banzami
+
+The reference **Consumer** product — one Flutter codebase compiled to three targets
+(iOS, Android and **App Banzami Web** at `app.banzami.com`), all sharing the same
+`@banza`, wallet, Core and ledger. App Banzami Web runs against the Public Sandbox
+with fictitious value; iOS/Android are in beta. It is the authenticated Consumer UI
+— distinct from Hosted Checkout (`pay.banzami.com`) and the Test Payer tool. See
+[App Banzami clients](architecture/APP_BANZAMI_CLIENTS.md).
 
 ---
 
 ## Banzami Business
 
-The merchant dashboard and tooling within the Banzami product. Provides: real-time balance, transaction history, QR generator, reconciliation reports, payout management.
+The merchant-facing product and tooling within Banzami: real-time balance,
+transaction history, QR generation, reconciliation and payout management, surfaced
+through the Developer Console and APIs/SDKs. (The standalone merchant Dashboard app
+was retired on 2026-09-12; `dashboard.banzami.com` does not resolve.)
 
 ---
 
 ## Banzami SDK
 
-The official SDK for integrating Banzami payments into external applications. Available in TypeScript (`@banza/sdk`), Flutter/Dart (`banzami_sdk`), and PHP (`banza/sdk`). The recommended path for all external integrations — direct HTTP is not supported for production integrations (ADR-012).
+The official SDKs for integrating Banzami payments into external applications. Available in TypeScript (`@banzami/sdk`), Dart client (`banzami_client`, pub.dev), PHP (`banzami/sdk`), Python (`banzami`) and Go (`banzami-go`). The recommended path for all external integrations — direct HTTP is not the recommended path for production integrations (ADR-012).
 
 ---
 

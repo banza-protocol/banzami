@@ -313,6 +313,43 @@ SDKs, without building a ledger of their own.
 
 ---
 
+## App Banzami and Sandbox testing
+
+**App Banzami** is the reference **Consumer** product — one Flutter codebase
+compiled to three targets, all sharing the same `@banza`, wallet, Core and ledger:
+
+- **App Banzami Web** — [`app.banzami.com`](https://app.banzami.com), a real
+  interactive Flutter Web client running against the **Public Sandbox** (fictitious
+  money). See [App Banzami clients](docs/architecture/APP_BANZAMI_CLIENTS.md) · [ADR-064](docs/adr/ADR-064-app-banzami-web-consumer-client.md).
+- **iOS / Android** — in **beta** (TestFlight / Google Play testing), not a general
+  public store release.
+
+Consumer registration needs only a `@banza` **plus a required declared full name**
+(display only — non-unique, never verified legal identity, never KYC evidence). The
+Public Sandbox performs **no consumer KYC**.
+
+Three **distinct** Sandbox testing surfaces:
+
+| Surface | What it is |
+|---------|------------|
+| **App Banzami Web** (`app.banzami.com`) | Authenticated Consumer testing — the real Consumer UI |
+| **Hosted Checkout** (`pay.banzami.com`) | Payer-facing hosted payment experience — **not** App Banzami |
+| **Test Payer** | A deterministic Sandbox scenario tool driven via the API — not the real Consumer UX |
+
+`make app-web-cleanroom` runs the canonical App Web E2E: a real Playwright/Chromium
+runner drives the public Flutter Web app **Semantics-first** through the whole
+Consumer journey (registration, PIN, Home, Web→Web P2P, deep-link resume, payment,
+developer webhook/logs/receipt, cleanup, economic integrity). Flutter Web renders
+with CanvasKit but is automated via Flutter Semantics/accessibility. Deep links
+(`app.banzami.com/pay/{slug}`) open App Banzami, authenticate if needed, resume the
+intended payment, and require **explicit confirmation** before Core executes — never
+an automatic payment.
+
+Financial Live is **not available** and fail-closed; everything above uses
+fictitious Sandbox value.
+
+---
+
 ## The BANZA ecosystem (repositories)
 
 Banzami is the first commercial operator built on the BANZA protocol. BANZA
@@ -515,8 +552,10 @@ result is **Level 0, 5/5 passed**, cross-validated on two distribution channels:
 - PyPI: `banza-conformance==0.1.0`
 - GHCR: `ghcr.io/banza-protocol/banza-conformance:v0.1.0`
 
-The report is archived at
-[`evidence/banza-conformance/l0/banzami-sandbox-l0-report.json`](evidence/banza-conformance/l0/banzami-sandbox-l0-report.json)
+The reports are archived under
+[`evidence/banza-conformance/l0/`](evidence/banza-conformance/l0/) — e.g. the
+sandbox-operator run at
+[`20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json`](evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json)
 (see the [evidence README](evidence/banza-conformance/l0/README.md)).
 
 **PASS means conformance evidence, not certification.** The BANZA protocol owns
@@ -570,6 +609,7 @@ are roadmap; none are validated and none imply certification.
 
 ```bash
 make studio                # Validation Studio — local readiness control room (:3099)
+make app-web-cleanroom     # App Banzami Web E2E — Semantics-first Chromium runner over app.banzami.com
 make banza-conformance-l0  # Run BANZA L0 conformance against the sandbox (evidence)
 make check-repo-layout     # Repository layout compliance check
 make dev-up                # Start local infrastructure (PostgreSQL, Redis)

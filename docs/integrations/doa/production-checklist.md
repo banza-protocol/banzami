@@ -1,6 +1,6 @@
-# Doa × Banza — Production Checklist
+# Doa × Banzami — Production Checklist
 
-Complete checklist for going live with the Banza payment method. Work through each section in order.
+Complete checklist for going live with the Banzami payment method. Work through each section in order.
 
 ---
 
@@ -22,7 +22,7 @@ Complete checklist for going live with the Banza payment method. Work through ea
   - `BANZAMI_PAY_BASE_URL=https://pay.banzami.com`
   - This is the same domain for both environments — verify the value is set
 
-- [ ] **Enable Banza in method list**
+- [ ] **Enable Banzami in method list**
   - `PAYMENT_PROVIDERS=stripe,bank-transfer,banzami` (or your current set)
 
 ---
@@ -49,7 +49,7 @@ Complete checklist for going live with the Banza payment method. Work through ea
   - Never committed to the repository
 
 - [ ] **Verify webhook is active**
-  - Check Banza dashboard → **Webhooks → Endpoints**
+  - Check Banzami dashboard → **Webhooks → Endpoints**
   - Status should show as `active`
 
 ---
@@ -58,7 +58,7 @@ Complete checklist for going live with the Banza payment method. Work through ea
 
 - [ ] **SANDBOX badge is gone**
   - Open a campaign donation flow
-  - Select Banza as payment method
+  - Select Banzami as payment method
   - Confirm NO amber "SANDBOX" badge appears in the payment panel
   - If badge appears, `BANZAMI_API_KEY` still starts with `bz_test_`
 
@@ -82,12 +82,12 @@ Perform a real end-to-end test with a small amount (e.g., 100 AOA = 10,000 centa
 
 - [ ] **Create a test donation intent**
   - Go through the full Doa donation flow on the production URL
-  - Select Banza
+  - Select Banzami
   - Confirm the QR code renders correctly
-  - Confirm the pay URL format is `https://pay.banzami.com/{slug}` (not the sandbox domain)
+  - Confirm the pay URL format is `https://pay.banzami.com/pay/{slug}` (not the sandbox domain)
 
-- [ ] **Complete the payment in the Banza consumer app**
-  - Scan the QR with a real Banza account
+- [ ] **Complete the payment in the App Banzami**
+  - Scan the QR with a real Banzami account
   - Confirm the app shows the correct amount and merchant name ("Banzami Business")
   - Complete with PIN or biometrics
 
@@ -101,19 +101,19 @@ Perform a real end-to-end test with a small amount (e.g., 100 AOA = 10,000 centa
   - Receipt shows the correct amount and campaign
 
 - [ ] **Verify webhook was delivered**
-  - Check Banza dashboard → **Webhooks → Events** for `payment_link.paid`
+  - Check Banzami dashboard → **Webhooks → Events** for `payment_link.paid`
   - Delivery status should show `success`
 
 - [ ] **Verify database record**
   - `donation_events` contains `payment_initiated` and `payment_confirmed` rows
-  - `payment_confirmed.payload.provider_ref` matches the Banza link ID
+  - `payment_confirmed.payload.provider_ref` matches the Banzami link ID
   - `payment_confirmed.payload.amount` matches the donation amount in centavos
 
 ---
 
 ## 5. Observability
 
-- [ ] **Logs contain Banza events**
+- [ ] **Logs contain Banzami events**
   - `banzami_initiate_ok` logged at initiation
   - `api.webhooks.banzami` and `banzami_webhook_ok` logged at confirmation
 
@@ -129,11 +129,11 @@ Perform a real end-to-end test with a small amount (e.g., 100 AOA = 10,000 centa
 ## 6. Operational Readiness
 
 - [ ] **Sandbox endpoints deactivated (optional)**
-  - Deactivate sandbox webhook endpoints in the Banza dashboard to prevent noise
+  - Deactivate sandbox webhook endpoints in the Banzami dashboard to prevent noise
   - This is optional — sandbox and live webhooks are delivered to separate endpoints
 
 - [ ] **Runbook exists for payment failures**
-  - Team knows how to check Banza dashboard for delivery status
+  - Team knows how to check Banzami dashboard for delivery status
   - Team knows how to manually trigger a webhook re-delivery if needed
 
 - [ ] **Webhook secret rotation procedure documented**
@@ -143,20 +143,20 @@ Perform a real end-to-end test with a small amount (e.g., 100 AOA = 10,000 centa
 
 ## 7. Rollout
 
-- [ ] **Enable Banza in `PAYMENT_PROVIDERS`** if it was disabled during preparation
+- [ ] **Enable Banzami in `PAYMENT_PROVIDERS`** if it was disabled during preparation
 - [ ] **Monitor error rates** for the first 30 minutes after enablement
-- [ ] **Verify donations are appearing in the Banza merchant dashboard** with correct amounts
-- [ ] **Confirm balance increases in the Banza wallet** after successful payments
+- [ ] **Verify donations are appearing in the Banzami merchant dashboard** with correct amounts
+- [ ] **Confirm balance increases in the Banzami wallet** after successful payments
 
 ---
 
 ## Post-Launch Verification (Day 1)
 
-- [ ] At least one real donation completed end-to-end via Banza
-- [ ] No unexpected webhook failures in Banza dashboard
+- [ ] At least one real donation completed end-to-end via Banzami
+- [ ] No unexpected webhook failures in Banzami dashboard
 - [ ] No `banzami_webhook_rejected` log events (excluding test deliveries)
-- [ ] Donation amounts in Doa's database match Banza dashboard balances
-- [ ] Receipt delivery working for Banza-confirmed donations
+- [ ] Donation amounts in Doa's database match Banzami dashboard balances
+- [ ] Receipt delivery working for Banzami-confirmed donations
 
 ---
 
@@ -166,4 +166,4 @@ These items are documented in [qr-payments.md](qr-payments.md) and [payment-flow
 
 - **Expired link handling**: Detect `EXPIRED` status in the poll endpoint and return `{ confirmed: false, expired: true }`. Show a retry UI with a new QR.
 - **Browser-closed recovery**: When a donor pays and closes the tab, the confirmation is recorded by webhook but the donor doesn't see the thank-you page. The thank-you page checks intent status server-side on load — verify this flow works in production.
-- **Shared JWT cache**: Cache the Banza JWT (55-minute TTL in Redis) to avoid re-authenticating on every poll tick. Required at scale; acceptable to skip for initial launch.
+- **Shared JWT cache**: Cache the Banzami JWT (55-minute TTL in Redis) to avoid re-authenticating on every poll tick. Required at scale; acceptable to skip for initial launch.

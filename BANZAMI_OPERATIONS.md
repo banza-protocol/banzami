@@ -1,7 +1,7 @@
 # Banzami — Operational Guide
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_REFERENCE.md)
+> For other layers: [BANZA](../banza/docs/reference/en/BANZA_REFERENCE.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  
@@ -155,7 +155,7 @@ If a financial invariant violation is detected in production:
 4. Capture the full trace context (`trace_id`, `causation_id`, ledger entries)
 5. Investigate root cause in the Rust kernel
 6. Apply fix via a proper database migration after root cause is confirmed
-7. Re-certify if the invariant violation affects a certified capability (see [BANZA_CERTIFICATION.md](../banza/BANZA_CERTIFICATION.md))
+7. Re-certify if the invariant violation affects a certified capability (see [BANZA_CERTIFICATION.md](../banza/docs/reference/conformance.md))
 
 Financial invariant violations are Critical severity — they require immediate response.
 

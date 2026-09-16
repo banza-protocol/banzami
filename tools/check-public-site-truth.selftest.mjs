@@ -85,7 +85,7 @@ const CASES = [
   },
   {
     name: 'live — a mock screen says Multicaixa Express integrado again',
-    mutate: (d) => edit(d, `${W}/components/app/AppDemo.tsx`, (s) => s.replace("t: 'Comprovativo verificável'", "t: 'Multicaixa Express integrado'")),
+    mutate: (d) => edit(d, `${W}/components/app/AppScreen.tsx`, (s) => s.replace("t: 'Comprovativo verificável'", "t: 'Multicaixa Express integrado'")),
     expect: fails('PUBLIC_SITE_LIVE_CLAIMS'),
   },
   {

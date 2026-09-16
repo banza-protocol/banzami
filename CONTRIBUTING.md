@@ -44,7 +44,7 @@ Banzami is the reference operator. It demonstrates how to implement the BANZA pr
 
 ### Financial correctness first
 
-Every change that touches money movement must preserve all financial invariants. The invariants are defined in the BANZA protocol — see [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md). Never manipulate balances directly. All money movement goes through the double-entry ledger.
+Every change that touches money movement must preserve all financial invariants. The invariants are defined in the BANZA protocol — see [BANZA_REFERENCE.md](../banza/docs/reference/en/BANZA_REFERENCE.md). Never manipulate balances directly. All money movement goes through the double-entry ledger.
 
 ### Operator guardrail
 
@@ -129,7 +129,7 @@ Any contribution touching payment flows must preserve:
 | INV-STL-001 | gross_minor = net_minor + fee_minor |
 | INV-STL-002 | Saldos nunca negativos |
 
-See [BANZA_REFERENCE.md §7](../banza/BANZA_REFERENCE.md) for the full invariant list.
+See [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md) for the full invariant list.
 
 ---
 

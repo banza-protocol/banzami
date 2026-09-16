@@ -48,6 +48,14 @@ lower risk than cash leaving the network.
 | `SEND`, `PAY_MERCHANT` | KYC_LEVEL_1 |
 | `CASH_OUT`, `WITHDRAWAL`, `PAYOUT` | KYC_LEVEL_2 |
 
+> **Sandbox scope.** This operation-gating table is the **Financial Live** compliance
+> model. The **Public Sandbox performs no consumer KYC**
+> (`AppConfig.requiresIdentityVerification => !isSandbox`): registration needs only a
+> `@banza` and a required declared full name, and Sandbox consumers move fictitious
+> value (including Web→Web P2P in App Banzami) without any KYC level. These KYC gates
+> become enforceable only when Financial Live is switched on, which is currently
+> unavailable and fail-closed.
+
 `ComplianceEngine::authorize_operation(customer, operation, amount, daily_volume)`
 returns a structured `TransactionAuthorization`:
 

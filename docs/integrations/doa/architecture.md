@@ -6,7 +6,7 @@
 > canonical docs win. In particular: **receipts and transaction proofs are generated
 > by the Banzami operator, never by DOA** (Golden Rule — an app never generates
 > receipts/proofs). DOA only *requests* a receipt and *displays/forwards* the
-> operator-issued artifact. "Banza" below means the **Banzami operator** built on the
+> operator-issued artifact. "Banzami" below means the **Banzami operator** built on the
 > BANZA protocol; SDK imports should use `@banzami/sdk` / `BanzamiClient` (ADR-025 §15.5).
 
 ---
@@ -60,17 +60,17 @@ The Doa integration sits entirely within the **merchant application** tier. Doa 
 
 The Doa frontend (React, browser) owns:
 
-- Rendering the `BanzaPanel` component when the donor selects Banza
+- Rendering the `BanzaPanel` component when the donor selects Banzami
 - Generating the QR image client-side from the pay URL
 - Running the polling loop (calls `/api/donations/banzami-status` every 3 s)
 - Displaying the sandbox badge when `provider.sandbox = true`
 - Showing confirmation animation and triggering redirect on success
 
-The frontend never calls Banza's API directly. All Banza API calls go through Doa's Next.js API routes.
+The frontend never calls Banzami's API directly. All Banzami API calls go through Doa's Next.js API routes.
 
 ### Why client-side QR generation?
 
-The QR image (~6 kB data URL) is only needed when the donor reaches the Banza stage. Generating it server-side would require either passing the data URL through the page props (wasting SSR time on a conditional flow) or a separate API call. Dynamic import of the `qrcode` library (~50 kB) defers that cost entirely — it downloads only when the donor actually reaches the QR panel.
+The QR image (~6 kB data URL) is only needed when the donor reaches the Banzami stage. Generating it server-side would require either passing the data URL through the page props (wasting SSR time on a conditional flow) or a separate API call. Dynamic import of the `qrcode` library (~50 kB) defers that cost entirely — it downloads only when the donor actually reaches the QR panel.
 
 ---
 
@@ -79,13 +79,13 @@ The QR image (~6 kB data URL) is only needed when the donor reaches the Banza st
 The Doa backend (Next.js API routes) owns:
 
 - **Initiation**: Creating payment links via `POST /v1/payment-links`
-- **Status**: Proxying link status checks to Banza
-- **Webhooks**: Receiving, verifying, and processing push events from Banza
+- **Status**: Proxying link status checks to Banzami
+- **Webhooks**: Receiving, verifying, and processing push events from Banzami
 - **Persistence**: Writing immutable events to `donation_events`
 - **Receipt delivery**: Generating and delivering PDF receipts
 - **Cache invalidation**: Revalidating the campaign page after confirmation
 
-The backend holds all Banza credentials. They never reach the browser.
+The backend holds all Banzami credentials. They never reach the browser.
 
 ---
 
@@ -101,7 +101,7 @@ donation_intent created
   payload: { provider: 'banzami', provider_ref: 'lnk_...', initiate: {...} }
        │
        ▼
-Donor pays in Banza app
+Donor pays in Banzami app
        │
        ├── Poll path: banzami-status detects USED
        │         ─OR─
@@ -129,7 +129,7 @@ const IS_SANDBOX = API_KEY.startsWith('bz_test_');
 
 class BanzaProvider implements PaymentProvider {
   readonly sandbox      = IS_SANDBOX;
-  readonly display_name = IS_SANDBOX ? 'Banza (Sandbox)' : 'Banza';
+  readonly display_name = IS_SANDBOX ? 'Banzami (Sandbox)' : 'Banzami';
   readonly available    = !!(GATEWAY_URL && API_KEY && MERCHANT_ID && WALLET_ID);
 }
 ```
@@ -151,7 +151,7 @@ The badge is purely informational — it does not change any API behavior. The A
 
 ## API Client Architecture
 
-> **Transitional implementation.** Banza is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md), CLAUDE.md §14). The current direct `fetch()` implementation is a transitional state from before the TypeScript SDK reached production readiness. Doa must migrate to the official Banza TypeScript SDK — see the [SDK Migration](#sdk-migration) section below.
+> **Transitional implementation.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md), CLAUDE.md §14). The current direct `fetch()` implementation is a transitional state from before the TypeScript SDK reached production readiness. Doa must migrate to the official Banzami TypeScript SDK — see the [SDK Migration](#sdk-migration) section below.
 
 The current (transitional) implementation uses direct `fetch()` calls from two server-only files:
 
@@ -168,9 +168,9 @@ The target architecture after SDK migration:
 
 ```typescript
 // lib/payments/providers/banzami.ts — after migration
-import { BanzaClient } from '@banza/sdk';
+import { BanzamiClient } from '@banzami/sdk';
 
-const banzami = new BanzaClient({ apiKey: process.env.BANZA_API_KEY });
+const banzami = new BanzamiClient({ apiKey: process.env.BANZA_API_KEY });
 // banzami.isSandbox → true when bz_test_ key — replaces IS_SANDBOX detection
 
 // Payment link creation

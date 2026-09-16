@@ -303,4 +303,4 @@ composer install
 - [SDK-first policy — ADR-012](../../docs/adr/ADR-012-sdk-first-ecosystem.md)
 - [Wallet-native identity — ADR-013](../../docs/adr/ADR-013-wallet-native-identity.md)
 - [Angola-first mission — ADR-014](../../docs/adr/ADR-014-angola-national-mission.md)
-- [Webhook signature spec](../../docs/domains/webhook-signature-spec.md)
+- [Webhook signature spec](../../docs/standards/webhook-signature-spec.md)

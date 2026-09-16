@@ -2,8 +2,17 @@
 
 **Version:** 1.0  
 **Date:** 2026-05-30  
-**Status:** Official  
+**Status:** Superseded — see canonical sources below  
 **Authority:** ADR-025
+
+> **Documento superado (2026-05-30).** A fonte de verdade actual para o
+> posicionamento e produtos do operador é [BANZAMI_REFERENCIA.md](BANZAMI_REFERENCIA.md)
+> (documento-mãe) e o [README](README.md). Este documento mantém-se por contexto
+> histórico; onde divergir, os canónicos prevalecem. Notas de estado actual: o
+> produto de consumidor é o **App Banzami** (uma base Flutter em iOS/Android e
+> **App Banzami Web** em `app.banzami.com`); o **Sandbox Público está disponível**
+> (valor fictício, self-service, sem KYC de consumidor); o **Financial Live não
+> está disponível** (fail-closed).
 
 ---
 
@@ -21,7 +30,7 @@ This document defines only: **Banzami — the reference operator implementation 
 Banzami is the first operator built on BANZA. The protocol is not owned by Banzami. The protocol exists independently of Banzami.
 
 Anything outside this scope is defined in:
-- [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md) — The BANZA open protocol (rules, invariants, certification, governance)
+- [BANZA_REFERENCE.md](../banza/docs/reference/en/BANZA_REFERENCE.md) — The BANZA open protocol (rules, invariants, certification, governance)
 
 ---
 
@@ -41,7 +50,7 @@ Anything outside this scope is defined in:
 
 ## 1. O que é o Banzami
 
-O Banzami é a implementação de referência do protocolo BANZA. É o primeiro operador certificado BANZA e o maior — mas não o proprietário do protocolo.
+O Banzami é a implementação de referência do protocolo BANZA. É o primeiro operador construído sobre o BANZA — mas não o proprietário do protocolo. (O Banzami **não** é um operador certificado BANZA: a certificação é do protocolo e ainda não foi emitida; ver [README](README.md#banza-protocol-conformance).)
 
 A relação é exactamente a que existe entre o Pix e o Nubank. O Nubank é o maior utilizador do Pix no Brasil — um produto extraordinário construído sobre o protocolo. Mas o Pix não pertence ao Nubank. Se o Nubank desaparecesse, o Pix continuaria.
 
@@ -61,7 +70,7 @@ BANZA (protocolo aberto)
 
 O Banzami:
 - Implementa os invariantes do protocolo como produtos
-- Prova que o protocolo funciona em produção, em Angola, com utilizadores reais
+- Demonstra o protocolo no Sandbox Público (valor fictício); a operação comercial em Angola com utilizadores reais depende do Financial Live, ainda indisponível
 - Demonstra como qualquer aplicação angolana pode integrar pagamentos BANZA via SDK
 - É um operador entre futuros muitos — não o dono do protocolo
 
@@ -90,7 +99,7 @@ O protocolo BANZA define quatro princípios que qualquer operador certificado de
 | **Wallet-native** | Banzami Wallet — carteira em Kwanza para cada conta |
 | **QR-native** | Banzami QR — QR estático para comerciantes, dinâmico para transacções |
 | **Programmable** | Banzami SDK — TypeScript, Flutter, PHP disponíveis |
-| **Instant settlement** | T+0 — ledger actualizado no momento da confirmação (invariante do protocolo — ver [BANZA_REFERENCE.md §7](../banza/BANZA_REFERENCE.md)) |
+| **Instant settlement** | T+0 — ledger actualizado no momento da confirmação (invariante do protocolo — ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md)) |
 
 ### A Experiência Canónica
 
@@ -135,7 +144,7 @@ Cada pessoa na rede Banzami tem um **@banza** — um identificador único e leg�
 @escola.benguela     ← instituição
 ```
 
-O @banza substitui números de conta bancária, IBANs e códigos de referência. O protocolo BANZA define as regras do handle @banza (unicidade, formato, namespaces reservados) — ver [BANZA_REFERENCE.md §3](../banza/BANZA_REFERENCE.md). O Banzami implementa estas regras na Banzami Wallet.
+O @banza substitui números de conta bancária, IBANs e códigos de referência. O protocolo BANZA define as regras do handle @banza (unicidade, formato, namespaces reservados) — ver [BANZA_REFERENCE.md §3](../banza/docs/reference/en/BANZA_REFERENCE.md). O Banzami implementa estas regras na Banzami Wallet.
 
 ### Saldo da Carteira
 
@@ -250,7 +259,7 @@ Optimizada para operação diária no terreno. Para cantinas, táxis, bancas de 
 | **QR Estático** | Balcão, cantina, serviço com preço fixo | O consumidor introduz o montante |
 | **QR Dinâmico** | Cada transacção com montante específico | Codificado no QR — o consumidor só confirma |
 
-A liquidação T+0 é um invariante do protocolo BANZA — qualquer operador certificado deve implementá-la. O Banzami implementa-a: o montante líquido é creditado na carteira do comerciante imediatamente após a confirmação do pagamento. Ver [BANZA_REFERENCE.md §7](../banza/BANZA_REFERENCE.md) para a definição normativa.
+A liquidação T+0 é um invariante do protocolo BANZA — qualquer operador certificado deve implementá-la. O Banzami implementa-a: o montante líquido é creditado na carteira do comerciante imediatamente após a confirmação do pagamento. Ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md) para a definição normativa.
 
 ### Payment Links
 
@@ -393,7 +402,7 @@ const payment = await client.transactions.create({
 
 Esta secção descreve a arquitectura técnica do Banzami — a implementação de referência. Não é o único modo válido de implementar o protocolo BANZA. É o modo que o Banzami escolheu. Outros operadores podem usar stacks diferentes, desde que passem o conformance suite.
 
-As regras do protocolo que esta arquitectura implementa estão definidas em [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md).
+As regras do protocolo que esta arquitectura implementa estão definidas em [BANZA_REFERENCE.md](../banza/docs/reference/en/BANZA_REFERENCE.md).
 
 ### Stack Tecnológico
 
@@ -402,7 +411,7 @@ As regras do protocolo que esta arquitectura implementa estão definidas em [BAN
 | Núcleo financeiro | **Rust** | Ledger, wallet, transaction, settlement, QR, risk, compliance |
 | API layer | **Go** | Public APIs, admin APIs, webhook delivery, authentication, gateway |
 | Frontend | **TypeScript + Next.js** | Merchant dashboard, admin, analytics, developer console |
-| Mobile | **Flutter** | Banzami Wallet app, mobile SDK |
+| Mobile / Web client | **Flutter** | App Banzami — one Consumer codebase (iOS, Android, App Banzami Web at app.banzami.com); mobile SDK |
 | Database | **PostgreSQL** | Single source of financial truth |
 | Cache | **Redis** | Caching, rate limiting, idempotency, distributed locking |
 | Observabilidade | **OpenTelemetry + Prometheus + Grafana** | Traces, metrics, structured logs |
@@ -437,7 +446,7 @@ O Go gateway é o dono da superfície pública. Para cada operação financeira,
 - Chaves API secretas nunca no frontend ou mobile
 - Separação de ambiente imposta ao nível da infraestrutura
 
-As invariantes financeiras aplicadas pela arquitectura: ver [BANZA_REFERENCE.md §7](../banza/BANZA_REFERENCE.md).
+As invariantes financeiras aplicadas pela arquitectura: ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md).
 
 ### Observabilidade
 
@@ -525,7 +534,7 @@ O modelo está provado: o Pix no Brasil, o UPI na Índia. Angola tem as mesmas p
 
 | Item | Descrição |
 |---|---|
-| Banzami Wallet mobile | App Flutter em produção |
+| App Banzami (consumidor) | App Flutter — App Web disponível no Sandbox (valor fictício); iOS/Android em beta |
 | Banzami Business v2 | Analytics avançados, gestão de equipa, disputas |
 | Go SDK | Cliente Go nativo |
 | Plugin ecommerce | Plugin genérico para plataformas locais |
@@ -588,4 +597,4 @@ Para Angola.
 - ADR-014 — Missão nacional Angola-first
 
 Ver também:
-- [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md) — O protocolo BANZA
+- [BANZA_REFERENCE.md](../banza/docs/reference/en/BANZA_REFERENCE.md) — O protocolo BANZA

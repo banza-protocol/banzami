@@ -10,7 +10,7 @@
 > only the fee destination (`@doa`) and reads readiness from `GET /v1/financial-setup`;
 > SDK imports should use `@banzami/sdk` (ADR-025 §15.5).
 
-> **SDK Migration Required.** Banza is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()`-based implementation is transitional — it predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banza/sdk` before this documentation is considered the complete canonical example. See [backend-integration.md](backend-integration.md#sdk-migration-target) for the migration target.
+> **SDK Migration Required.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()`-based implementation is transitional — it predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banzami/sdk` before this documentation is considered the complete canonical example. See [backend-integration.md](backend-integration.md#sdk-migration-target) for the migration target.
 
 ---
 
@@ -18,13 +18,13 @@
 
 [Doa](https://doadoa.app) is an Angolan crowdfunding platform — a mobile-first donation platform where campaign owners share *vaquinhas* over WhatsApp and donors pay without creating an account. Donors complete OTP verification, choose a payment method, and receive a PDF receipt on mobile.
 
-Doa is built on **Next.js 15** (App Router, TypeScript strict, Server Components) backed by **Supabase** (Postgres + Auth + RLS). The platform targets Angola as its primary market, which makes Banza the natural default payment method — both AOA-native, both built for the Angolan mobile experience.
+Doa is built on **Next.js 15** (App Router, TypeScript strict, Server Components) backed by **Supabase** (Postgres + Auth + RLS). The platform targets Angola as its primary market, which makes Banzami the natural default payment method — both AOA-native, both built for the Angolan mobile experience.
 
 ---
 
-## Why Doa is the Official Banza Example
+## Why Doa is the Official Banzami Example
 
-Doa represents the full surface of what a serious Banza merchant integration looks like in production:
+Doa represents the full surface of what a serious Banzami merchant integration looks like in production:
 
 | Capability | Implementation |
 |------------|----------------|
@@ -73,10 +73,10 @@ No part of this integration is mocked, stubbed, or simplified for demo purposes.
                │
                ▼
 ┌──────────────────────────┐
-│  Banza Pay Page        │
-│  pay.banzami.com/{slug}  │
+│  Banzami Pay Page        │
+│  pay.banzami.com/pay/{slug}  │
 │  (QR target — donor      │
-│   scans with Banza app)│
+│   scans with Banzami app)│
 └──────────────────────────┘
 ```
 
@@ -111,7 +111,7 @@ regardless of which path wins the race.
 4.  Doa stores link.id as provider_ref in donation_events (payment_initiated)
 5.  Doa returns { kind: 'inline', token: payUrl, provider_ref: linkId }
 6.  BanzamiPanel renders QR from payUrl, starts polling loop
-7.  Donor scans QR with Banza app and confirms payment
+7.  Donor scans QR with Banzami app and confirms payment
 8.  Banzami marks link as USED
 9.  Poll endpoint detects USED → applyPaymentEvent() → confirmed
 10. Receipt generated and delivered, campaign totals revalidated
@@ -123,13 +123,13 @@ regardless of which path wins the race.
 ## QR Flow Overview
 
 ```
-pay.banzami.com/{slug}  ← URL encoded in QR
+pay.banzami.com/pay/{slug}  ← URL encoded in QR
          │
          ▼
-Donor opens Banza app → taps "Pagar" → scans QR
+Donor opens Banzami app → taps "Pagar" → scans QR
          │
          ▼
-Banza app shows payment details (merchant, amount)
+Banzami app shows payment details (merchant, amount)
          │
          ▼
 Donor confirms with PIN or biometrics
@@ -197,7 +197,7 @@ Doa:
 ### Prerequisites
 
 - Node.js ≥ 20.11
-- A Banza sandbox merchant account with `bz_test_` API key
+- A Banzami sandbox merchant account with `bz_test_` API key
 
 ### 1. Clone and install
 
@@ -207,7 +207,7 @@ npm install
 cp .env.example .env.local
 ```
 
-### 2. Configure Banza sandbox credentials
+### 2. Configure Banzami sandbox credentials
 
 ```env
 BANZAMI_GATEWAY_URL=https://sandbox-api.banzami.com

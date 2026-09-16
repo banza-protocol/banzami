@@ -140,8 +140,11 @@ When several rules match, the winner is chosen by:
 2. **priority** — higher `priority` breaks a specificity tie;
 3. **version**, then rule id — a total, deterministic order.
 
-No matching rule → **fee 0**, `snapshot.rule_id = None`. The caller still posts a
-balanced, fee-less entry.
+No matching rule for a fee-bearing operation → **`PRICING_NOT_CONFIGURED`** (refused,
+not silently zero); more than one → `PRICING_CONFIGURATION_ERROR`. **Zero is
+something a rule says**, never the absence of one — see
+[economic-model](../../architecture/economic-model.md). A genuinely fee-free
+context resolves an explicit zero-rate rule (e.g. `sandbox-default`).
 
 ---
 
@@ -163,8 +166,9 @@ history.
   intermediates).
 - **INV-PRICING-002** — resolution is pure & deterministic: `(rules, context)`
   fully determine `fee_minor` and the snapshot.
-- **INV-PRICING-003** — unknown/unpriced combination → fee 0 (safe default), never
-  an error or a block.
+- **INV-PRICING-003** — an unpriced fee-bearing combination is **refused**
+  (`PRICING_NOT_CONFIGURED`), never silently charged zero; zero is only ever the
+  result of an explicit zero-rate rule.
 - **INV-PRICING-004** — the most specific matching rule wins; ties resolved by a
   total order (priority → version → id).
 - **INV-PRICING-005** — percentages/rules exist ONLY here and in `pricing_rules`;
@@ -176,9 +180,10 @@ history.
 ## Configuration
 
 Rules live in `pricing_rules` (migration 0070), scoped by `environment`
-(`LIVE`/`SANDBOX`). Seeding the operator's initial rule set is an operational task
-(separate from this increment); with no rules configured every category resolves
-to a zero fee.
+(`LIVE`/`SANDBOX`). Seeding the operator's rule set is an operational task: until a
+fee-bearing operation has a matching rule it is **refused** (`PRICING_NOT_CONFIGURED`),
+so a fee-free context must carry an explicit zero-rate rule rather than relying on
+an absent rule.
 
 ---
 

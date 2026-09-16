@@ -20,7 +20,8 @@
 - The operator software is **internally code-complete for everything buildable
   without an external partner.** Money movement, the ledger, wallets, merchant
   flows, the developer platform, refunds, disputes, and webhook lifecycle are
-  validated and in production.
+  validated in the Public Sandbox (fictitious value). Financial Live is not yet
+  available — no real money moves.
 - Launch is blocked by **external provider and regulatory dependencies**: an
   Angolan identity (KYC/KYB) partner, at least one real funding provider, at
   least one real withdrawal provider, a settlement/reconciliation rail, and

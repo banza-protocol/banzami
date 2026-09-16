@@ -150,12 +150,13 @@ final client = ConsumerPublicClient(
   environment: BanzamiEnvironment.sandbox,
 );
 
-// New user
-final reg = await client.register(handle: 'joao', pin: '123456');
+// New user — the declared full name is REQUIRED (user-declared; display only,
+// never verified legal identity, never KYC evidence). Sandbox performs no consumer KYC.
+final reg = await client.register(handle: 'ana', displayName: 'Ana Maria', pin: '123456');
 // reg.consumer, reg.walletId, reg.token are all available
 
 // Returning user
-final session = await client.login(handle: 'joao', pin: '123456');
+final session = await client.login(handle: 'ana', pin: '123456');
 // session.consumer, session.walletId, session.token
 ```
 

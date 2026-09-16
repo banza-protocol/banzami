@@ -551,7 +551,7 @@
    "page": "Concepts",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "No Sandbox: o carregamento de um pagador de teste é valor fictício criado pelo Core e não atravessa nenhum rail. Pode colocar o rail externo simulado do seu pro"
   },
   "pt:Concepts:d8807ad372": {
@@ -2714,14 +2714,14 @@
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Arquivar é opcional e serve apenas para organizar; é recusado enquanto houver projetos ativos. Os workspaces arquivados aparecem em Mostrar arquivados e podem s"
   },
   "pt:Console:35acb9068c": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Eliminar está disponível para o Owner, mesmo depois de atividade, e sem arquivar primeiro. Elimina todos os projetos do workspace, ativos e arquivados, revoga a"
   },
   "pt:Console:13c8ff3b2f": {
@@ -2749,70 +2749,70 @@
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Eliminar — disponível para Owners e Admins, mesmo depois de pagamentos, reembolsos ou liquidações de teste, e também para um projeto arquivado. Confirma-se escr"
   },
   "pt:Console:e0dd2f24cf": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Arquivar — opcional. Revoga as chaves ativas; a partir daí, respondem 401. Os projetos arquivados aparecem em Mostrar arquivados."
   },
   "pt:Console:c434f025a6": {
    "page": "Console",
    "kind": "P",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "No Sandbox, os recursos são descartáveis. Eliminar tira o projeto do seu ambiente de imediato e o Banzami encerra o resto:"
   },
   "pt:Console:89f8209ffa": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "De imediato — as chaves de API são revogadas e respondem 401; o projeto sai das listas; tokens de tempo real deixam de ser aceites; não se criam novas sessões n"
   },
   "pt:Console:eb1fafd157": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Encerramento — os pagadores de teste são retirados, as sessões e os links abertos são cancelados, os webhooks são desativados e o negócio de teste do projeto é "
   },
   "pt:Console:397e63fc37": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Estado — enquanto o encerramento decorre, o pedido responde 202 com DELETING; quando termina, DELETED. Repetir o pedido é seguro."
   },
   "pt:Console:e59c553d64": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "O que fica — o histórico do ledger não é reescrito: pagamentos, reembolsos e comprovativos já emitidos continuam verificáveis como SANDBOX. O Banzami guarda int"
   },
   "pt:Console:3cf96cc08f": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "O nome fica livre: um projeto novo com o mesmo nome é um recurso novo, sem nada do anterior."
   },
   "pt:Console:64eb63a745": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Um Business real ligado por código de consentimento, ou um negócio de teste partilhado com outro projeto, não é afetado."
   },
   "pt:Console:1e2fc002c0": {
    "page": "Console",
    "kind": "LI",
-   "class": "POLICY",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Aplica-se apenas ao Sandbox. Não dá à produção financeira nenhuma eliminação equivalente."
   },
   "pt:Console:a8a26bdb7f": {
@@ -3522,6 +3522,27 @@
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "A lista completa, legível por máquina, está em GET /v1/sandbox/scenarios (scope sandbox:read): cada cenário tem um id, como provocá-lo e o resultado. Os ids apa"
   },
+  "pt:Testing:a4eab8780d": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Há três formas complementares de testar o lado do pagador em Sandbox — todas com dinheiro fictício, todas pelo mesmo caminho financeiro do Core (não há uma segu"
+  },
+  "pt:Testing:9c85f12594": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "1. App Banzami Web — o consumidor real, interativo, em app.banzami.com. Crie uma conta Banzami Sandbox e pague à mão como um cliente. Ao criar uma Sessão de pag"
+  },
+  "pt:Testing:7b741e0c65": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "A sua conta de developer e a conta de consumidor são identidades separadas: abrir a App não o autentica como consumidor. Depois do pagamento, observe pelo camin"
+  },
   "pt:Testing:96685be617": {
    "page": "Testing",
    "kind": "P",
@@ -3540,7 +3561,7 @@
    "page": "Testing",
    "kind": "P",
    "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "O Banzami é desacoplado dos rails externos: o valor que já está na rede move-se pelo Core e pelo ledger sem precisar de nenhum. Para o ver, coloque o rail exter"
   },
   "pt:Testing:132dbf8715": {
@@ -3568,7 +3589,7 @@
    "page": "Testing",
    "kind": "P",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "Repor não é necessário para eliminar: para remover o projeto e tudo o que é dele, elimine-o."
   },
   "pt:Testing:79bb91ddca": {
@@ -5682,7 +5703,7 @@
    "page": "Concepts",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "services/api-gateway/internal/middleware/developer_auth.go (bz_live_ refused); services/api-gateway/internal/middleware/idempotency.go; core/types/src/money.rs (minor units); services/developer-api/internal/developer/store.go (30-day logs)",
    "text": "In the Sandbox: a test payer’s top-up is fictitious value created by Core and crosses no rail. You can take your Project’s simulated external rail down and watc"
   },
   "en:Concepts:d6107d9389": {
@@ -7845,14 +7866,14 @@
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Archive is optional and only organises; it is refused while projects are active. Archived workspaces appear under Show archived and can be deleted."
   },
   "en:Console:b4a42f1ae7": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Delete is available to the Owner, even after activity, and without archiving first. It deletes every project in the workspace, active and archived, revokes the "
   },
   "en:Console:139b2aa438": {
@@ -7880,70 +7901,70 @@
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Delete — available to Owners and Admins, even after test payments, refunds or settlements, and for an archived project too. You confirm by typing the project na"
   },
   "en:Console:bcdcefa39a": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Archive — optional. Revokes active keys; from then on they return 401. Archived projects appear under Show archived."
   },
   "en:Console:75a2d68ecf": {
    "page": "Console",
    "kind": "P",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "In the Sandbox, resources are disposable. Deleting removes the project from your environment immediately, and Banzami closes the rest:"
   },
   "en:Console:b6ef4e096c": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Immediately — API keys are revoked and return 401; the project leaves the lists; realtime tokens are no longer accepted; no new sessions or links can be created"
   },
   "en:Console:42a02a35dd": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Close-out — test payers are retired, open sessions and links are cancelled, webhooks are disabled and the project's test business is retired if no other project"
   },
   "en:Console:73a5d36c11": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "Status — while the close-out runs, the request returns 202 with DELETING; once it finishes, DELETED. Repeating the request is safe."
   },
   "en:Console:ab5cc31611": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "What remains — ledger history is not rewritten: payments, refunds and receipts already issued stay verifiable as SANDBOX. Banzami keeps internally only the fina"
   },
   "en:Console:5971643952": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "The name is released: a new project with the same name is a new resource, with nothing from the old one."
   },
   "en:Console:fa3a10f918": {
    "page": "Console",
    "kind": "LI",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "A real Business connected with a consent code, or a test business shared with another project, is not affected."
   },
   "en:Console:142e52113e": {
    "page": "Console",
    "kind": "LI",
-   "class": "POLICY",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "class": "SOURCE",
+   "evidence": "services/developer-api/internal/developer/{handlers.go,service.go,store_pg.go,financial_onboarding.go}; services/api-gateway/internal/service/postgres_webhooks.go (fan-out to active endpoints, 5 attempts)",
    "text": "This applies to the Sandbox only. It gives financial production no equivalent deletion."
   },
   "en:Console:9a1da7adf4": {
@@ -8653,6 +8674,27 @@
    "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
    "text": "The full, machine-readable list is at GET /v1/sandbox/scenarios (scope sandbox:read): each scenario has an id, how to trigger it and the outcome. The ids appear"
   },
+  "en:Testing:fc4eb3dd4e": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "There are three complementary ways to test the payer side in Sandbox — all with fictitious money, all through the same Core financial path (there is no second s"
+  },
+  "en:Testing:11e2818e69": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "1. App Banzami Web — the real, interactive Consumer at app.banzami.com. Create a Sandbox Banzami account and pay by hand like a customer. When you create a Paym"
+  },
+  "en:Testing:ea87663a40": {
+   "page": "Testing",
+   "kind": "P",
+   "class": "SOURCE",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
+   "text": "Your developer account and the consumer account are separate identities: opening the app does not sign you in as a consumer. After payment, observe through the "
+  },
   "en:Testing:f55b5de5a2": {
    "page": "Testing",
    "kind": "P",
@@ -8671,7 +8713,7 @@
    "page": "Testing",
    "kind": "P",
    "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Banzami is decoupled from external rails: value already in the network moves through Core and the ledger without needing one. To see it, set your Project’s simu"
   },
   "en:Testing:b58ce748e4": {
@@ -8699,7 +8741,7 @@
    "page": "Testing",
    "kind": "P",
    "class": "SOURCE",
-   "evidence": "services/developer-api/internal/developer (DeleteProject, DeleteWorkspace, store_pg Begin/FinishProjectDeletion, sandbox_delete_test.go, sandbox_delete_pg_test.go); core/api/src/routes/sandbox_project_deletion.rs (+_tests.rs); services/api-gateway/internal/handler/realtime.go; db/migrations/0146 (SANDBOX-DELETE-001)",
+   "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
    "text": "You do not need to reset before deleting: to remove the project and everything it owns, delete it."
   },
   "en:Testing:216a824bb6": {
@@ -12745,14 +12787,14 @@
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "O rail externo simulado que o seu projeto usa para o negócio Sandbox: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo l"
   },
   "en:Reference-spec:610bf4e029": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "The simulated external rail your Project uses for its Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger"
   },
   "pt:Reference-spec:09fb114ebc": {
@@ -12787,14 +12829,14 @@
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Coloca o rail externo simulado do seu projeto em UNAVAILABLE ou repõe-no. Com UNAVAILABLE, o pagamento de um pagador de teste a partir da carteira continua a co"
   },
   "en:Reference-spec:cbcbcbf368": {
    "page": "Reference-spec",
    "kind": "spec",
    "class": "GATE",
-   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route); core/api/src/routes/external_rail.rs + db/migrations/0145 (per-Project rail; external_rail_tests::a_projects_rail_switch_never_reaches_another_project_on_the_same_business)",
+   "evidence": "tools/check-docs-error-catalogue.mjs (codes derived from the gateway and core, route by route)",
    "text": "Takes your Project’s simulated external rail down, or brings it back. With UNAVAILABLE, a test payer’s wallet payment still completes; a payment with simulate, "
   },
   "pt:Reference-spec:509b2f8086": {

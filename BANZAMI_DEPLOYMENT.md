@@ -1,7 +1,7 @@
 # Banzami — Deployment Guide
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_REFERENCE.md)
+> For other layers: [BANZA](../banza/docs/reference/en/BANZA_REFERENCE.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  

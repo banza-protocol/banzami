@@ -8,7 +8,7 @@ The onboarding domain is Banza's first impression on Angolan merchants. It must 
 - fast (merchants should be accepting payments within minutes, not days),
 - low-friction (no unnecessary documentation, no POS hardware required for small merchants),
 - locally appropriate (Portuguese-first, AOA-native, Angolan identity document support),
-- compliant (BNA KYC/AML requirements must be satisfied before any transaction is processed).
+- compliant (for **Financial Live**, the intended model is that BNA KYC/AML requirements are satisfied before real money moves; the Public Sandbox uses fictitious value and requires no consumer KYC, and Financial Live is not yet available).
 
 ---
 
@@ -206,7 +206,7 @@ here and never mounted. A Business is created through a reviewed application
 1. **No live settlement before KYC Tier 0 is satisfied.** A merchant wallet accepts credits but cannot disburse until identity verification is complete.
 2. **Handle is immutable.** Once a handle is associated with a merchant, it cannot be reassigned. This protects the @handle identity system.
 3. **Wallet is provisioned at registration.** The merchant can receive test payments immediately. Live payments require KYC.
-4. **API keys are environment-scoped.** Sandbox keys (`bz_sandbox_*`) and live keys (`bz_live_*`) are completely separate. Mixing is rejected at the API layer.
+4. **API keys are environment-scoped.** Sandbox keys (`bz_test_*`) and live keys (`bz_live_*`) are completely separate. Mixing is rejected at the API layer.
 
 ---
 
@@ -272,5 +272,5 @@ payment; KYB rejection reasons by class.
 - [Domain: Merchants](../merchants/README.md)
 - [Domain: Identity](../identity/README.md)
 - [Domain: Wallets](../wallets/README.md)
-- [CLAUDE.md §7 — Security Standards](../../CLAUDE.md)
+- [CLAUDE.md §7 — Security Standards](../../../CLAUDE.md)
 - BNA — Regulamento de Pagamentos Electrónicos (reference for KYC tier thresholds)

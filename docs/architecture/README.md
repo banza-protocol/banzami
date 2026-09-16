@@ -74,19 +74,23 @@ Loopback only (127.0.0.1)
 ┌────────────────────────────────────────────────────────────────────────┐
 │                            EXTERNAL ZONE                                │
 │                                                                         │
-│  ┌──────────────┐   ┌──────────────┐   ┌────────────┐   ┌──────────┐  │
-│  │ Merchant App │   │ Consumer App │   │  Pay Page  │   │Dashboard │  │
-│  │  (server)    │   │  (Flutter)   │   │(Next.js 14)│   │(Next.js) │  │
-│  └──────┬───────┘   └──────┬───────┘   └─────┬──────┘   └────┬─────┘  │
-└─────────┼──────────────────┼─────────────────┼───────────────┼────────┘
-          │ JWT (API key)     │ JWT (PIN)        │ No auth       │ JWT
-          ▼                  ▼                  ▼               ▼
-┌─────────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│   api-gateway   │  │  public-api  │  │  api-gateway │  │  api-gateway │
-│   Go :8080      │  │  Go :8083    │  │  /public/pay │  │  (dashboard) │
-└────────┬────────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-         │                  │                  │                  │
-         └──────────────────┴──────────────────┴──────────────────┘
+│  ┌──────────────┐   ┌──────────────────┐   ┌────────────────────┐     │
+│  │ Merchant /   │   │   App Banzami    │   │   Pay Page         │     │
+│  │ App (server) │   │ Flutter: iOS /   │   │ pay.banzami.com    │     │
+│  │              │   │ Android / Web    │   │ (hosted checkout)  │     │
+│  │              │   │ (app.banzami.com)│   │                    │     │
+│  └──────┬───────┘   └──────┬───────────┘   └─────────┬──────────┘     │
+└─────────┼──────────────────┼─────────────────────────┼────────────────┘
+          │ JWT (API key)     │ iOS/Android: Bearer      │ No auth
+          │                   │ Web: opaque session      │
+          │                   │ cookie → BFF holds Bearer │
+          ▼                  ▼                           ▼
+┌─────────────────┐  ┌──────────────┐          ┌──────────────┐
+│   api-gateway   │  │  public-api  │          │  api-gateway │
+│   Go :8080      │  │  Go :8083    │          │  /public/pay │
+└────────┬────────┘  └──────┬───────┘          └──────┬───────┘
+         │                  │                          │
+         └──────────────────┴──────────────────────────┘
                                      │ HTTP (loopback)
                                      ▼
                           ┌──────────────────────┐
@@ -246,7 +250,7 @@ core-api          → PostgreSQL (all financial data)
 sdk/flutter       → public-api, api-gateway
 sdk/typescript    → api-gateway
 sdk/python        → api-gateway
-apps/checkout     → api-gateway (public endpoints)
+apps/app-banzami  → public-api (App Banzami Web BFF: opaque cookie → server-side Bearer)
 plugins/*         → api-gateway
 ```
 
@@ -257,10 +261,13 @@ plugins/*         → api-gateway
 ```
 /banzami
   /apps
-    /pay          ← Consumer pay page (Next.js 14, port 3003)
-    /dashboard    ← Merchant dashboard (Next.js 14, port 3000)
-    /admin        ← Operator dashboard (planned)
-    /docs         ← Public docs site (planned)
+    /pay          ← Hosted checkout — pay.banzami.com (Next.js 15, port 3003)
+    /app-banzami  ← App Banzami Web BFF — app.banzami.com (Node session BFF serving the Flutter Web client)
+    /mobile       ← App Banzami (one Flutter codebase: Consumer iOS/Android/Web + Merchant)
+    /admin        ← Operator admin portal (BANZADMIN, Next.js) — admin.banzami.com
+    /website      ← Developer Console + public site (Next.js) — developers.banzami.com / banzami.com
+    /validation-studio ← Local-only readiness control room (never deployed)
+    (the merchant Dashboard app was RETIRED on 2026-09-12; see §hosting above)
   /services
     /api-gateway  ← Merchant-facing API (Go, port 8080)
     /public-api   ← Consumer-facing API (Go, port 8083)

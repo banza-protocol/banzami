@@ -73,9 +73,9 @@ Operations and their balance effects:
 
 ## Invariants
 
-1. `available_balance >= 0` at all times. An attempt to reserve more than the available balance returns `WalletError::InsufficientFunds`.
-2. `reserved_balance >= 0`. A release for more than the reserved balance is rejected.
-3. Balance columns are always consistent with the sum of ledger entries for the corresponding account. Any divergence indicates a bug.
+1. The **derived** available balance is `>= 0` at all times. An attempt to reserve more than the available balance returns `WalletError::InsufficientFunds`.
+2. The **derived** reserved balance is `>= 0`. A release for more than the reserved balance is rejected.
+3. There is **no stored balance column**. Every balance is derived as a `SUM` over ledger entries for the corresponding account (ADR-061 §3 / [MONEY_MODEL](../../architecture/MONEY_MODEL.md)); there is nothing that can diverge from the ledger to reconcile against.
 4. A `Suspended` or `Closed` wallet rejects all operations.
 5. Currency is fixed at wallet creation. All operations must match the wallet's currency.
 
@@ -89,7 +89,7 @@ Operations and their balance effects:
 | Wallet not found | `WalletError::NotFound` |
 | Wallet suspended or closed | `WalletError::NotActive` |
 | Currency mismatch | `WalletError::CurrencyMismatch` |
-| Ledger post fails | `WalletError::Ledger` — balance columns not updated (transaction rollback) |
+| Ledger post fails | `WalletError::Ledger` — no ledger entry persisted (transaction rollback), so the derived balance is unchanged |
 
 ---
 
@@ -105,7 +105,8 @@ FROM ledger_entries
 WHERE account_id = :wallet_account_id;
 ```
 
-This value must always equal `available_balance + reserved_balance` on the `wallets` table.
+This derived sum **is** the wallet's total balance — there is no stored
+`available_balance`/`reserved_balance` column to compare it against (ADR-061 §3).
 
 ---
 

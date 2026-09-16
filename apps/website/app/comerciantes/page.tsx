@@ -212,11 +212,11 @@ export default function ComerciantesPage() {
             </div>
           </div>
 
-          {/* Phone — Receber screen with @cantina.alex (README §Comerciantes). */}
+          {/* Phone — Receber screen with @cantina-alex (README §Comerciantes). */}
           <div className="relative flex min-h-[680px] items-center justify-center">
             <div className="absolute h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.1),rgba(232,67,75,0)_70%)]" />
             <PhoneFrame float>
-              <AppScreen frame="receber" handle="@cantina.alex" />
+              <AppScreen frame="receber" handle="@cantina-alex" />
             </PhoneFrame>
           </div>
         </div>

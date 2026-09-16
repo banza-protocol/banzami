@@ -1,6 +1,10 @@
-# Banza Integration Ecosystem — v1 Strategy Reference
+# Banzami Integration Ecosystem — v1 Strategy Reference
 
-> **This document is the authoritative reference for the Banza integration layer.**  
+> **Dated strategy reference.** For current integration **mechanics** (the operator
+> integration engine, `/v1/integration`, `/v1/financial-setup`, ADR-057), the
+> authoritative doc is [application-integration-engine.md](application-integration-engine.md);
+> the current published SDKs are `@banzami/sdk` (TypeScript) and `banzami_client`
+> (Dart). This document remains as ecosystem/SDK **strategy** context.
 > For the architectural decision, see [ADR-011](../adr/ADR-011-integration-ecosystem-strategy.md).
 
 ---
@@ -91,7 +95,7 @@ Server-side adapters are thin, language-idiomatic wrappers around the REST API. 
 
 | Adapter | Language | Package | Primary use case |
 |---------|----------|---------|-----------------|
-| `generic-node` | TypeScript/Node | `@banza/node` | Express, Fastify, bare Node |
+| `generic-node` | TypeScript/Node | `@banzami/node` | Express, Fastify, bare Node |
 | `generic-php` | PHP | Composer package | WordPress, Laravel, vanilla PHP |
 | `generic-laravel` | PHP/Laravel | Composer package | Laravel service provider + facades |
 
@@ -124,7 +128,7 @@ The Flutter SDK is not just a network client. It is the **Banza Mobile Runtime**
 #### Client capabilities
 
 ```dart
-final client = BanzaClient(
+final client = BanzamiClient(
   baseUrl: 'https://api.banzami.com',
   apiKey:  'bz_live_...',
   onRequest:  (method, path, attempt) => logger.debug('$method $path #$attempt'),
@@ -135,7 +139,7 @@ final client = BanzaClient(
 
 #### Widget layer (roadmap items, not yet v1)
 
-The following widget layer is planned for v1.1. Designs must use the official Banza design system:
+The following widget layer is planned for v1.1. Designs must use the official Banzami design system:
 
 | Widget | Description |
 |--------|-------------|
@@ -165,16 +169,16 @@ class BanzaColors {
 **Location:** `sdk/typescript/`  
 **Priority:** CRITICAL  
 **Runtimes:** Node.js ≥ 18, browser (ESM), Next.js (SSR-safe)  
-**Package:** `@banza/sdk`
+**Package:** `@banzami/sdk`
 
 The TypeScript SDK is the **primary web developer SDK**. It is the reference for ergonomics — all other SDKs should aspire to the same DX.
 
 #### Usage pattern
 
 ```typescript
-import { BanzaClient } from '@banza/sdk';
+import { BanzamiClient } from '@banzami/sdk';
 
-const client = new BanzaClient({
+const client = new BanzamiClient({
   baseUrl:  'https://api.banzami.com',
   apiKey:   process.env.BANZA_API_KEY!,
   hooks: {
@@ -222,9 +226,9 @@ The TypeScript SDK must achieve parity with the following DX expectations (measu
 #### Usage pattern
 
 ```python
-from banza import BanzaClient
+from banza import BanzamiClient
 
-async with BanzaClient(api_key="bz_live_...") as client:
+async with BanzamiClient(api_key="bz_live_...") as client:
     # Transaction
     tx = await client.transactions.create(
         amount=50000,
@@ -301,7 +305,7 @@ The following are on the roadmap but explicitly deferred past v1 stabilization:
 ## Layer 5 — Hosted Checkout
 
 **Location:** `apps/checkout/`  
-**URL:** `https://pay.banzami.com/{slug}`  
+**URL:** `https://pay.banzami.com/pay/{slug}`  
 **Priority:** CRITICAL  
 **Technology:** Next.js 14, App Router, port 3004
 
@@ -373,13 +377,13 @@ QR payment is a strategic pillar, not an optional feature. The reasoning:
 | QR decode | ✓ | ✓ | ✓ | — | — |
 | QR status polling | ✓ | ✓ | ✓ | ✓ | ✓ |
 | QR generation (image) | Flutter widget | Browser API | `qrcode` lib | PHP QR lib | Server-side |
-| Deep link (`banzami://pay/`) | ✓ | — | — | — | — |
+| Deep link (`app.banzami.com/pay/`) | ✓ | — | — | — | — |
 
 ---
 
 ## Design System Compliance
 
-All consumer-facing surfaces — `apps/checkout/`, Flutter widgets, WooCommerce checkout — must use the official Banza design system without deviation.
+All consumer-facing surfaces — `apps/checkout/`, Flutter widgets, WooCommerce checkout — must use the official Banzami design system without deviation.
 
 ### Official palette
 

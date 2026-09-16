@@ -1,11 +1,18 @@
 # KYC — Consumer Identity Verification (architecture)
 
-**Status:** Live (sandbox + production) · backend + Flutter SDK + Consumer mobile · **Authority:** Banzami ADR-020 · BANZA ADR-029 (KYC = operator policy)
+**Status:** implemented (backend + Flutter SDK + Consumer mobile), **Sandbox-scoped; Financial Live not activated** · **Authority:** Banzami ADR-020 · BANZA ADR-029 (KYC = operator policy)
 
 Banzami's first official consumer identity verification. Real evidence (document
 + selfie), real review, operator-decided level. Files live in **Cloudflare R2**;
 the database holds only references. **The protocol does not define KYC** (BANZA
 ADR-038) — this is entirely operator-owned.
+
+> **No consumer KYC in the Public Sandbox.** Consumer identity verification is an
+> operator capability that is **not** part of Sandbox onboarding: registration
+> needs only a `@banza` and a required declared full name
+> (`AppConfig.requiresIdentityVerification => !isSandbox`). KYC becomes a gate only
+> when Financial Live is switched on. Financial Live is currently unavailable and
+> fail-closed.
 
 ## Domain model
 
@@ -78,9 +85,12 @@ no public domain); access is only via short-TTL signed PUT/GET (SigV4) + HEAD.
 CORS on the KYC buckets exists only to permit the signed upload/download from the
 operator origins. A KYC-scoped R2 token (not the KYB token) is used. See the
 provisioning runbook: [docs/runbooks/kyc-r2-storage.md](../runbooks/kyc-r2-storage.md)
-and the CORS policies in `infra/r2/`. **Live is activated** (2026-06-29):
-`banzami-kyc-live` is wired to the live `public-api` + `admin-api`, migrations
-`0067`+`0068` applied to the live `banzami` DB.
+and the CORS policies in `infra/r2/`. **Live is not activated.** Financial Live
+has no data plane (the host Postgres holds only `postgres` and `banzami_staging`);
+the `banzami-kyc-live` bucket exists as a provisioned placeholder only and is not
+wired into any live service. Live KYC is activated only when Financial Live is
+switched on, under the Live activation gate — see
+[docs/operations/LIVE_ACTIVATION_GATE.md](../operations/LIVE_ACTIVATION_GATE.md).
 
 ## APIs
 

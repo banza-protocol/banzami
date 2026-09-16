@@ -176,9 +176,9 @@ const ctaShadow = '0 16px 30px -12px rgba(122,16,22,.5)';
    Derived user fields (mirrors renderVals() in the .dc.html)
    ============================================================ */
 function deriveUser(handle?: string) {
-  // Default user is João Silva (state.user = 'joao').
+  // Default demo user is Ana Maria (@ana) — the canonical generic example.
   if (!handle) {
-    return { name: 'João Silva', short: 'João', handle: '@joao', initials: 'JS', avatar: 'J', balance: '318 151' };
+    return { name: 'Ana Maria', short: 'Ana', handle: '@ana', initials: 'AM', avatar: 'A', balance: '318 151' };
   }
   const clean = handle.replace(/^@/, '').replace(/\s+/g, '').toLowerCase() || 'utilizador';
   const cap = clean.charAt(0).toUpperCase() + clean.slice(1);
@@ -304,8 +304,8 @@ export function AppScreen({
             </div>
             <h2 style={{ margin: '20px 0 0', fontSize: 28, fontWeight: 900, letterSpacing: '-.02em', color: '#2a2024' }}>Escolha o seu @banza</h2>
             <p style={{ margin: '11px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: '#9a8088' }}>É o nome único que as pessoas usam para lhe enviar pagamentos.</p>
-            <div style={{ marginTop: 24, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#b09a9c' }}>joaosilva</div>
-            <div style={{ marginTop: 12, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#b09a9c' }}>Nome (opcional)</div>
+            <div style={{ marginTop: 24, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#b09a9c' }}>ana</div>
+            <div style={{ marginTop: 12, background: '#F3E4E2', borderRadius: 18, padding: 17, fontSize: 16, fontWeight: 600, color: '#b09a9c' }}>Nome completo</div>
             <div className="cursor-pointer text-center" style={{ marginTop: 'auto', background: gradBtn, borderRadius: 30, padding: 16, color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: ctaShadow }}>Continuar</div>
           </div>
         </div>
@@ -395,7 +395,7 @@ export function AppScreen({
               <span className="cursor-pointer" style={{ fontSize: 13, fontWeight: 800, color: '#9A1B22' }}>Ver tudo</span>
             </div>
             <div className="shrink-0" style={{ marginTop: 10, background: '#fff', borderRadius: 18, padding: '4px 14px', boxShadow: '0 8px 22px -16px rgba(181,16,31,.3)' }}>
-              <ActivityRow initial="A" name="Ana Maria" kind="Recebido" amount="+1 500 Kz" amountColor="#1f7a45" date="27/5" border />
+              <ActivityRow initial="J" name="João Silva" kind="Recebido" amount="+1 500 Kz" amountColor="#1f7a45" date="27/5" border />
               <ActivityRow initial="D" name="Daniel Fonseca" kind="Enviado" amount="−5 000 Kz" amountColor="#2a2024" date="27/5" />
             </div>
           </div>
@@ -658,9 +658,9 @@ export function AppScreen({
             <p style={{ margin: '16px 0 8px', fontSize: 12.5, fontWeight: 700, color: '#9a8a8e' }}>27 mai. 2026</p>
             <div style={{ background: '#fff', borderRadius: 18, padding: '2px 14px', boxShadow: '0 10px 26px -18px rgba(181,16,31,.3)' }}>
               <ActivityRow initial="D" name="Daniel Fonseca" kind="Enviado" amount="−5 000 Kz" amountColor="#2a2024" date="27/5" border small />
-              <ActivityRow initial="A" name="Ana Maria" kind="Recebido" amount="+1 500 Kz" amountColor="#1f7a45" date="27/5" border small />
+              <ActivityRow initial="J" name="João Silva" kind="Recebido" amount="+1 500 Kz" amountColor="#1f7a45" date="27/5" border small />
               <ActivityRow initial="B" name="Bento Manuel" kind="Recebido" amount="+350 Kz" amountColor="#1f7a45" date="27/5" border small />
-              <ActivityRow initial="A" name="Ana Maria" kind="Enviado" amount="−1 500 Kz" amountColor="#2a2024" date="27/5" small />
+              <ActivityRow initial="J" name="João Silva" kind="Enviado" amount="−1 500 Kz" amountColor="#2a2024" date="27/5" small />
             </div>
           </div>
           <BottomNav active="historico" />

@@ -7,7 +7,13 @@ Where everything lives. This is the only meta-document — start here.
 | **What Banzami is / entry point** | [README.md](../README.md) |
 | **Engineering rules & conventions** | [CLAUDE.md](../CLAUDE.md) |
 | **Current repository state** | [docs/governance/BANZAMI_CURRENT_STATE.md](governance/BANZAMI_CURRENT_STATE.md) |
-| **Operator reference (products, SDKs)** | [BANZAMI_REFERENCE.md](../BANZAMI_REFERENCE.md) |
+| **What is available now (Sandbox vs Financial Live)** | Public Sandbox is available (fictitious money, self-service, no consumer KYC); Financial Live is not available / fail-closed. See [ADR-060](adr/ADR-060-self-service-public-sandbox.md) · [ADR-061](adr/ADR-061-wallet-native-rail-decoupled-financial-network.md) · [LIVE_ACTIVATION_GATE](operations/LIVE_ACTIVATION_GATE.md) |
+| **App Banzami — the Consumer product (one Flutter app: Web + iOS + Android)** | [docs/architecture/APP_BANZAMI_CLIENTS.md](architecture/APP_BANZAMI_CLIENTS.md) · [ADR-064](adr/ADR-064-app-banzami-web-consumer-client.md) |
+| **App Banzami Web — app.banzami.com (hosting / opaque-session BFF)** | [docs/infra/APP_BANZAMI_WEB_HOSTING.md](infra/APP_BANZAMI_WEB_HOSTING.md) · [threat model](security/WEB_APP_001_THREAT_MODEL.md) |
+| **Hosted Checkout — pay.banzami.com (payer-facing; not App Banzami)** | [ADR-052](adr/ADR-052-one-hosted-payer-surface.md) · [DOMAIN-CONSOLIDATION](migration/DOMAIN-CONSOLIDATION.md) |
+| **Test Payer — deterministic Sandbox scenario tool** | [Sandbox OpenAPI](developer/openapi/banzami-sandbox.openapi.json) · [SANDBOX_SELF_SERVICE_001_CONFORMANCE](quality/SANDBOX_SELF_SERVICE_001_CONFORMANCE.md) |
+| **App Web E2E — `make app-web-cleanroom` (Semantics-first Flutter Web runner)** | [tools/e2e/app-web/README.md](../tools/e2e/app-web/README.md) · [E2E_METHODOLOGY](quality/E2E_METHODOLOGY.md) |
+| **Operator reference (products, SDKs)** | [BANZAMI_REFERENCIA.md](../BANZAMI_REFERENCIA.md) (canonical mother-doc) · [BANZAMI_REFERENCE.md](../BANZAMI_REFERENCE.md) (superseded, kept for history) |
 | **Architecture** | [BANZAMI_ARCHITECTURE.md](../BANZAMI_ARCHITECTURE.md) · [docs/architecture/](architecture/) |
 | **Architecture decisions (ADRs)** | [docs/adr/](adr/) |
 | **Per-domain docs** | [docs/domains/](domains/) |

@@ -1,7 +1,9 @@
 # Sandbox Edge — Stage C runtime
 
-Status: **implemented and serving at the origin**; public routing pending one
-external step (§5). Sandbox only — this component never touches LIVE.
+Status: **implemented and serving; public routing is live** (see
+[SANDBOX_PUBLIC_ROUTING.md](SANDBOX_PUBLIC_ROUTING.md) and
+[APP_BANZAMI_WEB_HOSTING.md](../infra/APP_BANZAMI_WEB_HOSTING.md)). Sandbox only —
+this component never touches LIVE.
 
 Authority: [BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](../infra/BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md)
 (Decision 2 dedicated proxy · Decision 3 website independence · Decision 6 no

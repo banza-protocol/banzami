@@ -1,12 +1,22 @@
 # Banzami — Arquitectura Técnica de Referência
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_ARCHITECTURE.md)
+> For other layers: [BANZA](../banza/docs/reference/en/BANZA_REFERENCE.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  
 **Status:** Official  
 **Authority:** ADR-025
+
+> **Current-state notes (kept in sync with the running system).** The Consumer
+> product is **App Banzami** — one Flutter codebase across iOS, Android and
+> **App Banzami Web** ([`app.banzami.com`](https://app.banzami.com)); see
+> [docs/architecture/APP_BANZAMI_CLIENTS.md](docs/architecture/APP_BANZAMI_CLIENTS.md)
+> and [ADR-064](docs/adr/ADR-064-app-banzami-web-consumer-client.md). Hosted
+> Checkout is `pay.banzami.com/pay/{slug}` ([ADR-052](docs/adr/ADR-052-one-hosted-payer-surface.md)).
+> The **Public Sandbox is available** (fictitious value, self-service, no consumer
+> KYC); **Financial Live is not available** and fail-closed. The standalone merchant
+> Dashboard app was retired on 2026-09-12.
 
 ---
 
@@ -14,7 +24,7 @@
 
 Esta secção descreve a arquitectura técnica do **Banzami** — a implementação de referência. Não é o único modo válido de implementar o protocolo BANZA. É o modo que o Banzami escolheu. Outros operadores podem usar stacks diferentes, desde que passem o conformance suite.
 
-As regras do protocolo que esta arquitectura implementa estão definidas em [BANZA_ARCHITECTURE.md](../banza/BANZA_ARCHITECTURE.md) e [BANZA_REFERENCE.md §7](../banza/BANZA_REFERENCE.md).
+As regras do protocolo que esta arquitectura implementa estão definidas em [BANZA_ARCHITECTURE.md](../banza/docs/reference/en/BANZA_REFERENCE.md) e [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md).
 
 ---
 
@@ -25,7 +35,7 @@ As regras do protocolo que esta arquitectura implementa estão definidas em [BAN
 | Núcleo financeiro | **Rust** | Ledger, wallet, transaction, settlement, QR, risk, compliance |
 | API layer | **Go** | Public APIs, admin APIs, webhook delivery, authentication, gateway |
 | Frontend | **TypeScript + Next.js** | Merchant dashboard, admin, analytics, developer console |
-| Mobile | **Flutter** | Banzami Wallet app, mobile SDK |
+| Mobile / Web client | **Flutter** | App Banzami — one Consumer codebase (iOS, Android, and App Banzami Web at app.banzami.com); mobile SDK |
 | Database | **PostgreSQL** | Single source of financial truth |
 | Cache | **Redis** | Caching, rate limiting, idempotency, distributed locking |
 | Observabilidade | **OpenTelemetry + Prometheus + Grafana** | Traces, metrics, structured logs |
@@ -156,10 +166,10 @@ e `noreply@` (automático/segurança) e `EMAIL_DRY_RUN` como modo seguro. Ver
    POST api.banzami.com/v1/payment-links
      → api-gateway → POST core-api/internal/v1/payment-links
      → Devolve slug: "a3f7c2d19b40"
-     → Merchant partilha: https://pay.banzami.com/a3f7c2d19b40
+     → Merchant partilha: https://pay.banzami.com/pay/a3f7c2d19b40
 
 2. Consumer abre pay page
-   GET pay.banzami.com/a3f7c2d19b40
+   GET pay.banzami.com/pay/a3f7c2d19b40
      → Next.js server component
      → GET api-gateway/public/pay/a3f7c2d19b40
      → Server-renders página com montante, descrição, QR
@@ -265,7 +275,7 @@ plugins/*         → api-gateway
 
 ## Implementação de Invariantes
 
-O Banzami implementa os invariantes financeiros do protocolo BANZA (ver [BANZA_REFERENCE.md §7](../banza/BANZA_REFERENCE.md)) através do Rust core-api. Os invariantes são impostos no nível do kernel — não no nível da API ou da UI.
+O Banzami implementa os invariantes financeiros do protocolo BANZA (ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md)) através do Rust core-api. Os invariantes são impostos no nível do kernel — não no nível da API ou da UI.
 
 Nenhum código Go ou TypeScript pode violar os invariantes financeiros: só o Rust core-api escreve nas tabelas financeiras, e o Rust impõe os invariantes em tempo de compilação e em tempo de execução.
 
@@ -277,7 +287,7 @@ Nenhum código Go ou TypeScript pode violar os invariantes financeiros: só o Ru
 - ADR-002 — Double-entry ledger
 - ADR-005 — Modular monolith
 - ADR-013 — Wallet-native identity
-- [BANZA_ARCHITECTURE.md](../banza/BANZA_ARCHITECTURE.md) — Protocol kernel architecture
+- [BANZA_ARCHITECTURE.md](../banza/docs/reference/en/BANZA_REFERENCE.md) — Protocol kernel architecture
 - [BANZAMI_DEPLOYMENT.md](BANZAMI_DEPLOYMENT.md) — How to deploy this architecture
 - [BANZAMI_OPERATIONS.md](BANZAMI_OPERATIONS.md) — How to operate this architecture
 - `docs/architecture/` — Detailed per-domain architecture docs

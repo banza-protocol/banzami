@@ -896,6 +896,11 @@
   },
   {
    "k": "section",
+   "t": "Testar com a App Banzami Web",
+   "h": "/docs/testing#testar-com-app-banzami-web"
+  },
+  {
+   "k": "section",
    "t": "Pagadores de teste",
    "h": "/docs/testing#pagadores-teste"
   },
@@ -3208,6 +3213,11 @@
    "k": "section",
    "t": "What the Sandbox gives you",
    "h": "/docs/en/testing#sandbox-self-service"
+  },
+  {
+   "k": "section",
+   "t": "Test with App Banzami Web",
+   "h": "/docs/en/testing#test-with-app-banzami-web"
   },
   {
    "k": "section",

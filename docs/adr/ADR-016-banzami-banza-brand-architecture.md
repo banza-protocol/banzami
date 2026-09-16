@@ -237,4 +237,4 @@ BANZA_REFERENCE.md  (fonte de verdade)
 - [ADR-014](ADR-014-angola-national-mission.md) — Missão Nacional Angola-First
 - [ADR-015](ADR-015-markdown-first-content-architecture.md) — Arquitectura de Conteúdo Markdown-First
 - [CLAUDE.md](../../CLAUDE.md) — Constituição de Engenharia Banzami
-- [docs/BANZA_REFERENCE.md](../BANZA_REFERENCE.md) — Fonte de Verdade Oficial
+- [docs/BANZA_REFERENCE.md](../../../banza/docs/reference/en/BANZA_REFERENCE.md) — Fonte de Verdade Oficial

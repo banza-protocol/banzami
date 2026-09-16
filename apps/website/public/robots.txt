@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /r/
 
+Sitemap: https://banzami.com/sitemap.xml
 Host: https://banzami.com

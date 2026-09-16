@@ -54,7 +54,7 @@ Merchant opens app
         ↓
 QR displayed immediately (static QR: stored locally, no network call)
         ↓
-Push notification: "Pagamento recebido — 2.500 Kz de @joao.silva"
+Push notification: "Pagamento recebido — 2.500 Kz de @ana"
         ↓
 Balance updated in real time on dashboard
 ```
@@ -228,7 +228,7 @@ Push notifications are the real-time confirmation channel. They must be:
 - silent for system events (account updates, KYC status) — only payment events use sound/vibration.
 
 Format:
-- Received: "💰 Recebeu 2.500 Kz de @joao.silva"
+- Received: "💰 Recebeu 2.500 Kz de @ana"
 - Sent: "✅ Pagou 2.500 Kz a @cantina.luanda"
 - Failed: "❌ Pagamento não concluído — saldo insuficiente"
 
@@ -257,6 +257,6 @@ Format:
 - [ADR-014 — Angola-First National Mission and Market Positioning](../adr/ADR-014-angola-national-mission.md)
 - [CLAUDE.md §2.6 — Instant Payments as a Core Architectural Principle](../../CLAUDE.md)
 - [CLAUDE.md §2.7 — Wallet-Native Identity](../../CLAUDE.md)
-- [Product Strategy](../product/strategy.md)
+- [Product Strategy — Posicionamento Competitivo em Angola](../Banzami_Posicionamento_Competitivo_Angola.md)
 - Pix UX guidelines (Banco Central do Brasil)
 - Material Design 3 — for Flutter SDK component baseline

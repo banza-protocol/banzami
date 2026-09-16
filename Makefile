@@ -402,8 +402,13 @@ check-public-site-truth:
 	node tools/check-public-site-truth.selftest.mjs
 	node tools/lib/sdk-readme-claims.selftest.mjs
 
+# DOCS-TRUTH-PREMIUM-001 — terminology/claim truth guard (stale product claims).
+.PHONY: check-doc-truth
+check-doc-truth:
+	node tools/check-doc-truth.mjs
+
 .PHONY: check-docs-prod
-check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth check-wallet-native
+check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth check-doc-truth check-wallet-native
 	node tools/check-docs-prod-001-spec.mjs
 	node tools/check-docs-coverage.mjs
 	node tools/check-docs-claims-ledger.mjs

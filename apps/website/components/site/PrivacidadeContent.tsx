@@ -14,7 +14,7 @@ type Lang = 'pt' | 'en';
 const COPY = {
   pt: {
     title: 'Privacidade — programa de testers',
-    updated: 'Última atualização: 15 de setembro de 2026',
+    updated: 'Última atualização: 16 de setembro de 2026',
     intro:
       'Esta nota explica os dados que recolhemos quando se inscreve para testar as apps do Banzami (App Banzami e App Comerciante) e como os tratamos.',
     sections: [
@@ -39,6 +39,10 @@ const COPY = {
         p: 'Guardamos o seu registo enquanto for relevante para o programa de testes ou até pedir a remoção.',
       },
       {
+        h: 'A sua identidade na app',
+        p: 'Na App Banzami, o @banza é o identificador público da sua carteira — é o que as pessoas veem quando lhe pagam. O nome completo que indica ao criar a conta serve apenas para mostrar quem é junto do @banza: não é único, não é uma verificação de identidade e não é publicado como uma lista pesquisável. Nesta fase de Sandbox e testes, funções de proteção do ecrã da app — como ocultar o conteúdo ao alternar de aplicação, bloquear capturas de ecrã ou voltar a pedir o PIN em primeiro plano — estão desativadas.',
+      },
+      {
         h: 'Os seus direitos',
         p: 'Pode pedir acesso aos seus dados ou a sua remoção a qualquer momento, escrevendo para',
       },
@@ -49,7 +53,7 @@ const COPY = {
   },
   en: {
     title: 'Privacy — tester programme',
-    updated: 'Last updated: 15 September 2026',
+    updated: 'Last updated: 16 September 2026',
     intro:
       'This note explains the data we collect when you register to test the Banzami apps (App Banzami and App Comerciante) and how we handle it.',
     sections: [
@@ -72,6 +76,10 @@ const COPY = {
       {
         h: 'How long we keep it',
         p: 'We keep your registration while it is relevant to the tester programme or until you ask to be removed.',
+      },
+      {
+        h: 'Your identity in the app',
+        p: 'In the App Banzami, your @banza is the public identifier of your wallet — it is what people see when they pay you. The full name you give when creating the account is only shown next to the @banza to say who you are: it is not unique, it is not an identity verification, and it is not published as a searchable list. In this Sandbox and testing phase, app screen-protection features — such as hiding content when switching apps, blocking screenshots, or asking for the PIN again on foreground — are disabled.',
       },
       {
         h: 'Your rights',
@@ -108,7 +116,7 @@ export function PrivacidadeContent({ lang }: { lang: Lang }) {
                 <h2 className="m-0 text-[17px] font-black text-ink">{s.h}</h2>
                 <p className="m-0 mt-1.5 text-[15px] font-medium leading-[1.6] text-ink-soft">
                   {s.p}
-                  {s.h === COPY[lang].sections[5].h && (
+                  {s.h === COPY[lang].sections[6].h && (
                     <>
                       {' '}
                       <a href={`mailto:${SITE.email}`} className="font-semibold text-cherry underline underline-offset-2">

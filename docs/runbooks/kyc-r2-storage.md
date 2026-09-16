@@ -133,11 +133,14 @@ evidence becomes UPLOADED only after HEAD verify.
   (`AccessDenied`), so CORS is applied in the dashboard using `infra/r2/`. It is
   **not** needed for the server-side signed PUT/HEAD validated above; it **is**
   needed before browser/mobile origin uploads (SDK/mobile increments).
-- **Live activated (2026-06-29).** `banzami-kyc-live` is wired into the live
-  `public-api` + `admin-api` (bucket hardcoded in each service block; token /
-  endpoint shared via `KYC_STORAGE_*` in `.env`). Migrations `0067` + `0068`
-  applied to the live `banzami` DB (schema backup taken first). Full flow
-  validated on `api.banzami.com` against `banzami-kyc-live`; test data cleaned.
+- **Live NOT activated.** Financial Live is unavailable and fail-closed: there is
+  no live data plane (the host Postgres holds only `postgres` and
+  `banzami_staging` — see [LIVE_ACTIVATION_GATE.md](../operations/LIVE_ACTIVATION_GATE.md)
+  and [BACKUP_DR_RUNBOOK.md](../operations/BACKUP_DR_RUNBOOK.md)). The
+  `banzami-kyc-live` bucket exists as a provisioned placeholder only; it is **not**
+  wired into any live service, no KYC migrations are applied to a live `banzami`
+  DB, and no live flow runs on `api.banzami.com`. Live KYC storage is activated
+  only when Financial Live is switched on, under the Live activation gate.
 
 - Signed URLs are short-TTL (default 300s); there are no permanent public URLs.
 - Buckets are private; CORS only enables the signed upload/download from operator

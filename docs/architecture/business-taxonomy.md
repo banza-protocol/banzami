@@ -1,8 +1,10 @@
 # Business Taxonomy — Banzami
 
 Canonical classification of merchant businesses. The category (+ optional
-subcategory) chosen at onboarding **automatically** determines the operator
-pricing category — nobody assigns a pricing rule per merchant by hand.
+subcategory) chosen at onboarding is **descriptive only**: it does **not** set or
+select a fee. An owner's fee rate is decided by a **pricing profile the operator
+assigns** (BANZADMIN, audited) — no pricing rule is keyed on a category. See
+[pricing-mapping.md](./pricing-mapping.md) for the authoritative pricing-decision model.
 
 Single source of truth: [`apps/website/lib/business-taxonomy.ts`](../../apps/website/lib/business-taxonomy.ts)
 (`BUSINESS_TAXONOMY`). The onboarding categories/subcategories
@@ -15,10 +17,12 @@ Single source of truth: [`apps/website/lib/business-taxonomy.ts`](../../apps/web
 | **category** | What the merchant picks (PT display name) | "Doações e causas" |
 | **subcategory** | Refinement of the category | "Crowdfunding comunitário" |
 | **business_category** | Canonical internal key stored on the merchant | `donation` |
-| **pricing_category** | Operator fee category the Pricing Engine matches a rule on | `DONATION` |
+| **pricing_category** | A **descriptive** derived label; no pricing rule is keyed on it and it selects no rate (see [pricing-mapping.md](./pricing-mapping.md)) | `DONATION` |
 
 The merchant only sees **category/subcategory**. The operator derives
-`business_category` + `pricing_category` from the chosen category.
+`business_category` + `pricing_category` from the chosen category — both are
+descriptive. The actual fee comes from the pricing **profile** the operator assigns,
+not from the category.
 
 ## Every category has a definition
 

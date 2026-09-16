@@ -6,8 +6,8 @@ import { PhoneFrame } from '@/components/app/PhoneFrame';
 import { AppScreen, type FrameName } from '@/components/app/AppScreen';
 
 export const metadata: Metadata = {
-  title: 'Ecrãs da app',
-  description: 'Os ecrãs principais do protótipo da app Banzami, com dados de exemplo.',
+  title: 'Ecrãs da App Banzami',
+  description: 'Os ecrãs principais da App Banzami, com dados de exemplo. Disponível na Sandbox no browser; em testes no iPhone e Android.',
   alternates: { canonical: 'https://banzami.com/ecras' },
 };
 
@@ -31,7 +31,7 @@ export default function AppGalleryPage() {
         <div className="bz-container">
           <div className="mx-auto max-w-[760px] text-center">
             <Reveal>
-              <p className="bz-eyebrow">Protótipo</p>
+              <p className="bz-eyebrow">App Banzami · Sandbox</p>
               <h1
                 style={{
                   margin: 0,
@@ -41,12 +41,18 @@ export default function AppGalleryPage() {
                   color: '#2a2024',
                 }}
               >
-                Ecrãs da app Banzami
+                Os ecrãs da App Banzami
               </h1>
               <p style={{ margin: '14px 0 0', fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: '#6a5a5e' }}>
-                Os ecrãs principais da app — carteira em Kwanza, @banza, QR e histórico.
-                Pagamentos em Kwanza, de carteira para carteira.
+                Carteira em Kwanza, @banza, QR e histórico — com dados de exemplo. A App Banzami Web
+                está disponível na Sandbox, com dinheiro fictício; o iPhone e o Android estão em testes.
               </p>
+              <a
+                href="https://app.banzami.com"
+                className="mt-6 inline-flex items-center gap-2 rounded-pill bg-cherry px-7 py-[13px] text-[15px] font-extrabold text-white no-underline shadow-[0_12px_26px_-10px_rgba(181,16,31,.55)] transition-transform hover:-translate-y-0.5"
+              >
+                Abrir App Banzami Web ↗
+              </a>
             </Reveal>
           </div>
 

@@ -54,13 +54,20 @@ No other domain writes to the ledger directly. Every domain that moves money (wa
 
 ## Account Structure
 
-Banza maintains a small set of system-level accounts:
+> **Authoritative model:** the current account-class model is defined in
+> [MONEY_MODEL.md](../../architecture/MONEY_MODEL.md) (economic classes and
+> `system_role` — e.g. `CUSTOMER_LIABILITY`, `EXTERNAL_BACKING`, `EXTERNAL_TRANSIT`,
+> `EXTERNAL_COSTS`, `OPERATOR_REVENUE`, introduced by MONEY-MODEL-001 / ADR-063).
+> The names below are an illustrative, simplified view of the same double-entry
+> mechanics; where they differ, MONEY_MODEL.md prevails.
+
+Banzami maintains a small set of system-level accounts (illustrative names):
 
 | Account             | Type      | Role                                             |
 |---------------------|-----------|--------------------------------------------------|
-| `bank_account`      | ASSET     | Funds held at the acquiring bank                 |
+| `bank_account`      | ASSET     | External backing — funds held at a bank/custodian |
 | `transit_account`   | LIABILITY | Funds in-flight during payment or settlement     |
-| `merchant_wallet_*` | LIABILITY | One per merchant wallet — funds owed to merchant |
+| `merchant_wallet_*` | LIABILITY | One per merchant wallet — a customer liability owed to the merchant |
 
 Merchant wallet accounts are created lazily when a wallet is provisioned.
 

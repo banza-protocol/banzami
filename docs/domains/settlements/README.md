@@ -7,9 +7,9 @@
 
 ## Business Purpose
 
-Settlement is the process by which Banza collects the net proceeds of a merchant's transactions from the acquiring bank and credits them to the merchant's wallet.
+Settlement is the process by which Banzami collects the net proceeds of a merchant's transactions from the acquiring bank and credits them to the merchant's wallet.
 
-Transactions generate revenue for the merchant, but the actual funds move from the acquirer to Banza in batches — not transaction by transaction. A settlement batch represents one such collection: a merchant's gross transaction volume for a period, minus Banza's fees, equals the net amount transferred.
+Transactions generate revenue for the merchant, but the actual funds move from the acquirer to Banzami in batches — not transaction by transaction. A settlement batch represents one such collection: a merchant's gross transaction volume for a period, minus the **acquirer's fee** (an external cost — `EXTERNAL_COSTS` in the [money model](../../architecture/MONEY_MODEL.md), not Banzami operator revenue), equals the net amount transferred.
 
 ---
 
@@ -50,7 +50,7 @@ A settlement batch covers one merchant's wallet for a defined time period:
 
 ```
 gross_amount   — total transaction volume collected
-fee_amount     — Banzami's processing fees
+fee_amount     — the acquirer's fee kept at settlement (an EXTERNAL_COST, not Banzami operator revenue; operator fees are charged at settlement/withdrawal per the economic model)
 net_amount     — gross_amount - fee_amount (what the merchant receives)
 period_start   — start of the covered period
 period_end     — end of the covered period

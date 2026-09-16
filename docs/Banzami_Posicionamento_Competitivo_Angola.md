@@ -116,7 +116,7 @@ banzami.com/verify/0FC11CCE
 
 ✓ Pagamento confirmado
 1.500 Kz
-De: @joao
+De: @ana
 Para: @cantina-alex
 Data e hora: [timestamp]
 Referência: 0FC11CCE

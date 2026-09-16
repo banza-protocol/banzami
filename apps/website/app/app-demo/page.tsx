@@ -6,7 +6,7 @@ import { AppWebPortal } from '@/components/app/AppWebPortal';
 export const metadata: Metadata = {
   title: 'App Banzami · Sandbox',
   description:
-    'Crie a sua conta e utilize a Banzami diretamente no browser, com dinheiro fictício. Nenhum dinheiro real é movimentado. Também em testes no iPhone e Android.',
+    'Crie a sua conta e use a App Banzami diretamente no browser, com dinheiro fictício. Nenhum dinheiro real é movimentado. Também em testes no iPhone e Android.',
   alternates: { canonical: 'https://banzami.com/app-demo' },
 };
 
@@ -46,7 +46,7 @@ export default function AppWebPage() {
               Experimente a App Banzami
             </h1>
             <p style={{ margin: '14px 0 0', fontSize: 17, fontWeight: 600, lineHeight: 1.5, color: '#6a5a5e' }}>
-              Crie a sua conta e utilize a Banzami diretamente no browser, com dinheiro fictício.
+              Crie a sua conta e use a App Banzami diretamente no browser, com dinheiro fictício.
               Nenhum dinheiro real é movimentado. A mesma App Banzami está também em testes no
               iPhone e Android, para testers convidados.
             </p>

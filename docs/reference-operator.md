@@ -156,7 +156,7 @@ The routing layer (`core/routing/`) determines which payment rail to use for eac
 
 - Consumer-to-consumer P2P: always routed through internal ledger (no external rail)
 - Consumer-to-merchant QR: always routed through internal ledger
-- Payouts to bank: routed through EMIS (live) or simulated (sandbox)
+- Payouts to bank: simulated in the Public Sandbox today; **intended** to route through an approved rail (e.g. EMIS) once Financial Live is enabled — Financial Live is not yet available
 
 The routing layer is designed for multi-rail capability (EMIS, future rails) without changing financial core logic.
 

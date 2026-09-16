@@ -198,7 +198,10 @@ export function Footer() {
             <span className="text-ink-muted"><Icon name="lock" size={16} /></span>
             {PUBLIC_TRUTH.live.name} indisponível · Sandbox com dinheiro fictício
           </p>
-          <p className="bz-mono m-0 text-[13px] font-semibold text-ink-muted">© 2026 Banzami</p>
+          <p className="m-0 flex items-center gap-[14px] text-[13px] font-semibold text-ink-muted">
+            <Link href="/privacidade" className="font-bold text-ink-soft no-underline hover:text-cherry">Privacidade</Link>
+            <span className="bz-mono">© 2026 Banzami</span>
+          </p>
           <p className="m-0 flex items-center gap-[10px] text-[14px] font-black text-ink">
             Construído sobre o BANZA.
             <span className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-tile bg-cherry shadow-[0_6px_14px_-4px_rgba(181,16,31,.5)]">

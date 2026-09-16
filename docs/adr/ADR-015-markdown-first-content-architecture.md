@@ -172,6 +172,6 @@ Every engineer working on `apps/docs` must:
 ## References
 
 * [CLAUDE.md §15 — Documentation Source of Truth](../../CLAUDE.md)
-* [docs/BANZA_REFERENCE.md](../BANZA_REFERENCE.md)
+* [docs/BANZA_REFERENCE.md](../../../banza/docs/reference/en/BANZA_REFERENCE.md)
 * [ADR-012 — SDK-First Ecosystem](ADR-012-sdk-first-ecosystem.md)
 * [ADR-014 — Angola-First National Mission](ADR-014-angola-national-mission.md)

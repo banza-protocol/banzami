@@ -1,12 +1,12 @@
-# Doa × Banza — Webhooks
+# Doa × Banzami — Webhooks
 
-Complete reference for Banza webhook integration, including signature verification, payload examples, retry handling, and safe event processing.
+Complete reference for Banzami webhook integration, including signature verification, payload examples, retry handling, and safe event processing.
 
 ---
 
 ## Overview
 
-Banza webhooks deliver signed HTTP POST requests to a merchant-registered endpoint when domain events occur. For Doa, the only event type currently handled is `payment_link.paid`, which fires when a donor completes payment in the Banzami app.
+Banzami webhooks deliver signed HTTP POST requests to a merchant-registered endpoint when domain events occur. For Doa, the only event type currently handled is `payment_link.paid`, which fires when a donor completes payment in the Banzami app.
 
 Doa's webhook endpoint: `POST /api/webhooks/banzami`
 
@@ -16,7 +16,7 @@ Doa's webhook endpoint: `POST /api/webhooks/banzami`
 
 ## Endpoint Registration
 
-Register your endpoint using the Banza API:
+Register your endpoint using the Banzami API:
 
 ```bash
 curl -X POST https://api.banzami.com/v1/webhooks/endpoints \
@@ -42,13 +42,13 @@ curl -X POST https://api.banzami.com/v1/webhooks/endpoints \
 }
 ```
 
-Save `secret` as `BANZAMI_WEBHOOK_SECRET` in your environment. **It is returned only once.** Banza stores only the hash of the secret.
+Save `secret` as `BANZAMI_WEBHOOK_SECRET` in your environment. **It is returned only once.** Banzami stores only the hash of the secret.
 
 ---
 
 ## Signature Header
 
-Every Banza webhook includes a `Banza-Signature` header:
+Every Banzami webhook includes a `Banza-Signature` header:
 
 ```
 Banza-Signature: t=1716033007,v1=a1b2c3d4e5f6...
@@ -147,7 +147,7 @@ Parsing to JSON and re-serializing changes the byte sequence, invalidating the H
 
 ## Event Envelope
 
-All Banza webhook payloads follow the same envelope structure:
+All Banzami webhook payloads follow the same envelope structure:
 
 ```json
 {
@@ -162,7 +162,7 @@ All Banza webhook payloads follow the same envelope structure:
 |-------|------|-------------|
 | `id` | string | Unique event ID — use for deduplication if needed |
 | `type` | string | Event type — route based on this |
-| `created_at` | ISO 8601 | When Banza generated this event |
+| `created_at` | ISO 8601 | When Banzami generated this event |
 | `data` | object | Domain-specific payload (varies by event type) |
 
 ---
@@ -223,23 +223,23 @@ await applyPaymentEvent({
 
 ## Response Codes
 
-| Status | Banza behavior |
+| Status | Banzami behavior |
 |--------|-----------------|
-| `200` | Delivery successful — Banza marks delivery as `success`, no retry |
-| `4xx` (except `429`) | Delivery failed — Banza marks as `failed`, retries with backoff |
-| `429` | Rate limited — Banza backs off and retries |
-| `5xx` | Delivery failed — Banza retries |
-| Timeout (>30 s) | Delivery failed — Banza retries |
+| `200` | Delivery successful — Banzami marks delivery as `success`, no retry |
+| `4xx` (except `429`) | Delivery failed — Banzami marks as `failed`, retries with backoff |
+| `429` | Rate limited — Banzami backs off and retries |
+| `5xx` | Delivery failed — Banzami retries |
+| Timeout (>30 s) | Delivery failed — Banzami retries |
 
-**Return 200 for unknown event types**: If Doa receives an event type it doesn't handle, return `200 { ok: true, ignored: true }`. Returning a `4xx` for unknown events causes Banza to retry indefinitely.
+**Return 200 for unknown event types**: If Doa receives an event type it doesn't handle, return `200 { ok: true, ignored: true }`. Returning a `4xx` for unknown events causes Banzami to retry indefinitely.
 
-**Return 5xx to trigger retry**: If `applyPaymentEvent()` fails (database error), Doa returns `500`. Banza will retry. This is correct — it is better to receive the event twice (second call is a no-op) than to lose it.
+**Return 5xx to trigger retry**: If `applyPaymentEvent()` fails (database error), Doa returns `500`. Banzami will retry. This is correct — it is better to receive the event twice (second call is a no-op) than to lose it.
 
 ---
 
 ## Retry Policy
 
-Banza retries failed deliveries with exponential backoff:
+Banzami retries failed deliveries with exponential backoff:
 
 | Attempt | Delay |
 |---------|-------|
@@ -249,7 +249,7 @@ Banza retries failed deliveries with exponential backoff:
 | 4 | ~30 min |
 | 5 | ~2 hours |
 
-After the final attempt, the delivery is marked `failed`. Failed deliveries are visible in the Banza merchant dashboard under **Webhooks → Events → {event_id} → Deliveries**.
+After the final attempt, the delivery is marked `failed`. Failed deliveries are visible in the Banzami merchant dashboard under **Webhooks → Events → {event_id} → Deliveries**.
 
 **Safe retry handling**: `applyPaymentEvent()` is idempotent on `(intent_id, event_type, provider_ref)`. A second delivery of the same event returns `{ deduped: true }` — no duplicate records, no double receipts, no errors.
 
@@ -287,13 +287,13 @@ LIMIT 1;
 
 This JSONB filter lookup is efficient because `donation_events.payload` is a JSONB column — PostgreSQL can use a GIN index on the `provider_ref` key for fast lookups in high-volume deployments.
 
-**If no match found**: Return `200 { ok: true, ignored: true }`. The link may have been created outside the Doa donation flow (e.g., directly via the Banza dashboard or a different application using the same merchant account). Returning `4xx` would cause unnecessary retries.
+**If no match found**: Return `200 { ok: true, ignored: true }`. The link may have been created outside the Doa donation flow (e.g., directly via the Banzami dashboard or a different application using the same merchant account). Returning `4xx` would cause unnecessary retries.
 
 ---
 
 ## Delivery Tracking
 
-The Banza API lets you inspect delivery history:
+The Banzami API lets you inspect delivery history:
 
 ```bash
 # List events for a merchant
@@ -311,7 +311,7 @@ curl "https://api.banzami.com/v1/webhooks/events/evt_01jqx.../deliveries" \
 
 ## Local Webhook Testing
 
-Banza cannot reach `localhost`. Use a tunnel:
+Banzami cannot reach `localhost`. Use a tunnel:
 
 ```bash
 # ngrok
@@ -352,9 +352,12 @@ curl -X POST https://sandbox-api.banzami.com/v1/payment-links \
   }'
 # → Note the link id
 
-# 2. Simulate payment (marks link as USED + fires webhook)
-curl -X POST https://sandbox-api.banzami.com/v1/payment-links/{id}/mark-used \
-  -H "Authorization: Bearer $SANDBOX_JWT"
+# 2. Simulate payment (pay the link as a Sandbox test payer → link USED + webhook)
+#    Create a test payer first with POST /v1/sandbox/test-payers.
+curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/{test_payer_id}/payments \
+  -H "Authorization: Bearer bz_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{"payment_link_id": "{id}"}'
 
 # 3. Inspect your server logs for:
 #    banzami_webhook_received  { type: 'payment_link.paid' }

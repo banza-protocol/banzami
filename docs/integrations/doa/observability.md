@@ -1,12 +1,12 @@
-# Doa × Banza — Observability
+# Doa × Banzami — Observability
 
-Structured logs, payment tracing, webhook monitoring, and diagnostics for the Banza integration.
+Structured logs, payment tracing, webhook monitoring, and diagnostics for the Banzami integration.
 
 ---
 
 ## Log Reference
 
-All Banza-related log events use structured JSON output. Events are keyed by an `action` field for filtering.
+All Banzami-related log events use structured JSON output. Events are keyed by an `action` field for filtering.
 
 ### Webhook Events
 
@@ -24,7 +24,7 @@ All Banza-related log events use structured JSON output. Events are keyed by an 
 |--------|-------|-------------|
 | `banzami_status_checked` | debug | Each poll tick (high volume — consider sampling) |
 | `banzami_status_confirmed` | info | Status changed to USED, `applyPaymentEvent()` called |
-| `banzami_status_error` | warn | Banza API returned non-200 on status check |
+| `banzami_status_error` | warn | Banzami API returned non-200 on status check |
 
 ### Initiation Events
 
@@ -32,7 +32,7 @@ All Banza-related log events use structured JSON output. Events are keyed by an 
 |--------|-------|-------------|
 | `banzami_initiate_ok` | info | Payment link created successfully |
 | `banzami_initiate_replay` | info | Existing link returned (idempotency replay) |
-| `banzami_initiate_error` | error | Banza API call failed |
+| `banzami_initiate_error` | error | Banzami API call failed |
 
 ---
 
@@ -86,7 +86,7 @@ Every log event should include at minimum:
 |-------|------|---------|
 | `action` | string | Log event identifier for filtering |
 | `intent_id` | string \| null | Doa donation intent — primary correlation key |
-| `event_id` | string \| null | Banza event ID — for cross-system correlation |
+| `event_id` | string \| null | Banzami event ID — for cross-system correlation |
 | `deduped` | boolean \| null | Whether `applyPaymentEvent()` was a no-op |
 
 Do **not** log:
@@ -98,7 +98,7 @@ Do **not** log:
 
 ## Payment Lifecycle Tracing
 
-A successful Banza payment produces this log sequence:
+A successful Banzami payment produces this log sequence:
 
 ```
 1. banzami_initiate_ok          { intent_id, link_id, sandbox }
@@ -133,14 +133,14 @@ WHERE intent_id = 'di_01jqx...'
 ORDER BY created_at DESC;
 ```
 
-Expected rows for a completed Banza payment:
+Expected rows for a completed Banzami payment:
 
 | event_type | payload highlights |
 |------------|--------------------|
 | `payment_confirmed` | `provider_ref: "lnk_..."`, `amount`, `paid_at` |
 | `payment_initiated` | `provider: "banzami"`, `provider_ref: "lnk_..."` |
 
-Given a Banza link ID (`lnk_...`):
+Given a Banzami link ID (`lnk_...`):
 
 ```sql
 -- Resolve intent from provider_ref
@@ -154,7 +154,7 @@ WHERE event_type = 'payment_initiated'
 
 ## Webhook Delivery Inspection
 
-Check Banza's delivery history for a specific event:
+Check Banzami's delivery history for a specific event:
 
 ```bash
 # List recent webhook events for the merchant
@@ -196,7 +196,7 @@ In sandbox, expect:
 
 In production:
 - `sandbox: true` in any log is a misconfiguration alarm
-- A `bz_test_` API key in production causes all payment initiations to fail (`403 SANDBOX_KEY_REJECTED` from Banza)
+- A `bz_test_` API key in production causes all payment initiations to fail (`403 SANDBOX_KEY_REJECTED` from Banzami)
 
 Add a startup check:
 
@@ -226,17 +226,19 @@ ngrok http 3000
 # { action: 'api.webhooks.banzami', ... }
 # { action: 'banzami_webhook_ok', ... }
 
-# 4. Trigger a test payment
-curl -X POST https://sandbox-api.banzami.com/v1/payment-links/{id}/mark-used \
-  -H "Authorization: Bearer $SANDBOX_JWT"
+# 4. Trigger a test payment (pay the link as a Sandbox test payer)
+curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/{test_payer_id}/payments \
+  -H "Authorization: Bearer bz_test_..." \
+  -H "Content-Type: application/json" \
+  -d '{"payment_link_id": "{id}"}'
 
 # 5. Within seconds, logs should show the webhook
 ```
 
 If no webhook log appears:
-1. Verify the ngrok URL matches the registered endpoint (check Banza dashboard under **Webhooks → Endpoints**)
+1. Verify the ngrok URL matches the registered endpoint (check Banzami dashboard under **Webhooks → Endpoints**)
 2. Verify `BANZAMI_WEBHOOK_SECRET` matches the secret returned at endpoint registration
-3. Check the Banza dashboard under **Webhooks → Events → {event_id} → Deliveries** for delivery status
+3. Check the Banzami dashboard under **Webhooks → Events → {event_id} → Deliveries** for delivery status
 
 ---
 
@@ -255,4 +257,4 @@ console.log(JSON.stringify({
 }));
 ```
 
-Banza does not currently set a `X-Request-Id` header on webhook deliveries, but the Banza `id` field (`evt_...`) on the event payload serves as a stable correlation key across Doa logs and the Banza dashboard.
+Banzami does not currently set a `X-Request-Id` header on webhook deliveries, but the Banzami `id` field (`evt_...`) on the event payload serves as a stable correlation key across Doa logs and the Banzami dashboard.

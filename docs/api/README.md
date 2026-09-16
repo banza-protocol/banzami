@@ -450,22 +450,27 @@ Create a consumer account and receive a JWT.
 **Request:**
 ```json
 {
-  "handle":       "joao_silva",
-  "display_name": "João Silva",
+  "handle":       "ana",
+  "display_name": "Ana Maria",
   "pin":          "1234"
 }
 ```
 `handle`: 3–30 characters, lowercased, unique.  
 `pin`: 4–8 digits.  
-`display_name`: optional.
+`display_name`: **required** — the consumer's declared full name (1–120 characters,
+e.g. `Ana Maria`). It is display information only: non-unique, never verified legal
+identity, and never KYC evidence. An empty, over-long, or control-character value
+is rejected with a typed `MISSING_FIELD` / `INVALID_FIELD`. Sandbox performs no
+consumer KYC; only `@banza` + this declared name are required to register. See
+[docs/domains/identity/](../domains/identity/README.md).
 
 **Response 201:**
 ```json
 {
   "consumer": {
     "id":                 "uuid",
-    "handle":             "joao_silva",
-    "display_name":       "João Silva",
+    "handle":             "ana",
+    "display_name":       "Ana Maria",
     "status":             "ACTIVE",
     "verification_badge": null,
     "created_at":         "2026-05-13T09:00:00Z",
@@ -487,7 +492,7 @@ Authenticate and receive a JWT.
 
 **Request:**
 ```json
-{ "handle": "joao_silva", "pin": "1234" }
+{ "handle": "ana", "pin": "1234" }
 ```
 
 **Response 200:**
@@ -514,8 +519,8 @@ Get the authenticated consumer's profile.
 ```json
 {
   "id":                 "uuid",
-  "handle":             "joao_silva",
-  "display_name":       "João Silva",
+  "handle":             "ana",
+  "display_name":       "Ana Maria",
   "status":             "ACTIVE",
   "verification_badge": "CONSUMER",
   "created_at":         "2026-05-13T09:00:00Z",
@@ -662,8 +667,8 @@ Search for active consumers by handle prefix. **No authentication required.** Us
 ```json
 {
   "data": [
-    { "handle": "joao_silva", "display_name": "João Silva" },
-    { "handle": "joao_coffee", "display_name": null }
+    { "handle": "ana", "display_name": "Ana Maria" },
+    { "handle": "cafe_central", "display_name": "Café Central" }
   ]
 }
 ```
@@ -776,8 +781,8 @@ List consumers. Optional `handle` query param filters by partial match.
   "data": [
     {
       "id":                 "uuid",
-      "handle":             "joao_silva",
-      "display_name":       "João Silva",
+      "handle":             "ana",
+      "display_name":       "Ana Maria",
       "status":             "ACTIVE",
       "verification_badge": null,
       "created_at":         "2026-05-13T09:00:00Z"

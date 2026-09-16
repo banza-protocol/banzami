@@ -22,6 +22,7 @@ const COPY = {
     kicker: 'Programa de testers',
     title: 'Ajude-nos a testar o Banzami',
     lead: 'As apps do Banzami já funcionam e estão a ser distribuídas a testers convidados. Registe o seu interesse e, à medida que abrimos vagas, enviamos o convite para instalar no iPhone (TestFlight) ou no Android (Google Play).',
+    webNote: 'Prefere experimentar já? A App Banzami Web está disponível no browser, em app.banzami.com, sem convite.',
     sandbox:
       'As apps correm em Sandbox: o dinheiro é fictício e nenhum pagamento é real. É um ambiente de testes, feito para experimentar sem risco.',
     appsTitle: 'As apps que pode testar',
@@ -37,6 +38,7 @@ const COPY = {
     kicker: 'Tester programme',
     title: 'Help us test Banzami',
     lead: 'The Banzami apps already work and are being given to invited testers. Register your interest and, as we open places, we send the invite to install on iPhone (TestFlight) or Android (Google Play).',
+    webNote: 'Want to try it now? The App Banzami Web is available in the browser, at app.banzami.com, with no invite needed.',
     sandbox:
       'The apps run in Sandbox: money is fictitious and no payment is real. It is a testing environment, made to try things with no risk.',
     appsTitle: 'The apps you can test',
@@ -73,6 +75,13 @@ export function TestesContent({ lang, initialApps }: { lang: Lang; initialApps?:
             </h1>
             <p className="m-0 mt-5 max-w-[620px] text-[clamp(15px,1.5vw,18px)] font-semibold leading-[1.55] text-ink-secondary">
               {t.lead}
+            </p>
+            <p className="m-0 mt-3 max-w-[620px] text-[14px] font-semibold leading-[1.55] text-ink-secondary">
+              {t.webNote.split('app.banzami.com')[0]}
+              <a href="https://app.banzami.com" className="font-extrabold text-cherry no-underline hover:text-cherry-dark">
+                app.banzami.com
+              </a>
+              {t.webNote.split('app.banzami.com')[1]}
             </p>
             <p className="m-0 mt-3 max-w-[620px] rounded-2xl border border-amber-200/70 bg-amber-50 px-4 py-3 text-[13.5px] font-semibold leading-[1.5] text-amber-900">
               {t.sandbox}

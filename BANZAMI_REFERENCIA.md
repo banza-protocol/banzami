@@ -210,7 +210,7 @@ Kwanza:
 > real e KYC/KYB **ainda não estão operacionais**. Apresentar cada produto como
 > capacidade da rede, sem afirmar que está em produção comercial.
 
-### App Consumidor (Banzami Wallet)
+### App Banzami (app de consumidor)
 - **Público-alvo:** consumidores angolanos.
 - **Promessa:** uma carteira Kwanza simples, com `@banza`, para enviar, receber e pagar.
 - **Funcionalidades:** carteira em Kwanza, pagar por QR, enviar para `@banza`, receber dinheiro, histórico, notificações em tempo real.

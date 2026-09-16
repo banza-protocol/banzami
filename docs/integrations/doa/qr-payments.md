@@ -1,4 +1,4 @@
-# Doa × Banza — QR Payments
+# Doa × Banzami — QR Payments
 
 QR is the primary payment modality for Angola. This document covers every aspect of how Doa implements the Banzami QR payment experience.
 
@@ -6,10 +6,10 @@ QR is the primary payment modality for Angola. This document covers every aspect
 
 ## The QR Payment Model
 
-Banza payment links use a **merchant-presented QR** model:
+Banzami payment links use a **merchant-presented QR** model:
 
 1. The merchant (Doa) creates a payment link and renders its URL as a QR code.
-2. The customer (donor) scans with the Banza consumer app.
+2. The customer (donor) scans with the App Banzami.
 3. The Banzami app resolves the link, shows the amount and merchant name.
 4. The customer confirms with PIN or biometrics.
 5. The link transitions from `ACTIVE` to `USED`.
@@ -21,19 +21,19 @@ This is distinct from a customer-presented QR (where the merchant scans the cust
 
 ## QR URL Structure
 
-The QR encodes the Banza pay-page URL:
+The QR encodes the Banzami pay-page URL:
 
 ```
-https://pay.banzami.com/{slug}
+https://pay.banzami.com/pay/{slug}
 ```
 
 Where `{slug}` is the short, URL-safe identifier returned by the payment link API. Example:
 
 ```
-https://pay.banzami.com/abc123def
+https://pay.banzami.com/pay/abc123def
 ```
 
-The Banza consumer app handles this URL natively — opening it in the app directly presents the payment confirmation screen without going through the browser.
+The App Banzami handles this URL natively — opening it in the app directly presents the payment confirmation screen without going through the browser.
 
 **Slug vs ID**: The `slug` is used in URLs and QR codes. The `id` (UUID) is used for API calls and stored as `provider_ref`. They refer to the same payment link but serve different purposes.
 
@@ -67,7 +67,7 @@ import('qrcode').then((QRCode) => {
 
 **Why client-side?**
 
-- The QR is only needed conditionally (when the donor reaches the Banza stage).
+- The QR is only needed conditionally (when the donor reaches the Banzami stage).
 - The `qrcode` library is ~50 kB; dynamic import defers this cost until needed.
 - Server-side generation would either bloat SSR output or require a separate API call.
 - The pay URL is already available client-side at the point of rendering — no round-trip needed.
@@ -90,7 +90,7 @@ The QR panel always renders an external link:
 </a>
 ```
 
-This is critical for donors who are already on their phone — they cannot scan a QR displayed on the same device. Tapping this link opens `pay.banzami.com/{slug}` in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
+This is critical for donors who are already on their phone — they cannot scan a QR displayed on the same device. Tapping this link opens `pay.banzami.com/pay/{slug}` in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
 
 ---
 
@@ -140,7 +140,7 @@ BanzamiPanel mounts → setInterval(3000ms) starts
 
 ```
 
-**Why 3 seconds?** Under 3 seconds per tick means a payment confirmed at second 0 is reflected in the UI within 3 seconds — perceived as near-instant. Polling at 1 second would triple the API call volume without meaningfully improving the UX. Polling at 5 seconds would feel noticeably laggy after a fast Banza confirmation.
+**Why 3 seconds?** Under 3 seconds per tick means a payment confirmed at second 0 is reflected in the UI within 3 seconds — perceived as near-instant. Polling at 1 second would triple the API call volume without meaningfully improving the UX. Polling at 5 seconds would feel noticeably laggy after a fast Banzami confirmation.
 
 ---
 
@@ -171,7 +171,7 @@ The 1.2-second delay before redirect gives the donor time to see the confirmatio
 
 ## Payment Link Expiration
 
-Banza payment links expire when:
+Banzami payment links expire when:
 - `expires_at` is set at creation time and the TTL elapses (Doa does not set `expires_at` — links are open-ended by default)
 - The merchant explicitly cancels the link via `DELETE /v1/payment-links/{id}`
 
@@ -204,14 +204,14 @@ BanzamiPanel renders:
   │   │                      │  │
   │   └──────────────────────┘  │
   │                              │
-  │   Ou abre o link →           │  ← mobile tap → opens Banza app
+  │   Ou abre o link →           │  ← mobile tap → opens Banzami app
   │                              │
   │  ● A aguardar confirmação…   │  ← pulsing dot
   └─────────────────────────────┘
 
 Donor taps "Ou abre o link"
-  → Banza app opens at pay.banzami.com/abc123def
-  → Shows: "Banza Business — 1,500.00 AOA"
+  → Banzami app opens at pay.banzami.com/pay/abc123def
+  → Shows: "Banzami Business — 1,500.00 AOA"
   → Donor enters PIN
   → Banzami confirms
 
@@ -230,10 +230,10 @@ Donor is on a laptop visiting doadoa.app
 BanzamiPanel renders:
   [Same layout — QR code prominent]
 
-Donor opens Banza app on their phone:
+Donor opens Banzami app on their phone:
   → App → Pagar → QR scanner
   → Points phone camera at laptop screen
-  → Banza app opens payment confirmation
+  → Banzami app opens payment confirmation
   → Donor confirms with PIN
 
 Desktop browser's poll detects USED within 3 s:
@@ -245,7 +245,7 @@ Desktop browser's poll detects USED within 3 s:
 
 ## Webhook Acceleration
 
-When `BANZAMI_WEBHOOK_SECRET` is configured, Banza pushes `payment_link.paid` immediately after the link transitions to `USED`. This fires before the next poll tick — the webhook path confirms the payment server-side before the browser even asks.
+When `BANZAMI_WEBHOOK_SECRET` is configured, Banzami pushes `payment_link.paid` immediately after the link transitions to `USED`. This fires before the next poll tick — the webhook path confirms the payment server-side before the browser even asks.
 
 On the next poll tick, `applyPaymentEvent()` returns `{ deduped: true }` — the event was already recorded by the webhook. The response is still `{ confirmed: true }` and the browser proceeds normally.
 

@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** 2026-06-19
-**Related:** [VENDOR_RFP_SCORECARD](BANZAMI_KYC_KYB_VENDOR_RFP_SCORECARD.md) · [VENDOR_BOUNDARY](BANZAMI_KYC_KYB_VENDOR_BOUNDARY.md) · [WAVE1_OUTREACH_EMAILS](BANZAMI_WAVE1_OUTREACH_EMAILS.md) · [OUTREACH_TRACKER](BANZAMI_PARTNER_OUTREACH_TRACKER.md) · [TRUST_COMPLIANCE audit context](2026-06-19-global-readiness-audit.md)
+**Related:** [VENDOR_RFP_SCORECARD](BANZAMI_KYC_KYB_VENDOR_RFP_SCORECARD.md) · [VENDOR_BOUNDARY](BANZAMI_KYC_KYB_VENDOR_BOUNDARY.md) · [WAVE1_OUTREACH_EMAILS](BANZAMI_WAVE1_OUTREACH_EMAILS.md) · [OUTREACH_TRACKER](BANZAMI_PARTNER_OUTREACH_TRACKER.md) · [TRUST_COMPLIANCE audit context](../audit/2026-06-19-global-readiness-audit.md)
 
 > **Prepared, not production-ready.** Two vendor-agnostic preparation batches are
 > complete. **No KYC/KYB vendor is selected or integrated.** The simulated provider
