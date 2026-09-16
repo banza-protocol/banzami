@@ -190,11 +190,18 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
     return BanzamiScaffold(
       backgroundColor: BanzamiColors.white,
-      appBar: const BanzamiAppBar(
-        title:           'Nova cobrança',
-        backgroundColor: BanzamiColors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title:  'Nova cobrança',
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+            Expanded(child: body),
+          ],
+        ),
       ),
-      body: body,
     );
   }
 

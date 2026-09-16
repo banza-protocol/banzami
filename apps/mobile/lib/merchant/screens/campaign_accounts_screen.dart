@@ -47,11 +47,23 @@ class _CampaignAccountsScreenState extends State<CampaignAccountsScreen> {
   Widget build(BuildContext context) {
     return BanzamiScaffold(
       backgroundColor: BanzamiColors.gray100,
-      appBar: const BanzamiAppBar(title: 'Fundos retidos', showBack: true),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        color: BanzamiColors.primary,
-        child: _buildBody(),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title:  'Fundos retidos',
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                color: BanzamiColors.primary,
+                child: _buildBody(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

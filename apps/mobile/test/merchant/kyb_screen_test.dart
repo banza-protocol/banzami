@@ -46,6 +46,13 @@ Widget _app() => MultiProvider(
 
 void main() {
   testWidgets('renders real document states; no application form', (tester) async {
+    // A tall surface so every lazily-built ListView card is laid out (the shared
+    // AppScreenHeader takes more height than the old app bar).
+    tester.view.physicalSize = const Size(1200, 4000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 

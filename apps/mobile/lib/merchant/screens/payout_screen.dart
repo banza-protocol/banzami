@@ -137,12 +137,20 @@ class _PayoutScreenState extends State<PayoutScreen> {
       canPop: !_loading,
       child: BanzamiScaffold(
         backgroundColor: BanzamiColors.white,
-        appBar: BanzamiAppBar(
-          title:           'Pedir levantamento',
-          backgroundColor: BanzamiColors.white,
-          showBack:        !_loading,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppScreenHeader(
+                title:  'Pedir levantamento',
+                // Hide back while a payout is being submitted, exactly as the old
+                // showBack:!_loading did.
+                onBack: _loading ? null : () => Navigator.of(context).maybePop(),
+              ),
+              Expanded(child: _success ? _buildSuccess() : _buildForm()),
+            ],
+          ),
         ),
-        body: _success ? _buildSuccess() : _buildForm(),
       ),
     );
   }

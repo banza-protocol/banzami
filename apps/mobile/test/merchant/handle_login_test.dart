@@ -102,7 +102,7 @@ void main() {
       _tall(t);
       await t.pumpWidget(plain());
       await t.pump();
-      expect(find.text('Entrar na sua conta Business'), findsOneWidget);
+      expect(find.text('Entrar'), findsOneWidget);
       expect(find.byType(TextFormField), findsOneWidget);
       // No secret-API-key path: @banza + PIN is the only way in.
       expect(find.text('Entrar com credenciais de integração'), findsNothing);
@@ -116,7 +116,7 @@ void main() {
       await t.tap(find.text('Continuar'));
       await t.pumpAndSettle();
       expect(find.text('@banza inválido.'), findsWidgets);
-      expect(find.text('Digite o PIN Business'), findsNothing); // stayed on handle step
+      expect(find.text('Digite o seu PIN'), findsNothing); // stayed on handle step
     });
 
     testWidgets('existing active @negócio advances to PIN (normalised lowercase)', (t) async {
@@ -126,7 +126,7 @@ void main() {
       await t.enterText(find.byType(TextFormField), '@Cantina_Alex');
       await t.tap(find.text('Continuar'));
       await t.pumpAndSettle();
-      expect(find.text('Digite o PIN Business'), findsOneWidget);
+      expect(find.text('Digite o seu PIN'), findsOneWidget);
       expect(find.text('@cantina_alex'), findsOneWidget); // normalised subtitle
     });
   });
@@ -144,7 +144,7 @@ void main() {
       await t.tap(find.text('Continuar'));
       await t.pumpAndSettle();
       expect(find.text(message), findsOneWidget);
-      expect(find.text('Digite o PIN Business'), findsNothing); // never reached PIN
+      expect(find.text('Digite o seu PIN'), findsNothing); // never reached PIN
     }
 
     testWidgets('unknown @negócio → not found', (t) async {
@@ -182,7 +182,7 @@ void main() {
       await t.enterText(find.byType(TextFormField), 'doa_sandbox');
       await t.tap(find.text('Continuar'));
       await t.pumpAndSettle();
-      expect(find.text('Digite o PIN Business'), findsOneWidget);
+      expect(find.text('Digite o seu PIN'), findsOneWidget);
 
       for (final d in ['1', '2', '3', '4', '5', '6']) {
         await t.tap(find.text(d));

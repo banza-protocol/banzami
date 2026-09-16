@@ -171,11 +171,16 @@ class _ProjectLinkScreenState extends State<ProjectLinkScreen> {
 
     return BanzamiScaffold(
       backgroundColor: BanzamiColors.white,
-      appBar: const BanzamiAppBar(
-        title:           'Ligar a um projeto',
-        backgroundColor: BanzamiColors.white,
-      ),
-      body: !signedIn
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title:  'Ligar a um projeto',
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+            Expanded(
+              child: !signedIn
           ? const SizedBox.shrink()
           : SingleChildScrollView(
               padding: const EdgeInsets.all(BanzamiSpacing.xl),
@@ -212,6 +217,10 @@ class _ProjectLinkScreenState extends State<ProjectLinkScreen> {
                 ],
               ),
             ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

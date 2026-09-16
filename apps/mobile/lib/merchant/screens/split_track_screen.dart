@@ -220,25 +220,33 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
     final c = _collection;
     return BanzamiScaffold(
       backgroundColor: BanzamiColors.white,
-      appBar: BanzamiAppBar(
-        title:           'Cobrança dividida',
-        backgroundColor: BanzamiColors.white,
-        actions: [
-          if (c != null && !c.isTerminal)
-            IconButton(
-              icon: _cancelling
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.cancel_outlined),
-              tooltip: 'Cancelar cobrança',
-              onPressed: _cancelling ? null : _cancel,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title:  'Cobrança dividida',
+              onBack: () => Navigator.of(context).maybePop(),
+              trailing: (c != null && !c.isTerminal)
+                  ? IconButton(
+                      icon: _cancelling
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.cancel_outlined),
+                      tooltip: 'Cancelar cobrança',
+                      onPressed: _cancelling ? null : _cancel,
+                    )
+                  : null,
             ),
-        ],
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? _ErrorState(message: _error!, onRetry: _load)
+                      : RefreshIndicator(onRefresh: _load, child: _content()),
+            ),
+          ],
+        ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _ErrorState(message: _error!, onRetry: _load)
-              : RefreshIndicator(onRefresh: _load, child: _content()),
     );
   }
 

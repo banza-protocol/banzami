@@ -218,8 +218,16 @@ class _KybScreenState extends State<KybScreen> {
   @override
   Widget build(BuildContext context) {
     return BanzamiScaffold(
-      appBar: const BanzamiAppBar(title: 'Verificação do negócio'),
-      body: _loading
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title:  'Verificação do negócio',
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+            Expanded(
+              child: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
@@ -261,6 +269,10 @@ class _KybScreenState extends State<KybScreen> {
                 ],
               ),
             ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -24,18 +24,49 @@ void main() {
     });
   });
 
-  group('No raw Material AppBar left on the pushed/tab merchant screens', () {
-    const files = [
+  // BUSINESS-HEADER-CONSISTENCY-001: one canonical page-header system across the
+  // whole product — AppScreenHeader + BanzamiTextStyles.pageTitle. The Business
+  // app must not carry a second header system (the retired BanzamiAppBar) or a
+  // raw Material AppBar, and every primary/pushed screen carries the shared header.
+  group('One canonical header system (AppScreenHeader) on Business screens', () {
+    // Primary + pushed screens that must render the shared header.
+    const headerScreens = [
       'charge_screen.dart',
       'payout_screen.dart',
       'qr_screen.dart',
       'kyb_screen.dart',
+      'history_screen.dart',
+      'profile_screen.dart',
+      'campaign_accounts_screen.dart',
+      'project_link_screen.dart',
+      'split_track_screen.dart',
+      'onboarding/login_screen.dart',
     ];
-    for (final f in files) {
-      test('$f uses BanzamiAppBar (no raw "appBar: AppBar(")', () {
-        expect(_read('$_screensDir/$f').contains('appBar: AppBar('), isFalse);
+    for (final f in headerScreens) {
+      test('$f uses AppScreenHeader, no BanzamiAppBar, no raw AppBar', () {
+        final src = _read('$_screensDir/$f');
+        expect(src.contains('AppScreenHeader'), isTrue, reason: '$f must use the shared AppScreenHeader');
+        expect(src.contains('BanzamiAppBar'), isFalse, reason: '$f must not use the retired BanzamiAppBar');
+        expect(src.contains('appBar: AppBar('), isFalse, reason: '$f must not use a raw Material AppBar');
       });
     }
+
+    test('the retired BanzamiAppBar no longer appears anywhere under lib/merchant', () {
+      final hits = Directory('lib/merchant')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart') && _read(f.path).contains('BanzamiAppBar'))
+          .map((f) => f.path)
+          .toList();
+      expect(hits, isEmpty, reason: 'BanzamiAppBar is retired: $hits');
+    });
+
+    test('login has no duplicate body page-title (only "Entrar" in the header)', () {
+      final login = _read('$_screensDir/onboarding/login_screen.dart');
+      expect(login.contains('Entrar na sua conta Business'), isFalse);
+      // The page title lives in the header, never inlined as a display/heading title.
+      expect(login.contains('displayMd'), isFalse);
+    });
   });
 
   group('No hardcoded radius / colors / legacy markers', () {

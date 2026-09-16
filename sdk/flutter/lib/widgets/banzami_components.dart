@@ -35,59 +35,10 @@ class BanzamiScaffold extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// BanzamiAppBar — clean, minimal app bar
-// =============================================================================
-
-class BanzamiAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String? title;
-  final Widget? titleWidget;
-  final List<Widget>? actions;
-  final bool showBack;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final VoidCallback? onBack;
-
-  const BanzamiAppBar({
-    super.key,
-    this.title,
-    this.titleWidget,
-    this.actions,
-    this.showBack = true,
-    this.backgroundColor = BanzamiColors.offWhite,
-    this.foregroundColor = BanzamiColors.gray900,
-    this.onBack,
-  });
-
-  @override
-  Size get preferredSize => const Size.fromHeight(56);
-
-  @override
-  Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: backgroundColor,
-      foregroundColor: foregroundColor,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      centerTitle: false,
-      automaticallyImplyLeading: showBack,
-      leading: showBack
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              onPressed: onBack ?? () => Navigator.of(context).pop(),
-            )
-          : null,
-      title: titleWidget ??
-          (title != null
-              ? Text(title!,
-                  style: BanzamiTextStyles.headingSm
-                      .copyWith(color: foregroundColor))
-              : null),
-      actions: actions,
-      surfaceTintColor: Colors.transparent,
-    );
-  }
-}
+// BanzamiAppBar was removed by BUSINESS-HEADER-CONSISTENCY-001: the whole product
+// now uses the single canonical page-header, AppScreenHeader
+// (widgets/app_screen_header.dart) + BanzamiTextStyles.pageTitle, for both the
+// Consumer and the Business apps. There is no second app-bar/header system.
 
 // =============================================================================
 // BanzamiCard — floating white card with premium shadow

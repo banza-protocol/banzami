@@ -145,14 +145,24 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return BanzamiScaffold(
-      appBar: BanzamiAppBar(
-        title:  'Entrar',
-        onBack: _step == _Step.pin
-            ? () => setState(() { _step = _Step.handle; _error = null; })
-            : null,
-      ),
       body: SafeArea(
-        child: _step == _Step.handle ? _buildHandleStep() : _buildPinStep(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppScreenHeader(
+              title: 'Entrar',
+              // On the PIN step, back returns to the handle step; on the handle
+              // step it pops the route (back to Welcome) — the same behaviour the
+              // previous app bar gave via its default pop.
+              onBack: _step == _Step.pin
+                  ? () => setState(() { _step = _Step.handle; _error = null; })
+                  : () => Navigator.of(context).maybePop(),
+            ),
+            Expanded(
+              child: _step == _Step.handle ? _buildHandleStep() : _buildPinStep(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -165,14 +175,15 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: BanzamiSpacing.xxl),
+            const SizedBox(height: BanzamiSpacing.xl),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Image.asset(BrandingAssets.businessIcon, height: 48, width: 48, fit: BoxFit.cover),
             ),
             const SizedBox(height: BanzamiSpacing.lg),
-            const Text('Entrar na sua conta Business', style: BanzamiTextStyles.displayMd),
-            const SizedBox(height: BanzamiSpacing.sm),
+            // The page title ("Entrar") lives in AppScreenHeader — no duplicate
+            // body headline here (BUSINESS-HEADER-CONSISTENCY-001). Concise
+            // supporting copy only.
             Text(
               'Use o identificador do seu negócio para entrar.',
               style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400, height: 1.5),
@@ -224,7 +235,7 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: BanzamiSpacing.xl),
-              const Text('Digite o PIN Business', style: BanzamiTextStyles.headingLg),
+              const Text('Digite o seu PIN', style: BanzamiTextStyles.headingLg),
               const SizedBox(height: BanzamiSpacing.sm),
               Text(
                 _error ?? '@$_handle',
