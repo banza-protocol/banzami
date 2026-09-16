@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -20,6 +21,15 @@ class BanzamiCameraPermission {
   ///   restricted        → shows unavailable toast, returns false
   static Future<bool> ensure(BuildContext context) async {
     debugPrint('[QR-CAMERA] opening scanner');
+
+    // On the Web the native permission plugin is NOT the authority: the browser
+    // decides camera access through navigator.mediaDevices.getUserMedia, prompting
+    // contextually when the scanner opens. Defer to the scanner (which classifies
+    // the real getUserMedia outcome) instead of a native denied/unsupported state.
+    if (kIsWeb) {
+      debugPrint('[QR-CAMERA] web — deferring to browser getUserMedia');
+      return true;
+    }
 
     var status = await Permission.camera.status;
     debugPrint('[QR-CAMERA] currentStatus=$status');
