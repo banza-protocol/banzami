@@ -22,6 +22,7 @@ Runbooks are step-by-step procedures for common operational tasks. They describe
 |---------|---------|
 | [Release A cutover](release-a-cutover.md) | The order code, the environment repair (0113) and the historical proof backfill must run in, and the two windows that order exists to close |
 | [Business onboarding — Sandbox closure](business-onboarding-sandbox-closure.md) | The owner-only steps (KYB storage, SDK publish, BANZADMIN review, @doa regularisation and classification) and what engineering does after each |
+| [Business Receive Point rollout](business-receive-point-rollout.md) | ADR-065: the pre-ceremony matrix, the one owner-TTY migration (0153→0154→0155), deploy order, smoke test and rollback |
 
 ---
 
