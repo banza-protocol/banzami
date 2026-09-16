@@ -1068,6 +1068,70 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "Business Receive Point (0154/0155 / BUSINESS-RECEIVE-POINT-001, ADR-065)",
+      "why": "Operator-local, non-financial: a stable public receive identity per Business and the payer-scoped idempotency ledger for minting a fresh session per payment. Zero ledger effect; the unique indexes ARE the invariants (one ACTIVE point per merchant/env; one op per payer+key; opaque core_reference unique).",
+      "tables": [
+        {
+          "name": "business_receive_points",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "public_slug",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "nullable": false
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "uq_business_receive_points_slug",
+            "uq_business_receive_points_one_active"
+          ]
+        },
+        {
+          "name": "business_receive_point_mints",
+          "columns": [
+            {
+              "name": "payer_id",
+              "nullable": false
+            },
+            {
+              "name": "idempotency_key",
+              "nullable": false
+            },
+            {
+              "name": "core_reference",
+              "nullable": false
+            },
+            {
+              "name": "state",
+              "nullable": false
+            },
+            {
+              "name": "owner_token",
+              "nullable": false
+            },
+            {
+              "name": "lease_until",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "uq_business_receive_point_mints_scope",
+            "uq_business_receive_point_mints_core_reference"
+          ]
+        }
+      ]
     }
   ]
 }
