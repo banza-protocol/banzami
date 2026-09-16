@@ -52,6 +52,7 @@ export const navMenus: NavItem[] = [
     links: [
       { label: 'Receber por QR', href: '/comerciantes#como', desc: 'Um QR com valor e descrição.' },
       { label: 'Links de pagamento', href: '/comerciantes#como', desc: 'Um endereço para partilhar.' },
+      { label: 'Dividir a conta', href: '/comerciantes#dividir', desc: 'Rachar por várias pessoas.' },
       { label: 'Histórico e comprovativos', href: '/comerciantes#vantagens', desc: 'Cada venda, registada.' },
       { label: 'Registar o negócio', href: '/comerciantes/candidatura', desc: 'Candidatura de negócio.' },
     ],

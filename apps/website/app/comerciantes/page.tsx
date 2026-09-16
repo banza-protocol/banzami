@@ -313,6 +313,77 @@ export default function ComerciantesPage() {
         </div>
       </section>
 
+      {/* DIVIDIR A CONTA */}
+      <section id="dividir" className="scroll-mt-24 bg-[linear-gradient(180deg,#fff,#FFF7F6)] px-6 py-[clamp(56px,8vw,96px)]">
+        <div className="mx-auto grid max-w-container grid-cols-1 items-center gap-12 lg:grid-cols-2">
+          <div>
+            <p className="m-0 mb-3 text-[14px] font-black text-cherry">DIVIDIR A CONTA</p>
+            <h2 className="m-0 text-[clamp(28px,4vw,44px)] font-black leading-[1.06] tracking-[-0.02em] text-ink">
+              Rache a conta com várias pessoas.
+            </h2>
+            <p className="m-0 mt-4 max-w-[520px] text-[17px] font-semibold leading-[1.55] text-ink-secondary">
+              Divida uma cobrança por várias pessoas. Cada uma paga a sua parte por QR ou por link, e você
+              acompanha quem já pagou — total, pago e o que falta. Cada parte tem o seu comprovativo e é
+              registada na carteira do negócio.
+            </p>
+            <div className="mt-7 flex flex-col gap-4">
+              {[
+                { n: '1', t: 'Crie a cobrança e divida', d: 'Indique o valor total e por quantas pessoas dividir. A soma das partes é sempre igual ao total.' },
+                { n: '2', t: 'Cada pessoa paga a sua parte', d: 'Partilhe o QR ou o link de cada parte. Cada pessoa paga só a sua.' },
+                { n: '3', t: 'Acompanhe quem já pagou', d: 'Veja, em tempo real, o total, o que já foi pago e o que falta.' },
+              ].map((s) => (
+                <div key={s.n} className="flex items-start gap-4">
+                  <span className="inline-flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-cherry text-[15px] font-black text-white">{s.n}</span>
+                  <div>
+                    <p className="m-0 text-[16px] font-black text-ink">{s.t}</p>
+                    <p className="m-0 mt-0.5 text-[14px] font-semibold leading-[1.5] text-ink-soft">{s.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Split visual — a bill divided into shares */}
+          <div className="flex justify-center">
+            <div className="w-full max-w-[380px] rounded-[28px] border border-border-soft bg-white p-7 shadow-[0_24px_60px_-34px_rgba(181,16,31,.28)]">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-black tracking-[0.04em] text-ink-muted">CONTA</span>
+                <span className="rounded-pill bg-pink-200 px-[11px] py-1 text-[11px] font-black text-cherry-dark">3 PESSOAS</span>
+              </div>
+              <p className="m-0 mt-2 text-[32px] font-black tracking-[-0.02em] text-ink">50 000 <span className="text-[18px] text-ink-muted">Kz</span></p>
+              <div className="mt-5 flex flex-col gap-3">
+                {[
+                  { who: 'Parte 1', val: '16 667', paid: true },
+                  { who: 'Parte 2', val: '16 667', paid: true },
+                  { who: 'Parte 3', val: '16 666', paid: false },
+                ].map((r) => (
+                  <div key={r.who} className="flex items-center justify-between rounded-[14px] bg-cream-50 px-4 py-3">
+                    <span className="flex items-center gap-2.5">
+                      <span className={`inline-flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] ${r.paid ? 'bg-[#1f9d57]' : 'bg-white border border-border-softer'}`}>
+                        {r.paid ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        ) : (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="6" height="6" rx="1.2" stroke="#B5101F" strokeWidth="1.8" /><rect x="14" y="4" width="6" height="6" rx="1.2" stroke="#B5101F" strokeWidth="1.8" /><rect x="4" y="14" width="6" height="6" rx="1.2" stroke="#B5101F" strokeWidth="1.8" /></svg>
+                        )}
+                      </span>
+                      <span className="text-[14.5px] font-bold text-ink">{r.who}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-[14.5px] font-black text-ink">{r.val} Kz</span>
+                      <span className={`text-[11px] font-black ${r.paid ? 'text-[#1f7a45]' : 'text-ink-muted'}`}>{r.paid ? 'PAGO' : 'QR'}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between border-t border-border-soft pt-4">
+                <span className="text-[13.5px] font-bold text-ink-soft">Pago</span>
+                <span className="text-[15px] font-black text-ink">33 334 <span className="text-[12px] text-ink-muted">/ 50 000 Kz</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* VANTAGENS */}
       <section id="vantagens" className="scroll-mt-24 px-6 py-[clamp(56px,8vw,96px)]">
         <div className="mx-auto max-w-container">
