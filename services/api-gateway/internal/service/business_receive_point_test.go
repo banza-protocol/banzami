@@ -212,11 +212,11 @@ func TestReceivePoint_MintFreshSessionPerPayment(t *testing.T) {
 	}
 	fake := &fakeSessions{}
 
-	a, err := svc.MintSession(ctx, fake, rp.PublicSlug, 1000)
+	a, err := svc.MintSession(ctx, fake, rp.PublicSlug, "kA-"+uuid.NewString(), 1000)
 	if err != nil {
 		t.Fatalf("mint A: %v", err)
 	}
-	b, err := svc.MintSession(ctx, fake, rp.PublicSlug, 2500)
+	b, err := svc.MintSession(ctx, fake, rp.PublicSlug, "kB-"+uuid.NewString(), 2500)
 	if err != nil {
 		t.Fatalf("mint B: %v", err)
 	}
@@ -251,11 +251,76 @@ func TestReceivePoint_MintFailsClosedWhenIneligible(t *testing.T) {
 		t.Fatal(err)
 	}
 	fake := &fakeSessions{}
-	if _, err := svc.MintSession(ctx, fake, rp.PublicSlug, 1000); !errors.Is(err, ErrReceivePointIneligible) {
+	if _, err := svc.MintSession(ctx, fake, rp.PublicSlug, "ki-"+uuid.NewString(), 1000); !errors.Is(err, ErrReceivePointIneligible) {
 		t.Fatalf("suspended business mint must fail closed, got %v", err)
 	}
 	if len(fake.calls) != 0 {
 		t.Fatal("no session may be created for an ineligible business")
+	}
+}
+
+func TestReceivePoint_MintIdempotentSameKey(t *testing.T) {
+	ctx := context.Background()
+	pool := rpPoolOrSkip(ctx, t)
+	svc := NewBusinessReceivePointService(pool)
+	m, _ := seedReceivableBusiness(ctx, t, pool)
+	rp, _ := svc.EnsureActive(ctx, m, "SANDBOX")
+	fake := &fakeSessions{}
+	key := "same-" + uuid.NewString()
+
+	a, err := svc.MintSession(ctx, fake, rp.PublicSlug, key, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := svc.MintSession(ctx, fake, rp.PublicSlug, key, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.SessionID != b.SessionID {
+		t.Fatalf("same idempotency key must return the same session: %q vs %q", a.SessionID, b.SessionID)
+	}
+	if fake.n != 1 {
+		t.Fatalf("same key must create exactly one session, got %d", fake.n)
+	}
+}
+
+func TestReceivePoint_MintKeyRaceCreatesOneSession(t *testing.T) {
+	ctx := context.Background()
+	pool := rpPoolOrSkip(ctx, t)
+	svc := NewBusinessReceivePointService(pool)
+	m, _ := seedReceivableBusiness(ctx, t, pool)
+	rp, _ := svc.EnsureActive(ctx, m, "SANDBOX")
+	fake := &fakeSessions{}
+	key := "race-" + uuid.NewString()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() { defer wg.Done(); _, _ = svc.MintSession(ctx, fake, rp.PublicSlug, key, 1000) }()
+	}
+	wg.Wait()
+
+	if fake.n != 1 {
+		t.Fatalf("concurrent same-key mints created %d sessions, want exactly 1", fake.n)
+	}
+	var rows int
+	if err := pool.QueryRow(ctx,
+		`SELECT count(*) FROM business_receive_point_mints WHERE idempotency_key=$1`, key).Scan(&rows); err != nil {
+		t.Fatal(err)
+	}
+	if rows != 1 {
+		t.Fatalf("want one mint row for the key, got %d", rows)
+	}
+}
+
+func TestReceivePoint_MintRequiresKey(t *testing.T) {
+	ctx := context.Background()
+	pool := rpPoolOrSkip(ctx, t)
+	svc := NewBusinessReceivePointService(pool)
+	m, _ := seedReceivableBusiness(ctx, t, pool)
+	rp, _ := svc.EnsureActive(ctx, m, "SANDBOX")
+	if _, err := svc.MintSession(ctx, &fakeSessions{}, rp.PublicSlug, "", 1000); !errors.Is(err, ErrMintKeyRequired) {
+		t.Fatalf("mint without a key must be rejected, got %v", err)
 	}
 }
 

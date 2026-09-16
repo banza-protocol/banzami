@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -199,17 +200,45 @@ func (s *BusinessReceivePointService) resolveForSession(ctx context.Context, slu
 	return &p, nil
 }
 
-// MintSession turns (public slug + payer amount) into a FRESH canonical Payment
-// Session, using the EXISTING payment-session engine. The payee is resolved
-// server-side from the slug (the client provides only slug + amount); each call
-// yields a new session — the receive point is reused, the session is not.
-func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions PaymentSessionService, slug string, amountMinor int64) (*PaymentSession, error) {
-	payee, err := s.resolveForSession(ctx, slug)
+// ErrMintKeyRequired is returned when a mint carries no idempotency key.
+var ErrMintKeyRequired = errors.New("idempotency key required")
+
+// MintSession turns (public slug + payer amount + idempotency key) into a FRESH
+// canonical Payment Session, using the EXISTING payment-session engine. The payee
+// is resolved server-side from the slug (the client provides only slug + amount);
+// different intentional payments (different keys) each get a new session — the
+// receive point is reused, the session is not.
+//
+// Idempotency is reserve-first: the key is inserted BEFORE any session is created,
+// so concurrent deliveries of the SAME key create exactly one session (the winner
+// creates it and records the id; a loser waits for and returns that same id).
+func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions PaymentSessionService, slug, idempotencyKey string, amountMinor int64) (*PaymentSession, error) {
+	if idempotencyKey == "" {
+		return nil, ErrMintKeyRequired
+	}
+	// Reserve the key. If we insert, we own the mint; if not, another delivery of
+	// the same key already does — wait for and return its session.
+	var mintID string
+	err := s.pool.QueryRow(ctx,
+		`INSERT INTO business_receive_point_mints (idempotency_key, receive_point_slug)
+		 VALUES ($1, $2)
+		 ON CONFLICT (idempotency_key) DO NOTHING
+		 RETURNING id`, idempotencyKey, slug).Scan(&mintID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return s.awaitMint(ctx, sessions, idempotencyKey)
+	}
 	if err != nil {
 		return nil, err
 	}
+
+	payee, err := s.resolveForSession(ctx, slug)
+	if err != nil {
+		// The reservation is void: a later key reuse must be able to try again.
+		_, _ = s.pool.Exec(ctx, `DELETE FROM business_receive_point_mints WHERE id=$1 AND session_id IS NULL`, mintID)
+		return nil, err
+	}
 	amt := amountMinor
-	return sessions.Create(ctx, CreatePaymentSessionInput{
+	sess, err := sessions.Create(ctx, CreatePaymentSessionInput{
 		MerchantID:      payee.MerchantID,      // server-resolved
 		WalletAccountID: payee.WalletAccountID, // server-resolved PRIMARY account
 		AmountMinor:     &amt,
@@ -218,6 +247,39 @@ func (s *BusinessReceivePointService) MintSession(ctx context.Context, sessions 
 		ReferenceType:   "BUSINESS_RECEIVE_POINT",
 		ReferenceID:     slug,
 	})
+	if err != nil {
+		_, _ = s.pool.Exec(ctx, `DELETE FROM business_receive_point_mints WHERE id=$1 AND session_id IS NULL`, mintID)
+		return nil, err
+	}
+	if _, err := s.pool.Exec(ctx,
+		`UPDATE business_receive_point_mints SET session_id=$2 WHERE id=$1`, mintID, sess.SessionID); err != nil {
+		return nil, err
+	}
+	return sess, nil
+}
+
+// awaitMint returns the session a concurrent winner minted for the same key,
+// waiting the brief reserve→create window. Bounded; never creates a session.
+func (s *BusinessReceivePointService) awaitMint(ctx context.Context, sessions PaymentSessionService, idempotencyKey string) (*PaymentSession, error) {
+	for i := 0; i < 50; i++ {
+		var sid *string
+		if err := s.pool.QueryRow(ctx,
+			`SELECT session_id FROM business_receive_point_mints WHERE idempotency_key=$1`, idempotencyKey).Scan(&sid); err != nil {
+			return nil, err
+		}
+		if sid != nil && *sid != "" {
+			if got, err := sessions.Get(ctx, *sid); err == nil && got != nil {
+				return got, nil
+			}
+			return &PaymentSession{SessionID: *sid}, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
+	return nil, errors.New("mint still in progress")
 }
 
 // Disable retires the Business's active receive point (operator/system lifecycle).
