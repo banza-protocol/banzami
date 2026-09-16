@@ -455,7 +455,7 @@ check-all: core-check gateway-check admin-api-check public-api-check check-repo-
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
-.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime
+.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check
 
 # Reference financial path gate — passes on the verified reference path alone.
 assure-reference: check-assurance check-assurance-reference
@@ -543,6 +543,21 @@ assure-full: check-all test-all
 # Guarded, opt-in, sandbox-only (tools/e2e/README.md).
 assure-sandbox:
 	BANZAMI_E2E=RUN node tools/e2e/transfer-sandbox-e2e.mjs
+
+# App Banzami Web browser cleanroom (WEB-E2E-RUNNER-001) — a real Playwright
+# runner drives the Flutter consumer UI on app.banzami.com through its Semantics
+# tree: registration → PIN → Home, Web→Web P2P, invalid + valid payment-link
+# deep links, and the generic Developer → Consumer cleanroom (webhook, logs,
+# receipt) twice, then cleanup + residue + economic integrity. Needs the pinned
+# browser (see tools/e2e/app-web/README.md): cd tools/e2e/app-web && npm ci &&
+# npx playwright install chromium. Reuses the Console sign-in and the read-only
+# ledger; drives the PUBLIC hosts.
+app-web-cleanroom:
+	node tools/e2e/app-web/run-all.mjs
+
+# Just the browser readiness check (which Chromium, reported).
+app-web-browser-check:
+	node tools/e2e/app-web/lib/browser.mjs --diagnose
 
 # Release-readiness gate — alias of the FULL external Sandbox launch gate.
 assure-release: assure-sandbox-launch

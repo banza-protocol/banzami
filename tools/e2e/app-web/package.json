@@ -1,0 +1,18 @@
+{
+  "name": "banzami-app-web-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "WEB-E2E-RUNNER-001 — Playwright runner that drives the App Banzami Web (Flutter) consumer UI through its accessibility Semantics tree, against the public Sandbox hosts.",
+  "scripts": {
+    "browser:check": "node lib/browser.mjs --diagnose",
+    "browser:install": "playwright install chromium",
+    "smoke:register": "node proofs/01-registration-pin-home.mjs",
+    "smoke:p2p": "node proofs/02-web-to-web-p2p.mjs",
+    "smoke:deeplink": "node proofs/03-deeplink-resume.mjs",
+    "cleanroom": "node app-web-cleanroom.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.49.1"
+  }
+}
