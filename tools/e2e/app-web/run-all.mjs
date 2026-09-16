@@ -65,6 +65,10 @@ step('Proof 01 — registration → PIN → Home', 'proofs/01-registration-pin-h
 step('Proof 02 — Web→Web P2P', 'proofs/02-web-to-web-p2p.mjs');
 step('Proof 03 — invalid deep-link', 'proofs/03-invalid-deeplink.mjs');
 
+// 3b. Realtime Home refresh (CONSUMER-HOME-REALTIME-001).
+step('Proof 05 — realtime incoming payment', 'proofs/05-realtime-incoming-payment.mjs');
+step('Proof 06 — realtime resilience (fallback + visibility)', 'proofs/06-realtime-resilience.mjs');
+
 // 4-5. The generic cleanroom, twice (repeatability) — fresh dev/consumer/payment.
 const run1 = step('Cleanroom run 1', 'app-web-cleanroom.mjs', ['--label', 'run1']);
 const run2 = quick ? true : step('Cleanroom run 2', 'app-web-cleanroom.mjs', ['--label', 'run2']);
