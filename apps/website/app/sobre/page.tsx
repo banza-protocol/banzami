@@ -169,26 +169,12 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* FUNDADORES + ESTADO ATUAL */}
-      <section id="fundadores" className="scroll-mt-28 px-6 pb-2 pt-14">
-        <div className="mx-auto grid max-w-[980px] grid-cols-1 gap-[18px] md:grid-cols-2">
-          <Reveal className="rounded-card border border-border-soft bg-white p-8">
-            <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.08em] text-cherry">FUNDADORES</p>
-            <div className="flex items-center gap-4">
-              <span className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-full bg-[linear-gradient(150deg,#B5101F,#6E0E14)] text-[20px] font-black text-white">FM</span>
-              <div>
-                <p className="m-0 text-[18px] font-black text-ink">Fidel Monteiro</p>
-                <p className="m-0 mt-0.5 text-[14px] font-semibold text-ink-soft">Fundador</p>
-              </div>
-            </div>
-            <p className="m-0 mt-4 text-[14.5px] font-semibold leading-[1.55] text-ink-secondary">
-              O Banzami é construído por uma equipa pequena, focada em fazer bem o essencial: pagamentos
-              corretos, verificáveis e simples de usar.
-            </p>
-          </Reveal>
-          <Reveal delay={80} className="rounded-card border border-border-soft bg-cream-50 p-8">
-            <p className="m-0 mb-[10px] text-[12px] font-black tracking-[0.08em] text-cherry">ESTADO ATUAL</p>
-            <ul className="m-0 list-none space-y-2.5 p-0 text-[14.5px] font-semibold leading-[1.5] text-ink-secondary">
+      {/* ESTADO ATUAL */}
+      <section id="estado" className="scroll-mt-28 px-6 pb-2 pt-14">
+        <div className="mx-auto max-w-[980px]">
+          <Reveal className="rounded-card border border-border-soft bg-cream-50 p-8">
+            <p className="m-0 mb-[14px] text-[12px] font-black tracking-[0.08em] text-cherry">ESTADO ATUAL</p>
+            <ul className="m-0 grid list-none gap-2.5 p-0 text-[14.5px] font-semibold leading-[1.5] text-ink-secondary md:grid-cols-3">
               <li className="flex items-start gap-2.5">
                 <span aria-hidden="true" className="mt-[7px] inline-block h-2 w-2 flex-none rounded-full bg-[#1f9d57]" />
                 <span><strong className="text-ink">{PUBLIC_TRUTH.sandbox.name}</strong> disponível, self-service, com dinheiro fictício.</span>

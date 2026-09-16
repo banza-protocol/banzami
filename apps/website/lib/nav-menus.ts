@@ -103,7 +103,7 @@ export const navMenus: NavItem[] = [
     visualCaption: 'banzami',
     links: [
       { label: 'A startup', href: '/sobre', desc: 'Missão e princípios.' },
-      { label: 'Fundadores', href: '/sobre#fundadores', desc: 'Quem constrói o Banzami.' },
+      { label: 'Estado atual', href: '/sobre#estado', desc: 'O que está disponível hoje.' },
       { label: 'Suporte', href: '/suporte', desc: 'Ajuda e estado da plataforma.' },
       { label: 'Contacto', href: mailto(), desc: 'Fale connosco.' },
     ],
