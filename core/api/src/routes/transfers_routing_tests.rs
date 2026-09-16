@@ -53,7 +53,7 @@ async fn balance(pool: &PgPool, acct: Uuid) -> i64 {
 /// Funded consumer (the payer). Returns consumer id.
 async fn funded_consumer(pool: &PgPool, amount: i64) -> Uuid {
     let c = Uuid::new_v4();
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1,$2,'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1,$2,'ACTIVE','Test Consumer')")
         .bind(c)
         .bind(format!("payer_{}", &c.to_string()[..8]))
         .execute(pool)

@@ -61,7 +61,7 @@ async fn seed(pool: &PgPool) -> Seed {
     sqlx::query("INSERT INTO wallet_accounts (id,wallet_id,account_id,merchant_id,currency,purpose,status,label) VALUES ($1,$2,$3,$4,'AOA','CAMPAIGN','ACTIVE','c')")
         .bind(wa).bind(wallet).bind(wa_acct).bind(merchant).execute(pool).await.unwrap();
     let payer = Uuid::new_v4();
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1, $2, 'ACTIVE', 'Test Consumer')")
         .bind(payer)
         .bind(format!("p{}", &payer.to_string()[..8]))
         .execute(pool)

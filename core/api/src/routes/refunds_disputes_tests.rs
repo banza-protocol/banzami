@@ -197,7 +197,7 @@ async fn seed_wallet_payment(pool: &PgPool, amount: i64) -> WalletPaymentSeed {
 
     // Consumer + consumer wallet.
     let consumer_id = Uuid::new_v4();
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1, $2, 'ACTIVE', 'Test Consumer')")
         .bind(consumer_id)
         .bind(format!("c{}", &consumer_id.to_string()[..8]))
         .execute(pool)
@@ -779,7 +779,7 @@ async fn won_by_consumer_posts_balanced_refund(pool: PgPool) {
 
     // Seed an active consumer + consumer wallet so the resolve posting can land.
     let consumer = Uuid::new_v4();
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1, $2, 'ACTIVE', 'Test Consumer')")
         .bind(consumer)
         .bind(format!("c{}", &consumer.to_string()[..8]))
         .execute(&pool)

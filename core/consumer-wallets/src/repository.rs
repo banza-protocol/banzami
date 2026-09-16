@@ -574,9 +574,14 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
             .map_err(ConsumerWalletError::Database)?;
 
         // 1. Create consumer identity row.
+        // This legacy phone+handle+PIN onboarding predates the declared-name
+        // requirement (0151); the current identity flow collects a full name.
+        // 0152 requires an ACTIVE consumer to carry a non-blank display_name, so
+        // fall back to the @banza handle here — behavior-preserving (the same
+        // consumer, now named after the identity it chose), never a NULL name.
         let consumer_id: Uuid = sqlx::query_scalar(
-            "INSERT INTO consumers (handle, phone_number, status, created_at, updated_at)
-             VALUES ($1, $2, 'ACTIVE', now(), now())
+            "INSERT INTO consumers (handle, phone_number, display_name, status, created_at, updated_at)
+             VALUES ($1, $2, $1, 'ACTIVE', now(), now())
              RETURNING id",
         )
         .bind(&completed.banza_handle)

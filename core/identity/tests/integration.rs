@@ -32,7 +32,7 @@ async fn duplicate_handle_rejected(pool: PgPool) {
     let eng = make_engine(pool);
     eng.create(CreateConsumerRequest {
         handle: "carlos".into(),
-        display_name: None,
+        display_name: Some("Test Consumer".into()),
     })
     .await
     .unwrap();
@@ -40,7 +40,7 @@ async fn duplicate_handle_rejected(pool: PgPool) {
     let err = eng
         .create(CreateConsumerRequest {
             handle: "carlos".into(),
-            display_name: None,
+            display_name: Some("Test Consumer".into()),
         })
         .await
         .unwrap_err();
@@ -55,7 +55,7 @@ async fn normalization_collision_rejected(pool: PgPool) {
     let eng = make_engine(pool);
     eng.create(CreateConsumerRequest {
         handle: "@Carlos".into(),
-        display_name: None,
+        display_name: Some("Test Consumer".into()),
     })
     .await
     .unwrap();
@@ -64,7 +64,7 @@ async fn normalization_collision_rejected(pool: PgPool) {
     let err = eng
         .create(CreateConsumerRequest {
             handle: "@CARLOS".into(),
-            display_name: None,
+            display_name: Some("Test Consumer".into()),
         })
         .await
         .unwrap_err();
@@ -81,7 +81,7 @@ async fn reserved_handle_rejected(pool: PgPool) {
         let err = eng
             .create(CreateConsumerRequest {
                 handle: reserved.to_string(),
-                display_name: None,
+                display_name: Some("Test Consumer".into()),
             })
             .await
             .unwrap_err();
@@ -114,7 +114,7 @@ async fn invalid_syntax_rejected(pool: PgPool) {
         let err = eng
             .create(CreateConsumerRequest {
                 handle: handle.to_string(),
-                display_name: None,
+                display_name: Some("Test Consumer".into()),
             })
             .await
             .unwrap_err();
@@ -153,7 +153,7 @@ async fn suspended_consumer_not_resolved(pool: PgPool) {
     let identity = eng
         .create(CreateConsumerRequest {
             handle: "rui".into(),
-            display_name: None,
+            display_name: Some("Test Consumer".into()),
         })
         .await
         .unwrap();
@@ -177,7 +177,7 @@ async fn closed_consumer_not_resolved(pool: PgPool) {
     let identity = eng
         .create(CreateConsumerRequest {
             handle: "pedro".into(),
-            display_name: None,
+            display_name: Some("Test Consumer".into()),
         })
         .await
         .unwrap();
@@ -218,7 +218,7 @@ async fn concurrent_registration_creates_one_owner(pool: PgPool) {
         set.spawn(async move {
             eng.create(CreateConsumerRequest {
                 handle: "disputed".into(),
-                display_name: None,
+                display_name: Some("Test Consumer".into()),
             })
             .await
         });
@@ -248,7 +248,7 @@ async fn created_consumer_is_in_the_handle_registry(pool: PgPool) {
     let identity = eng
         .create(CreateConsumerRequest {
             handle: "registo_ok".into(),
-            display_name: None,
+            display_name: Some("Test Consumer".into()),
         })
         .await
         .unwrap();
@@ -284,7 +284,7 @@ async fn a_name_a_business_holds_is_refused_and_nothing_is_written(pool: PgPool)
     let err = eng
         .create(CreateConsumerRequest {
             handle: "loja_x".into(),
-            display_name: None,
+            display_name: Some("Test Consumer".into()),
         })
         .await
         .unwrap_err();

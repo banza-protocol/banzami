@@ -33,8 +33,8 @@ async fn ledger_account(pool: &PgPool) -> Uuid {
 async fn onboarded_consumer(pool: &PgPool, handle: &str) -> (Uuid, Uuid) {
     let id = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO consumers (id, handle, phone_number, status, created_at, updated_at)
-         VALUES ($1,$2,$3,'ACTIVE',now(),now())",
+        "INSERT INTO consumers (id, handle, phone_number, status, display_name, created_at, updated_at)
+         VALUES ($1,$2,$3,'ACTIVE','Test Consumer',now(),now())",
     )
     .bind(id)
     .bind(handle)
@@ -112,8 +112,8 @@ async fn no_consumer_handle_may_live_outside_the_registry(pool: PgPool) {
     // Exactly the pre-fix shape: an identity with a handle and no registry row.
     let stray = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO consumers (id, handle, phone_number, status, created_at, updated_at)
-         VALUES ($1,'strayuser','+244900000001','ACTIVE',now(),now())",
+        "INSERT INTO consumers (id, handle, phone_number, status, display_name, created_at, updated_at)
+         VALUES ($1,'strayuser','+244900000001','ACTIVE','Stray User',now(),now())",
     )
     .bind(stray)
     .execute(&pool)
@@ -180,8 +180,8 @@ async fn an_unknown_handle_does_not_resolve(pool: PgPool) {
 async fn a_registered_consumer_with_no_wallet_does_not_resolve(pool: PgPool) {
     let id = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO consumers (id, handle, phone_number, status, created_at, updated_at)
-         VALUES ($1,'walletless','+244900000002','ACTIVE',now(),now())",
+        "INSERT INTO consumers (id, handle, phone_number, status, display_name, created_at, updated_at)
+         VALUES ($1,'walletless','+244900000002','ACTIVE','Wallet Less',now(),now())",
     )
     .bind(id)
     .execute(&pool)

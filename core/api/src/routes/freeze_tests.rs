@@ -67,7 +67,7 @@ async fn fund(pool: &PgPool, acct: Uuid, amount: i64) {
 async fn consumer(pool: &PgPool, amount: i64) -> (Uuid, String, Uuid) {
     let c = Uuid::new_v4();
     let handle = format!("frz{}", &c.simple().to_string()[..8]);
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1,$2,'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1,$2,'ACTIVE','Test Consumer')")
         .bind(c)
         .bind(&handle)
         .execute(pool)

@@ -81,8 +81,8 @@ async fn make_wallet(
 
     // consumers row
     sqlx::query(
-        "INSERT INTO consumers (id, handle, status, created_at, updated_at)
-         VALUES ($1, $2, 'ACTIVE', NOW(), NOW())",
+        "INSERT INTO consumers (id, handle, status, display_name, created_at, updated_at)
+         VALUES ($1, $2, 'ACTIVE', 'Test Consumer', NOW(), NOW())",
     )
     .bind(consumer_id.as_uuid())
     .bind(format!(

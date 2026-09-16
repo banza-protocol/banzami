@@ -25,7 +25,7 @@ async fn ledger_account(pool: &PgPool) -> Uuid {
 async fn a_link_payment_names_the_business_and_its_own_words(pool: PgPool) {
     let payer = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO consumers (id, handle, phone_number, status) VALUES ($1,'payer1',$2,'ACTIVE')",
+        "INSERT INTO consumers (id, handle, phone_number, status, display_name) VALUES ($1,'payer1',$2,'ACTIVE','Payer One')",
     )
     .bind(payer)
     .bind(format!("+2449{}", &payer.to_string()[..8]))
@@ -111,7 +111,7 @@ async fn a_link_payment_names_the_business_and_its_own_words(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn every_credit_to_the_wallet_has_a_history_row(pool: PgPool) {
     let me = Uuid::new_v4();
-    sqlx::query("INSERT INTO consumers (id, handle, phone_number, status) VALUES ($1,'credited1',$2,'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, phone_number, status, display_name) VALUES ($1,'credited1',$2,'ACTIVE','Credited One')")
         .bind(me)
         .bind(format!("+2449{}", &me.to_string()[..8]))
         .execute(&pool)

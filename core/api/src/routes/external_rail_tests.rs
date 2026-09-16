@@ -83,7 +83,7 @@ pub(super) async fn book_sums_to_zero(pool: &PgPool) -> bool {
 pub(super) async fn funded_consumer(pool: &PgPool, amount: i64) -> (Uuid, String, Uuid) {
     let c = Uuid::new_v4();
     let handle = format!("rail{}", &c.simple().to_string()[..10]);
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1, $2, 'ACTIVE', 'Test Consumer')")
         .bind(c)
         .bind(&handle)
         .execute(pool)

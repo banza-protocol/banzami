@@ -48,7 +48,7 @@ async fn balance(pool: &PgPool, account_id: Uuid) -> i64 {
 /// Seed a funded consumer wallet (the sender). Returns the consumer id.
 async fn funded_sender(pool: &PgPool, amount: i64) -> ConsumerId {
     let consumer = Uuid::new_v4();
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1, $2, 'ACTIVE', 'Test Consumer')")
         .bind(consumer)
         .bind(format!("payer_{}", &consumer.to_string()[..8]))
         .execute(pool)

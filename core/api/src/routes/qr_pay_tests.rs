@@ -55,8 +55,8 @@ async fn build_state(pool: PgPool) -> AppState {
 async fn consumer_with_funds(pool: &PgPool, funding: i64) -> (Uuid, Uuid) {
     let consumer = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO consumers (id, handle, phone_number, status, created_at, updated_at)
-         VALUES ($1, $2, $3, 'ACTIVE', now(), now())",
+        "INSERT INTO consumers (id, handle, phone_number, status, display_name, created_at, updated_at)
+         VALUES ($1, $2, $3, 'ACTIVE', 'Test Consumer', now(), now())",
     )
     .bind(consumer)
     .bind(format!("qrpay{}", rand_suffix()))

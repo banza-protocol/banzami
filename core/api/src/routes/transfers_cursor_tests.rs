@@ -39,7 +39,7 @@ async fn build_state(pool: PgPool) -> AppState {
 
 async fn consumer(pool: &PgPool) -> Uuid {
     let id = Uuid::new_v4();
-    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
+    sqlx::query("INSERT INTO consumers (id, handle, status, display_name) VALUES ($1, $2, 'ACTIVE', 'Test Consumer')")
         .bind(id)
         .bind(format!("c{}", &id.to_string()[..8]))
         .execute(pool)

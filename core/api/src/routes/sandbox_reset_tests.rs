@@ -136,7 +136,7 @@ pub(super) async fn test_payer(
     amount: i64,
 ) -> (Uuid, Uuid) {
     let consumer: Uuid =
-        sqlx::query_scalar("INSERT INTO consumers (handle) VALUES ($1) RETURNING id")
+        sqlx::query_scalar("INSERT INTO consumers (handle, display_name) VALUES ($1, 'Test Consumer') RETURNING id")
             .bind(format!("tp{}", &Uuid::new_v4().simple().to_string()[..10]))
             .fetch_one(pool)
             .await
