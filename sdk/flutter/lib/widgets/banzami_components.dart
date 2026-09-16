@@ -262,7 +262,12 @@ class _BanzamiPrimaryButtonState extends State<BanzamiPrimaryButton>
 
     return ScaleTransition(
       scale: _scale,
-      child: GestureDetector(
+      child: Semantics(
+        button: true,
+        enabled: !isDisabled,
+        label: widget.label,
+        excludeSemantics: true,
+        child: GestureDetector(
         onTapDown: (_) => _controller.reverse(),
         onTapUp: (_) => _controller.forward(),
         onTapCancel: () => _controller.forward(),
@@ -314,6 +319,7 @@ class _BanzamiPrimaryButtonState extends State<BanzamiPrimaryButton>
                   ],
                 ),
         ),
+      ),
       ),
     );
   }
@@ -509,7 +515,11 @@ class _BanzamiActionTileState extends State<BanzamiActionTile>
     return Expanded(
       child: ScaleTransition(
         scale: _scale,
-        child: GestureDetector(
+        child: Semantics(
+          button: true,
+          label: widget.label,
+          excludeSemantics: true,
+          child: GestureDetector(
           onTapDown: (_) {
             HapticFeedback.selectionClick();
             _ctrl.reverse();
@@ -590,6 +600,7 @@ class _BanzamiActionTileState extends State<BanzamiActionTile>
               ],
             ),
           ),
+        ),
         ),
       ),
     );

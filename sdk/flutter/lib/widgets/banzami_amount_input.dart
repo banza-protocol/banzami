@@ -75,7 +75,10 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: TextField(
+                child: Semantics(
+                  textField: true,
+                  label: 'Montante',
+                  child: TextField(
                   controller: _controller,
                   enabled: widget.enabled,
                   keyboardType:
@@ -99,6 +102,7 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
                   ),
                   onChanged: (raw) => widget.onChanged(
                       tryParseMoneyInput(raw, currency: widget.currency) ?? 0),
+                ),
                 ),
               ),
               const SizedBox(width: BanzamiSpacing.sm),

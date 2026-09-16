@@ -20,10 +20,10 @@ class _LoginScreenState extends State<LoginScreen> {
   _LoginStep _step = _LoginStep.handle;
 
   final _handleCtrl = TextEditingController();
-  final _formKey    = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
-  String  _pin      = '';
-  bool    _loading  = false;
+  String _pin = '';
+  bool _loading = false;
   String? _error;
 
   @override
@@ -34,7 +34,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _continueToPin() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     final handle = _handleCtrl.text.trim().toLowerCase();
     final client = context.read<ConsumerPublicClient>();
@@ -44,16 +47,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       if (!exists) {
         setState(() {
-          _error   = '@$handle não está registado.';
+          _error = '@$handle não está registado.';
           _loading = false;
         });
         return;
       }
-      setState(() { _step = _LoginStep.pin; _loading = false; });
+      setState(() {
+        _step = _LoginStep.pin;
+        _loading = false;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error   = 'Erro de ligação. Verifique a internet e tente novamente.';
+        _error = 'Erro de ligação. Verifique a internet e tente novamente.';
         _loading = false;
       });
     }
@@ -61,34 +67,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (_pin.length < kPinLength || _loading) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     final handle = _handleCtrl.text.trim().toLowerCase();
     final client = context.read<ConsumerPublicClient>();
-    final svc    = context.read<SessionService>();
+    final svc = context.read<SessionService>();
 
     try {
       final result = await client.login(handle: handle, pin: _pin);
 
       final badgeStr = result.consumer.verificationBadge;
-      final badge = badgeStr == 'CONSUMER' ? VerificationBadgeType.consumer
-                  : badgeStr == 'MERCHANT' ? VerificationBadgeType.merchant
-                  : null;
+      final badge = badgeStr == 'CONSUMER'
+          ? VerificationBadgeType.consumer
+          : badgeStr == 'MERCHANT'
+              ? VerificationBadgeType.merchant
+              : null;
 
       await svc.createSession(
-        consumerId:        result.consumer.id,
-        walletId:          result.walletId,
-        handle:            handle,
-        displayName:       result.consumer.displayName,
-        pin:               _pin,
-        token:             result.token,
+        consumerId: result.consumer.id,
+        walletId: result.walletId,
+        handle: handle,
+        displayName: result.consumer.displayName,
+        pin: _pin,
+        token: result.token,
         verificationBadge: badge,
       );
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
-          pageBuilder:              (_, __, ___) => const MainScreen(),
-          transitionDuration:        Duration.zero,
+          pageBuilder: (_, __, ___) => const MainScreen(),
+          transitionDuration: Duration.zero,
           reverseTransitionDuration: Duration.zero,
         ),
         (_) => false,
@@ -96,11 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       // Only a definitive 401 is a wrong @banza/PIN; an outage says so.
       setState(() {
-        _error   = banzamiErrorMessage(e, codes: const {
+        _error = banzamiErrorMessage(e, codes: const {
           'INVALID_CREDENTIALS': '@banza ou PIN incorrectos.',
         });
         _loading = false;
-        _pin     = '';
+        _pin = '';
       });
     }
   }
@@ -137,58 +148,57 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 40),
-
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.asset(
                 BrandingAssets.icon,
                 height: 48,
-                width:  48,
-                fit:    BoxFit.cover,
+                width: 48,
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(height: 20),
-
             const Text('O seu @banza', style: BanzamiTextStyles.headingMd),
             const SizedBox(height: 8),
             Text(
               'É o nome único que usa para receber pagamentos.',
               style: BanzamiTextStyles.bodyMd.copyWith(
-                color:  BanzamiColors.gray400,
+                color: BanzamiColors.gray400,
                 height: 1.5,
               ),
             ),
-
             const SizedBox(height: 32),
-
             if (_error != null) ...[
               BanzamiErrorBanner(message: _error!),
               const SizedBox(height: 16),
             ],
-
-            TextFormField(
-              controller:      _handleCtrl,
-              decoration:      _fieldDecoration(hint: 'ana', prefix: '@'),
-              style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
-              cursorColor:     BanzamiColors.primary,
-              keyboardType:    TextInputType.visiblePassword,
-              textInputAction: TextInputAction.done,
-              autocorrect:     false,
-              onFieldSubmitted: (_) => _continueToPin(),
-              validator: (v) {
-                if ((v?.trim() ?? '').isEmpty) return 'O @banza é obrigatório';
-                return null;
-              },
+            Semantics(
+              textField: true,
+              label: 'O seu @banza',
+              child: TextFormField(
+                controller: _handleCtrl,
+                decoration: _fieldDecoration(hint: 'ana', prefix: '@'),
+                style: BanzamiTextStyles.bodyLg
+                    .copyWith(color: BanzamiColors.black),
+                cursorColor: BanzamiColors.primary,
+                keyboardType: TextInputType.visiblePassword,
+                textInputAction: TextInputAction.done,
+                autocorrect: false,
+                onFieldSubmitted: (_) => _continueToPin(),
+                validator: (v) {
+                  if ((v?.trim() ?? '').isEmpty) {
+                    return 'O @banza é obrigatório';
+                  }
+                  return null;
+                },
+              ),
             ),
-
             const SizedBox(height: 28),
-
             BanzamiPrimaryButton(
-              label:     'Continuar',
+              label: 'Continuar',
               isLoading: _loading,
               onPressed: _loading ? null : _continueToPin,
             ),
-
             const SizedBox(height: 32),
           ],
         ),
@@ -211,7 +221,9 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 _error ?? '@${_handleCtrl.text.trim().toLowerCase()}',
                 style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: _error != null ? BanzamiColors.error : BanzamiColors.gray400,
+                  color: _error != null
+                      ? BanzamiColors.error
+                      : BanzamiColors.gray400,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -220,7 +232,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 const CircularProgressIndicator(color: BanzamiColors.primary)
               else
                 PinPad(
-                  onChanged:  (v) => setState(() { _pin = v; _error = null; }),
+                  onChanged: (v) => setState(() {
+                    _pin = v;
+                    _error = null;
+                  }),
                   onComplete: _login,
                 ),
               const SizedBox(height: 48),
@@ -233,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   InputDecoration _fieldDecoration({required String hint, String? prefix}) =>
       InputDecoration(
-        hintText:       hint,
+        hintText: hint,
         // The '@' is a permanent, always-visible part of the handle field. It is
         // a prefixIcon, not prefixText — Flutter hides prefixText until the field
         // is focused/non-empty, which made the '@' appear only once you tapped in.
@@ -243,39 +258,42 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding: const EdgeInsets.only(left: 20, right: 0),
                 child: Text(
                   prefix,
-                  style: BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
+                  style: BanzamiTextStyles.bodyLg
+                      .copyWith(color: BanzamiColors.black),
                 ),
               ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        filled:         true,
-        fillColor:      BanzamiColors.gray100,
+        filled: true,
+        fillColor: BanzamiColors.gray100,
         contentPadding: EdgeInsets.only(
-          left:   prefix == null ? 20 : 0,
-          right:  20,
-          top:    18,
+          left: prefix == null ? 20 : 0,
+          right: 20,
+          top: 18,
           bottom: 18,
         ),
         border: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide.none,
+          borderSide: BorderSide.none,
         ),
         enabledBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide.none,
+          borderSide: BorderSide.none,
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzamiColors.primary, width: 1.5),
+          borderSide: BorderSide(color: BanzamiColors.primary, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
+          borderSide: BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
+          borderSide: BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
-        hintStyle:  BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray400),
-        errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
+        hintStyle:
+            BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray400),
+        errorStyle:
+            BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
       );
 }

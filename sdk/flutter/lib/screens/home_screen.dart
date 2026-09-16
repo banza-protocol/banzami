@@ -433,7 +433,10 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           // Notifications
-          GestureDetector(
+          Semantics(
+            button: true,
+            label: 'Notificações',
+            child: GestureDetector(
             onTap: onNotifications,
             child: Container(
               width: 40,
@@ -449,6 +452,7 @@ class _TopBar extends StatelessWidget {
                 size: 20,
               ),
             ),
+          ),
           ),
         ],
       ),
@@ -560,7 +564,10 @@ class _BalanceCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: BanzamiSpacing.sm),
-                    GestureDetector(
+                    Semantics(
+                      button: true,
+                      label: balanceVisible ? 'Ocultar saldo' : 'Mostrar saldo',
+                      child: GestureDetector(
                       onTap: onToggle,
                       child: Icon(
                         balanceVisible
@@ -569,6 +576,7 @@ class _BalanceCard extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.72),
                         size: 17,
                       ),
+                    ),
                     ),
                   ],
                 ),
@@ -1058,7 +1066,10 @@ class _SandboxCircleBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: icon == Icons.add ? 'Aumentar valor' : 'Diminuir valor',
+      child: GestureDetector(
       onTap: onTap,
       child: Container(
         width: 34,
@@ -1081,6 +1092,7 @@ class _SandboxCircleBtn extends StatelessWidget {
           color: enabled ? const Color(0xFF92400E) : const Color(0xFFD97706),
         ),
       ),
+    ),
     );
   }
 }

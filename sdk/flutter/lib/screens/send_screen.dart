@@ -396,7 +396,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                           .copyWith(color: BanzamiColors.gray900),
                     ),
                     const SizedBox(height: BanzamiSpacing.sm),
-                    TextField(
+                    Semantics(
+                      textField: true,
+                      label: 'Destinatário',
+                      child: TextField(
                       controller: _handleCtrl,
                       focusNode: _handleFocus,
                       decoration: InputDecoration(
@@ -425,14 +428,18 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                             : _handleConfirmed
                                 ? const Icon(Icons.check_circle_rounded,
                                     color: Color(0xFF166534), size: 20)
-                                : GestureDetector(
-                                    onTap: _scanQr,
-                                    child: const Padding(
-                                      padding: EdgeInsets.all(10),
-                                      child: Icon(
-                                        Icons.qr_code_scanner_rounded,
-                                        color: BanzamiColors.primary,
-                                        size: 22,
+                                : Semantics(
+                                    button: true,
+                                    label: 'Ler código QR',
+                                    child: GestureDetector(
+                                      onTap: _scanQr,
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(10),
+                                        child: Icon(
+                                          Icons.qr_code_scanner_rounded,
+                                          color: BanzamiColors.primary,
+                                          size: 22,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -442,6 +449,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                       autocorrect: false,
                       textInputAction: TextInputAction.next,
                       onChanged: _onHandleChanged,
+                    ),
                     ),
 
                     if (_suggestions.isNotEmpty)

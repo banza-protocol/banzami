@@ -9,10 +9,10 @@ const int kPinLength = 6;
 // ---------------------------------------------------------------------------
 
 class PinDots extends StatelessWidget {
-  final int  filled;
+  final int filled;
   final bool error;
 
-  const PinDots({ super.key, required this.filled, this.error = false });
+  const PinDots({super.key, required this.filled, this.error = false});
 
   @override
   Widget build(BuildContext context) {
@@ -20,17 +20,17 @@ class PinDots extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: List.generate(kPinLength, (i) {
         final isFilled = i < filled;
-        final isError  = error && isFilled;
+        final isError = error && isFilled;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          margin:   const EdgeInsets.symmetric(horizontal: 10),
-          width:    13,
-          height:   13,
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          width: 13,
+          height: 13,
           decoration: BoxDecoration(
-            shape:    BoxShape.circle,
+            shape: BoxShape.circle,
             // gradient for normal filled; flat color for error; transparent for empty
             gradient: isFilled && !isError ? BanzamiGradients.primary : null,
-            color:    isFilled
+            color: isFilled
                 ? (isError ? BanzamiColors.error : null)
                 : Colors.transparent,
             border: Border.all(
@@ -41,13 +41,15 @@ class PinDots extends StatelessWidget {
                       : const Color(0xFFD8D0CF), // Soft Neutral
               width: 2,
             ),
-            boxShadow: isFilled && !isError ? const [
-              BoxShadow(
-                color:        Color(0x60990011), // cherry glow
-                blurRadius:   6,
-                spreadRadius: -1,
-              ),
-            ] : null,
+            boxShadow: isFilled && !isError
+                ? const [
+                    BoxShadow(
+                      color: Color(0x60990011), // cherry glow
+                      blurRadius: 6,
+                      spreadRadius: -1,
+                    ),
+                  ]
+                : null,
           ),
         );
       }),
@@ -61,9 +63,9 @@ class PinDots extends StatelessWidget {
 
 class PinPad extends StatelessWidget {
   final ValueChanged<String> onChanged;
-  final VoidCallback?        onComplete;
-  final bool                 disabled;
-  final bool                 error;
+  final VoidCallback? onComplete;
+  final bool disabled;
+  final bool error;
 
   final _controller = _PinController();
 
@@ -72,7 +74,7 @@ class PinPad extends StatelessWidget {
     required this.onChanged,
     this.onComplete,
     this.disabled = false,
-    this.error    = false,
+    this.error = false,
   });
 
   void clear() => _controller.clear();
@@ -81,10 +83,10 @@ class PinPad extends StatelessWidget {
   Widget build(BuildContext context) {
     return _PinPadInner(
       controller: _controller,
-      onChanged:  onChanged,
+      onChanged: onChanged,
       onComplete: onComplete,
-      disabled:   disabled,
-      error:      error,
+      disabled: disabled,
+      error: error,
     );
   }
 }
@@ -95,18 +97,18 @@ class _PinController {
 }
 
 class _PinPadInner extends StatefulWidget {
-  final _PinController      controller;
+  final _PinController controller;
   final ValueChanged<String> onChanged;
-  final VoidCallback?        onComplete;
-  final bool                 disabled;
-  final bool                 error;
+  final VoidCallback? onComplete;
+  final bool disabled;
+  final bool error;
 
   const _PinPadInner({
     required this.controller,
     required this.onChanged,
     this.onComplete,
     this.disabled = false,
-    this.error    = false,
+    this.error = false,
   });
 
   @override
@@ -172,14 +174,16 @@ class _PinPadInnerState extends State<_PinPadInner> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: keys.map((k) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: _DigitKey(
-            label:    k,
-            onTap:    () => _add(k),
-            disabled: widget.disabled,
-          ),
-        )).toList(),
+        children: keys
+            .map((k) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: _DigitKey(
+                    label: k,
+                    onTap: () => _add(k),
+                    disabled: widget.disabled,
+                  ),
+                ))
+            .toList(),
       ),
     );
   }
@@ -193,17 +197,19 @@ class _PinPadInnerState extends State<_PinPadInner> {
           const SizedBox(width: 100),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: _DigitKey(label: '0', onTap: () => _add('0'), disabled: widget.disabled),
+            child: _DigitKey(
+                label: '0', onTap: () => _add('0'), disabled: widget.disabled),
           ),
           SizedBox(
-            width:  100,
+            width: 100,
             height: 80,
             child: Center(
               child: IconButton(
                 onPressed: widget.disabled ? null : _delete,
+                tooltip: 'Apagar',
                 icon: const Icon(
                   Icons.backspace_outlined,
-                  size:  22,
+                  size: 22,
                   color: BanzamiColors.gray600,
                 ),
               ),
@@ -220,9 +226,9 @@ class _PinPadInnerState extends State<_PinPadInner> {
 // ---------------------------------------------------------------------------
 
 class _DigitKey extends StatelessWidget {
-  final String        label;
-  final VoidCallback  onTap;
-  final bool          disabled;
+  final String label;
+  final VoidCallback onTap;
+  final bool disabled;
 
   const _DigitKey({
     required this.label,
@@ -233,7 +239,7 @@ class _DigitKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width:  80,
+      width: 80,
       height: 80,
       child: Container(
         decoration: const BoxDecoration(
@@ -244,29 +250,34 @@ class _DigitKey extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color:      Color(0x0A000000),
+              color: Color(0x0A000000),
               blurRadius: 8,
-              offset:     Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
         child: Material(
-          color:        Colors.transparent,
-          shape:        const CircleBorder(),
+          color: Colors.transparent,
+          shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap:          disabled ? null : onTap,
-            splashColor:    const Color(0x14990011), // cherry 8 %
-            highlightColor: const Color(0x0A990011), // cherry 4 %
-            child: Center(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontFamily:  'Inter',
-                  fontSize:    26,
-                  fontWeight:  FontWeight.w400,
-                  color:       BanzamiColors.black,
-                  height:      1,
+          child: Semantics(
+            button: true,
+            label: label,
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: disabled ? null : onTap,
+              splashColor: const Color(0x14990011), // cherry 8 %
+              highlightColor: const Color(0x0A990011), // cherry 4 %
+              child: Center(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 26,
+                    fontWeight: FontWeight.w400,
+                    color: BanzamiColors.black,
+                    height: 1,
+                  ),
                 ),
               ),
             ),

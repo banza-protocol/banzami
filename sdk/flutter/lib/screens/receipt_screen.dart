@@ -535,6 +535,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                       ),
                       child: Row(children: [
                         IconButton(
+                          tooltip: 'Fechar',
                           icon: const Icon(
                             Icons.close_rounded,
                             color: Colors.white54,
