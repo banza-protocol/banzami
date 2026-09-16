@@ -460,7 +460,7 @@ check-all: core-check gateway-check admin-api-check public-api-check check-repo-
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
-.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check
+.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check app-web-realtime
 
 # Reference financial path gate — passes on the verified reference path alone.
 assure-reference: check-assurance check-assurance-reference
@@ -563,6 +563,11 @@ app-web-cleanroom:
 # Just the browser readiness check (which Chromium, reported).
 app-web-browser-check:
 	node tools/e2e/app-web/lib/browser.mjs --diagnose
+
+# CONSUMER-HOME-REALTIME-001 — focused proof: an incoming payment auto-refreshes
+# the recipient's real Flutter Home (no manual pull), with latency measured.
+app-web-realtime:
+	node tools/e2e/app-web/proofs/05-realtime-incoming-payment.mjs
 
 # Release-readiness gate — alias of the FULL external Sandbox launch gate.
 assure-release: assure-sandbox-launch
