@@ -48,6 +48,20 @@ async function api(method, path, { json, body, contentType } = {}) {
  * @returns {Promise<{handle:string, pin:string, merchantId:string, applicationId:string}>}
  */
 export async function provisionBusiness({ handlePrefix = 'e2ebiz', pin = '481516' } = {}) {
+  // Reuse a supplied generic Sandbox Business (skips the rate-limited application
+  // submit, 30/24h per IP). Set BZ_BIZ_HANDLE (+ BZ_BIZ_PIN, BZ_BIZ_MERCHANT_ID)
+  // to sign in against an existing fixture. A reused Business is NOT retired by the
+  // proof (it persists for the next run).
+  const reuse = process.env.BZ_BIZ_HANDLE;
+  if (reuse && reuse.trim()) {
+    return {
+      handle: reuse.trim().replace(/^@/, '').toLowerCase(),
+      pin: process.env.BZ_BIZ_PIN ?? pin,
+      merchantId: process.env.BZ_BIZ_MERCHANT_ID ?? '',
+      applicationId: null,
+      reused: true,
+    };
+  }
   const handle = `${handlePrefix}${Date.now().toString(36)}`.toLowerCase().slice(0, 28);
   const email = `${handle}@synthetic.test`;
 

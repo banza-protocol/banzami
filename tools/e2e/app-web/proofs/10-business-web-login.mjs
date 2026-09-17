@@ -142,7 +142,8 @@ function bff() {
     R.mark('PROOF_10', false, e.message);
   } finally {
     await browser.close().catch(() => {});
-    if (biz) await retireBusiness(biz.merchantId).catch(() => {});
+    // A reused fixture (BZ_BIZ_HANDLE) persists; only retire what this run created.
+    if (biz && !biz.reused && biz.merchantId) await retireBusiness(biz.merchantId).catch(() => {});
   }
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_10_BUSINESS_WEB_LOGIN=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);
