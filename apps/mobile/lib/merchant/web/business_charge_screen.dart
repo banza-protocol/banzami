@@ -75,6 +75,8 @@ class _BusinessChargeScreenState extends State<BusinessChargeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const Align(alignment: Alignment.centerLeft, child: Text('Montante (opcional)', style: TextStyle(fontSize: 13, color: BanzamiColors.gray400, fontWeight: FontWeight.w600))),
+        const SizedBox(height: 6),
         Semantics(
           label: 'Montante',
           textField: true,
@@ -82,16 +84,18 @@ class _BusinessChargeScreenState extends State<BusinessChargeScreen> {
             controller: _amount,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(labelText: 'Montante (opcional)', suffixText: 'Kz', border: OutlineInputBorder()),
+            decoration: const InputDecoration(hintText: '0', suffixText: 'Kz', border: OutlineInputBorder()),
           ),
         ),
         const SizedBox(height: 16),
+        const Align(alignment: Alignment.centerLeft, child: Text('Descrição (opcional)', style: TextStyle(fontSize: 13, color: BanzamiColors.gray400, fontWeight: FontWeight.w600))),
+        const SizedBox(height: 6),
         Semantics(
           label: 'Descrição',
           textField: true,
           child: TextField(
             controller: _desc,
-            decoration: const InputDecoration(labelText: 'Descrição (opcional)', border: OutlineInputBorder()),
+            decoration: const InputDecoration(hintText: 'Ex: jantar', border: OutlineInputBorder()),
           ),
         ),
         if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: BanzamiColors.error))],

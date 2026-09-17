@@ -55,6 +55,8 @@ class _BusinessLoginScreenState extends State<BusinessLoginScreen> {
                   const Text('Entre com o seu @banza e PIN para receber pagamentos.',
                       style: TextStyle(fontSize: 15, color: BanzamiColors.gray400, height: 1.4)),
                   const SizedBox(height: 28),
+                  const Align(alignment: Alignment.centerLeft, child: Text('O seu @banza', style: TextStyle(fontSize: 13, color: BanzamiColors.gray400, fontWeight: FontWeight.w600))),
+                  const SizedBox(height: 6),
                   Semantics(
                     label: 'O seu @banza',
                     textField: true,
@@ -64,13 +66,15 @@ class _BusinessLoginScreenState extends State<BusinessLoginScreen> {
                       enableSuggestions: false,
                       textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
-                        labelText: 'O seu @banza',
+                        hintText: 'ana_negocio',
                         prefixText: '@ ',
                         border: OutlineInputBorder(),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
+                  const Align(alignment: Alignment.centerLeft, child: Text('PIN', style: TextStyle(fontSize: 13, color: BanzamiColors.gray400, fontWeight: FontWeight.w600))),
+                  const SizedBox(height: 6),
                   Semantics(
                     label: 'PIN',
                     textField: true,
@@ -82,7 +86,7 @@ class _BusinessLoginScreenState extends State<BusinessLoginScreen> {
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => busy ? null : _submit(),
                       decoration: const InputDecoration(
-                        labelText: 'PIN',
+                        hintText: '••••••',
                         border: OutlineInputBorder(),
                       ),
                     ),
