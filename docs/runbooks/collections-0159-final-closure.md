@@ -8,8 +8,10 @@ is unchanged.
 
 ## Final bindings (recomputed at final HEAD)
 
-- `source_revision` (final HEAD, clean, local == origin): **`bdfa13ea425923209a90dd430a498ddc042b79aa`**
-  — the release package recomputes this at build time from the clean checkout.
+- `source_revision` = **current `origin/main` HEAD** (clean checkout). All commits since
+  `bdfa13ea` are docs-only, so `db/migrations` — and therefore `migration_directory_digest`
+  below — are unchanged; the release package recomputes `source_revision` at build time and
+  binds it into the receipt. Use `git rev-parse origin/main` at ceremony time.
 - `migration_directory_digest` (`cat $(ls db/migrations/*.sql | sort) | shasum -a 256`):
   **`27f291977680a256ab320b20cb6fb572492e83815252447c0929a52c267dba8d`**
 - `0159` file digest: **`0e7cf447a18b1e8a71f0056016489e7ea527f839f908778d06c7904f0646bf64`**
@@ -51,7 +53,7 @@ Run on the Sandbox host, operator TTY (no ad-hoc SQL, no operator-DB-URL bypass)
 ```bash
 set -euo pipefail
 cd <repo-on-sandbox-host>
-git fetch origin && git checkout bdfa13ea425923209a90dd430a498ddc042b79aa
+git fetch origin && git checkout origin/main       # docs-only commits since bdfa13ea; db/migrations unchanged
 test -z "$(git status --porcelain)"                 # clean worktree (build requires it)
 S=infra/blueprint/sandbox-ops/scripts
 
