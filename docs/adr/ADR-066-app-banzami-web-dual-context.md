@@ -173,3 +173,45 @@ The Personal↔Business switch now lives **only in the outer web shell** — a s
 consumer profile's web-only "App Banzami Business" context row. The two apps remain
 distinct (separate routes, auth, screens); the switch is a shell/host concern, so the
 app screens stay faithful to native mobile (which has no such control).
+
+### Update (APP-BANZAMI-WEB-DUAL-APP-PARITY-001) — the web runs the ACTUAL native Business app
+
+The `/business` context now boots the **actual** native `BanzamiMerchantApp` root —
+the same `merchant/app.dart`, the same `MerchantWelcomeScreen` → `MerchantLoginScreen`
+(handle + PIN) → `MerchantMainScreen` (Início / Histórico / Receber / Perfil), the same
+`MerchantSessionService`, and the same Inter design system as iOS and Android — inside
+`WebDesktopShell`, exactly as `/` boots the real `BanzamiApp`. The earlier Web-specific
+Business product (`merchant/web/business_web_app.dart`, `business_login_screen.dart`,
+`business_shell.dart`, `business_charge_screen.dart`, `merchant_web_session.dart`) — a
+parallel reimplementation of the screens — is **deleted in its entirety**
+(`BUSINESS_WEB_SEPARATE_APP_IMPLEMENTATION=0`, `BUSINESS_WEB_DUPLICATE_PRODUCT_UI=0`,
+`BUSINESS_WEB_USES_NATIVE_BUSINESS_APP_ROOT=PASS`). `main_consumer_web.dart` now calls
+`runApp(BanzamiMerchantApp(pinnedClient: WebSessionClient()))` for `/business`.
+
+This is the same "actual mobile app inside a shell, only the transport edge differs"
+pattern Consumer already proved. The web-specific behaviour lives **only** as
+platform adapters, all guarded by `kIsWeb` (a compile-time `false` on native, so the
+branches are tree-shaken away and the shipped native app is provably unchanged):
+
+- **Session (`MerchantSessionService`).** On Web it stores a worthless sentinel
+  access token + a far-future expiry + **no** refresh token and **no** device PIN
+  hash — the real merchant JWT and rotating refresh live only in the BFF, which owns
+  renewal (item 5). `route` is signed-in ⇒ Home / else Welcome (no device lock,
+  which does not exist in a browser). Identity persists in the same
+  `flutter_secure_storage` web backend the Consumer uses.
+- **Transport.** `buildBusinessClient` uses base `/business/api` (the BFF) over the
+  credentialed + CSRF `WebSessionClient`, instead of the pinned gateway client.
+- **Identity source on sign-in.** The BFF echoes the non-secret `merchant_id` in the
+  sanitized token body (the id already exposed at `/session/state`), so the SAME
+  native sign-in screen resolves identity there on Web (the JWT is a sentinel the
+  browser cannot decode); native still reads it from the JWT claim.
+- **Receipts** download in the browser via a `receipt_share.dart` conditional-import
+  adapter (native keeps the OS share sheet); **push/FCM** is skipped on Web.
+
+The outer "Pessoal | Business" switcher renders with an explicit bundled `Inter`
+family inside a transparent `Material` — without the family it fell back to Roboto
+(unbundled on Web → blank/tofu) and without a `Material` ancestor Flutter painted a
+yellow "missing-Material" double-underline; both are fixed
+(`WEB_SWITCH_VISIBLE_TEXT_RENDERING=PASS`). Permanent source guards in
+`apps/app-banzami/test/architecture-guards.test.mjs` lock all of the above: native
+root on Web, zero replica files, no browser-stored credential, visible switcher text.
