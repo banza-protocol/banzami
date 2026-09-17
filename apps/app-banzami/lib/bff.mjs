@@ -85,6 +85,14 @@ export const ALLOWLIST = [
   { m: 'GET', re: `^/v1/payment-links/${G}$`, auth: 'optional' },
   { m: 'POST', re: `^/v1/payment-links/${G}/pay$`, auth: 'required', mutating: true, csrf: true },
 
+  // Business Receive Point (ADR-065): a scanned persistent QR resolves to the
+  // payer-safe public Business identity (GET, payer-safe like a payment-link
+  // GET), then the payer mints + settles a fresh session (POST, authenticated
+  // payer + CSRF, like payment-links/pay). Without these the consumer app could
+  // not resolve or pay a scanned receive point through the same-origin BFF.
+  { m: 'GET', re: `^/v1/receive-points/${G}$`, auth: 'optional' },
+  { m: 'POST', re: `^/v1/receive-points/${G}/pay$`, auth: 'required', mutating: true, csrf: true },
+
   { m: 'POST', re: `^/v1/consumer-pay-links$`, auth: 'required', mutating: true, csrf: true },
   { m: 'GET', re: `^/v1/consumer-pay-links/${G}$`, auth: 'optional' },
   { m: 'POST', re: `^/v1/consumer-pay-links/${G}/pay$`, auth: 'required', mutating: true, csrf: true },

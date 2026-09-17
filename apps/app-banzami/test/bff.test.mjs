@@ -20,6 +20,12 @@ test('allowlist forwards known Consumer routes only', () => {
   assert.ok(matchRoute('POST', '/v1/transfers'));
   assert.ok(matchRoute('GET', '/v1/consumers/joao'));
   assert.ok(matchRoute('GET', '/v1/consumer/transactions/abc/receipt.pdf'));
+  // Business Receive Point (ADR-065): resolve is payer-safe (optional auth); pay
+  // is an authenticated, CSRF-guarded mutation.
+  const rpResolve = matchRoute('GET', '/v1/receive-points/SlVXsu6pGJSGEKf4xtBP16');
+  assert.ok(rpResolve && rpResolve.auth === 'optional');
+  const rpPay = matchRoute('POST', '/v1/receive-points/SlVXsu6pGJSGEKf4xtBP16/pay');
+  assert.ok(rpPay && rpPay.auth === 'required' && rpPay.mutating === true && rpPay.csrf === true);
 });
 
 test('allowlist refuses everything else (no open proxy)', () => {
