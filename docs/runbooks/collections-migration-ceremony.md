@@ -155,3 +155,71 @@ checkout that includes the drift fix — `sqlx migrate run` is then a no-op (hea
    its `VALID UNTIL` has passed).
 3. Re-run the ceremony/rollout (interactive TTY + credential paste). Expect: migrate
    no-op, drift 0, receipt written.
+
+---
+
+## Migration 0159 — Collection create idempotency (COLLECTIONS-PROTOCOL-AND-PRODUCT-001 Phase 1)
+
+`0159_collections_idempotency.sql` is a NEW additive migration that fixes
+INV-COLLECTION-008 (idempotent Collection creation). It:
+
+- drops the incorrect GLOBAL unique from 0156 (`collections_idempotency_key_key`);
+- adds `request_fingerprint TEXT` (nullable);
+- adds the correctly-scoped unique index `collections_idem_scope`
+  `(merchant_id, environment, idempotency_key)` — the canonical
+  (authenticated_caller, receiving_implementation, operation, key) tuple per BANZA
+  `spec/idempotency.md` §2.
+
+**Data-safe:** the key was never persisted before this fix (the INSERT dropped it),
+so every existing row has `idempotency_key IS NULL` and neither change can conflict
+with existing data. Written `IF EXISTS`/`IF NOT EXISTS` (idempotent, no-op on re-run).
+
+**Verified bindings (recompute at ceremony build time — these are the current
+values):**
+- HEAD: **`013f3b7788d35df23683f6dcf7fe8675ae40bd1e`** (local == origin, clean).
+- `migration_directory_digest` (`cat $(ls db/migrations/*.sql | sort) | shasum -a 256`):
+  **`27f291977680a256ab320b20cb6fb572492e83815252447c0929a52c267dba8d`**
+  (changed from the 0156–0158-era `ba3a90c5…` because `0159` was added).
+- Sandbox pre-ceremony `_sqlx_migrations` head = **0158**; the ceremony advances **0158 → 0159**.
+- target = **`banzami_staging`**.
+
+### ⚠️ Deploy ordering is COUPLED (apply 0159 BEFORE deploying the new core-api)
+
+The Phase-1 core-api code REQUIRES 0159's column + index: `insert_collection` /
+`create_collection_idempotent` write `request_fingerprint` and use
+`ON CONFLICT (merchant_id, environment, idempotency_key)`. Deploying that code
+against a pre-0159 schema would 500 on every Collection create. Because 0159 is
+additive and backward-compatible (the OLD deployed code simply ignores the new
+column/index), the safe, no-downtime order is:
+
+```
+1. owner: apply 0159 in Sandbox via the SAME sanctioned ceremony as 0156–0158
+   (infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh, TTY + credential
+   paste; the tracked chain now ends at 0159 so the controlled flow picks it up).
+   Expect: head 158 → 159, drift 0, single-use authz + receipt written.
+2. owner or operator: ./deploy.sh core-api-staging   (deploys the Phase-1 code)
+3. restart is handled by the deploy; verify /healthz + the collections routes.
+```
+
+Never deploy the new core-api before step 1.
+
+### Post-0159 Sandbox runtime proof (autonomous, after the owner applies 0159 + deploy)
+
+Against the deployed Sandbox core-api (INV-COLLECTION-008, matches the local
+real-DB tests in `core/collections/tests/idempotency_db.rs`):
+
+- same Business + same key + same request → the SAME collection id (replay);
+- same key + a changed request (e.g. different total) → `409 IDEMPOTENCY_CONFLICT`;
+- 8 concurrent identical creates → exactly one collection row, all callers get the
+  same id, zero exposed 500s;
+- two different Businesses using the same key → two independent collections.
+
+### Live
+
+`0159` is in the tracked chain, so the standard Live ceremony picks it up alongside
+`0156–0158` (same additive, `IF NOT EXISTS`/`IF EXISTS` discipline; same digest
+`27f29197…` for the current chain). Rollback = leave the index/column in place
+(inert) or, in a maintenance window, drop `collections_idem_scope` + the
+`request_fingerprint` column and restore the prior global unique via the controlled
+executor — never ad-hoc SQL. No financial history is touched (Collections hold no
+money). The independent platform Financial Live gate remains the hard money floor.
