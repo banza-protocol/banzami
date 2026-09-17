@@ -37,6 +37,35 @@ class _MerchantWelcomeScreenState extends State<MerchantWelcomeScreen>
     super.dispose();
   }
 
+  /// White at ~0.9 alpha as a CONST color, so the feature `Icon`s below can be
+  /// const (required for Web icon tree-shaking to keep the glyphs).
+  static const Color _featureIcon = Color(0xE6FFFFFF);
+
+  /// One feature row: a circular translucent chip holding [icon] + [label]. The
+  /// icon is passed as an already-built const widget so the tree-shaker keeps it.
+  Widget _feature(Widget icon, String label) => Padding(
+        padding: const EdgeInsets.only(bottom: BanzamiSpacing.lg),
+        child: Row(children: [
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: BanzamiColors.white.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: icon,
+          ),
+          const SizedBox(width: BanzamiSpacing.md),
+          Expanded(
+            child: Text(label,
+                style: BanzamiTextStyles.bodyMd.copyWith(
+                  color: BanzamiColors.white.withValues(alpha: 0.85),
+                )),
+          ),
+        ]),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,28 +110,24 @@ class _MerchantWelcomeScreenState extends State<MerchantWelcomeScreen>
 
                     const Spacer(flex: 3),
 
-                    ...[
-                      (Icons.qr_code_rounded,      'Gere QR e links de pagamento'),
-                      (Icons.bar_chart_rounded,    'Acompanhe as suas receitas'),
-                      (Icons.notifications_rounded, 'Notificações em tempo real'),
-                    ].map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: BanzamiSpacing.lg),
-                      child: Row(children: [
-                        Container(
-                          width:  32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: BanzamiColors.white.withValues(alpha: 0.10),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(item.$1, color: BanzamiColors.white.withValues(alpha: 0.9), size: 16),
-                        ),
-                        const SizedBox(width: BanzamiSpacing.md),
-                        Text(item.$2, style: BanzamiTextStyles.bodyMd.copyWith(
-                          color: BanzamiColors.white.withValues(alpha: 0.85),
-                        )),
-                      ]),
-                    )),
+                    // Feature rows. The icons are passed as CONST Icon widgets at
+                    // the call site — never through a record/variable — so Flutter's
+                    // Web icon tree-shaker (const_finder) always keeps them. A
+                    // dynamic `Icon(item.$1)` behind a record silently vanishes on
+                    // Web for any glyph not also referenced as a const Icon
+                    // elsewhere (that was the missing bar-chart + bell here).
+                    _feature(
+                      const Icon(Icons.qr_code_rounded, color: _featureIcon, size: 16),
+                      'Gere QR e links de pagamento',
+                    ),
+                    _feature(
+                      const Icon(Icons.bar_chart_rounded, color: _featureIcon, size: 16),
+                      'Acompanhe as suas receitas',
+                    ),
+                    _feature(
+                      const Icon(Icons.notifications_rounded, color: _featureIcon, size: 16),
+                      'Notificações em tempo real',
+                    ),
 
                     const Spacer(flex: 1),
 
