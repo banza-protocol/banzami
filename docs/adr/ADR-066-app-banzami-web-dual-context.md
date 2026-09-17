@@ -156,3 +156,20 @@ choice within the same responsive architecture, which the invariant expressly
 permits; it is not a separate layout/product shell. **No fix required.**
 
 Verdict: **CONSUMER_BUSINESS_WEB_SHELL_UNIVERSE=ONE.**
+
+### Update (APP-BANZAMI-WEB-DUAL-SHELL-001) — one web shell, outer switcher
+
+The Business web now renders inside the **same** `WebDesktopShell` framed-phone
+presentation as the Consumer web (previously it rendered as a bare centred column).
+`business_web_app.dart` wraps its `MaterialApp.builder` in `WebDesktopShell(child:)`,
+identical to `app.dart`. So on wide web both apps show the same centred device frame
+on the neutral canvas; on narrow web both go full-bleed; native is untouched.
+
+The Personal↔Business switch now lives **only in the outer web shell** — a segmented
+"Pessoal | Business" control rendered by `WebDesktopShell` **above** the phone frame
+(never inside the app viewport), reflecting the active app and hard-navigating between
+`/` and `/business`. All in-app cross-app switches were removed: the business login's
+"Ir para a conta Pessoal", the business profile's "Mudar para Pessoal", and the
+consumer profile's web-only "App Banzami Business" context row. The two apps remain
+distinct (separate routes, auth, screens); the switch is a shell/host concern, so the
+app screens stay faithful to native mobile (which has no such control).
