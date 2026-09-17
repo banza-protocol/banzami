@@ -486,7 +486,7 @@ check-all: core-check gateway-check admin-api-check public-api-check check-repo-
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
-.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check app-web-realtime app-web-qr
+.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check app-web-realtime app-web-qr app-web-business app-web-business-cleanroom app-web-all
 
 # Reference financial path gate — passes on the verified reference path alone.
 assure-reference: check-assurance check-assurance-reference
@@ -605,6 +605,24 @@ app-web-qr:
 	node tools/e2e/app-web/proofs/08-web-qr-decoder-integrity.mjs
 	node tools/e2e/app-web/proofs/07-web-qr-camera.mjs
 	@rm -f tools/e2e/app-web/fixtures/qr.y4m
+
+# APP-BANZAMI-WEB-BUSINESS-001 — the Business context on app.banzami.com. Proof 10
+# is @handle+PIN login → Home → the persistent Receive Point (same slug the API
+# returns). Proof 11 is the flagship cross-context journey: Business Web renders
+# the Receive QR, a Consumer Web session scans those real pixels (BYPASS=0),
+# resolves, and settles two payments through the same QR, verified on the business
+# ledger with system-wide economic integrity. Generic synthetic Business, cleaned
+# up. Needs the pinned browser (see tools/e2e/app-web/README.md).
+app-web-business:
+	BANZAMI_E2E=RUN node tools/e2e/app-web/proofs/10-business-web-login.mjs
+	BANZAMI_E2E=RUN node tools/e2e/app-web/proofs/11-business-web-cross-payment.mjs
+
+# Alias: the Business Web acceptance is itself a generic-synthetic cleanroom.
+app-web-business-cleanroom: app-web-business
+
+# The full App Banzami Web acceptance: Consumer cleanroom + QR camera + realtime,
+# then the Business context and the cross-context financial journey.
+app-web-all: app-web-cleanroom app-web-qr app-web-realtime app-web-business
 
 # Release-readiness gate — alias of the FULL external Sandbox launch gate.
 assure-release: assure-sandbox-launch
