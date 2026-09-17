@@ -58,32 +58,34 @@ function fontCodepoints(file) {
 
 const REQUIRED = { qr_code_rounded: 0xf00cb, bar_chart_rounded: 0xf5a9, notifications_rounded: 0xf002a };
 
-test('content-address-fonts appends a deterministic ?v=<hash> and is idempotent', () => {
+test('content-address-fonts renames the font to a content-hashed file and is idempotent', () => {
   const dir = mkdtempSync(join(tmpdir(), 'fa-'));
   mkdirSync(join(dir, 'assets', 'fonts'), { recursive: true });
   writeFileSync(join(dir, 'assets', 'fonts', 'MaterialIcons-Regular.otf'), Buffer.from('FONTBYTES-v1'));
   writeFileSync(join(dir, 'assets', 'FontManifest.json'),
     JSON.stringify([{ family: 'MaterialIcons', fonts: [{ asset: 'fonts/MaterialIcons-Regular.otf' }] }]));
-  const run = () => JSON.parse(readFileSync(join(dir, 'assets', 'FontManifest.json'), 'utf8'))[0].fonts[0].asset;
+  const asset = () => JSON.parse(readFileSync(join(dir, 'assets', 'FontManifest.json'), 'utf8'))[0].fonts[0].asset;
   execFileSync('node', [script, dir], { encoding: 'utf8' });
-  const a1 = run();
-  assert.match(a1, /^fonts\/MaterialIcons-Regular\.otf\?v=[0-9a-f]{12}$/, 'font URL is content-versioned');
+  const a1 = asset();
+  assert.match(a1, /^fonts\/MaterialIcons-Regular\.[0-9a-f]{12}\.otf$/, 'font is a content-hashed real filename (no query)');
+  assert.ok(existsSync(join(dir, 'assets', a1)), 'the hashed font file exists on disk (renamed, engine can fetch it)');
   execFileSync('node', [script, dir], { encoding: 'utf8' });
-  assert.equal(run(), a1, 'idempotent: same bytes → same version query (no ?v=?v= stacking)');
-  // A byte change must change the version (guaranteed cache miss).
-  writeFileSync(join(dir, 'assets', 'fonts', 'MaterialIcons-Regular.otf'), Buffer.from('FONTBYTES-v2-different'));
+  assert.equal(asset(), a1, 'idempotent: same bytes → same hashed name (no double-hash stacking)');
+  // A byte change must change the filename (guaranteed cache miss).
+  writeFileSync(join(dir, 'assets', a1), Buffer.from('FONTBYTES-v2-different'));
   execFileSync('node', [script, dir], { encoding: 'utf8' });
-  assert.notEqual(run(), a1, 'changed font bytes → changed ?v= (URL changes, defeating stale cache)');
+  assert.notEqual(asset(), a1, 'changed font bytes → changed hashed filename (URL changes, defeating stale cache)');
 });
 
 // The following two guards only run against a built bundle (post build-web.sh).
 const builtManifest = join(repoWeb, 'assets', 'FontManifest.json');
 const hasBuild = existsSync(builtManifest);
 
-test('built bundle: every FontManifest URL is content-versioned', { skip: hasBuild ? false : 'no web build present' }, () => {
+test('built bundle: every FontManifest URL is a content-hashed real file', { skip: hasBuild ? false : 'no web build present' }, () => {
   const manifest = JSON.parse(readFileSync(builtManifest, 'utf8'));
   for (const fam of manifest) for (const f of fam.fonts || []) {
-    assert.match(f.asset, /\?v=[0-9a-f]{12}$/, `${fam.family} font ${f.asset} must be content-versioned`);
+    assert.match(f.asset, /\.[0-9a-f]{12}\.[a-z0-9]+$/, `${fam.family} font ${f.asset} must be content-hashed`);
+    assert.ok(existsSync(join(repoWeb, 'assets', f.asset)), `the hashed file exists: ${f.asset}`);
   }
 });
 
@@ -91,7 +93,7 @@ test('built bundle: MaterialIcons carries the required Welcome icon glyphs', { s
   const manifest = JSON.parse(readFileSync(builtManifest, 'utf8'));
   const mi = manifest.find((f) => f.family === 'MaterialIcons');
   assert.ok(mi, 'MaterialIcons family present');
-  const rel = mi.fonts[0].asset.replace(/\?v=[0-9a-f]+$/, '');
+  const rel = mi.fonts[0].asset;
   const file = join(repoWeb, 'assets', rel);
   assert.ok(existsSync(file), `font file exists: ${rel}`);
   const cps = fontCodepoints(file);

@@ -119,15 +119,16 @@ async function serveStatic(req, res) {
   // that only the new subset carries render blank. Revalidate everything under
   // /assets/ via ETag (a 304 when unchanged — negligible cost); keep the long
   // immutable cache only for engine files (/canvaskit/) and other static content.
-  // A content-addressed request (…?v=<hash>, produced at build time for fonts) is
-  // safe to cache forever: when the bytes change the URL changes. Everything under
-  // /assets/ without a version query is revalidated (its bytes can change under a
-  // stable URL — the stale-font defect); engine files and other static content keep
-  // the long cache.
-  const hasVersion = /[?&]v=/.test(req.url || '');
+  // A content-addressed font file (…-<12 hex>.<ext>, produced at build time) is safe
+  // to cache forever: when the bytes change the FILENAME changes, so the URL changes.
+  // Everything else under /assets/ is revalidated (its bytes can change under a stable
+  // URL — the stale-font defect); engine files and other static content keep the long
+  // cache. (A query string cannot be used here: the Flutter engine strips the query
+  // when it fetches a manifest asset, so only a real filename change is honoured.)
+  const contentHashed = /[.-][0-9a-f]{12}\.(otf|ttf|woff2?|css|js)$/.test(rel);
   const underAssets = NO_CACHE.has(rel) || rel.startsWith('/assets/');
   let cacheControl;
-  if (hasVersion && rel.startsWith('/assets/')) cacheControl = 'public, max-age=31536000, immutable';
+  if (contentHashed && rel.startsWith('/assets/')) cacheControl = 'public, max-age=31536000, immutable';
   else if (underAssets) cacheControl = 'no-cache';
   else cacheControl = 'public, max-age=604800';
   const headers = {
