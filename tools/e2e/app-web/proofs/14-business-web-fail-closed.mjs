@@ -36,30 +36,39 @@ function bffLoginBusiness(biz) {
   })();
 }
 
-// One case: render the QR, take it down, scan the OLD QR on the Consumer Web camera,
-// assert the pay flow is NOT reached (fail closed).
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// One case: render the Business Web QR, prove it is payable (control scan reaches
+// 'A pagar a'), then take it down through the canonical lifecycle, and rescan the
+// SAME QR on the real camera — it must now fail closed (never reach the pay flow).
+// One consumer registration per case, lightly retried against the BFF auth limit.
 async function failClosedCase(name, prep) {
   const biz = await provisionBusiness({ handlePrefix: `e2efc${name}` });
   const sess = await bffLoginBusiness(biz);
   const media = join(HERE, '..', 'proofs', `x-failclosed-${name}.y4m`);
   writeQrY4m(receivePointPayUrl(sess.slug), media);
-  await prep(biz, sess); // disable or suspend
   const { browser } = await launchChromium({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${media}`] });
   try {
-    // The BFF auth rate limit (12/10min/IP) can surface as a generic transient on a
-    // dense suite; retry the UI registration with backoff so the scan can proceed.
     let cons;
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try { cons = await registerConsumer(browser, { handle: `e2efc${name}${Date.now().toString(36)}`.toLowerCase(), name: 'E2E FC', pin: '719238', label: `fc-${name}` }); break; }
-      catch (e) { if (attempt === 4) throw e; await new Promise((r) => setTimeout(r, 60000)); }
+      catch (e) { if (attempt === 1) throw e; await sleep(90000); }
     }
     await cons.context.grantPermissions(['camera'], { origin: APP });
+    // Control: while ACTIVE the same QR reaches the pay flow (proves camera+consumer OK).
     await cons.home.reach();
     await cons.home.tapQrCode();
-    // Fail closed = never reaches 'A pagar a'. Give the real pipeline time to decode.
+    const control = await cons.driver.waitForText('A pagar a', { timeout: 45000, every: 1000 }).then(() => true).catch(() => false);
+    await cons.page.goto(`${APP}/`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+    // Take the Receive Point down (disable / suspend the Business) — canonical, no DB.
+    await prep(biz, sess);
+    await sleep(2000);
+    // Rescan the SAME QR — must fail closed.
+    await cons.home.reach();
+    await cons.home.tapQrCode();
     const reached = await cons.driver.waitForText('A pagar a', { timeout: 25000, every: 1000 }).then(() => true).catch(() => false);
     const txt = await cons.driver.visibleText();
-    return { reached, txt: txt.replace(/\s+/g, ' ').slice(0, 120), biz };
+    return { control, reached, txt: txt.replace(/\s+/g, ' ').slice(0, 120), biz };
   } finally {
     await browser.close().catch(() => {});
   }
@@ -71,13 +80,14 @@ async function failClosedCase(name, prep) {
     // §14 — disabled Receive Point.
     const dis = await failClosedCase('disabled', async (_b, sess) => { await sess.disable(); });
     toRetire.push(dis.biz.merchantId);
-    R.mark('BUSINESS_WEB_DISABLED_RECEIVE_POINT_E2E', dis.reached === false, dis.reached ? `REACHED pay flow (leak): ${dis.txt}` : `failed closed: ${dis.txt}`);
+    R.mark('DISABLED_CONTROL_SCAN_PAYABLE_WHILE_ACTIVE', dis.control === true, dis.control ? 'active QR reached the pay flow before disable' : 'control scan did not reach pay flow');
+    R.mark('BUSINESS_WEB_DISABLED_RECEIVE_POINT_E2E', dis.control === true && dis.reached === false, dis.reached ? `REACHED pay flow (leak): ${dis.txt}` : `failed closed after disable: ${dis.txt}`);
 
     // §15 — suspended Business.
     const sus = await failClosedCase('suspended', async (b) => { await retireBusiness(b.merchantId); });
-    // suspended business already retired by prep
-    R.mark('BUSINESS_WEB_SUSPENDED_BUSINESS_E2E', sus.reached === false, sus.reached ? `REACHED pay flow (leak): ${sus.txt}` : `failed closed: ${sus.txt}`);
     toRetire.push(sus.biz.merchantId);
+    R.mark('SUSPENDED_CONTROL_SCAN_PAYABLE_WHILE_ACTIVE', sus.control === true, sus.control ? 'active QR reached the pay flow before suspend' : 'control scan did not reach pay flow');
+    R.mark('BUSINESS_WEB_SUSPENDED_BUSINESS_E2E', sus.control === true && sus.reached === false, sus.reached ? `REACHED pay flow (leak): ${sus.txt}` : `failed closed after suspend: ${sus.txt}`);
 
     R.mark('BUSINESS_WEB_RECEIVE_POINT_STATE_TRUTH', dis.reached === false && sus.reached === false, 'a torn-down Receive Point is never payable from a stale QR');
   } catch (e) {
