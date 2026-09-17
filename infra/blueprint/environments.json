@@ -1,0 +1,68 @@
+{
+  "$comment": "COLLECTIONS-PROTOCOL-AND-PRODUCT-001 Part B — authoritative, target-aware environment identity for the controlled-migration control plane. The ENVIRONMENT is selected EXPLICITLY by name (SANDBOX|LIVE); it is NEVER inferred from a database name. The controller cross-checks the connected database against `database` here and fail-closes on any mismatch, so an accidental Sandbox credential can never drive a LIVE apply and vice-versa. No secrets live here — only non-secret identity and policy. Secret material is referenced by name (`*_ref`) and resolved at run time from the environment's own secret store.",
+  "version": 1,
+  "environments": {
+    "SANDBOX": {
+      "environment": "SANDBOX",
+      "database": "banzami_staging",
+      "provisioned": true,
+      "controller": "infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh",
+      "policy": {
+        "dual_control": false,
+        "min_approvals": 0,
+        "maintenance_window": false,
+        "verified_backup_restore_required": false,
+        "down_migrations": false,
+        "autonomous_migration": "controlled-single-operator"
+      }
+    },
+    "LIVE": {
+      "environment": "LIVE",
+      "database": "banzami",
+      "provisioned": false,
+      "controller": "infra/blueprint/live-ops/scripts/live-migration-control.sh",
+      "policy": {
+        "dual_control": true,
+        "min_approvals": 2,
+        "maintenance_window": true,
+        "verified_backup_restore_required": true,
+        "down_migrations": false,
+        "autonomous_migration": "explicit-approval-only"
+      },
+      "secret_refs": {
+        "$comment": "Resolved from the LIVE secret store at run time; NEVER embedded here. Names only.",
+        "superuser": "banzami-live-pg-superuser",
+        "schema_owner": "banzami-live-schema-owner",
+        "migration_login": "banzami-live-migration-login",
+        "app_runtime": "banzami-live-app-runtime",
+        "control_plane": "banzami-live-control-plane",
+        "core_runtime": "banzami-live-core-runtime",
+        "approver_keyring": "banzami-live-dual-control-keyring"
+      },
+      "financial_live_gate": {
+        "$comment": "The platform-wide Financial LIVE gate is INDEPENDENT of Collections and stays fail-closed. Deploying the Collections schema/routes to LIVE does NOT open real-money movement — that is gated separately and remains NOT_READY here.",
+        "state": "NOT_READY",
+        "fail_closed": true
+      }
+    },
+    "LIVE_DISPOSABLE": {
+      "$comment": "A throwaway Live-SHAPED substrate for autonomous validation ONLY. Same governance policy as LIVE (dual-control, maintenance window, verified backup), a disposable database, provisioned=false so it can never be mistaken for real Live. Used by live-foundation-disposable-e2e.sh to prove the whole governed process end-to-end without touching any real environment.",
+      "environment": "LIVE_DISPOSABLE",
+      "database": "banzami_live_shaped",
+      "provisioned": false,
+      "controller": "infra/blueprint/live-ops/scripts/live-migration-control.sh",
+      "policy": {
+        "dual_control": true,
+        "min_approvals": 2,
+        "maintenance_window": true,
+        "verified_backup_restore_required": false,
+        "down_migrations": false,
+        "autonomous_migration": "explicit-approval-only"
+      },
+      "financial_live_gate": {
+        "state": "NOT_READY",
+        "fail_closed": true
+      }
+    }
+  }
+}

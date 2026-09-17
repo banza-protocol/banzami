@@ -1,0 +1,74 @@
+{
+  "$comment": "COLLECTIONS-PROTOCOL-AND-PRODUCT-001 Part B §16 — the non-secret configuration required to provision the LIVE substrate under governance. NO secret material appears here: every credential is a NAMED reference resolved from the LIVE secret store at provisioning time. This profile is the authoritative input to the owner provisioning ceremony (docs/runbooks/collections-live-provisioning-ceremony.md). Provisioning the real substrate is an owner/governance boundary and is NOT performed autonomously.",
+  "version": 1,
+  "environment": "LIVE",
+  "financial_live_gate": { "state": "NOT_READY", "fail_closed": true,
+    "note": "Independent of Collections. Provisioning Collections schema/routes to LIVE does NOT open real-money movement." },
+
+  "database": {
+    "name": "banzami",
+    "engine": "PostgreSQL",
+    "min_version": 15,
+    "encoding": "UTF8",
+    "isolation": "dedicated LIVE cluster in a separate infrastructure boundary; never shares a host, volume, network or secret with SANDBOX"
+  },
+
+  "roles": {
+    "$comment": "Least-privilege model, proven on the disposable substrate (LIVE_DATABASE_ROLE_MODEL). Passwords come from secret_refs, never here.",
+    "bl_schema_owner":  { "login": false, "owns": "every migrated object", "member_of": [], "note": "NOLOGIN; assumed only by bl_migration via SET ROLE" },
+    "bl_migration":     { "login": true,  "owns": "nothing", "attrs": "NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS, CONNECTION LIMIT 2, VALID UNTIL (short-lived, per ceremony)", "member_of": ["bl_schema_owner"], "secret_ref": "banzami-live-migration-login" },
+    "bl_core_runtime":  { "login": true,  "owns": "nothing", "authority": "ONLY runtime identity with write on financial state (money)", "secret_ref": "banzami-live-core-runtime" },
+    "bl_app_runtime":   { "login": true,  "owns": "nothing", "authority": "operator tooling; non-financial tables only", "secret_ref": "banzami-live-app-runtime" },
+    "bl_control_plane": { "login": true,  "owns": "nothing", "authority": "read-only control plane", "secret_ref": "banzami-live-control-plane" }
+  },
+
+  "runtime_authority": {
+    "$comment": "Per-service DB authority is generated from db/authority/runtime-authority.json (WALLET-NATIVE-001) and applied after migrate, identically for LIVE. Collections/collection_shares/payment_intents are classified not_financial_money_tables.",
+    "manifest": "db/authority/runtime-authority.json",
+    "generator": "tools/db-authority.mjs",
+    "applied_sql": "db/authority/runtime-authority.sql"
+  },
+
+  "secret_refs": {
+    "$comment": "Names only; resolved from the LIVE secret manager. Never committed.",
+    "superuser": "banzami-live-pg-superuser",
+    "schema_owner": "banzami-live-schema-owner",
+    "migration_login": "banzami-live-migration-login",
+    "app_runtime": "banzami-live-app-runtime",
+    "control_plane": "banzami-live-control-plane",
+    "core_runtime": "banzami-live-core-runtime",
+    "approver_keyring": "banzami-live-dual-control-keyring"
+  },
+
+  "network_boundaries": {
+    "database_ingress": "Core/runtime services only, over the LIVE private network; no public ingress to Postgres",
+    "migration_ingress": "the controlled migration executor only, during a sanctioned window; bl_migration is dropped/short-lived otherwise",
+    "operator_access": "bl_control_plane read-only for verification; bl_app_runtime host-only tooling; no direct superuser use at runtime"
+  },
+
+  "backup_policy": {
+    "required_before_apply": true,
+    "verified_restore_drill": true,
+    "attestation": "LIVE_BACKUP_VERIFIED=1 may be set to the controller ONLY after a real verified restore drill",
+    "down_migrations": "forbidden; rollback is application/config + additive-compatible schema (no DROP/DELETE of ledger/history)"
+  },
+
+  "migration_authority": {
+    "controller": "infra/blueprint/live-ops/scripts/live-migration-control.sh",
+    "environment_manifest": "infra/blueprint/environments.json",
+    "dual_control": "infra/blueprint/live-ops/scripts/dual-control.sh (>= 2 distinct signed approvals)",
+    "maintenance_window": "enforced by the controller (policy.maintenance_window)",
+    "single_use_authorization": true,
+    "durable_receipt": true,
+    "identity_binding": ["target", "environment", "source_revision", "migration_digest", "executor_digest", "service_set"]
+  },
+
+  "collections_capability": {
+    "product_code": "IMPLEMENTED",
+    "infrastructure": "NOT_PROVISIONED",
+    "migration_tooling": "target-aware controller ready (LIVE path implemented + disposable-proven)",
+    "schema_migrations": ["0156_collections", "0157_payment_intents", "0158_collection_shares", "0159_collections_idempotency"],
+    "migration_directory_digest": "27f291977680a256ab320b20cb6fb572492e83815252447c0929a52c267dba8d",
+    "migration_0159_digest": "0e7cf447a18b1e8a71f0056016489e7ea527f839f908778d06c7904f0646bf64"
+  }
+}
