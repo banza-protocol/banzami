@@ -188,7 +188,12 @@ class _ReceivePointCard extends StatelessWidget {
               style: BanzamiTextStyles.headingSm, textAlign: TextAlign.center),
         if (handle != null) ...[
           const SizedBox(height: 2),
-          Text('Receber em $handle',
+          // The @banza is shown as IDENTITY only — not as a payable destination.
+          // A Business handle is not a P2P transfer target (transfers route to
+          // consumer handles only), so the screen must never phrase it as
+          // "receiving at" the handle. The QR is the payment surface; the handle
+          // just says whose QR this is.
+          Text(handle!,
               style: BanzamiTextStyles.bodyMd.copyWith(
                 color: BanzamiColors.primary,
                 fontWeight: FontWeight.w700,

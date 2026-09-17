@@ -12,13 +12,23 @@ void main() {
   final mainScreen = _read('lib/merchant/screens/main_screen.dart');
 
   group('P0 security / tech-debt fixes', () {
-    test('Receber never shows a structured QR nobody can pay (RA-053)', () {
-      // No consumer route settles /v1/qr/static codes: the tab offers the
-      // charge (payment link + its QR) flow instead, and writes no files.
-      expect(qr.contains('createStaticQr'), isFalse);
-      expect(qr.contains('Directory.systemTemp'), isFalse);
+    test('Receber never revives the withdrawn static-QR design (RA-053)', () {
+      // RA-053 forbids reviving the WITHDRAWN legacy static merchant-QR (a QR no
+      // consumer route could settle) — it does NOT forbid the canonical persistent
+      // Business Receive Point (ADR-065). Assert architecture/semantics, not
+      // obsolete string heuristics: the copy "Mostre este QR ao cliente" is
+      // legitimate for the payable Receive Point and is no longer a violation.
+      //
+      // Withdrawn design must stay gone:
+      expect(qr.contains('createStaticQr'), isFalse, reason: 'no legacy static-QR API');
+      expect(qr.contains('/v1/qr/static'), isFalse, reason: 'no legacy static-QR route');
+      expect(qr.contains('Directory.systemTemp'), isFalse, reason: 'no file-rendered QR');
+      // Canonical persistent Business Receive Point (ADR-065) IS the design:
+      expect(qr.contains('getReceivePoint'), isTrue, reason: 'uses the persistent Receive Point');
+      expect(qr.contains('MerchantReceivePoint'), isTrue);
+      expect(qr.contains('BanzamiQr'), isTrue, reason: 'canonical Banzami QR renderer');
+      // The charge (payment link) flow is still offered alongside the QR.
       expect(qr.contains('ChargeScreen'), isTrue);
-      expect(qr.contains('Mostre este QR ao cliente'), isFalse);
     });
 
     test('app version is dynamic (PackageInfo), not hardcoded', () {

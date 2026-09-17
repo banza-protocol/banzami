@@ -103,7 +103,8 @@ void main() {
     expect(path, '/v1/business/receive-point');
     expect(find.byType(BanzamiQrDisplay), findsOneWidget);
     expect(find.text('Loja Teste'), findsOneWidget);
-    expect(find.text('Copiar ligação'), findsOneWidget);
+    // The persistent QR can be shared (canonical action on the Receive screen).
+    expect(find.text('Partilhar QR'), findsOneWidget);
     // The charge flow is still offered alongside the persistent QR.
     expect(find.text('Criar cobrança'), findsOneWidget);
   });
