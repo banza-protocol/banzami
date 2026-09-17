@@ -486,7 +486,7 @@ check-all: core-check gateway-check admin-api-check public-api-check check-repo-
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
-.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check app-web-realtime app-web-qr app-web-business app-web-business-cleanroom app-web-business-crosstab app-web-business-large-text app-web-business-ux app-web-all
+.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check app-web-realtime app-web-qr app-web-business app-web-business-cleanroom app-web-business-crosstab app-web-business-large-text app-web-business-ux app-web-all app-web-collections
 
 # Reference financial path gate — passes on the verified reference path alone.
 assure-reference: check-assurance check-assurance-reference
@@ -1021,3 +1021,9 @@ vm-sandbox-deploy-clean:
 
 vm-sandbox-final-verify:
 	bash infra/blueprint/vm-execution/vm-execute.sh final-verify
+
+# COLLECTIONS-PROTOCOL-AND-PRODUCT-001 — split-charge full settlement E2E (452->226+226,
+# surface each share as a payment link, two funded consumers pay, PARTIAL->COMPLETED,
+# business credited, book balanced). Permanent regression for the reported bug.
+app-web-collections:
+	BANZAMI_E2E=RUN node tools/e2e/app-web/proofs/19-collections-split-settlement.mjs
