@@ -264,3 +264,42 @@ Rolling back the application build is safe because the change is strictly additi
 There is no data to reconcile: a receive point is not a wallet, ledger account,
 session, Project or credential. Only the minted Payment Sessions reached Core, and
 those follow the normal session lifecycle.
+
+## Residue-token semantics (APP-BANZAMI-WEB-BUSINESS-001 final reconciliation)
+
+Canonical lifecycle classification: **A — the Receive Point's local state and the
+Business's receive eligibility are separate axes** (ADR-065: *"Resolve and
+session-creation both re-check current Business eligibility, so a stale printed QR
+fails closed if the Business is later suspended/ineligible/disabled."*). The RP
+lifecycle is `ACTIVE | DISABLED | RETIRED`; `DISABLED`/`RETIRED` are explicit
+RP-level transitions (`POST /v1/business/receive-point/disable`). **Canonical
+merchant suspension does NOT cascade the RP to DISABLED** — it does not need to,
+because Business ineligibility is authoritative at resolve/session-mint.
+
+`BRP_PARENT_SUSPENSION_LIFECYCLE = ACTIVE_CHILD_EFFECTIVELY_INERT`.
+
+Effective receive eligibility = **Receive Point ACTIVE AND Business eligible**. A
+row with `receive_point.status='ACTIVE'` under a `SUSPENDED` merchant is *inert*,
+not *payable*.
+
+Token definitions (do not use ACTIVE and PAYABLE interchangeably):
+
+- **`BUSINESS_WEB_E2E_RESIDUE`** — synthetic resources that remain
+  **operational/usable** unexpectedly (e.g. an ACTIVE Business or ACTIVE Consumer a
+  test left signed-in-able). Target 0.
+- **`BRP_PAYABLE_SYNTHETIC_RESIDUE`** — synthetic Receive Points capable of creating
+  a valid payment path = RP `ACTIVE` **AND** parent Business eligible (ACTIVE).
+  Target 0.
+- **`BRP_ACTIVE_ROWS_UNDER_SUSPENDED_SYNTHETIC_MERCHANTS`** — a factual **count** of
+  RP rows whose own `status='ACTIVE'` while their parent merchant is `SUSPENDED`.
+  These are inert (fail-closed), not residue; the count is reported, not asserted 0.
+- **`BRP_ACTIVE_SYNTHETIC_RESIDUE`** — ONLY valid if it literally means "RP rows with
+  local state ACTIVE" regardless of parent. Under lifecycle A this is **not** a
+  cleanliness gate and MUST NOT be reported as `=0` while such rows exist; it is
+  retired from the acceptance vocabulary in favour of the two tokens above.
+
+Proof that inert ≠ payable (runtime, read-only): resolving a slug whose RP is
+`ACTIVE` but whose merchant is `SUSPENDED` returns HTTP 422
+`BUSINESS_CANNOT_RECEIVE` on both the gateway (`/v1/receive-points/{slug}`) and the
+BFF (`/consumer/v1/receive-points/{slug}`) — the pay flow is never reached
+(`BRP_SUSPENDED_PARENT_FAIL_CLOSED=PASS`).
