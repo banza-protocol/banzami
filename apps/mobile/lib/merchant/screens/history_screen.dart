@@ -1,11 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../platform/receipt_share.dart';
 import '../models/merchant_payment_entry.dart';
 import '../services/receipt_file_name.dart';
 import '../services/merchant_session_service.dart';
@@ -628,15 +625,13 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
     final client = context.read<BanzamiClient>();
     // Share the official Banzami PDF only (Document Engine: dados + QR de
     // verificação). Never plain text. On failure show a clear error — tocar de
-    // novo tenta outra vez.
-    File? file;
+    // novo tenta outra vez. The save/share itself is a platform adapter: the OS
+    // share sheet on native, a browser download on Web (receipt_share.dart).
     try {
       final bytes = await client.fetchMerchantReceiptPdf(p.id);
-      final dir   = await getTemporaryDirectory();
-      file        = File('${dir.path}/${receiptPdfFileName(p.reference, p.createdAt)}');
-      await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/pdf')],
+      await saveOrShareReceiptPdf(
+        bytes: bytes,
+        fileName: receiptPdfFileName(p.reference, p.createdAt),
         subject: p.reference.trim().isNotEmpty
             ? 'Comprovativo Banzami · ${p.reference.trim()}'
             : 'Comprovativo Banzami',
@@ -644,10 +639,6 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
     } catch (_) {
       if (mounted) _snack('Não foi possível obter o comprovativo.');
     } finally {
-      // Never accumulate PDFs — delete the temp file after sharing.
-      if (file != null) {
-        try { await file.delete(); } catch (_) {}
-      }
       if (mounted) setState(() => _busyReceipt = false);
     }
   }
