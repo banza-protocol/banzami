@@ -1132,6 +1132,104 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "Collections / split charge (0156/0157/0158, BANZA ADR-016 + ADR-015)",
+      "why": "BANZA Collections (composite obligation, never money) + PaymentIntent (one intent, several surfaces). Zero ledger effect; value moves only when a share's PaymentIntent settles into a Transfer. The unique index on collection_shares.payment_intent_id is an invariant (one share per intent).",
+      "tables": [
+        {
+          "name": "collections",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "wallet_id",
+              "nullable": false
+            },
+            {
+              "name": "total_amount_minor",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "nullable": false
+            },
+            {
+              "name": "rule",
+              "nullable": false
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "idx_collections_merchant",
+            "idx_collections_active_expiry"
+          ]
+        },
+        {
+          "name": "payment_intents",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "payee_wallet_id",
+              "nullable": false
+            },
+            {
+              "name": "surface",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "nullable": false
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "idx_payment_intents_merchant",
+            "idx_payment_intents_surface_ref"
+          ]
+        },
+        {
+          "name": "collection_shares",
+          "columns": [
+            {
+              "name": "collection_id",
+              "nullable": false
+            },
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "amount_minor",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "nullable": false
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "idx_collection_shares_collection",
+            "idx_collection_shares_merchant",
+            "uq_collection_shares_payment_intent"
+          ]
+        }
+      ]
     }
   ]
 }
