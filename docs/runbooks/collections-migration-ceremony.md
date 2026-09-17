@@ -1,56 +1,126 @@
 # Runbook — Collections migration ceremony (COLLECTIONS-PROTOCOL-AND-PRODUCT-001)
 
 Enables the ratified **Collections / cobrança dividida** capability (BANZA ADR-016 +
-ADR-015) by applying the folded tracked migrations `0156–0158` to a database. This
-is the **owner-gated** step (ADR-BLUEPRINT-004): the code, protocol, schema, domain
-logic and tests are all done and on `main`; only the DB apply + Core restart remain.
+ADR-015) by applying the folded tracked migrations `0156–0158`. This is the
+**owner-gated** step. Code, protocol, schema, domain logic and tests are done and on
+`main`; only the controlled DB apply + Core restart remain. **No ad-hoc SQL, no
+operator-DB-URL bypass, no bypass of the authorisation-record control.**
 
-All other work for this milestone is complete and merged. Nothing here uses ad-hoc
-SQL — application goes through the canonical migrator / autonomous controller.
+## Canonical path (corrected)
 
-## Bindings (verify before issuing the authorisation record)
+The real controlled path is `infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh`
+(*"The ONLY controlled path that migrates banzami_staging"*), driven from a verified
+release package. The `rt04e-autonomous-migration-controller.sh` is a **validation-layer
+stub** (its `main()` dies "autonomous execution is not wired in this increment"), so it
+is NOT used. An earlier draft of this runbook cited that stub and its digest — both are
+superseded below.
 
-- `source_revision` (git HEAD carrying `0156–0158`): **`cfa02e42e7c92f86470ab1d73ba165befe1bb5de`** (or later, if more has merged — recompute the digest then).
-- `target`: `banzami_staging` (Sandbox).
-- `migration_directory_digest` (controller `amc_migration_digest(db/migrations)`): **`978e07482a4c6015be7354c0f98dc913bf9ec6f90581be454702017679c11200`**
-  - recompute with: `( cd db/migrations && ls -1 [0-9]*.sql | LC_ALL=C sort | while read f; do printf '%s\n' "$f"; shasum -a 256 "$f"; done ) | shasum -a 256 | cut -d' ' -f1`
+## Verified bindings (recomputed from the current clean tree)
 
-## SANDBOX (autonomous controller — `sandbox-autonomous-migration-only`)
+- `source_revision` = **current `git rev-parse HEAD`** of the clean checkout the release
+  package is built from. `sandbox-release-package.sh build` sets
+  `SOURCE_REVISION=$(git rev-parse HEAD)` after asserting `git status --porcelain` is
+  empty; the manifest/authz/receipt all bind to it and require 40 hex.
+  **It is NOT the migration-introducing commit** — it is whatever HEAD is built.
+  Current HEAD: **`b98c09d1fa691fa5b0d1bdcf747ebbda6f785afb`** (local == origin, clean).
+- `migration_directory_digest` (authz/executor algorithm =
+  `cat $(ls db/migrations/*.sql | sort) | shasum -a 256`):
+  **`ba3a90c50f8b43fee51761aa90c4d136cf7467ba826f65c885312e607e1f8a56`**
+  (stable across `cfa02e42…HEAD` — `db/migrations` is byte-identical over that range).
+- `target` = **`banzami_staging`** (`authz.sh AUTHZ_TARGET_FIXED`; the DB in
+  `bzsandbox-*-postgres-1`).
+- Sandbox pre-ceremony `_sqlx_migrations` head = **0155** (156/157/158 absent — verified read-only).
 
-1. Ensure `/srv/banzami/src` on the Sandbox host is at `source_revision` above.
-2. Issue the single-use authorisation record (root, root-protected path, non-symlink,
-   single hard link, no credential content) with fields:
-   ```
-   state=issued
-   source_revision=cfa02e42e7c92f86470ab1d73ba165befe1bb5de
-   target=banzami_staging
-   migration_directory_digest=978e07482a4c6015be7354c0f98dc913bf9ec6f90581be454702017679c11200
-   issued_epoch=<now>
-   expires_epoch=<now + short window>
-   ```
-3. Run the controller (`infra/blueprint/migration-controller/rt04e-autonomous-migration-controller.sh`, no argv) in the approved RT04E sandbox runtime. It validates the record → digest → provenance, applies `db/migrations` via the migrator (idempotent: `0156–0158` are `CREATE ... IF NOT EXISTS`), and consumes the record.
-4. **Restart `core-api-staging`** — Core caches `collections_available()` in a
-   `OnceCell`; without a restart it keeps returning 503 even after the tables exist.
-   ```bash
-   ssh root@217.160.9.248 "docker restart \$(docker ps --format '{{.Names}}' | grep -m1 core-api-staging)"
-   ```
-5. Verify: `POST /v1/collections` (merchant JWT) returns 201, not 503
-   `COLLECTIONS_UNAVAILABLE`. The E2E in step "Post-ceremony" then runs green.
+## Authorisation-record schema (issued BY the orchestrator, not hand-written)
 
-## LIVE (separate ceremony — dual-control, do NOT autorun)
+`authz.sh authz_issue <dir> <rev> <parent> <exec> <mig> <service_set> <ttl>` writes
+`authz.record` (perms `0600`, non-symlink, single hard link, current-run-only) with:
+`target=banzami_staging`, `source_revision` (40 hex), `parent_digest`,
+`executor_digest`, `migration_digest`, `id`, `issued_epoch`, `expires_epoch`,
+`state=issued`. `sandbox-migration.sh apply` issues it (ttl 600s) from the release
+manifest, then `authz_consume` flips `issued→consumed` atomically (single-use), alongside
+a matching `migration.receipt`. **The owner does not author the record by hand and must
+not** — issuing it outside this flow, or applying via the operator DB URL, is the
+prohibited bypass (`COLLECTIONS_GOVERNANCE_BYPASS=0`).
 
-Per ADR-BLUEPRINT-004, Live migration requires explicit approval, dual-control,
-a maintenance window, verified backup/restore and immutable release attestation.
-`0156–0158` are in the tracked chain, so the standard Live migration ceremony picks
-them up. Enabling the Collections **capability** in Live does **not** make the
-platform Financial Live ready — real-money movement stays governed by the
-independent platform-wide Financial Live gate (fail-closed).
+## SANDBOX ceremony (owner-executed, operator context on the Sandbox host)
 
-## Post-ceremony (Sandbox) — run to prove the lifecycle
+> Preconditions the owner confirms: the existing `bzsandbox` project's blueprint state
+> files (`$TMPDIR/banzami-blueprint-sandbox/current.run`,
+> `$TMPDIR/banzami-blueprint-release/current.run`) are present from the original
+> bootstrap. **Do NOT run `sandbox-bootstrap.sh apply`** — it is create-only
+> (`die "sandbox root pre-exists"`) and its teardown wipes the PG volume; the project
+> already exists. If the release-state file is absent, only
+> `sandbox-release-package.sh build` (below) is needed to (re)create it; the sandbox
+> bootstrap state must be reused, never rebuilt. Realign the operator db_url after any
+> role bootstrap (known gotcha).
 
-- `make app-web-business` (Business Web regression).
-- The 452→226+226 split lifecycle E2E (create → pay share A → PARTIAL → pay share B
-  → COMPLETED → receipts → realtime → book balanced).
-- Drop `PARITY_IGNORE=collections,collection_shares,payment_intents` from
-  `tools/check-migration-drift.sh` invocations once both Sandbox and Live are past
-  `0158`.
+```bash
+set -euo pipefail
+cd <repo-on-sandbox-host>
+git fetch origin && git checkout b98c09d1fa691fa5b0d1bdcf747ebbda6f785afb
+test -z "$(git status --porcelain)"   # clean worktree (build requires it)
+S=infra/blueprint/sandbox-ops/scripts
+
+# 1. Verified, secret-free release package from HEAD (embeds source_revision + migration
+#    digest ba3a90c5… + attested operational executor for the 4 approved services).
+bash $S/sandbox-release-package.sh build
+bash $S/sandbox-release-package.sh verify
+
+# 2. Controlled migration. plan is a dry, fail-closed gate (revision/parent/executor/
+#    migration-digest/service-set must all match) — inspect it before apply.
+bash $S/sandbox-migration.sh plan
+bash $S/sandbox-migration.sh apply     # issues+consumes single-use authz+receipt, advisory
+                                       # lock, file-only short-lived bl_migration login,
+                                       # runs the attested executor: sqlx migrate 0156→0158
+bash $S/sandbox-migration.sh verify
+
+# 3. Restart Core to clear the collections_available() OnceCell (else it keeps 503-ing).
+docker restart "$(docker ps --format '{{.Names}}' | grep -m1 core-api-staging)"
+
+# 4. Read-only enablement checks (fail closed if any is wrong).
+PG="$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-postgres-1')"
+docker exec "$PG" sh -c 'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc "SELECT max(version) FROM _sqlx_migrations"'   # expect 158
+docker exec "$PG" sh -c 'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc "SELECT to_regclass('\''public.collections'\''), to_regclass('\''public.payment_intents'\''), to_regclass('\''public.collection_shares'\'')"'
+
+# 5. Single-use cleanup of ceremony state.
+bash $S/sandbox-migration.sh clean
+```
+
+Fail-closed: every step aborts the ceremony (`set -euo pipefail`; `plan`/`apply` gates
+`die`/`hold` on target/revision/digest/head/authz/executor/lock/schema failure). On any
+partial failure, stop — do not continue, do not hand-apply.
+
+Post-ceremony (autonomous, after the owner confirms head=158 + Core healthy): the
+`POST /v1/collections` 503 is gone; run the full 452→226+226 lifecycle + acceptance
+matrix. Drop `PARITY_IGNORE=collections,collection_shares,payment_intents` from the
+drift check once Sandbox and Live are both past 0158.
+
+---
+
+# LIVE ceremony (prepared; dual-control — do NOT autorun)
+
+Per ADR-BLUEPRINT-004, Live needs explicit approval, **dual-control**, a maintenance
+window, verified backup/restore and immutable release attestation. `0156–0158` are in
+the tracked chain, so the standard Live migration ceremony picks them up.
+
+**Bindings:** same `db/migrations` content → same migration digest
+`ba3a90c5…`; `source_revision` = the Live release-package HEAD (recompute at build
+time; must be the same revision proven in Sandbox); `target` = the Live DB (`banzami`).
+
+**Deploy plan:** build the Live release package from the Sandbox-proven revision →
+Live migration ceremony (dual-control) applies `0156–0158` (additive, `IF NOT EXISTS`)
+→ restart Live Core → deploy the 4 approved services already carrying the Collections
+routes/domain. Collections routes/schema/config exist and are enabled in Live; **real
+money stays fail-closed at the independent platform-wide Financial Live gate**, not
+because Collections is absent/disabled (`COLLECTIONS_LIVE_CAPABILITY=IMPLEMENTED_AND_ENABLED`,
+`COLLECTIONS_LIVE_GLOBAL_FINANCIAL_GATE=PASS`).
+
+**Rollback plan:** `0156–0158` are purely additive (three new tables, no ALTER/'
+backfill of existing objects, zero ledger effect per ADR-016). Rollback = leave the
+tables in place (inert — no code writes to them unless Collections is used) or, if a
+clean reversal is required in the window, drop the three tables in reverse dependency
+order (`collection_shares` → `payment_intents` → `collections`) via the controlled
+executor, never ad-hoc SQL. No financial history is touched (Collections hold no money).
+The Financial Live gate remaining NOT_READY is itself the hard safety floor: no real
+value can move regardless of the tables' presence.
