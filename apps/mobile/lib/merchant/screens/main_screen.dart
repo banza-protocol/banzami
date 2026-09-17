@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -52,6 +53,10 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
   }
 
   Future<void> _startNotifications() async {
+    // Web has no FCM / device push and no local-notification plugin (ADR-066):
+    // Home loads and refreshes over the BFF like every other screen. The push
+    // topic, permission prompt and foreground-notification path are native-only.
+    if (kIsWeb) return;
     final client     = context.read<BanzamiClient>();
     final svc        = context.read<MerchantSessionService>();
     final merchantId = svc.session!.merchantId;

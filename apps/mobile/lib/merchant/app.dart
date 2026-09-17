@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart' hide Consumer;
 
 import 'config.dart';
+import '../platform/web_desktop_shell.dart';
 import 'services/merchant_reauth.dart';
 import 'services/merchant_session_service.dart';
 import 'screens/splash_screen.dart';
@@ -41,7 +43,11 @@ class BanzamiMerchantApp extends StatelessWidget {
             // identity are cleared and sign-in is shown. An outage ends nothing.
             final client = buildBusinessClient(
               session:    session,
-              baseUrl:    AppConfig.gatewayUrl,
+              // Web talks same-origin to the BFF (`/business/api`), which attaches
+              // the merchant JWT server-side and owns renewal (ADR-066). Native
+              // talks straight to the pinned gateway. The screens and session are
+              // identical — only this transport edge differs.
+              baseUrl:    kIsWeb ? '/business/api' : AppConfig.gatewayUrl,
               httpClient: pinnedClient,
             );
             _clientKeys[client] = key;
@@ -54,8 +60,14 @@ class BanzamiMerchantApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme:                      _buildTheme(),
         home:                       const _MerchantBoot(),
-        // The app-switcher snapshot never shows the Business's data.
-        builder: (_, child) => MerchantPrivacyShield(child: child!),
+        builder: (_, child) {
+          // Native: the app-switcher snapshot never shows the Business's data.
+          // Web: the SAME native app renders inside the centred framed-phone
+          // desktop shell, with the Personal↔Business switcher in the outer
+          // chrome (WebDesktopShell) — exactly as the Consumer app at `/`.
+          if (kIsWeb) return WebDesktopShell(child: child!);
+          return MerchantPrivacyShield(child: child!);
+        },
       ),
     );
   }

@@ -5,7 +5,7 @@
 // stay Consumer.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { matchRoute } from '../lib/bff.mjs';
@@ -45,24 +45,54 @@ test('GUARD: active_context is a preference, never authority', () => {
 });
 
 test('GUARD: the Business Web client never stores a credential in the browser', () => {
-  // The web merchant session holds NO token; it relies on the BFF cookie.
-  const sess = read('apps/mobile/lib/merchant/web/merchant_web_session.dart');
-  assert.doesNotMatch(sess, /localStorage|sessionStorage|flutter_secure_storage|shared_preferences/i);
-  assert.match(sess, /holds NO credential/i);
-  // The client points at the same-origin BFF prefix, not the gateway directly.
-  const appf = read('apps/mobile/lib/merchant/web/business_web_app.dart');
-  assert.match(appf, /baseUrl: '\/business\/api'/);
+  // On Web the native merchant session stores a WORTHLESS sentinel + far-future
+  // expiry + NO refresh token (the BFF cookie is the real authority, ADR-066).
+  // The real Bearer is never persisted by the browser.
+  const sess = read('apps/mobile/lib/merchant/services/merchant_session_service.dart');
+  assert.match(sess, /kIsWeb \? 'web-session' : jwt/);
+  assert.match(sess, /kIsWeb \? null : refreshToken/);
+  // The Web transport points at the same-origin BFF prefix, not the gateway.
+  const appf = read('apps/mobile/lib/merchant/app.dart');
+  assert.match(appf, /kIsWeb \? '\/business\/api'/);
   assert.doesNotMatch(appf, /https:\/\/(sandbox-)?api\.banzami\.com/);
 });
 
-test('GUARD: Business Web is the same Flutter product (not a second frontend)', () => {
-  // The web entry branches on the URL into the SAME app; it does not spawn a new project.
+test('GUARD: Business Web runs the ACTUAL native Business app (no replica)', () => {
+  // The `/business` web entry boots the SAME `BanzamiMerchantApp` root as native —
+  // not a Web-specific Business product (APP-BANZAMI-WEB-DUAL-APP-PARITY-001).
   const entry = read('apps/mobile/lib/main_consumer_web.dart');
   assert.match(entry, /pathSegments/);
-  assert.match(entry, /runBusinessWeb/);
-  // The Business shell reuses the canonical client + QR renderer.
-  const shell = read('apps/mobile/lib/merchant/web/business_shell.dart');
-  assert.match(shell, /BanzamiQrDisplay/);
+  assert.match(entry, /runApp\(BanzamiMerchantApp\(/);
+  assert.doesNotMatch(entry, /runBusinessWeb|business_web_app/);
+  // BUSINESS_WEB_DUPLICATE_PRODUCT_UI=0 / BUSINESS_WEB_SEPARATE_APP_IMPLEMENTATION=0:
+  // the entire Web-replica screen tree is gone.
+  for (const f of [
+    'apps/mobile/lib/merchant/web/business_web_app.dart',
+    'apps/mobile/lib/merchant/web/business_login_screen.dart',
+    'apps/mobile/lib/merchant/web/business_shell.dart',
+    'apps/mobile/lib/merchant/web/business_charge_screen.dart',
+    'apps/mobile/lib/merchant/web/merchant_web_session.dart',
+  ]) {
+    assert.equal(existsSync(join(REPO, f)), false, `${f} must not exist (no Business Web replica)`);
+  }
+  // The native root wraps the SAME desktop shell the Consumer app uses.
+  const app = read('apps/mobile/lib/merchant/app.dart');
+  assert.match(app, /WebDesktopShell\(child: child!\)/);
+});
+
+test('GUARD: the outer Personal/Business switcher renders visible text', () => {
+  // WEB_SWITCH_VISIBLE_TEXT_RENDERING: the switcher is outer shell chrome and must
+  // set an explicit bundled family (Inter). Without it the label falls back to
+  // Roboto, which is not bundled for Web and renders blank.
+  const shell = read('apps/mobile/lib/platform/web_desktop_shell.dart');
+  assert.match(shell, /class _WebAppSwitcher/);
+  assert.match(shell, /_segment\('Pessoal'/);
+  assert.match(shell, /_segment\('Business'/);
+  assert.match(shell, /fontFamily: 'Inter'/);
+  // The switch is a real navigation between `/` and `/business` — never an in-app
+  // cross-app switch inside the phone viewport.
+  assert.match(shell, /navigateToPath\('\/'\)/);
+  assert.match(shell, /navigateToPath\('\/business'\)/);
 });
 
 test('GUARD: payer routes belong to Consumer authority', () => {

@@ -107,8 +107,12 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
 
     try {
       final auth = await client.loginMerchantHandlePin(handle: handle, pin: _pin);
-      final merchantId = claimFromJwt(auth.token, 'merchant_id');
-      if (merchantId == null) throw const FormatException('missing merchant_id');
+      // Native: the merchant id is a claim in the JWT. Web: the JWT is a BFF
+      // sentinel the browser cannot decode, so the id comes from the non-secret
+      // `merchant_id` the BFF echoes in the body (ADR-066) — the SAME screen,
+      // one identity source per platform, no product-screen duplication.
+      final merchantId = claimFromJwt(auth.token, 'merchant_id') ?? auth.merchantId;
+      if (merchantId == null || merchantId.isEmpty) throw const FormatException('missing merchant_id');
 
       client.setJwt(auth.token, expiresAt: auth.expiresAt);
       final merchant = await client.getMerchant(merchantId);

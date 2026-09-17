@@ -290,10 +290,17 @@ class _WebAppSwitcher extends StatelessWidget {
       ),
       child: Text(
         label,
+        // Explicit Inter: this is OUTER shell chrome that must render legibly no
+        // matter which app's theme happens to wrap it. Without a family it falls
+        // back to Roboto, which is NOT bundled for Web and renders as blank/tofu
+        // (WEB_SWITCH_VISIBLE_TEXT_RENDERING). Strong contrast in both states:
+        // white on Banzami red when active, near-black on white when not.
         style: TextStyle(
-          color: active ? Colors.white : BanzamiColors.gray600,
+          fontFamily: 'Inter',
+          color: active ? Colors.white : BanzamiColors.gray900,
           fontWeight: FontWeight.w700,
           fontSize: 14,
+          letterSpacing: 0.1,
         ),
       ),
     );

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
-import 'merchant/web/business_web_app.dart';
+import 'merchant/app.dart';
 import 'platform/web_session_client.dart';
 
 // Web entry point for App Banzami (WEB-APP-001 — one Flutter codebase, three
@@ -32,7 +32,14 @@ void main() async {
   final segments = Uri.base.pathSegments.where((s) => s.isNotEmpty).toList();
   final isBusiness = segments.isNotEmpty && segments.first == 'business';
   if (isBusiness) {
-    runBusinessWeb(WebSessionClient());
+    // `/business` runs the ACTUAL native App Banzami Business (the same
+    // `BanzamiMerchantApp` root, screens, session and design system as iOS /
+    // Android) inside the WebDesktopShell — exactly as `/` runs the real
+    // `BanzamiApp` (APP-BANZAMI-WEB-DUAL-APP-PARITY-001). There is NO Web-specific
+    // Business product implementation: only the transport edge differs — a
+    // WebSessionClient (credentialed + CSRF) to the same-origin BFF, which holds
+    // the merchant JWT server-side and owns renewal (ADR-066).
+    runApp(BanzamiMerchantApp(pinnedClient: WebSessionClient()));
     return;
   }
   runApp(BanzamiApp(pinnedClient: WebSessionClient(), deviceId: null));

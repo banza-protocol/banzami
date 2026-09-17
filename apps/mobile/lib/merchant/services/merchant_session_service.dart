@@ -222,6 +222,15 @@ class MerchantSessionService extends ChangeNotifier {
   String? get signInHandle => _expired ? _signInHandle : null;
 
   MerchantRoute get route {
+    if (kIsWeb) {
+      // Web (ADR-066) has no device lock and holds no credential to re-enter:
+      // the same-origin BFF session cookie is the authority. Signed in ⇒ Home;
+      // otherwise the canonical @handle + PIN sign-in via Welcome (the SAME
+      // native screens). A terminal BFF 401 clears the session (markExpired) and
+      // returns here as Welcome. `locked`/`signIn` — the device-lock states —
+      // never occur on Web.
+      return _session == null ? MerchantRoute.welcome : MerchantRoute.signedIn;
+    }
     if (_session == null) {
       return (_expired && _signInHandle != null) ? MerchantRoute.signIn : MerchantRoute.welcome;
     }
@@ -347,7 +356,13 @@ class MerchantSessionService extends ChangeNotifier {
     }
 
     final s = _session;
-    if (s != null && s.isHandleLogin && !s.canRenew && isTokenExpired()) {
+    if (kIsWeb) {
+      // Web: token validity and renewal are the BFF's, not this device's. A
+      // restored identity opens straight on Home (unlocked); if the BFF session
+      // has in fact ended, the first financial call 401s and markExpired returns
+      // to Welcome. The native device-lock/expiry logic below never runs on Web.
+      if (s != null) _locked = false;
+    } else if (s != null && s.isHandleLogin && !s.canRenew && isTokenExpired()) {
       // A restored Business session that cannot renew — stored before
       // renewable sessions, or its refresh token has expired — and whose
       // access token is dead opens on SIGN-IN, never on a home screen whose
@@ -468,11 +483,22 @@ class MerchantSessionService extends ChangeNotifier {
     DateTime? refreshExpiresAt,
     bool verified = false,
   }) async {
+    // On Web the credential never lives in the browser (ADR-066): the BFF holds
+    // the merchant JWT + rotating refresh server-side and renews them itself. So
+    // the session stores a worthless sentinel with a far-future expiry (the
+    // client must never try to self-renew) and no refresh token, and no device
+    // PIN (there is no offline device lock on Web). The real Bearer is the BFF's
+    // HttpOnly cookie. On native everything is stored exactly as before.
+    final String effJwt          = kIsWeb ? 'web-session' : jwt;
+    final DateTime effJwtExpiry  = kIsWeb ? DateTime.now().toUtc().add(const Duration(days: 3650)) : jwtExpiresAt;
+    final String? effRefresh     = kIsWeb ? null : refreshToken;
+    final DateTime? effRefreshEx = kIsWeb ? null : refreshExpiresAt;
+
     _retireOtherBusiness(merchantId);
     await _serial(() async {
-      await _persistIdentity(merchantId, merchantName, merchantEmail, walletId, environment, verified, pin);
+      await _persistIdentity(merchantId, merchantName, merchantEmail, walletId, environment, verified, pin, storePin: !kIsWeb);
       await _store.write(key: _kLoginMethod, value: 'handle_pin');
-      await _persistTokens(jwt, jwtExpiresAt, refreshToken, refreshExpiresAt);
+      await _persistTokens(effJwt, effJwtExpiry, effRefresh, effRefreshEx);
       await _store.write(key: _kHandle, value: handle);
       await _store.delete(key: _kLegacyApiKey);
     });
@@ -483,10 +509,10 @@ class MerchantSessionService extends ChangeNotifier {
       walletId:         walletId,
       loginMethod:      MerchantLoginMethod.handlePin,
       environment:      environment,
-      jwt:              jwt,
-      jwtExpiresAt:     jwtExpiresAt,
-      refreshToken:     refreshToken,
-      refreshExpiresAt: refreshExpiresAt,
+      jwt:              effJwt,
+      jwtExpiresAt:     effJwtExpiry,
+      refreshToken:     effRefresh,
+      refreshExpiresAt: effRefreshEx,
       handle:           handle,
       verified:         verified,
     );
@@ -509,14 +535,17 @@ class MerchantSessionService extends ChangeNotifier {
   }
 
   Future<void> _persistIdentity(String merchantId, String name, String email,
-      String walletId, String env, bool verified, String pin) async {
+      String walletId, String env, bool verified, String pin, {bool storePin = true}) async {
     await _store.write(key: _kMerchantId,    value: merchantId);
     await _store.write(key: _kMerchantName,  value: name);
     await _store.write(key: _kMerchantEmail, value: email);
     await _store.write(key: _kWalletId,      value: walletId);
     await _store.write(key: _kEnvironment,   value: env);
     await _store.write(key: _kVerified,      value: verified ? 'true' : 'false');
-    await _store.write(key: _kPinHash,       value: PinHasher.hash(pin));
+    // The PIN hash is the OFFLINE DEVICE LOCK — native only. On Web there is no
+    // device lock (the BFF cookie is the session), so no PIN is stored and the
+    // slow key-derivation never runs in the browser.
+    if (storePin) await _store.write(key: _kPinHash, value: PinHasher.hash(pin));
   }
 
   /// The refresh token is written BEFORE the access token: the presented one
@@ -711,6 +740,7 @@ class MerchantSessionService extends ChangeNotifier {
   }
 
   Future<bool> canUseBiometrics() async {
+    if (kIsWeb) return false; // no device biometrics in a browser (ADR-066)
     try {
       return await _bio.canCheckBiometrics && await _bio.isDeviceSupported();
     } catch (_) { return false; }
