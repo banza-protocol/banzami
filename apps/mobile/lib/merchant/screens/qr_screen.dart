@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../branding_assets.dart';
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
 
@@ -23,6 +24,7 @@ class MerchantQrScreen extends StatefulWidget {
 class _MerchantQrScreenState extends State<MerchantQrScreen> {
   MerchantReceivePoint? _point;
   bool _loading = true;
+  bool _sharing = false;
   String? _error;
 
   @override
@@ -56,6 +58,19 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     }
   }
 
+  Future<void> _share() async {
+    final point = _point;
+    if (point == null || _sharing) return;
+    setState(() => _sharing = true);
+    try {
+      await Share.share(point.payUrl, subject: 'O meu QR Banzami');
+    } catch (e) {
+      if (mounted) BanzamiToast.showError(context, 'Erro ao partilhar: $e');
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.read<MerchantSessionService>().session;
@@ -70,9 +85,15 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppScreenHeader(
+            AppScreenHeader(
               title: 'Receber',
-              subtitle: 'O seu QR Banzami — imprima e receba',
+              subtitle: 'QR Code e ligação de pagamento',
+              trailing: IconButton(
+                onPressed: _loading ? null : _load,
+                icon: const Icon(Icons.refresh_rounded,
+                    color: BanzamiColors.gray600),
+                tooltip: 'Atualizar',
+              ),
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -87,26 +108,47 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                       child: CircularProgressIndicator(
                           color: BanzamiColors.primary),
                     )
-                  else if (_point != null)
+                  else if (_point != null) ...[
+                    Text(
+                      kReceiveHowItWorks,
+                      style: BanzamiTextStyles.bodyMd
+                          .copyWith(color: BanzamiColors.gray600),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: BanzamiSpacing.lg),
                     _ReceivePointCard(
                       point: _point!,
                       merchantName: merchantName,
                       handle: handle,
-                    )
-                  else
+                    ),
+                    const SizedBox(height: BanzamiSpacing.xl),
+                    BanzamiPrimaryButton(
+                      label: 'Criar cobrança',
+                      icon: Icons.add_circle_outline_rounded,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ChargeScreen()),
+                      ),
+                    ),
+                    const SizedBox(height: BanzamiSpacing.sm),
+                    BanzamiSecondaryButton(
+                      label: 'Partilhar QR',
+                      onPressed: _sharing ? null : _share,
+                    ),
+                  ] else ...[
                     _UnavailableCard(
                       merchantName: merchantName,
                       handle: handle,
                       message: _error ?? kStaticQrUnavailable,
                     ),
-                  const SizedBox(height: BanzamiSpacing.xl),
-                  BanzamiPrimaryButton(
-                    label: 'Criar cobrança',
-                    icon: Icons.add_circle_outline_rounded,
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ChargeScreen()),
+                    const SizedBox(height: BanzamiSpacing.xl),
+                    BanzamiPrimaryButton(
+                      label: 'Criar cobrança',
+                      icon: Icons.add_circle_outline_rounded,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ChargeScreen()),
+                      ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: BanzamiSpacing.page),
                 ]),
               ),
@@ -126,32 +168,39 @@ class _ReceivePointCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      if (merchantName != null) ...[
-        Text(merchantName!,
-            style: BanzamiTextStyles.headingSm, textAlign: TextAlign.center),
-        const SizedBox(height: BanzamiSpacing.md),
-      ],
-      BanzamiQrDisplay(
-        payload: point.payUrl,
-        subtitle: handle,
-        size: 240,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      decoration: const BoxDecoration(
+        color: BanzamiColors.white,
+        borderRadius: BanzamiRadius.xxlAll,
+        boxShadow: BanzamiShadows.card,
       ),
-      const SizedBox(height: BanzamiSpacing.md),
-      Text(
-        kReceiveHowItWorks,
-        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600),
-        textAlign: TextAlign.center,
-      ),
-      const SizedBox(height: BanzamiSpacing.sm),
-      BanzamiSecondaryButton(
-        label: 'Copiar ligação',
-        onPressed: () {
-          Clipboard.setData(ClipboardData(text: point.payUrl));
-          BanzamiToast.showSuccess(context, 'Ligação copiada');
-        },
-      ),
-    ]);
+      child: Column(children: [
+        BanzamiQrDisplay(
+          payload: point.payUrl,
+          size: 256,
+          embeddedImage: AssetImage(BrandingAssets.businessLogo),
+        ),
+        const SizedBox(height: BanzamiSpacing.lg),
+        if (merchantName != null)
+          Text(merchantName!,
+              style: BanzamiTextStyles.headingSm, textAlign: TextAlign.center),
+        if (handle != null) ...[
+          const SizedBox(height: 2),
+          Text('Receber em $handle',
+              style: BanzamiTextStyles.bodyMd.copyWith(
+                color: BanzamiColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center),
+        ],
+        const SizedBox(height: 2),
+        Text('Qualquer valor · AOA',
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            textAlign: TextAlign.center),
+      ]),
+    );
   }
 }
 
@@ -202,8 +251,7 @@ class _UnavailableCard extends StatelessWidget {
 
 /// What works: a persistent receive QR anyone can scan to pay this Business.
 const String kReceiveHowItWorks =
-    'Mostre ou imprima este QR. O cliente lê-o na app Banzami, escreve o '
-    'montante e paga — direto para a sua carteira.';
+    'Mostre este QR ao cliente para receber pagamentos.';
 
 /// Shown only when the receive point is not available (kept for the fallback).
 const String kStaticQrUnavailable =

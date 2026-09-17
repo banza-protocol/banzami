@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:banzami_flutter/banzami_flutter.dart' hide Consumer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../branding_assets.dart';
 import '../../platform/web_location.dart';
 import 'business_charge_screen.dart';
 import 'merchant_web_session.dart';
@@ -311,6 +314,7 @@ class _ReceiveTab extends StatefulWidget {
 class _ReceiveTabState extends State<_ReceiveTab> {
   MerchantReceivePoint? _point;
   bool _loading = true;
+  bool _sharing = false;
   String? _error;
 
   @override
@@ -330,6 +334,21 @@ class _ReceiveTabState extends State<_ReceiveTab> {
     if (mounted) setState(() => _loading = false);
   }
 
+  Future<void> _share() async {
+    final point = _point;
+    if (point == null || _sharing) return;
+    setState(() => _sharing = true);
+    try {
+      await Share.share(point.payUrl, subject: 'O meu QR Banzami');
+    } catch (_) {
+      // The browser may not support the native share sheet — fall back to copy.
+      await Clipboard.setData(ClipboardData(text: point.payUrl));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ligação copiada')));
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.watch<MerchantWebSession>();
@@ -338,35 +357,69 @@ class _ReceiveTabState extends State<_ReceiveTab> {
       return Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(_error ?? 'QR indisponível', textAlign: TextAlign.center, style: const TextStyle(color: BanzamiColors.gray400)), const SizedBox(height: 16), BanzamiPrimaryButton(label: 'Tentar novamente', onPressed: _load)])));
     }
     final point = _point!;
+    final handle = session.handle;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const Text('Receber', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: BanzamiColors.gray900)),
-          const SizedBox(height: 4),
-          Text(session.merchant?.name ?? '', style: const TextStyle(fontSize: 15, color: BanzamiColors.gray900, fontWeight: FontWeight.w600)),
-          if (session.handle.isNotEmpty) Text('@${session.handle}', style: const TextStyle(color: BanzamiColors.gray400)),
-          const SizedBox(height: 6),
-          if (session.isSandbox) const _SandboxChip(),
-          const SizedBox(height: 20),
-          if (point.isActive)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFEEE4E4))),
-              child: BanzamiQrDisplay(payload: point.payUrl, size: 260),
-            )
-          else
-            const Padding(padding: EdgeInsets.all(24), child: Text('O seu ponto de recebimento não está activo.', style: TextStyle(color: BanzamiColors.gray400))),
-          const SizedBox(height: 16),
-          const Text('Mostre este QR para receber pagamentos na App Banzami.', textAlign: TextAlign.center, style: TextStyle(color: BanzamiColors.gray400, fontSize: 14, height: 1.4)),
-          const SizedBox(height: 20),
-          BanzamiPrimaryButton(
-            label: 'Criar cobrança',
-            icon: Icons.add_rounded,
-            fullWidth: false,
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BusinessChargeScreen())),
-          ),
-        ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Receber', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: BanzamiColors.gray900)),
+                IconButton(
+                  onPressed: _loading ? null : _load,
+                  icon: const Icon(Icons.refresh_rounded, color: BanzamiColors.gray600),
+                  tooltip: 'Atualizar',
+                ),
+              ],
+            ),
+            const Text('QR Code e ligação de pagamento', style: TextStyle(fontSize: 14, color: BanzamiColors.gray400)),
+            if (session.isSandbox) ...[const SizedBox(height: 8), const _SandboxChip()],
+            const SizedBox(height: 16),
+            const Text('Mostre este QR ao cliente para receber pagamentos.', textAlign: TextAlign.center, style: TextStyle(color: BanzamiColors.gray400, fontSize: 14, height: 1.4)),
+            const SizedBox(height: 16),
+            if (point.isActive)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFEEE4E4))),
+                child: Column(
+                  children: [
+                    BanzamiQrDisplay(
+                      payload: point.payUrl,
+                      size: 256,
+                      embeddedImage: AssetImage(BrandingAssets.businessLogo),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(session.merchant?.name ?? '', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: BanzamiColors.gray900), textAlign: TextAlign.center),
+                    if (handle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text('Receber em @$handle', style: const TextStyle(color: BanzamiColors.primary, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+                    ],
+                    const SizedBox(height: 2),
+                    const Text('Qualquer valor · AOA', style: TextStyle(color: BanzamiColors.gray400, fontSize: 13), textAlign: TextAlign.center),
+                  ],
+                ),
+              )
+            else
+              const Padding(padding: EdgeInsets.all(24), child: Text('O seu ponto de recebimento não está activo.', style: TextStyle(color: BanzamiColors.gray400))),
+            const SizedBox(height: 20),
+            BanzamiPrimaryButton(
+              label: 'Criar cobrança',
+              icon: Icons.add_rounded,
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BusinessChargeScreen())),
+            ),
+            if (point.isActive) ...[
+              const SizedBox(height: 8),
+              BanzamiSecondaryButton(
+                label: 'Partilhar QR',
+                onPressed: _sharing ? null : _share,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
