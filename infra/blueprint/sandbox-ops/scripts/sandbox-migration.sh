@@ -114,7 +114,7 @@ cmd_apply() {
     -v "$BZSB_SECRET_ROOT/mi_runtime:/run/secrets/mi_runtime:ro" \
     -v "$SCRIPT_DIR/bootstrap-sandbox-roles.sh:/roles.sh:ro" \
     -e PGHOST=postgres -e PGPORT=5432 -e MI_ADMIN_USER=sbadmin -e MI_DB=banzami_staging \
-    -e "MI_VALID_UNTIL=$VU" -e MI_CONN_LIMIT=4 \
+    -e "MI_VALID_UNTIL=$VU" -e MI_CONN_LIMIT=2 \
     --entrypoint bash "$PG_IMAGE" /roles.sh >/dev/null 2>&1 \
     || die "migration-login refresh (canonical role bootstrap) failed"
   echo "  migration_login_refreshed PASS (canonical roles, fresh validity)"

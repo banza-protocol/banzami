@@ -13,7 +13,7 @@ trap 'rm -f "$PGPASSFILE" 2>/dev/null || true' EXIT INT TERM
 fail=0
 q() { psql -tAc "$1" 2>/dev/null | tr -d '[:space:]'; }
 rep() { printf '%-10s %-38s %s\n' "$1" "$2" "$3"; [ "$3" = PASS ] || fail=1; }
-APP="nspname NOT IN ('pg_catalog','information_schema','pg_toast') AND nspname NOT LIKE 'pg_temp%'"
+APP="nspname NOT IN ('pg_catalog','information_schema','pg_toast') AND nspname NOT LIKE 'pg_temp%' AND nspname NOT LIKE 'pg_toast_temp%'"
 
 # ---- integrity ----
 [ "$(q "SELECT count(*) FROM _sqlx_migrations")" = "$EXPECT_COUNT" ] && rep VERIFY applied_count_matches PASS || rep VERIFY applied_count_matches FAIL

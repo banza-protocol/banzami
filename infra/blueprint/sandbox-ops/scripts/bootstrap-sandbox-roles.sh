@@ -70,6 +70,29 @@ GRANT bl_schema_owner TO bl_migration;
 ALTER ROLE bl_migration IN DATABASE :"db_name" SET role = 'bl_schema_owner';
 
 ALTER SCHEMA public OWNER TO bl_schema_owner;
+
+-- Ownership normalization (superuser context). Any app-schema table created OUTSIDE
+-- the migration adapter — e.g. an earlier improvised apply run directly as the
+-- superuser (business_receive_points/_mints in 0154/0155) — is owned by that role,
+-- not the stable owner, which the migration-identity verify rejects and which would
+-- leave financial-write authority off its intended anchor. Reassign every app-schema
+-- table (its indexes + owned sequences follow) to bl_schema_owner. Idempotent and
+-- data-safe (ownership only, no row mutation); a no-op once everything is anchored.
+DO $normalize_owner$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT c.oid::regclass AS rel
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'
+      AND c.relkind IN ('r','p')
+      AND c.relowner <> 'bl_schema_owner'::regrole
+  LOOP
+    EXECUTE format('ALTER TABLE %s OWNER TO bl_schema_owner', r.rel);
+  END LOOP;
+END
+$normalize_owner$;
+
 GRANT CREATE, CONNECT ON DATABASE :"db_name" TO bl_schema_owner;
 GRANT CONNECT ON DATABASE :"db_name" TO bl_migration;
 GRANT CONNECT ON DATABASE :"db_name" TO bl_app_runtime;
