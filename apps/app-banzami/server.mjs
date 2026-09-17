@@ -411,6 +411,11 @@ async function handleBff(req, res, prefix, authority) {
       if (loaded?.id) await store.del(loaded.id);
       json.token = TOKEN_SENTINEL;
       if ('refresh_token' in json) json.refresh_token = TOKEN_SENTINEL;
+      // Echo the non-secret merchant id in the sanitized body. The browser
+      // cannot decode the sentinel token, so the SAME native sign-in screen
+      // (ADR-066) reads the identity from here instead of the JWT claim. This is
+      // the very id already exposed at /session/state — no new exposure.
+      json.merchant_id = rec2.business_authority.merchantId || '';
       return send(res, upstream.status, JSON.stringify(json), {
         'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
         'Set-Cookie': sessionCookies(newId, csrf, remainingTtlMs(rec2)),

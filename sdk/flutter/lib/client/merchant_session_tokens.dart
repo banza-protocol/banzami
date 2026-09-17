@@ -39,6 +39,15 @@ class MerchantAuthTokens extends RenewedSession {
   /// When [refreshToken] stops being accepted (at most 30 days after sign-in).
   final DateTime? refreshExpiresAt;
 
+  /// The signing-in Business's merchant id, when the response carries it as a
+  /// non-secret `merchant_id` field. Native gateways put it only inside the JWT
+  /// (read with `claimFromJwt`); the Web BFF, which replaces the token with a
+  /// sentinel the browser cannot decode, echoes this field so the SAME sign-in
+  /// screen resolves the identity on Web (ADR-066). Null when absent — the caller
+  /// then falls back to the JWT claim. It is only an identifier, never a
+  /// credential.
+  final String? merchantId;
+
   const MerchantAuthTokens({
     required super.token,
     required super.expiresAt,
@@ -46,6 +55,7 @@ class MerchantAuthTokens extends RenewedSession {
     this.tokenType = 'Bearer',
     this.refreshToken,
     this.refreshExpiresAt,
+    this.merchantId,
   });
 
   /// Parses the sign-in / renewal response. Throws [FormatException] when the
@@ -66,6 +76,9 @@ class MerchantAuthTokens extends RenewedSession {
       tokenType: (json['token_type'] as String?) ?? 'Bearer',
       refreshToken: (refresh is String && refresh.isNotEmpty) ? refresh : null,
       refreshExpiresAt: _parseTime(json['refresh_expires_at']),
+      merchantId: (json['merchant_id'] is String && (json['merchant_id'] as String).isNotEmpty)
+          ? json['merchant_id'] as String
+          : null,
     );
   }
 
