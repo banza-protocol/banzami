@@ -55,6 +55,21 @@ test('business allow-list forwards the canonical Business routes', () => {
   assert.ok(matchRoute('GET', '/v1/transactions', 'business')?.auth === 'required');
   assert.ok(matchRoute('GET', '/v1/merchant/wallet-payments', 'business')?.auth === 'required');
   assert.ok(matchRoute('GET', '/v1/merchant/transactions/tx1/receipt.pdf', 'business')?.binary === true);
+
+  // Dividir a conta (Collections/split charge) — the native Dividida flow runs on
+  // Business Web via ADR-066 parity, so the SDK's collection endpoints MUST proxy.
+  const colCreate = matchRoute('POST', '/v1/collections', 'business');
+  assert.ok(colCreate && colCreate.auth === 'required' && colCreate.mutating === true && colCreate.csrf === true);
+  assert.ok(matchRoute('GET', '/v1/collections/col_abc123', 'business')?.auth === 'required'); // track detail
+  assert.ok(matchRoute('GET', '/v1/collections/col_abc123/shares', 'business')?.auth === 'required'); // shares
+  const surface = matchRoute('POST', '/v1/collection-shares/sh_abc123/surface', 'business');
+  assert.ok(surface && surface.auth === 'required' && surface.csrf === true); // surface a share as a payment link
+  assert.ok(matchRoute('POST', '/v1/collections/col_abc123/cancel', 'business')?.csrf === true);
+  // Not an open proxy: no unknown collections verb/segment leaks through.
+  assert.equal(matchRoute('DELETE', '/v1/collections/col_abc123', 'business'), null);
+  assert.equal(matchRoute('POST', '/v1/collections/col_abc123/shares/extra', 'business'), null);
+  // Cross-authority isolation: collections are Business-only, never on the consumer list.
+  assert.equal(matchRoute('POST', '/v1/collections', 'consumer'), null);
 });
 
 test('the internal refresh endpoint is NOT browser-exposed', () => {

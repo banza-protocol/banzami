@@ -143,6 +143,17 @@ export const BUSINESS_ALLOWLIST = [
   { m: 'GET', re: `^/v1/payment-links/${G}$`, auth: 'required' },
   { m: 'DELETE', re: `^/v1/payment-links/${G}$`, auth: 'required', mutating: true, csrf: true },
 
+  // Dividir a conta (split charge) — Collections (BANZA ADR-016) + PaymentIntent
+  // (ADR-015). The native merchant app's Dividida flow runs on Business Web via the
+  // dual-app parity (ADR-066), so the BFF must proxy exactly the endpoints the SDK
+  // calls: create (body idempotency_key — 0159), read/track, surface a share as a
+  // payment link, and cancel. Authority stays server-derived at the gateway.
+  { m: 'POST', re: `^/v1/collections$`, auth: 'required', mutating: true, csrf: true },
+  { m: 'GET', re: `^/v1/collections/${G}$`, auth: 'required' },
+  { m: 'GET', re: `^/v1/collections/${G}/shares$`, auth: 'required' },
+  { m: 'POST', re: `^/v1/collection-shares/${G}/surface$`, auth: 'required', mutating: true, csrf: true },
+  { m: 'POST', re: `^/v1/collections/${G}/cancel$`, auth: 'required', mutating: true, csrf: true },
+
   // History: acquiring transactions + wallet-native received payments.
   { m: 'GET', re: `^/v1/transactions$`, auth: 'required' },
   { m: 'GET', re: `^/v1/merchant/wallet-payments$`, auth: 'required' },
