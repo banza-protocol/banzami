@@ -113,8 +113,8 @@ class _MerchantWelcomeScreenState extends State<MerchantWelcomeScreen>
                     // Feature rows. The icons are passed as CONST Icon widgets at
                     // the call site — never through a record/variable — so Flutter's
                     // Web icon tree-shaker (const_finder) always keeps them. A
-                    // dynamic `Icon(item.$1)` behind a record silently vanishes on
-                    // Web for any glyph not also referenced as a const Icon
+                    // dynamic icon built from a record/list entry silently vanishes
+                    // on Web for any glyph not also referenced as a const Icon
                     // elsewhere (that was the missing bar-chart + bell here).
                     _feature(
                       const Icon(Icons.qr_code_rounded, color: _featureIcon, size: 16),

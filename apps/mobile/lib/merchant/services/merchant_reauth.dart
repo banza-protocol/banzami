@@ -232,6 +232,9 @@ Future<void> signOutBusiness({
   required BanzamiClient client,
   required MerchantSessionService session,
   bool removeAccount = false,
+  // Injectable only so the Web branch is testable off a browser (kIsWeb is a
+  // compile-time false in the VM test host). Production always uses kIsWeb.
+  bool isWeb = kIsWeb,
 }) async {
   final refresh = session.session?.refreshToken;
   if (removeAccount) {
@@ -245,7 +248,7 @@ Future<void> signOutBusiness({
   // requests after "Terminar sessão". The BFF logout (authEnd) clears it by
   // session and ignores the token value, so a sentinel is fine. On native, keep
   // the original behaviour: nothing to revoke when there is no refresh token.
-  if (refresh == null && !kIsWeb) return;
+  if (refresh == null && !isWeb) return;
   try {
     await client.logoutMerchantSession(refresh ?? 'web-session');
   } on Exception {
