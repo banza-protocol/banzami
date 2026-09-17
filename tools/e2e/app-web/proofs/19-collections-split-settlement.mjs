@@ -123,7 +123,10 @@ if (process.env.BANZAMI_E2E !== 'RUN') { console.error('set BANZAMI_E2E=RUN'); p
     R.mark('PROOF_19', false, e.message);
   } finally {
     await browser.close().catch(() => {});
-    if (biz) await retireBusiness(biz.merchantId);
+    // Never retire a REUSED fixture — retireBusiness suspends the merchant, and a
+    // reused Business is meant to persist for other proofs (provisionBusiness sets
+    // reused:true for BZ_BIZ_HANDLE). Only retire a Business this proof provisioned.
+    if (biz && !biz.reused) await retireBusiness(biz.merchantId);
     for (const c of consumers) { try { await c.context.close().catch(() => {}); } catch {} try { retireConsumer(c.handle, { runId: 'proof19' }); } catch {} }
   }
   const out = R.write(assuranceDir('app-web'));
