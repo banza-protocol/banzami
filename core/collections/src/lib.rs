@@ -18,7 +18,7 @@ pub use domain::{
     ResolvedShare, SettlementOutcome, ShareStatus, Surface,
 };
 pub use engine::{CollectionEngine, PostgresCollectionEngine};
-pub use repository::{CollectionRepository, PostgresCollectionRepository};
+pub use repository::{CollectionRepository, CreateOutcome, PostgresCollectionRepository};
 
 use banzami_types::{CollectionId, CollectionShareId, PaymentIntentId};
 use thiserror::Error;
@@ -60,6 +60,9 @@ pub enum CollectionError {
 
     #[error("invalid status transition: {0}")]
     InvalidStatus(String),
+
+    #[error("a different request was already made with this idempotency key")]
+    IdempotencyConflict,
 
     #[error("expires_at must be in the future")]
     ExpiryInPast,

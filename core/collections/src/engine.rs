@@ -14,7 +14,7 @@ use crate::domain::{
     Collection, CollectionShare, CollectionStatus, CreateCollectionRequest, CreateShareRequest,
     IntentStatus, PaymentIntent, SettlementOutcome, ShareStatus, Surface,
 };
-use crate::repository::CollectionRepository;
+use crate::repository::{CollectionRepository, CreateOutcome};
 use crate::{rules, CollectionError};
 
 #[allow(async_fn_in_trait)]
@@ -151,6 +151,12 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
         // pre-declare shares whose amounts MUST sum exactly to the total.
         let resolved = rules::resolve_closed_shares(&req.rule, req.total_amount_minor)?;
 
+        // Semantic digest of THIS request, computed before req is consumed. It is
+        // what tells a replay from a conflict on a repeated idempotency key
+        // (INV-COLLECTION-008, BANZA spec/idempotency.md §3).
+        let idempotency_key = req.idempotency_key.clone();
+        let fingerprint = req.fingerprint();
+
         let now = Utc::now();
         let status = if req.open_immediately {
             CollectionStatus::Open
@@ -171,6 +177,8 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
             status,
             rule: req.rule,
             environment: req.environment.clone(),
+            idempotency_key: idempotency_key.clone(),
+            request_fingerprint: Some(fingerprint.clone()),
             expires_at: req.expires_at,
             closed_at: None,
             metadata: serde_json::json!({}),
@@ -178,12 +186,12 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
             created_at: now,
             updated_at: now,
         };
-        self.repo.insert_collection(&collection).await?;
 
-        // Closed-rule shares are created PENDING. No money is moved.
+        // Closed-rule shares are created PENDING. No money is moved. Built here so
+        // the collection + shares are persisted ATOMICALLY (one transaction).
         let mut shares = Vec::with_capacity(resolved.len());
         for r in resolved {
-            let share = CollectionShare {
+            shares.push(CollectionShare {
                 id: CollectionShareId::new(),
                 collection_id: collection.id,
                 merchant_id: collection.merchant_id,
@@ -199,18 +207,45 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
                 metadata: serde_json::json!({}),
                 created_at: now,
                 updated_at: now,
-            };
-            self.repo.insert_share(&share).await?;
-            shares.push(share);
+            });
         }
 
-        tracing::info!(
-            collection_id = %collection.id,
-            merchant = %collection.merchant_id,
-            shares = shares.len(),
-            "collection created"
-        );
-        Ok((collection, shares))
+        // Idempotent, atomic create (INV-COLLECTION-008). A repeat of the same
+        // (merchant, environment, idempotency_key) returns the SAME collection when
+        // the request is identical (replay) and IdempotencyConflict when it differs.
+        match self
+            .repo
+            .create_collection_idempotent(&collection, &shares)
+            .await?
+        {
+            CreateOutcome::Inserted => {
+                tracing::info!(
+                    collection_id = %collection.id,
+                    merchant = %collection.merchant_id,
+                    shares = shares.len(),
+                    idempotent = idempotency_key.is_some(),
+                    "collection created"
+                );
+                Ok((collection, shares))
+            }
+            CreateOutcome::Existing(existing, existing_shares) => {
+                if existing.request_fingerprint.as_deref() == Some(fingerprint.as_str()) {
+                    tracing::info!(
+                        collection_id = %existing.id,
+                        merchant = %existing.merchant_id,
+                        "collection create replayed (idempotent)"
+                    );
+                    Ok((*existing, existing_shares))
+                } else {
+                    tracing::warn!(
+                        collection_id = %existing.id,
+                        merchant = %existing.merchant_id,
+                        "collection create idempotency conflict (same key, different request)"
+                    );
+                    Err(CollectionError::IdempotencyConflict)
+                }
+            }
+        }
     }
 
     async fn get_collection(

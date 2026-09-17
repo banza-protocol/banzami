@@ -51,6 +51,7 @@ fn map_err(e: CollectionError) -> ApiError {
         InvalidAmount => ApiError::bad_request("amount_minor must be a positive integer"),
         ExpiryInPast => ApiError::bad_request("expires_at must be in the future"),
         InvalidStatus(_) => ApiError::conflict("COLLECTION_INVALID_STATUS", e.to_string()),
+        IdempotencyConflict => ApiError::conflict("IDEMPOTENCY_CONFLICT", e.to_string()),
         Database(_) => ApiError::internal(e.to_string()),
     }
 }

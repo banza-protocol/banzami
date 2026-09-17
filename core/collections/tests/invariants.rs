@@ -13,7 +13,7 @@ use std::sync::Mutex;
 
 use chrono::{DateTime, Utc};
 
-use banzami_collections::repository::CollectionRepository;
+use banzami_collections::repository::{CollectionRepository, CreateOutcome};
 use banzami_collections::{
     Collection, CollectionEngine, CollectionError, CollectionRule, CollectionShare,
     CollectionStatus, CreateCollectionRequest, CreateShareRequest, Divisibility, FixedShare,
@@ -37,6 +37,46 @@ impl CollectionRepository for MemRepo {
             .unwrap()
             .insert(c.id.as_uuid(), c.clone());
         Ok(())
+    }
+
+    async fn create_collection_idempotent(
+        &self,
+        c: &Collection,
+        shares: &[CollectionShare],
+    ) -> Result<CreateOutcome, CollectionError> {
+        // Mirror the DB scope (merchant_id, environment, idempotency_key).
+        if let Some(key) = c.idempotency_key.as_deref() {
+            let existing = self
+                .collections
+                .lock()
+                .unwrap()
+                .values()
+                .find(|x| {
+                    x.merchant_id.as_uuid() == c.merchant_id.as_uuid()
+                        && x.environment == c.environment
+                        && x.idempotency_key.as_deref() == Some(key)
+                })
+                .cloned();
+            if let Some(existing) = existing {
+                let existing_shares = self
+                    .shares
+                    .lock()
+                    .unwrap()
+                    .values()
+                    .filter(|s| s.collection_id.as_uuid() == existing.id.as_uuid())
+                    .cloned()
+                    .collect();
+                return Ok(CreateOutcome::Existing(Box::new(existing), existing_shares));
+            }
+        }
+        self.collections
+            .lock()
+            .unwrap()
+            .insert(c.id.as_uuid(), c.clone());
+        for s in shares {
+            self.shares.lock().unwrap().insert(s.id.as_uuid(), s.clone());
+        }
+        Ok(CreateOutcome::Inserted)
     }
     async fn find_collection(
         &self,
@@ -717,4 +757,94 @@ async fn settlement_of_non_collection_surface_is_a_noop() {
         .await
         .unwrap();
     assert!(out.is_none(), "plain QR/link payments are not affected");
+}
+
+// ─── Idempotency (INV-COLLECTION-008, BANZA spec/idempotency.md) ───────────────
+
+fn keyed_req(m: MerchantId, w: WalletId, total: i64, key: &str) -> CreateCollectionRequest {
+    CreateCollectionRequest {
+        operator_id: "banzami".into(),
+        creator: m.to_string(),
+        owner: m.to_string(),
+        merchant_id: m,
+        wallet_id: w,
+        title: Some("Split".into()),
+        description: None,
+        currency: "AOA".into(),
+        total_amount_minor: total,
+        rule: CollectionRule::EqualSplit {
+            participants_count: 2,
+            divisibility: Divisibility::Exact,
+        },
+        environment: "SANDBOX".into(),
+        idempotency_key: Some(key.into()),
+        expires_at: None,
+        open_immediately: true,
+    }
+}
+
+#[tokio::test]
+async fn create_idempotent_replay_returns_same_collection() {
+    // INV-COLLECTION-008: same authority + same key + same request → SAME collection,
+    // never a second one, and the same shares.
+    let e = engine();
+    let (m, w) = (MerchantId::new(), WalletId::new());
+    let (c1, s1) = e.create_collection(keyed_req(m, w, 45_200, "k-1")).await.unwrap();
+    let (c2, s2) = e.create_collection(keyed_req(m, w, 45_200, "k-1")).await.unwrap();
+    assert_eq!(c1.id.as_uuid(), c2.id.as_uuid(), "replay returns the SAME collection");
+    // Same share set (the in-memory test repo does not preserve order; the real
+    // Postgres repo returns them created_at ASC — order is asserted in the DB test).
+    let mut a: Vec<_> = s1.iter().map(|s| s.id.as_uuid()).collect();
+    let mut b: Vec<_> = s2.iter().map(|s| s.id.as_uuid()).collect();
+    a.sort();
+    b.sort();
+    assert_eq!(a, b, "replay returns the SAME shares");
+    assert_eq!(s1.len(), 2);
+}
+
+#[tokio::test]
+async fn create_idempotency_payload_conflict() {
+    // Same authority + same key + DIFFERENT request (different total) → conflict,
+    // never a silent return of the unrelated prior collection.
+    let e = engine();
+    let (m, w) = (MerchantId::new(), WalletId::new());
+    e.create_collection(keyed_req(m, w, 45_200, "k-2")).await.unwrap();
+    let err = e.create_collection(keyed_req(m, w, 90_000, "k-2")).await.unwrap_err();
+    assert!(matches!(err, CollectionError::IdempotencyConflict), "got {err:?}");
+}
+
+#[tokio::test]
+async fn create_idempotency_cross_business_independent() {
+    // Two different Businesses using the SAME key describe two different operations
+    // (spec §2 scope = merchant + environment + key) → two collections, no collision.
+    let e = engine();
+    let (a, b, w) = (MerchantId::new(), MerchantId::new(), WalletId::new());
+    let (ca, _) = e.create_collection(keyed_req(a, w, 45_200, "same")).await.unwrap();
+    let (cb, _) = e.create_collection(keyed_req(b, w, 45_200, "same")).await.unwrap();
+    assert_ne!(ca.id.as_uuid(), cb.id.as_uuid(), "same key, different Business = independent");
+}
+
+#[tokio::test]
+async fn create_different_key_same_payload_independent() {
+    // Same request, DIFFERENT key → two independent collections (a new intent).
+    let e = engine();
+    let (m, w) = (MerchantId::new(), WalletId::new());
+    let (c1, _) = e.create_collection(keyed_req(m, w, 45_200, "k-A")).await.unwrap();
+    let (c2, _) = e.create_collection(keyed_req(m, w, 45_200, "k-B")).await.unwrap();
+    assert_ne!(c1.id.as_uuid(), c2.id.as_uuid());
+}
+
+#[tokio::test]
+async fn create_without_key_always_new() {
+    // No key → no dedup; every call is a new collection.
+    let e = engine();
+    let (m, w) = (MerchantId::new(), WalletId::new());
+    let mk = || {
+        let mut r = keyed_req(m, w, 45_200, "unused");
+        r.idempotency_key = None;
+        r
+    };
+    let (c1, _) = e.create_collection(mk()).await.unwrap();
+    let (c2, _) = e.create_collection(mk()).await.unwrap();
+    assert_ne!(c1.id.as_uuid(), c2.id.as_uuid());
 }

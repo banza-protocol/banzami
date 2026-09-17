@@ -8,6 +8,7 @@ use banzami_types::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 // ---------------------------------------------------------------------------
 // Status enums
@@ -157,6 +158,15 @@ pub struct Collection {
     pub status: CollectionStatus,
     pub rule: CollectionRule,
     pub environment: String,
+    /// Caller-supplied idempotency key. Scope is (merchant_id, environment,
+    /// idempotency_key) — never global (BANZA spec/idempotency.md §2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotency_key: Option<String>,
+    /// Semantic digest of the create request (spec/idempotency.md §3). Used to
+    /// tell a replay (same key + same fingerprint) from a conflict (same key +
+    /// different fingerprint). Never serialised to clients — internal only.
+    #[serde(default, skip_serializing)]
+    pub request_fingerprint: Option<String>,
     pub expires_at: Option<DateTime<Utc>>,
     pub closed_at: Option<DateTime<Utc>>,
     pub metadata: serde_json::Value,
@@ -223,6 +233,59 @@ pub struct CreateCollectionRequest {
     pub idempotency_key: Option<String>,
     pub expires_at: Option<DateTime<Utc>>,
     pub open_immediately: bool,
+}
+
+impl CreateCollectionRequest {
+    /// Deterministic semantic digest of this create request (BANZA
+    /// spec/idempotency.md §3): the fields that make two create requests "the same
+    /// operation". Excludes the idempotency key itself (§4) and any volatile /
+    /// non-semantic field. Two create requests carrying the same key are a REPLAY
+    /// when their fingerprints are equal and a CONFLICT when they differ.
+    ///
+    /// serde preserves struct field order, so the serialised bytes are
+    /// reproducible for equal inputs — the digest is stable across processes and
+    /// language runtimes.
+    pub fn fingerprint(&self) -> String {
+        #[derive(Serialize)]
+        struct Fp<'a> {
+            operator_id: &'a str,
+            creator: &'a str,
+            owner: &'a str,
+            merchant_id: String,
+            wallet_id: String,
+            title: &'a Option<String>,
+            description: &'a Option<String>,
+            currency: &'a str,
+            total_amount_minor: i64,
+            rule: &'a CollectionRule,
+            environment: &'a str,
+            // Second granularity: a client retry resends the identical value, and
+            // idempotency need not distinguish sub-second differences.
+            expires_at: Option<i64>,
+            open_immediately: bool,
+        }
+        let fp = Fp {
+            operator_id: &self.operator_id,
+            creator: &self.creator,
+            owner: &self.owner,
+            merchant_id: self.merchant_id.as_uuid().to_string(),
+            wallet_id: self.wallet_id.as_uuid().to_string(),
+            title: &self.title,
+            description: &self.description,
+            currency: &self.currency,
+            total_amount_minor: self.total_amount_minor,
+            rule: &self.rule,
+            environment: &self.environment,
+            expires_at: self.expires_at.map(|t| t.timestamp()),
+            open_immediately: self.open_immediately,
+        };
+        // Serialisation of these primitive fields cannot fail; on the impossible
+        // error fall back to empty bytes (a stable, distinct-from-any-real digest).
+        let bytes = serde_json::to_vec(&fp).unwrap_or_default();
+        let mut h = Sha256::new();
+        h.update(&bytes);
+        format!("{:x}", h.finalize())
+    }
 }
 
 pub struct CreateShareRequest {

@@ -17,10 +17,33 @@ use crate::domain::{
 };
 use crate::CollectionError;
 
+/// The result of an idempotent create. `Inserted` means THIS call created the
+/// collection (and its shares) — the caller keeps the collection/shares it built.
+/// `Existing` means a prior or racing create with the same (merchant, environment,
+/// idempotency_key) already exists; the caller compares fingerprints to decide
+/// replay vs conflict.
+pub enum CreateOutcome {
+    Inserted,
+    // Boxed: a Collection is far larger than the unit Inserted variant.
+    Existing(Box<Collection>, Vec<CollectionShare>),
+}
+
 #[allow(async_fn_in_trait)]
 pub trait CollectionRepository: Send + Sync {
     // collections
     async fn insert_collection(&self, c: &Collection) -> Result<(), CollectionError>;
+    /// Create a collection and its (closed-rule) shares ATOMICALLY and
+    /// idempotently. The collection insert uses the (merchant_id, environment,
+    /// idempotency_key) unique boundary with ON CONFLICT DO NOTHING; when a key is
+    /// present and already used, no row is inserted and the existing collection +
+    /// its shares are returned (INV-COLLECTION-008). Collection and shares commit
+    /// together, so a racing loser that reads the winner never sees a half-created
+    /// collection.
+    async fn create_collection_idempotent(
+        &self,
+        c: &Collection,
+        shares: &[CollectionShare],
+    ) -> Result<CreateOutcome, CollectionError>;
     async fn find_collection(
         &self,
         id: CollectionId,
@@ -139,6 +162,8 @@ struct CollectionRow {
     status: String,
     rule: serde_json::Value,
     environment: String,
+    idempotency_key: Option<String>,
+    request_fingerprint: Option<String>,
     expires_at: Option<DateTime<Utc>>,
     closed_at: Option<DateTime<Utc>>,
     metadata: serde_json::Value,
@@ -165,6 +190,8 @@ impl CollectionRow {
             status: CollectionStatus::try_from_str(&self.status).unwrap_or(CollectionStatus::Draft),
             rule,
             environment: self.environment,
+            idempotency_key: self.idempotency_key,
+            request_fingerprint: self.request_fingerprint,
             expires_at: self.expires_at,
             closed_at: self.closed_at,
             metadata: self.metadata,
@@ -261,6 +288,7 @@ impl IntentRow {
 
 const C_SELECT: &str = "SELECT id, operator_id, creator, owner, merchant_id, wallet_id, title,
             description, currency, total_amount_minor, status, rule, environment,
+            idempotency_key, request_fingerprint,
             expires_at, closed_at, metadata, version, created_at, updated_at
      FROM collections";
 
@@ -287,6 +315,27 @@ impl PostgresCollectionRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+
+    /// Find a collection by its canonical idempotency scope
+    /// (merchant_id, environment, idempotency_key). Used by the idempotent create
+    /// to resolve the winner after an ON CONFLICT no-op.
+    async fn find_collection_by_idempotency(
+        &self,
+        merchant_id: MerchantId,
+        environment: &str,
+        idempotency_key: &str,
+    ) -> Result<Option<Collection>, CollectionError> {
+        let row = sqlx::query_as::<_, CollectionRow>(&format!(
+            "{C_SELECT} WHERE merchant_id = $1 AND environment = $2 AND idempotency_key = $3"
+        ))
+        .bind(merchant_id.as_uuid())
+        .bind(environment)
+        .bind(idempotency_key)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(CollectionError::Database)?;
+        row.map(CollectionRow::into_domain).transpose()
+    }
 }
 
 impl CollectionRepository for PostgresCollectionRepository {
@@ -296,9 +345,9 @@ impl CollectionRepository for PostgresCollectionRepository {
         sqlx::query(
             "INSERT INTO collections
              (id, operator_id, creator, owner, merchant_id, wallet_id, title, description,
-              currency, total_amount_minor, status, rule, environment, expires_at, metadata,
-              version, created_at, updated_at)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)",
+              currency, total_amount_minor, status, rule, environment, idempotency_key,
+              request_fingerprint, expires_at, metadata, version, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)",
         )
         .bind(c.id.as_uuid())
         .bind(&c.operator_id)
@@ -313,6 +362,8 @@ impl CollectionRepository for PostgresCollectionRepository {
         .bind(c.status.as_str())
         .bind(rule)
         .bind(&c.environment)
+        .bind(&c.idempotency_key)
+        .bind(&c.request_fingerprint)
         .bind(c.expires_at)
         .bind(&c.metadata)
         .bind(c.version)
@@ -322,6 +373,101 @@ impl CollectionRepository for PostgresCollectionRepository {
         .await
         .map_err(CollectionError::Database)?;
         Ok(())
+    }
+
+    async fn create_collection_idempotent(
+        &self,
+        c: &Collection,
+        shares: &[CollectionShare],
+    ) -> Result<CreateOutcome, CollectionError> {
+        let rule = serde_json::to_value(&c.rule)
+            .map_err(|e| CollectionError::InvalidRule(e.to_string()))?;
+        // One transaction: the collection AND its shares commit together, so a
+        // concurrent caller that loses the (merchant, environment, key) race and
+        // reads the winner can never observe a collection with missing shares.
+        let mut tx = self.pool.begin().await.map_err(CollectionError::Database)?;
+
+        // ON CONFLICT on the scoped unique index. With a NULL idempotency_key the
+        // tuple is distinct, so keyless creates never conflict and always insert.
+        let inserted = sqlx::query(
+            "INSERT INTO collections
+             (id, operator_id, creator, owner, merchant_id, wallet_id, title, description,
+              currency, total_amount_minor, status, rule, environment, idempotency_key,
+              request_fingerprint, expires_at, metadata, version, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+             ON CONFLICT (merchant_id, environment, idempotency_key) DO NOTHING",
+        )
+        .bind(c.id.as_uuid())
+        .bind(&c.operator_id)
+        .bind(&c.creator)
+        .bind(&c.owner)
+        .bind(c.merchant_id.as_uuid())
+        .bind(c.wallet_id.as_uuid())
+        .bind(&c.title)
+        .bind(&c.description)
+        .bind(&c.currency)
+        .bind(c.total_amount_minor)
+        .bind(c.status.as_str())
+        .bind(rule)
+        .bind(&c.environment)
+        .bind(&c.idempotency_key)
+        .bind(&c.request_fingerprint)
+        .bind(c.expires_at)
+        .bind(&c.metadata)
+        .bind(c.version)
+        .bind(c.created_at)
+        .bind(c.updated_at)
+        .execute(&mut *tx)
+        .await
+        .map_err(CollectionError::Database)?
+        .rows_affected()
+            == 1;
+
+        if inserted {
+            for s in shares {
+                sqlx::query(
+                    "INSERT INTO collection_shares
+                     (id, collection_id, merchant_id, participant, amount_minor, currency, status,
+                      payment_intent_id, transfer_id, environment, expires_at, metadata, created_at, updated_at)
+                     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
+                )
+                .bind(s.id.as_uuid())
+                .bind(s.collection_id.as_uuid())
+                .bind(s.merchant_id.as_uuid())
+                .bind(&s.participant)
+                .bind(s.amount_minor)
+                .bind(&s.currency)
+                .bind(s.status.as_str())
+                .bind(s.payment_intent_id.map(|p| p.as_uuid()))
+                .bind(s.transfer_id.map(|t| t.as_uuid()))
+                .bind(&s.environment)
+                .bind(s.expires_at)
+                .bind(&s.metadata)
+                .bind(s.created_at)
+                .bind(s.updated_at)
+                .execute(&mut *tx)
+                .await
+                .map_err(CollectionError::Database)?;
+            }
+            tx.commit().await.map_err(CollectionError::Database)?;
+            return Ok(CreateOutcome::Inserted);
+        }
+
+        // Lost the race (or a prior identical create). Our conflicting insert
+        // waited for the winner's transaction, so by now its collection + shares
+        // are committed and visible. Nothing to keep from this transaction.
+        tx.rollback().await.map_err(CollectionError::Database)?;
+
+        let key = c
+            .idempotency_key
+            .as_deref()
+            .ok_or_else(|| CollectionError::Database(sqlx::Error::RowNotFound))?;
+        let existing = self
+            .find_collection_by_idempotency(c.merchant_id, &c.environment, key)
+            .await?
+            .ok_or(CollectionError::Database(sqlx::Error::RowNotFound))?;
+        let existing_shares = self.list_shares(existing.id, i64::MAX, None).await?;
+        Ok(CreateOutcome::Existing(Box::new(existing), existing_shares))
     }
 
     async fn find_collection(
