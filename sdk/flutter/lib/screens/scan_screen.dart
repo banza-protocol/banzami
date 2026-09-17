@@ -179,12 +179,19 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         debugPrint('[QR-SCAN] route=PaymentLink slug=$slug');
         await _openPaymentLink(slug);
 
-      case BanzamiQrBusinessReceivePoint(:final slug, :final isSandbox):
+      case BanzamiQrBusinessReceivePoint(:final slug):
         // ADR-065: a persistent Business receive point resolves to a public
         // Business identity and mints a FRESH Payment Session after the payer
         // enters an amount. The QR is persistent; the session is not.
+        //
+        // Its resolution and session INHERIT the platform environment (ADR-065
+        // "Sandbox / Live boundary": the resolving gateway is the environment),
+        // so the canonical pay URL carries no ?sandbox marker — exactly like a
+        // payment link. No client-side environment gate here: the server-side
+        // resolve is authoritative and fail-closed (a slug absent in this
+        // environment is refused). Gating on the absent marker would wrongly
+        // reject every Sandbox receive-point QR in the Sandbox app.
         debugPrint('[QR-SCAN] route=BusinessReceivePoint slug=$slug');
-        if (_sandboxMismatch(isSandbox)) return;
         await _openReceivePoint(slug);
     }
   }

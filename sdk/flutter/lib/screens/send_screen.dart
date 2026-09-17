@@ -272,10 +272,13 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         BanzamiToast.showWarning(context,
             'Este é um link de pagamento. Leia-o em "QR Code", no início.');
 
-      case BanzamiQrBusinessReceivePoint(:final slug, :final isSandbox):
+      case BanzamiQrBusinessReceivePoint(:final slug):
         // ADR-065: scanning a Business receive point pays that Business — resolve
         // its identity and mint a fresh session for the amount the payer enters.
-        if (_sandboxMismatch(isSandbox)) return;
+        // Resolution inherits the platform environment (the resolving gateway is
+        // the environment), so the pay URL carries no ?sandbox marker and there is
+        // no client-side environment gate — the server resolve is authoritative,
+        // exactly as for a payment link.
         Navigator.of(context).push(BanzamiPageRoute(
           page: BanzamiReceivePointScreen(
             client: widget.client,
