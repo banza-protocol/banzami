@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:banzami_flutter/banzami_flutter.dart' show BanzamiColors;
 
+import 'web_location.dart';
+
 /// Presents App Banzami Web inside a realistic mobile DEVICE SHELL on desktop /
 /// wide viewports (WEB-APP-001 device-shell milestone). The shell is pure
 /// presentation — bezel, notch, safe areas, shadow, neutral canvas — and never
@@ -81,13 +83,28 @@ class WebDesktopShell extends StatelessWidget {
             // Hero embed: the WHOLE device, contain-fit (never cropped). The
             // React iframe is sized to the device's aspect ratio, so contain
             // fills it edge-to-edge with the complete phone — top bezel to bottom
-            // bezel — visible. Its on-page size is driven by the container.
+            // bezel — visible. Its on-page size is driven by the container. No
+            // app switcher here: the marketing hero shows the phone alone.
             ? Center(child: FittedBox(fit: BoxFit.contain, child: device))
+            // Standalone (app.banzami.com): the Personal↔Business switcher lives
+            // in the OUTER web shell — above the phone frame, on the neutral
+            // canvas — never inside the app viewport (APP-BANZAMI-WEB-DUAL-SHELL-001).
+            // The two apps stay distinct; the switch is a hard navigation between
+            // `/` and `/business`, each booting its own app.
             : Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                      maxWidth: _maxSlotW, maxHeight: _maxSlotH),
-                  child: FittedBox(fit: BoxFit.contain, child: device),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const _WebAppSwitcher(),
+                    const SizedBox(height: 18),
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                            maxWidth: _maxSlotW, maxHeight: _maxSlotH),
+                        child: FittedBox(fit: BoxFit.contain, child: device),
+                      ),
+                    ),
+                  ],
                 ),
               );
         return DecoratedBox(
@@ -227,6 +244,63 @@ class _Island extends StatelessWidget {
         color: const Color(0xFF0A0A0B),
         borderRadius: BorderRadius.circular(20),
       ),
+    );
+  }
+}
+
+/// Personal ↔ Business switcher — OUTER web-shell chrome only. It sits above the
+/// device frame on the neutral canvas, never inside the phone viewport, so the app
+/// screens stay faithful to native mobile (which has no such control). Switching is
+/// a real navigation between the two distinct apps (`/` and `/business`); the BFF
+/// session cookie carries both authorities, so the destination boots straight in.
+class _WebAppSwitcher extends StatelessWidget {
+  const _WebAppSwitcher();
+
+  @override
+  Widget build(BuildContext context) {
+    final segs = Uri.base.pathSegments.where((s) => s.isNotEmpty).toList();
+    final isBusiness = segs.isNotEmpty && segs.first == 'business';
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFEEE4E4)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _segment('Pessoal', !isBusiness, () => navigateToPath('/')),
+          _segment('Business', isBusiness, () => navigateToPath('/business')),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(String label, bool active, VoidCallback onTap) {
+    final seg = AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 9),
+      decoration: BoxDecoration(
+        color: active ? BanzamiColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? Colors.white : BanzamiColors.gray600,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+        ),
+      ),
+    );
+    if (active) return seg;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(onTap: onTap, child: seg),
     );
   }
 }

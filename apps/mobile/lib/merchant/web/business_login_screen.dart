@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../platform/web_location.dart';
 import 'merchant_web_session.dart';
 
 /// Business Web sign-in — the canonical @handle + PIN contract (ADR-066). No
@@ -101,11 +100,9 @@ class _BusinessLoginScreenState extends State<BusinessLoginScreen> {
                     isLoading: busy,
                     onPressed: busy ? null : _submit,
                   ),
-                  const SizedBox(height: 8),
-                  BanzamiGhostButton(
-                    label: 'Ir para a conta Pessoal',
-                    onPressed: () => navigateToPath('/'),
-                  ),
+                  // No in-app "Ir para a conta Pessoal": the Personal↔Business
+                  // switch lives only in the outer web shell
+                  // (APP-BANZAMI-WEB-DUAL-SHELL-001).
                 ],
               ),
             ),

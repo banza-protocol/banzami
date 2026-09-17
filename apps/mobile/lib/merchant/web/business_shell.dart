@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../branding_assets.dart';
-import '../../platform/web_location.dart';
 import 'business_charge_screen.dart';
 import 'merchant_web_session.dart';
 
@@ -443,7 +442,9 @@ class _ProfileTab extends StatelessWidget {
         const SizedBox(height: 8),
         if (session.isSandbox) const Center(child: _SandboxChip()),
         const SizedBox(height: 24),
-        _tile(Icons.swap_horiz_rounded, 'Mudar para Pessoal', 'Ir para a sua conta pessoal', () => navigateToPath('/')),
+        // No in-app Personal↔Business switch: that control lives only in the outer
+        // web shell (APP-BANZAMI-WEB-DUAL-SHELL-001), keeping the app faithful to
+        // native mobile where no such switch exists.
         _tile(Icons.logout_rounded, 'Terminar sessão Business', 'Sair apenas do Business', () => _confirmLogout(context)),
       ],
     );

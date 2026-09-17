@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
+import '../../platform/web_desktop_shell.dart';
 import 'business_login_screen.dart';
 import 'business_shell.dart';
 import 'merchant_web_session.dart';
@@ -51,6 +52,11 @@ class BusinessWebApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: BanzamiColors.primary),
         ),
         home: const _BusinessBoot(),
+        // Same outer web shell as the Consumer app (`/`): on a wide browser the
+        // Business app renders inside the centred framed-phone presentation on the
+        // neutral canvas, with the Personal↔Business switcher in the outer chrome
+        // (APP-BANZAMI-WEB-DUAL-SHELL-001). A no-op on native and narrow web.
+        builder: (_, child) => WebDesktopShell(child: child!),
       ),
     );
   }
