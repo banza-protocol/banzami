@@ -595,10 +595,16 @@ release_config_env() {
       # container so a single-service swap does not depend on BZSB_PROJECT. The
       # session Redis is the dedicated app-plane one created at first deploy.
       echo "NODE_ENV=production"
-      local afp afr
+      local afp afr afg
       afp="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
       [ -n "$afp" ] || afp="${BZSB_PROJECT:-}-public-api-staging"
       echo "CONSUMER_API_BASE=http://${afp}:8083"
+      # BUSINESS_API_BASE is the INTERNAL gateway (ADR-066): the Business context's
+      # merchant-JWT endpoints (/v1/merchant/auth/*, /v1/business/*, /v1/payment-links,
+      # /v1/transactions, …) live on the gateway, reached by the BFF at /business/api/*.
+      afg="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
+      [ -n "$afg" ] || afg="${BZSB_PROJECT:-}-api-gateway-staging"
+      echo "BUSINESS_API_BASE=http://${afg}:8080"
       afr="$(docker ps --format '{{.Names}}' | grep -E -- '-app-session-redis$' | head -1 || true)"
       [ -n "$afr" ] || afr="${BZSB_PROJECT:-}-app-session-redis"
       echo "SESSION_REDIS_ADDR=${afr}:6379"
@@ -667,6 +673,9 @@ cmd_deploy_one() {
     fi
     papi="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
     [ -n "$papi" ] || papi="${proj}-public-api-staging"
+    local pgw
+    pgw="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
+    [ -n "$pgw" ] || pgw="${proj}-api-gateway-staging"
     echo "  $name first create on $appnet (application plane; session-store key only)"
     docker create --name "$cname" --network "$appnet" \
       --security-opt "no-new-privileges:true" --restart unless-stopped \
@@ -674,6 +683,7 @@ cmd_deploy_one() {
       -v "$secret_dir/app_web_session_store_key:/run/secrets/app_web_session_store_key:ro" \
       -e "NODE_ENV=production" -e "PORT=$port" -e "HOSTNAME=0.0.0.0" \
       -e "CONSUMER_API_BASE=http://${papi}:8083" \
+      -e "BUSINESS_API_BASE=http://${pgw}:8080" \
       -e "SESSION_REDIS_ADDR=${sredis}:6379" \
       --entrypoint sh "$tag" -c "$(secret_entrypoint app-frontend "$bin")" >/dev/null 2>&1 \
       || { echo "  $name first create FAIL"; return 1; }
