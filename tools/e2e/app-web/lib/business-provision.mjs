@@ -74,9 +74,9 @@ export async function retireBusiness(merchantId) {
   if (!merchantId) return;
   try {
     sshOut(`
-GW=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-api-gateway-staging')
-IK=$(docker exec "$GW" sh -c "tr '\\0' '\\n' < /proc/1/environ | sed -n 's/^INTERNAL_API_KEY=//p'")
-docker exec "$GW" curl -s -o /dev/null -X POST "http://localhost:8080/internal/v1/merchants/${merchantId}/suspend" -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"reason":"app-web-business-e2e cleanup"}' || true
+CORE=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging')
+IK=$(docker exec "$CORE" sh -c "tr '\\0' '\\n' < /proc/1/environ | sed -n 's/^INTERNAL_API_KEY=//p'")
+docker exec "$CORE" curl -s -o /dev/null -X POST "http://localhost:8081/internal/v1/merchants/${merchantId}/suspend" -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"reason":"app-web-business-e2e cleanup"}' || true
 `);
   } catch { /* best-effort */ }
 }
