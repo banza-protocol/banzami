@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:banzami_flutter/banzami_flutter.dart' hide Consumer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -83,11 +85,22 @@ class _HomeTabState extends State<_HomeTab> {
   List<MerchantWalletPayment> _recent = const [];
   bool _loading = true;
   String? _error;
+  Timer? _poll;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // Canonical server-truth convergence without a manual pull (mirrors the native
+    // Business app's poll): an incoming payment shows on Home on its own. No local
+    // arithmetic — every value is re-read from the server.
+    _poll = Timer.periodic(const Duration(seconds: 10), (_) { if (mounted) _load(); });
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -204,8 +217,43 @@ class _PaymentRow extends StatelessWidget {
       title: Text(p.payerName.isEmpty ? 'Pagamento recebido' : p.payerName, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(p.status, style: const TextStyle(fontSize: 12, color: BanzamiColors.gray400)),
       trailing: MoneyAmount(p.amountMinor, size: MoneySize.sm),
+      onTap: () => _showDetail(context, p),
     );
   }
+
+  // Canonical transaction detail — amount, status, date and the proof reference
+  // (the same reference the canonical receipt carries; no Business-Web receipt fork).
+  void _showDetail(BuildContext context, MerchantWalletPayment p) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Pagamento recebido', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: BanzamiColors.gray900)),
+            const SizedBox(height: 12),
+            MoneyAmount(p.amountMinor, currency: p.currency, size: MoneySize.lg, tone: MoneyTone.brand),
+            const SizedBox(height: 16),
+            _detailRow('De', p.payerName.isEmpty ? '—' : p.payerName),
+            _detailRow('Estado', p.status),
+            _detailRow('Referência', p.reference.isEmpty ? '—' : p.reference),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String k, String v) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(k, style: const TextStyle(color: BanzamiColors.gray400)),
+          Flexible(child: Text(v, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600, color: BanzamiColors.gray900))),
+        ]),
+      );
 }
 
 // ── Histórico ─────────────────────────────────────────────────────────────────
