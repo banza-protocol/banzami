@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -65,6 +66,19 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   // Lightweight status check — callers should have already called
   // BanzamiCameraPermission.ensure(), so this is typically instant.
   Future<void> _guardPermission() async {
+    // On the Web the native permission plugin is NOT the authority: the browser
+    // grants camera access through getUserMedia when BanzamiQrScanner opens, and
+    // BanzamiCameraPermission.ensure() has already deferred to it. Re-checking the
+    // native Permission.camera.status here (which is not meaningful on web, and
+    // reads as denied even when the browser will prompt) would wrongly pop the
+    // scanner before it ever opened — the exact reason the Home 'QR Code' button
+    // failed to open the camera while the Send screen's scan (which opens
+    // BanzamiQrScanner directly) worked. Mirror ensure(): defer to the scanner.
+    if (kIsWeb) {
+      debugPrint('[QR-CAMERA] web — deferring to browser getUserMedia');
+      setState(() => _cameraReady = true);
+      return;
+    }
     final status = await Permission.camera.status;
     if (!mounted) return;
     if (status.isGranted) {
