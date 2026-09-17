@@ -54,7 +54,12 @@ RUN addgroup -S banzami && adduser -S banzami -G banzami
 COPY apps/app-banzami/package.json ./package.json
 COPY apps/app-banzami/server.mjs ./server.mjs
 COPY apps/app-banzami/lib ./lib
+COPY apps/app-banzami/scripts ./scripts
 COPY --from=webbuild /src/apps/mobile/build/web ./web
+# Content-address the font URLs so a byte change (new tree-shaken icon subset) always
+# yields a new URL — no browser/CDN can serve a stale font subset after a deploy
+# (BUSINESS-WEB-ICON defect fix). Build-time content hash, not a runtime timestamp.
+RUN node scripts/content-address-fonts.mjs ./web
 RUN chown -R banzami:banzami /app
 USER banzami
 EXPOSE 3007

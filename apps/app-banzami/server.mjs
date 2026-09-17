@@ -119,11 +119,21 @@ async function serveStatic(req, res) {
   // that only the new subset carries render blank. Revalidate everything under
   // /assets/ via ETag (a 304 when unchanged — negligible cost); keep the long
   // immutable cache only for engine files (/canvaskit/) and other static content.
-  const revalidate = NO_CACHE.has(rel) || rel.startsWith('/assets/');
+  // A content-addressed request (…?v=<hash>, produced at build time for fonts) is
+  // safe to cache forever: when the bytes change the URL changes. Everything under
+  // /assets/ without a version query is revalidated (its bytes can change under a
+  // stable URL — the stale-font defect); engine files and other static content keep
+  // the long cache.
+  const hasVersion = /[?&]v=/.test(req.url || '');
+  const underAssets = NO_CACHE.has(rel) || rel.startsWith('/assets/');
+  let cacheControl;
+  if (hasVersion && rel.startsWith('/assets/')) cacheControl = 'public, max-age=31536000, immutable';
+  else if (underAssets) cacheControl = 'no-cache';
+  else cacheControl = 'public, max-age=604800';
   const headers = {
     'Content-Type': MIME[ext] || 'application/octet-stream',
     'ETag': etag,
-    'Cache-Control': revalidate ? 'no-cache' : 'public, max-age=604800',
+    'Cache-Control': cacheControl,
   };
   // The shell seeds a pre-auth opaque session + readable CSRF nonce for a visitor
   // with no live session, so the first write (register/login) is already bound.

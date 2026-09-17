@@ -28,4 +28,11 @@ flutter build web \
 DEST="$ROOT/apps/app-banzami/web"
 rm -rf "$DEST"; mkdir -p "$DEST"
 cp -R build/web/. "$DEST/"
+
+# Content-address the font URLs so a byte change (a new tree-shaken icon subset)
+# always produces a new URL — no browser/CDN can serve a stale font subset after a
+# deploy (BUSINESS-WEB-ICON defect fix; a build-time content hash, not a runtime
+# timestamp). Must run AFTER the bundle is staged into $DEST.
+node "$ROOT/apps/app-banzami/scripts/content-address-fonts.mjs" "$DEST"
+
 echo "App Banzami Web bundle staged → $DEST (env=$ENVIRONMENT, api=$PUBLIC_API_URL)"
