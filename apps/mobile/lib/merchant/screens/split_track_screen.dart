@@ -53,6 +53,11 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
   String? _error;
   Timer? _poll;
 
+  /// The share whose QR bottom sheet is currently open, if any. When the poller
+  /// sees that share get PAID, the sheet is auto-dismissed — the merchant does not
+  /// have to close a QR that has already been paid.
+  String? _openSheetShareId;
+
   @override
   void initState() {
     super.initState();
@@ -110,9 +115,26 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
         _shares     = shares;
       });
       _surfacePending();
+      _dismissSheetIfPaid();
     } catch (_) {
       // Best-effort — a transient failure just waits for the next tick.
     }
+  }
+
+  /// If the QR bottom sheet for a share is open and that share has just been paid,
+  /// close it automatically (and confirm to the merchant).
+  void _dismissSheetIfPaid() {
+    final openId = _openSheetShareId;
+    if (openId == null || !mounted) return;
+    var idx = -1;
+    for (var i = 0; i < _shares.length; i++) {
+      if (_shares[i].id == openId) { idx = i; break; }
+    }
+    if (idx == -1 || !_shares[idx].isPaid) return;
+    _openSheetShareId = null;
+    // Pop the modal sheet (the topmost route above this screen).
+    Navigator.of(context).pop();
+    BanzamiToast.showSuccess(context, 'Pessoa ${idx + 1} pagou · ${formatMinor(_shares[idx].amountMinor, _shares[idx].currency)}');
   }
 
   // Surface every still-pending share once (as a payment link) and resolve its
@@ -340,6 +362,9 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
     }
     if (!mounted) return;
     final payUrl = url;
+    // Remember which share's QR is on screen so the poller can auto-close it the
+    // moment this share is paid.
+    _openSheetShareId = share.id;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: BanzamiColors.white,
@@ -393,6 +418,8 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
         ]),
       ),
     );
+    // Sheet closed (manually or auto-dismissed) — stop tracking it.
+    _openSheetShareId = null;
   }
 
   static String _statusLabel(String s) {
