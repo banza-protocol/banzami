@@ -17,6 +17,25 @@ REPO_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 cd "$REPO_ROOT"
 S=infra/blueprint/sandbox-ops/scripts
 
+# The original bootstrap persisted its state under a NON-default TMPDIR
+# (/opt/banzami-blueprint/tmp), not /tmp. The controller resolves the existing
+# bzsandbox project's state from $TMPDIR/banzami-blueprint-sandbox/current.run, so
+# point it at the base that actually holds the state — and NEVER re-bootstrap (that
+# wipes the PG volume). Both the release package build and the migration must run
+# under the same base, so export it before anything.
+if [ -z "${TMPDIR:-}" ] || [ ! -f "${TMPDIR%/}/banzami-blueprint-sandbox/current.run" ]; then
+  for base in /opt/banzami-blueprint/tmp /tmp; do
+    if [ -f "$base/banzami-blueprint-sandbox/current.run" ]; then export TMPDIR="$base"; break; fi
+  done
+fi
+[ -f "${TMPDIR:-/tmp}/banzami-blueprint-sandbox/current.run" ] || {
+  echo "ABORT: bootstrap state (current.run) not found under any known TMPDIR base."
+  echo "       Do NOT run sandbox-bootstrap apply (it wipes the PG volume). Locate the"
+  echo "       existing project's current.run and export TMPDIR to its parent's parent."
+  exit 1; }
+echo "== state base =="
+echo "  TMPDIR=$TMPDIR  (bootstrap state: $TMPDIR/banzami-blueprint-sandbox/current.run)"
+
 echo "== repo =="
 echo "  root=$REPO_ROOT"
 echo "  HEAD=$(git rev-parse HEAD)"
