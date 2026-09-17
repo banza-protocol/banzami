@@ -243,20 +243,25 @@ class _CancelButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color:        BanzamiColors.gray100,
-        borderRadius: const BorderRadius.all(Radius.circular(18)),
-        border:       Border.all(color: BanzamiColors.gray200),
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize:   15,
-            fontWeight: FontWeight.w600,
-            color:      BanzamiColors.gray900,
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color:        BanzamiColors.gray100,
+          borderRadius: const BorderRadius.all(Radius.circular(18)),
+          border:       Border.all(color: BanzamiColors.gray200),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize:   15,
+              fontWeight: FontWeight.w600,
+              color:      BanzamiColors.gray900,
+            ),
           ),
         ),
       ),
@@ -273,30 +278,35 @@ class _ConfirmButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradient,
-          begin:  Alignment.topLeft,
-          end:    Alignment.bottomRight,
-        ),
-        borderRadius: const BorderRadius.all(Radius.circular(18)),
-        boxShadow: [
-          BoxShadow(
-            color:      gradient.first.withValues(alpha: 0.32),
-            blurRadius: 12,
-            offset:     const Offset(0, 4),
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradient,
+            begin:  Alignment.topLeft,
+            end:    Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize:   15,
-            fontWeight: FontWeight.w700,
-            color:      Colors.white,
+          borderRadius: const BorderRadius.all(Radius.circular(18)),
+          boxShadow: [
+            BoxShadow(
+              color:      gradient.first.withValues(alpha: 0.32),
+              blurRadius: 12,
+              offset:     const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize:   15,
+              fontWeight: FontWeight.w700,
+              color:      Colors.white,
+            ),
           ),
         ),
       ),

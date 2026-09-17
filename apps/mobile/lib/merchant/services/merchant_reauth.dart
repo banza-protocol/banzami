@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:banzami_flutter/banzami_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import 'merchant_session_service.dart';
@@ -238,9 +239,15 @@ Future<void> signOutBusiness({
   } else {
     await session.endSession();
   }
-  if (refresh == null) return;
+  // On Web the credential lives in the BFF, not a client refresh token, so there
+  // is no refresh to revoke here — but the server-side business_authority MUST
+  // still be cleared, or the opaque web session would keep authorizing Business
+  // requests after "Terminar sessão". The BFF logout (authEnd) clears it by
+  // session and ignores the token value, so a sentinel is fine. On native, keep
+  // the original behaviour: nothing to revoke when there is no refresh token.
+  if (refresh == null && !kIsWeb) return;
   try {
-    await client.logoutMerchantSession(refresh);
+    await client.logoutMerchantSession(refresh ?? 'web-session');
   } on Exception {
     // Best effort: see above.
   }

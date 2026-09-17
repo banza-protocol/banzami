@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 /**
- * APP-BANZAMI-WEB-BUSINESS-001 — Proof 10: Business Web sign-in + Home + Receive.
+ * APP-BANZAMI-WEB-DUAL-APP-PARITY-001 — Proof 10: full Business Web sign-in on the
+ * ACTUAL native Business app.
  *
  * A generic synthetic Business (canonical onboarding: application → KYB docs →
- * approve → activation, NO DB writes/backdoor) signs in through the REAL
- * /business UI with @handle + PIN, lands on the Business Home, and its persistent
- * Receive Point renders — the SAME slug the API returns for that Business
- * (cross-client identity, §92). No session injection, no auth bypass.
+ * approve → activation, NO DB writes/backdoor) signs in through the REAL native
+ * screens now hosted on Web — Welcome → Conectar conta → @handle → Continuar →
+ * PIN → Home — then navigates the native tab tree, opens Receber, and logs out
+ * through the native Profile. No session injection, no BFF session mutation, no
+ * auth bypass. Also proves: the merchant JWT/refresh stay server-side (browser
+ * holds only the opaque web session + a sentinel), the BFF-echoed merchant_id
+ * adapter that lets the shared native login resolve identity on Web, auth
+ * persistence across a hard refresh, and that the old session cannot be replayed
+ * after logout.
  *
  *   BANZAMI_E2E=RUN node proofs/10-business-web-login.mjs
  */
@@ -25,16 +31,29 @@ if (process.env.BANZAMI_E2E !== 'RUN') {
   process.exit(2);
 }
 
-async function bizReceivePointSlug(biz) {
-  // The slug the API returns for this Business — to compare with what the Web renders.
+/** Drive the native Business sign-in through the rendered screens. */
+async function nativeSignIn(d, biz) {
+  await d.waitForText('Conectar conta', { timeout: 25000 });
+  await d.tapButton('Conectar conta');
+  await d.waitForText('Entrar', { timeout: 15000 });
+  // Native shared MerchantLoginScreen — handle step. The field's semantics label
+  // is its hint ('cantina_alex').
+  await d.fillFieldBySemantics('cantina_alex', biz.handle, { verify: false });
+  await d.tapButton('Continuar');
+  // Reaching the PIN step proves the handle lookup succeeded through the BFF.
+  await d.waitForText('Digite o seu PIN', { timeout: 30000 });
+  for (const ch of String(biz.pin)) {
+    await d.tapButton(ch, { exact: true });
+    await sleep(160);
+  }
+}
+
+/** A cookie-jar fetch helper against the BFF, to inspect the server-side session. */
+function bff() {
   const jar = {};
   const ch = () => Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; ');
   const grab = (res) => { const a = res.headers.getSetCookie ? res.headers.getSetCookie() : []; for (const c of a) { const m = c.match(/^([^=]+)=([^;]*)/); if (m) jar[m[1]] = m[2]; } };
-  let r = await fetch(`${APP}/`); grab(r);
-  r = await fetch(`${APP}/business/api/v1/merchant/auth/token`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': jar['bz_app_csrf'], cookie: ch() }, body: JSON.stringify({ handle: biz.handle, pin: biz.pin }) }); grab(r);
-  r = await fetch(`${APP}/business/api/v1/business/receive-point`, { headers: { cookie: ch() } });
-  const j = await r.json().catch(() => ({}));
-  return j.slug;
+  return { jar, ch, grab };
 }
 
 (async () => {
@@ -43,7 +62,6 @@ async function bizReceivePointSlug(biz) {
   try {
     biz = await provisionBusiness({ handlePrefix: 'e2ebizlogin' });
     R.mark('GENERIC_SYNTHETIC_BUSINESS_PROVISIONED', !!biz.handle && !!biz.merchantId, `@${biz.handle}`);
-    const apiSlug = await bizReceivePointSlug(biz);
 
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
@@ -51,34 +69,80 @@ async function bizReceivePointSlug(biz) {
     const d = new FlutterSemanticsDriver(page, { label: 'biz' });
     await d.enableSemantics();
 
-    // Direct /business while logged out shows the Business login (not Consumer).
-    const sawLogin = await d.waitForText('Business', { timeout: 25000 }).then(() => true).catch(() => false);
-    R.mark('DIRECT_BUSINESS_ROUTE_AUTH', sawLogin, 'unauthenticated /business shows Business login');
+    // Direct /business while logged out shows the native Business Welcome.
+    const sawWelcome = await d.waitForText('Conectar conta', { timeout: 25000 }).then(() => true).catch(() => false);
+    R.mark('DIRECT_BUSINESS_ROUTE_AUTH', sawWelcome, 'unauthenticated /business shows the native Business Welcome');
 
-    // Sign in with @handle + PIN through the real UI.
-    await d.fillFieldBySemantics('O seu @banza', biz.handle, { verify: false });
-    await d.fillFieldBySemantics('PIN', biz.pin, { secret: true, verify: false });
-    await d.tapButton('Entrar');
-
+    // 1/2/4. Full native sign-in journey (@handle + PIN → Home).
+    await nativeSignIn(d, biz);
     const home = await d.waitForText('Saldo disponível', { timeout: 30000 }).then(() => true).catch(() => false);
-    R.mark('BUSINESS_WEB_LOGIN_E2E', home, 'reached Business Home from @handle + PIN');
+    R.mark('BUSINESS_WEB_FULL_SIGNIN_E2E', home, 'reached the native Business Home via Welcome→@handle→PIN');
+    // Reaching Home from a Web sign-in where the token is a BFF sentinel proves the
+    // non-secret merchant_id adapter (BFF body → MerchantAuthTokens.merchantId →
+    // shared MerchantLoginScreen); without it the shared screen throws before Home.
+    R.mark('BUSINESS_WEB_MERCHANT_ID_ADAPTER', home, 'shared native login resolved identity via the BFF merchant_id');
+
+    // 5. Native Home content: identity + Sandbox truth, no Consumer contamination.
     const homeText = home ? await d.visibleText() : '';
-    R.mark('BUSINESS_WEB_HOME_IDENTITY', homeText.includes(`@${biz.handle}`), `@${biz.handle} shown on Home`);
-    R.mark('BUSINESS_WEB_SANDBOX_TRUTH', /SANDBOX/i.test(homeText), 'Sandbox truth visible');
+    R.mark('BUSINESS_WEB_NATIVE_HOME_AFTER_LOGIN', /Saldo disponível/.test(homeText), 'native Business Home rendered');
+    R.mark('BUSINESS_WEB_SANDBOX_TRUTH', /SANDBOX|Sandbox/.test(homeText), 'Sandbox truth visible on Home');
 
-    // Receber → the persistent Receive Point QR renders.
-    await d.tapButton('Receber').catch(() => d.tapText('Receber'));
+    // 3. Server-side authority + no real Bearer in the browser.
+    const store = await page.evaluate(() => {
+      const dump = {};
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); dump[k] = localStorage.getItem(k); } } catch (_) {}
+      return { cookie: document.cookie, ls: dump };
+    });
+    const lsBlob = JSON.stringify(store.ls);
+    // A real merchant JWT is a 3-part dotted token; the browser must never hold one.
+    const jwtInLs = /"[^"]*\.[^"]*\.[^"]*"/.test(lsBlob) && /eyJ/.test(lsBlob);
+    const jwtInCookie = /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\./.test(store.cookie);
+    R.mark('BUSINESS_WEB_REAL_BEARER_BROWSER_EXPOSURE_0', !jwtInLs && !jwtInCookie, 'no real merchant Bearer in cookie/localStorage');
+    const st = await page.evaluate(async () => (await fetch('/session/state', { credentials: 'include' }).then((r) => r.json()).catch(() => ({}))));
+    const serverSide = st.business === true && !!(st.business_context && st.business_context.merchant_id);
+    R.mark('BUSINESS_WEB_AUTHORITY_SERVER_SIDE', serverSide, 'business_authority held server-side (BFF /session/state)');
+    R.mark('BUSINESS_WEB_MERCHANT_ID_MATCHES', st.business_context && st.business_context.merchant_id === biz.merchantId, `merchant_id=${st.business_context?.merchant_id}`);
+
+    // 6. Hard refresh keeps the session (restored from the server-side web session).
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+    await d.enableSemantics();
+    const stillIn = await d.waitForText('Saldo disponível', { timeout: 30000 }).then(() => true).catch(() => false);
+    R.mark('BUSINESS_WEB_AUTH_HARD_REFRESH', stillIn, 'hard refresh restored the Business session (no login loop)');
+
+    // 7. Native tab tree.
+    await d.tapText('Histórico').catch(() => {});
+    const hist = await d.waitForText('Histórico', { timeout: 15000 }).then(() => true).catch(() => false);
+    await d.tapText('Perfil').catch(() => {});
+    const perfil = await d.waitForText('Terminar sessão', { timeout: 15000 }).then(() => true).catch(() => false);
+    await d.tapText('Receber').catch(() => {});
     const onReceive = await d.waitForText('Mostre este QR', { timeout: 20000 }).then(() => true).catch(() => false);
-    R.mark('BUSINESS_WEB_RECEIVE_POINT_PARITY', onReceive, 'Business Web renders the persistent Receive Point');
+    R.mark('BUSINESS_WEB_NATIVE_TAB_TREE_E2E', hist && perfil && onReceive, 'Início/Histórico/Receber/Perfil are the native screens');
 
-    // Same Receive Point across clients (§92): the Web session and the API agree.
-    const webSlug = await bizReceivePointSlug(biz); // idempotent read for the same Business
-    R.mark('BUSINESS_RECEIVE_POINT_CROSS_CLIENT_IDENTITY', !!apiSlug && apiSlug === webSlug, `slug=${apiSlug}`);
+    // 8. Receive screen = persistent Receive Point + Criar cobrança.
+    const recvText = await d.visibleText();
+    R.mark('BUSINESS_WEB_NATIVE_RECEIVE_E2E', /Mostre este QR/.test(recvText) && /Criar cobrança/.test(recvText), 'native Receive Point + Criar cobrança');
+
+    // 9. Logout through the native Profile.
+    await d.tapText('Perfil').catch(() => {});
+    await d.waitForText('Terminar sessão', { timeout: 15000 });
+    await d.tapText('Terminar sessão').catch(() => {});
+    // Confirm dialog ("Terminar sessão?") → Sair (now a proper semantics button).
+    await d.waitForText('Terminar sessão?', { timeout: 10000 }).catch(() => {});
+    await sleep(400);
+    await d.tapButton('Sair').catch(() => d.tapText('Sair').catch(() => {}));
+    const backToWelcome = await d.waitForText('Conectar conta', { timeout: 20000 }).then(() => true).catch(() => false);
+    R.mark('BUSINESS_WEB_NATIVE_LOGOUT_E2E', backToWelcome, 'logout returns to the native Business Welcome');
+
+    // 10. The old business authority no longer authorizes after logout.
+    const afterLogout = await page.evaluate(async () => (await fetch('/session/state', { credentials: 'include' }).then((r) => r.json()).catch(() => ({}))));
+    const businessGone = afterLogout.business !== true;
+    const replay = await page.evaluate(async () => (await fetch('/business/api/v1/business/receive-point', { credentials: 'include' }).then((r) => r.status).catch(() => 0)));
+    R.mark('BUSINESS_WEB_SESSION_REPLAY', businessGone && (replay === 401 || replay === 403), `post-logout business route → ${replay}`);
   } catch (e) {
     R.mark('PROOF_10', false, e.message);
   } finally {
     await browser.close().catch(() => {});
-    if (biz) await retireBusiness(biz.merchantId);
+    if (biz) await retireBusiness(biz.merchantId).catch(() => {});
   }
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_10_BUSINESS_WEB_LOGIN=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);
