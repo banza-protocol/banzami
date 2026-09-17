@@ -112,12 +112,66 @@ export const ALLOWLIST = [
 
   { m: 'POST', re: `^/v1/sandbox/fund$`, auth: 'required', mutating: true, csrf: true },
   { m: 'POST', re: `^/v1/debug/push-test$`, auth: 'required', mutating: true, csrf: true },
-].map((r) => ({ ...r, rx: new RegExp(r.re) }));
+].map((r) => ({ ...r, authority: 'consumer', rx: new RegExp(r.re) }));
 
-export function matchRoute(method, upstreamPath) {
+// ── Business route allow-list (ADR-066) ──────────────────────────────────────
+// Reached under the /business/* prefix, forwarded to the gateway (BUSINESS_API_BASE)
+// with the Business authority's merchant JWT — never the Consumer bearer. The
+// Business auth contract is the canonical native one: @handle + PIN → merchant JWT
+// + rotating refresh. The BFF holds both server-side; the browser holds neither.
+// `businessAuth`: 'lookup' (pre-check, stores nothing), 'token' (sign-in, stores
+// business_authority), 'logout' (revoke + clear). The refresh endpoint is NOT
+// listed — the BFF renews the access token itself on an upstream 401.
+export const BUSINESS_ALLOWLIST = [
+  { m: 'POST', re: `^/v1/merchant/auth/lookup$`, auth: 'none', mutating: true, csrf: true, authIssue: true, businessAuth: 'lookup' },
+  { m: 'POST', re: `^/v1/merchant/auth/token$`, auth: 'none', mutating: true, csrf: true, authIssue: true, businessAuth: 'token' },
+  { m: 'POST', re: `^/v1/merchant/auth/logout$`, auth: 'required', mutating: true, csrf: true, authEnd: true, businessAuth: 'logout' },
+
+  { m: 'GET', re: `^/v1/merchants/${G}$`, auth: 'required' },
+  { m: 'GET', re: `^/v1/wallets$`, auth: 'required' },
+  { m: 'GET', re: `^/v1/wallets/${G}/balance$`, auth: 'required' },
+  { m: 'GET', re: `^/v1/wallet-accounts$`, auth: 'required' },
+
+  // The persistent Business Receive Point (ADR-065) — the SAME endpoint the native
+  // Business app reads; provisions on first use, returns the active slug.
+  { m: 'GET', re: `^/v1/business/receive-point$`, auth: 'required' },
+  { m: 'POST', re: `^/v1/business/receive-point/disable$`, auth: 'required', mutating: true, csrf: true },
+
+  // Create Charge + charge history.
+  { m: 'POST', re: `^/v1/payment-links$`, auth: 'required', mutating: true, csrf: true },
+  { m: 'GET', re: `^/v1/payment-links$`, auth: 'required' },
+  { m: 'GET', re: `^/v1/payment-links/${G}$`, auth: 'required' },
+  { m: 'DELETE', re: `^/v1/payment-links/${G}$`, auth: 'required', mutating: true, csrf: true },
+
+  // History: acquiring transactions + wallet-native received payments.
+  { m: 'GET', re: `^/v1/transactions$`, auth: 'required' },
+  { m: 'GET', re: `^/v1/merchant/wallet-payments$`, auth: 'required' },
+
+  // Receipt PDF (server-rendered Document Engine).
+  { m: 'GET', re: `^/v1/merchant/transactions/${G}/receipt\\.pdf$`, auth: 'required', binary: true },
+].map((r) => ({ ...r, authority: 'business', rx: new RegExp(r.re) }));
+
+const LISTS = { consumer: ALLOWLIST, business: BUSINESS_ALLOWLIST };
+
+export function matchRoute(method, upstreamPath, authority = 'consumer') {
   const path = upstreamPath.split('?')[0];
-  for (const r of ALLOWLIST) {
+  for (const r of (LISTS[authority] || [])) {
     if (r.m === method && r.rx.test(path)) return r;
   }
   return null;
+}
+
+// Decode one claim from a JWT payload WITHOUT verifying the signature. The BFF
+// only reads a non-secret identifier (merchant_id) the gateway already put in the
+// token it just issued; trust comes from the TLS call that returned it, not from
+// this decode. Never use this to make an authorization decision.
+export function decodeJwtClaim(jwt, key) {
+  if (typeof jwt !== 'string') return null;
+  const parts = jwt.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const json = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    const v = json[key];
+    return typeof v === 'string' ? v : null;
+  } catch { return null; }
 }
