@@ -46,7 +46,13 @@ async function failClosedCase(name, prep) {
   await prep(biz, sess); // disable or suspend
   const { browser } = await launchChromium({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${media}`] });
   try {
-    const cons = await registerConsumer(browser, { handle: `e2efc${name}${Date.now().toString(36)}`.toLowerCase(), name: 'E2E FC', pin: '719238', label: `fc-${name}` });
+    // The BFF auth rate limit (12/10min/IP) can surface as a generic transient on a
+    // dense suite; retry the UI registration with backoff so the scan can proceed.
+    let cons;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try { cons = await registerConsumer(browser, { handle: `e2efc${name}${Date.now().toString(36)}`.toLowerCase(), name: 'E2E FC', pin: '719238', label: `fc-${name}` }); break; }
+      catch (e) { if (attempt === 4) throw e; await new Promise((r) => setTimeout(r, 60000)); }
+    }
     await cons.context.grantPermissions(['camera'], { origin: APP });
     await cons.home.reach();
     await cons.home.tapQrCode();
