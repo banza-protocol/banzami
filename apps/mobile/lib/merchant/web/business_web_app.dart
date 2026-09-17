@@ -16,12 +16,16 @@ void runBusinessWeb(http.Client httpClient) {
   late final MerchantWebSession session;
   final client = BanzamiClient(
     // Same-origin BFF prefix; the BFF attaches the merchant JWT server-side and
-    // renews it. The sentinel below is never a real credential.
+    // renews it. The sentinel below is never a real credential, and the
+    // far-future expiry stops the client from ever refreshing on its own — the
+    // BFF owns renewal (ADR-066 §5). A genuine upstream 401 (the BFF's own
+    // refresh also failed) has no client-side refresher, so it falls straight to
+    // onUnauthorized → the login screen.
     baseUrl: '/business/api',
     jwt: 'web-session',
+    jwtExpiresAt: DateTime.now().toUtc().add(const Duration(days: 3650)),
     httpClient: httpClient,
     onUnauthorized: () => session.markLoggedOut(),
-    refreshSession: () async => null, // the BFF owns refresh (ADR-066 §5)
   );
   session = MerchantWebSession(httpClient: httpClient, client: client);
   runApp(BusinessWebApp(session: session));
