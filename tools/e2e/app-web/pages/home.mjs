@@ -37,6 +37,13 @@ export class HomePage {
   async tapReceber() { await this.d.tapButton('Receber'); await this.page.waitForTimeout(1200); }
 
   /**
+   * Tap the primary 'QR Code' quick action, which opens the full-screen scanner.
+   * On the Web the scanner defers camera access to the browser's getUserMedia
+   * (WEB-QR-CAMERA fix): the button reaches the live scanner, not a popped screen.
+   */
+  async tapQrCode() { await this.d.tapButton('QR Code'); await this.page.waitForTimeout(1500); }
+
+  /**
    * Add sandbox test funds through the Home panel. Expands the panel, taps a
    * quick chip if present, then "Adicionar ao saldo". Returns true if the panel
    * flow ran. Funding is fictitious-money provisioning, not a payment under test.

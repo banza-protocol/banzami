@@ -88,6 +88,7 @@ async function run() {
     process.exit(2);
   }
   const { launchChromium } = await import('./lib/browser.mjs');
+  const { registerConsumer, APP: APP_ORIGIN } = await import('./lib/consumer.mjs');
   const results = [];
   const rec = (id, ok, note = '') => {
     results.push({ id, ok, note });
@@ -98,6 +99,9 @@ async function run() {
   // the live API runner (or passed in). Here we take it from the environment.
   const slug = process.env.BRP_SLUG;
   if (!slug) { console.error('BRP_SLUG required (a provisioned Receive Point slug)'); process.exit(2); }
+  // The EXACT payload the gateway encodes into the printed QR: the canonical,
+  // markerless pay URL (pay.banzami.com/b/{slug}) — its environment is inherited
+  // from the resolving gateway (ADR-065), so no ?sandbox marker is added here.
   const payload = receivePointPayUrl(slug);
 
   const media = join(HERE, 'proofs', 'receive-point-qr.y4m');
@@ -113,20 +117,48 @@ async function run() {
       `--use-file-for-fake-video-capture=${media}`,
     ],
   });
-  try {
-    const ctx = await browser.newContext({ permissions: ['camera'] });
-    const page = await ctx.newPage();
-    await page.goto(APP + '/', { waitUntil: 'domcontentloaded' });
 
-    // Drive the app to the scanner (Semantics tree; see reference flutter-web
-    // playwright notes). The scanner reads the fake camera and decodes via the
-    // self-hosted barcode library; the app routes on its own parse result. The
-    // runner injects nothing — it only waits for the UI to reach the pay flow.
-    const scanned = await page.waitForFunction(
-      () => document.body && /pagar|receber|montante|business|neg[oó]cio/i.test(document.body.innerText || ''),
-      { timeout: 60_000 },
-    ).then(() => true).catch(() => false);
-    rec('WEB.scanner-decoded-and-routed', scanned, 'app reached the receive-point flow from real pixels');
+  // One full pass of the payer's real scan pipeline: a fresh consumer signs up
+  // through the real UI, taps the Home 'QR Code' button, and the app's own
+  // scanner decodes the fake-camera pixels and routes to the receive-point pay
+  // flow. The runner drives and reads the UI only — it injects no payload and
+  // never calls the parser (BUSINESS_RECEIVE_QR_E2E_BYPASS=0).
+  async function onePass(n) {
+    const handle = `e2ebrp${Date.now().toString(36)}${n}`.toLowerCase();
+    const reg = await registerConsumer(browser, {
+      handle, name: 'E2E Receive Payer', pin: '719238', label: `brp-web-${n}`,
+    });
+    try {
+      // Grant the browser camera permission for the app origin so the real
+      // getUserMedia (which the scanner defers to on web) succeeds and the fake
+      // camera actually feeds frames — exactly as proof 07 does. Still no payload
+      // injection: the pixels are the only camera input.
+      await reg.context.grantPermissions(['camera'], { origin: APP_ORIGIN });
+      await reg.home.reach();
+      await reg.home.tapQrCode();
+      // The scanner opens (WEB-QR-CAMERA fix), decodes the real pixels, and the
+      // app routes on its own parse. Wait on the receive-point screen's own text
+      // ('A pagar a <Business>') via the semantics tree — no fixed sleep.
+      const reached = await reg.driver
+        .waitForText('A pagar a', { timeout: 60_000, every: 1000 })
+        .then(() => true).catch(() => false);
+      const txt = reached ? await reg.driver.visibleText() : '';
+      rec(`WEB.run${n}.scanner-decoded-and-routed`, reached,
+        reached ? `reached receive-point pay flow (${txt.replace(/\s+/g, ' ').slice(0, 80)})` : 'did not reach the pay flow within 60s');
+      return reached;
+    } finally {
+      await reg.context.close().catch(() => {});
+    }
+  }
+
+  try {
+    const RUNS = Number(process.env.RUNS ?? 3);
+    let ok = 0;
+    for (let n = 1; n <= RUNS; n++) {
+      try { if (await onePass(n)) ok++; }
+      catch (e) { rec(`WEB.run${n}.scanner-decoded-and-routed`, false, e.message); }
+    }
+    rec('WEB.repeatable-3-runs', ok === RUNS, `${ok}/${RUNS} independent real-camera runs reached the pay flow`);
     rec('WEB.no-parser-bypass', true, 'no injected payload, no evaluate(BanzamiQrParser) — camera pixels only');
   } finally {
     await browser.close();
@@ -153,7 +185,7 @@ async function selfCheck() {
     ['feeds Chromium a file-backed fake camera', () => /--use-file-for-fake-video-capture=/.test(runBody)],
     ['decodes through the app scanner + routes', () => /scanner-decoded-and-routed/.test(src)],
     ['run-body injects nothing (no evaluate/expose/addScript/setContent)', () => !INJECT_APIS.test(runBody)],
-    ['run-body only navigates + waits on the UI', () => /page\.goto\(/.test(runBody) && /waitForFunction/.test(runBody)],
+    ['run-body drives the real UI + waits on the receive-point screen', () => /registerConsumer\(/.test(runBody) && /tapQrCode\(/.test(runBody) && /waitForText\('A pagar a'/.test(runBody)],
     ['the only camera input is the rendered Y4M', () => /use-file-for-fake-video-capture=\$\{media\}/.test(runBody)],
     ['gated behind BANZAMI_E2E=RUN', () => /BANZAMI_E2E !== 'RUN'/.test(src)],
   ];
@@ -179,9 +211,14 @@ async function selfCheck() {
   process.exit(ok ? 0 : 1);
 }
 
-if (process.argv.includes('--check')) selfCheck();
-else if (process.argv.includes('--render')) {
-  const slug = process.env.BRP_SLUG ?? 'RENDERONLYslug00000AA';
-  const out = join(HERE, 'proofs', 'receive-point-qr.y4m');
-  console.log(JSON.stringify(writeQrY4m(receivePointPayUrl(slug), out)));
-} else run().catch((e) => { console.error(e); process.exit(1); });
+// Only act as a CLI when executed directly — importing this module (debug
+// harness, tests) must not trigger a run.
+const isMain = fileURLToPath(import.meta.url) === (process.argv[1] && (await import('node:fs')).realpathSync(process.argv[1]));
+if (isMain) {
+  if (process.argv.includes('--check')) selfCheck();
+  else if (process.argv.includes('--render')) {
+    const slug = process.env.BRP_SLUG ?? 'RENDERONLYslug00000AA';
+    const out = join(HERE, 'proofs', 'receive-point-qr.y4m');
+    console.log(JSON.stringify(writeQrY4m(receivePointPayUrl(slug), out)));
+  } else run().catch((e) => { console.error(e); process.exit(1); });
+}
