@@ -23,7 +23,10 @@
 #       --rev R --mig M --exec E --svc "s1 s2 ..." [--receipt-dir DIR]
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
-ENVS="$REPO_ROOT/infra/blueprint/environments.json"
+# The environment manifest is overridable ONLY to let the disposable parity proof
+# exercise a provisioned=true code path against a throwaway DB. Real runs use the
+# committed manifest, where LIVE stays provisioned=false.
+ENVS="${BZ_ENVIRONMENTS_FILE:-$REPO_ROOT/infra/blueprint/environments.json}"
 DC="$(dirname "${BASH_SOURCE[0]}")/dual-control.sh"
 
 die() { echo "live-migration-control: $*" >&2; exit 1; }
@@ -32,6 +35,7 @@ die() { echo "live-migration-control: $*" >&2; exit 1; }
 CMD="${1:-}"; shift || true
 ENV_NAME=""; ADMIN_URL=""; DISPOSABLE=0; WINDOW_OPEN=0
 APPROVALS_DIR=""; KEYRING=""; REV=""; MIG=""; EXE=""; SVC=""; RECEIPT_DIR=""; BACKUP_VERIFIED="${LIVE_BACKUP_VERIFIED:-0}"
+OWNER_AUTH_DIR=""; OWNER_KEYRING=""
 while [ $# -gt 0 ]; do case "$1" in
   --env) ENV_NAME="$2"; shift 2;;
   --admin-url) ADMIN_URL="$2"; shift 2;;
@@ -39,6 +43,8 @@ while [ $# -gt 0 ]; do case "$1" in
   --window-open) WINDOW_OPEN=1; shift;;
   --approvals-dir) APPROVALS_DIR="$2"; shift 2;;
   --keyring) KEYRING="$2"; shift 2;;
+  --owner-auth-dir) OWNER_AUTH_DIR="$2"; shift 2;;
+  --owner-keyring) OWNER_KEYRING="$2"; shift 2;;
   --rev) REV="$2"; shift 2;;
   --mig) MIG="$2"; shift 2;;
   --exec) EXE="$2"; shift 2;;
@@ -72,12 +78,33 @@ CONNECTED_DB="$(psql "$ADMIN_URL" -tAc 'SELECT current_database()' 2>/dev/null |
 TARGET_URL="$(printf '%s' "$ADMIN_URL" | sed -E "s#/[^/?]+(\\?.*)?\$#/$DB_DECLARED\\1#")"
 echo "  admin_connected_db=$CONNECTED_DB  target_db=$DB_DECLARED"
 
-# ---- provisioned / disposable gate ----
-if [ "$PROVISIONED" = "true" ]; then
-  [ "$ENV_NAME" != "LIVE" ] || die "refusing autonomous apply to a PROVISIONED LIVE substrate — owner ceremony boundary"
-elif [ "$DISPOSABLE" != "1" ]; then
-  die "$ENV_NAME is not provisioned; pass --disposable to drive a DISPOSABLE substrate for validation, never a real one"
-fi
+# ---- substrate authorization mode (real vs disposable) — default deny ----
+# The SAME governed apply() runs for both a real (provisioned=true) and a disposable
+# substrate. The ONLY difference is the authorization to touch that substrate:
+#   • provisioned=true  → REAL: requires an explicit OWNER AUTHORIZATION (a signed,
+#     single-use owner-authorization record, distinct from the two migration approvers).
+#     With no valid owner authorization the apply is DENIED (LIVE_REAL_APPLY_DEFAULT_DENY).
+#     This makes the controller CAPABLE of a real Live apply under full governance,
+#     without ever weakening a gate — it is never executed autonomously.
+#   • provisioned=false → must pass --disposable to drive a throwaway substrate.
+# Neither mode skips dual-control, window, digest/target binding, verify or receipt.
+REAL_MODE=0
+gate_substrate() {
+  if [ "$PROVISIONED" = "true" ]; then
+    REAL_MODE=1
+    [ -n "$OWNER_AUTH_DIR" ] && [ -n "$OWNER_KEYRING" ] \
+      || die "REAL apply to a provisioned substrate requires owner authorization (--owner-auth-dir/--owner-keyring); default-deny"
+    [ -n "$REV$MIG$EXE$SVC" ] || die "owner authorization needs the full migration identity (--rev --mig --exec --svc)"
+    local out
+    out="$(bash "$DC" verify "$OWNER_AUTH_DIR" "$OWNER_KEYRING" "$DB_DECLARED" "$ENV_NAME" "$REV" "$MIG" "$EXE" "$SVC" 1)" \
+      || die "owner authorization INVALID (default-deny): $out"
+    echo "  owner_authorization: $out (real-mode apply authorized by owner)"
+  elif [ "$DISPOSABLE" != "1" ]; then
+    die "$ENV_NAME is not provisioned; pass --disposable to drive a DISPOSABLE substrate for validation, never a real one"
+  else
+    echo "  substrate: DISPOSABLE (autonomous validation authorized; governance NOT weakened)"
+  fi
+}
 
 plan() {
   echo "== plan (dry, fail-closed) =="
@@ -157,11 +184,13 @@ issue_receipt() {
   echo "  MIGRATION_RECEIPT_STATE=PRESENT_AND_VERIFIED ($f)"
   # single-use authorisation/approvals are consumed; the receipt stays durable
   [ "$DUAL" = "true" ] && [ -n "$APPROVALS_DIR" ] && { bash "$DC" consume "$APPROVALS_DIR"; echo "  AUTHORIZATION_RECORD_STATE=CONSUMED (approvals single-use)"; }
+  [ "$REAL_MODE" = "1" ] && [ -n "$OWNER_AUTH_DIR" ] && { bash "$DC" consume "$OWNER_AUTH_DIR"; echo "  OWNER_AUTHORIZATION_STATE=CONSUMED (single-use)"; }
   RECEIPT_FILE="$f"
 }
 
 apply() {
   echo "== apply (fail-closed gates → migrate → verify → durable receipt) =="
+  gate_substrate     # real (owner-authorized) vs disposable — default deny; SAME engine below
   gate_window
   gate_backup
   gate_dual_control
@@ -169,7 +198,7 @@ apply() {
   do_migrate
   verify_authority
   issue_receipt
-  echo "LIVE_MIGRATION_APPLY_OK env=$ENV_NAME db=$DB_DECLARED"
+  echo "LIVE_MIGRATION_APPLY_OK env=$ENV_NAME db=$DB_DECLARED real_mode=$REAL_MODE"
 }
 
 case "$CMD" in

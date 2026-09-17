@@ -118,13 +118,19 @@ After the owner has provisioned + applied, the following run autonomously:
 - prove Collections schema/routes exist → `COLLECTIONS_LIVE_COLLECTIONS_UNAVAILABLE=0`
 - real-money still blocked at the platform gate → `COLLECTIONS_LIVE_GLOBAL_FINANCIAL_GATE=PASS`
 
-## 10. Rollback
+## 10. Rollback — application/config-first (the additive schema STAYS)
 
-Application/config rollback first. The additive schema stays (inert), or the 0159
-additive objects are removed in isolation (index `collections_idem_scope`, column
-`collections.request_fingerprint`) via the controlled executor — **never** a DROP/DELETE
-of ledger or financial history. `LIVE_COLLECTIONS_ROLLBACK_PLAN=PASS` (disposable-proven:
-ledger tables intact after an additive 0159 rollback).
+Canonical rollback of an applied migration is **application / configuration / service
+rollback** — `LIVE_COLLECTIONS_ROLLBACK_MODE=APPLICATION_CONFIG_FIRST`. The additive
+0159 schema (`collections_idem_scope`, `collections.request_fingerprint`) **remains
+in place**; a destructive schema down-migration is **not** the normal rollback
+(`LIVE_COLLECTIONS_SCHEMA_DOWN_MIGRATION_NORMAL_ROLLBACK=0`), and ledger / financial /
+audit / migration history is **never** DROPped or DELETEd. This is safe because 0159 is
+additive and the previously-deployed Core revision is forward-compatible with it
+(`COLLECTIONS_0159_FORWARD_COMPATIBLE_ROLLBACK=PASS` — an old-shaped insert with a NULL
+idempotency key and no request_fingerprint succeeds against head 159, disposable-proven).
+A destructive schema removal is reserved for an exceptional, separately-authorized
+decommission — never an ordinary rollback.
 
 ---
 
