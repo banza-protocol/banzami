@@ -112,10 +112,18 @@ async function serveStatic(req, res) {
   const ext = path.extname(full).toLowerCase();
   const rel = '/' + path.relative(WEB_ROOT, full).split(path.sep).join('/');
   const etag = `"${stat.size}-${stat.mtimeMs.toString(36)}"`;
+  // Flutter serves its assets (fonts, AssetManifest, images) at STABLE URLs whose
+  // CONTENT changes every build — e.g. the tree-shaken MaterialIcons font is a
+  // different subset each deploy. A long max-age there leaves a browser using the
+  // OLD cached font while it runs the freshly-revalidated main.dart.js, so glyphs
+  // that only the new subset carries render blank. Revalidate everything under
+  // /assets/ via ETag (a 304 when unchanged — negligible cost); keep the long
+  // immutable cache only for engine files (/canvaskit/) and other static content.
+  const revalidate = NO_CACHE.has(rel) || rel.startsWith('/assets/');
   const headers = {
     'Content-Type': MIME[ext] || 'application/octet-stream',
     'ETag': etag,
-    'Cache-Control': NO_CACHE.has(rel) ? 'no-cache' : 'public, max-age=604800',
+    'Cache-Control': revalidate ? 'no-cache' : 'public, max-age=604800',
   };
   // The shell seeds a pre-auth opaque session + readable CSRF nonce for a visitor
   // with no live session, so the first write (register/login) is already bound.
