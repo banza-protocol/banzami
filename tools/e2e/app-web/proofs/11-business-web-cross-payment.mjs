@@ -26,6 +26,7 @@ import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { integrity } from '../lib/operator-read.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { retireConsumer } from '../lib/consumer-retire.mjs';
 import { writeQrY4m, receivePointPayUrl } from '../business-receive-web-e2e.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -164,6 +165,9 @@ async function payOnce(d, page, amountKz) {
   } finally {
     await browser.close().catch(() => {});
     if (biz) await retireBusiness(biz.merchantId);
+    // Retire the synthetic payer(s) through the canonical lifecycle so the suite
+    // leaves no ACTIVE consumer residue (WEB-E2E-RUNNER-001 clean-slate).
+    for (const c of consumers) { try { retireConsumer(c.handle, { runId: 'proof11' }); } catch { /* best effort */ } }
   }
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_11_BUSINESS_WEB_CROSS_PAYMENT=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);
