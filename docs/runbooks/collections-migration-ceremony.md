@@ -124,3 +124,34 @@ order (`collection_shares` → `payment_intents` → `collections`) via the cont
 executor, never ad-hoc SQL. No financial history is touched (Collections hold no money).
 The Financial Live gate remaining NOT_READY is itself the hard safety floor: no real
 value can move regardless of the tables' presence.
+
+## Drift detector fixed + Sandbox receipt reconciliation (COLLECTIONS-PROTOCOL-AND-PRODUCT-001 §1–6)
+
+The RT04E drift false-negative is fixed at the root: `tools/introspect-schema.sql` now
+reads authoritative `pg_catalog` (world-readable, ownership-agnostic) instead of
+privilege-filtered `information_schema` — so tables owned by another role
+(`business_receive_points`/`_mints` are owned by `sbadmin`, while the migration login
+runs as `bl_schema_owner`) are no longer reported as false "missing". `pg_catalog` still
+fails closed on a genuinely-absent object. Mutation-proven on a disposable DB (drop a
+manifest-listed table → FAIL; restore → PASS) and the collections tables were added to
+`tools/schema-manifest.json` so they are drift-protected. The live Sandbox (head 158)
+now verifies **drift = 0**.
+
+**Surface_ref vs public slug (canonical contract):** `surface_share` binds
+`surface_ref` = the payment-link **id** — the stable internal settlement linkage the
+settlement hook resolves by (`/internal/v1/collections/settle-surface`). The payer-safe
+public **slug** is obtained via `GET /v1/payment-links/{id}` (two-step lookup). This is
+correct per ADR-015/016 — do NOT replace `surface_ref` with the slug; the internal
+settlement identity and the public payer artifact are deliberately separate.
+
+**Receipt reconciliation (§6, owner action):** the prior rollout applied the migration
+correctly but skipped the receipt due to the (now-fixed) false drift. To write the
+receipt cleanly WITHOUT fabricating anything, re-run the sanctioned rollout on a VM
+checkout that includes the drift fix — `sqlx migrate run` is then a no-op (head already
+158), the drift step now passes, and the rollout writes the receipt:
+1. Update `/srv/banzami/src` to the drift-fix HEAD (git checkout the final revision;
+   keep branch `main`, no remotes, clean).
+2. Ensure `bl_migration` is valid (refresh via the documented targeted `ALTER ROLE` if
+   its `VALID UNTIL` has passed).
+3. Re-run the ceremony/rollout (interactive TTY + credential paste). Expect: migrate
+   no-op, drift 0, receipt written.
