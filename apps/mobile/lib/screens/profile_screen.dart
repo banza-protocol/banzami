@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../config.dart';
+import '../platform/web_location.dart';
 
 import '../services/session_service.dart';
 import '../widgets/banzami_premium_dialog.dart';
@@ -58,6 +60,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             const SizedBox(height: BanzamiSpacing.xl),
+
+            // ── Product context (Web only) ─────────────────────────────────
+            // One App Banzami Web, two contexts (ADR-066). Switching to Business
+            // is a product-context change, not a sign-in: the Business account
+            // authenticates separately with its own @handle + PIN.
+            if (kIsWeb) ...[
+              const _SectionLabel('Contexto'),
+              const SizedBox(height: BanzamiSpacing.sm),
+              _SettingsCard(children: [
+                _RowChevron(
+                  icon:  Icons.storefront_outlined,
+                  label: 'App Banzami Business',
+                  sub:   'Mudar para a sua conta de negócio',
+                  onTap: () => navigateToPath('/business'),
+                ),
+              ]),
+              const SizedBox(height: BanzamiSpacing.xl),
+            ],
 
             // ── Settings section label ─────────────────────────────────────
             const _SectionLabel('Definições'),

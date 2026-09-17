@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
+import 'merchant/web/business_web_app.dart';
 import 'platform/web_session_client.dart';
 
 // Web entry point for App Banzami (WEB-APP-001 — one Flutter codebase, three
@@ -24,5 +25,15 @@ import 'platform/web_session_client.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt', null);
+
+  // One App Banzami Web, two product contexts (ADR-066). The shell is chosen from
+  // the URL path: `/business…` boots the Business context; every other path is the
+  // Consumer root, exactly as before. Payer routes always stay Consumer.
+  final segments = Uri.base.pathSegments.where((s) => s.isNotEmpty).toList();
+  final isBusiness = segments.isNotEmpty && segments.first == 'business';
+  if (isBusiness) {
+    runBusinessWeb(WebSessionClient());
+    return;
+  }
   runApp(BanzamiApp(pinnedClient: WebSessionClient(), deviceId: null));
 }
