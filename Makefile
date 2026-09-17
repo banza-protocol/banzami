@@ -486,7 +486,7 @@ check-all: core-check gateway-check admin-api-check public-api-check check-repo-
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
-.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check app-web-realtime app-web-qr app-web-business app-web-business-cleanroom app-web-all
+.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime app-web-cleanroom app-web-browser-check app-web-realtime app-web-qr app-web-business app-web-business-cleanroom app-web-business-crosstab app-web-business-large-text app-web-business-ux app-web-all
 
 # Reference financial path gate — passes on the verified reference path alone.
 assure-reference: check-assurance check-assurance-reference
@@ -620,9 +620,27 @@ app-web-business:
 # Alias: the Business Web acceptance is itself a generic-synthetic cleanroom.
 app-web-business-cleanroom: app-web-business
 
+# APP-BANZAMI-WEB-BUSINESS-001 §1 — dual-context CROSS-TAB browser E2E: one browser
+# context (one opaque cookie) drives a Consumer tab (/) and a Business tab
+# (/business) at once; identity isolation, active_context ≠ authority, Business
+# logout propagation, Consumer survives a Business-only logout. One registration.
+app-web-business-crosstab:
+	BANZAMI_E2E=RUN node tools/e2e/app-web/proofs/17-web-dual-context-cross-tab.mjs
+
+# APP-BANZAMI-WEB-BUSINESS-001 §2 — Business Web under large accessibility text
+# (browser default font enlarged; Flutter reflows). Every screen renders with no
+# horizontal overflow and its actions stay reachable. Business-only (no consumer
+# registration), so it does not touch the per-IP registration limit.
+app-web-business-large-text:
+	BANZAMI_E2E=RUN node tools/e2e/app-web/proofs/18-business-web-large-text.mjs
+
+# The two Business-Web UX-integrity proofs together.
+app-web-business-ux: app-web-business-large-text app-web-business-crosstab
+
 # The full App Banzami Web acceptance: Consumer cleanroom + QR camera + realtime,
-# then the Business context and the cross-context financial journey.
-app-web-all: app-web-cleanroom app-web-qr app-web-realtime app-web-business
+# then the Business context, the cross-context financial journey, and the
+# Business-Web UX-integrity proofs (large text + dual-context cross-tab).
+app-web-all: app-web-cleanroom app-web-qr app-web-realtime app-web-business app-web-business-ux
 
 # Release-readiness gate — alias of the FULL external Sandbox launch gate.
 assure-release: assure-sandbox-launch

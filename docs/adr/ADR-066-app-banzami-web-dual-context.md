@@ -117,3 +117,42 @@ universe, and guarantees cross-client identity for free.
 - **Selecting the upstream credential by string-matching the path** — rejected in
   favour of an explicit per-route `authority` tag to make cross-context leakage
   structurally impossible.
+
+## Shell-universe classification (CONSUMER_BUSINESS_WEB_SHELL_UNIVERSE=ONE)
+
+Recorded as part of APP-BANZAMI-WEB-BUSINESS-001 final evidence closure. The
+Consumer and Business web experiences are **one shell universe**, not two
+products. "One" is defined structurally — same public application, same Flutter
+build, same design system, same navigation/product identity, same responsive
+shell architecture — and explicitly **not** as pixel-identical desktop chrome.
+
+Evidence:
+
+- **One public application, one Flutter build.** A single entry point
+  (`apps/mobile/lib/main_consumer_web.dart`) is compiled once
+  (`apps/app-banzami/Dockerfile`: `flutter build web -t lib/main_consumer_web.dart`)
+  and chooses the context at runtime from `Uri.base.pathSegments`: `/business…`
+  boots the Business shell, every other path boots the Consumer root. There is no
+  second project, bundle, or subdomain.
+- **Same design system.** Both shells render exclusively through
+  `banzami_flutter` (BanzamiColors / BanzamiTextStyles / BanzamiPrimaryButton /
+  BanzamiSecondaryButton / BanzamiQrDisplay / themed `NavigationBar`). The
+  merchant button design-system guard (`apps/mobile/test/merchant/
+  button_design_system_test.dart`) forbids raw Material buttons in `lib/merchant`,
+  so the Business context cannot drift onto a different button/system.
+- **Same navigation/product identity.** Both are bottom-tab shells under the "App
+  Banzami" identity — Consumer via `_FloatingTabBar`
+  (`apps/mobile/lib/screens/main_screen.dart`), Business via `NavigationBar`
+  (`apps/mobile/lib/merchant/web/business_shell.dart`) — with a centred content
+  column on wide viewports and full-bleed on narrow.
+- **Same shared client transport.** Both use the same-origin `WebSessionClient`
+  over the one opaque-cookie BFF; neither holds a credential in JS.
+
+The **only** difference is desktop chrome: the Consumer desktop wraps the app in
+a phone device-shell (`apps/mobile/lib/platform/web_desktop_shell.dart`, pure
+presentation — bezel/notch/safe-areas, no product state), while the Business
+desktop centres a 640-max application column without the bezel. That is a framing
+choice within the same responsive architecture, which the invariant expressly
+permits; it is not a separate layout/product shell. **No fix required.**
+
+Verdict: **CONSUMER_BUSINESS_WEB_SHELL_UNIVERSE=ONE.**
