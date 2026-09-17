@@ -324,7 +324,7 @@ impl AppState {
         let acquiring_repo = PostgresAcquiringRepository::new(pool.clone());
         let acquiring = Arc::new(PostgresAcquiringEngine::new(provider, acquiring_repo));
 
-        // --- Collections engine (BANZA ADR-036/037) ---
+        // --- Collections engine (BANZA ADR-016/037) ---
         let collections_repo = PostgresCollectionRepository::new(pool.clone());
         let collections = Arc::new(PostgresCollectionEngine::new(collections_repo));
 

@@ -86,6 +86,31 @@ void main() {
       expect(
           () => splitEvenlyMinor(100, 0), throwsA(isA<MoneyFormatException>()));
     });
+
+    // COLLECTIONS-PROTOCOL-AND-PRODUCT-001 — permanent regressions for the exact
+    // reported split-charge scenario and remainder conservation (BANZA ADR-016).
+    test('reported bug: 452 Kz / 2 → 226 + 226 (minor units)', () {
+      // 452 Kz == 45200 minor; each share 226 Kz == 22600 minor.
+      final parts = splitEvenlyMinor(45200, 2);
+      expect(parts, [22600, 22600]);
+      expect(parts.fold<int>(0, (a, b) => a + b), 45200);
+    });
+    test('remainder conservation on non-even totals (minor units)', () {
+      // 45201 minor / 2 → the extra cêntimo goes to the first share.
+      expect(splitEvenlyMinor(45201, 2), [22601, 22600]);
+      // 1000 Kz == 100000 minor / 3.
+      final three = splitEvenlyMinor(100000, 3);
+      expect(three, [33334, 33333, 33333]);
+      expect(three.fold<int>(0, (a, b) => a + b), 100000);
+      // Exhaustive: sum is always exactly the total for a range of odd totals.
+      for (final total in [45201, 45203, 100001, 999999, 1]) {
+        for (final people in [2, 3, 5, 9]) {
+          final parts = splitEvenlyMinor(total, people);
+          expect(parts.fold<int>(0, (a, b) => a + b), total,
+              reason: 'sum($total / $people) must equal $total');
+        }
+      }
+    });
   });
 
   group('feeMinor — integer FLOOR, never float, fee ≤ gross', () {

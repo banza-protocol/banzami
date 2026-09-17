@@ -1,4 +1,4 @@
-//! Collection / PaymentIntent lifecycle (BANZA ADR-036/037).
+//! Collection / PaymentIntent lifecycle (BANZA ADR-016/037).
 //!
 //! Enforces the protocol invariants (INV-COLLECTION-*). This increment covers the
 //! model + API + events; the live settlement hook (a real payment marking a share
@@ -96,7 +96,7 @@ pub trait CollectionEngine: Send + Sync {
     ) -> Result<Vec<CollectionShare>, CollectionError>;
 
     /// Surface a pending share for payment: create its PaymentIntent (the share's
-    /// PaymentIntent, ADR-037) and transition PENDING -> LINK_CREATED. The concrete
+    /// PaymentIntent, ADR-015) and transition PENDING -> LINK_CREATED. The concrete
     /// surface artifact (real QR/link) is bound via `surface_ref` by the caller.
     async fn surface_share(
         &self,

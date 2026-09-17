@@ -453,7 +453,7 @@ class ConsumerPublicClient {
   }
 
   // Pre-protocol P2P bill-division (P2P-002) was retired in favour of BANZA
-  // Collections (ADR-036). Dividing a bill is a merchant feature now
+  // Collections (ADR-016). Dividing a bill is a merchant feature now
   // (BanzamiClient.createEqualSplitCollection); a consumer simply pays a share
   // through the normal payment-link / QR surfaces — no bill-division client
   // methods or screens on the consumer side.

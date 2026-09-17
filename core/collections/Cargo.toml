@@ -1,6 +1,6 @@
 [package]
 name        = "banzami-collections"
-description = "Payment Collections + PaymentIntent (BANZA ADR-036/037) — operator-side persistence and lifecycle. Holds no money; coordinates per-share settlement via PaymentIntent -> Transfer -> Ledger."
+description = "Payment Collections + PaymentIntent (BANZA ADR-016/037) — operator-side persistence and lifecycle. Holds no money; coordinates per-share settlement via PaymentIntent -> Transfer -> Ledger."
 version.workspace    = true
 edition.workspace    = true
 license.workspace    = true

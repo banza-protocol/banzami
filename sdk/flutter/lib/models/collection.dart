@@ -1,11 +1,11 @@
-// Payment Collections — BANZA ADR-036 (Collection + CollectionShare) and the
-// ADR-037 PaymentIntent surfaced from a share.
+// Payment Collections — BANZA ADR-016 (Collection + CollectionShare) and the
+// ADR-015 PaymentIntent surfaced from a share.
 //
 // A Collection is a single financial object that groups N shares of one total
 // (e.g. a restaurant bill split among 4). Each share is paid independently and
 // settles straight into the merchant wallet; the collection tracks how much has
 // been collected and what remains. This is protocol-defined behaviour — the
-// operator implements it, the SDK exposes it, apps consume it (BANZA ADR-035).
+// operator implements it, the SDK exposes it, apps consume it (BANZA ADR-003).
 
 /// Lifecycle of a collection. Raw strings are kept so an unknown future status
 /// never crashes the client.
@@ -191,7 +191,7 @@ class CollectionDetail {
       );
 }
 
-/// Result of surfacing a share — a PaymentIntent (ADR-037) with the concrete
+/// Result of surfacing a share — a PaymentIntent (ADR-015) with the concrete
 /// surface reference (payment-link id for LINK, dynamic-qr id for QR).
 class ShareSurface {
   final String paymentIntentId;

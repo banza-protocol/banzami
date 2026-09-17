@@ -15,7 +15,7 @@ const String kSplitCancelExplanation =
     'A cobrança fica cancelada; as partes já pagas mantêm-se. Este ecrã '
     'continua a mostrar qualquer pagamento que ainda chegue.';
 
-/// Acompanha uma cobrança dividida (BANZA ADR-036 Collection).
+/// Acompanha uma cobrança dividida (BANZA ADR-016 Collection).
 ///
 /// Mostra o total, quanto já foi pago e quanto falta; lista cada parte (share)
 /// com o seu estado (Pago / Pendente); permite partilhar o link/QR de cada

@@ -1,4 +1,4 @@
-//! Domain types for Collections + PaymentIntent (BANZA ADR-036/037).
+//! Domain types for Collections + PaymentIntent (BANZA ADR-016/037).
 //!
 //! These mirror the canonical protocol schemas in `~/banza/contracts/collections/*`
 //! and `~/banza/contracts/payment-intents/*`. The operator invents no semantics.

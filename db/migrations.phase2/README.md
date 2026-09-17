@@ -1,33 +1,32 @@
-# Phase 2 — frozen migrations (Split Charges / BANZA ADR-016)
+# Phase 2 — REINTRODUCED into the tracked migration chain
 
-These migrations are **intentionally frozen** and are deliberately kept OUT of the
-active sqlx migration source (`db/migrations/`), so `sqlx migrate run` never applies
-them. They back the **Collections / Split Charges** prototype, whose financial
-contract is not yet ratified (BANZA ADR-016). Per the protocol-first rule
-(CLAUDE.md / Banzami ADR-019), the concept must be frozen in the protocol before the
-operator ships its definitive schema.
+> **Status (COLLECTIONS-PROTOCOL-AND-PRODUCT-001):** the Split Charges / Collections
+> schema is no longer frozen. Collections is ratified in the protocol
+> (BANZA **ADR-016** — *Collections: a composite obligation, never money*; and
+> **ADR-015** — *Payment initiation: one intent, several surfaces*), with canonical
+> contracts (`~/banza/contracts/collections/*.schema.json`,
+> `~/banza/contracts/payment-intents/payment-intent.schema.json`) and invariants
+> `INV-COLLECTION-001..008` in `~/banza/contracts/invariants.json`.
 
-Frozen until Phase 2:
+The three previously-frozen prototype migrations have been **folded into the active
+`db/migrations/` chain**, renumbered to the current tail, written
+`CREATE ... IF NOT EXISTS` so they are a no-op where the prototype tables already
+exist (older Sandbox DBs) and a create everywhere else (fresh Sandbox / Live / dev):
 
-- `0064_collections.sql`
-- `0065_payment_intents.sql`
-- `0066_collection_shares.sql`
+| was (frozen)                  | now (tracked)                        |
+|-------------------------------|--------------------------------------|
+| `0064_collections.sql`        | `db/migrations/0156_collections.sql` |
+| `0065_payment_intents.sql`    | `db/migrations/0157_payment_intents.sql` |
+| `0066_collection_shares.sql`  | `db/migrations/0158_collection_shares.sql` |
 
-Status by environment (2026-06-30):
+The frozen copies were removed from this directory (single source of truth is now
+the tracked chain). `sqlx migrate run` applies them everywhere; the live/sandbox
+drift check (`tools/check-migration-drift.sh`) should be run WITHOUT
+`PARITY_IGNORE=collections,collection_shares,payment_intents` once both environments
+have migrated past `0158`.
 
-- **LIVE `banzami`** — NOT applied (correct; frozen).
-- **SANDBOX `banzami_staging`** — tables exist from earlier prototyping; they are
-  untracked extras (not recorded in `_sqlx_migrations`) and harmless.
-- **DEV** — not applied.
-
-## Reintroduction (Phase 2)
-
-When Split Charges is finalized with BANZA ADR-016 and the Business App:
-
-1. Reconcile the schema with the ratified contract (one definitive migration — no
-   churn).
-2. Move the file(s) back into `db/migrations/` renumbered to the then-current tail
-   of the sequence, using `CREATE TABLE IF NOT EXISTS` so they are a no-op on the
-   sandbox DB that already has the prototype tables and a create on LIVE/DEV.
-3. `sqlx migrate run` applies them everywhere; drift check then expects them with no
-   `PARITY_IGNORE`.
+**Environment note:** the schema exists in both Sandbox and Live (one canonical
+contract — no `SandboxCollection`/`LiveCollection` split). Real-money movement in
+Live remains governed independently by the platform-wide Financial Live readiness
+gate; enabling the Collections *capability* does not make the platform Financial
+Live ready.

@@ -1,8 +1,12 @@
--- PaymentIntent (BANZA ADR-037) — operator-side payment-initiation primitive.
--- Payment Links / QR / Payment Requests are SURFACES of a PaymentIntent. A
--- PaymentIntent NEVER holds or moves money; fulfilment produces exactly one
--- Transfer that posts to the Ledger. Status/surface mirror
+-- 0157 — PaymentIntent (BANZA ADR-015) — operator-side payment-initiation
+-- primitive. Payment Links / QR / Payment Requests are SURFACES of a
+-- PaymentIntent. A PaymentIntent NEVER holds or moves money; fulfilment produces
+-- exactly one Transfer that posts to the Ledger. Status/surface mirror
 -- contracts/payment-intents/payment-intent.schema.json in ~/banza.
+--
+-- COLLECTIONS-PROTOCOL-AND-PRODUCT-001: folds db/migrations.phase2/0065 into the
+-- tracked chain (see 0156). CREATE ... IF NOT EXISTS — no-op where the prototype
+-- table already exists, create everywhere else.
 
 CREATE TABLE IF NOT EXISTS payment_intents (
     id               UUID         PRIMARY KEY,
@@ -31,4 +35,4 @@ CREATE INDEX IF NOT EXISTS idx_payment_intents_surface_ref
     ON payment_intents (surface, surface_ref);
 
 COMMENT ON TABLE payment_intents IS
-    'BANZA ADR-037 PaymentIntent: canonical payment-initiation primitive. Holds no money; PaymentIntent -> Transfer -> Ledger. Payment Links/QR/Payment Requests are surfaces of it.';
+    'BANZA ADR-015 PaymentIntent: canonical payment-initiation primitive. Holds no money; PaymentIntent -> Transfer -> Ledger. Payment Links/QR/Payment Requests are surfaces of it.';

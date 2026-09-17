@@ -1,7 +1,15 @@
--- Collections (BANZA ADR-036) — operator-side persistence of the canonical
+-- 0156 — Collections (BANZA ADR-016) — operator-side persistence of the canonical
 -- protocol concept. A Collection is a COMPOSITE FINANCIAL OBLIGATION, never money:
--- it holds no balance and never posts to the ledger. Value moves only when each
--- share's PaymentIntent settles into a Transfer (see 0065/0066).
+-- it holds no balance and never posts to the ledger (INV-COLLECTION-001). Value
+-- moves only when each share's PaymentIntent (BANZA ADR-015) settles into a
+-- Transfer (see 0157/0158).
+--
+-- COLLECTIONS-PROTOCOL-AND-PRODUCT-001: this folds the previously-frozen prototype
+-- schema (db/migrations.phase2/0064) into the tracked migration chain now that
+-- Collections is ratified in the protocol (BANZA ADR-016, canonical contracts
+-- contracts/collections/*.schema.json + INV-COLLECTION-001..008). It is written
+-- CREATE ... IF NOT EXISTS so it is a no-op on any environment that already carries
+-- the prototype tables and a create everywhere else (fresh Sandbox/Live/dev).
 --
 -- This operator implements the protocol concept exactly; it invents no Banzami
 -- semantics. Status/rule/fields mirror contracts/collections/collection.schema.json
@@ -38,6 +46,6 @@ CREATE INDEX IF NOT EXISTS idx_collections_active_expiry
     WHERE status IN ('OPEN','PARTIALLY_COMPLETED') AND expires_at IS NOT NULL;
 
 COMMENT ON TABLE collections IS
-    'BANZA ADR-036 Collection: composite financial obligation. Holds no money, never posts to the ledger. collected_amount is DERIVED from PAID shares, never stored as money here.';
+    'BANZA ADR-016 Collection: composite financial obligation. Holds no money, never posts to the ledger. collected_amount is DERIVED from PAID shares, never stored as money here.';
 COMMENT ON COLUMN collections.total_amount_minor IS
     'Hard total for closed rules; target/goal for open rules. Immutable after OPEN for closed rules (INV-COLLECTION-007).';

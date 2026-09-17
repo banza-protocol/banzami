@@ -1,4 +1,4 @@
-//! Rule resolution + validation (BANZA ADR-036 invariants).
+//! Rule resolution + validation (BANZA ADR-016 invariants).
 //!
 //! INV-COLLECTION-002: closed-rule shares sum exactly to total_amount_minor.
 //! INV-COLLECTION-003: EQUAL_SPLIT with EXACT divisibility rejects a non-divisible

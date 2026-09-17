@@ -535,7 +535,7 @@ class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Collections (BANZA ADR-036) — split a single total into N shares that each
+  // Collections (BANZA ADR-016) — split a single total into N shares that each
   // settle independently into the merchant wallet. merchant_id/environment are
   // derived from the merchant principal by the gateway; the client only sends
   // the wallet and the split rule.

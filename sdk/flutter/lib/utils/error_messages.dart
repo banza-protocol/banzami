@@ -179,6 +179,26 @@ String? _byCode(String code) {
     case 'RECEIVE_POINT_UNAVAILABLE':
       return 'O recebimento está temporariamente indisponível. Tente novamente.';
 
+    // Collections / cobrança dividida (BANZA ADR-016). Deterministic contract/state
+    // failures get a truthful message — never the generic "temporariamente
+    // indisponível" fallback (COLLECTIONS-PROTOCOL-AND-PRODUCT-001 §29).
+    case 'COLLECTIONS_UNAVAILABLE':
+      return 'A cobrança dividida não está disponível neste ambiente.';
+    case 'COLLECTION_SUM_MISMATCH':
+      return 'A soma das partes não corresponde ao valor total.';
+    case 'COLLECTION_INDIVISIBLE':
+      return 'Este valor não pode ser dividido por este número de pessoas.';
+    case 'SHARE_BELOW_MINIMUM':
+      return 'Cada parte fica demasiado pequena. Aumente o valor ou reduza o número de pessoas.';
+    case 'COLLECTION_IMMUTABLE':
+      return 'Esta cobrança já não pode ser alterada.';
+    case 'COLLECTION_INVALID_STATUS':
+      return 'Esta cobrança não está num estado que permita esta operação.';
+    case 'CLOSED_RULE_NO_DYNAMIC_SHARES':
+      return 'Esta cobrança tem partes fixas e não aceita novas partes.';
+    case 'UNSUPPORTED_SURFACE':
+      return 'Esta forma de pagamento não é suportada para esta cobrança.';
+
     // Realtime SSE (CONSUMER-HOME-REALTIME-001). Emitted by public-api but never
     // registered here — added while wiring the receive-point error guard.
     case 'STREAMING_UNSUPPORTED':

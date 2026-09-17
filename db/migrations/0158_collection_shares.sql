@@ -1,8 +1,13 @@
--- CollectionShare (BANZA ADR-036) — one payer's portion of a Collection. Its own
--- aggregate root (scales to thousands of shares). NEVER contains a balance and
--- NEVER references the ledger. Its only money anchor is transfer_id (a pointer to
--- the real settling Transfer). Settled via its own PaymentIntent (0065).
+-- 0158 — CollectionShare (BANZA ADR-016) — one payer's portion of a Collection.
+-- Its own aggregate root (scales to thousands of shares). NEVER contains a balance
+-- and NEVER references the ledger. Its only money anchor is transfer_id (a pointer
+-- to the real settling Transfer). Settled via its own PaymentIntent (0157).
 -- Mirrors contracts/collections/collection-share.schema.json in ~/banza.
+--
+-- COLLECTIONS-PROTOCOL-AND-PRODUCT-001: folds db/migrations.phase2/0066 into the
+-- tracked chain (see 0156). CREATE ... IF NOT EXISTS — no-op where the prototype
+-- table already exists, create everywhere else. Depends on 0156 (collections) and
+-- 0157 (payment_intents) via its foreign keys.
 
 CREATE TABLE IF NOT EXISTS collection_shares (
     id                 UUID         PRIMARY KEY,
@@ -32,4 +37,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_collection_shares_payment_intent
     ON collection_shares (payment_intent_id) WHERE payment_intent_id IS NOT NULL;
 
 COMMENT ON TABLE collection_shares IS
-    'BANZA ADR-036 CollectionShare: one payer portion. Holds no balance, no ledger reference. PAID only via a real confirmed Transfer (INV-COLLECTION-005); PAID is terminal — no double payment (INV-COLLECTION-006).';
+    'BANZA ADR-016 CollectionShare: one payer portion. Holds no balance, no ledger reference. PAID only via a real confirmed Transfer (INV-COLLECTION-005); PAID is terminal — no double payment (INV-COLLECTION-006).';

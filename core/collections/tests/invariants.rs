@@ -1,4 +1,4 @@
-//! Invariant tests for Collections (BANZA ADR-036) using an in-memory repository
+//! Invariant tests for Collections (BANZA ADR-016) using an in-memory repository
 //! — no database required, deterministic, runs in CI without setup.
 //!
 //! Proves: INV-COLLECTION-002 (closed-rule sum == total), INV-COLLECTION-003

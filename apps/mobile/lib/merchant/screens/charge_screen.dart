@@ -13,13 +13,13 @@ import 'split_track_screen.dart';
 /// Dois modos:
 ///  • Simples   — uma cobrança, um QR/link (comportamento original).
 ///  • Dividida  — o valor total é dividido igualmente por N pessoas como uma
-///                Collection do protocolo (BANZA ADR-036): um único objeto
+///                Collection do protocolo (BANZA ADR-016): um único objeto
 ///                financeiro com N partes (shares) que se pagam de forma
 ///                independente e liquidam direto na carteira do comerciante.
 ///                O acompanhamento (quem pagou / o que falta) fica no
 ///                `SplitTrackScreen`.
 ///
-/// Fluxo protocol-first (BANZA ADR-035): o conceito nasce no protocolo
+/// Fluxo protocol-first (BANZA ADR-003): o conceito nasce no protocolo
 /// (Collections), é implementado pelo operador, exposto pelo SDK
 /// (`createEqualSplitCollection`) e só aqui consumido pela app. `AppConfig.
 /// splitChargeEnabled` controla apenas a visibilidade do modo na UI.
@@ -118,7 +118,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
     final client  = context.read<BanzamiClient>();
     final desc    = _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
 
-    // One protocol Collection (BANZA ADR-036) with a fixed share per person.
+    // One protocol Collection (BANZA ADR-016) with a fixed share per person.
     // We send the exact per-person amounts (remainder already distributed) so
     // the preview matches the created shares and the core validates that the
     // parts sum to the total. Each share settles into the merchant wallet when

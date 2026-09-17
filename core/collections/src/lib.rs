@@ -1,4 +1,4 @@
-//! Payment Collections + PaymentIntent (BANZA ADR-036 / ADR-037), operator-side.
+//! Payment Collections + PaymentIntent (BANZA ADR-016 / ADR-015), operator-side.
 //!
 //! Implements the canonical protocol concept exactly (no Banzami-specific
 //! semantics). A Collection is a composite financial obligation that holds no

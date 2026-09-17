@@ -164,7 +164,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
       case BanzamiQrSplitPayment():
         // Pre-protocol P2P split (/v1/splits) was retired in favour of BANZA
-        // Collections (ADR-036). Split bills are now a merchant feature; each
+        // Collections (ADR-016). Split bills are now a merchant feature; each
         // share is surfaced as a normal payment link/QR, so a legacy split QR
         // no longer has a consumer screen.
         debugPrint('[QR-SCAN] route=SplitPay (unsupported — legacy)');
