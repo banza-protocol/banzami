@@ -260,22 +260,31 @@ class _WebAppSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final segs = Uri.base.pathSegments.where((s) => s.isNotEmpty).toList();
     final isBusiness = segs.isNotEmpty && segs.first == 'business';
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFEEE4E4)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _segment('Pessoal', !isBusiness, () => navigateToPath('/')),
-          _segment('Business', isBusiness, () => navigateToPath('/business')),
-        ],
+    // This chrome sits in a bare Column OUTSIDE the app's Navigator/Scaffold, so
+    // it has no Material ancestor. Without one, Flutter paints Text with its
+    // "missing Material" indicator — a yellow double-underline — which is exactly
+    // the residual line seen under the labels. A transparent Material gives the
+    // labels a proper text context so they render clean (the pill keeps its own
+    // white fill below).
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFFEEE4E4)),
+          boxShadow: const [
+            BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _segment('Pessoal', !isBusiness, () => navigateToPath('/')),
+            _segment('Business', isBusiness, () => navigateToPath('/business')),
+          ],
+        ),
       ),
     );
   }
@@ -301,6 +310,7 @@ class _WebAppSwitcher extends StatelessWidget {
           fontWeight: FontWeight.w700,
           fontSize: 14,
           letterSpacing: 0.1,
+          decoration: TextDecoration.none,
         ),
       ),
     );
