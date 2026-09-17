@@ -100,10 +100,10 @@ class _BusinessChargeScreenState extends State<BusinessChargeScreen> {
         ),
         if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: BanzamiColors.error))],
         const SizedBox(height: 24),
-        FilledButton(
+        BanzamiPrimaryButton(
+          label: 'Gerar cobrança',
+          isLoading: _busy,
           onPressed: _busy ? null : _create,
-          style: FilledButton.styleFrom(backgroundColor: BanzamiColors.primary, padding: const EdgeInsets.symmetric(vertical: 16)),
-          child: _busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Gerar cobrança', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       ],
     );
@@ -121,16 +121,15 @@ class _BusinessChargeScreenState extends State<BusinessChargeScreen> {
         if (link.amountMinor != null) MoneyAmount(link.amountMinor!, currency: link.currency, size: MoneySize.lg, tone: MoneyTone.brand),
         if (link.description != null) ...[const SizedBox(height: 4), Text(link.description!, style: const TextStyle(color: BanzamiColors.gray400))],
         const SizedBox(height: 20),
-        OutlinedButton.icon(
+        BanzamiSecondaryButton(
+          label: 'Copiar ligação',
           onPressed: () {
             Clipboard.setData(ClipboardData(text: _payUrl));
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ligação copiada')));
           },
-          icon: const Icon(Icons.copy_rounded, size: 18),
-          label: const Text('Copiar ligação'),
         ),
         const SizedBox(height: 8),
-        TextButton(onPressed: () => setState(() { _link = null; _amount.clear(); _desc.clear(); }), child: const Text('Criar outra')),
+        BanzamiGhostButton(label: 'Criar outra', onPressed: () => setState(() { _link = null; _amount.clear(); _desc.clear(); })),
       ],
     );
   }

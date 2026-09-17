@@ -96,21 +96,15 @@ class _BusinessLoginScreenState extends State<BusinessLoginScreen> {
                     Text(session.error!, style: const TextStyle(color: BanzamiColors.error, fontSize: 14)),
                   ],
                   const SizedBox(height: 24),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: BanzamiColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                  BanzamiPrimaryButton(
+                    label: 'Entrar',
+                    isLoading: busy,
                     onPressed: busy ? null : _submit,
-                    child: busy
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Entrar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
-                  const SizedBox(height: 16),
-                  TextButton(
+                  const SizedBox(height: 8),
+                  BanzamiGhostButton(
+                    label: 'Ir para a conta Pessoal',
                     onPressed: () => navigateToPath('/'),
-                    child: const Text('Ir para a conta Pessoal', style: TextStyle(color: BanzamiColors.gray400)),
                   ),
                 ],
               ),

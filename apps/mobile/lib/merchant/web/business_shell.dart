@@ -335,7 +335,7 @@ class _ReceiveTabState extends State<_ReceiveTab> {
     final session = context.watch<MerchantWebSession>();
     if (_loading) return const Center(child: CircularProgressIndicator(color: BanzamiColors.primary));
     if (_error != null || _point == null) {
-      return Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(_error ?? 'QR indisponível', textAlign: TextAlign.center, style: const TextStyle(color: BanzamiColors.gray400)), const SizedBox(height: 16), FilledButton(onPressed: _load, style: FilledButton.styleFrom(backgroundColor: BanzamiColors.primary), child: const Text('Tentar novamente'))])));
+      return Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(_error ?? 'QR indisponível', textAlign: TextAlign.center, style: const TextStyle(color: BanzamiColors.gray400)), const SizedBox(height: 16), BanzamiPrimaryButton(label: 'Tentar novamente', onPressed: _load)])));
     }
     final point = _point!;
     return SingleChildScrollView(
@@ -360,11 +360,11 @@ class _ReceiveTabState extends State<_ReceiveTab> {
           const SizedBox(height: 16),
           const Text('Mostre este QR para receber pagamentos na App Banzami.', textAlign: TextAlign.center, style: TextStyle(color: BanzamiColors.gray400, fontSize: 14, height: 1.4)),
           const SizedBox(height: 20),
-          FilledButton.icon(
+          BanzamiPrimaryButton(
+            label: 'Criar cobrança',
+            icon: Icons.add_rounded,
+            fullWidth: false,
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BusinessChargeScreen())),
-            style: FilledButton.styleFrom(backgroundColor: BanzamiColors.primary, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14)),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Criar cobrança'),
           ),
         ],
       ),
@@ -410,8 +410,8 @@ class _ProfileTab extends StatelessWidget {
         title: const Text('Terminar sessão Business?'),
         content: const Text('A sua conta Pessoal continua ligada.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(style: FilledButton.styleFrom(backgroundColor: BanzamiColors.primary), onPressed: () => Navigator.pop(ctx, true), child: const Text('Terminar')),
+          BanzamiGhostButton(label: 'Cancelar', onPressed: () => Navigator.pop(ctx, false)),
+          BanzamiPrimaryButton(label: 'Terminar', fullWidth: false, onPressed: () => Navigator.pop(ctx, true)),
         ],
       ),
     );
