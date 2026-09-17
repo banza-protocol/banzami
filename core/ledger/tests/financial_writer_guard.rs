@@ -61,6 +61,18 @@ const NOT_FINANCIAL_STATE: &[(&str, &str)] = &[
         "boundary_reconciliation_items",
         "boundary reconciliation report (MONEY-MODEL-001): never corrects the ledger",
     ),
+    (
+        "collections",
+        "BANZA ADR-016 Collection: a composite payment obligation; holds no money, never posts to the ledger (INV-COLLECTION-001)",
+    ),
+    (
+        "collection_shares",
+        "one share of a Collection; money moves only when its PaymentIntent settles into a guarded Transfer",
+    ),
+    (
+        "payment_intents",
+        "BANZA ADR-015 PaymentIntent: an intent to be paid; nothing moves until a guarded payment settles it",
+    ),
 ];
 
 async fn probe_role(pool: &PgPool) -> String {

@@ -45,10 +45,19 @@ echo "== read-only pre-check (fail closed unless head == 158) =="
 PG="$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-postgres-1')"
 [ -n "$PG" ] || { echo "ABORT: sandbox postgres container not found"; exit 1; }
 H="$(docker exec "$PG" sh -c 'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc "SELECT max(version) FROM _sqlx_migrations"')"
-echo "  pre-head=$H (expect 158)"
-[ "$H" = "158" ] || { echo "ABORT: pre-head $H != 158"; exit 1; }
 IDX="$(docker exec "$PG" sh -c 'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc "SELECT indexname FROM pg_indexes WHERE indexname='"'"'collections_idem_scope'"'"'"')"
-[ -z "$IDX" ] || { echo "ABORT: collections_idem_scope already present — 0159 looks applied"; exit 1; }
+echo "  pre-head=$H  idem_index=[$IDX]"
+if [ "$H" = "158" ] && [ -z "$IDX" ]; then
+  echo "  state=fresh (0159 not yet applied)"
+elif [ "$H" = "159" ] && [ "$IDX" = "collections_idem_scope" ]; then
+  # Resume: 0159's schema already committed on a prior run whose runtime-authority
+  # step failed (unclassified collections tables — now fixed in the manifest).
+  # apply re-issues fresh single-use authz/receipt, migrate is a safe no-op at 159,
+  # and runtime-authority re-applies cleanly.
+  echo "  state=resume (0159 applied; completing runtime authority — migrate will be a no-op)"
+else
+  echo "ABORT: unexpected state (head=$H idem_index=[$IDX]); expected 158/absent or 159/present"; exit 1
+fi
 
 echo "== 1-2. verified, secret-free release package from clean HEAD =="
 bash "$S/sandbox-release-package.sh" build

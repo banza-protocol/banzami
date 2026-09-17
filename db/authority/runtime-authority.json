@@ -44,7 +44,10 @@
     "acquiring_reconciliation_items": "reconciliation evidence: detects a mismatch, never corrects the ledger",
     "reconciliation_attempts": "reconciliation evidence: detects a mismatch, never corrects the ledger",
     "boundary_reconciliation_runs": "boundary reconciliation report (MONEY-MODEL-001): compares operations with external evidence, never corrects the ledger",
-    "boundary_reconciliation_items": "boundary reconciliation report (MONEY-MODEL-001): one classified difference, never a correction"
+    "boundary_reconciliation_items": "boundary reconciliation report (MONEY-MODEL-001): one classified difference, never a correction",
+    "collections": "BANZA ADR-016 Collection: a composite payment obligation; holds no money, never posts to the ledger (INV-COLLECTION-001)",
+    "collection_shares": "one share of a Collection; money moves only when its PaymentIntent settles into a guarded Transfer",
+    "payment_intents": "BANZA ADR-015 PaymentIntent: an intent to be paid; nothing moves until a guarded payment settles it"
   },
   "financial_write_routines": {
     "public.create_primary_wallet_account": "trigger on wallets (Core-written): creates the PRIMARY wallet account; SECURITY INVOKER, so it writes only with the privileges of the statement that fired it"
