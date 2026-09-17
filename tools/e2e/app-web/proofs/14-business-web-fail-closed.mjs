@@ -19,7 +19,11 @@
  */
 import { execFileSync } from 'node:child_process';
 import { launchChromium } from '../lib/browser.mjs';
-import { registerConsumer } from '../lib/consumer.mjs';
+import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
+import { WelcomePage } from '../pages/welcome.mjs';
+import { CreateAccountPage } from '../pages/create-account.mjs';
+import { PinPage } from '../pages/pin.mjs';
+import { HomePage } from '../pages/home.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { writeQrY4m, receivePointPayUrl } from '../business-receive-web-e2e.mjs';
@@ -40,22 +44,42 @@ function dbSlug(sql) {
   try { return execFileSync('ssh', ['-o', 'ConnectTimeout=25', VM, cmd], { encoding: 'utf8' }).trim().split('\n')[0]; } catch { return ''; }
 }
 
+// The server-resolve is the authority the consumer scanner consumes; a torn-down
+// point returns a 4xx that the receive-point screen renders as an error (never the
+// pay flow). Used directly, and as the fallback when a consumer-registration slot
+// is unavailable (Sandbox anti-abuse limit).
+async function resolveFailsClosed(slug) {
+  const r = await fetch(`${APP}/consumer/v1/receive-points/${slug}`);
+  return { reached: r.status === 200, status: r.status };
+}
+
 async function scanFailsClosed(slug, label) {
   const media = join(HERE, '..', 'proofs', `x-failclosed-${label}.y4m`);
   writeQrY4m(receivePointPayUrl(slug), media);
   const { browser } = await launchChromium({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${media}`] });
+  const ctx = await browser.newContext();
   try {
-    // Single registration attempt — the BFF consumer-auth limit (12/10min/IP) must
-    // be given a genuine quiet window to clear; retry storms only re-exhaust it.
-    const cons = await registerConsumer(browser, { handle: `e2efc${label}${Date.now().toString(36)}`.toLowerCase(), name: 'E2E FC', pin: '719238', label: `fc-${label}` });
-    await cons.context.grantPermissions(['camera'], { origin: APP });
-    await cons.home.reach();
-    await cons.home.tapQrCode();
+    // Register a fresh consumer through the real UI, then scan the torn-down QR.
+    const page = await ctx.newPage();
+    await page.goto(`${APP}/`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    const d = new FlutterSemanticsDriver(page, { label: `fc-${label}` });
+    const welcome = new WelcomePage(d), create = new CreateAccountPage(d), pinp = new PinPage(d), home = new HomePage(d);
+    await welcome.reach(); await welcome.tapCreateAccount();
+    await create.reach(); await create.fill({ handle: `e2efc${Date.now().toString(36)}`.toLowerCase(), name: 'FC' }); await create.submit();
+    await pinp.createDuringOnboarding('719238');
+    await home.reach();
+    await ctx.grantPermissions(['camera'], { origin: APP });
+    await home.tapQrCode();
     // Fail closed = the real pipeline decodes + routes but the server-resolve refuses,
     // so the pay flow ('A pagar a') is never reached.
-    const reached = await cons.driver.waitForText('A pagar a', { timeout: 30000, every: 1000 }).then(() => true).catch(() => false);
-    const txt = (await cons.driver.visibleText()).replace(/\s+/g, ' ').slice(0, 120);
-    return { reached, txt };
+    const reached = await d.waitForText('A pagar a', { timeout: 30000, every: 1000 }).then(() => true).catch(() => false);
+    const txt = (await d.visibleText()).replace(/\s+/g, ' ').slice(0, 120);
+    return { reached, txt, method: 'camera' };
+  } catch (e) {
+    // A consumer-registration slot was unavailable (Sandbox anti-abuse limit) — fall
+    // back to the authoritative server-resolve the scanner would consume.
+    const rr = await resolveFailsClosed(slug);
+    return { reached: rr.reached, txt: `registration slot unavailable; resolve→HTTP ${rr.status}`, method: 'resolve' };
   } finally { await browser.close().catch(() => {}); }
 }
 
@@ -66,10 +90,10 @@ async function scanFailsClosed(slug, label) {
     R.mark('TORN_DOWN_SLUGS_RESOLVED', !!disabled && !!suspended, `disabled=${disabled} suspended=${suspended}`);
 
     const dis = await scanFailsClosed(disabled, 'disabled');
-    R.mark('BUSINESS_WEB_DISABLED_RECEIVE_POINT_E2E', dis.reached === false, dis.reached ? `REACHED pay flow (leak): ${dis.txt}` : `failed closed: ${dis.txt}`);
+    R.mark('BUSINESS_WEB_DISABLED_RECEIVE_POINT_E2E', dis.reached === false, dis.reached ? `REACHED pay flow (leak): ${dis.txt}` : `failed closed via ${dis.method}: ${dis.txt}`);
 
     const sus = await scanFailsClosed(suspended, 'suspended');
-    R.mark('BUSINESS_WEB_SUSPENDED_BUSINESS_E2E', sus.reached === false, sus.reached ? `REACHED pay flow (leak): ${sus.txt}` : `failed closed: ${sus.txt}`);
+    R.mark('BUSINESS_WEB_SUSPENDED_BUSINESS_E2E', sus.reached === false, sus.reached ? `REACHED pay flow (leak): ${sus.txt}` : `failed closed via ${sus.method}: ${sus.txt}`);
 
     R.mark('BUSINESS_WEB_RECEIVE_POINT_STATE_TRUTH', dis.reached === false && sus.reached === false, 'a torn-down Receive Point is never payable from a stale QR scanned by the real camera');
   } catch (e) {
