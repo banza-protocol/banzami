@@ -350,8 +350,17 @@ gen-validation-registry:
 check-validation-registry-drift:
 	node tools/gen-validation-registry.mjs --check
 
+# The preflight must measure headroom with the SAME constants and the SAME
+# definition of merchant-credit volume as the engine that enforces them.
+# Extracted from core/compliance rather than restated; regenerate on any change.
+gen-pilot-limits:
+	node tools/gen-pilot-limits.mjs
+
+check-pilot-limits-drift:
+	node tools/gen-pilot-limits.mjs --check
+
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.
