@@ -234,3 +234,81 @@ C03 therefore hold legitimate starting balances of 1 000 000 minor each.
 It is **not Cash-In**, and its ledger history is immutable and is not deleted.
 Every financial assertion uses `pre_balance + expected_delta = post_balance`
 rather than assuming an actor starts at zero.
+
+---
+
+## 13. B10 complete — nine actors, nine healthy
+
+| Actor | Identity | Product ids | Health |
+|---|---|---|---|
+| `C01` `C02` `C03` | `@e2ec01-03` | consumer + wallet + account | **HEALTHY** |
+| `B01` `B02` `B03` | `@e2eb01-03` | merchant + wallet + account | **HEALTHY** |
+| `D01` `D02` | `d0N@banzami-e2e.test` | identity + workspace + project | **HEALTHY** |
+| `A01` | `admin02@banzami-e2e.test` | admin_user | **HEALTHY** |
+
+```
+VALIDATION_ACTOR_COUNT      = 9      VALIDATION_ACTORS_HEALTHY = 9
+VALIDATION_ACTORS_UNOWNED   = 0      VALIDATION_ACTORS_ENVIRONMENT = SANDBOX
+VALIDATION_ACTOR_AUTH_BYPASS = 0     VALIDATION_ACTOR_FINANCIAL_POLICY_BYPASS = 0
+```
+
+Every actor was probed live, not merely counted: consumers by `@handle` + PIN,
+Businesses by `@handle` + PIN, `A01` by password + a TOTP computed from its
+stored seed. `A01`'s probe also asserts what it must **not** hold —
+`GET /admin/v1/operators` returns `403`, confirming COMPLIANCE is least
+privilege for the approval authority it exists to exercise.
+
+### How B01–B03 were created
+
+```
+public application (13 KYB fields, complete)
+  → BUSINESS_REGISTRATION + REPRESENTATIVE_ID uploaded to R2 via presigned PUT
+  → A01: start-review → approve
+  → activation/validate → activation/complete with a generated PIN
+```
+
+`BUSINESS_APPLICATION_BYPASS=0`, `MERCHANT_LIFECYCLE_BYPASS=0`,
+`DATABASE_IDENTITY_INSERTION=0`, `APPLICATION_SUBMIT_RATE_LIMIT_BYPASS=0`.
+
+The internal `/internal/v1/merchant-applications/{id}/approve` route exists and
+was **not** used: it is there so admin-api can reach Core, not so a harness can
+skip the KYB decision.
+
+### The quota was waited out, twice
+
+`application-submit` is 30 per 24h per IP, and the allowance was spent. Two
+lessons, both recorded rather than worked around:
+
+- **The key's TTL is the wrong number.** It reads ≈14h — that is when the whole
+  key expires. The sliding window's entry scores say when a *slot* frees, which
+  was ~2h. Read the scores.
+- **Polling the API consumes the slot it is waiting for.** An early wait loop
+  POSTed until it stopped getting 429 and spent the first free slot on the
+  probe itself. Poll Redis instead; it costs nothing.
+
+### Volume preflight with the real actor set
+
+```
+global   24h    2 235 120 /  50 000 000
+global   30d   92 988 840 / 400 000 000
+merchant 24h/30d  e2eb01 · e2eb02 · e2eb03    0 used, full headroom
+
+VALIDATION_VOLUME_BUDGET_PREFLIGHT_WITH_ACTORS = PASS   (FULL and GOLDEN both fit)
+```
+
+### A product defect was found and fixed on the way (VL-019)
+
+An application submitted without its required KYB fields was accepted (`201`),
+its fields were then immutable, and once a reviewer asked for information it
+could be neither resubmitted (`422`) nor reviewed (`409`) nor rejected (`409`) —
+while holding its desired `@handle` for a 30-day reservation.
+
+`INFORMATION_REQUIRED` is now in `Reject`'s open set, with two DB-backed
+regressions and a mutation proof. Fixed in the canonical owning layer
+(`services/api-gateway`), deployed at `0f08c2cd`, and it is what released
+`@e2eb01-03` for the corrected applications.
+
+The root cause — creation accepting an incomplete application at all — is
+recorded for Phase C rather than changed here: the requirement list already
+exists at `GET /v1/merchant/application-requirements` and is simply not
+enforced at submission.

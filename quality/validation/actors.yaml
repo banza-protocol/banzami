@@ -1,17 +1,15 @@
 # Validation Actor registry — Banzami Validation Studio (owner decision D7/D8).
 #
-# APPROVED ROSTER. PROVISIONING IN PROGRESS — 5 of 9 (2026-09-18).
+# APPROVED ROSTER — ALL NINE PROVISIONED (2026-09-18).
 #
 #   C01 C02 C03  provisioned — POST /v1/auth/register (no operator needed)
 #   D01 D02      provisioned — Console OTP sign-in, then workspace + project
-#   B01 B02 B03  BLOCKED — an application must be APPROVED by an operator
-#                (CapApplicationApprove); the only ACTIVE operator is the owner's
-#   A01          BLOCKED — POST /admin/v1/operators requires CapOperatorManage
-#                AND a step-up (TOTP within 5 minutes)
+#   B01 B02 B03  provisioned — public application, approved by A01, activated
+#   A01          provisioned — owner ceremony completed 2026-09-18
 #
-# The four blocked actors share ONE boundary, not four: the owner's TOTP
-# ceremony for A01. Once A01 exists it approves B01-B03 through the normal
-# operator path. See docs/validation/studio/26-b10-owner-ceremony.md.
+# All nine exist. Every one came through the product's own door: no SQL identity
+# insertion, no auth bypass, no merchant-lifecycle bypass, no Core special case
+# and no financial-policy bypass.
 #
 # Provisioning is deliberately the LAST step of Phase B (B10) and has not been
 # performed. Creating the actors before the system can recognise them would
@@ -125,9 +123,14 @@ actors:
     display_name: Validation Actor B01
     handle: e2eb01
     email: b01@banzami-e2e.test
+    product_ids:
+      merchant_id: 2f851a16-fe5e-4151-8060-73e56cf3faea
+      wallet_id: 9895c152-8db8-4ffa-844e-e4c9db2c36a6
+      available_account_id: b1a8f241-7648-406c-9056-a16df5783d28
     credentials: {pin: "secret://banzami/validation/b01/pin"}
-    status: blocked-on-owner-ceremony
-    blocked_by: "an application must be APPROVED by an operator (CapApplicationApprove); A01 does not exist yet"
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "public application (complete KYB fields + BUSINESS_REGISTRATION and REPRESENTATIVE_ID uploaded to R2) -> A01 start-review -> A01 approve -> activation/validate + complete with a generated PIN"
     lifecycle: persistent
     provisioning: ["public application", "BANZADMIN approve (A01)",
                    "POST /v1/merchant/activation/complete"]
@@ -145,9 +148,14 @@ actors:
     display_name: Validation Actor B02
     handle: e2eb02
     email: b02@banzami-e2e.test
+    product_ids:
+      merchant_id: deb45465-6333-45ae-aa26-ac4bf0c9fdd7
+      wallet_id: 2ac8412d-0e7b-46e2-a28a-9a68ce8a2e90
+      available_account_id: 977e2e1b-fc71-4b3a-b91f-76ab2e2af249
     credentials: {pin: "secret://banzami/validation/b02/pin"}
-    status: blocked-on-owner-ceremony
-    blocked_by: "an application must be APPROVED by an operator (CapApplicationApprove); A01 does not exist yet"
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "public application (complete KYB fields + BUSINESS_REGISTRATION and REPRESENTATIVE_ID uploaded to R2) -> A01 start-review -> A01 approve -> activation/validate + complete with a generated PIN"
     lifecycle: persistent
     purpose: cross-tenant isolation target (doc 15 rows 5-9)
 
@@ -156,9 +164,14 @@ actors:
     display_name: Validation Actor B03
     handle: e2eb03
     email: b03@banzami-e2e.test
+    product_ids:
+      merchant_id: 284f9fc0-db02-49d7-8df5-a85a1663b0c5
+      wallet_id: 91cb1a94-a957-4b84-bd91-7feac4b22e69
+      available_account_id: d7347a38-5991-4597-9607-7ada5aeef452
     credentials: {pin: "secret://banzami/validation/b03/pin"}
-    status: blocked-on-owner-ceremony
-    blocked_by: "an application must be APPROVED by an operator (CapApplicationApprove); A01 does not exist yet"
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "public application (complete KYB fields + BUSINESS_REGISTRATION and REPRESENTATIVE_ID uploaded to R2) -> A01 start-review -> A01 approve -> activation/validate + complete with a generated PIN"
     lifecycle: persistent
     purpose: >-
       ORDINARY Business standing in for an application integrator, so S14

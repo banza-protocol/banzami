@@ -1,14 +1,14 @@
 # 24 — Phase B completion report
 
 Version: 1.0
-Status (corrected 2026-09-18, owner decision §1):
-`BANZAMI_VALIDATION_STUDIO_PHASE_B_IMPLEMENTATION=COMPLETE`
-`BANZAMI_VALIDATION_STUDIO_PHASE_B_OPERATIONAL_ACCEPTANCE=PENDING`
-`PHASE_C_READY=CONDITIONALLY_READY`
+Status (2026-09-18, after the owner ceremony and B10):
+`BANZAMI_VALIDATION_STUDIO_PHASE_B=COMPLETE`
+`BANZAMI_VALIDATION_STUDIO_PHASE_B_OPERATIONAL_ACCEPTANCE=PASS`
+`PHASE_C_READY=YES`
 
-> Implementation is accepted. Operational acceptance waits on one owner
-> ceremony — see [26](26-b10-owner-ceremony.md). Runtime evidence for the
-> deployed policy is in [27](27-runtime-acceptance.md).
+> All nine Validation Actors are provisioned and healthy. Runtime evidence is
+> in [27](27-runtime-acceptance.md); the ceremony that unblocked it is
+> [26](26-b10-owner-ceremony.md).
 Commits: `970cbe9d` … `d6f95384` on `main`
 
 ---
@@ -38,7 +38,7 @@ Commits: `970cbe9d` … `d6f95384` on `main`
 | `VALIDATION_STUDIO_ADMIN_RBAC_BOUNDARY` | **PASS** | `TestCan_ValidationStudioMatrix` |
 | `BANZADMIN_VALIDATION_FOUNDATION` | **PASS** | RBAC + control contract + architecture; pages are Phase C |
 | `VALIDATION_ACTOR/JOURNEY/SUITE_REGISTRY_READY` | **PASS** | `check-validation-registries` |
-| `VALIDATION_ACTORS_PROVISIONED` | **5 of 9** | 4 await the A01 ceremony — [26](26-b10-owner-ceremony.md) |
+| `VALIDATION_ACTOR_COUNT` / `HEALTHY` | **9 / 9** | `make validation-actor-health` with `--probe` |
 | `REAL_LIVE_VALIDATION_CONTROL_EXPOSED` | **0** | Sandbox-only by construction |
 | `REAL_LIVE_TESTS_EXECUTED` | **0** | no Live host was contacted |
 | `DOA_SPECIAL_BANZAMI_TENANT_BEHAVIOR` | **0** | re-verified; unchanged |
@@ -104,7 +104,7 @@ Commits: `970cbe9d` … `d6f95384` on `main`
 | A parallel E2E engine | the existing estate is the execution plane |
 | BANZADMIN `/validation` pages | Phase C. The boundary they sit behind exists now |
 | `tools/validationctl.mjs` | Phase C; its basis is named, not forked |
-| The four blocked actors | B10 authorised; `B01`-`B03` and `A01` need one owner ceremony |
+| A Golden Run | Phase C first — the Studio's operational surface does not exist yet |
 | A public assurance page | deferred, separately approvable |
 | `e2e.banzami.com` | the platform already has both email paths |
 | Consumer per-payment/daily wiring | out of D1's scope; recorded in ADR-048 rather than implied |
@@ -206,10 +206,12 @@ D5 SDK licensing, D6 `sandbox-operator`, D9 retention, D11 native device.
 None blocks starting Phase C; each blocks a specific part of it.
 
 ```
-BANZAMI_VALIDATION_STUDIO_PHASE_B_IMPLEMENTATION      = COMPLETE
-BANZAMI_VALIDATION_STUDIO_PHASE_B_OPERATIONAL_ACCEPTANCE = PENDING
-PHASE_C_READY                                          = CONDITIONALLY_READY
-REAL_LIVE_TESTS_EXECUTED                               = 0
+BANZAMI_VALIDATION_STUDIO_PHASE_B                        = COMPLETE
+BANZAMI_VALIDATION_STUDIO_PHASE_B_OPERATIONAL_ACCEPTANCE = PASS
+PHASE_C_READY                                            = YES
+VALIDATION_ACTOR_COUNT                                   = 9
+VALIDATION_ACTORS_HEALTHY                                = 9
+REAL_LIVE_TESTS_EXECUTED                                 = 0
 ```
 
 No tag. No freeze.

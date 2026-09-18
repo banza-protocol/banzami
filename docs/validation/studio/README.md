@@ -5,7 +5,7 @@
 > parallel engine. Enforced by `make check-validation-naming`.
 
 Version: 1.0
-Status: Phase A COMPLETE · Phase B implementation COMPLETE, operational acceptance PENDING · `PHASE_C_READY=CONDITIONALLY_READY`
+Status: Phase A COMPLETE · **Phase B COMPLETE** (operational acceptance PASS) · `PHASE_C_READY=YES`
 Programme: BANZAMI-SANDBOX-FULL-VALIDATION-001
 Phase: A — discovery, audit and design **only**
 

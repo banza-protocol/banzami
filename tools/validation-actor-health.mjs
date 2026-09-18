@@ -65,7 +65,44 @@ function probeConsumer(actorId) {
   return { code, body };
 }
 
+/**
+ * Business sign-in: @handle + PIN, the credential the product actually uses.
+ * Same shape as the consumer probe — payload built on the host and piped, so
+ * there is no nested quoting to get wrong and the PIN never leaves the machine.
+ */
+function probeBusiness(actorId) {
+  const low = actorId.toLowerCase();
+  const out = onHost(
+    `P=$(cat /root/.banzami/validation/${low}_pin 2>/dev/null); ` +
+    `[ -n "$P" ] || { echo; echo NOSECRET; exit 0; }; ` +
+    `printf '{"handle":"e2e${low}","pin":"%s"}' "$P" | ` +
+    `curl -s -w '\n%{http_code}' --max-time 20 -X POST ` +
+    `-H 'content-type: application/json' --data-binary @- ` +
+    `${API}/v1/merchant/auth/token`);
+  const lines = out.split('\n');
+  const code = (lines.pop() ?? '').trim();
+  return { code, body: lines.join(' ').slice(0, 160) };
+}
+
+/**
+ * Operator sign-in: password + a TOTP computed from the stored seed, then a
+ * capability probe. Proving an operator is healthy means proving it can still
+ * do its job, not merely that a row exists — so this checks the authority the
+ * role is there for (reading applications) AND that it does NOT hold authority
+ * it should not (operator management is SUPER_ADMIN's).
+ */
+function probeOperator() {
+  const out = onHost('sh /root/.banzami/validation/a01-health.sh 2>&1 | tail -3');
+  const get = (k) => (out.match(new RegExp(`${k}=(\\d{3})`)) ?? [])[1] ?? '—';
+  return { session: get('session'), apps: get('apps'), operators: get('operators') };
+}
+
 /** Balance, read straight from the ledger through the operator role. */
+function merchantWindow24h(accountId) {
+  const q = `SELECT COALESCE(SUM(amount_minor),0)::bigint FROM ledger_entries WHERE entry_type='CREDIT' AND account_id='${accountId}' AND created_at >= now() - interval '24 hours'`;
+  return Number(onHost(`U=$(cat /root/.banzami/operator_db_url); docker exec bzsandbox-20260708184104-1708617-23807-postgres-1 psql "$U" -tAc ${JSON.stringify(q)}`) || 0);
+}
+
 function accountBalance(accountId) {
   const q = `SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END),0)::bigint FROM ledger_entries WHERE account_id='${accountId}'`;
   const out = onHost(`U=$(cat /root/.banzami/operator_db_url); docker exec bzsandbox-20260708184104-1708617-23807-postgres-1 psql "$U" -tAc ${JSON.stringify(q)}`);
@@ -122,6 +159,15 @@ for (const a of actors) {
     }
   } else if (!PROBE) {
     for (const name of ['auth', 'balance', 'window-headroom']) add(name, 'unknown', 'run with --probe');
+  } else if (a.type === 'business') {
+    const { code, body } = probeBusiness(a.id);
+    add('auth', code === '200' ? 'ok' : 'fail',
+      `POST /v1/merchant/auth/token -> ${code || 'no answer'}${code === '200' ? '' : ` · ${body}`}`);
+    const bal = accountBalance(ids.available_account_id);
+    add('balance', bal <= CAPS.merchant_balance ? 'ok' : 'fail', `${bal} / cap ${CAPS.merchant_balance}`);
+    const used = merchantWindow24h(ids.available_account_id);
+    add('window-headroom', used < CAPS.merchant_24h ? 'ok' : 'fail',
+      `24h ${used} / cap ${CAPS.merchant_24h}`);
   } else if (a.type === 'consumer') {
     const { code, body } = probeConsumer(a.id);
     add('auth', code === '200' ? 'ok' : 'fail',
@@ -129,6 +175,13 @@ for (const a of actors) {
     const bal = accountBalance(ids.available_account_id);
     add('balance', bal <= CAPS.consumer_balance ? 'ok' : 'fail', `${bal} / cap ${CAPS.consumer_balance}`);
     add('window-headroom', 'ok', 'consumers hold no merchant-credit window');
+  } else if (a.type === 'operator') {
+    const r = probeOperator();
+    add('auth', r.session === '200' ? 'ok' : 'fail', `login + TOTP from the stored seed -> ${r.session}`);
+    add('balance', r.apps === '200' ? 'ok' : 'fail',
+      `GET /admin/v1/merchant-applications -> ${r.apps} (the authority it exists for)`);
+    add('window-headroom', r.operators === '403' ? 'ok' : 'fail',
+      `GET /admin/v1/operators -> ${r.operators} (403 expected: COMPLIANCE is least privilege)`);
   } else {
     add('auth', ids.identity_user_id ? 'ok' : 'fail',
       ids.identity_user_id ? 'Console identity exists; sessions are minted per run' : 'no identity');
