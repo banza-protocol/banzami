@@ -300,9 +300,13 @@ export function parseShellGates(stdout, sha256 = null) {
   }
   const summary = parseSuiteSummary(stdout);
   if (!summary) {
-    return { gates, summary, mismatch: gates.length
-      ? null                                     // no summary line to check against
-      : 'harness printed no assertions and no summary — output not understood' };
+    if (gates.length) return { gates, summary, mismatch: null }; // nothing to check against
+    // Say WHAT it printed. A harness that refused to start ("lib not found",
+    // "NO_SECRET") is a different problem from one whose format changed, and
+    // "output not understood" on its own sends the reader to the adapter.
+    const first = String(stdout).split('\n').map((l) => l.trim()).filter(Boolean)[0] ?? '(no output)';
+    return { gates, summary, mismatch:
+      `harness printed no assertions and no summary — first line was: ${first.slice(0, 160)}` };
   }
   const gotPass = gates.filter((g) => g.verdict === 'PASS').length;
   const gotFail = gates.filter((g) => g.verdict === 'FAIL').length;

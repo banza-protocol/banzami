@@ -28,6 +28,10 @@ const registry = JSON.parse(execFileSync('python3', [
   join(repo, 'quality/validation/journeys.yaml'),
 ], { encoding: 'utf8', maxBuffer: 1 << 24 }));
 
+// The files runShellHarness copies to the VM beside the harness. Kept next to
+// the check that depends on it, so adding a dependency without staging it fails.
+const STAGED = ['tests/phase0/lib/e2e-run.sh', 'tests/phase0/lib/synthetic-tenant.sh'];
+
 let failures = 0;
 const fail = (m) => { console.log(`  ✗ ${m}`); failures++; };
 const pass = (m) => console.log(`  ✓ ${m}`);
@@ -42,10 +46,22 @@ for (const j of journeys) {
 
   const stem = rel.split('/').pop().replace(/\.(mjs|sh)$/, '');
 
-  // Shell harnesses are adapted separately and declare their own contract.
+  // Shell harnesses are adapted separately and declare their own contract — and
+  // they run on the VM from a directory the runner STAGES, so anything they
+  // source must be in that staging list. A missing dependency does not look
+  // like a missing dependency at run time: the harness refuses, prints one line,
+  // and the journey fails as "output not understood".
   if (rel.endsWith('.sh')) {
-    if (!j.evidence_adapter) fail(`${j.journey_id}: shell harness without an evidence_adapter`);
-    else pass(`${j.journey_id}: shell harness via ${j.evidence_adapter}`);
+    if (!j.evidence_adapter) { fail(`${j.journey_id}: shell harness without an evidence_adapter`); continue; }
+    const src = readFileSync(abs, 'utf8');
+    const needs = [...new Set([...src.matchAll(/(?:lib|ops)\/[a-z0-9_-]+\.(?:sh|py)/g)].map((m) => m[0]))];
+    const missing = needs.filter((n) => !STAGED.some((st) => st.endsWith(n)));
+    if (missing.length) {
+      fail(`${j.journey_id}: ${rel} sources ${missing.join(', ')}, which the runner does not stage ` +
+           `(see runShellHarness) — it would refuse to start on the VM`);
+      continue;
+    }
+    pass(`${j.journey_id}: shell harness via ${j.evidence_adapter}${needs.length ? ` (+${needs.length} staged dep)` : ''}`);
     continue;
   }
 
