@@ -79,6 +79,7 @@ and summarised in [21 — Owner decisions](21-owner-decisions.md).
 | 29 | [Application root cause](29-phase-c-application-root-cause.md) | The Phase B defect, closed and proven |
 | 30 | [Operational control surface](30-operational-control-surface.md) | BANZADMIN `/validation` — where each decision lives |
 | 31 | [Authority separation](31-authority-separation.md) | CANONICAL — scenario authority is not orchestration authority |
+| 32 | [Operational closure](32-phase-c-operational-closure.md) | The ceremony, the prepared run, the cancellation |
 
 Machine-readable specifications: [`schemas/`](schemas/).
 
