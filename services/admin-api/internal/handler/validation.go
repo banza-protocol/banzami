@@ -63,6 +63,12 @@ func (h *ValidationHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		ActiveRun       *validation.Run  `json:"active_run"`
 		RecentRuns      []validation.Run `json:"recent_runs"`
 		RunsEverStarted bool             `json:"runs_ever_started"`
+
+		// The honesty numbers. A surface that listed 24 suites without saying
+		// how many are executable would imply 24 things are tested.
+		Coverage       validation.CoverageSummary `json:"coverage"`
+		Components     []validation.Component     `json:"components"`
+		BlockingIssues []validation.KnownIssue    `json:"blocking_issues"`
 	}
 
 	out := overview{
@@ -72,6 +78,29 @@ func (h *ValidationHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		Suites:         len(h.reg.Suites),
 		Profiles:       h.profileSummaries(),
 		RecentRuns:     []validation.Run{},
+		// Never nil: a consumer counting them would crash on `null`.
+		Components:     []validation.Component{},
+		BlockingIssues: []validation.KnownIssue{},
+	}
+
+	if cov, err := h.reg.Coverage(); err == nil {
+		out.Coverage = cov
+	}
+
+	// The revisions that WOULD be pinned if a run were prepared right now.
+	// Live current state; the caller labels it as such.
+	var collected []validation.ProvenanceRow
+	if res, perr := h.pre.Run(r.Context(), ""); perr == nil {
+		collected = res.Provenance
+	}
+	out.Components = h.reg.Components(collected)
+
+	if _, issues, err := h.reg.Assurance(); err == nil {
+		for _, i := range issues {
+			if i.Status == "open" && (i.BlocksGolden || i.BlocksFull) {
+				out.BlockingIssues = append(out.BlockingIssues, i)
+			}
+		}
 	}
 
 	if h.runs != nil {

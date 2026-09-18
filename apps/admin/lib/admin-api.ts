@@ -714,9 +714,11 @@ export interface ValidationOverview {
   active_run:        ValidationRun | null;
   recent_runs:       ValidationRun[];
   runs_ever_started: boolean;
-  coverage:          ValidationCoverage;
-  components:        ValidationComponent[];
-  blocking_issues:   ValidationKnownIssue[] | null;
+  /** Optional in the type on purpose: an older control plane may not send
+   *  these, and the dashboard must degrade honestly rather than white-screen. */
+  coverage?:         ValidationCoverage;
+  components?:       ValidationComponent[];
+  blocking_issues?:  ValidationKnownIssue[] | null;
 }
 
 // ── Deep inspection: the Studio explaining itself ───────────────────────────

@@ -68,6 +68,14 @@ export default function StudioOverview() {
   const blockingSuites = s.suites.filter((x) => x.blocking).length;
   const healthy = s.actors.filter((a) => a.status === 'provisioned').length;
 
+  // A field the API omits must read as "indisponível", never white-screen the
+  // page. This is defence in depth: the contract is asserted server-side
+  // (TestOverview_CarriesEveryFieldTheStudioReads), and a page that dies on a
+  // missing number tells the operator nothing at all.
+  const coverage = o.coverage ?? null;
+  const components = o.components ?? [];
+  const profiles = o.profiles ?? [];
+
   return (
     <div className="flex flex-col gap-[18px]">
       {/* A. what this surface is, and what it deliberately is not */}
@@ -105,8 +113,8 @@ export default function StudioOverview() {
           caption={`${healthy}/${s.actors.length} provisionados`} />
         <MetricCard Icon={Layers} label="Suites" value={s.suites.length}
           caption={`${blockingSuites} bloqueantes`} />
-        <MetricCard Icon={FileSliders} label="Perfis" value={o.profiles.map((p) => p.id).join(' / ')}
-          caption={`${o.profiles.length} perfis definidos`} />
+        <MetricCard Icon={FileSliders} label="Perfis" value={profiles.map((p) => p.id).join(' / ') || '—'}
+          caption={`${profiles.length} perfis definidos`} />
         <MetricCard Icon={PlayCircle} label="Execuções activas" value={o.active_run ? 1 : 0}
           tone={o.active_run ? 'warn' : 'neutral'}
           caption={o.active_run ? o.active_run.run_ref : 'nenhuma em curso'} />
@@ -116,7 +124,11 @@ export default function StudioOverview() {
       </div>
 
       {/* The honesty counterweight the mockup has no room for, and the page needs. */}
-      <Coverage coverage={o.coverage} />
+      {coverage
+        ? <Coverage coverage={coverage} />
+        : <Panel className="p-5"><SectionHeader Icon={Layers} tone="warn"
+            title="Cobertura indisponível"
+            subtitle="O control plane não reportou a cobertura do universo de validação." /></Panel>}
 
       {/* C + D. readiness beside the preflight */}
       <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
@@ -124,7 +136,7 @@ export default function StudioOverview() {
           <SectionHeader Icon={BarChart3} title="Validation Readiness"
             subtitle="Estado actual dos perfis de validação no ambiente SANDBOX." />
           <div className="mt-4 grid gap-3.5 lg:grid-cols-2">
-            {o.profiles.map((p) => (
+            {profiles.map((p) => (
               <ProfileReadinessCard key={p.id} p={p}
                 meets={s.preflightProfile === p.id ? s.meetsMinimum : null}
                 verdict={s.preflight?.verdict ?? null}
@@ -141,7 +153,7 @@ export default function StudioOverview() {
       {/* E + F + G */}
       <div className="grid gap-[18px] xl:grid-cols-3">
         <ActorsPreview actors={s.actors} />
-        <ProvenancePreview components={o.components} />
+        <ProvenancePreview components={components} />
         <RecentRuns runs={s.runs} everStarted={o.runs_ever_started} />
       </div>
 
