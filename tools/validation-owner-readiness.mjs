@@ -31,7 +31,13 @@ gate('RUNNER_REGRESSION_GATES', run('node', ['tools/check-validation-runner-regr
 gate('HARNESS_REGRESSION_GATES', run('node', ['tools/check-e2e-harness-regressions.mjs']), '');
 gate('SHELL_ADAPTER_GATES', run('node', ['tools/check-validation-shell-adapter.mjs']), '');
 gate('BUDGET_TRUTH_GATES', run('node', ['tools/check-validation-budget-truth.mjs']), '');
-gate('GOLDEN_JOURNEYS_PREVERIFIED', run('node', ['tools/validation-preverification-matrix.mjs']), '12/12 required');
+// One tool answers both: a journey counts only if it PASSED and nothing it
+// exercises has been deployed since, and its harness is byte-identical to the
+// one recorded against that evidence.
+const matrixOk = run('node', ['tools/validation-preverification-matrix.mjs']);
+gate('GOLDEN_JOURNEYS_PREVERIFIED', matrixOk, '12/12 FRESH PASS required');
+gate('PREVERIFICATION_PROVENANCE_MATCH', matrixOk,
+  'no relevant component deployed since the evidence; harness unchanged');
 
 // ── capacity: the application-submit limiter, per bucket ─────────────────────
 const buckets = submitCapacity();
