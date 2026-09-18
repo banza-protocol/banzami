@@ -333,6 +333,14 @@ check-validation-engine:
 check-validation-registries:
 	node tools/check-validation-registries.mjs
 
+# The Validation Run state machine is enforced by the DATABASE, not by whichever
+# process happens to be writing. Applies 0160 to a disposable database and tries
+# to break every invariant; each attempt must be refused for the stated reason.
+# Needs a local PostgreSQL the current user can createdb on, so it is not in the
+# default `check-validation` chain.
+check-validation-run-model:
+	node tools/check-validation-run-model.mjs
+
 # Every Validation Studio invariant in one target.
 check-validation: check-validation-naming check-validation-engine check-validation-registries check-route-registration check-merchant-credit-policy
 
