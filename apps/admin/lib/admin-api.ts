@@ -742,7 +742,7 @@ export type ImplementationStatus =
 
 /** Why a suite cannot be proven at runtime, and what would change that. */
 export interface ValidationSuiteBlocker {
-  class:         'SAFETY' | 'SECURITY_POLICY' | 'EXTERNAL' | 'TOOLING';
+  class:         'SAFETY' | 'SECURITY_POLICY' | 'EXTERNAL' | 'TOOLING' | 'ARCHITECTURAL';
   detail:        string;
   detail_pt:     string;
   path_to_proof: string;

@@ -20,7 +20,7 @@ suite:
     # terms a reviewer can check — never simply be absent from the results.
     runtime_proof: {enum: [EXECUTABLE, NOT_PROVEN], default: EXECUTABLE}
     blocker:
-      class:         {enum: [SAFETY, SECURITY_POLICY, EXTERNAL, TOOLING]}
+      class:         {enum: [SAFETY, SECURITY_POLICY, EXTERNAL, TOOLING, ARCHITECTURAL]}
       detail:        string
       detail_pt:     string     # BANZADMIN speaks Portuguese
       path_to_proof: string     # what would have to be true to make this EXECUTABLE
@@ -78,9 +78,10 @@ suites:
     name_pt: Contratos e documentação
     existing_coverage: strong
     blocking: false
-  # A dependency suite's real claim is not "the dependency is up". It is: when
-  # the dependency is DOWN, the operator classifies it as a dependency failure
-  # and confirms nothing. That needs fault injection.
+  # Challenged deliberately (Phase D §9) rather than left standing, and it
+  # survives the challenge — but the class was wrong. The obstacle is not that
+  # these dependencies belong to other people; it is that this operator built a
+  # fault-injection seam for exactly ONE of them.
   - id: S20
     name: External dependencies
     name_pt: Dependências externas
@@ -88,23 +89,39 @@ suites:
     blocking: false
     runtime_proof: NOT_PROVEN
     blocker:
-      class: EXTERNAL
+      class: ARCHITECTURAL
       detail: >-
-        Fault injection is available only for the simulated external rail, whose
-        per-Project isolation (migration 0145) makes it safe — and that half is
-        proven in S23. Resend, R2 and the npm registry cannot be failed on demand
-        from the Sandbox, so their failure-classification behaviour cannot be
-        exercised without disabling a control, which this programme forbids.
+        The claim is not "the dependency is up". It is: when a dependency is
+        DOWN, the operator classifies the failure as a dependency failure and
+        confirms nothing. That is proven for the external rail (S23) because
+        ADR-061 gave it an injectable failure whose blast radius is one Project
+        (migration 0145 made a Project's simulated rail its own). No other
+        dependency has such a seam: Resend, R2 and the npm registry cannot be
+        failed on demand, and the only ways to fake it — disabling a control,
+        pointing the Sandbox at a dead host — are the ones this programme
+        forbids. What IS already proven incidentally: R2 round-trips KYB
+        documents (S21-ONB-001), the npm registry serves the published SDK
+        (S07-REF-002, SDK_FROM_NPM), and email delivery underpins the sign-in
+        paths several journeys use. Those prove the dependencies work, which is
+        the easy half and not this suite's claim. A reachability probe was
+        considered and rejected: it would eliminate the blank without proving
+        anything this suite asserts.
       detail_pt: >-
-        Só o canal externo simulado permite injectar falhas em segurança, e essa
-        metade já está provada em S23. O envio de email, o armazenamento e o
-        registo npm não podem ser derrubados a pedido, por isso o seu
-        comportamento em falha não é exercitável sem desligar um controlo.
+        A afirmação não é "a dependência está de pé". É: quando uma dependência
+        está EM BAIXO, o operador classifica a falha como sendo da dependência e
+        não confirma nada. Isso está provado para o canal externo (S23), porque o
+        ADR-061 lhe deu uma falha injectável cujo raio de acção é um só Projecto.
+        Nenhuma outra dependência tem essa costura, e as únicas formas de a
+        simular são as que este programa proíbe. Uma sonda de alcançabilidade foi
+        considerada e rejeitada: eliminaria o espaço em branco sem provar nada do
+        que esta suite afirma.
       path_to_proof: >-
-        A per-dependency fault-injection seam with the same per-Project
-        isolation the rail already has. That is a product change, not a test.
-
-  # ── Added by the Phase A audit ──────────────────────────────────────────────
+        The smallest missing capability is a per-dependency fault-injection seam
+        with the same per-Project isolation the rail already has — one switch per
+        declared dependency, scoped to a Validation Project, so a run can take
+        email or storage down for itself and nobody else. That is a product
+        change of the shape ADR-061 already set a precedent for, not a test to
+        write, and it is why this stays ARCHITECTURAL rather than EXTERNAL.
   - id: S21
     name: Business onboarding lifecycle
     name_pt: Ciclo de vida de candidaturas

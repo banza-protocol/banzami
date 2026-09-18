@@ -35,7 +35,10 @@ const suites = load('suites').suites ?? [];
 const journeys = load('journeys').journeys ?? [];
 const profiles = load('profiles').profiles ?? [];
 
-const BLOCKER_CLASSES = ['SAFETY', 'SECURITY_POLICY', 'EXTERNAL', 'TOOLING'];
+// ARCHITECTURAL is a distinct answer, not a softer EXTERNAL: it says the
+// obstacle is a capability this operator never built, and names it. A blocker
+// that blames someone else invites nobody to fix it.
+const BLOCKER_CLASSES = ['SAFETY', 'SECURITY_POLICY', 'EXTERNAL', 'TOOLING', 'ARCHITECTURAL'];
 
 let failures = 0;
 const fail = (m) => { console.log(`  ✗ ${m}`); failures++; };
