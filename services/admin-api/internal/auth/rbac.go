@@ -66,6 +66,28 @@ const (
 	// touches no financial resource — it is the product/onboarding desk's job
 	// (APP-BETA-001).
 	CapBetaManage Capability = "beta.manage"
+
+	// ── Banzami Validation Studio (Phase B) ────────────────────────────────
+	//
+	// BANZADMIN is the Studio's CONTROL PLANE: it starts, observes and navigates
+	// validation. It is not the execution engine, so none of these grants the
+	// ability to run a browser, a build or a shell — only to ask the engine for
+	// one and to read what it produced.
+	//
+	// Sandbox-only in effect: the /validation surface is hidden entirely (not
+	// merely disabled) when the active environment is LIVE, so no control here
+	// can reach real-Live validation.
+	CapValidationView     Capability = "validation.view"      // overview, capabilities, journeys, runs
+	CapValidationRun      Capability = "validation.run"       // start / cancel a run
+	CapValidationEvidence Capability = "validation.evidence"  // open evidence artifacts
+	CapValidationActors   Capability = "validation.actors"    // actor lifecycle + credential REFERENCES (never values)
+	CapValidationConfig   Capability = "validation.config"    // registries, retention, policy
+	// CapValidationPublish authorises an SDK publication inside a Repair Run.
+	// It is step-up gated alongside repricing, settlement and wallet credit:
+	// publishing to a public registry is at least as irreversible as those —
+	// a version cannot be republished with different content. No role holds it;
+	// SUPER_ADMIN only.
+	CapValidationPublish Capability = "validation.publish"
 )
 
 // RoleSuperAdmin holds every capability implicitly (see Can).
@@ -87,6 +109,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapMerchantView, CapConsumerView, CapSettlementView, CapPayoutView,
 		CapReconView, CapDisputeView, CapRiskView, CapPricingView, CapFinanceView,
 		CapBetaView, CapBetaManage,
+		CapValidationView, CapValidationRun, CapValidationEvidence,
 	),
 
 	// COMPLIANCE — owns KYC/AML/KYB and merchant standing: decides applications
@@ -100,6 +123,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapConsumerSuspend, CapRiskView, CapRiskResolve, CapRiskFreeze, CapAuditView,
 		CapPricingView, CapFinanceView,
 		CapBetaView,
+		CapValidationView,
 	),
 
 	// SUPPORT — help desk. Read operators/merchants/consumers/payments and reset
@@ -110,6 +134,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapMerchantView, CapConsumerView, CapSettlementView, CapPayoutView,
 		CapReconView, CapDisputeView, CapRiskView, CapAuditView, CapPricingView, CapFinanceView,
 		CapBetaView,
+		CapValidationView,
 	),
 
 	// READ_ONLY — observe everything, change nothing.
@@ -118,6 +143,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapConsumerView, CapSettlementView, CapPayoutView, CapReconView,
 		CapDisputeView, CapRiskView, CapAuditView, CapPricingView, CapFinanceView,
 		CapBetaView,
+		CapValidationView,
 	),
 }
 
