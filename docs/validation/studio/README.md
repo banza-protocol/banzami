@@ -80,6 +80,7 @@ and summarised in [21 — Owner decisions](21-owner-decisions.md).
 | 30 | [Operational control surface](30-operational-control-surface.md) | BANZADMIN `/validation` — where each decision lives |
 | 31 | [Authority separation](31-authority-separation.md) | CANONICAL — scenario authority is not orchestration authority |
 | 32 | [Operational closure](32-phase-c-operational-closure.md) | The ceremony, the prepared run, the cancellation |
+| 33 | [C.10 evidence integrity](33-c10-evidence-integrity.md) | Provenance and measured, captured and proven |
 
 Machine-readable specifications: [`schemas/`](schemas/).
 
