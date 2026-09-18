@@ -299,7 +299,14 @@ func (r *Registry) Catalogue() ([]SuiteDetail, error) {
 
 	out := make([]SuiteDetail, 0, len(r.Suites))
 	for _, s := range r.Suites {
+		// A nil slice marshals as `null`, and a consumer doing `.length` on it
+		// crashes. 23 of the 24 suites have no journey, so this is the common
+		// case, not the edge one: an empty list is the honest encoding of
+		// "declared, nothing executable".
 		js := bySuite[s.ID]
+		if js == nil {
+			js = []Journey{}
+		}
 
 		// A suite with no journey is DECLARED, however well its scope is
 		// written. Nothing about it has been made executable.
