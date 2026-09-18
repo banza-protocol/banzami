@@ -1,0 +1,150 @@
+# quality/validation/actors.yaml — PROPOSED SCHEMA.
+# VALIDATION_ACTORS_PROVISIONED = 0. Product ids are null until Phase B.
+
+$schema: banzami.validation.actors/1
+registry_version: 1
+environment: SANDBOX          # the only permitted value
+
+invariants:
+  - id: ACTORS_ARE_ORDINARY
+    rule: >-
+      No Validation Actor receives a Core, authorization, RBAC, pricing, fee,
+      settlement or ledger exception, nor exemption from KYB, suspension, rate
+      limits or pilot limits.
+    enforced_by: >-
+      guard: no actor id, handle or email may appear in services/**, core/** or
+      apps/** outside *_test files → ACTOR_LEAKED_INTO_PRODUCT = FAIL
+  - id: ACTORS_ARE_SANDBOX_ONLY
+    rule: no actor exists in, or may be migrated to, Live.
+  - id: NO_SECRET_VALUES
+    rule: credentials are `secret://` references only; never a value.
+
+actor:
+  fields:
+    id:            {pattern: "^(C|B|D|A)[0-9]{2}$"}
+    type:          {enum: [consumer, business, developer, operator]}
+    display_name:  {type: string, note: must read as unmistakably synthetic}
+    handle:        {type: string, nullable: true, constraints: "3-30 chars, lowercase, not in handle_registry owner_type=SYSTEM"}
+    email:         {type: string, nullable: true, note: "only where the product requires one"}
+    product_ids:
+      consumer_id: {nullable: true}
+      merchant_id: {nullable: true}
+      wallet_id:   {nullable: true}
+      workspace_id: {nullable: true}
+      project_id:  {nullable: true}
+      admin_user_id: {nullable: true}
+    credentials:   {type: map<string, secret_reference>}
+    status:        {enum: [proposed, provisioned, healthy, degraded, retired]}
+    lifecycle:     {enum: [persistent, run-scoped]}
+    provisioning:  {type: list<string>, note: "the product doors used — never a DB insert"}
+
+secret_reference:
+  format: "secret://banzami/validation/<actor>/<name>"
+  resolves_to: "/run/secrets/validation_<actor>_<name>"   # existing docker-secret convention
+
+# ── The proposed roster. Every credential below is what the PRODUCT actually
+#    requires, read from the handlers — not assumed.
+actors:
+
+  - id: C01
+    type: consumer
+    display_name: Validation Actor C01
+    handle: e2ec01
+    email: null                      # POST /v1/auth/register takes handle+name+PIN only
+    credentials: {pin: "secret://banzami/validation/c01/pin"}
+    status: proposed
+    lifecycle: persistent
+    provisioning: ["POST /v1/auth/register"]
+    purpose: primary payer
+
+  - id: C02
+    type: consumer
+    display_name: Validation Actor C02
+    handle: e2ec02
+    email: null
+    credentials: {pin: "secret://banzami/validation/c02/pin"}
+    status: proposed
+    lifecycle: persistent
+    purpose: counterparty — P2P recipient, second Collection share payer
+
+  - id: C03
+    type: consumer
+    display_name: Validation Actor C03
+    handle: e2ec03
+    email: null
+    credentials: {pin: "secret://banzami/validation/c03/pin"}
+    status: proposed
+    lifecycle: persistent
+    purpose: isolation and negative-authority actor
+
+  - id: B01
+    type: business
+    display_name: Validation Actor B01
+    handle: e2eb01
+    email: "<business access email — owner to confirm>"
+    credentials: {pin: "secret://banzami/validation/b01/pin"}
+    status: proposed
+    lifecycle: persistent
+    provisioning: ["public application", "BANZADMIN approve (A01)",
+                   "POST /v1/merchant/activation/complete"]
+    purpose: primary merchant — Receive Point, Collections, payment links, refunds
+    note: consumes 1 of the 30/24h application-submit allowance, ONCE
+
+  - id: B02
+    type: business
+    display_name: Validation Actor B02
+    handle: e2eb02
+    credentials: {pin: "secret://banzami/validation/b02/pin"}
+    status: proposed
+    lifecycle: persistent
+    purpose: cross-tenant isolation target (doc 15 rows 5-9)
+
+  - id: B03
+    type: business
+    display_name: Validation Actor B03
+    handle: e2eb03
+    credentials: {pin: "secret://banzami/validation/b03/pin"}
+    status: proposed
+    lifecycle: persistent
+    purpose: >-
+      ORDINARY Business standing in for an application integrator, so S14
+      generic journeys never touch DOA's tenant (doc 13 §4/§5).
+
+  - id: D01
+    type: developer
+    display_name: Validation Actor D01
+    email: d01@banzami-e2e.test      # EXISTING enforced fixture domain
+    credentials: {}                  # sessions minted per run; no stored secret
+    status: proposed
+    lifecycle: persistent
+    provisioning: ["Console OTP sign-in", "create workspace", "create project", "create keys"]
+
+  - id: D02
+    type: developer
+    display_name: Validation Actor D02
+    email: d02@banzami-e2e.test
+    credentials: {}
+    status: proposed
+    lifecycle: persistent
+    purpose: cross-project isolation (doc 15 rows 10-15)
+
+  - id: A01
+    type: operator
+    display_name: Validation Operator A01
+    email: "<real mailbox the owner controls — operators are not fixtures>"
+    credentials:
+      password:       "secret://banzami/validation/a01/password"
+      totp_seed:      "secret://banzami/validation/a01/totp_seed"
+      recovery_codes: "secret://banzami/validation/a01/recovery_codes"
+    status: proposed
+    lifecycle: persistent
+    provisioning: ["OWNER CEREMONY — see doc 06 §4"]
+    note: >-
+      MFAService.BeginEnrolment returns the TOTP secret in plaintext exactly
+      once. Captured into the secret backend, every later code is computed
+      autonomously — including step-up within the 5-minute window.
+
+# DELIBERATELY ABSENT: DOA01 / DOA02.
+# DOA's users are DOA's own Supabase identities, not Banzami identities.
+# Registering them here would encode the special-tenant coupling that
+# S14-DOA-011 exists to disprove. See doc 13 §4.

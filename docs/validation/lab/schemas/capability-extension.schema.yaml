@@ -1,0 +1,99 @@
+# Fields the Validation Lab ADDS to each entry in
+# quality/operator-assurance-manifest.yaml. The existing 15 fields are unchanged.
+#
+# Example values below are from CAP-COLLECT-001 as it EXISTS AT RUNTIME
+# (10 mounted routes, migrations 0156-0159, proofs 19/20) — not as the
+# manifest currently, incorrectly, describes it. See doc 19 VL-004.
+
+$schema: banzami.validation.capability-extension/1
+
+added_fields:
+
+  validation_status:
+    required: true
+    enum: [PASS, FAIL, NOT_IMPLEMENTED, EXTERNAL_DEPENDENCY, OUT_OF_SCOPE, DEPRECATED]
+    description: >-
+      What the last Validation Run proved. DISTINCT from the existing `status`,
+      which records release-programme assurance. Collapsing them would erase the
+      difference between a Repair Run and a Golden Run.
+
+  ui_surfaces:
+    required: false          # required when public_status is public-*
+    type: list<string>
+    format: "<surface>:<path>"
+    surfaces: [app-banzami-web, app-banzami-web-business, pay, banzadmin,
+               console, website, app-ios, app-android]
+    description: >-
+      API-only proof is not sufficient acceptance for a user-facing capability
+      (§26). A capability with a user surface and no ui_surfaces cannot be PASS.
+    example: [app-banzami-web-business:/business/cobrar]
+
+  journeys:
+    required: true
+    type: list<journey_id>
+    description: >-
+      The coverage invariant's edge. An implemented, externally reachable
+      capability with an empty list is CAPABILITY_IMPLEMENTED_BUT_UNCOVERED.
+    example: [S06-COL-001, S06-COL-002]
+
+  actors_required:
+    required: false
+    type: list<actor_id>
+    example: [B01, C01, C02]
+
+  depends_on:
+    required: false
+    type: list<capability_id>
+    description: drives change-impact selection (doc 11 §5)
+    example: [CAP-WALLET-001, CAP-PAY-002, CAP-LEDGER-001]
+
+  financial_effects:
+    required: true           # when threat_category is financial-*
+    fields:
+      posts_ledger: bool
+      idempotent: bool
+      idempotency_scope: {enum: [project, merchant, public-slug, consumer, none]}
+      fee_bearing: bool
+    example: {posts_ledger: true, idempotent: true, idempotency_scope: merchant, fee_bearing: false}
+
+  realtime_expectation:
+    required: false
+    enum: [none, poll, sse, push]
+    description: >-
+      Where not `none`, the journey must OBSERVE the user surface converge
+      without a manual refresh. A changed database row is not evidence a user
+      saw it (§65).
+
+  external_dependency:
+    required: false
+    nullable: true
+    fields:
+      name: string
+      boundary: {enum: [rail, provider, registry, infrastructure, partner-app]}
+      status: {enum: [connected, simulated, not-connected, not-implemented]}
+      operator_side_status: {enum: [PASS, FAIL, NOT_IMPLEMENTED]}
+    description: >-
+      operator_side_status exists because Cash-Out is EXTERNAL_DEPENDENCY at the
+      rail and PASS at the operator boundary. Reporting only one misstates it.
+    example: {name: bank-rail, boundary: rail, status: not-connected, operator_side_status: PASS}
+
+  evidence_required:
+    required: true
+    type: list
+    enum: [screenshot, video, trace, har, api, qr, ledger, receipt, webhook,
+           email, sdk_install, build_report, db_invariant]
+
+# Registry-level block: the incremental-adoption ledger for doc 03 §4.
+# A Golden Run requires it to be EMPTY.
+unclassified_routes:
+  type: list
+  fields:
+    route: "<METHOD> <path>"
+    service: {enum: [api-gateway, public-api, admin-api, developer-api]}
+    reason: string
+    owning_milestone: string
+  description: >-
+    Every externally reachable route must be claimed by exactly one capability's
+    api_surface, or listed here with a reason. ~145 of 361 routes are unclaimed
+    today (doc 19 VL-006); this block allows incremental adoption without a
+    361-entry big bang, while keeping the number visible.
