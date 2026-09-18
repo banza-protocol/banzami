@@ -1,7 +1,14 @@
 # 24 — Phase B completion report
 
 Version: 1.0
-Status: `BANZAMI_VALIDATION_STUDIO_PHASE_B=COMPLETE` · `PHASE_C_READY=YES`
+Status (corrected 2026-09-18, owner decision §1):
+`BANZAMI_VALIDATION_STUDIO_PHASE_B_IMPLEMENTATION=COMPLETE`
+`BANZAMI_VALIDATION_STUDIO_PHASE_B_OPERATIONAL_ACCEPTANCE=PENDING`
+`PHASE_C_READY=CONDITIONALLY_READY`
+
+> Implementation is accepted. Operational acceptance waits on one owner
+> ceremony — see [26](26-b10-owner-ceremony.md). Runtime evidence for the
+> deployed policy is in [27](27-runtime-acceptance.md).
 Commits: `970cbe9d` … `d6f95384` on `main`
 
 ---
@@ -15,13 +22,13 @@ Commits: `970cbe9d` … `d6f95384` on `main`
 | `SANDBOX_MERCHANT_CREDIT_POLICY_PATH_COVERAGE` | **PASS** | `check-merchant-credit-policy` |
 | `SANDBOX_LIMIT_POLICY_FINANCIAL_HISTORY_MUTATIONS` | **0** | whole-ledger fingerprint test + `raise_ledger_immutable` |
 | `ADR048_RUNTIME_CONTRADICTIONS` | **0** | `check-merchant-credit-policy` (ADR arm) |
-| `VALIDATION_VOLUME_BUDGET_PREFLIGHT` | **designed** | [23](23-architecture-control-and-execution.md) §5, doc 22 D1 — implemented in Phase C |
+| `VALIDATION_VOLUME_BUDGET_PREFLIGHT` | **PASS** | `make validation-volume-preflight` (implemented 2026-09-18) |
 | `CAPABILITY_SOURCE_OF_TRUTH` | **PASS** | one registry; the ledger is its complement |
 | `CAP_COLLECT_001_RECONCILED` | **PASS** | `check-assurance` |
 | `RUNTIME_ROUTE_CAPABILITY_DRIFT_TRACKED` | **PASS** | `check-route-registration` |
 | `NEW_EXTERNALLY_REACHABLE_UNREGISTERED_ROUTE` | **FAIL_GUARD_PROVEN** | mutation test |
 | `APP_FRONTEND_DEPLOY_PARITY` | **PASS** | `check-deploy-parity` |
-| `WEBHOOK_SINK_DEPLOY_PARITY` | **TRACKED** | fails as `VALIDATION_DEPLOY_REVISION_UNKNOWN` — see owner actions |
+| `WEBHOOK_SINK_DEPLOY_PARITY` | **PASS** | deployed at `79460b66` under owner authorisation |
 | `ONE_VALIDATION_ENGINE` | **PASS** | `check-validation-engine` |
 | `MULTIPLE_CONTROL_SURFACES` | **PASS** | same guard + [23](23-architecture-control-and-execution.md) §4 |
 | `PARALLEL_VALIDATION_PLATFORM` | **0** | `check-validation-engine` |
@@ -31,7 +38,7 @@ Commits: `970cbe9d` … `d6f95384` on `main`
 | `VALIDATION_STUDIO_ADMIN_RBAC_BOUNDARY` | **PASS** | `TestCan_ValidationStudioMatrix` |
 | `BANZADMIN_VALIDATION_FOUNDATION` | **PASS** | RBAC + control contract + architecture; pages are Phase C |
 | `VALIDATION_ACTOR/JOURNEY/SUITE_REGISTRY_READY` | **PASS** | `check-validation-registries` |
-| `VALIDATION_ACTORS_PROVISIONED` | **0** | `check-validation-registries`, `validation-actor-health` |
+| `VALIDATION_ACTORS_PROVISIONED` | **5 of 9** | 4 await the A01 ceremony — [26](26-b10-owner-ceremony.md) |
 | `REAL_LIVE_VALIDATION_CONTROL_EXPOSED` | **0** | Sandbox-only by construction |
 | `REAL_LIVE_TESTS_EXECUTED` | **0** | no Live host was contacted |
 | `DOA_SPECIAL_BANZAMI_TENANT_BEHAVIOR` | **0** | re-verified; unchanged |
@@ -97,7 +104,7 @@ Commits: `970cbe9d` … `d6f95384` on `main`
 | A parallel E2E engine | the existing estate is the execution plane |
 | BANZADMIN `/validation` pages | Phase C. The boundary they sit behind exists now |
 | `tools/validationctl.mjs` | Phase C; its basis is named, not forked |
-| The nine Validation Actors | **B10, deliberately last and not authorised** |
+| The four blocked actors | B10 authorised; `B01`-`B03` and `A01` need one owner ceremony |
 | A public assurance page | deferred, separately approvable |
 | `e2e.banzami.com` | the platform already has both email paths |
 | Consumer per-payment/daily wiring | out of D1's scope; recorded in ADR-048 rather than implied |
@@ -199,9 +206,10 @@ D5 SDK licensing, D6 `sandbox-operator`, D9 retention, D11 native device.
 None blocks starting Phase C; each blocks a specific part of it.
 
 ```
-BANZAMI_VALIDATION_STUDIO_PHASE_B = COMPLETE
-PHASE_C_READY                     = YES
-REAL_LIVE_TESTS_EXECUTED          = 0
+BANZAMI_VALIDATION_STUDIO_PHASE_B_IMPLEMENTATION      = COMPLETE
+BANZAMI_VALIDATION_STUDIO_PHASE_B_OPERATIONAL_ACCEPTANCE = PENDING
+PHASE_C_READY                                          = CONDITIONALLY_READY
+REAL_LIVE_TESTS_EXECUTED                               = 0
 ```
 
 No tag. No freeze.

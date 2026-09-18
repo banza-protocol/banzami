@@ -58,11 +58,31 @@ JSON.stringify(ids) === JSON.stringify(EXPECTED)
 if (actors.environment !== 'SANDBOX') fail(`actors.environment is ${actors.environment} — SANDBOX is the only permitted value`);
 else pass('actors are Sandbox-only');
 
-// VALIDATION_ACTORS_PROVISIONED=0 — no product id may be recorded yet.
-const provisioned = roster.filter((a) => Object.values(a.product_ids ?? {}).some((v) => v !== null && v !== undefined));
-provisioned.length
-  ? fail(`VALIDATION_ACTORS_PROVISIONED=${provisioned.length} — ${provisioned.map((a) => a.id).join(', ')} carry product ids, but B10 has not been authorised`)
-  : pass('VALIDATION_ACTORS_PROVISIONED=0');
+// B10 is authorised, so provisioning is no longer forbidden — it is AUDITED.
+// The question changed from "has anyone created an actor?" to "does every actor
+// that exists have a complete ownership record?". An actor the Studio cannot
+// attribute is the residue this registry exists to prevent, so the fields
+// required here are the ones doc 12 of the owner's brief enumerates.
+const VALID_STATUS = new Set(['proposed', 'provisioned', 'blocked-on-owner-ceremony', 'retired']);
+const provisioned = roster.filter((a) => a.status === 'provisioned');
+for (const a of roster) {
+  if (!VALID_STATUS.has(a.status)) fail(`${a.id}: status "${a.status}" is not one of ${[...VALID_STATUS].join(', ')}`);
+  if (a.status === 'provisioned') {
+    const ids = Object.entries(a.product_ids ?? {}).filter(([, v]) => v);
+    if (!ids.length) fail(`${a.id} is provisioned but records no product identity — the Studio could not attribute a run to it`);
+    if (!a.provisioned_at) fail(`${a.id} is provisioned with no provisioned_at`);
+    if (!a.creation_evidence) fail(`${a.id} is provisioned with no creation_evidence — how it was created is part of the record`);
+    for (const [k, v] of ids) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(String(v))) {
+        fail(`${a.id}.${k} is not a UUID: ${v}`);
+      }
+    }
+  }
+  if (a.status === 'blocked-on-owner-ceremony' && !a.blocked_by) {
+    fail(`${a.id} is blocked with no blocked_by — a blocker nobody wrote down is a blocker nobody clears`);
+  }
+}
+pass(`VALIDATION_ACTORS_PROVISIONED=${provisioned.length}/${roster.length}; every provisioned actor carries a complete ownership record`);
 
 // Credentials are references, never values. A stored PIN or seed here would be
 // a secret in the repository, which is the one thing this registry must not be.
@@ -132,4 +152,5 @@ if (failures) { console.error(`\n✗ VALIDATION_REGISTRIES=FAIL (${failures})`);
 console.log('\n✓ VALIDATION_ACTOR_REGISTRY_READY=PASS');
 console.log('✓ VALIDATION_JOURNEY_REGISTRY_READY=PASS');
 console.log('✓ VALIDATION_SUITE_REGISTRY_READY=PASS');
-console.log('✓ VALIDATION_ACTORS_PROVISIONED=0');
+console.log(`✓ VALIDATION_ACTORS_PROVISIONED=${provisioned.length}`);
+console.log('✓ VALIDATION_ACTORS_UNOWNED=0');

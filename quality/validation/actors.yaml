@@ -1,6 +1,17 @@
 # Validation Actor registry — Banzami Validation Studio (owner decision D7/D8).
 #
-# APPROVED ROSTER, NOT YET PROVISIONED. VALIDATION_ACTORS_PROVISIONED = 0.
+# APPROVED ROSTER. PROVISIONING IN PROGRESS — 5 of 9 (2026-09-18).
+#
+#   C01 C02 C03  provisioned — POST /v1/auth/register (no operator needed)
+#   D01 D02      provisioned — Console OTP sign-in, then workspace + project
+#   B01 B02 B03  BLOCKED — an application must be APPROVED by an operator
+#                (CapApplicationApprove); the only ACTIVE operator is the owner's
+#   A01          BLOCKED — POST /admin/v1/operators requires CapOperatorManage
+#                AND a step-up (TOTP within 5 minutes)
+#
+# The four blocked actors share ONE boundary, not four: the owner's TOTP
+# ceremony for A01. Once A01 exists it approves B01-B03 through the normal
+# operator path. See docs/validation/studio/26-b10-owner-ceremony.md.
 #
 # Provisioning is deliberately the LAST step of Phase B (B10) and has not been
 # performed. Creating the actors before the system can recognise them would
@@ -12,7 +23,8 @@
 # exists (run_id/actor_id on every Validation Resource), and the Studio can tell
 # an actor from a customer (the `e2e` handle prefix + this registry).
 #
-# Every product_id stays null until the canonical product flows have been walked.
+# A product_id is recorded only after the canonical product flow has been walked
+# for that actor. Nothing here was inserted into a database.
 
 $schema: banzami.validation.actors/1
 registry_version: 1
@@ -64,8 +76,14 @@ actors:
     display_name: Validation Actor C01
     handle: e2ec01
     email: null                      # POST /v1/auth/register takes handle+name+PIN only
+    product_ids:
+      consumer_id: 19f54fd1-9ebc-4a47-b404-1b22fc9ef806
+      wallet_id: 36a72f51-ba28-4299-a964-d7da0bbb1317
+      available_account_id: fd46e652-5d21-44a8-aa05-3d0ead655e4f
     credentials: {pin: "secret://banzami/validation/c01/pin"}
-    status: proposed
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "POST /v1/auth/register -> 201; PIN proven by POST /v1/auth/token -> 200"
     lifecycle: persistent
     provisioning: ["POST /v1/auth/register"]
     purpose: primary payer
@@ -75,8 +93,14 @@ actors:
     display_name: Validation Actor C02
     handle: e2ec02
     email: null
+    product_ids:
+      consumer_id: 9515b44d-209f-4f52-9f4a-882a70a3d52d
+      wallet_id: b2b6ea3c-811c-4b3e-879b-d1187e12b04e
+      available_account_id: b4424618-3f74-4aa8-98d2-b8a0b4f08a47
     credentials: {pin: "secret://banzami/validation/c02/pin"}
-    status: proposed
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "POST /v1/auth/register -> 201; PIN proven by POST /v1/auth/token -> 200"
     lifecycle: persistent
     purpose: counterparty — P2P recipient, second Collection share payer
 
@@ -85,8 +109,14 @@ actors:
     display_name: Validation Actor C03
     handle: e2ec03
     email: null
+    product_ids:
+      consumer_id: 4abcfcb0-9af7-4380-9357-0f75e38c1c71
+      wallet_id: b6741a08-498a-41f3-8232-27bff732ee6e
+      available_account_id: d7d43ebc-f729-4b48-9223-2eedf5d3fdbe
     credentials: {pin: "secret://banzami/validation/c03/pin"}
-    status: proposed
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "POST /v1/auth/register -> 201; PIN proven by POST /v1/auth/token -> 200"
     lifecycle: persistent
     purpose: isolation and negative-authority actor
 
@@ -96,7 +126,8 @@ actors:
     handle: e2eb01
     email: b01@banzami-e2e.test
     credentials: {pin: "secret://banzami/validation/b01/pin"}
-    status: proposed
+    status: blocked-on-owner-ceremony
+    blocked_by: "an application must be APPROVED by an operator (CapApplicationApprove); A01 does not exist yet"
     lifecycle: persistent
     provisioning: ["public application", "BANZADMIN approve (A01)",
                    "POST /v1/merchant/activation/complete"]
@@ -115,7 +146,8 @@ actors:
     handle: e2eb02
     email: b02@banzami-e2e.test
     credentials: {pin: "secret://banzami/validation/b02/pin"}
-    status: proposed
+    status: blocked-on-owner-ceremony
+    blocked_by: "an application must be APPROVED by an operator (CapApplicationApprove); A01 does not exist yet"
     lifecycle: persistent
     purpose: cross-tenant isolation target (doc 15 rows 5-9)
 
@@ -125,7 +157,8 @@ actors:
     handle: e2eb03
     email: b03@banzami-e2e.test
     credentials: {pin: "secret://banzami/validation/b03/pin"}
-    status: proposed
+    status: blocked-on-owner-ceremony
+    blocked_by: "an application must be APPROVED by an operator (CapApplicationApprove); A01 does not exist yet"
     lifecycle: persistent
     purpose: >-
       ORDINARY Business standing in for an application integrator, so S14
@@ -135,8 +168,14 @@ actors:
     type: developer
     display_name: Validation Actor D01
     email: d01@banzami-e2e.test      # EXISTING enforced fixture domain
+    product_ids:
+      identity_user_id: 5e38060c-1142-4f30-a75d-f4466a5a7168
+      workspace_id: 57777855-a607-45e2-8dc1-6fee4c660156
+      project_id: 10eaec58-9cc5-4952-a280-54ca3ac03009
     credentials: {}                  # sessions minted per run; no stored secret
-    status: proposed
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "Console OTP sign-in via Resend readback -> workspace -> project"
     lifecycle: persistent
     provisioning: ["Console OTP sign-in", "create workspace", "create project", "create keys"]
 
@@ -144,8 +183,14 @@ actors:
     type: developer
     display_name: Validation Actor D02
     email: d02@banzami-e2e.test
+    product_ids:
+      identity_user_id: 7b20ebab-cfe0-4fe9-8ed8-7b02107c72a6
+      workspace_id: 52a8e812-df80-4692-9093-130cb351efa1
+      project_id: b04810bb-f3df-4164-b4fb-839d1544faff
     credentials: {}
-    status: proposed
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "Console OTP sign-in via Resend readback -> workspace -> project"
     lifecycle: persistent
     purpose: cross-project isolation (doc 15 rows 10-15)
 
@@ -157,7 +202,8 @@ actors:
       password:       "secret://banzami/validation/a01/password"
       totp_seed:      "secret://banzami/validation/a01/totp_seed"
       recovery_codes: "secret://banzami/validation/a01/recovery_codes"
-    status: proposed
+    status: blocked-on-owner-ceremony
+    blocked_by: "POST /admin/v1/operators requires CapOperatorManage AND a step-up TOTP proof; only the owner can perform it"
     lifecycle: persistent
     provisioning: ["OWNER CEREMONY — see doc 06 §4"]
     note: >-

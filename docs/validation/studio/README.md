@@ -5,7 +5,7 @@
 > parallel engine. Enforced by `make check-validation-naming`.
 
 Version: 1.0
-Status: Phase A COMPLETE · Phase B COMPLETE · `PHASE_C_READY=YES`
+Status: Phase A COMPLETE · Phase B implementation COMPLETE, operational acceptance PENDING · `PHASE_C_READY=CONDITIONALLY_READY`
 Programme: BANZAMI-SANDBOX-FULL-VALIDATION-001
 Phase: A — discovery, audit and design **only**
 
@@ -72,6 +72,9 @@ and summarised in [21 — Owner decisions](21-owner-decisions.md).
 | 22 | [Owner decision review](22-owner-decision-review.md) | D1–D17, and the correction to VL-001 |
 | 23 | [Architecture: control and execution](23-architecture-control-and-execution.md) | **Canonical** — BANZADMIN controls, the Studio executes |
 | 24 | [Phase B completion report](24-phase-b-report.md) | What was reused, extended, refactored and deliberately not built |
+| 25 | [Deploy divergence classification](25-deploy-divergence-classification.md) | What was deployed, and what was deliberately not |
+| 26 | [B10 — the one owner ceremony](26-b10-owner-ceremony.md) | The exact remaining boundary |
+| 27 | [Runtime acceptance](27-runtime-acceptance.md) | Evidence from the deployed Sandbox |
 
 Machine-readable specifications: [`schemas/`](schemas/).
 
