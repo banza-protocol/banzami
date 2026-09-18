@@ -54,46 +54,96 @@ GET /admin/v1/validation/preflight?profile=GOLDEN
 A GOLDEN run is refused, for the true reason, with nothing written. That is the
 system behaving correctly while incomplete — not a failure to be worked around.
 
-## 3. SANDBOX ceremony (owner-executed, on the Sandbox host)
+## 3. Pre-ceremony audit (done; recorded here because one check failed)
 
-> Preconditions the owner confirms: the existing `bzsandbox` project's blueprint
-> state files are present from the original bootstrap. **Do NOT run
-> `sandbox-bootstrap.sh apply`** — it is create-only and its teardown wipes the
-> PG volume. Realign the operator db_url after any role bootstrap (known gotcha).
+Every assumption 0160 makes was verified against the live Sandbox before this
+runbook was handed over:
 
-```bash
-set -euo pipefail
-cd <repo-on-sandbox-host>
-git fetch origin && git checkout 5c6b2ac6b40551b5f222ed672ea4dcc2e13fa023
-test -z "$(git status --porcelain)"        # clean worktree (build requires it)
-S=infra/blueprint/sandbox-ops/scripts
+| Assumption | Verified |
+|---|---|
+| head is 159, 0160 absent | ✓ `_sqlx_migrations` max 159; `count(version=160)` = 0 |
+| no name collision | ✓ 0 existing `validation%` tables and functions |
+| `admin_users.id` is `uuid` | ✓ |
+| `gen_random_uuid()` available | ✓ PostgreSQL 16.14 |
+| role `bl_admin_api_runtime` exists | ✓ — otherwise 0160's grant block silently skips |
+| fully transactional | ✓ no `CONCURRENTLY`, no non-transactional statement, no `no-transaction` marker → **partial application is impossible** |
+| creates no rows | ✓ applied to a disposable database: 7 tables, **0 rows in every one**, `admin_users` untouched |
+| **runtime grants** | ✗ **FAILED, and was fixed** — see below |
 
-# 1. Verified, secret-free release package from HEAD.
-bash $S/sandbox-release-package.sh build
-bash $S/sandbox-release-package.sh verify
+**The failed check.** `sandbox-migration.sh apply` runs `runtime-authority.sh
+apply` after *every* migration, and `db/authority/runtime-authority.sql` is
+generated from `db/authority/runtime-authority.json` — **not** from the
+migration. 0160 granted its tables to `bl_admin_api_runtime`, but the authority
+manifest did not know they existed, so the ceremony would have regenerated the
+grants without them and the deployed Studio would have failed with *permission
+denied*. This is the same class of failure that made the 0159 ceremony's
+runtime-authority step fail on its first attempt.
 
-# 2. Controlled migration. plan is a dry, fail-closed gate — inspect it first.
-bash $S/sandbox-migration.sh plan
-bash $S/sandbox-migration.sh apply         # 159 -> 160
-bash $S/sandbox-migration.sh verify
+`node tools/db-authority.mjs` named all four written tables precisely. The
+manifest now carries all seven, and the check passes
+(`DB_AUTHORITY_MANIFEST=PASS`). **Do not run this ceremony from a revision
+before that fix.**
 
-# 3. Read-only enablement checks (fail closed if any is wrong).
-PG="$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-postgres-1')"
-docker exec "$PG" sh -c 'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc "SELECT max(version) FROM _sqlx_migrations"'   # expect 160
-docker exec "$PG" sh -c 'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tAc "SELECT to_regclass('"'"'public.validation_runs'"'"'), to_regclass('"'"'public.validation_run_events'"'"'), to_regclass('"'"'public.validation_preflights'"'"')"'
+The regenerated authority grants `INSERT/UPDATE/DELETE` uniformly, which is
+wider than 0160's deliberate `SELECT`+`INSERT` on the append-only event table.
+That does not weaken anything, and it is proven rather than assumed — acting
+`AS bl_admin_api_runtime` while explicitly holding `DELETE`:
 
-# 4. Single-use cleanup of ceremony state.
-bash $S/sandbox-migration.sh clean
+```
+DELETE FROM validation_run_events  -> refused: "is append-only"
+DELETE FROM validation_runs        -> refused: FK validation_run_events_run_id_fkey
+UPDATE validation_run_events       -> refused: "is append-only"
 ```
 
-**No service restart is required.** admin-api opens its pool lazily per query
-and holds no cached schema handle; the Studio starts answering the moment the
-tables exist.
+Append-only is a trigger and a non-cascading foreign key, not a grant. A
+privilege can be widened; the refusal cannot.
 
-Fail-closed: every step aborts the ceremony. On any partial failure, stop — do
-not continue, and do not hand-apply.
+## 4. SANDBOX ceremony (owner-executed, one command)
 
-## 4. After the ceremony
+The ceremony is a single sanctioned script, modelled directly on the one that
+applied 0159. It uses **only** the sanctioned controller
+(`sandbox-release-package.sh` + `sandbox-migration.sh`): no ad-hoc SQL, no
+operator-DB-URL bypass, no hand-written authz record. It deploys nothing.
+
+```bash
+ssh -t root@<sandbox-host> \
+  'cd /srv/banzami/src && git fetch origin && git checkout 8f3e3d392d7262a9d0bdf55f3d668fc4f171fbe6 && \
+   bash infra/blueprint/sandbox-ops/scripts/validation-0160-owner-ceremony.sh'
+```
+
+A TTY (`ssh -t`) is required: Sandbox migrations run in an operator context, and
+bypassing that with `psql` is what caused the 0090–0095 drift.
+
+What the script does, in order, aborting on any failure:
+
+1. resolves `TMPDIR` to the base that actually holds the bootstrap state
+   (`/opt/banzami-blueprint/tmp`, **not** `/tmp`) and refuses to continue if it
+   cannot find it — it must never re-bootstrap, which would wipe the PG volume;
+2. asserts a clean worktree;
+3. **proves the environment**: `current_database()` must be `banzami_staging`;
+4. fail-closed pre-check: head `159` with `validation_runs` absent (fresh), or
+   head `160` with it present (resume after a partial runtime-authority step);
+5. builds and verifies the secret-free release package;
+6. `sandbox-migration.sh plan` → `apply` → `verify`;
+7. post-checks, each fail-closed: head `160` · 7 Studio tables · both invariant
+   triggers · both invariant indexes · **`count(*) FROM validation_runs` = 0** ·
+   all 7 tables granted to `bl_admin_api_runtime`;
+8. single-use cleanup of the ceremony material.
+
+Step 7's run-count check is the Phase C invariant: a migration that created a
+run would be a migration that executed something, and that is the one thing it
+must never do.
+
+**Service restart.** None is expected — admin-api holds no cached schema handle
+and its pool prepares per query. This is *expected, not asserted*: the
+post-ceremony check in §5 is what settles it. If the Studio still reports
+`studio.schema UNAVAILABLE` after the ceremony, restart `admin-api` and re-check;
+that is a normal container restart, not a deploy.
+
+Fail-closed throughout. On any partial failure, stop — do not continue, and do
+not hand-apply.
+
+## 5. After the ceremony
 
 ```
 GET /admin/v1/validation/preflight?profile=GOLDEN   → expect studio.schema PASS,
@@ -107,7 +157,7 @@ The Studio is then able to prepare a run. **It still cannot start one** —
 `QUEUED`, and there is no route that would. Starting a GOLDEN or FULL run is a
 separate, explicitly authorised decision.
 
-## 5. LIVE
+## 6. LIVE
 
 **Not applicable, permanently.** 0160 admits one environment and it is not Live:
 
