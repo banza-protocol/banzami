@@ -16,6 +16,7 @@ import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { retireConsumer } from '../lib/consumer-retire.mjs';
 import { businessWebSignIn, businessWebSignInToHome } from '../lib/business-signin.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
@@ -41,6 +42,7 @@ function jar() {
 
 (async () => {
   let biz;
+  let lifeConsumer = null;   // retired in the finally; residue is residue
   const { browser } = await launchChromium();
   try {
     biz = await provisionBusiness({ handlePrefix: 'e2elife' });
@@ -83,7 +85,8 @@ function jar() {
     // ── Access revocation / one-context expiry isolation (canonical suspend) ─────
     const J = jar();
     await J.seed();
-    await J.req('POST', '/consumer/v1/auth/register', { handle: `e2elifec${Date.now().toString(36)}`, display_name: 'E2E', pin: '481516' });
+    lifeConsumer = `e2elifec${Date.now().toString(36)}`;
+    await J.req('POST', '/consumer/v1/auth/register', { handle: lifeConsumer, display_name: 'E2E', pin: '481516' });
     await J.req('POST', '/business/api/v1/merchant/auth/token', { handle: biz.handle, pin: biz.pin });
     const pre = (await J.req('GET', '/session/state')).body || {};
     const bOk = await J.req('GET', '/business/api/v1/business/receive-point');
@@ -103,6 +106,7 @@ function jar() {
   } finally {
     await browser.close().catch(() => {});
     if (biz) await retireBusiness(biz.merchantId);
+    if (lifeConsumer) { try { retireConsumer(lifeConsumer, { runId: 'proof13' }); } catch { /* best effort */ } }
   }
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_13_BUSINESS_WEB_LIFECYCLE=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);

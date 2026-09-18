@@ -14,6 +14,7 @@
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { retireConsumer } from '../lib/consumer-retire.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
 const R = new GateReport('12-web-session-security');
@@ -50,6 +51,10 @@ async function loginBusinessHttp(j, biz) {
 
 (async () => {
   let biz;
+  // Every consumer this proof creates, so the finally can retire them. They hold
+  // no funding, but residue is residue: the Sandbox is shared and a synthetic
+  // identity left alive is one more thing a later run has to reason about.
+  const consumers = [];
   try {
     biz = await provisionBusiness({ handlePrefix: 'e2esec' });
     R.mark('GENERIC_SYNTHETIC_BUSINESS_PROVISIONED', !!biz.handle, `@${biz.handle}`);
@@ -58,7 +63,8 @@ async function loginBusinessHttp(j, biz) {
     const A = jar();
     await A.seed();
     const id0 = A.sid();
-    const reg = await registerConsumerHttp(A, `e2eseca${Date.now().toString(36)}`);
+    const hA = `e2eseca${Date.now().toString(36)}`; consumers.push(hA);
+    const reg = await registerConsumerHttp(A, hA);
     const id1 = A.sid();
     R.mark('CONSUMER_REGISTERED', reg.status === 200 || reg.status === 201, `HTTP ${reg.status}`);
     R.mark('DUAL_CONTEXT_SESSION_FIXATION', !!id0 && !!id1 && id0 !== id1, 'session id rotated on consumer sign-in');
@@ -92,7 +98,8 @@ async function loginBusinessHttp(j, biz) {
 
     // ── Jar C: consumer-only — cannot reach business routes; cannot tamper context. ──
     const C = jar();
-    await registerConsumerHttp(C, `e2esecc${Date.now().toString(36)}`);
+    const hC = `e2esecc${Date.now().toString(36)}`; consumers.push(hC);
+    await registerConsumerHttp(C, hC);
     const cBiz = await C.req('GET', '/business/api/v1/business/receive-point');
     R.mark('CONSUMER_AUTH_GRANTS_BUSINESS_ROUTE=0', cBiz.status === 401, `consumer→business route → ${cBiz.status}`);
     const tamper = await C.req('POST', '/session/context', { context: 'business' });
@@ -100,7 +107,8 @@ async function loginBusinessHttp(j, biz) {
 
     // ── Jar D: logout-all clears both; neither replays. ──
     const D = jar();
-    await registerConsumerHttp(D, `e2esecd${Date.now().toString(36)}`);
+    const hD = `e2esecd${Date.now().toString(36)}`; consumers.push(hD);
+    await registerConsumerHttp(D, hD);
     await loginBusinessHttp(D, biz);
     await D.req('POST', '/session/logout-all', {});
     const stD = (await D.req('GET', '/session/state')).body || {};
@@ -111,6 +119,7 @@ async function loginBusinessHttp(j, biz) {
     R.mark('PROOF_12', false, e.message);
   } finally {
     if (biz) await retireBusiness(biz.merchantId);
+    for (const h of consumers) { try { retireConsumer(h, { runId: 'proof12' }); } catch { /* best effort */ } }
   }
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_12_WEB_SESSION_SECURITY=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);

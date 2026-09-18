@@ -17,6 +17,7 @@ import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { retireConsumer } from '../lib/consumer-retire.mjs';
 import { businessWebSignIn, businessWebSignInToHome } from '../lib/business-signin.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
@@ -51,6 +52,9 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
 
 (async () => {
   let biz;
+  // Hoisted so the finally block can return this payer's funding. It used to be
+  // scoped to the try, which is exactly how the leak below went unnoticed.
+  let buyerHandle = null;
   const { browser } = await launchChromium();
   try {
     biz = await provisionBusiness({ handlePrefix: 'e2ecom' });
@@ -113,7 +117,7 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
     // A payer named for THIS run. The activity row is titled by the payer's
     // display name, and a fixed 'E2E Buyer' would match a row left by any
     // earlier run — the assertion has to name this payment, not that shape.
-    const buyerHandle = `e2ecombuyer${Date.now().toString(36)}`;
+    buyerHandle = `e2ecombuyer${Date.now().toString(36)}`;
     const buyerName = `E2E Buyer ${buyerHandle.slice(-6)}`;
     await creq('POST', '/consumer/v1/auth/register', { handle: buyerHandle, display_name: buyerName, pin: '481516' });
     await creq('POST', '/consumer/v1/sandbox/fund', { amount_minor: 500000, currency: 'AOA' });
@@ -187,6 +191,12 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
   } finally {
     await browser.close().catch(() => {});
     if (biz) await retireBusiness(biz.merchantId);
+    // Return the payer's funding. This proof funded a fresh consumer 500 000
+    // minor on every run and never gave it back — 42 runs in one day held
+    // 39 600 000 of the Sandbox's 50 000 000 aggregate-funds cap, and the next
+    // run's funding was refused with INSUFFICIENT_FUNDS. Nine sibling proofs
+    // already did this; this one simply never had.
+    if (buyerHandle) { try { retireConsumer(buyerHandle, { runId: 'proof15buyer' }); } catch { /* best effort */ } }
   }
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_15_BUSINESS_WEB_COMMERCE=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);

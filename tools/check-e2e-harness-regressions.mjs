@@ -83,6 +83,26 @@ for (const f of files) {
 // ── Reusable fixtures must survive. retireBusiness SUSPENDS, and seven of nine
 //    proofs called it on a supplied fixture, poisoning the handle for every
 //    later run with an error that looks nothing like the cause.
+// ── fixture hygiene: give back what you were given ───────────────────────────
+// The Sandbox's aggregate-funds cap is 50 000 000 minor and SHARED. Proof 15
+// funded a fresh consumer 500 000 on every run and never returned it: 42 runs
+// in one day held 39 600 000 of the cap, and the next run's funding was refused
+// with INSUFFICIENT_FUNDS — which reads like a product fault and is not one.
+// Nine sibling proofs already retired their consumers; nothing made that a rule.
+for (const f of files) {
+  const src = read(PROOFS, f);
+  const registers = /auth\/register/.test(src);
+  const funds = /sandbox\/fund/.test(src);
+  const retires = /retireConsumer\s*\(/.test(src);
+  if (registers && funds) {
+    check(`fixture hygiene · ${f} returns the funding it took`, retires,
+      'a harness that keeps what it was given takes it from every later run');
+  } else if (registers) {
+    check(`fixture hygiene · ${f} retires the consumer it created`, retires,
+      'an unretired consumer is residue even when it holds nothing');
+  }
+}
+
 const prov = read(LIB, 'business-provision.mjs');
 check('fixtures · retireBusiness refuses a reused id structurally',
   /REUSED\.has\(merchantId\)/.test(prov) && /return 'skipped-reused'/.test(prov),

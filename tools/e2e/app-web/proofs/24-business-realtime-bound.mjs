@@ -35,6 +35,7 @@ import { launchChromium } from '../lib/browser.mjs';
 import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
 import { businessWebSignIn } from '../lib/business-signin.mjs';
+import { retireConsumer } from '../lib/consumer-retire.mjs';
 
 const APP = process.env.APP_ORIGIN || 'https://app.banzami.com';
 const R = new GateReport('24-business-realtime-bound');
@@ -57,6 +58,7 @@ const kzOnHome = (t) => {
 
 (async () => {
   let biz;
+  let payerHandle = null;   // hoisted so the finally can return its funding
   const { browser } = await launchChromium();
   try {
     biz = await provisionBusiness({ handlePrefix: 'e2ertbound' });
@@ -81,7 +83,8 @@ const kzOnHome = (t) => {
       return { status: r.status, body: j };
     };
     grab(await fetch(`${APP}/`));
-    await creq('POST', '/consumer/v1/auth/register', { handle: `e2ertpayer${Date.now().toString(36)}`, display_name: 'RT Payer', pin: '481516' });
+    payerHandle = `e2ertpayer${Date.now().toString(36)}`;
+    await creq('POST', '/consumer/v1/auth/register', { handle: payerHandle, display_name: 'RT Payer', pin: '481516' });
     const funded = await creq('POST', '/consumer/v1/sandbox/fund', { amount_minor: AMOUNT_MINOR * PHASES_MS.length + 100000, currency: 'AOA' });
     R.mark('PAYER_FUNDED', funded.status === 200 || funded.status === 201, `fund HTTP ${funded.status}`);
 
@@ -165,6 +168,9 @@ const kzOnHome = (t) => {
   } finally {
     await browser.close().catch(() => {});
     if (biz) await retireBusiness(biz.merchantId);
+    // The aggregate-funds cap is a SHARED Sandbox resource: a harness that keeps
+    // what it was given takes it from everyone, including the next run.
+    if (payerHandle) { try { retireConsumer(payerHandle, { runId: 'proof24payer' }); } catch { /* best effort */ } }
   }
   process.exit(R.failed === 0 ? 0 : 1);
 })();
