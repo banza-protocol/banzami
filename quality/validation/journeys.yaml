@@ -1127,3 +1127,40 @@ journeys:
     timeout_seconds: 1800
     retry_policy: none
 
+  - journey_id: S14-DOA-001
+    suite: S14
+    name: A ligação canónica do DOA está intacta e selada
+    purpose: >-
+      The binding is what decides who gets paid: a payment session created with
+      DOA's key credits the account the binding names, and DOA sends no merchant
+      id and no wallet id on purpose, because a second source of truth for "who
+      receives this money" is a second thing that can be wrong. This asserts
+      there is exactly one active binding, that it is @doa's, that it is sealed,
+      and that the retired one was kept and was never sealed. It READS ONLY — no
+      request it makes can change DOA's tenant, which is why it is safe to run
+      unattended against a third party's live integration.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox database is reachable through the operator path
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: read DOA's project binding state and assert its canonical shape
+        expect_api: "exactly one ACTIVE sealed binding to @doa; the retired one kept and unsealed"
+        evidence: [api]
+    financial_expectations: []
+    negative_assertions:
+      - there is never more than one active binding
+      - a retired binding is never sealed
+      - nothing this journey does can alter DOA's tenant
+    evidence_required: [api]
+    cleanup:
+      disposable: []
+      preserved:  [DOA's binding history]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/doa-canonical-binding.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 600
+    retry_policy: none
+

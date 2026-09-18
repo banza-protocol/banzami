@@ -154,12 +154,17 @@ known_issues:
   - id: VD-001
     title_pt: "Só um percurso está populado no registo"
     title: Only one journey is populated in the registry
-    status: open
+    status: resolved
     severity: high
     scope: the whole validation universe
-    blocks_golden: true
-    blocks_full: true
+    blocks_golden: false
+    blocks_full: false
     first_observed: "2026-09-18"
+    resolved: "2026-09-19"
+    resolution: >-
+      37 journeys are registered across 23 of 24 suites. GOLDEN resolves to 12,
+      every one backed by a harness that exists and asserts. The number this
+      issue named is no longer true, so it is closed rather than left standing.
     detail: >-
       24 suites are declared; one journey (S06-COL-001) is written. A GOLDEN or
       FULL run today would exercise almost nothing. The Studio reports suite
@@ -250,3 +255,27 @@ known_issues:
       prevent.
     detail_pt: >-
       Ambos são anteriores à Fase C e nenhum está num caminho do Validation Studio. Registados em vez de reparados: implantar um serviço para tornar verde uma linha de paridade é a substituição de aparência por correcção que este programa existe para impedir.
+
+  - id: VD-007
+    title_pt: "O fluxo de doação do DOA não é provável sem autorização do terceiro"
+    title: DOA's donation flow cannot be proven without the third party's authorisation
+    status: open
+    severity: medium
+    scope: S14 — the donation flow, not the binding
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-19"
+    detail: >-
+      S14's binding half IS proven at runtime (S14-DOA-001, read-only). The
+      donation half is not: doa-public-donation-e2e and webhook-delivery-to-doa
+      WRITE into DOA's live tenant — DOA production runs on this Sandbox — and
+      the donation harness additionally needs a human to complete an email OTP on
+      www.doadoa.app plus caller-supplied PAY_SLUG, ACC_A and ACC_B. The blocker
+      is consent and a human step, not engineering. The integration SHAPE (a
+      platform taking a public payment, receiving a signed event, and a
+      redelivery changing nothing) is proven against a synthetic tenant in S11
+      and S13; what is missing is that DOA SPECIFICALLY still works, which only
+      DOA's owner can authorise for a named window.
+    detail_pt: >-
+      A metade da ligação do S14 ESTÁ provada em execução (S14-DOA-001, só-leitura). A metade da doação não: dois harnesses ESCREVEM no inquilino real do DOA — a produção do DOA corre neste Sandbox — e o da doação exige ainda que uma pessoa complete um código enviado por email em www.doadoa.app, mais três identificadores fornecidos por quem chama. O impedimento é consentimento e um passo humano, não engenharia. A FORMA da integração está provada com um inquilino sintético em S11 e S13; o que falta é que o DOA ESPECIFICAMENTE continua a funcionar, e só o dono do DOA pode autorizar isso para uma janela nomeada.
+

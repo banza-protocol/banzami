@@ -242,6 +242,11 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc') {
     execFileSync('scp', ['-o', 'BatchMode=yes', '-q',
       join(ROOT, 'tests/phase0/lib/e2e-run.sh'),
       join(ROOT, 'tests/phase0/lib/synthetic-tenant.sh'),
+      // Some harnesses copy THEMSELVES to the host and run there; remote.sh is
+      // the guard that makes them return the real remote exit status instead of
+      // a cleanup `rm`'s zero. They look for it beside themselves, so it is
+      // staged under lib/ with the rest.
+      join(ROOT, 'tools/ops/lib/remote.sh'),
       `${HOST}:${remoteDir}/lib/`], { stdio: 'ignore' });
     execFileSync('scp', ['-o', 'BatchMode=yes', '-q', script, `${HOST}:${remoteDir}/`], { stdio: 'ignore' });
   } catch (e) {

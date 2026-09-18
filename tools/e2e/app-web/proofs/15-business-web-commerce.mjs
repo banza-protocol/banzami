@@ -110,8 +110,12 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
     const cgrab = (r) => { const a = r.headers.getSetCookie ? r.headers.getSetCookie() : []; for (const c of a) { const m = c.match(/^([^=]+)=([^;]*)/); if (m) cs[m[1]] = m[2]; } };
     const creq = async (m, p, b) => { const h = { cookie: cch() }; if (b !== undefined) { h['content-type'] = 'application/json'; h['x-csrf-token'] = cs['bz_app_csrf'] || ''; } const r = await fetch(`${APP}${p}`, { method: m, headers: h, body: b !== undefined ? JSON.stringify(b) : undefined }); cgrab(r); let j = null; try { j = await r.clone().json(); } catch {} return { status: r.status, body: j }; };
     cgrab(await fetch(`${APP}/`));
+    // A payer named for THIS run. The activity row is titled by the payer's
+    // display name, and a fixed 'E2E Buyer' would match a row left by any
+    // earlier run — the assertion has to name this payment, not that shape.
     const buyerHandle = `e2ecombuyer${Date.now().toString(36)}`;
-    await creq('POST', '/consumer/v1/auth/register', { handle: buyerHandle, display_name: 'E2E Buyer', pin: '481516' });
+    const buyerName = `E2E Buyer ${buyerHandle.slice(-6)}`;
+    await creq('POST', '/consumer/v1/auth/register', { handle: buyerHandle, display_name: buyerName, pin: '481516' });
     await creq('POST', '/consumer/v1/sandbox/fund', { amount_minor: 500000, currency: 'AOA' });
     const payRes = await creq('POST', `/consumer/v1/payment-links/${chargeSlug}/pay`, { idempotency_key: `chg-${chargeSlug}` });
     let settled = payRes.status === 200 || payRes.status === 201;
@@ -127,18 +131,43 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
     // ── §28/§29 history + transaction detail (proof reference). The received
     // payment appears in the Business activity (Home "Actividade recente", same
     // canonical data + detail as Histórico); its detail carries the proof reference. ──
-    // "Pagamentos recentes" renders `description ?? payer ?? 'Pagamento recebido'`
-    // and this charge carries no description, so the row is the PAYER — the
-    // handle this proof just created, not the display name it sent.
-    const homeTxt = await dA.visibleText();
-    const shows = new RegExp(`${buyerHandle}|Pagamento recebido`, 'i').test(homeTxt);
-    const credited = /\+\s*700\s*Kz/i.test(homeTxt);
-    R.mark('BUSINESS_WEB_HISTORY_E2E', (shows || credited) && !homeTxt.includes(EMPTY_ACTIVITY_MARKER),
-      `row=${shows} credit=${credited} empty=${homeTxt.includes(EMPTY_ACTIVITY_MARKER)}`);
-    await dA.tapText(buyerHandle).catch(() => dA.tapText('Pagamento recebido').catch(() => {}));
-    await sleep(1500);
+    // Assert on HISTÓRICO, not Home. The Home's "Pagamentos recentes" section
+    // sits below the fold, and Flutter builds a scrollable's children lazily —
+    // so its semantics node does not exist until it is scrolled to, and reading
+    // Home proves nothing either way. Histórico is the canonical activity
+    // surface, it is what a merchant taps, and it is always built.
+    await dA.tapText('Histórico').catch(() => {});
+    await sleep(2000);
+    // Wait for the row, re-entering the tab between reads. The list is fetched
+    // when the tab is built, so a single read can show a snapshot taken before
+    // this payment landed — waiting for eventual consistency is not the same as
+    // relaxing the assertion, and a row that never arrives still fails.
+    let histTxt = await dA.visibleText();
+    for (let i = 0; i < 12 && !histTxt.includes(buyerName); i++) {
+      await dA.tapText('Início').catch(() => {});
+      await sleep(900);
+      await dA.tapText('Histórico').catch(() => {});
+      await sleep(1600);
+      histTxt = await dA.visibleText();
+    }
+    // A row's title is `description ?? payer ?? stateLabel`. This charge carries
+    // no description, so the row is the PAYER — and `payer` is the display NAME,
+    // which is why this proof gives its payer a name unique to the run. The
+    // credited amount is asserted beside it: either alone could be a
+    // coincidence, both together name THIS payment. The empty-state check only
+    // supplements them; it is never the evidence that activity populated.
+    const rowShown = histTxt.includes(buyerName);
+    const credited = /\+\s*700\s*Kz/i.test(histTxt);
+    R.mark('BUSINESS_WEB_HISTORY_E2E', rowShown && credited && !histTxt.includes(EMPTY_ACTIVITY_MARKER),
+      `payer=${rowShown} credit=${credited} empty=${histTxt.includes(EMPTY_ACTIVITY_MARKER)}`);
+
+    // The Business surface says "Comprovativo", never "Referência" — that word
+    // appears nowhere in the merchant app, so the old assertion could only fail.
+    await dA.tapText(buyerName).catch(() => {});
+    await sleep(2000);
     const detail = await dA.visibleText();
-    R.mark('BUSINESS_WEB_RECEIPT_E2E', /Refer[êe]ncia/i.test(detail), 'transaction detail shows the canonical proof reference');
+    R.mark('BUSINESS_WEB_RECEIPT_E2E', /Comprovativo/i.test(detail),
+      'transaction detail offers the canonical proof (Comprovativo)');
   } catch (e) {
     R.mark('PROOF_15', false, e.message);
   } finally {

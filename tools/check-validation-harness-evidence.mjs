@@ -30,7 +30,8 @@ const registry = JSON.parse(execFileSync('python3', [
 
 // The files runShellHarness copies to the VM beside the harness. Kept next to
 // the check that depends on it, so adding a dependency without staging it fails.
-const STAGED = ['tests/phase0/lib/e2e-run.sh', 'tests/phase0/lib/synthetic-tenant.sh'];
+const STAGED = ['tests/phase0/lib/e2e-run.sh', 'tests/phase0/lib/synthetic-tenant.sh',
+                'tools/ops/lib/remote.sh'];
 
 let failures = 0;
 const fail = (m) => { console.log(`  ✗ ${m}`); failures++; };

@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# REFERENCE_APPLICATION_DOA — an integration test OF DOA, the reference application:
-# it acts in DOA's real tenant on purpose, so it runs only when asked
-# (BANZAMI_ALLOW_DOA_TENANT_WRITES=1). A generic harness never names DOA —
-# it builds a tenant of its own (tests/phase0/lib/synthetic-tenant.sh).
+# REFERENCE_APPLICATION_DOA — an integration test OF DOA, the reference application.
+#
+# READ-ONLY. This one only ASKS about DOA's binding; it issues no POST, PUT or
+# DELETE, opens no synthetic tenant, and moves no money. The
+# BANZAMI_ALLOW_DOA_TENANT_WRITES caveat the other two DOA harnesses carry was
+# copied here and never applied to anything — it described a risk this file does
+# not take, and it kept a safe read out of the Validation universe. A generic
+# harness never names DOA; naming it is the point of this one, and reading is
+# all it does.
 #
 # DOA's project is bound to @doa, and that binding is sealed.
 #
