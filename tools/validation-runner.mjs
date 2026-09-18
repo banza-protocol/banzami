@@ -418,6 +418,21 @@ const heartbeat = (runID) => sql(
 
 const stateOf = (runID) => (sql(`SELECT state FROM validation_runs WHERE id = ${lit(runID)}::uuid;`)[0] ?? ['?'])[0];
 
+/**
+ * Merchant-credit volume in the trailing 24 hours.
+ *
+ * The SAME definition core/compliance enforces, extracted rather than restated
+ * (tools/gen-pilot-limits.mjs → QueryGlobalRollingVolume). A budget measured by
+ * a second definition of "volume" is not a budget, it is a coincidence.
+ */
+function creditVolume24h() {
+  const [[v]] = sql(
+    "SELECT COALESCE(SUM(le.amount_minor), 0)::bigint FROM ledger_entries le " +
+    "WHERE le.entry_type = 'CREDIT' AND le.created_at >= now() - '24 hours'::interval " +
+    "AND le.account_id IN (SELECT available_account_id FROM wallets);");
+  return Number(v);
+}
+
 function main() {
   proveEnvironment();
 
@@ -444,6 +459,7 @@ function main() {
   const beat = setInterval(() => { try { heartbeat(run.id); } catch { /* next tick */ } }, HEARTBEAT_SECONDS * 1000);
 
   let failedBlocking = 0, passed = 0, failed = 0, skipped = 0;
+  let spent = 0, budgetStopped = null;
   try {
     // The plan is materialised first, so a run always says what it INTENDED to
     // do — even if it is cancelled after the second journey.
@@ -453,8 +469,26 @@ function main() {
            ON CONFLICT (run_id, journey_id) DO NOTHING;`, { rows: false });
     }
 
+    // A profile declares what a run may spend. Until something measures it, that
+    // is a promise the run cannot keep or break — it is decoration. Measured
+    // here, between journeys, against the engine's own definition of volume.
+    const ceiling = Number(profile.budget?.max_credit_volume_minor ?? 0);
+    const volumeAtStart = ceiling > 0 ? creditVolume24h() : 0;
+    if (ceiling > 0) log(`  budget: ${ceiling.toLocaleString('pt-PT')} minor (24h volume now ${volumeAtStart.toLocaleString('pt-PT')})`);
+
     for (const p of plan) {
       if (stateOf(run.id) === 'CANCELLED') { log('cancelled; stopping'); break; }
+
+      // Checked BEFORE the next journey, never after the last one: a ceiling
+      // discovered in the post-mortem protects nothing.
+      if (ceiling > 0) {
+        spent = creditVolume24h() - volumeAtStart;
+        if (spent > ceiling) {
+          budgetStopped = `run spent ${spent.toLocaleString('pt-PT')} minor against a declared ceiling of ${ceiling.toLocaleString('pt-PT')}`;
+          log(`  BUDGET EXCEEDED — ${budgetStopped}; stopping before ${p.journey}`);
+          break;
+        }
+      }
 
       if (!p.harness) {
         // Not a failure and not a pass. A journey with nothing to run is
@@ -484,11 +518,19 @@ function main() {
     const state = stateOf(run.id);
     if (state === 'CANCELLED') { log('run was cancelled'); return; }
 
-    const verdict = failedBlocking === 0 && failed === 0 ? 'PASS' : 'FAIL';
+    // The in-loop reading is taken BEFORE each journey, so after the last one it
+    // is a journey out of date. Read it once more for the record.
+    if (ceiling > 0) spent = creditVolume24h() - volumeAtStart;
+
+    // Stopping on budget is not a pass with a caveat. The run did not execute
+    // its universe, so it cannot claim what passing it would have claimed.
+    const verdict = failedBlocking === 0 && failed === 0 && !budgetStopped ? 'PASS' : 'FAIL';
     sql(`UPDATE validation_runs SET state='COMPLETED', verdict=${lit(verdict)}, ended_at=now()
          WHERE id=${lit(run.id)}::uuid;`, { rows: false });
     event(run.id, 'RUNNING', 'COMPLETED',
-      `${passed} passed, ${failed} failed (${failedBlocking} blocking), ${skipped} unavailable`);
+      `${passed} passed, ${failed} failed (${failedBlocking} blocking), ${skipped} unavailable` +
+      (ceiling > 0 ? `; spent ${spent} of ${ceiling} minor` : '') +
+      (budgetStopped ? `; STOPPED ON BUDGET — ${budgetStopped}` : ''));
     log(`\n${run.ref} COMPLETED ${verdict} — ${passed} passed / ${failed} failed / ${skipped} unavailable`);
   } catch (e) {
     // A crashed executor must not leave a run claiming to be RUNNING forever.
