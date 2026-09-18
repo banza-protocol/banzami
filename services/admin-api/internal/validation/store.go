@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -27,6 +28,14 @@ type Run struct {
 	RequestedAt    time.Time  `json:"requested_at"`
 	StartedAt      *time.Time `json:"started_at"`
 	EndedAt        *time.Time `json:"ended_at"`
+
+	// Computed by List, so the runs table can show the state of a run's
+	// EVIDENCE without fetching each run's detail. A run whose provenance was
+	// never captured must be visible as such in the list, not only once opened.
+	ProvenanceComponents int     `json:"provenance_components"`
+	PreflightVerdict     *string `json:"preflight_verdict"`
+	EvidenceRows         int     `json:"evidence_rows"`
+	JourneysExecuted     int     `json:"journeys_executed"`
 }
 
 // Run states. The legal transitions between them are enforced by the database
@@ -67,9 +76,9 @@ func NewStore(pool *pgxpool.Pool) *Store {
 	return &Store{pool: pool, now: time.Now}
 }
 
-const runColumns = `id::text, run_ref, environment, profile_id, profile_version,
-	profile_digest, state, verdict, requested_by::text, cancel_reason,
-	requested_at, started_at, ended_at`
+const runColumns = `r.id::text, r.run_ref, r.environment, r.profile_id, r.profile_version,
+	r.profile_digest, r.state, r.verdict, r.requested_by::text, r.cancel_reason,
+	r.requested_at, r.started_at, r.ended_at`
 
 func scanRun(row pgx.Row) (Run, error) {
 	var r Run
@@ -121,7 +130,7 @@ func (s *Store) Prepare(ctx context.Context, profile Profile, operatorID string,
 		INSERT INTO validation_runs
 			(run_ref, profile_id, profile_version, profile_digest, requested_by, idempotency_key)
 		VALUES ($1, $2, $3, $4, $5::uuid, $6)
-		RETURNING `+runColumns,
+		RETURNING `+strings.ReplaceAll(runColumns, "r.", ""),
 		ref, profile.ID, profile.Version, profile.Digest, operator, key)
 
 	run, err := scanRun(row)
@@ -224,7 +233,7 @@ func (s *Store) RecordPreflight(ctx context.Context, runID string, profile Profi
 	}
 
 	run, err := scanRun(tx.QueryRow(ctx,
-		`SELECT `+runColumns+` FROM validation_runs WHERE id = $1::uuid`, runID))
+		`SELECT `+runColumns+` FROM validation_runs r WHERE r.id = $1::uuid`, runID))
 	if err != nil {
 		return Run{}, err
 	}
@@ -233,11 +242,12 @@ func (s *Store) RecordPreflight(ctx context.Context, runID string, profile Profi
 
 // Cancel closes a run. Every non-terminal state may be cancelled, because an
 // operator must always be able to stop something.
-func (s *Store) Cancel(ctx context.Context, runID, reason, operatorID string) (Run, error) {
-	current, err := s.Get(ctx, runID)
+func (s *Store) Cancel(ctx context.Context, idOrRef, reason, operatorID string) (Run, error) {
+	current, err := s.Get(ctx, idOrRef)
 	if err != nil {
 		return Run{}, err
 	}
+	runID := current.ID
 	var operator *string
 	if operatorID != "" {
 		operator = &operatorID
@@ -246,7 +256,7 @@ func (s *Store) Cancel(ctx context.Context, runID, reason, operatorID string) (R
 		UPDATE validation_runs
 		   SET state = $2, cancel_reason = $3, ended_at = now()
 		 WHERE id = $1::uuid
-		RETURNING `+runColumns,
+		RETURNING `+strings.ReplaceAll(runColumns, "r.", ""),
 		runID, StateCancelled, reason)
 	run, err := scanRun(row)
 	if err != nil {
@@ -258,10 +268,18 @@ func (s *Store) Cancel(ctx context.Context, runID, reason, operatorID string) (R
 	return run, nil
 }
 
-// Get returns one run.
-func (s *Store) Get(ctx context.Context, runID string) (Run, error) {
-	run, err := scanRun(s.pool.QueryRow(ctx,
-		`SELECT `+runColumns+` FROM validation_runs WHERE id = $1::uuid`, runID))
+// Get returns one run, addressed by its UUID or by its human reference.
+//
+// BZV-20260918-0001 is what an operator quotes in a report, so it is what they
+// will paste into the address bar. Accepting only the UUID made the citable
+// form of the identifier the one the product refused — and refused with a 503,
+// as though the database were down, because the cast failed.
+func (s *Store) Get(ctx context.Context, idOrRef string) (Run, error) {
+	run, err := scanRun(s.pool.QueryRow(ctx, `
+		SELECT `+runColumns+` FROM validation_runs r
+		 WHERE r.run_ref = $1
+		    OR (r.id::text = $1)
+		 LIMIT 1`, idOrRef))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Run{}, ErrRunNotFound
 	}
@@ -273,8 +291,15 @@ func (s *Store) List(ctx context.Context, limit int) ([]Run, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	rows, err := s.pool.Query(ctx,
-		`SELECT `+runColumns+` FROM validation_runs ORDER BY requested_at DESC LIMIT $1`, limit)
+	rows, err := s.pool.Query(ctx, `
+		SELECT `+runColumns+`,
+		       (SELECT count(*) FROM validation_run_provenance pv WHERE pv.run_id = r.id),
+		       (SELECT pf.verdict FROM validation_preflights pf
+		         WHERE pf.run_id = r.id ORDER BY pf.started_at DESC LIMIT 1),
+		       (SELECT count(*) FROM validation_evidence ev WHERE ev.run_id = r.id),
+		       (SELECT count(*) FROM validation_run_journeys j
+		         WHERE j.run_id = r.id AND j.outcome <> 'PLANNED')
+		  FROM validation_runs r ORDER BY r.requested_at DESC LIMIT $1`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -282,8 +307,12 @@ func (s *Store) List(ctx context.Context, limit int) ([]Run, error) {
 
 	out := []Run{}
 	for rows.Next() {
-		r, err := scanRun(rows)
-		if err != nil {
+		var r Run
+		if err := rows.Scan(&r.ID, &r.RunRef, &r.Environment, &r.ProfileID, &r.ProfileVersion,
+			&r.ProfileDigest, &r.State, &r.Verdict, &r.RequestedBy, &r.CancelReason,
+			&r.RequestedAt, &r.StartedAt, &r.EndedAt,
+			&r.ProvenanceComponents, &r.PreflightVerdict, &r.EvidenceRows, &r.JourneysExecuted,
+		); err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -325,8 +354,8 @@ type RunEvent struct {
 // ActiveRun returns the run currently holding the Sandbox, if any.
 func (s *Store) ActiveRun(ctx context.Context) (*Run, error) {
 	run, err := scanRun(s.pool.QueryRow(ctx,
-		`SELECT `+runColumns+` FROM validation_runs
-		  WHERE state IN ('QUEUED','RUNNING') LIMIT 1`))
+		`SELECT `+runColumns+` FROM validation_runs r
+		  WHERE r.state IN ('QUEUED','RUNNING') LIMIT 1`))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -338,7 +367,7 @@ func (s *Store) ActiveRun(ctx context.Context) (*Run, error) {
 
 func (s *Store) byIdempotencyKey(ctx context.Context, key string) (Run, error) {
 	run, err := scanRun(s.pool.QueryRow(ctx,
-		`SELECT `+runColumns+` FROM validation_runs WHERE idempotency_key = $1`, key))
+		`SELECT `+runColumns+` FROM validation_runs r WHERE r.idempotency_key = $1`, key))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Run{}, ErrRunNotFound
 	}

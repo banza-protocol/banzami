@@ -11,6 +11,17 @@ const GROUP_LABEL: Record<string, string> = {
   budget: 'Capacidade e quota', studio: 'Esquema do Studio', database: 'Base de dados',
 };
 
+// Why each group exists. A verdict without its reason teaches an operator
+// nothing, and the reason is the part that survives being read once.
+const GROUP_WHY: Record<string, string> = {
+  registry: 'As definições que uma execução usaria estão presentes e são as desta revisão. Sem isto, não se sabe o que seria executado.',
+  provenance: 'Cada componente obrigatório consegue dizer que revisão está implantada. Um que não consiga torna a execução inatribuível, e uma execução inatribuível vale menos do que nenhuma.',
+  actors: 'As identidades de produto dos nove actores ainda existem, e o operador A01 consegue deter uma sessão. Um actor apagado falharia a execução por uma razão que o relatório não conseguiria explicar.',
+  budget: 'Há folga suficiente nas janelas rolantes para o tecto do perfil. Sem isto, a execução seria recusada pelo livro-razão a meio do caminho.',
+  studio: 'O esquema da execução existe e nada detém o Sandbox. Duas execuções em simultâneo gastariam o mesmo orçamento e entrelaçariam os mesmos saldos.',
+  database: 'A base de dados responde às leituras de que a verificação depende.',
+};
+
 export default function PreflightPage() {
   const s = useStudio();
   const pf = s.preflight;
@@ -69,6 +80,7 @@ export default function PreflightPage() {
         <Panel key={g} className="p-5">
           <SectionHeader Icon={ShieldCheck} tone="neutral" title={GROUP_LABEL[g] ?? g}
             subtitle={`${pf.checks.filter((c) => c.group === g).length} verificações`} />
+          {GROUP_WHY[g] && <Why>{GROUP_WHY[g]}</Why>}
           <ul className="mt-3">
             {pf.checks.filter((c) => c.group === g).map((c) => (
               <CheckRow key={`${c.group}.${c.id}`} c={c}

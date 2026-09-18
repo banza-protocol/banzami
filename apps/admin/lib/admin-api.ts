@@ -700,6 +700,13 @@ export interface ValidationRun {
   requested_at:  string;
   started_at:    string | null;
   ended_at:      string | null;
+
+  /** Computed by the list endpoint so the runs table can show the state of a
+   *  run's EVIDENCE without opening it. */
+  provenance_components?: number;
+  preflight_verdict?:     string | null;
+  evidence_rows?:         number;
+  journeys_executed?:     number;
 }
 
 export interface ValidationRunEvent {

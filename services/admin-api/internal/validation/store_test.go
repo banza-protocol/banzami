@@ -545,3 +545,50 @@ func TestStore_ProvenanceIsImmutableAndSurvivesCancellation(t *testing.T) {
 		t.Error("a run with provenance was deleted")
 	}
 }
+
+// BZV-20260918-0001 is what an operator quotes in a report, so it is what they
+// paste into the address bar. Accepting only the UUID made the citable form of
+// the identifier the one the product refused.
+func TestStore_ARunIsAddressableByItsQuotableReference(t *testing.T) {
+	store, _ := storeFixture(t)
+	p := goldenProfile(t)
+
+	run, _, err := store.Prepare(t.Context(), p, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	byRef, err := store.Get(t.Context(), run.RunRef)
+	if err != nil {
+		t.Fatalf("Get by run_ref %q: %v", run.RunRef, err)
+	}
+	if byRef.ID != run.ID {
+		t.Errorf("run_ref resolved to %s, want %s", byRef.ID, run.ID)
+	}
+
+	byID, err := store.Get(t.Context(), run.ID)
+	if err != nil {
+		t.Fatalf("Get by id: %v", err)
+	}
+	if byID.RunRef != run.RunRef {
+		t.Error("the two forms of the identifier resolve to different runs")
+	}
+
+	// An unknown identifier is NOT FOUND, in either shape. It is not a database
+	// failure, and reporting it as one sends an operator to look at the wrong
+	// thing entirely.
+	for _, unknown := range []string{"BZV-19700101-9999", "00000000-0000-0000-0000-000000000000", "not-an-id"} {
+		if _, err := store.Get(t.Context(), unknown); err != ErrRunNotFound {
+			t.Errorf("Get(%q) = %v, want ErrRunNotFound", unknown, err)
+		}
+	}
+
+	// And cancellation accepts the same reference the URL does.
+	cancelled, err := store.Cancel(t.Context(), run.RunRef, "by reference", "")
+	if err != nil {
+		t.Fatalf("Cancel by run_ref: %v", err)
+	}
+	if cancelled.State != StateCancelled {
+		t.Errorf("state %s after cancelling by reference", cancelled.State)
+	}
+}

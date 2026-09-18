@@ -50,6 +50,40 @@ export default function ProfileDetailPage() {
         </dl>
       </Panel>
 
+      {/* The distinction the operator must not be able to miss: a profile
+          CONTAINING 24 suites is not 24 suites having been executed. */}
+      <Panel className="p-5">
+        <SectionHeader Icon={Layers} tone="warn" title="Declarado ≠ executável ≠ executado"
+          subtitle="O que este perfil selecciona, e o que disso existe realmente." />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Suites seleccionadas', value: suites.length, tone: 'text-[#1a1a1a]',
+              note: 'declaradas no perfil' },
+            { label: 'Sem percurso executável', value: declared.length, tone: 'text-amber-700',
+              note: 'nada há a executar' },
+            { label: 'Percursos escritos', value: journeys.length, tone: 'text-[#1a1a1a]',
+              note: 'com passos e asserções' },
+            { label: 'Provados em execução', value: 0, tone: 'text-red-700',
+              note: 'nenhuma execução correu' },
+          ].map((m) => (
+            <div key={m.label} className="rounded-[13px] border border-[#f4e7e7] bg-[#FFFCFC] px-4 py-3">
+              <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">{m.label}</p>
+              <p className={`mt-1 text-[24px] font-black leading-none ${m.tone}`}>{m.value}</p>
+              <p className="mt-1 text-[11.5px] text-[#a99a9e]">{m.note}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 h-[9px] w-full overflow-hidden rounded-full bg-[#F1EEEE]">
+          <div className="h-full rounded-full bg-[#B5101F]"
+            style={{ width: `${suites.length ? Math.round(((suites.length - declared.length) / suites.length) * 100) : 0}%` }} />
+        </div>
+        <Why>
+          A barra mede quantas das suites seleccionadas têm pelo menos um percurso executável
+          definido. Conter 24 suites não é ter executado 24 suites — e enquanto não existir motor
+          de execução, a última coluna não pode deixar de ser zero.
+        </Why>
+      </Panel>
+
       <div className="grid gap-[18px] lg:grid-cols-2">
         <Panel className="p-5">
           <SectionHeader Icon={ShieldCheck} tone="good" title="O que este perfil valida" />

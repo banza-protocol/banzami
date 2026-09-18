@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Library, ShieldCheck, AlertTriangle, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Library, ShieldCheck, AlertTriangle, ChevronRight, ArrowLeft, FileSliders, UsersRound, FileCode2, Layers } from 'lucide-react';
 import { useStudio } from '../studio-context';
 import type { ValidationSuiteDetail, ValidationJourney } from '@/lib/admin-api';
-import { Panel, SectionHeader, Pill, StatusPill, Button, Why, Empty, Field, CHECK_STYLE } from '../studio-ui';
+import { Panel, SectionHeader, Pill, StatusPill, Button, Why, Empty, Field, MetricCard, Hash, CHECK_STYLE } from '../studio-ui';
 
 type View = 'suites' | 'invariants' | 'debt';
 
@@ -20,8 +20,29 @@ export default function RegistryPage() {
   if (journey && suite) return <JourneyView journey={journey} suite={suite} onBack={() => setJourneyId(null)} />;
   if (suite) return <SuiteView suite={suite} onBack={() => setSuiteId(null)} onOpen={setJourneyId} />;
 
+  const journeys = s.suites.flatMap((x) => x.journeys);
+  const declared = s.suites.filter((x) => x.implementation_status === 'DECLARED').length;
+
   return (
     <div className="flex flex-col gap-[18px]">
+      {/* What the validation universe actually contains, before any of it is
+          opened. The registry digest is the identity of this exact content. */}
+      <div className="grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <MetricCard Icon={FileCode2} tone="neutral" label="Digest do registo"
+          value={<span className="font-mono text-[14px]">{(s.overview?.registry_digest ?? '').slice(0, 12)}…</span>}
+          caption="compilado no admin-api" />
+        <MetricCard Icon={FileSliders} label="Perfis" value={s.overview?.profiles.length ?? 0}
+          caption="GOLDEN e FULL" />
+        <MetricCard Icon={Layers} label="Suites" value={s.suites.length}
+          caption={`${declared} sem percurso`} tone={declared ? 'warn' : 'brand'} />
+        <MetricCard Icon={Library} label="Percursos" value={journeys.length}
+          caption={`${journeys.filter((j) => j.implementation_status === 'AUTOMATED').length} automatizados`} />
+        <MetricCard Icon={ShieldCheck} tone="good" label="Invariantes" value={s.invariants.length}
+          caption="garantias com prova" />
+        <MetricCard Icon={UsersRound} tone="neutral" label="Actores" value={s.actors.length}
+          caption="no SANDBOX" />
+      </div>
+
       <div className="flex gap-2">
         {([['suites', 'Suites e percursos'], ['invariants', 'Invariantes'], ['debt', 'Dívida de validação']] as const).map(([id, label]) => (
           <button key={id} onClick={() => setView(id)}

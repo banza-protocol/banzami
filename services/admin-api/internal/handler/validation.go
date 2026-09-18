@@ -304,8 +304,9 @@ func (h *ValidationHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w) {
 		return
 	}
-	id := chi.URLParam(r, "id")
-	run, err := h.runs.Get(r.Context(), id)
+	// Either form of the identifier: the UUID, or the BZV- reference an operator
+	// quotes in a report and therefore pastes into the address bar.
+	run, err := h.runs.Get(r.Context(), chi.URLParam(r, "id"))
 	if errors.Is(err, validation.ErrRunNotFound) {
 		vErr(w, http.StatusNotFound, "RUN_NOT_FOUND", "no such validation run")
 		return
@@ -314,6 +315,7 @@ func (h *ValidationHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 		vErr(w, http.StatusServiceUnavailable, "VALIDATION_STORE_UNAVAILABLE", err.Error())
 		return
 	}
+	id := run.ID
 	events, err := h.runs.Events(r.Context(), id)
 	if err != nil {
 		vErr(w, http.StatusServiceUnavailable, "VALIDATION_STORE_UNAVAILABLE", err.Error())
