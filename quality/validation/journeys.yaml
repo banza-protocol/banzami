@@ -1164,3 +1164,44 @@ journeys:
     timeout_seconds: 600
     retry_policy: none
 
+  - journey_id: S03-BIZ-003
+    suite: S03
+    name: O saldo do negócio aparece dentro do limite aceitável
+    purpose: >-
+      CLAUDE.md §2.6 sets the perceived-latency band — under 2 seconds ideal,
+      under 5 seconds acceptable — and the merchant seeing the payment is the
+      promise the Business surface exists to keep. The first Validation Run found
+      that surface never updating at all, so this holds the repair to a NUMBER
+      rather than to one lucky observation: payments are landed at five different
+      offsets across the poll cycle, and each is measured from the moment the pay
+      call confirms to the moment the Home actually renders the new balance. A
+      sample that never renders is recorded as a miss, not timed out into
+      silence.
+    capabilities: []
+    actors: [B01, C01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: app-banzami-web-business, path: "/business"}
+    steps:
+      - action: sign a Business in and stay on its Home
+        expect_ui: "Saldo disponível is rendered"
+        evidence: [api]
+      - action: land a payment at each offset across the poll cycle and time the render
+        expect_ui: "the Home shows the new balance without a manual refresh"
+        evidence: [api, trace]
+    financial_expectations:
+      - invariant: debits_equal_credits
+    negative_assertions:
+      - no sample is allowed to reach the 5000 ms bound
+      - a sample that never renders fails rather than being skipped
+    evidence_required: [api]
+    cleanup:
+      disposable: [the Business and payer this journey created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/24-business-realtime-bound.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
