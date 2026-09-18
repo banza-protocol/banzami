@@ -12,10 +12,11 @@ Environment: **SANDBOX ONLY**
 |---|---|---|
 | **core-api-staging** | `82283af0` → **`79460b66`** | healthy · parity ✓ |
 | **banzami-webhook-sink** | `:local` → **`79460b66`** | healthy · parity ✓ |
+| **admin-api** | `bc9080ec` → **`28913242`** | healthy · parity ✓ |
+| **admin-frontend** | `5ce51b5b` → **`28913242`** | healthy · parity ✓ |
 | app-frontend | `2fbdd20f` | healthy · **parity ✓** |
 | api-gateway-staging, public-api-staging, pay-frontend | `b2bfedb5` | parity ✓ |
-| admin-frontend | `5ce51b5b` | parity ✓ |
-| developer-api, admin-api, website-frontend | see [25](25-deploy-divergence-classification.md) | classified, not deployed |
+| developer-api, website-frontend | `SAFE_STALE_FOR_CURRENT_SCOPE` — see [25](25-deploy-divergence-classification.md) | classified, deliberately not deployed |
 
 Migration head `0159`, unchanged — the policy change touched no schema.
 
@@ -137,3 +138,99 @@ auth bypass, no merchant-lifecycle bypass, no Core special case, no financial
 policy bypass. Each consumer PIN was proven by signing in with it; PINs live at
 `/root/.banzami/validation/` (0700 dir, 0600 files) and are referenced, never
 recorded, in the registry.
+
+
+---
+
+## 9. admin-api — audited, deployed, verified
+
+Authorised by the owner for the Phase B RBAC foundation. **Audited before
+deploying**, not after:
+
+```
+deployed revision  bc9080ec
+commits since      2 — d704a488 (B8 RBAC) and ab07a0c3 (receipt single-A4-page)
+shipped diff       rbac.go +26, rbac_test.go +75, receipt.html +11/-8
+removed lines      NONE in rbac.go — the change is purely additive
+unsafe additions   NONE in receipt.html — no script, no external reference
+```
+
+No unrelated or unexpected change. Dry-run clean, then deployed to
+**Sandbox only** at `28913242`; healthy, parity ✓.
+
+### `BANZADMIN_VALIDATION_RBAC_RUNTIME=PASS`
+
+Read from the running binary:
+
+```
+validation.view       present      validation.actors    absent
+validation.run        present      validation.config    absent
+validation.evidence   present      validation.publish   absent
+```
+
+The three absences are **correct, and were verified rather than assumed**. Go's
+linker drops a string constant nothing references. The three present ones are
+granted to roles in `roleCapabilities`; the three absent ones are held by no
+role and used by no route — which is exactly their intended Phase B state, since
+the pages that will use them are Phase C.
+
+Controlled for: `wallet_account.close` and `beta.manage` are declared the same
+way but *are* referenced by routes, and both appear in the binary. The one
+apparent reference to `CapValidationPublish` turned out to be its own comment.
+
+They compile, and `Can()` resolves them — `TestCan_SuperAdminHoldsEveryValidationCapability`
+asserts SUPER_ADMIN reaches all six.
+
+### Existing behaviour not weakened
+
+| Surface | Result |
+|---|---|
+| `/admin/v1/auth/me`, `/mfa/status`, `/operators`, `/merchant-applications` | `401` — mounted and guarded |
+| `POST /admin/v1/auth/login` with bad credentials | `401`, not a 5xx |
+| `POST /admin/v1/auth/step-up` | `405` on GET — mounted |
+| `GET /admin/v1/transactions/{id}/receipt.pdf` | `401` — mounted |
+
+Receipt compatibility proved directly in the binary: `height: 1114px` present,
+`min-height: 1123px` absent. The template is `go:embed`ed, so there is no file
+to hash in the container — the container's `find` returned nothing, whose hash
+is the empty-string digest.
+
+## 10. The two remaining blockers are different kinds of thing
+
+```
+HUMAN_BOUNDARY             A01 operator enrolment — needs the owner (§26 step 1-2)
+TEMPORARY_SANDBOX_BOUNDARY application-submit quota — needs only time
+```
+
+Quota, measured from the sliding window's entry scores rather than the key TTL:
+three slots free at **~11:01 UTC**, about two hours out. The TTL reads ≈14h37m
+and is the wrong number to quote — it is when the whole key expires, not when
+capacity returns.
+
+`APPLICATION_SUBMIT_RATE_LIMIT_BYPASS=0`. No second origin, no VM egress, no
+limiter change, no direct insertion, no reuse of a suspended Business.
+
+## 11. Repair Run capacity — strategy, not a bigger cap
+
+The preflight refuses a worst-case *broad* REPAIR run (54M against the 50M
+global 24h window). **The policy is not being raised to make it fit.** The
+canonical repair shape is narrow by design:
+
+```
+defect → fix → impacted journeys → dependent journeys → continue
+```
+
+The whole validation universe is not re-run after every individual fix; that is
+what the capability dependency graph and change-impact selection are for. If
+capacity is genuinely unavailable, the correct action is to wait for the window
+to recover — with no Validation Actor exception.
+
+## 12. Sandbox registration grant
+
+`SANDBOX_REGISTRATION_GRANT` — Sandbox consumer registration credits Kz 10 000
+automatically (`services/public-api/internal/handler/auth.go:130`). C01, C02 and
+C03 therefore hold legitimate starting balances of 1 000 000 minor each.
+
+It is **not Cash-In**, and its ledger history is immutable and is not deleted.
+Every financial assertion uses `pre_balance + expected_delta = post_balance`
+rather than assuming an actor starts at zero.

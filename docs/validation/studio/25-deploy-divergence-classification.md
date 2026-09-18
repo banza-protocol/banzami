@@ -13,6 +13,8 @@ Validation Studio journey. Nothing was deployed to make a gate green.
 |---|---|---|---|
 | `core-api-staging` | `82283af0` | **`79460b66`** | activates the D1 rolling policy (owner-authorised) |
 | `banzami-webhook-sink` | `:local` (unknowable) | **`79460b66`** | its revision is material to webhook journeys (owner-authorised) |
+| `admin-api` | `bc9080ec` | **`28913242`** | the Phase B RBAC foundation (owner-authorised, audited first — [27](27-runtime-acceptance.md) §9) |
+| `admin-frontend` | `5ce51b5b` | **`28913242`** | the console had no brand icon; deployed with the icon fix |
 
 ## Not deployed — classified on evidence
 
@@ -30,7 +32,16 @@ artefact with no reachable behaviour.
 → **`MUST_DEPLOY_BEFORE_GOLDEN_RUN`** (a Golden Run requires parity clean
 everywhere, on principle rather than because of this file).
 
-### `admin-api` (`bc9080ec`) — `MUST_DEPLOY_BEFORE_PHASE_C`
+### `admin-api` — ~~`MUST_DEPLOY_BEFORE_PHASE_C`~~ → **DEPLOYED** (`28913242`)
+
+Resolved 2026-09-18 under owner authorisation. The audit that preceded it found
+exactly the two expected commits and nothing else; details in
+[27](27-runtime-acceptance.md) §9. The original classification is kept below
+because the reasoning is what justified the deploy.
+
+<details><summary>Original classification</summary>
+
+#### `admin-api` (`bc9080ec`) — `MUST_DEPLOY_BEFORE_PHASE_C`
 
 Two divergent files:
 
@@ -46,6 +57,8 @@ Two divergent files:
 
 Neither is required *now*: no Phase B gate depends on admin-api's runtime, and
 the RBAC grants nothing anyone can use yet.
+
+</details>
 
 ### `website-frontend` (`f0a14634`) — `SAFE_STALE_FOR_CURRENT_SCOPE`
 
@@ -72,14 +85,17 @@ gate could not see them at all.
 ## Summary
 
 ```
-REQUIRED_NOW                  core-api-staging ✓ deployed
-                              webhook-sink     ✓ deployed
-MUST_DEPLOY_BEFORE_PHASE_C    admin-api        (receipt template + Studio RBAC)
-MUST_DEPLOY_BEFORE_GOLDEN_RUN developer-api, website-frontend
+DEPLOYED (owner-authorised)   core-api-staging ✓   webhook-sink   ✓
+                              admin-api        ✓   admin-frontend ✓
 SAFE_STALE_FOR_CURRENT_SCOPE  developer-api, website-frontend
-PASS                          app-frontend, api-gateway-staging,
-                              public-api-staging, pay-frontend, admin-frontend
+MUST_DEPLOY_BEFORE_GOLDEN_RUN developer-api, website-frontend
+PASS (parity clean)           8 of 10 components
 ```
+
+`developer-api` and `website-frontend` stay **deliberately undeployed**.
+Unrelated source divergence is not itself a reason to deploy; a Golden Run must
+record the exact deployed revision of every relevant component, which it can do
+whether or not that revision is `HEAD`.
 
 `make check-deploy-parity` will keep reporting the three outstanding components
 as divergent. That is the gate working: it reports what is true, and the

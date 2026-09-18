@@ -80,27 +80,57 @@ other operator. What changes is only who holds the seed.
 
 ### Step 3 — tell me it is done
 
-I then complete B10 unattended:
+I then complete B10 unattended, waiting for the quota window if it has not yet
+recovered:
 
 1. submit the three Business applications (`@e2eb01`, `@e2eb02`, `@e2eb03` —
-   all three confirmed available);
+   all three confirmed available), from this origin, once it has capacity;
 2. approve each as `A01` through `POST /admin/v1/merchant-applications/{id}/approve`;
 3. complete activation and set each PIN, storing it as `validation/b0N_pin`;
 4. record the merchant, wallet and account ids in the actor registry;
 5. re-run actor health with `--probe` for all nine;
 6. re-run the volume preflight, now with real per-merchant windows.
 
-## 4. One quota caveat
+## 4. The second blocker is a different KIND of blocker
 
-`application-submit` is **30 per 24h per IP**, and my origin's allowance is
-already spent by ordinary harness traffic (`ZCARD` 30/30, TTL ≈ 15h). The three
-submissions will therefore come from the Sandbox host itself, which has 29
-remaining — the same public endpoint and the same lifecycle, from operator
-infrastructure rather than a workstation.
+`B01`–`B03` are held by **two** things, and they are not the same sort of thing.
 
-This is worth noticing beyond the workaround: a shared IPv6 /64 can exhaust the
-daily allowance for everyone behind it, which is precisely the cost that
-persistent actors exist to stop paying every run.
+| | Blocker | Type | Clears by |
+|---|---|---|---|
+| `A01` | operator creation needs `CapOperatorManage` + step-up | **HUMAN_BOUNDARY** | the owner performing §3 |
+| `B01`–`B03` | `application-submit` quota is spent | **TEMPORARY_SANDBOX_BOUNDARY** | waiting |
+
+A human boundary does not clear on its own; a quota does.
+
+### The quota, measured
+
+`application-submit` is **30 per 24h per IP**, and this origin's allowance is
+spent by ordinary harness traffic. It is a **sliding window**, so it does not
+clear all at once — each slot frees exactly 24h after it was used:
+
+```
+slot 1   frees 10:59 UTC
+slot 2   frees 11:00 UTC
+slot 3   frees 11:01 UTC     ← three slots: enough for B01, B02, B03
+```
+
+The key's TTL reads ≈14h37m, which is when the whole key expires and is **not**
+the useful number. Reading the entry scores instead gives ~2 hours.
+
+### What must NOT be done to get around it
+
+Not another IP, not a VPN or proxy, not VM egress, not direct insertion, not a
+limiter change, and not reuse of a suspended Business.
+
+An earlier draft of this document proposed submitting from the Sandbox host
+because it had 29 slots left. **That was wrong and is withdrawn.** The limit is
+a per-origin anti-abuse control; stepping to a different origin to get past it
+is exactly the shape of thing a validation system must not do, whatever the
+intent. `APPLICATION_SUBMIT_RATE_LIMIT_BYPASS=0`.
+
+The observation underneath it still stands: a shared IPv6 /64 exhausts the daily
+allowance for everyone behind it, which is precisely the cost persistent actors
+exist to stop paying on every run.
 
 ## 5. What provisioning has cost so far
 
