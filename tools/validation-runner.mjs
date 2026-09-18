@@ -139,7 +139,7 @@ function planFor(profileID) {
  * the gates become the assertions. A harness that passes its exit status but
  * reports a failing gate is still a failure — the finer signal wins.
  */
-function runHarness(harness, timeoutMs) {
+export function runHarness(harness, timeoutMs) {
   const script = join(ROOT, harness);
   if (!existsSync(script)) {
     return { ok: false, reason: `harness not found: ${harness}`, gates: [], durationMs: 0 };
@@ -162,10 +162,18 @@ function runHarness(harness, timeoutMs) {
   // assertion — treating it as a failure would fail every harness that writes
   // down a number.
   const gateFailures = gates.filter((g) => g.verdict === 'FAIL');
-  const ok = res.status === 0 && gateFailures.length === 0;
+  const assertions = gates.filter((g) => g.verdict === 'PASS' || g.verdict === 'FAIL');
+  // A harness that exits 0 but recorded NOTHING has not proved anything, and a
+  // run built out of such journeys is green by executing nothing — the exact
+  // outcome this programme exists to make impossible. Evidence is harvested by
+  // matching the harness stem, so a renamed reporter fails HERE, loudly, rather
+  // than passing silently with an empty assertion set.
+  const ok = res.status === 0 && gateFailures.length === 0 && assertions.length > 0;
   const reason = res.status !== 0
     ? `exit ${res.status}`
-    : gateFailures.length ? `${gateFailures.length} gate(s) failed` : '';
+    : gateFailures.length ? `${gateFailures.length} gate(s) failed`
+    : assertions.length === 0 ? 'harness recorded no assertions (no evidence harvested)'
+    : '';
 
   return { ok, reason, gates, durationMs, stdout: (res.stdout ?? '') + (res.stderr ?? '') };
 }
@@ -293,7 +301,9 @@ function main() {
       for (const g of r.gates) recordGate(run.id, p, g);
 
       const outcome = r.ok ? 'PASSED' : 'FAILED';
-      mark(run.id, p, outcome, r.ok ? `${r.gates.length} gates` : r.reason);
+      const asserted = r.gates.filter((g) => g.verdict !== 'NOTE').length;
+      mark(run.id, p, outcome,
+        r.ok ? `${asserted} assertions, ${r.gates.length - asserted} measurements` : r.reason);
       if (r.ok) passed++; else { failed++; if (p.blocking) failedBlocking++; }
       log(`  ${p.journey}  ${outcome}  ${Math.round(r.durationMs / 1000)}s  ${r.reason}`);
     }
@@ -336,4 +346,6 @@ function recordGate(runID, p, g) {
 const log = (m) => console.log(m);
 function die(m) { console.error(`validation-runner: ${m}`); process.exit(2); }
 
-main();
+// Importable so the harvest/verdict contract can be proven without a Sandbox
+// run; executing it still takes the same path it always did.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

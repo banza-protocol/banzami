@@ -365,8 +365,21 @@ check-pilot-limits-drift:
 check-validation-execution-boundary:
 	node tools/check-validation-execution-boundary.mjs
 
+# A journey's assertions must be HARVESTABLE by the runner. The coupling
+# between a harness's GateReport name and its filename is invisible: rename one
+# and the next Validation Run records the journey as PASSED with an empty
+# assertion set — green by having proved nothing.
+check-validation-harness-evidence:
+	node tools/check-validation-harness-evidence.mjs
+
+# …and the other half of the same invariant, at the runner: a harness that exits
+# 0 and records nothing does not pass. Driven against fixture harnesses, so the
+# verdict contract is proven without touching Sandbox.
+check-validation-runner-verdict:
+	node tools/check-validation-runner-verdict.mjs
+
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.

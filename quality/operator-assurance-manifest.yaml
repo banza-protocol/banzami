@@ -1008,6 +1008,7 @@ capabilities:
       - GET /admin/v1/validation/runs/{id}
       - POST /admin/v1/validation/runs
       - POST /admin/v1/validation/runs/{id}/cancel
+      - POST /admin/v1/validation/runs/{id}/start
     threat_category: identity-auth
     tests:
       unit:
