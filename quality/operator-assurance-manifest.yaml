@@ -975,11 +975,18 @@ capabilities:
   - id: CAP-VALIDATION-001
     name: Banzami Validation Studio (BANZADMIN control surface)
     owner: operator-quality
+    # in-audit, not verified: the control surface is built, deployed and proven,
+    # but migration 0160 awaits the owner ceremony, so the Studio cannot yet
+    # answer about runs. Claiming verified before that would be the exact
+    # substitution of appearance for correctness this capability exists to catch.
+    status: in-audit
     public_status: internal
+    surface: internal
+    disposition: internal_only
     environments:
       sandbox: true
       live: false
-    authority: operator-policy
+    authority: internal
     authority_ref: BANZAMI-SANDBOX-FULL-VALIDATION-001 Phase C; docs/validation/studio/23, 30
     implementation:
       - services/admin-api/internal/validation
@@ -1008,7 +1015,7 @@ capabilities:
       negative_security:
         - tools/check-validation-no-start.mjs
         - tools/check-validation-run-model.mjs
-    deployment_gate: none
+    deployment_gate: static-only
     cleanup_disposition: active-required
     launch_scope: sandbox
 

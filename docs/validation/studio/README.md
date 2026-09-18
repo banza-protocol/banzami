@@ -75,6 +75,9 @@ and summarised in [21 — Owner decisions](21-owner-decisions.md).
 | 25 | [Deploy divergence classification](25-deploy-divergence-classification.md) | What was deployed, and what was deliberately not |
 | 26 | [B10 — the one owner ceremony](26-b10-owner-ceremony.md) | The exact remaining boundary |
 | 27 | [Runtime acceptance](27-runtime-acceptance.md) | Evidence from the deployed Sandbox |
+| 28 | [Phase C.0 ground truth](28-phase-c-ground-truth.md) | The system re-read, not carried forward |
+| 29 | [Application root cause](29-phase-c-application-root-cause.md) | The Phase B defect, closed and proven |
+| 30 | [Operational control surface](30-operational-control-surface.md) | BANZADMIN `/validation` — where each decision lives |
 
 Machine-readable specifications: [`schemas/`](schemas/).
 

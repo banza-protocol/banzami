@@ -14,10 +14,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 3 |
-| in-audit | 1 |
+| in-audit | 2 |
 | removed | 1 |
 | verified | 20 |
-| **total** | **25** |
+| **total** | **26** |
 
 ## Capabilities
 
@@ -43,6 +43,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-SDK-002 | Public Banzami client SDK (banzami_client, Dart/Flutter) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-VALIDATION-001 | Banzami Validation Studio (BANZADMIN control surface) | operator-quality | internal | **internal_only** | ✅ | 🔒 no | static-only | in-audit |
 | CAP-APPWEB-001 | App Banzami Web (Consumer + Business, shared Flutter source) | operator-apps | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-APP-002 | Merchant dashboard (Banzami Business) — retired | web | none | **removed** | — | 🔒 no | none-docs-only | removed |
 | CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | **internal_only** | ✅ | ⚠️ yes | sandbox-e2e-required | in-audit |
@@ -53,7 +54,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Disposition | Count |
 |---|---|
-| internal_only | 1 |
+| internal_only | 2 |
 | quarantined | 3 |
 | released | 20 |
 | removed | 1 |
@@ -381,6 +382,22 @@ Public surfaces released: **19/19**. Full external launch requires 19/19.
 - **External surface:** none · **Disposition:** **quarantined**
 - **Launch scope:** excluded
 - **Status:** **blocked**
+
+### CAP-VALIDATION-001 — Banzami Validation Studio (BANZADMIN control surface)
+
+- **Owner:** operator-quality
+- **Public status:** internal · **Sandbox:** true · **Live:** false
+- **Authority:** internal — BANZAMI-SANDBOX-FULL-VALIDATION-001 Phase C; docs/validation/studio/23, 30
+- **Threat category:** identity-auth
+- **Implementation:** services/admin-api/internal/validation, services/admin-api/internal/handler/validation.go, db/migrations/0160_validation_runs.sql, quality/validation/profiles.yaml, quality/validation/actors.yaml
+- **API/UI surface:** GET /admin/v1/validation/overview, GET /admin/v1/validation/actors, GET /admin/v1/validation/profiles, GET /admin/v1/validation/preflight, GET /admin/v1/validation/runs, GET /admin/v1/validation/runs/{id}, POST /admin/v1/validation/runs, POST /admin/v1/validation/runs/{id}/cancel
+- **Deployment gate:** static-only
+- **Tests:** unit [services/admin-api/internal/validation/registry_test.go, services/admin-api/internal/validation/preflight_test.go, services/admin-api/internal/validation/store_test.go] · integration [services/admin-api/internal/server/validation_routes_test.go] · e2e_sandbox [] · negative/security [tools/check-validation-no-start.mjs, tools/check-validation-run-model.mjs]
+- **Evidence:** —
+- **Cleanup disposition:** active-required
+- **External surface:** internal · **Disposition:** **internal_only**
+- **Launch scope:** sandbox
+- **Status:** **in-audit**
 
 ### CAP-APPWEB-001 — App Banzami Web (Consumer + Business, shared Flutter source)
 
