@@ -1,0 +1,74 @@
+# Suite registry — Banzami Validation Studio.
+#
+# S00-S20 as specified in Phase A, plus three suites the audit showed are real
+# and did not fit that taxonomy. Consumed by every control surface; no surface
+# defines its own.
+
+$schema: banzami.validation.suites/1
+registry_version: 1
+
+suite:
+  fields:
+    id:       {pattern: "^S[0-9]{2}$"}
+    name:     string
+    name_pt:  string          # BANZADMIN speaks Portuguese
+    scope:    string
+    existing_coverage: {enum: [strong, good, partial, weak, unit-only, none]}
+    blocking: {type: bool, description: "does a FAIL here stop the run?"}
+
+suites:
+  - {id: S00, name: Environment / governance,      name_pt: Ambiente e governação,      existing_coverage: strong,    blocking: true}
+  - {id: S01, name: Identity / auth / session,     name_pt: Identidade e autenticação,  existing_coverage: strong,    blocking: true}
+  - {id: S02, name: App Banzami (Consumer),        name_pt: App Banzami,                existing_coverage: strong,    blocking: false}
+  - {id: S03, name: App Banzami Business,          name_pt: App Banzami Business,       existing_coverage: strong,    blocking: false}
+  - {id: S04, name: Business Receive Point,        name_pt: Ponto de recebimento,       existing_coverage: strong,    blocking: false}
+  - {id: S05, name: Payment Links,                 name_pt: Links de pagamento,         existing_coverage: strong,    blocking: false}
+  - {id: S06, name: Collections,                   name_pt: Cobranças divididas,        existing_coverage: strong,    blocking: false}
+  - {id: S07, name: Refunds,                       name_pt: Reembolsos,                 existing_coverage: good,      blocking: false}
+  - {id: S08, name: Consumer transfers / P2P,      name_pt: Transferências,             existing_coverage: partial,   blocking: false}
+  - {id: S09, name: Financial truth,               name_pt: Verdade financeira,         existing_coverage: strong,    blocking: true}
+  - {id: S10, name: Settlements / payouts,         name_pt: Liquidações e levantamentos, existing_coverage: good,     blocking: false}
+  - {id: S11, name: Developer Platform,            name_pt: Plataforma de programadores, existing_coverage: strong,   blocking: false}
+  - {id: S12, name: SDKs,                          name_pt: SDKs,                       existing_coverage: partial,   blocking: false}
+  - {id: S13, name: Webhooks,                      name_pt: Webhooks,                   existing_coverage: strong,    blocking: false}
+  - {id: S14, name: DOA,                           name_pt: DOA,                        existing_coverage: good,      blocking: false}
+  - {id: S15, name: Receipts / comprovativos,      name_pt: Comprovativos,              existing_coverage: good,      blocking: false}
+  - {id: S16, name: BANZADMIN,                     name_pt: BANZADMIN,                  existing_coverage: weak,      blocking: false}
+  - {id: S17, name: Security / authority / isolation, name_pt: Segurança e isolamento,  existing_coverage: good,      blocking: true}
+  - {id: S18, name: Platform / web-mobile parity,  name_pt: Paridade de plataforma,     existing_coverage: good,      blocking: false}
+  - {id: S19, name: Contracts / OpenAPI / docs,    name_pt: Contratos e documentação,   existing_coverage: strong,    blocking: false}
+  - {id: S20, name: External dependencies,         name_pt: Dependências externas,      existing_coverage: partial,   blocking: false}
+
+  # ── Added by the Phase A audit ──────────────────────────────────────────────
+  - id: S21
+    name: Business onboarding lifecycle
+    name_pt: Ciclo de vida de candidaturas
+    scope: ADR-058/059 — application, KYB, approval, activation, one KYB authority
+    existing_coverage: good
+    blocking: false
+    rationale: >-
+      137 applications and 8 KYB routes; it is neither identity (S01) nor
+      BANZADMIN (S16) — it spans both plus the public form.
+  - id: S22
+    name: Operator finance
+    name_pt: Finanças do operador
+    scope: pricing rules and profiles, fee policies, operator fees, reconciliation
+    existing_coverage: weak
+    blocking: false
+    rationale: >-
+      17 admin routes with essentially no deployed-Sandbox E2E, and it carries
+      the critical-financial-confirmation requirement.
+  - id: S23
+    name: Rail boundary (ADR-061 fail-closed)
+    name_pt: Fronteira do canal externo
+    scope: >-
+      Rail simulator down → hosted payment and payout fail closed with
+      503 PROVIDER_UNAVAILABLE and nothing created, credited or confirmed;
+      internal movements unaffected; per-(Project, Business) rail scope (0145).
+    existing_coverage: unit-only
+    blocking: true
+    rationale: >-
+      HIGHEST-VALUE NEW SUITE. ADR-061's central table is documented and
+      unit-tested but never proven end to end against the deployed Sandbox
+      (doc 19 VL-007). It is also what separates a product defect from an
+      external dependency for every rail-crossing capability.

@@ -442,6 +442,59 @@
       "risk": "P1"
     },
     {
+      "id": "app-frontend",
+      "kind": "frontend",
+      "runtime": "{P}-app-frontend (Flutter web + Node session-BFF, apps/app-banzami built from apps/mobile + sdk/flutter) — app.banzami.com",
+      "entry_points": [
+        "/ Consumer context",
+        "/business Business context (ADR-066)",
+        "BFF session + CSRF endpoints"
+      ],
+      "actors": [
+        "consumers",
+        "Business operators"
+      ],
+      "authentication": "same-origin opaque session cookie issued by the BFF; the Bearer never reaches JavaScript",
+      "authorization": "the BFF holds the credential and scopes every call to the signed-in identity; active_context selects, it does not confer authority",
+      "sensitive_data": [
+        "session cookie",
+        "CSRF token",
+        "consumer and Business balances"
+      ],
+      "financial_authority": "initiates payments and transfers via public-api/api-gateway; holds no ledger authority",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "consumer registration and PIN",
+        "P2P transfer",
+        "QR scan payment",
+        "Business Receive Point",
+        "Collection share payment"
+      ],
+      "dependencies": [
+        "public-api",
+        "api-gateway",
+        "app-session-redis"
+      ],
+      "capabilities": [
+        "CAP-APPWEB-001",
+        "CAP-PAY-003",
+        "CAP-PROOF-001"
+      ],
+      "tests": [
+        "apps/app-banzami/test"
+      ],
+      "deployed_e2e": [
+        "tools/e2e/app-web/run-all.mjs",
+        "tools/e2e/app-web/proofs/11-business-web-cross-payment.mjs",
+        "tools/e2e/app-web/proofs/12-web-session-security.mjs",
+        "tools/e2e/app-web/proofs/19-collections-split-settlement.mjs"
+      ],
+      "gaps": [
+        "push-topic registration and native-only camera capture are covered by the mobile targets, not here"
+      ],
+      "risk": "P0"
+    },
+    {
       "id": "website",
       "kind": "frontend",
       "runtime": "banzami-website-frontend-1 (Next.js, apps/website) behind banzami-website-nginx-1 — banzami.com, developers.banzami.com",
@@ -1225,7 +1278,8 @@
     "sdk/go": "sdk-go",
     "sdk/php": "sdk-php",
     "sdk/python": "sdk-python",
-    "sdk/typescript": "sdk-typescript"
+    "sdk/typescript": "sdk-typescript",
+    "apps/app-banzami": "app-frontend"
   },
   "host_map": {
     "{P}-core-api-staging": "core-api",

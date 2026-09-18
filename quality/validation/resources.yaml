@@ -1,0 +1,80 @@
+# Validation Resource classes — Banzami Validation Studio (Phase A doc 10 §3).
+#
+# What a Validation Run may clean up, and what it must never touch. The
+# distinction has teeth because the platform already enforces it: the ledger is
+# append-only, the database refuses to mutate a posted entry
+# (`raise_ledger_immutable`), and core/api/src/routes/sandbox_funds.rs exists so
+# that synthetic value can leave circulation WITH ITS HISTORY INTACT rather than
+# being deleted.
+#
+#   funding     DR transit          CR owner available
+#   retirement  DR owner available  CR transit          ← the exact reverse
+#
+# Nothing is deleted. No balance is edited. That is the whole model.
+
+$schema: banzami.validation.resources/1
+registry_version: 1
+
+classes:
+
+  - class: disposable
+    policy: may-retire-after-run
+    description: >-
+      Created by a journey, of no lasting economic consequence. Retiring these
+      is what stops a Sandbox filling with residue the way it did before
+      persistent actors (1 158 terminally suspended merchants).
+    examples:
+      - draft collections that were never surfaced
+      - payment links that were never paid
+      - webhook endpoints registered for one run
+      - browser artifacts, traces and HAR files past their retention class
+      - expired sessions
+      - unsubmitted merchant applications
+
+  - class: preserved-economic-history
+    policy: never-delete
+    description: >-
+      A record of something that actually happened financially. These are
+      evidence, not residue, and the ledger's own constraints already refuse to
+      let them change.
+    examples:
+      - ledger postings and entries
+      - completed wallet payments
+      - paid Collection shares
+      - transfers
+      - receipts and transaction proofs
+      - settlements and payouts
+      - refunds
+      - audit-log entries
+
+  - class: persistent-actor
+    policy: never-delete
+    description: >-
+      The nine Validation Actors and their wallets. They are the reason a run
+      does not have to create and then terminally suspend a Business, and
+      deleting one would undo that.
+    examples:
+      - C01-C03, B01-B03, D01-D02, A01
+      - their consumer wallets and merchant wallets
+      - their Developer workspaces, projects and keys
+
+  - class: retirable-value
+    policy: retire-by-reverse-posting
+    description: >-
+      Surplus synthetic balance on a persistent actor. Retired, never reset:
+      resetting to zero would delete financial history, and accumulating without
+      limit would hit CONSUMER_MAX_BALANCE (Kz 50 000) or MERCHANT_MAX_BALANCE
+      (Kz 100 000) and stop the actor working.
+    mechanism: POST /internal/v1/sandbox/retire-funds
+    examples:
+      - consumer balance above what the next run needs
+      - merchant balance approaching its cap
+
+attribution:
+  required_on_every_created_resource: [run_id, actor_id, journey_id, capability_id]
+  where_the_api_accepts_metadata: use the product's own metadata field
+  where_it_does_not: >-
+    record the association in the Studio's own resource registry. Public product
+    contracts are NOT modified to carry test metadata: a field added so the
+    Studio can find its own rows is a field every integrator must then
+    understand.

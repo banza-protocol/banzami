@@ -963,6 +963,53 @@ capabilities:
   # repository that is a worked example of the thing the security guide tells
   # developers never to do. The merchant surface, when it returns, starts from
   # the Console's session model, not from this.
+  # App Banzami Web (ADR-064 / ADR-066). Added 2026-09-18 (Phase B): the
+  # component was deployed and serving app.banzami.com while no capability
+  # described it, which `make check-component-coverage` reported the moment
+  # app-frontend entered deploy parity. It is deliberately SEPARATE from
+  # CAP-APP-001/005: the same Flutter source is proven on the web target and
+  # gated on the native ones, and one entry could not say both.
+  - id: CAP-APPWEB-001
+    name: App Banzami Web (Consumer + Business, shared Flutter source)
+    owner: operator-apps
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: operator-extension
+    authority_ref: Banzami ADR-064 (App Banzami Web), ADR-066 (dual context)
+    implementation:
+      - apps/app-banzami
+      - apps/mobile
+      - sdk/flutter
+    api_surface:
+      - app.banzami.com (Consumer context, same-origin opaque-session BFF)
+      - app.banzami.com/business (Business context, ADR-066)
+      - none (the BFF holds the Bearer; no operator API route is its own)
+    threat_category: identity-auth
+    tests:
+      unit:
+        - apps/app-banzami/test/bff.test.mjs
+        - apps/app-banzami/test/session_store.test.mjs
+        - apps/app-banzami/test/architecture-guards.test.mjs
+      integration:
+        - apps/app-banzami/test/font-assets.test.mjs
+      e2e_sandbox:
+        - tools/e2e/app-web/run-all.mjs
+        - tools/e2e/app-web/proofs/11-business-web-cross-payment.mjs
+        - tools/e2e/app-web/proofs/17-web-dual-context-cross-tab.mjs
+      negative_security:
+        - tools/e2e/app-web/proofs/12-web-session-security.mjs
+        - tools/e2e/app-web/proofs/14-business-web-fail-closed.mjs
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    launch_scope: sandbox
+    evidence:
+      - tools/e2e/app-web/proofs/11-business-web-cross-payment.mjs
+    surface: public
+    disposition: released
+    status: verified
+
   - id: CAP-APP-002
     name: Merchant dashboard (Banzami Business) — retired
     owner: web

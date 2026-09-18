@@ -16,8 +16,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | blocked | 3 |
 | in-audit | 1 |
 | removed | 1 |
-| verified | 19 |
-| **total** | **24** |
+| verified | 20 |
+| **total** | **25** |
 
 ## Capabilities
 
@@ -43,6 +43,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-SDK-002 | Public Banzami client SDK (banzami_client, Dart/Flutter) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-APPWEB-001 | App Banzami Web (Consumer + Business, shared Flutter source) | operator-apps | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-APP-002 | Merchant dashboard (Banzami Business) — retired | web | none | **removed** | — | 🔒 no | none-docs-only | removed |
 | CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | **internal_only** | ✅ | ⚠️ yes | sandbox-e2e-required | in-audit |
 | CAP-APP-004 | Pay page + checkout | web | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
@@ -54,10 +55,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | internal_only | 1 |
 | quarantined | 3 |
-| released | 19 |
+| released | 20 |
 | removed | 1 |
 
-Public surfaces released: **18/18**. Full external launch requires 18/18.
+Public surfaces released: **19/19**. Full external launch requires 19/19.
 
 ## Detail
 
@@ -380,6 +381,22 @@ Public surfaces released: **18/18**. Full external launch requires 18/18.
 - **External surface:** none · **Disposition:** **quarantined**
 - **Launch scope:** excluded
 - **Status:** **blocked**
+
+### CAP-APPWEB-001 — App Banzami Web (Consumer + Business, shared Flutter source)
+
+- **Owner:** operator-apps
+- **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
+- **Authority:** operator-extension — Banzami ADR-064 (App Banzami Web), ADR-066 (dual context)
+- **Threat category:** identity-auth
+- **Implementation:** apps/app-banzami, apps/mobile, sdk/flutter
+- **API/UI surface:** app.banzami.com (Consumer context, same-origin opaque-session BFF), app.banzami.com/business (Business context, ADR-066), none (the BFF holds the Bearer; no operator API route is its own)
+- **Deployment gate:** sandbox-e2e-required
+- **Tests:** unit [apps/app-banzami/test/bff.test.mjs, apps/app-banzami/test/session_store.test.mjs, apps/app-banzami/test/architecture-guards.test.mjs] · integration [apps/app-banzami/test/font-assets.test.mjs] · e2e_sandbox [tools/e2e/app-web/run-all.mjs, tools/e2e/app-web/proofs/11-business-web-cross-payment.mjs, tools/e2e/app-web/proofs/17-web-dual-context-cross-tab.mjs] · negative/security [tools/e2e/app-web/proofs/12-web-session-security.mjs, tools/e2e/app-web/proofs/14-business-web-fail-closed.mjs]
+- **Evidence:** tools/e2e/app-web/proofs/11-business-web-cross-payment.mjs
+- **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released**
+- **Launch scope:** sandbox
+- **Status:** **verified**
 
 ### CAP-APP-002 — Merchant dashboard (Banzami Business) — retired
 

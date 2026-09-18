@@ -322,6 +322,20 @@ check-route-registration:
 check-route-registration-golden:
 	node tools/check-runtime-route-registration.mjs --golden
 
+# ONE VALIDATION ENGINE, MULTIPLE CONTROL SURFACES. No parallel validation
+# product, BANZADMIN is not the execution engine, and no operational validation
+# surface exists on the public website.
+check-validation-engine:
+	node tools/check-validation-engine.mjs
+
+# The Validation Studio registries are coherent and reference capability truth
+# rather than redefining it — and no actor is provisioned before B10.
+check-validation-registries:
+	node tools/check-validation-registries.mjs
+
+# Every Validation Studio invariant in one target.
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-route-registration check-merchant-credit-policy
+
 # Where this operator is allowed to charge money. Static, so it runs in CI: a
 # new crate depending on banzami-pricing is a new economic entrypoint, and it
 # must be reviewed rather than merged as a dependency line.
@@ -504,7 +518,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation-naming check-merchant-credit-policy check-route-registration
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
