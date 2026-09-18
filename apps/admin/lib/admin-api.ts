@@ -908,6 +908,13 @@ export class AdminApi {
       body: JSON.stringify({ profile, idempotency_key: idempotencyKey }),
     });
   }
+  /** PHASE D: hands a READY run to the execution plane. It queues; the runner
+   *  executes. Requires validation.run and step-up. */
+  validationStartRun(id: string): Promise<{
+    run: ValidationRun; queued: boolean; executed: boolean; note: string;
+  }> {
+    return this.req(`/admin/v1/validation/runs/${encodeURIComponent(id)}/start`, { method: 'POST' });
+  }
   validationCancelRun(id: string, reason: string): Promise<{ run: ValidationRun }> {
     return this.req(`/admin/v1/validation/runs/${encodeURIComponent(id)}/cancel`, {
       method: 'POST',

@@ -11,7 +11,7 @@
  */
 
 import { useRouter } from 'next/navigation';
-import { PlayCircle, Ban, FileText, Boxes, ShieldCheck } from 'lucide-react';
+import { PlayCircle, Ban, FileText, Boxes, ShieldCheck, Rocket } from 'lucide-react';
 import { useStudio, getApi } from '../studio-context';
 import { useToast } from '@/components/ui/toast';
 import { getSession } from '@/lib/session';
@@ -27,6 +27,22 @@ export default function RunsPage() {
   const router = useRouter();
   const canRun = ['SUPER_ADMIN', 'OPERATIONS'].includes(getSession()?.user.role ?? '');
   const terminal = ['COMPLETED', 'CANCELLED', 'ABANDONED'];
+
+  // PHASE D. Starting queues the run for the execution plane; the runner claims
+  // it and does the work. It is the act that lets real Sandbox transactions
+  // begin, so it carries step-up — the same second factor preparation does.
+  async function start(r: ValidationRun) {
+    const api = getApi();
+    if (!api) return;
+    s.setBusy(true);
+    try {
+      const res = await api.validationStartRun(r.run_ref);
+      toast('success', `${res.run.run_ref} em fila (${res.run.state}). ${res.note}`);
+      await s.reload();
+    } catch {
+      toast('danger', 'Não foi possível iniciar a execução.');
+    } finally { s.setBusy(false); }
+  }
 
   async function cancel(r: ValidationRun) {
     const api = getApi();
@@ -123,9 +139,15 @@ export default function RunsPage() {
                           </span>
                         </td>
                         <td className="py-2.5">
-                          {canRun && !terminal.includes(r.state) && (
-                            <Button onClick={() => void cancel(r)} disabled={s.busy}>Cancelar</Button>
-                          )}
+                          <span className="flex justify-end gap-2">
+                            {canRun && r.state === 'READY' && (
+                              <Button variant="primary" Icon={Rocket}
+                                onClick={() => void start(r)} disabled={s.busy}>Iniciar</Button>
+                            )}
+                            {canRun && !terminal.includes(r.state) && (
+                              <Button onClick={() => void cancel(r)} disabled={s.busy}>Cancelar</Button>
+                            )}
+                          </span>
                         </td>
                       </tr>
                     );
