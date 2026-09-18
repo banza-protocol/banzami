@@ -279,3 +279,25 @@ known_issues:
     detail_pt: >-
       A metade da ligação do S14 ESTÁ provada em execução (S14-DOA-001, só-leitura). A metade da doação não: dois harnesses ESCREVEM no inquilino real do DOA — a produção do DOA corre neste Sandbox — e o da doação exige ainda que uma pessoa complete um código enviado por email em www.doadoa.app, mais três identificadores fornecidos por quem chama. O impedimento é consentimento e um passo humano, não engenharia. A FORMA da integração está provada com um inquilino sintético em S11 e S13; o que falta é que o DOA ESPECIFICAMENTE continua a funcionar, e só o dono do DOA pode autorizar isso para uma janela nomeada.
 
+  - id: VD-008
+    title_pt: "O adaptador assurance-json nunca correu contra um harness real"
+    title: The assurance-json adapter has never run against a real harness
+    status: open
+    severity: medium
+    scope: S19 — the only journey that uses it
+    blocks_golden: false
+    blocks_full: true
+    first_observed: "2026-09-19"
+    detail: >-
+      S19-DOC-001 is registered EXECUTABLE on an adapter proven only against
+      fixtures: the three report shapes, the reconciliation, and PENDING/NOT_RUN
+      never counting as a pass. That is exactly how phase0-stdout looked finished
+      while the runner could not start a phase-0 harness at all — no fixture can
+      discover a missing staged dependency, and none did. quickstart-e2e costs
+      one application-submit slot and moves money, and the current window is
+      reserved for the GOLDEN acceptance run and its retry, so this is recorded
+      rather than spent. It does not block GOLDEN (S19 is not in it) and it does
+      block FULL until the adapter has read one real report.
+    detail_pt: >-
+      O S19-DOC-001 está registado como EXECUTÁVEL com base num adaptador provado apenas contra fixtures. Foi exactamente assim que o adaptador shell pareceu terminado enquanto o executor nem conseguia arrancar um harness — nenhuma fixture descobre uma dependência que falta no envio. Correr o harness real custa uma candidatura e move dinheiro, e a janela actual está reservada para a execução GOLDEN e a sua repetição. Não bloqueia o GOLDEN; bloqueia o FULL até o adaptador ter lido um relatório real.
+
