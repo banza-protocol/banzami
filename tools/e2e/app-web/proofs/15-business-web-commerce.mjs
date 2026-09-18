@@ -121,7 +121,8 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
     let settled = payRes.status === 200 || payRes.status === 201;
     for (let i = 0; i < 15 && !((await api.balanceMinor()) > 0); i++) await sleep(1500);
     const bizBal = await api.balanceMinor();
-    R.mark('BUSINESS_WEB_CHARGE_E2E', settled && bizBal > 0, `pay HTTP ${payRes.status}; business balance now ${bizBal} minor`);
+    R.mark('BUSINESS_WEB_CHARGE_E2E', settled && bizBal > 0,
+      `pay HTTP ${payRes.status}${settled ? '' : ` ${JSON.stringify(payRes.body).slice(0, 140)}`}; business balance now ${bizBal} minor`);
 
     // ── §26 realtime — Browser A Home converged without a manual refresh. ──
     let converged = false; let homeAfter = homeBefore;
@@ -161,13 +162,26 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
     R.mark('BUSINESS_WEB_HISTORY_E2E', rowShown && credited && !histTxt.includes(EMPTY_ACTIVITY_MARKER),
       `payer=${rowShown} credit=${credited} empty=${histTxt.includes(EMPTY_ACTIVITY_MARKER)}`);
 
-    // The Business surface says "Comprovativo", never "Referência" — that word
-    // appears nowhere in the merchant app, so the old assertion could only fail.
-    await dA.tapText(buyerName).catch(() => {});
-    await sleep(2000);
-    const detail = await dA.visibleText();
-    R.mark('BUSINESS_WEB_RECEIPT_E2E', /Comprovativo/i.test(detail),
-      'transaction detail offers the canonical proof (Comprovativo)');
+    // The proof lives on the RECEBIDOS tab, not behind a row tap: Histórico's
+    // transaction rows carry no onTap at all, so "open the detail" described a
+    // flow this surface does not have. Each received payment offers its own
+    // "Comprovativo" — the official Banzami PDF — and that button IS the
+    // canonical proof the gate is named for. The word "Referência" appears
+    // nowhere in the merchant app, so the original assertion could only fail.
+    // "Recebidos" is a TabBar tab, so its semantics node is role="tab" — not a
+    // button, and not plain text. Tapping it by text lands on the label overlay
+    // and goes nowhere, the same way tapText on an InkWell did in proof 10.
+    const tab = pageA.locator('flt-semantics[role="tab"][aria-label="Recebidos"], [role="tab"][aria-label="Recebidos"], flt-semantics[aria-label="Recebidos"]').first();
+    await dA.tapLocatorBox(tab).catch(() => dA.tapText('Recebidos').catch(() => {}));
+    await sleep(2500);
+    let received = await dA.visibleText();
+    for (let i = 0; i < 6 && !/Comprovativo/i.test(received); i++) {
+      await sleep(1500);
+      received = await dA.visibleText();
+    }
+    R.mark('BUSINESS_WEB_RECEIPT_E2E',
+      /Comprovativo/i.test(received) && received.includes(buyerName),
+      `comprovativo=${/Comprovativo/i.test(received)} payer=${received.includes(buyerName)}`);
   } catch (e) {
     R.mark('PROOF_15', false, e.message);
   } finally {
