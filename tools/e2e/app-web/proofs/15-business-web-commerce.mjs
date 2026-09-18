@@ -53,7 +53,12 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel\s*([\d\s]
     await dA.enableSemantics();
     await businessWebSignIn(dA, biz);
     await dA.waitForText('Saldo disponível', { timeout: 30000 });
-    // Criar cobrança
+    // "Criar cobrança" lives on the Receber tab, not on Home. Tapping it from
+    // Home used to work when Home carried the action; the native tab tree moved
+    // it, and a proof that assumes the old placement times out on a locator and
+    // reads like the feature is gone.
+    await dA.tapText('Receber').catch(() => {});
+    await dA.waitForText('Criar cobrança', { timeout: 20000 });
     await dA.tapButton('Criar cobrança').catch(() => dA.tapText('Criar cobrança'));
     await dA.waitForText('Gerar cobrança', { timeout: 15000 }).catch(() => {});
     await dA.fillFieldBySemantics('Montante', '700', { verify: false });

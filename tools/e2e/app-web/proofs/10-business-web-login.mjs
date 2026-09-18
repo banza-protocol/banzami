@@ -109,7 +109,13 @@ function bff() {
     // 9. Logout through the native Profile.
     await d.tapText('Perfil').catch(() => {});
     await d.waitForText('Terminar sessão', { timeout: 15000 });
-    await d.tapText('Terminar sessão').catch(() => {});
+    // tapButton, NOT tapText. The tile is an InkWell, so Flutter gives it a
+    // semantics node with role="button" and pointer-events:all; a tapText on the
+    // label overlay is swallowed and onTap never fires — silently, with no Dart
+    // exception to notice. That one wrong verb failed this gate AND the replay
+    // gate below it, because a logout that never happened leaves the session
+    // valid, which reads exactly like business authority surviving logout.
+    await d.tapButton('Terminar sessão');
     // Confirm dialog ("Terminar sessão?") → Sair (now a proper semantics button).
     await d.waitForText('Terminar sessão?', { timeout: 10000 }).catch(() => {});
     await sleep(400);
@@ -121,7 +127,8 @@ function bff() {
     const afterLogout = await page.evaluate(async () => (await fetch('/session/state', { credentials: 'include' }).then((r) => r.json()).catch(() => ({}))));
     const businessGone = afterLogout.business !== true;
     const replay = await page.evaluate(async () => (await fetch('/business/api/v1/business/receive-point', { credentials: 'include' }).then((r) => r.status).catch(() => 0)));
-    R.mark('BUSINESS_WEB_SESSION_REPLAY', businessGone && (replay === 401 || replay === 403), `post-logout business route → ${replay}`);
+    R.mark('BUSINESS_WEB_SESSION_REPLAY', businessGone && (replay === 401 || replay === 403),
+      `session.business=${afterLogout.business} · post-logout business route → ${replay}`);
   } catch (e) {
     R.mark('PROOF_10', false, e.message);
   } finally {
