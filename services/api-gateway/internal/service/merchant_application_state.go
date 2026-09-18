@@ -136,23 +136,23 @@ func (s *PostgresMerchantApplicationAdminService) LinkCandidates(ctx context.Con
 
 // BusinessState is the whole state of the Business an application resolved to.
 type BusinessState struct {
-	MerchantID          string  `json:"merchant_id"`
-	Name                string  `json:"name"`
-	Status              string  `json:"status"`
-	BusinessAccountType string  `json:"business_account_type"`
-	KybStatus           string  `json:"kyb_status"`
-	Handle              string  `json:"handle"`
+	MerchantID          string `json:"merchant_id"`
+	Name                string `json:"name"`
+	Status              string `json:"status"`
+	BusinessAccountType string `json:"business_account_type"`
+	KybStatus           string `json:"kyb_status"`
+	Handle              string `json:"handle"`
 	// AccessEmail is the account's login email (where the PIN-reset link is sent).
 	// It may be a synthetic sandbox address and differs from the business contact
 	// email — the operator sees the true recipient before sending a reset.
-	AccessEmail         string  `json:"access_email"`
-	WalletStatus        *string `json:"wallet_status"`
-	WalletCurrency      *string `json:"wallet_currency"`
-	WalletAccounts      int     `json:"wallet_accounts"`
-	PricingProfile      *string `json:"pricing_profile"`
-	LoginActivated      bool    `json:"login_activated"`
-	LoginExists         bool    `json:"login_exists"`
-	DeveloperProjects   int     `json:"developer_projects"`
+	AccessEmail       string  `json:"access_email"`
+	WalletStatus      *string `json:"wallet_status"`
+	WalletCurrency    *string `json:"wallet_currency"`
+	WalletAccounts    int     `json:"wallet_accounts"`
+	PricingProfile    *string `json:"pricing_profile"`
+	LoginActivated    bool    `json:"login_activated"`
+	LoginExists       bool    `json:"login_exists"`
+	DeveloperProjects int     `json:"developer_projects"`
 	// Readiness is core's settlement readiness for this Business (the same
 	// engine a Project key reads); nil when core could not answer.
 	Readiness *SettlementReadiness `json:"readiness"`

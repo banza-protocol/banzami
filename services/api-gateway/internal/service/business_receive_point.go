@@ -169,11 +169,11 @@ type sessionPayee struct {
 // business is ineligible, or the receive rails are not ready.
 func (s *BusinessReceivePointService) resolveForSession(ctx context.Context, slug string) (*sessionPayee, error) {
 	var (
-		p          sessionPayee
-		pointStat  string
-		merchStat  string
-		handle     string
-		walletID   string
+		p         sessionPayee
+		pointStat string
+		merchStat string
+		handle    string
+		walletID  string
 	)
 	err := s.pool.QueryRow(ctx,
 		`SELECT rp.status, m.id::text, m.status,
