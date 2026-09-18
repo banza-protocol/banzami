@@ -31,10 +31,33 @@ const COMPONENTS = [
   { container: 'admin-frontend', paths: ['apps/admin'] },
   { container: 'pay-frontend', paths: ['apps/pay'] },
   { container: 'banzami-website-frontend-1', paths: ['apps/website'], name: 'website-frontend' },
+
+  // App Banzami Web — the Flutter Consumer AND Business app compiled to the web
+  // target, behind a same-origin opaque-session BFF. It was missing from this
+  // list, and it is the one component whose absence mattered most: it serves the
+  // PRIMARY functional E2E surface, so a Validation Run could exercise a stale
+  // Consumer or Business app while this gate reported clean.
+  //
+  // Its Dockerfile builds from sdk/flutter + apps/mobile, then ships
+  // apps/app-banzami's package.json, server.mjs, lib and scripts beside the
+  // compiled bundle — so its package.json IS shipped, unlike every Go service's.
+  { container: 'app-frontend', paths: ['apps/app-banzami', 'apps/mobile', 'sdk/flutter'],
+    shipsPackageJson: true },
+
+  // The deterministic webhook receiver that webhook journeys assert against. Its
+  // revision is material: a run that cannot say which sink it exercised cannot
+  // say what its webhook results mean.
+  { container: 'banzami-webhook-sink', paths: ['infra/sandbox/webhook-sink'], name: 'webhook-sink' },
 ];
 
 // Files that exist in the tree and never in the artefact.
-const NOT_SHIPPED = /(_test\.(go|rs)|_tests\.rs|\.test\.(ts|tsx|mjs)|\.selftest\.mjs|\/package\.json$|\/__tests__\/)/;
+//
+// `package.json` is here because a Go service's image contains none — but
+// app-frontend's IS shipped, so that component opts out via `shipsPackageJson`.
+// A blanket rule that silently excused a file a component really ships would
+// report parity that is not there.
+const NOT_SHIPPED = /(_test\.(go|rs)|_tests\.rs|_test\.dart$|\.test\.(ts|tsx|mjs)|\.selftest\.mjs|\/package\.json$|\/__tests__\/)/;
+const PACKAGE_JSON = /\/package\.json$/;
 
 const sh = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 1 << 24 }).trim();
 let failures = 0;
@@ -66,7 +89,10 @@ for (const c of COMPONENTS) {
     const tag = sh('ssh', [REMOTE, `docker inspect -f '{{.Config.Image}}' $(docker ps --format '{{.Names}}' | grep -m1 ${c.container})`]);
     rev = (tag.split(':').pop() ?? '').trim();
   }
-  if (!/^[0-9a-f]{8,40}$/.test(rev)) { fail(`${label}: cannot tell what revision it was built from (${rev || 'no label, no sha tag'})`); continue; }
+  // VALIDATION_DEPLOY_REVISION_UNKNOWN=FAIL. A component whose revision cannot
+  // be read is not "probably fine": every result produced against it is
+  // unattributable, which is worse than a known-stale one.
+  if (!/^[0-9a-f]{8,40}$/.test(rev)) { fail(`${label}: cannot tell what revision it was built from (${rev || 'no label, no sha tag'}) — VALIDATION_DEPLOY_REVISION_UNKNOWN`); continue; }
 
   let changed;
   try {
@@ -75,7 +101,8 @@ for (const c of COMPONENTS) {
     fail(`${label}: built from ${rev.slice(0, 8)}, which is not a commit in this repository`);
     continue;
   }
-  const shipped = changed.filter((f) => !NOT_SHIPPED.test(f));
+  const shipped = changed.filter((f) =>
+    c.shipsPackageJson && PACKAGE_JSON.test(f) ? true : !NOT_SHIPPED.test(f));
   shipped.length === 0
     ? pass(`${label} (${rev.slice(0, 8)}): every file that reaches the artefact matches the tree${changed.length ? ` (${changed.length} test/script file(s) differ and ship in nothing)` : ''}`)
     : fail(`${label} (${rev.slice(0, 8)}): ${shipped.length} shipped file(s) differ from the tree\n      ${shipped.join('\n      ')}`);

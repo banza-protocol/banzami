@@ -52,7 +52,7 @@ case "$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || true)" in
   *) _ssot_die ;;
 esac
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend pay-frontend website-frontend staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend pay-frontend website-frontend webhook-sink staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -130,6 +130,20 @@ _authority_gate() {
         _deny_unapproved "$svc" "rebuild pending explicit Stage C execution approval (Decision 5)" ;;
       developer-api)
         _deny_unapproved "$svc" "legacy compose-based path retired: invoke './deploy.sh developer-api' ALONE so it routes to the authoritative rt04e sandbox flow (Decision 1)" ;;
+      webhook-sink)
+        # The deploy path EXISTS and is ready (deploy_webhook_sink below): it
+        # builds from infra/sandbox/webhook-sink and tags the image with the
+        # commit, which is what lets check-deploy-parity name the revision a
+        # webhook journey ran against. It is denied here because a deploy path
+        # existing is not the same as a deploy being authorised, and this matrix
+        # is the owner's control, not the author's.
+        #
+        # To enable: replace this branch with `: ;`. Application plane only — no
+        # database, no Redis, no secret, no Docker socket, no host mount, its own
+        # bridge network. Until then the sink keeps running as the hand-built
+        # `:local` image and parity correctly reports
+        # VALIDATION_DEPLOY_REVISION_UNKNOWN.
+        _deny_unapproved "$svc" "deploy path ready, owner approval pending — see the note in _authority_gate (Phase B, D15)" ;;
       staging)
         _deny_unapproved "$svc" "legacy staging deploy path retired: the rt04e sandbox project is the authoritative staging runtime (Decision 1)" ;;
       *)
@@ -190,6 +204,45 @@ done
 _authority_gate "${SERVICES[@]}"
 
 # ─── Per-service deploy functions ─────────────────────────────────────────────
+
+deploy_webhook_sink() {
+  step "webhook-sink" "Sandbox webhook receiver (assurance infrastructure)"
+
+  # It was built by hand on the VM as `banzami-sandbox/webhook-sink:local` and had
+  # no deploy path at all, so `make check-deploy-parity` could not say which
+  # revision was serving — and a validation run that cannot name the sink it
+  # exercised cannot say what its webhook results mean
+  # (VALIDATION_DEPLOY_REVISION_UNKNOWN). Tagging with the commit is the whole
+  # point of this function.
+  #
+  # Application plane only: no database, no Redis, no secret, no Docker socket,
+  # no host mount, and its own bridge network (bzsb-sink).
+  local image="banzami-sandbox/webhook-sink:${GIT_SHA:0:12}"
+
+  info "Syncing source to server..."
+  rsync -az --delete "$REPO_ROOT/infra/sandbox/webhook-sink/" \
+    "$REMOTE:/srv/banzami/src/infra/sandbox/webhook-sink/"
+  ok "Sync complete"
+
+  info "Building Docker image on server..."
+  local build_out build_rc
+  build_out=$(ssh "$REMOTE" "cd /srv/banzami/src/infra/sandbox/webhook-sink && docker build $NO_CACHE $LABEL_ARGS -t $image . 2>&1")
+  build_rc=$?
+  printf '%s\n' "$build_out" | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error)" || true
+  if [[ $build_rc -ne 0 ]]; then
+    printf '%s\n' "$build_out" | tail -25 >&2
+    die "Image build FAILED for webhook-sink (exit $build_rc) — the running container was left untouched."
+  fi
+  ok "Image built"
+
+  info "Recreating container..."
+  ssh "$REMOTE" "docker rm -f banzami-webhook-sink >/dev/null 2>&1 || true; \
+    docker network inspect bzsb-sink >/dev/null 2>&1 || docker network create bzsb-sink; \
+    docker run -d --name banzami-webhook-sink --network bzsb-sink \
+      --restart unless-stopped --read-only --cap-drop ALL --security-opt no-new-privileges \
+      $image" >/dev/null
+  ok "Deploy complete — webhook-sink at ${GIT_SHA:0:12}"
+}
 
 deploy_website_frontend() {
   step "website-frontend" "Next.js official website (banzami.com)"
@@ -303,6 +356,7 @@ START=$(date +%s)
 for svc in "${SERVICES[@]}"; do
   case "$svc" in
     website-frontend) deploy_website_frontend ;;
+    webhook-sink) deploy_webhook_sink ;;
     # Defense in depth: _authority_gate already denied everything else.
     *) _deny_unapproved "$svc" "unreachable: authority gate must deny this earlier" ;;
   esac
