@@ -132,8 +132,15 @@ func (p *Preflighter) Run(ctx context.Context, profileID string) (PreflightResul
 	// ── the actors still exist in the product ───────────────────────────────
 	p.checkActorsResolve(ctx, add)
 
-	// ── budget: the single number that decides whether the Sandbox survives ──
+	// ── budget ──────────────────────────────────────────────────────────────
+	// TWO resource families, never one aggregate. They fail for different
+	// reasons and a green sum hides the one that refuses: the rolling windows
+	// limit money MOVED, the aggregate cap limits money HELD by synthetic
+	// actors before cleanup. A run can move almost nothing and still exhaust
+	// the second — one did, surfacing as INSUFFICIENT_FUNDS, which reads like a
+	// product fault and is not one.
 	p.checkVolumeHeadroom(ctx, add, profile)
+	p.checkAggregateFunds(ctx, add, profile)
 
 	// ── the Studio's own state ──────────────────────────────────────────────
 	p.checkStudioState(ctx, add)
@@ -283,6 +290,50 @@ func (p *Preflighter) checkActorsResolve(ctx context.Context, add func(Check)) {
 // credit volume are extracted from core/compliance (pilot_gen.go), never
 // restated here: a preflight that measured headroom differently from the engine
 // that enforces it would clear a run the ledger then refuses halfway through.
+// AggregateFundsCapMinor is the Sandbox's shared ceiling on funded value —
+// money HELD, as opposed to the rolling windows' money MOVED.
+const AggregateFundsCapMinor int64 = 50_000_000
+
+// QueryAggregateFunds sums funded value across merchant and consumer wallets.
+// Read-only: it counts what is held, it never changes it.
+const QueryAggregateFunds = `SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END), 0)::bigint
+    FROM ledger_entries WHERE account_id IN (
+      SELECT available_account_id FROM wallets
+      UNION SELECT available_account_id FROM consumer_wallets)`
+
+// checkAggregateFunds reports the shared funded-value cap as its own check.
+//
+// It is deliberately NOT folded into the volume group. A profile that fits the
+// rolling windows comfortably can still be refused here, because the two
+// measure different things, and an operator who sees one number cannot tell
+// which one is about to stop the run.
+func (p *Preflighter) checkAggregateFunds(ctx context.Context, add func(Check), profile Profile) {
+	var used int64
+	if err := p.pool.QueryRow(ctx, QueryAggregateFunds).Scan(&used); err != nil {
+		add(Check{Group: "budget", ID: "aggregate_funds", Status: StatusUnavailable,
+			Detail: fmt.Sprintf("could not measure aggregate funded value: %v", err)})
+		return
+	}
+	available := AggregateFundsCapMinor - used
+	measured := map[string]int64{
+		"used_minor": used, "cap_minor": AggregateFundsCapMinor, "available_minor": available,
+	}
+	// A run holds funded value while it works and returns it on the way out, so
+	// the headroom that matters is the peak, not the total moved. The executor
+	// derives the peak from the plan and refuses before the first funding
+	// mutation; this is the operator-facing half of the same number.
+	status, detail := StatusPass, fmt.Sprintf(
+		"%d of %d minor held; %d available", used, AggregateFundsCapMinor, available)
+	if available <= 0 {
+		status = StatusFail
+		detail = "the shared funded-value cap is exhausted; a run would be refused INSUFFICIENT_FUNDS"
+	} else if available < AggregateFundsCapMinor/10 {
+		status = StatusWarn
+		detail = fmt.Sprintf("only %d minor of funded-value headroom remains (under 10%% of the cap)", available)
+	}
+	add(Check{Group: "budget", ID: "aggregate_funds", Status: status, Detail: detail, Measured: measured})
+}
+
 func (p *Preflighter) checkVolumeHeadroom(ctx context.Context, add func(Check), profile Profile) {
 	read := func(window string) (int64, error) {
 		var used int64

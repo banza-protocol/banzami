@@ -17,7 +17,7 @@ const GROUP_WHY: Record<string, string> = {
   registry: 'As definições que uma execução usaria estão presentes e são as desta revisão. Sem isto, não se sabe o que seria executado.',
   provenance: 'Cada componente obrigatório consegue dizer que revisão está implantada. Um que não consiga torna a execução inatribuível, e uma execução inatribuível vale menos do que nenhuma.',
   actors: 'As identidades de produto dos nove actores ainda existem, e o operador A01 consegue deter uma sessão. Um actor apagado falharia a execução por uma razão que o relatório não conseguiria explicar.',
-  budget: 'Há folga suficiente nas janelas rolantes para o tecto do perfil. Sem isto, a execução seria recusada pelo livro-razão a meio do caminho.',
+  budget: 'Duas famílias de recurso, nunca somadas: as janelas rolantes limitam dinheiro movido; o tecto agregado limita dinheiro retido por actores sintéticos até à limpeza. Falham por razões diferentes, e um número só esconderia qual delas vai recusar a execução.',
   studio: 'O esquema da execução existe e nada detém o Sandbox. Duas execuções em simultâneo gastariam o mesmo orçamento e entrelaçariam os mesmos saldos.',
   database: 'A base de dados responde às leituras de que a verificação depende.',
 };
@@ -96,6 +96,12 @@ export default function PreflightPage() {
 function CheckRow({ c, ceilings }: { c: ValidationCheck; ceilings: Record<string, number> }) {
   const m = c.measured ?? {};
   const budget = m.limit_minor !== undefined && m.headroom_minor !== undefined;
+  // The OTHER scarce resource, and deliberately not merged into the rolling
+  // windows above: those limit money MOVED, this limits money HELD by synthetic
+  // actors before cleanup. A profile that fits the windows comfortably can still
+  // be refused here, and an operator shown one combined number cannot tell which
+  // of the two is about to stop the run.
+  const funds = m.cap_minor !== undefined && m.available_minor !== undefined;
   return (
     <li className="border-b border-[#faf0f0] py-3 last:border-0">
       <div className="flex items-start gap-3">
@@ -124,7 +130,27 @@ function CheckRow({ c, ceilings }: { c: ValidationCheck; ceilings: Record<string
               </tbody>
             </table>
           )}
-          {!budget && Object.keys(m).length > 0 && (
+          {funds && (
+            <table className="mt-2 text-[12.5px]">
+              <tbody>
+                <tr><td className="pr-8 text-[#9a8a8e]">Retido</td><td className="font-mono">{formatKz(m.used_minor ?? 0)}</td></tr>
+                <tr><td className="pr-8 text-[#9a8a8e]">Tecto partilhado</td><td className="font-mono">{formatKz(m.cap_minor!)}</td></tr>
+                <tr><td className="pr-8 text-[#9a8a8e]">Disponível</td>
+                    <td className="font-mono font-extrabold">{formatKz(m.available_minor!)}</td></tr>
+              </tbody>
+            </table>
+          )}
+          {funds && (
+            <Why>
+              Isto não é a janela rolante acima. Aquela limita dinheiro <strong>movido</strong>;
+              esta limita dinheiro <strong>retido</strong> por actores sintéticos até à limpeza.
+              Uma execução pode mover quase nada e esgotá-la — e esgotou: consumidores
+              financiados que nunca devolveram o que receberam. O sintoma chega como
+              <span className="font-mono"> INSUFFICIENT_FUNDS</span>, que se lê como falha de
+              produto e não é.
+            </Why>
+          )}
+          {!budget && !funds && Object.keys(m).length > 0 && (
             <p className="mt-1 font-mono text-[11.5px] text-[#6a5a5e]">
               {Object.entries(m).map(([k, v]) => `${k}=${v}`).join('   ')}
             </p>

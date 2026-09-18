@@ -226,3 +226,30 @@ func TestPreflight_MeasuredCannotCarryASecret(t *testing.T) {
 		}
 	}
 }
+
+// AGGREGATE FUNDS is its own check, never folded into the volume group.
+//
+// The two measure different things — money MOVED versus money HELD — and a run
+// that fits the rolling windows comfortably can still be refused by the cap. An
+// operator shown one combined number cannot tell which of them is about to stop
+// the run, which is precisely the situation that produced an INSUFFICIENT_FUNDS
+// that looked like a product fault.
+func TestPreflight_AggregateFundsIsItsOwnBudgetCheck(t *testing.T) {
+	if AggregateFundsCapMinor != 50_000_000 {
+		t.Errorf("the shared funded-value cap changed to %d; the preflight and the executor "+
+			"must move together", AggregateFundsCapMinor)
+	}
+	// The query must read HELD value across BOTH wallet families. Counting only
+	// merchant wallets would miss the synthetic consumers that actually
+	// exhausted the cap.
+	for _, want := range []string{"available_account_id FROM wallets", "consumer_wallets", "SUM("} {
+		if !strings.Contains(QueryAggregateFunds, want) {
+			t.Errorf("QueryAggregateFunds no longer contains %q — it would stop measuring "+
+				"the thing that ran out", want)
+		}
+	}
+	if strings.Contains(strings.ToUpper(QueryAggregateFunds), "UPDATE") ||
+		strings.Contains(strings.ToUpper(QueryAggregateFunds), "INSERT") {
+		t.Error("the aggregate-funds measurement must be read-only")
+	}
+}
