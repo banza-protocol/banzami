@@ -336,6 +336,11 @@ check-validation-registries:
 # Every Validation Studio invariant in one target.
 check-validation: check-validation-naming check-validation-engine check-validation-registries check-route-registration check-merchant-credit-policy
 
+# Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
+# nine until B10 is authorised — the correct answer, not an error.
+validation-actor-health:
+	node tools/validation-actor-health.mjs
+
 # Where this operator is allowed to charge money. Static, so it runs in CI: a
 # new crate depending on banzami-pricing is a new economic entrypoint, and it
 # must be reviewed rather than merged as a dependency line.
