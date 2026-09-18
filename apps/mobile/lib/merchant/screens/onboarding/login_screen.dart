@@ -267,21 +267,15 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
   InputDecoration _fieldDecoration({required String hint, String? prefix}) =>
       InputDecoration(
         hintText:       hint,
-        // Always-visible '@' (prefixText is hidden until the field is focused).
-        prefixIcon: prefix == null
-            ? null
-            : Padding(
-                padding: const EdgeInsets.only(left: 20, right: 0),
-                child: Text(
-                  prefix,
-                  style: BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
-                ),
-              ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        // The '@' appears only once you focus/start writing the handle: prefixText
+        // is hidden by Flutter until the field is focused or non-empty. It is a
+        // display prefix, not part of the value (the handle is normalised on submit).
+        prefixText:  prefix,
+        prefixStyle: BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
         filled:         true,
         fillColor:      BanzamiColors.gray100,
-        contentPadding: EdgeInsets.only(
-          left:   prefix == null ? 20 : 0,
+        contentPadding: const EdgeInsets.only(
+          left:   20,
           right:  20,
           top:    18,
           bottom: 18,
