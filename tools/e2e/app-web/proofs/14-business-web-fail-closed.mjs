@@ -39,8 +39,18 @@ if (process.env.BANZAMI_E2E !== 'RUN') { console.error('set BANZAMI_E2E=RUN'); p
 
 // Resolve the two torn-down slugs from the environment, else read them (read-only)
 // from the Sandbox DB.
+//
+// The SQL travels BASE64. It used to be interpolated straight into a
+// single-quoted `sh -c '…'`, and the quotes around 'DISABLED' closed that string
+// early, so postgres received `status=DISABLED` and read it as a column name.
+// The resolve then returned nothing — and the three gates below still passed,
+// because scanning a QR for a slug that does not exist also fails closed. The
+// suite proved nothing and said PASS on three of four.
 function dbSlug(sql) {
-  const cmd = `PG=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-postgres-1'); docker exec $PG sh -c 'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tA -c "${sql}"'`;
+  const b64 = Buffer.from(sql, 'utf8').toString('base64');
+  const cmd = `PG=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-postgres-1'); ` +
+    `echo ${b64} | base64 -d | docker exec -i $PG sh -c ` +
+    `'PGPASSWORD=$(cat /run/secrets/mi_superuser) psql -U sbadmin -d banzami_staging -tA'`;
   try { return execFileSync('ssh', ['-o', 'ConnectTimeout=25', VM, cmd], { encoding: 'utf8' }).trim().split('\n')[0]; } catch { return ''; }
 }
 

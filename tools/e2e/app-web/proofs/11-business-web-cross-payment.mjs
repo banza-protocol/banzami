@@ -30,6 +30,7 @@ import { retireConsumer } from '../lib/consumer-retire.mjs';
 import { writeQrY4m, receivePointPayUrl } from '../business-receive-web-e2e.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { businessWebSignIn, businessWebSignInToHome } from '../lib/business-signin.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
@@ -106,9 +107,7 @@ async function payOnce(d, page, amountKz) {
     await pageA.goto(`${APP}/business`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     const dA = new FlutterSemanticsDriver(pageA, { label: 'bizA' });
     await dA.enableSemantics();
-    await dA.fillFieldBySemantics('O seu @banza', biz.handle, { verify: false });
-    await dA.fillFieldBySemantics('PIN', biz.pin, { secret: true, verify: false });
-    await dA.tapButton('Entrar');
+    await businessWebSignIn(dA, biz);
     await dA.waitForText('Saldo disponível', { timeout: 30000 });
     await dA.tapButton('Receber').catch(() => dA.tapText('Receber'));
     const renders = await dA.waitForText('Mostre este QR', { timeout: 20000 }).then(() => true).catch(() => false);

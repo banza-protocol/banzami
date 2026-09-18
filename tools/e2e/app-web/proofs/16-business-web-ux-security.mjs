@@ -49,16 +49,27 @@ const looksSecret = (s) => /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/
     const d = new FlutterSemanticsDriver(page, { label: 'ux' });
     await d.enableSemantics();
 
-    // ── §20 keyboard: Tab to fields, type, Enter submits ──
-    await d.waitForText('Business', { timeout: 20000 });
-    // Fill via the field helper (keyboard typing under the hood), then submit with Enter.
-    await d.fillFieldBySemantics('O seu @banza', biz.handle, { verify: false });
-    await d.fillFieldBySemantics('PIN', biz.pin, { verify: false });
+    // ── §20 keyboard: type the handle, Enter advances ──
+    //
+    // This used to press Enter on a one-screen handle+PIN form. The product now
+    // signs a Business in over two steps — a handle step, then a PIN keypad —
+    // and the keypad is tapped, not typed, so "Enter submits the login" no
+    // longer describes any screen. The assertion keeps its SUBSTANCE (the login
+    // is operable from the keyboard) against the step that still takes typed
+    // input: MerchantLoginScreen wires onFieldSubmitted to _continueToPin, so
+    // Enter on the handle must advance to the PIN step by itself.
+    await d.waitForText('Conectar conta', { timeout: 25000 });
+    await d.tapButton('Conectar conta');
+    await d.waitForText('Entrar', { timeout: 15000 });
+    await d.fillFieldBySemantics('cantina_alex', biz.handle, { verify: false });
     await page.keyboard.press('Enter');
+    const kbAdvanced = await d.waitForText('Digite o seu PIN', { timeout: 30000 }).then(() => true).catch(() => false);
+    if (!kbAdvanced) { await d.tapButton('Continuar').catch(() => {}); await d.waitForText('Digite o seu PIN', { timeout: 20000 }).catch(() => {}); }
+    R.mark('BUSINESS_WEB_KEYBOARD_E2E', kbAdvanced,
+      kbAdvanced ? 'Enter advanced the handle step from the keyboard' : 'Enter did not advance (tap fallback used)');
+    for (const ch of String(biz.pin)) { await d.tapButton(ch, { exact: true }); await sleep(160); }
     const kbHome = await d.waitForText('Saldo disponível', { timeout: 30000 }).then(() => true).catch(() => false);
-    if (!kbHome) { await d.tapButton('Entrar').catch(() => {}); await d.waitForText('Saldo disponível', { timeout: 20000 }).catch(() => {}); }
-    R.mark('BUSINESS_WEB_KEYBOARD_E2E', kbHome, kbHome ? 'Enter submitted login from the keyboard' : 'Enter did not submit (tap fallback used)');
-    R.mark('BUSINESS_WEB_KEYBOARD', true, 'login fields + primary action are focusable/operable by keyboard');
+    R.mark('BUSINESS_WEB_KEYBOARD', kbHome, 'login fields + primary action are focusable/operable by keyboard');
 
     // ── §22 storage security (authenticated) ──
     const dump = await storageDump(page);

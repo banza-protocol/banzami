@@ -382,6 +382,99 @@ func (s *Store) List(ctx context.Context, limit int) ([]Run, error) {
 	return out, rows.Err()
 }
 
+// RunJourney is one journey as a run actually experienced it, with the
+// assertions it recorded. PLANNED rows are included deliberately: a run must be
+// able to say what it INTENDED to execute, not only what it reached.
+type RunJourney struct {
+	SuiteID    string         `json:"suite_id"`
+	JourneyID  string         `json:"journey_id"`
+	Outcome    string         `json:"outcome"`
+	Detail     *string        `json:"detail,omitempty"`
+	StartedAt  *time.Time     `json:"started_at"`
+	EndedAt    *time.Time     `json:"ended_at"`
+	Assertions []RunAssertion `json:"assertions"`
+}
+
+// RunAssertion is one named check a harness recorded.
+//
+// It is DERIVED from the evidence row rather than stored beside it, and that is
+// a compromise worth naming: the assertion currently lives inside the evidence
+// pointer's URI (`harness#gate=VERDICT`), because migration 0160 has no
+// assertions table. Parsing it back out here keeps the operator surface honest
+// while the shape is wrong underneath. A row this cannot parse is returned with
+// an empty verdict rather than guessed at.
+type RunAssertion struct {
+	Gate    string `json:"gate"`
+	Verdict string `json:"verdict"`
+	Harness string `json:"harness"`
+	SHA256  string `json:"sha256"`
+}
+
+// Journeys returns every journey row of a run, with its assertions attached.
+func (s *Store) Journeys(ctx context.Context, runID string) ([]RunJourney, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT suite_id, journey_id, outcome, detail, started_at, ended_at
+		  FROM validation_run_journeys WHERE run_id = $1::uuid
+		 ORDER BY suite_id, journey_id`, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []RunJourney{}
+	byID := map[string]int{}
+	for rows.Next() {
+		var j RunJourney
+		if err := rows.Scan(&j.SuiteID, &j.JourneyID, &j.Outcome, &j.Detail,
+			&j.StartedAt, &j.EndedAt); err != nil {
+			return nil, err
+		}
+		j.Assertions = []RunAssertion{}
+		byID[j.JourneyID] = len(out)
+		out = append(out, j)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	ev, err := s.pool.Query(ctx, `
+		SELECT journey_id, uri, sha256 FROM validation_evidence
+		 WHERE run_id = $1::uuid AND journey_id IS NOT NULL
+		 ORDER BY captured_at, id`, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer ev.Close()
+	for ev.Next() {
+		var journeyID, uri, sha string
+		if err := ev.Scan(&journeyID, &uri, &sha); err != nil {
+			return nil, err
+		}
+		i, ok := byID[journeyID]
+		if !ok {
+			continue
+		}
+		out[i].Assertions = append(out[i].Assertions, parseAssertion(uri, sha))
+	}
+	return out, ev.Err()
+}
+
+// parseAssertion reads `<harness>#<gate>=<VERDICT>` and refuses to invent the
+// parts it cannot find. An unparseable row keeps its raw URI as the gate name
+// and an empty verdict, which renders as unknown rather than as a pass.
+func parseAssertion(uri, sha string) RunAssertion {
+	a := RunAssertion{Gate: uri, SHA256: sha}
+	hash := strings.LastIndex(uri, "#")
+	eq := strings.LastIndex(uri, "=")
+	if hash < 0 || eq < hash {
+		return a
+	}
+	a.Harness = uri[:hash]
+	a.Gate = uri[hash+1 : eq]
+	a.Verdict = uri[eq+1:]
+	return a
+}
+
 // Events returns a run's transition history, oldest first.
 func (s *Store) Events(ctx context.Context, runID string) ([]RunEvent, error) {
 	rows, err := s.pool.Query(ctx, `

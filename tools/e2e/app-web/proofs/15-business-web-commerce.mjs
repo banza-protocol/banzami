@@ -17,6 +17,7 @@ import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { businessWebSignIn, businessWebSignInToHome } from '../lib/business-signin.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
 const R = new GateReport('15-business-web-commerce');
@@ -50,9 +51,7 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel\s*([\d\s]
     await pageA.goto(`${APP}/business`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     const dA = new FlutterSemanticsDriver(pageA, { label: 'comA' });
     await dA.enableSemantics();
-    await dA.fillFieldBySemantics('O seu @banza', biz.handle, { verify: false });
-    await dA.fillFieldBySemantics('PIN', biz.pin, { secret: true, verify: false });
-    await dA.tapButton('Entrar');
+    await businessWebSignIn(dA, biz);
     await dA.waitForText('Saldo disponível', { timeout: 30000 });
     // Criar cobrança
     await dA.tapButton('Criar cobrança').catch(() => dA.tapText('Criar cobrança'));

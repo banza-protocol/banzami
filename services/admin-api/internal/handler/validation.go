@@ -335,11 +335,22 @@ func (h *ValidationHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The execution hierarchy: Run → Suite → Journey → Assertion → Evidence.
+	// PLANNED rows come too, so a run says what it INTENDED to execute and not
+	// only what it reached — the difference between a run that was cancelled
+	// after two journeys and one that only ever had two.
+	journeys, err := h.runs.Journeys(r.Context(), id)
+	if err != nil {
+		vErr(w, http.StatusServiceUnavailable, "VALIDATION_STORE_UNAVAILABLE", err.Error())
+		return
+	}
+
 	// What a reader needs in order not to mistake a prepared run for an
 	// executed one, stated rather than left to inference.
 	writeJSON(w, http.StatusOK, map[string]any{
 		"run":                 run,
 		"events":              events,
+		"journeys":            journeys,
 		"pinned_provenance":   provenance,
 		"pinned_preflight":    preflight,
 		"provenance_captured": len(provenance) > 0,

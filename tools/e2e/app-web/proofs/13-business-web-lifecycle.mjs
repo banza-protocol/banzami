@@ -16,6 +16,7 @@ import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { businessWebSignIn, businessWebSignInToHome } from '../lib/business-signin.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
 const R = new GateReport('13-business-web-lifecycle');
@@ -25,9 +26,7 @@ if (process.env.BANZAMI_E2E !== 'RUN') { console.error('set BANZAMI_E2E=RUN'); p
 async function loginBusinessUI(page) {
   const d = new FlutterSemanticsDriver(page, { label: 'life' });
   await d.enableSemantics();
-  await d.fillFieldBySemantics('O seu @banza', globalThis.__biz.handle, { verify: false });
-  await d.fillFieldBySemantics('PIN', globalThis.__biz.pin, { secret: true, verify: false });
-  await d.tapButton('Entrar');
+  await businessWebSignIn(d, globalThis.__biz);
   await d.waitForText('Saldo disponível', { timeout: 30000 });
   return d;
 }

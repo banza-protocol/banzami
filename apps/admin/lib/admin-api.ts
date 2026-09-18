@@ -786,6 +786,28 @@ export interface ValidationJourney {
   implementation_status: ImplementationStatus;
 }
 
+/** One named check a harness recorded during a run. */
+export interface ValidationRunAssertion {
+  gate:    string;
+  /** PASS | FAIL | NOTE, or empty when the evidence row could not be parsed. */
+  verdict: string;
+  harness: string;
+  sha256:  string;
+}
+
+/** One journey as a run actually experienced it. PLANNED rows are included:
+ *  a run must be able to say what it INTENDED to execute, not only what it
+ *  reached. */
+export interface ValidationRunJourney {
+  suite_id:   string;
+  journey_id: string;
+  outcome:    'PLANNED' | 'OBSERVED' | 'ASSERTED' | 'PASSED' | 'FAILED' | 'SKIPPED' | 'UNAVAILABLE';
+  detail?:    string;
+  started_at: string | null;
+  ended_at:   string | null;
+  assertions: ValidationRunAssertion[];
+}
+
 export interface ValidationSuiteDetail {
   id: string; name: string; name_pt: string; blocking: boolean;
   scope?: string; existing_coverage?: string; rationale?: string;
@@ -901,6 +923,7 @@ export class AdminApi {
   validationRun(id: string): Promise<{
     run: ValidationRun;
     events: ValidationRunEvent[];
+    journeys: ValidationRunJourney[];
     pinned_provenance: ValidationProvenanceRow[];
     pinned_preflight: ValidationPinnedPreflight | null;
     provenance_captured: boolean;

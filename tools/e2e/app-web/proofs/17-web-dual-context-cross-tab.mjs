@@ -37,6 +37,7 @@ import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
 import { retireConsumer } from '../lib/consumer-retire.mjs';
+import { businessWebSignIn, businessWebSignInToHome } from '../lib/business-signin.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
 const R = new GateReport('17-web-dual-context-cross-tab');
@@ -105,10 +106,7 @@ async function registerConsumerUI(page, d, handle) {
     const dB = new FlutterSemanticsDriver(pageB, { label: 'tabB' });
     await dB.enableSemantics();
     await dB.waitForText('Business', { timeout: 20000 });
-    await dB.fillFieldBySemantics('O seu @banza', biz.handle, { verify: false });
-    await dB.fillFieldBySemantics('PIN', biz.pin, { secret: true, verify: false });
-    await dB.tapButton('Entrar');
-    const bHome = await dB.waitForText('Saldo disponível', { timeout: 30000 }).then(() => true).catch(() => false);
+    const bHome = await businessWebSignInToHome(dB, biz);
     R.mark('BUSINESS_TAB_RENDERS_HOME', bHome, 'Tab B reached the Business Home in the same browser context');
 
     // ── Both authorities coexist in one cookie (rendered dual context). ──

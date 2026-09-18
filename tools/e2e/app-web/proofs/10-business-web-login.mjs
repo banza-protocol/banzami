@@ -21,6 +21,7 @@ import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { businessWebSignIn } from '../lib/business-signin.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
 const R = new GateReport('10-business-web-login');
@@ -29,23 +30,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 if (process.env.BANZAMI_E2E !== 'RUN') {
   console.error('refusing to run: set BANZAMI_E2E=RUN to drive the deployed app-web');
   process.exit(2);
-}
-
-/** Drive the native Business sign-in through the rendered screens. */
-async function nativeSignIn(d, biz) {
-  await d.waitForText('Conectar conta', { timeout: 25000 });
-  await d.tapButton('Conectar conta');
-  await d.waitForText('Entrar', { timeout: 15000 });
-  // Native shared MerchantLoginScreen — handle step. The field's semantics label
-  // is its hint ('cantina_alex').
-  await d.fillFieldBySemantics('cantina_alex', biz.handle, { verify: false });
-  await d.tapButton('Continuar');
-  // Reaching the PIN step proves the handle lookup succeeded through the BFF.
-  await d.waitForText('Digite o seu PIN', { timeout: 30000 });
-  for (const ch of String(biz.pin)) {
-    await d.tapButton(ch, { exact: true });
-    await sleep(160);
-  }
 }
 
 /** A cookie-jar fetch helper against the BFF, to inspect the server-side session. */
@@ -74,7 +58,7 @@ function bff() {
     R.mark('DIRECT_BUSINESS_ROUTE_AUTH', sawWelcome, 'unauthenticated /business shows the native Business Welcome');
 
     // 1/2/4. Full native sign-in journey (@handle + PIN → Home).
-    await nativeSignIn(d, biz);
+    await businessWebSignIn(d, biz);
     const home = await d.waitForText('Saldo disponível', { timeout: 30000 }).then(() => true).catch(() => false);
     R.mark('BUSINESS_WEB_FULL_SIGNIN_E2E', home, 'reached the native Business Home via Welcome→@handle→PIN');
     // Reaching Home from a Web sign-in where the token is a BFF sentinel proves the

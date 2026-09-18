@@ -27,6 +27,7 @@ import { FlutterSemanticsDriver } from '../lib/semantics-driver.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { businessWebSignIn, businessWebSignInToHome } from '../lib/business-signin.mjs';
 
 const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
 const R = new GateReport('18-business-web-large-text');
@@ -93,10 +94,7 @@ async function screen(d, page, label, marker, actions = []) {
     await screen(d, page, 'LOGIN', ['Business'], ['Entrar']);
 
     // Sign in with @handle + PIN.
-    await d.fillFieldBySemantics('O seu @banza', biz.handle, { verify: false });
-    await d.fillFieldBySemantics('PIN', biz.pin, { secret: true, verify: false });
-    await d.tapButton('Entrar');
-    const home = await d.waitForText('Saldo disponível', { timeout: 30000 }).then(() => true).catch(() => false);
+    const home = await businessWebSignInToHome(d, biz);
     R.mark('BUSINESS_WEB_LARGE_TEXT_LOGIN', home, 'reached Home from @handle + PIN under large text');
 
     // ── Home ──

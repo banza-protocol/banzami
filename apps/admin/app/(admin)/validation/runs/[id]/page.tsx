@@ -19,13 +19,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, PlayCircle, Boxes, ShieldCheck, Clock, FileText, FileSliders,
-  UsersRound, Ban, CircleSlash,
+  UsersRound, Ban, CircleSlash, Layers,
 } from 'lucide-react';
 import { getApi, useStudio } from '../../studio-context';
 import { formatDateTime, formatKz } from '@/lib/format';
 import type {
   ValidationRun, ValidationRunEvent, ValidationProvenanceRow,
   ValidationPinnedPreflight, ValidationComponent, ValidationCheck,
+  ValidationRunJourney,
 } from '@/lib/admin-api';
 import {
   Panel, SectionHeader, Pill, Field, AsOf, Why, Empty, Skeleton, Hash, Dot,
@@ -34,6 +35,7 @@ import {
 
 type Detail = {
   run: ValidationRun; events: ValidationRunEvent[];
+  journeys: ValidationRunJourney[];
   pinned_provenance: ValidationProvenanceRow[];
   pinned_preflight: ValidationPinnedPreflight | null;
   provenance_captured: boolean; ever_started: boolean;
@@ -188,6 +190,22 @@ export default function RunDetailPage() {
         <Timeline events={events} everStarted={!!run.started_at} />
       </Panel>
 
+      {/* G2. the execution hierarchy — Run → Suite → Journey → Assertion.
+          Only rendered once a run has a plan; an unstarted run has nothing to
+          show here and the empty states below say so precisely. */}
+      {(d.journeys ?? []).length > 0 && (
+        <Panel className="p-5">
+          <SectionHeader Icon={Layers} title={`Percursos (${d.journeys.length})`}
+            subtitle="O plano inteiro, incluindo o que não chegou a correr." />
+          <JourneyMatrix journeys={d.journeys} />
+          <Why>
+            Um percurso <strong>PLANNED</strong> não é uma omissão: a execução regista o
+            que <em>tencionava</em> fazer antes de começar, para que uma execução
+            interrompida não pareça uma execução curta.
+          </Why>
+        </Panel>
+      )}
+
       {/* H + I. the two empty states that must not look alike */}
       <div className="grid gap-[18px] xl:grid-cols-2">
         <Panel className="p-5">
@@ -197,16 +215,14 @@ export default function RunDetailPage() {
               <Empty Icon={Ban} title="Nenhum percurso foi executado"
                 detail="Esta execução nunca foi iniciada." />
               <ul className="mx-auto mt-3 max-w-[420px] space-y-1 text-[12.5px] text-[#6a5a5e]">
-                <li>• O motor de execução não está implementado.</li>
-                <li>• Não existe rota que inicie uma execução.</li>
+                <li>• Foi preparada e verificada, mas nunca posta em fila.</li>
                 <li>• <span className="font-mono text-[12px]">started_at</span> nunca foi preenchido.</li>
               </ul>
-              <p className="mt-3 text-center text-[12px] text-[#a99a9e]">
-                Estado intencional do produto, não uma falha.
-              </p>
             </div>
           ) : (
-            <p className="mt-4 text-[13.5px]">{d.journeys_executed} percursos executados.</p>
+            <p className="mt-4 text-[13.5px]">
+              <strong>{d.journeys_executed}</strong> percursos executados de {(d.journeys ?? []).length} planeados.
+            </p>
           )}
         </Panel>
 
@@ -405,6 +421,94 @@ function ActorBinding({ profileID }: { profileID: string }) {
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">
       {actors.map((a) => <Pill key={a} className="bg-[#F4F1F1] text-[#6a5a5e]">{a}</Pill>)}
+    </div>
+  );
+}
+
+/* ── the execution hierarchy ───────────────────────────────────────────── */
+
+const OUTCOME_STYLE: Record<string, string> = {
+  PASSED: 'bg-[#E9F7EE] text-green-800',
+  FAILED: 'bg-[#FDECEC] text-red-800',
+  UNAVAILABLE: 'bg-[#FDF3E0] text-amber-900',
+  SKIPPED: 'bg-[#FDF3E0] text-amber-900',
+  PLANNED: 'bg-[#F1EEEE] text-[#6a5a5e]',
+  OBSERVED: 'bg-[#E8F0FD] text-blue-800',
+  ASSERTED: 'bg-[#EAE9FB] text-indigo-800',
+};
+
+function JourneyMatrix({ journeys }: { journeys: ValidationRunJourney[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const bySuite = new Map<string, ValidationRunJourney[]>();
+  for (const j of journeys) {
+    if (!bySuite.has(j.suite_id)) bySuite.set(j.suite_id, []);
+    bySuite.get(j.suite_id)!.push(j);
+  }
+
+  const secs = (j: ValidationRunJourney) =>
+    j.started_at && j.ended_at
+      ? Math.round((Date.parse(j.ended_at) - Date.parse(j.started_at)) / 1000)
+      : null;
+
+  return (
+    <div className="mt-4 flex flex-col gap-4">
+      {[...bySuite.entries()].map(([suite, js]) => (
+        <div key={suite}>
+          <p className="text-[11.5px] font-extrabold uppercase tracking-[0.05em] text-[#a99a9e]">{suite}</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {js.map((j) => {
+              // Only PASS and FAIL are assertions. A NOTE is a measurement the
+              // harness wrote down, and counting it as a check would inflate
+              // every number on this page.
+              const asserts = j.assertions.filter((a) => a.verdict === 'PASS' || a.verdict === 'FAIL');
+              const failed = asserts.filter((a) => a.verdict === 'FAIL');
+              const notes = j.assertions.length - asserts.length;
+              const isOpen = open === j.journey_id;
+              return (
+                <li key={j.journey_id} className="rounded-[12px] border border-[#f4e7e7]">
+                  <button onClick={() => setOpen(isOpen ? null : j.journey_id)}
+                    className="flex w-full flex-wrap items-center gap-3 px-4 py-2.5 text-left hover:bg-[#FFFCFC]">
+                    <Pill className={OUTCOME_STYLE[j.outcome] ?? 'bg-[#F1EEEE] text-[#6a5a5e]'}>{j.outcome}</Pill>
+                    <span className="font-mono text-[11.5px] text-[#a99a9e]">{j.journey_id}</span>
+                    <span className="ml-auto flex items-center gap-3 text-[12px] text-[#6a5a5e]">
+                      {asserts.length > 0 && (
+                        <span className={failed.length ? 'font-extrabold text-red-700' : ''}>
+                          {asserts.length - failed.length}/{asserts.length} asserções
+                        </span>
+                      )}
+                      {notes > 0 && <span className="text-[#a99a9e]">{notes} medições</span>}
+                      {secs(j) !== null && <span className="tabular-nums text-[#a99a9e]">{secs(j)}s</span>}
+                    </span>
+                  </button>
+                  {j.detail && (
+                    <p className="px-4 pb-2 text-[12px] text-[#6a5a5e]">{j.detail}</p>
+                  )}
+                  {isOpen && (
+                    <div className="border-t border-[#faf0f0] px-4 py-3">
+                      {j.assertions.length === 0 ? (
+                        <p className="text-[12.5px] text-[#a99a9e]">
+                          Nenhuma asserção registada — o harness não chegou a produzir evidência.
+                        </p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {j.assertions.map((a, i) => (
+                            <li key={`${a.gate}-${i}`} className="flex flex-wrap items-center gap-2 text-[12.5px]">
+                              <Dot tone={a.verdict === 'PASS' ? 'good' : a.verdict === 'FAIL' ? 'bad' : 'idle'} />
+                              <span className="font-mono text-[11.5px]">{a.gate}</span>
+                              <span className="text-[#a99a9e]">{a.verdict || 'ILEGÍVEL'}</span>
+                              <Hash value={a.sha256} />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
