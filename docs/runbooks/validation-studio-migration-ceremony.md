@@ -107,7 +107,7 @@ operator-DB-URL bypass, no hand-written authz record. It deploys nothing.
 
 ```bash
 ssh -t root@<sandbox-host> \
-  'cd /srv/banzami/src && git fetch origin && git checkout 8f3e3d392d7262a9d0bdf55f3d668fc4f171fbe6 && \
+  'cd /srv/banzami/src && git fetch origin && git checkout 4e17714b8d5da4cf78f2e887fe83eb2e512fa974 && \
    bash infra/blueprint/sandbox-ops/scripts/validation-0160-owner-ceremony.sh'
 ```
 
