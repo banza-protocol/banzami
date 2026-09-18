@@ -392,8 +392,11 @@ func (r *Registry) Coverage() (CoverageSummary, error) {
 // proves it. An operator authorising a run should be able to read these without
 // opening the source they are implemented in.
 type Invariant struct {
-	ID         string `json:"id"`
-	Title      string `json:"title"`
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	// TitlePT is what BANZADMIN renders. The English stays canonical, the way
+	// suites.yaml already carries name and name_pt.
+	TitlePT    string `json:"title_pt,omitempty"`
 	EnforcedBy string `json:"enforced_by"` // database | application | build
 	Layer      string `json:"layer"`
 	Proof      string `json:"proof"`
@@ -405,6 +408,8 @@ type Invariant struct {
 type KnownIssue struct {
 	ID            string `json:"id"`
 	Title         string `json:"title"`
+	TitlePT       string `json:"title_pt,omitempty"`
+	DetailPT      string `json:"detail_pt,omitempty"`
 	Status        string `json:"status"`
 	Severity      string `json:"severity"`
 	Scope         string `json:"scope"`

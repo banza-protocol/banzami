@@ -29,7 +29,7 @@ export default function ProfilesPage() {
             <SectionHeader Icon={p.id === 'GOLDEN' ? Star : Layers} tone={p.id === 'GOLDEN' ? 'warn' : 'neutral'}
               title={`${p.id} v${p.version}`} subtitle={p.name_pt}
               action={<ChevronRight className="h-5 w-5 text-[#cbbaba]" aria-hidden />} />
-            <p className="mt-3 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{p.claim}</p>
+            <p className="mt-3 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{p.claim_pt ?? p.claim}</p>
             <dl className="mt-3 border-t border-[#f4e7e7] pt-2">
               <Row label="Suites" value={`${p.suites} (${p.blocking_suites} bloqueantes)`} />
               <Row label="Verificação mínima" value={p.minimum_preflight} />

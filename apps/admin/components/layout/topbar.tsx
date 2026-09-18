@@ -31,6 +31,7 @@ const SUBS: Record<string, string> = {
   '/risk': 'Sinalizações de risco e registo de auditoria.',
   '/operators': 'Gestão de acesso ao BANZADMIN.',
   '/platform-mode': 'Modo da plataforma: SANDBOX ou LIVE.',
+  '/validation': 'Preparar. Verificar. Cancelar. Não inicia execuções.',
 };
 
 function headerFor(pathname: string): { title: string; sub: string } {

@@ -221,6 +221,33 @@ if (Number.isFinite(global24h) && golden && full) {
     : fail(`GOLDEN + FULL ceilings (${combined}) exceed the 24h window (${global24h})`);
 }
 
+// ── 5. BANZADMIN speaks Portuguese ──────────────────────────────────────────
+//
+// The registries are canonical in English; the operator surface is Portuguese,
+// the way suites.yaml already carries both name and name_pt. Without this
+// check the two drift the moment someone adds an entry, and the drift shows up
+// as English text in the middle of a Portuguese page.
+
+for (const prof of defined) {
+  if (!prof.claim_pt) fail(`profile ${prof.id} has no claim_pt; BANZADMIN would render English`);
+}
+
+const assurance = yaml('quality/validation/assurance.yaml');
+for (const inv of assurance?.invariants ?? []) {
+  if (!inv.title_pt) fail(`invariant ${inv.id} has no title_pt`);
+  for (const required of ['title', 'enforced_by', 'layer', 'proof', 'why']) {
+    if (!inv[required]) fail(`invariant ${inv.id} has no ${required}`);
+  }
+}
+for (const issue of assurance?.known_issues ?? []) {
+  if (!issue.title_pt) fail(`known issue ${issue.id} has no title_pt`);
+  if (!issue.detail_pt) fail(`known issue ${issue.id} has no detail_pt`);
+}
+(assurance?.invariants ?? []).length >= 10
+  ? pass(`${assurance.invariants.length} invariants declared, each naming its enforcement layer and its proof`)
+  : fail('the invariant catalogue is suspiciously small');
+pass(`${(assurance?.known_issues ?? []).length} known validation issues, all with Portuguese copy`);
+
 if (failures) { console.error(`\n✗ VALIDATION_REGISTRIES=FAIL (${failures})`); process.exit(1); }
 console.log('\n✓ VALIDATION_ACTOR_REGISTRY_READY=PASS');
 console.log('✓ VALIDATION_JOURNEY_REGISTRY_READY=PASS');
@@ -229,3 +256,4 @@ console.log(`✓ VALIDATION_ACTORS_PROVISIONED=${provisioned.length}`);
 console.log('✓ VALIDATION_ACTORS_UNOWNED=0');
 console.log(`✓ VALIDATION_PROFILES_REGISTERED=${defined.length}`);
 console.log('✓ VALIDATION_PROFILE_BUDGETS_WITHIN_PILOT_WINDOW=PASS');
+console.log('✓ VALIDATION_OPERATOR_COPY_IS_PORTUGUESE=PASS');

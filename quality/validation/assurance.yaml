@@ -17,6 +17,7 @@ registry_version: 1
 
 invariants:
   - id: INV-VS-001
+    title_pt: "Uma execução contra o Live não pode sequer ser representada"
     title: A Validation Run against Live cannot be represented
     enforced_by: database
     layer: "CHECK (environment = 'SANDBOX') — migration 0160"
@@ -27,6 +28,7 @@ invariants:
       no row that could hold one.
 
   - id: INV-VS-002
+    title_pt: "No máximo uma execução detém o Sandbox"
     title: At most one Validation Run may hold the Sandbox
     enforced_by: database
     layer: partial unique index validation_runs_one_active
@@ -37,6 +39,7 @@ invariants:
       race to handle, it is a state to refuse.
 
   - id: INV-VS-003
+    title_pt: "Só transições declaradas são possíveis, e um estado terminal é terminal"
     title: Only declared state transitions are possible, and a terminal state is terminal
     enforced_by: database
     layer: trigger validation_runs_legal_transition
@@ -46,6 +49,7 @@ invariants:
       crash away from being untrue.
 
   - id: INV-VS-004
+    title_pt: "O histórico é append-only e uma execução não pode ser apagada"
     title: A run's history is append-only, and a run cannot be deleted
     enforced_by: database
     layer: trigger validation_run_events_immutable + non-cascading foreign key
@@ -55,6 +59,7 @@ invariants:
       evidence that can be deleted is a record of what someone chose to keep.
 
   - id: INV-VS-005
+    title_pt: "Sem proveniência obrigatória completa não há READY"
     title: A run cannot reach READY without complete mandatory provenance
     enforced_by: application
     layer: requireCompleteProvenance, inside the preparation transaction
@@ -65,6 +70,7 @@ invariants:
       READY transition both commit, or neither does.
 
   - id: INV-VS-006
+    title_pt: "A proveniência regista a revisão IMPLANTADA, nunca o HEAD do repositório"
     title: Provenance records the DEPLOYED revision, never the repository HEAD
     enforced_by: application
     layer: BANZAMI_BUILD_COMMIT and GET /health .build
@@ -75,6 +81,7 @@ invariants:
       re-describe what a run actually tested.
 
   - id: INV-VS-007
+    title_pt: "O Studio nunca guarda o valor de uma credencial nem a sua referência"
     title: The Studio never holds a credential value or a secret reference
     enforced_by: application
     layer: Actor carries credential NAMES only; measured is map[string]int64
@@ -86,6 +93,7 @@ invariants:
       compiler refuses before any redactor would.
 
   - id: INV-VS-008
+    title_pt: "A verificação prévia não consome quota"
     title: The preflight consumes no quota
     enforced_by: application
     layer: read-only by construction, proven structurally against the source
@@ -97,6 +105,7 @@ invariants:
       "wrote something idempotent", so the guard reads the source instead.
 
   - id: INV-VS-009
+    title_pt: "A folga é medida com a definição do próprio motor que a impõe"
     title: Headroom is measured with the enforcing engine's own definition
     enforced_by: build
     layer: pilot_gen.go, extracted from core/compliance/src/pilot{,_enforce}.rs
@@ -107,6 +116,7 @@ invariants:
       worse than no preflight at all.
 
   - id: INV-VS-010
+    title_pt: "Nenhum caminho de código consegue iniciar uma execução"
     title: No code path can start a Validation Run
     enforced_by: build
     layer: guard over every non-test source file
@@ -117,6 +127,7 @@ invariants:
       deliberate act rather than an accident.
 
   - id: INV-VS-011
+    title_pt: "Autoridade de orquestração é separada da autoridade de cenário"
     title: Orchestration authority is separate from scenario authority
     enforced_by: application
     layer: RBAC — validation.run is not held by COMPLIANCE
@@ -127,6 +138,7 @@ invariants:
       scenario should happen. See doc 31.
 
   - id: INV-VS-012
+    title_pt: "Um perfil pode promover uma suite a bloqueante, nunca despromover"
     title: A profile may escalate a suite to blocking, never demote one
     enforced_by: build
     layer: check-validation-registries.mjs, cross-checked against suites.yaml
@@ -136,6 +148,7 @@ invariants:
 
 known_issues:
   - id: VD-001
+    title_pt: "Só um percurso está populado no registo"
     title: Only one journey is populated in the registry
     status: open
     severity: high
@@ -147,8 +160,11 @@ known_issues:
       24 suites are declared; one journey (S06-COL-001) is written. A GOLDEN or
       FULL run today would exercise almost nothing. The Studio reports suite
       implementation status so this cannot be mistaken for coverage.
+    detail_pt: >-
+      24 suites estão declaradas; um percurso (S06-COL-001) está escrito. Uma execução GOLDEN ou FULL hoje não exerceria quase nada. O Studio reporta o estado de implementação de cada suite para que isto não possa ser confundido com cobertura.
 
   - id: VD-002
+    title_pt: "Não existe motor de execução"
     title: No execution runner exists
     status: open
     severity: high
@@ -160,8 +176,11 @@ known_issues:
       Phase C deliberately builds the control surface and not the runner. No run
       can be started, and the guard INV-VS-010 keeps it that way until the
       decision is taken explicitly.
+    detail_pt: >-
+      A Fase C constrói deliberadamente a superfície de controlo e não o motor. Nenhuma execução pode ser iniciada, e o guarda INV-VS-010 mantém-no assim até a decisão ser tomada explicitamente.
 
   - id: VD-003
+    title_pt: "BZV-20260918-0001 não tem proveniência"
     title: BZV-20260918-0001 has no provenance
     status: closed-historical
     severity: medium
@@ -173,8 +192,11 @@ known_issues:
       The first real prepared run predates C.10's provenance capture. It is
       preserved exactly, not backfilled: its incompleteness is the evidence that
       the defect was real. BZV-20260918-0002 carries full provenance.
+    detail_pt: >-
+      A primeira execução realmente preparada é anterior à captura de proveniência do C.10. Fica preservada exactamente, sem preenchimento retroactivo: a sua incompletude é a evidência de que o defeito era real. A BZV-20260918-0002 já leva proveniência completa.
 
   - id: VD-004
+    title_pt: "A chave de idempotência da UI deriva do minuto"
     title: The UI's idempotency key is derived from the minute
     status: open
     severity: low
@@ -187,8 +209,11 @@ known_issues:
       idempotency_key), and a replay returns the existing run untouched. But the
       key the UI generates changes every minute, so two clicks a minute apart
       create two runs instead of replaying one.
+    detail_pt: >-
+      O mecanismo do servidor está correcto — índice único em (environment, idempotency_key), e um replay devolve a execução existente intacta. Mas a chave que a UI gera muda a cada minuto, por isso dois cliques com um minuto de intervalo criam duas execuções em vez de repetir uma.
 
   - id: VD-005
+    title_pt: "Seis falhas TestReceipt_* pré-existentes no api-gateway"
     title: Six pre-existing TestReceipt_* failures in api-gateway
     status: open
     severity: low
@@ -202,8 +227,11 @@ known_issues:
       consumers_active_display_name_present error. Local test-database schema
       drift, not a product defect. Deliberately not repaired to produce a green
       report.
+    detail_pt: >-
+      Provadas pré-existentes ao guardar todo o conjunto de alterações da Fase C: as mesmas seis falham na árvore limpa com o mesmo erro consumers_active_display_name_present. É deriva do esquema da base de dados de teste local, não um defeito do produto. Deliberadamente não reparadas para produzir um relatório verde.
 
   - id: VD-006
+    title_pt: "developer-api e website-frontend divergem da árvore"
     title: developer-api and website-frontend diverge from the tree
     status: open
     severity: low
@@ -216,3 +244,5 @@ known_issues:
       rather than repaired: deploying a service to turn a parity line green is
       the substitution of appearance for correctness this programme exists to
       prevent.
+    detail_pt: >-
+      Ambos são anteriores à Fase C e nenhum está num caminho do Validation Studio. Registados em vez de reparados: implantar um serviço para tornar verde uma linha de paridade é a substituição de aparência por correcção que este programa existe para impedir.

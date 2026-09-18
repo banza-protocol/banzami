@@ -55,11 +55,14 @@ type Suite struct {
 
 // Profile is a run profile: what a run claims if it passes, and what it may spend.
 type Profile struct {
-	ID               string   `json:"id"`
-	Version          int      `json:"version"`
-	Name             string   `json:"name"`
-	NamePT           string   `json:"name_pt"`
-	Claim            string   `json:"claim"`
+	ID      string `json:"id"`
+	Version int    `json:"version"`
+	Name    string `json:"name"`
+	NamePT  string `json:"name_pt"`
+	Claim   string `json:"claim"`
+	// ClaimPT is what BANZADMIN renders; Claim stays canonical, the way
+	// suites.yaml already carries both name and name_pt.
+	ClaimPT          string   `json:"claim_pt,omitempty"`
 	Suites           []string `json:"suites"`
 	EscalateBlocking []string `json:"escalate_blocking"`
 

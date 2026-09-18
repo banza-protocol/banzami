@@ -651,6 +651,8 @@ export interface ValidationProfile {
   name:                    string;
   name_pt:                 string;
   claim:                   string;
+  /** What BANZADMIN renders. `claim` stays canonical English. */
+  claim_pt?:               string;
   version:                 number;
   digest:                  string;
   suites:                  number;
@@ -797,11 +799,13 @@ export interface ValidationComponent {
 }
 
 export interface ValidationInvariant {
-  id: string; title: string; enforced_by: string; layer: string; proof: string; why: string;
+  id: string; title: string; title_pt?: string;
+  enforced_by: string; layer: string; proof: string; why: string;
 }
 
 export interface ValidationKnownIssue {
-  id: string; title: string; status: string; severity: string; scope: string;
+  id: string; title: string; title_pt?: string; detail_pt?: string;
+  status: string; severity: string; scope: string;
   blocks_golden: boolean; blocks_full: boolean; first_observed: string; detail: string;
 }
 

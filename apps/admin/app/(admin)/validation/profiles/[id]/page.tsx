@@ -53,7 +53,7 @@ export default function ProfileDetailPage() {
       <div className="grid gap-[18px] lg:grid-cols-2">
         <Panel className="p-5">
           <SectionHeader Icon={ShieldCheck} tone="good" title="O que este perfil valida" />
-          <p className="mt-3 text-[13px] leading-[1.6] text-[#1a1a1a]">{p.claim}</p>
+          <p className="mt-3 text-[13px] leading-[1.6] text-[#1a1a1a]">{p.claim_pt ?? p.claim}</p>
         </Panel>
         <Panel className="p-5">
           <SectionHeader Icon={AlertTriangle} tone="warn" title="O que este perfil NÃO prova" />

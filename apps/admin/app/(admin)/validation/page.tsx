@@ -167,8 +167,8 @@ export default function StudioOverview() {
               <li key={i.id} className="flex items-start gap-3 border-b border-[#faf0f0] pb-3 last:border-0 last:pb-0">
                 <Pill className="mt-[1px] bg-[#FDECEC] text-red-800">{i.id}</Pill>
                 <div>
-                  <p className="text-[13.5px] font-extrabold text-[#1a1a1a]">{i.title}</p>
-                  <p className="mt-0.5 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{i.detail}</p>
+                  <p className="text-[13.5px] font-extrabold text-[#1a1a1a]">{i.title_pt ?? i.title}</p>
+                  <p className="mt-0.5 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{i.detail_pt ?? i.detail}</p>
                 </div>
               </li>
             ))}
@@ -235,7 +235,7 @@ function ProfileReadinessCard({ p, meets, verdict, busy, onCheck, onPrepare }: {
         <Pill className={state.cls}><Dot tone={state.tone} />{state.label}</Pill>
       </div>
 
-      <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-[1.5] text-[#6a5a5e]" title={p.claim}>{p.claim}</p>
+      <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-[1.5] text-[#6a5a5e]" title={p.claim_pt ?? p.claim}>{p.claim_pt ?? p.claim}</p>
 
       <dl className="mt-3 border-t border-[#f4e7e7] pt-2">
         <Row label="Suites" value={`${p.suites} (${p.blocking_suites} bloqueantes)`} />
@@ -362,9 +362,9 @@ function ProvenancePreview({ components }: {
   const shown = components.filter((c) => c.mandatory_for_preparation);
   return (
     <Panel className="p-5">
-      <SectionHeader Icon={Boxes} title="Proveniência / Componentes"
-        subtitle="Revisões actualmente implantadas no SANDBOX"
-        action={<MoreLink label="Ver detalhes" href="/validation/components" />} />
+      <SectionHeader Icon={Boxes} title="Proveniência"
+        subtitle="Revisões implantadas no SANDBOX"
+        action={<MoreLink label="Componentes" href="/validation/components" />} />
       <ul className="mt-4">
         {shown.map((c) => (
           <li key={c.name} className="flex items-center justify-between gap-3 border-b border-[#faf0f0] py-[9px] last:border-0">
@@ -398,7 +398,7 @@ function RecentRuns({ runs, everStarted }: {
   return (
     <Panel className="p-5">
       <SectionHeader Icon={Clock} title="Execuções recentes"
-        subtitle={everStarted ? 'histórico de execuções' : 'nenhuma execução foi alguma vez iniciada'}
+        subtitle={everStarted ? 'histórico de execuções' : 'nenhuma foi alguma vez iniciada'}
         action={<MoreLink label="Ver todas" href="/validation/runs" />} />
 
       {runs.length === 0 ? (

@@ -135,6 +135,7 @@ type profileSummary struct {
 	Name                 string `json:"name"`
 	NamePT               string `json:"name_pt"`
 	Claim                string `json:"claim"`
+	ClaimPT              string `json:"claim_pt,omitempty"`
 	Version              int    `json:"version"`
 	Digest               string `json:"digest"`
 	Suites               int    `json:"suites"`
@@ -148,7 +149,7 @@ func (h *ValidationHandler) profileSummaries() []profileSummary {
 	out := make([]profileSummary, 0, len(h.reg.Profiles))
 	for _, p := range h.reg.Profiles {
 		out = append(out, profileSummary{
-			ID: p.ID, Name: p.Name, NamePT: p.NamePT, Claim: p.Claim,
+			ID: p.ID, Name: p.Name, NamePT: p.NamePT, Claim: p.Claim, ClaimPT: p.ClaimPT,
 			Version: p.Version, Digest: p.Digest,
 			Suites:               len(p.Suites),
 			BlockingSuites:       len(h.reg.BlockingSuites(p)),

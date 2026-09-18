@@ -84,7 +84,7 @@ export default function RegistryPage() {
                   }[i.enforced_by] ?? 'bg-[#F1EEEE] text-[#6a5a5e]'}>{i.enforced_by}</Pill>
                   <div className="min-w-0">
                     <p className="text-[13.5px] font-extrabold text-[#1a1a1a]">
-                      <span className="mr-2 font-mono text-[11.5px] text-[#a99a9e]">{i.id}</span>{i.title}
+                      <span className="mr-2 font-mono text-[11.5px] text-[#a99a9e]">{i.id}</span>{i.title_pt ?? i.title}
                     </p>
                     <p className="mt-1 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{i.why}</p>
                     <p className="mt-1 font-mono text-[11.5px] text-[#a99a9e]">{i.layer}</p>
@@ -110,9 +110,9 @@ export default function RegistryPage() {
                   </Pill>
                   <Pill className={i.status === 'open' ? 'bg-[#FDF3E0] text-amber-900' : 'bg-[#E9F7EE] text-green-800'}>{i.status}</Pill>
                   <span className="font-mono text-[11.5px] text-[#a99a9e]">{i.id}</span>
-                  <span className="text-[13.5px] font-extrabold text-[#1a1a1a]">{i.title}</span>
+                  <span className="text-[13.5px] font-extrabold text-[#1a1a1a]">{i.title_pt ?? i.title}</span>
                 </div>
-                <p className="mt-1 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{i.detail}</p>
+                <p className="mt-1 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{i.detail_pt ?? i.detail}</p>
                 <p className="mt-1 text-[11.5px] text-[#a99a9e]">
                   âmbito: {i.scope} · bloqueia GOLDEN: {i.blocks_golden ? 'sim' : 'não'} ·
                   bloqueia FULL: {i.blocks_full ? 'sim' : 'não'} · observado {i.first_observed}

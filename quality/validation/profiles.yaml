@@ -26,6 +26,7 @@ environment: SANDBOX          # the only permitted value; enforced by 0160
 profile:
   fields:
     id:              {pattern: "^[A-Z][A-Z0-9_]{2,15}$"}
+    claim_pt:        {type: string, note: "what BANZADMIN shows; claim stays canonical"}
     version:         {type: int, note: "bump on any semantic change"}
     name:            {type: string}
     name_pt:         {type: string}
@@ -63,6 +64,12 @@ profiles:
       consumer or merchant depends on: they can be identified, receive money,
       pay, be paid, get a comprovativo, and cannot reach anyone else's money —
       and the ledger agrees with every one of those statements.
+    claim_pt: >-
+      O Sandbox do Banzami comporta-se correctamente em todos os percursos de
+      que um consumidor ou comerciante angolano real depende: consegue ser
+      identificado, receber dinheiro, pagar, ser pago, obter um comprovativo, e
+      não consegue chegar ao dinheiro de mais ninguém — e o livro-razão confirma
+      cada uma dessas afirmações.
     # The smallest set that, if green, means the NETWORK works. Nine suites, all
     # of them load-bearing: environment and identity because nothing else means
     # anything without them; receive/links/transfers because that is the
@@ -95,6 +102,12 @@ profiles:
       the ones that are not implemented, and the ones blocked on an external
       dependency. A FULL PASS means every BLOCKING suite passed; it does not
       mean every journey passed, and the report says which.
+    claim_pt: >-
+      Todas as suites que o Validation Studio conhece foram exercidas contra o
+      Sandbox implantado e o resultado registado — incluindo as que falharam, as
+      que não estão implementadas e as bloqueadas por uma dependência externa.
+      Um PASS do FULL significa que todas as suites bloqueantes passaram; não
+      significa que todos os percursos passaram, e o relatório diz quais.
     suites: [S00, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11,
              S12, S13, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23]
     escalate_blocking: []
