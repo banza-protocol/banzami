@@ -4,13 +4,14 @@ Version: 1.0
 Status: `OWNER_DECISION_REVIEW=READY` · `PHASE_B_AUTHORIZED=NO`
 Canonical system name: **Banzami Validation Studio** (`apps/validation-studio`)
 
-> **Terminology note.** Phase A documents 01–21 were written before the owner
-> fixed the canonical name and say *Validation Lab*, under `docs/validation/lab/`.
-> The canonical name is **Banzami Validation Studio** and the existing
-> implementation is `apps/validation-studio`. No second system, and no
-> `apps/validation-lab`, is proposed. Reconciling the Phase A wording and path is
-> **D12**; it is deliberately not done yet, because renaming a path the owner has
-> not approved would itself be an unapproved change.
+> **Terminology note (resolved in Phase B).** Phase A documents 01–21 were
+> written before the owner fixed the canonical name. **D12 was approved and
+> executed in Phase B step B1**: the documents were `git mv`d into
+> `docs/validation/studio/` (history preserved) and every occurrence of the
+> former name was rewritten. The canonical name is **Banzami Validation Studio**
+> and the existing implementation is `apps/validation-studio`. A permanent guard
+> (`tools/check-validation-studio-naming.mjs`) now holds
+> `VALIDATION_STUDIO_NAMING_DRIFT=0`.
 
 ---
 
@@ -613,8 +614,8 @@ human. **Blocks Phase B** No.
 # D12 — Canonical naming reconciliation
 
 **Why it exists** The owner has fixed the canonical name as **Banzami
-Validation Studio**; Phase A documents 01–21 say *Validation Lab* and live under
-`docs/validation/lab/`.
+Validation Studio**; Phase A documents 01–21 say *Validation Studio* and live under
+`docs/validation/studio/`.
 **Evidence** `apps/validation-studio` exists (32 files: Next.js governance
 workstation over the implementation matrix, local-only). Phase A introduced no
 code, so the divergence is purely documentary. `apps/validation-studio/README.md`
@@ -623,18 +624,19 @@ is itself stale (VL-014): dated 2026-06-13, referencing `apps/dashboard` and
 **Options** (a) rename wording + move to `docs/validation/studio/` ·
 (b) rename wording only, keep the path · (c) leave as-is.
 **Recommend** (a), as the first Phase B commit, together with refreshing the
-Studio README.
+Studio README. — **APPROVED AND EXECUTED (B1).**
 **Why** One system, one name. Two names for one thing is precisely the
 ambiguity CLAUDE.md §15 exists to prevent, and leaving it produces documents
 that describe a system nobody can find.
 **Trade-offs** A path change invalidates any external links to Phase A docs;
 there are none outside this repository.
 **Security** None. **Financial/ledger** None.
-**Studio impact** Removes the risk of a parallel `apps/validation-lab` ever
+**Studio impact** Removes the risk of a parallel `apps/validation-studio` ever
 being created by someone reading the Phase A documents literally.
 **Migration** `git mv` plus a wording pass; no code, no route, no schema.
 **If deferred** Every Phase B artefact inherits the wrong name.
 **Blocks Phase B** **YES** — cheap, and everything downstream inherits it.
+**Status** DONE in B1: `git mv` preserved history, all links updated, guard added.
 
 ---
 
@@ -855,7 +857,7 @@ No decision here weakens this, and `S14-DOA-011` — `B03` performing the same
 journeys with no DOA code path — is what keeps proving it.
 
 ```
-apps/validation-studio  PRESERVED.  No apps/validation-lab. No parallel platform.
+apps/validation-studio  PRESERVED.  No apps/validation-studio. No parallel platform.
 ```
 
 ---

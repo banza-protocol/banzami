@@ -150,7 +150,7 @@ Confirm these operational periods, or point at a policy that should govern them.
 ## D10 · Route and navigation naming
 
 `/validation`, sidebar section **Validação**, Portuguese item labels matching the
-rest of BANZADMIN, with *Validation Lab* as the English product name in
+rest of BANZADMIN, with *Validation Studio* as the English product name in
 documentation. Confirm.
 
 ---
@@ -180,7 +180,7 @@ simulator limitation).
    a known milestone.
 3. **Should the Validation Studio be folded into BANZADMIN?** It is a
    local-only governance workstation over the implementation matrix; the
-   Validation Lab is a deployed operator surface. They overlap conceptually and
+   Validation Studio is a deployed operator surface. They overlap conceptually and
    the Studio's README is stale (VL-014). Out of scope for Phase A.
 4. **Does any real self-service developer depend on the Sandbox today?** The
    population reads as almost entirely synthetic plus DOA, which affects how

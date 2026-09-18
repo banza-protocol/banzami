@@ -1,4 +1,8 @@
-# Banzami Validation Lab — Phase A package
+# Banzami Validation Studio — Phase A package
+
+> **Canonical name: Banzami Validation Studio.** The operator application is
+> `apps/validation-studio`. There is no second validation product and no
+> parallel engine. Enforced by `make check-validation-naming`.
 
 Version: 1.0
 Status: READY_FOR_OWNER_REVIEW
@@ -50,7 +54,7 @@ and summarised in [21 — Owner decisions](21-owner-decisions.md).
 | 04 | [Capability → coverage matrix](04-coverage-matrix.md) | What is covered, what is not |
 | 05 | [Validation Actor specification](05-actor-spec.md) | Who runs the journeys |
 | 06 | [Email + auth automation](06-auth-email-automation.md) | Can authentication be autonomous |
-| 07 | [BANZADMIN Validation Lab](07-banzadmin-validation-lab.md) | The operator surface |
+| 07 | [BANZADMIN Validation Studio](07-banzadmin-validation-studio.md) | The operator surface |
 | 08 | [Journey catalog](08-journey-catalog.md) | What gets executed |
 | 09 | [Evidence model](09-evidence-model.md) | What durable proof looks like |
 | 10 | [Run / resource / retention model](10-run-resource-retention.md) | Runs, residue and economic history |
@@ -73,7 +77,7 @@ Machine-readable specifications: [`schemas/`](schemas/).
 `docs/validation/` is already the canonical home of validation governance
 (`BANZAMI_IMPLEMENTATION_MATRIX.json`, `VALIDATION_DOMAINS.md`,
 `CONFIDENCE_GOVERNANCE.md`, `INVARIANT_TAXONOMY.md`). The Lab is validation
-governance, so it lives under it as `docs/validation/lab/`.
+governance, so it lives under it as `docs/validation/studio/`.
 
 The prompt suggested a top-level `validation/` directory for machine-readable
 specifications. **This package deliberately does not use it.** CLAUDE.md §19.1

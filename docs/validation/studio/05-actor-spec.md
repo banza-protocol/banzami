@@ -123,7 +123,7 @@ Their Validation-Lab identity exists in exactly three places, all outside
 product logic:
 
 1. `quality/validation/actors.yaml` (the registry);
-2. BANZADMIN Validation Lab labels (presentation);
+2. BANZADMIN Validation Studio labels (presentation);
 3. run/evidence attribution (`actor_id` on a Validation Resource).
 
 A grep-able guard enforces this, in the spirit of the repository's existing

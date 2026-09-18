@@ -300,6 +300,12 @@ check-component-coverage:
 check-repo-layout:
 	node tools/check-repository-layout.mjs
 
+# Banzami Validation Studio — one validation system, one name (owner decision
+# D12). Fails if the retired Phase A name reappears, if a parallel validation
+# application is created, or if the canonical app/docs go missing.
+check-validation-naming:
+	node tools/check-validation-studio-naming.mjs
+
 # Where this operator is allowed to charge money. Static, so it runs in CI: a
 # new crate depending on banzami-pricing is a new economic entrypoint, and it
 # must be reviewed rather than merged as a dependency line.
@@ -482,7 +488,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation-naming
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────

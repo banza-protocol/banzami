@@ -4,25 +4,54 @@
 
 ---
 
-## Current Banzami context (2026-06-13)
+## Current Banzami context (2026-09-18)
 
 Banzami is a **pure commercial payment operator** built on the BANZA protocol. After the purification and minimalization passes, the repository contains only operator material. When validating items, reference these real paths:
 
 | Area | Where it lives | Notes |
 |------|----------------|-------|
 | Financial core (Rust) | `core/` — ledger, wallets, consumer-wallets, transfers, qr, payment-links, transactions, settlement, payouts, reconciliation, risk, compliance, routing, acquiring, identity, api | Single writer of financial tables |
-| API services (Go) | `services/` — api-gateway, public-api, admin-api | Operator API surface |
-| Product apps | `apps/` — dashboard, admin, pay, checkout, mobile, merchant | Merchant/consumer surfaces |
-| SDKs | `sdk/` — typescript, flutter, python, go, php, checkout-web | **Banzami operator integration SDKs** (not protocol SDKs) |
+| API services (Go) | `services/` — api-gateway, public-api, admin-api, developer-api, sandbox-operator, common | Operator API surface |
+| Product apps | `apps/` — admin, app-banzami, mobile, pay, website, validation-studio | Merchant/consumer/operator surfaces |
+| SDKs | `sdk/` — typescript, dart-client, flutter, python, go, php, checkout-web | **Banzami operator integration SDKs** (not protocol SDKs) |
 | Operator docs | `docs/` (markdown) | adr, api, architecture, domains, runbooks, security, compliance, sandbox, standards, validation |
 
 **Removed (do NOT reference as evidence — they no longer exist in this repo):**
 
-- `apps/docs/` — the public website (banzami.com) → removed; matrix items citing `apps/docs/**` are **stale** and should be retired through this Studio's governance flow.
+- `apps/docs/` — the former public-website app → removed. (banzami.com is now served by `apps/website`.)
+- `apps/dashboard` — merchant dashboard (CAP-APP-002) → retired; enforced absent by `make check-retired-surfaces`.
+- `apps/checkout` — second payer surface → retired (Banzami ADR-052); `apps/pay` is canonical.
 - `contracts/`, `sdk-certification/` — protocol contracts & certification → owned by the BANZA protocol repo, not the operator.
 - `docs/BANZA_REFERENCE.md` mirror, `docs/banzamia/`, `docs/images/architecture/` — protocol/BanzAI material → removed.
 
-> The validation matrix (`docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json`) still contains VALIDATED items whose evidence points to removed `apps/docs/**` files and whose `meta.referenceFile` names the removed `BANZA_REFERENCE.md`. These are **stale by structure, not by status** — retire/repoint them via the §16 governance flow below (per-item proposal + approval phrases), never by hand-editing the JSON.
+> **Resolved (verified 2026-09-18).** The matrix previously carried VALIDATED
+> items whose evidence pointed at removed `apps/docs/**` files. All **96**
+> evidence paths in `BANZAMI_IMPLEMENTATION_MATRIX.json` now resolve on disk.
+> No stale-by-structure items remain. Any future repoint still goes through the
+> §16 governance flow (per-item proposal + approval phrases), never by
+> hand-editing the JSON.
+
+---
+
+## Relationship to the Banzami Validation Studio programme
+
+This application is the **local governance workstation** over
+`docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json`. It is one of several
+control surfaces in the Banzami Validation Studio; it is **not** the validation
+engine and never executes journeys.
+
+```
+ENGINE (one)      tools/validationctl.mjs          ← executes; owns no UI
+REGISTRIES        quality/operator-assurance-manifest.yaml   (capability truth)
+                  quality/validation/{actors,journeys,suites,resources}.yaml
+CONTROL SURFACES  apps/validation-studio  (this app — matrix governance)
+                  BANZADMIN /validation   (operator control + observability)
+                  CLI  make validation-*
+                  Claude / CI  → the same make targets
+```
+
+Design documents: [`docs/validation/studio/`](../../docs/validation/studio/).
+Naming and single-product invariants: `make check-validation-naming`.
 
 ---
 

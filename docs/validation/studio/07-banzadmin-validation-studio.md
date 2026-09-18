@@ -1,4 +1,4 @@
-# 07 — BANZADMIN Validation Lab specification
+# 07 — BANZADMIN Validation Studio specification
 
 Version: 1.0
 Status: Proposed (Phase A) — no route, component or migration created.
@@ -9,8 +9,8 @@ Status: Proposed (Phase A) — no route, component or migration created.
 
 **Canonical route: `/validation`.** BANZADMIN uses single-segment,
 domain-named routes (`/merchants`, `/businesses`, `/proofs`, `/settlements`,
-`/reconciliation`, `/platform-mode`). `/validation-lab` would be the only
-hyphenated compound in the information architecture.
+`/reconciliation`, `/platform-mode`). A hyphenated compound would be the only
+one of its kind in the information architecture.
 
 Navigation: a **sixth section** in `apps/admin/components/layout/nav-config.ts`,
 after *Preços e finanças*:
@@ -33,7 +33,7 @@ after *Preços e finanças*:
 ```
 
 Portuguese labels, matching the rest of the portal. The English product name
-*Validation Lab* is used in documentation and in the page title; the sidebar
+*Validation Studio* is used in documentation and in the page title; the sidebar
 speaks the operator's language, as every other section does.
 
 **The whole section is Sandbox-only.** BANZADMIN already defaults to SANDBOX

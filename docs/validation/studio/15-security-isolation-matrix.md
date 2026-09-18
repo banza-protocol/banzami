@@ -80,9 +80,9 @@ Roughly two thirds of the matrix is already covered; rows 3, 9, 14, 18, 24, 29,
 
 ## 5. The Lab as a security surface
 
-The Validation Lab is itself security-sensitive and is treated as such:
+The Validation Studio is itself security-sensitive and is treated as such:
 
-- RBAC-gated in BANZADMIN ([07](07-banzadmin-validation-lab.md) §8);
+- RBAC-gated in BANZADMIN ([07](07-banzadmin-validation-studio.md) §8);
 - secret **references** only, never values;
 - evidence access audited;
 - actor lifecycle audited;

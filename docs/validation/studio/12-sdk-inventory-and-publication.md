@@ -120,7 +120,7 @@ fix source → SDK tests → contract gate → version per CHANGELOG policy
 content, so after the last fix the published versions are frozen as inputs to
 the Golden Run, and the repository source must match them exactly.
 
-`CapValidationPublish` is step-up gated ([07](07-banzadmin-validation-lab.md) §8)
+`CapValidationPublish` is step-up gated ([07](07-banzadmin-validation-studio.md) §8)
 for the same reason.
 
 ### Other registries

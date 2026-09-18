@@ -61,7 +61,7 @@
               "patterns": { "type": "array", "items": { "type": "string" } },
               "reason":   { "type": "string" }
             },
-            "description": "Redaction runs at the WRITER, so an unredacted artifact never exists on disk. A post-run scan re-checks every artifact; a hit is EVIDENCE_SECRET_LEAK = FAIL, classified as a defect of the Validation Lab, and it voids the run."
+            "description": "Redaction runs at the WRITER, so an unredacted artifact never exists on disk. A post-run scan re-checks every artifact; a hit is EVIDENCE_SECRET_LEAK = FAIL, classified as a defect of the Validation Studio, and it voids the run."
           },
           "source":      { "type": "string" },
           "description": { "type": "string" }

@@ -196,7 +196,7 @@ actors are persistent and absolute balances legitimately change between runs.
 
 ## 10. Relationship to CI
 
-| | CI (per PR) | Validation Lab |
+| | CI (per PR) | Validation Studio |
 |---|---|---|
 | Runs | 23 jobs: Rust, 5 Go services, frontends, SDKs, migrations, security | deployed-Sandbox journeys |
 | Speed | minutes | tens of minutes to hours |

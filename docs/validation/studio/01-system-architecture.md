@@ -1,4 +1,4 @@
-# 01 — Banzami Validation Lab: system architecture
+# 01 — Banzami Validation Studio: system architecture
 
 Version: 1.0
 Status: Proposed (Phase A)
@@ -7,7 +7,7 @@ Status: Proposed (Phase A)
 
 ## 1. What the Lab is
 
-The Banzami Validation Lab is the **canonical autonomous functional validation
+The Banzami Validation Studio is the **canonical autonomous functional validation
 system for the deployed Banzami Sandbox**. Its product is not tests. Its product
 is an *evidence-backed answer* to a fixed set of questions about the platform:
 
@@ -52,7 +52,7 @@ provisioned. See [17](17-sandbox-vs-live-matrix.md).
 
 ```
                       ┌──────────────────────────────────────┐
-   OPERATOR SURFACE   │  BANZADMIN → Validation Lab          │  doc 07
+   OPERATOR SURFACE   │  BANZADMIN → Validation Studio          │  doc 07
                       │  (Sandbox-only, RBAC-gated, read-    │
                       │   mostly; run control + evidence)    │
                       └──────────────┬───────────────────────┘

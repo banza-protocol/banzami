@@ -17,7 +17,7 @@ REAL LIVE COLLECTIONS           NOT DEPLOYED / NOT TESTED
 FINANCIAL LIVE                  NOT_READY / FAIL-CLOSED
 ```
 
-The Validation Lab validates **Sandbox only**. Any future Live validation is a
+The Validation Studio validates **Sandbox only**. Any future Live validation is a
 separate, explicitly authorized milestone with its own design.
 
 ## 2. Matrix

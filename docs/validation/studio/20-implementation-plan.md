@@ -6,7 +6,7 @@ decides D1** ([21](21-owner-decisions.md)).
 
 ---
 
-## Phase B — Validation Lab foundation
+## Phase B — Validation Studio foundation
 
 **Entry gate: VL-001 resolved.** Nothing else in the programme is safe to build
 until the Sandbox's irreversible volume budget has a sustainable answer.

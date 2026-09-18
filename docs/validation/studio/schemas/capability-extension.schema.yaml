@@ -1,4 +1,4 @@
-# Fields the Validation Lab ADDS to each entry in
+# Fields the Validation Studio ADDS to each entry in
 # quality/operator-assurance-manifest.yaml. The existing 15 fields are unchanged.
 #
 # Example values below are from CAP-COLLECT-001 as it EXISTS AT RUNTIME

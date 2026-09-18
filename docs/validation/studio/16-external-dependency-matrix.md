@@ -129,7 +129,7 @@ days**.
 
 `PILOT_LIMIT_AGGREGATE_VOLUME_EXCEEDED` on **every merchant payment in the
 Sandbox, permanently** — for real self-service developers (ADR-060), for DOA,
-and for the Validation Lab alike. There is no reset that preserves history.
+and for the Validation Studio alike. There is no reset that preserves history.
 
 ### Why this is incompatible with the programme as specified
 
