@@ -39,6 +39,14 @@ function bff(biz) {
 // "Saldo disponível ·  0 Kz". The old pattern allowed only digits and spaces
 // after the label, so it matched nothing and returned null — and a null balance
 // made the realtime gate unfalsifiable: it can never converge from null.
+// The Business Home's empty activity state, taken from the shell itself
+// (merchant/screens/dashboard_screen.dart). Declared as a *_MARKER so
+// check-e2e-ui-markers proves it still exists: the gate below asserts its
+// ABSENCE, and a negative whose subject the product has renamed can never fail.
+// This one had: the proof looked for 'sem pagamentos recebidos', which the app
+// has never said.
+const EMPTY_ACTIVITY_MARKER = 'Ainda não há pagamentos recebidos';
+
 const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\d\s]+)\s*Kz/i) || [])[1]; return m ? parseInt(m.replace(/\s/g, ''), 10) : null; };
 
 (async () => {
@@ -102,7 +110,8 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
     const cgrab = (r) => { const a = r.headers.getSetCookie ? r.headers.getSetCookie() : []; for (const c of a) { const m = c.match(/^([^=]+)=([^;]*)/); if (m) cs[m[1]] = m[2]; } };
     const creq = async (m, p, b) => { const h = { cookie: cch() }; if (b !== undefined) { h['content-type'] = 'application/json'; h['x-csrf-token'] = cs['bz_app_csrf'] || ''; } const r = await fetch(`${APP}${p}`, { method: m, headers: h, body: b !== undefined ? JSON.stringify(b) : undefined }); cgrab(r); let j = null; try { j = await r.clone().json(); } catch {} return { status: r.status, body: j }; };
     cgrab(await fetch(`${APP}/`));
-    await creq('POST', '/consumer/v1/auth/register', { handle: `e2ecombuyer${Date.now().toString(36)}`, display_name: 'E2E Buyer', pin: '481516' });
+    const buyerHandle = `e2ecombuyer${Date.now().toString(36)}`;
+    await creq('POST', '/consumer/v1/auth/register', { handle: buyerHandle, display_name: 'E2E Buyer', pin: '481516' });
     await creq('POST', '/consumer/v1/sandbox/fund', { amount_minor: 500000, currency: 'AOA' });
     const payRes = await creq('POST', `/consumer/v1/payment-links/${chargeSlug}/pay`, { idempotency_key: `chg-${chargeSlug}` });
     let settled = payRes.status === 200 || payRes.status === 201;
@@ -118,9 +127,15 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\
     // ── §28/§29 history + transaction detail (proof reference). The received
     // payment appears in the Business activity (Home "Actividade recente", same
     // canonical data + detail as Histórico); its detail carries the proof reference. ──
+    // "Pagamentos recentes" renders `description ?? payer ?? 'Pagamento recebido'`
+    // and this charge carries no description, so the row is the PAYER — the
+    // handle this proof just created, not the display name it sent.
     const homeTxt = await dA.visibleText();
-    R.mark('BUSINESS_WEB_HISTORY_E2E', /E2E Buyer|Pagamento recebido/i.test(homeTxt) && !/sem pagamentos recebidos/i.test(homeTxt), 'Business activity reflects the received payment');
-    await dA.tapText('E2E Buyer').catch(() => dA.tapText('Pagamento recebido').catch(() => {}));
+    const shows = new RegExp(`${buyerHandle}|Pagamento recebido`, 'i').test(homeTxt);
+    const credited = /\+\s*700\s*Kz/i.test(homeTxt);
+    R.mark('BUSINESS_WEB_HISTORY_E2E', (shows || credited) && !homeTxt.includes(EMPTY_ACTIVITY_MARKER),
+      `row=${shows} credit=${credited} empty=${homeTxt.includes(EMPTY_ACTIVITY_MARKER)}`);
+    await dA.tapText(buyerHandle).catch(() => dA.tapText('Pagamento recebido').catch(() => {}));
     await sleep(1500);
     const detail = await dA.visibleText();
     R.mark('BUSINESS_WEB_RECEIPT_E2E', /Refer[êe]ncia/i.test(detail), 'transaction detail shows the canonical proof reference');
