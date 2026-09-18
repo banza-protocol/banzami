@@ -414,6 +414,18 @@ check-validation-shell-adapter:
 check-validation-budget-truth:
 	node tools/check-validation-budget-truth.mjs
 
+# Every owner gate, read live at the moment it prints. No hand-maintained
+# summary may override it: a prose counter already contradicted itself once,
+# "10 de 12" beside a list of three outstanding journeys, and neither number
+# was checkable.
+validation-owner-readiness:
+	node tools/validation-owner-readiness.mjs
+
+# Which GOLDEN journeys are proven against the build that is actually deployed,
+# derived from each harness's own evidence file and its timestamp.
+validation-preverification-matrix:
+	node tools/validation-preverification-matrix.mjs
+
 # FULL must mean FULL. Every suite a profile selects is EXECUTABLE or carries a
 # justified NOT_PROVEN blocker — absence is neither. The failure this prevents is
 # a GREEN run that proved thirteen suites and never mentioned the other eleven.
