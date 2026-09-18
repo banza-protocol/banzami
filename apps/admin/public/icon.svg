@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Banzami">
+  <rect width="100" height="100" rx="22" fill="#B5101F"/>
+  <g transform="translate(31,31)">
+    <rect x="0" y="0" width="18" height="18" rx="5" fill="#fff"/>
+    <rect x="23" y="2" width="13" height="13" rx="4" fill="#FBD2D0"/>
+    <rect x="2" y="23" width="16" height="16" rx="5" fill="#FBD2D0"/>
+    <rect x="24" y="24" width="11" height="11" rx="4" fill="#fff"/>
+  </g>
+</svg>
