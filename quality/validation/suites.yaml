@@ -67,31 +67,22 @@ suites:
         to authorise writes for a specific window and to supply the campaign
         identifiers — an owner action, not an engineering gap.
   - {id: S15, name: Receipts / comprovativos,      name_pt: Comprovativos,              existing_coverage: good,      blocking: false}
-  # There is no functional BANZADMIN harness anywhere in the estate, which is
-  # what `existing_coverage: weak` has been saying all along.
+  # This suite was briefly classified NOT_PROVEN on the reasoning that
+  # automating an MFA operator sign-in would require storing a TOTP seed. That
+  # was wrong, and the record is kept rather than quietly edited: A01's
+  # unattended session has existed since the Phase B owner ceremony, with its
+  # seed at /root/.banzami/validation (0600), outside the repository and outside
+  # every evidence artifact. The blocker described a wall that was not there.
+  #
+  # What was actually missing was a harness, and A01's COMPLIANCE role turned
+  # out to be the RIGHT identity for the suite rather than an obstacle to it:
+  # the sharpest thing BANZADMIN can prove is that the operator who runs the
+  # Studio cannot start a run.
   - id: S16
     name: BANZADMIN
     name_pt: BANZADMIN
     existing_coverage: weak
     blocking: false
-    runtime_proof: NOT_PROVEN
-    blocker:
-      class: SECURITY_POLICY
-      detail: >-
-        BANZADMIN operator sign-in requires MFA, and privileged actions require
-        step-up on top of it. Automating either means persisting a TOTP seed
-        where an unattended runner can read it — a stored secret this programme
-        forbids. A01 is intentionally COMPLIANCE and is not elevated around it.
-      detail_pt: >-
-        A entrada no BANZADMIN exige um segundo factor, e as acções privilegiadas
-        exigem reautenticação. Automatizar qualquer um deles obrigaria a guardar
-        uma semente TOTP legível pelo executor — um segredo que este programa
-        proíbe guardar. O A01 é COMPLIANCE de propósito e não é elevado.
-      path_to_proof: >-
-        Either a hardware-backed operator credential the runner can exercise
-        without ever holding the seed, or an explicitly scoped read-only
-        BANZADMIN surface with its own non-MFA validation identity. Both are
-        decisions about the security model, not gaps in test coverage.
   - {id: S17, name: Security / authority / isolation, name_pt: Segurança e isolamento,  existing_coverage: good,      blocking: true}
   - {id: S18, name: Platform / web-mobile parity,  name_pt: Paridade de plataforma,     existing_coverage: good,      blocking: false}
   # The contract IS checked — statically and continuously. What is missing is

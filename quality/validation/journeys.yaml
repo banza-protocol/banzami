@@ -1039,3 +1039,51 @@ journeys:
     evidence_adapter: phase0-stdout
     timeout_seconds: 1800
     retry_policy: none
+
+  - journey_id: S16-ADM-001
+    suite: S16
+    name: A autoridade de um operador BANZADMIN, a partir de uma sessão real
+    purpose: >-
+      The sharpest question BANZADMIN can be asked is not whether an operator can
+      sign in. It is whether the identity that OPERATES the Validation Studio can
+      also START a run — because scenario authority and orchestration authority
+      are separate by design (doc 31), and a separation nothing tests is a
+      diagram rather than a control. A01 is COMPLIANCE permanently, holds
+      validation.view and not validation.run, and every positive here is paired
+      with a negative so that a probe refusing everything would refuse nothing in
+      particular.
+    capabilities: []
+    actors: [A01]
+    preconditions:
+      - the A01 unattended operator session provisioned in Phase B is available
+      - the BANZADMIN edge answers
+    entry_point: {surface: banzadmin, path: "/api/admin/v1"}
+    steps:
+      - action: open an A01 operator session unattended, second factor included
+        expect_api: "a session cookie and a CSRF token, neither ever printed"
+        evidence: [api]
+      - action: read the surfaces COMPLIANCE owns, and be refused the ones it does not
+        expect_api: "200 for applications, merchants, audit and the validation surface; 403 for operators and payout execution"
+        evidence: [api]
+      - action: attempt to prepare and to start a Validation Run
+        expect_api: "403 on both, while the same path unauthenticated answers 401"
+        evidence: [api]
+    financial_expectations: []
+    negative_assertions:
+      - COMPLIANCE cannot start a Validation Run
+      - COMPLIANCE cannot prepare a Validation Run
+      - the refusal is authority, not a missing route — unauthenticated is 401
+      - COMPLIANCE cannot list operators
+      - COMPLIANCE cannot execute a payout
+      - a lifted session cookie without the CSRF header is refused
+    evidence_required: [api]
+    cleanup:
+      disposable: [the operator session]
+      preserved:  [the admin audit log entries this run produced]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/banzadmin-authority-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 600
+    retry_policy: none
+
