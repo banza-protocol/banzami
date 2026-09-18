@@ -51,7 +51,26 @@ type Suite struct {
 	Scope    string `json:"scope,omitempty"`
 	Coverage string `json:"existing_coverage,omitempty"`
 	Blocking bool   `json:"blocking"`
+
+	// A suite with no executable journey. Carried through to the operator
+	// surface deliberately: the Studio must be able to show WHY a suite cannot
+	// be proven, in the operator's own language, without anyone reading the
+	// registry. Empty means EXECUTABLE.
+	RuntimeProof string        `json:"runtime_proof,omitempty"`
+	Blocker      *SuiteBlocker `json:"blocker,omitempty"`
 }
+
+// SuiteBlocker is why a suite cannot be proven at runtime, and what would
+// change that. Never a bare status: an unexplained gap is not a justification.
+type SuiteBlocker struct {
+	Class       string `json:"class"`
+	Detail      string `json:"detail"`
+	DetailPT    string `json:"detail_pt"`
+	PathToProof string `json:"path_to_proof"`
+}
+
+// NotProven reports whether this suite has no runtime proof.
+func (s Suite) NotProven() bool { return s.RuntimeProof == "NOT_PROVEN" }
 
 // Profile is a run profile: what a run claims if it passes, and what it may spend.
 type Profile struct {

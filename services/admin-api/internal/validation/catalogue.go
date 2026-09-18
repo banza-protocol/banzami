@@ -37,6 +37,11 @@ const (
 	// UNREACHABLE until a runner exists: no run has ever executed, so nothing
 	// in this build can legitimately carry it.
 	StatusRuntimeProven = "RUNTIME_PROVEN"
+	// StatusNotProven — the suite has no executable journey and, unlike a
+	// DECLARED one, is not waiting for someone to write it: it carries a
+	// recorded blocker saying why runtime proof is unavailable and what would
+	// make it available. Distinguishing the two is the point.
+	StatusNotProven = "NOT_PROVEN"
 )
 
 // Step is one planned action inside a journey.
@@ -300,9 +305,8 @@ func (r *Registry) Catalogue() ([]SuiteDetail, error) {
 	out := make([]SuiteDetail, 0, len(r.Suites))
 	for _, s := range r.Suites {
 		// A nil slice marshals as `null`, and a consumer doing `.length` on it
-		// crashes. 23 of the 24 suites have no journey, so this is the common
-		// case, not the edge one: an empty list is the honest encoding of
-		// "declared, nothing executable".
+		// crashes. An empty list is the honest encoding of "declared, nothing
+		// executable".
 		js := bySuite[s.ID]
 		if js == nil {
 			js = []Journey{}
@@ -317,6 +321,13 @@ func (r *Registry) Catalogue() ([]SuiteDetail, error) {
 				break
 			}
 			status = StatusSpecified
+		}
+		// …unless it is one of the suites that CANNOT be made executable for a
+		// recorded reason. DECLARED and NOT_PROVEN look the same from the
+		// outside — no journey — and mean opposite things: one is work not yet
+		// done, the other is work that was done and reached a wall.
+		if s.NotProven() {
+			status = StatusNotProven
 		}
 
 		profiles := []string{}

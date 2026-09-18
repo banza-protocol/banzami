@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Library, ShieldCheck, AlertTriangle, ChevronRight, ArrowLeft, FileSliders, UsersRound, FileCode2, Layers } from 'lucide-react';
+import { Library, ShieldCheck, AlertTriangle, ShieldAlert, ChevronRight, ArrowLeft, FileSliders, UsersRound, FileCode2, Layers } from 'lucide-react';
 import { useStudio } from '../studio-context';
 import type { ValidationSuiteDetail, ValidationJourney } from '@/lib/admin-api';
 import { Panel, SectionHeader, Pill, StatusPill, Button, Why, Empty, Field, MetricCard, Hash, CHECK_STYLE } from '../studio-ui';
@@ -22,6 +22,7 @@ export default function RegistryPage() {
 
   const journeys = s.suites.flatMap((x) => x.journeys);
   const declared = s.suites.filter((x) => x.implementation_status === 'DECLARED').length;
+  const notProven = s.suites.filter((x) => x.implementation_status === 'NOT_PROVEN');
 
   return (
     <div className="flex flex-col gap-[18px]">
@@ -53,6 +54,34 @@ export default function RegistryPage() {
         ))}
       </div>
 
+      {/* The four suites a FULL run CANNOT prove, said out loud on the page an
+          operator opens to ask what is covered — not buried in a registry file.
+          A reviewer should be able to disagree with a blocker without reading
+          any source, which means the reason has to be here. */}
+      {view === 'suites' && notProven.length > 0 && (
+        <Panel className="p-5">
+          <SectionHeader Icon={ShieldAlert} tone="warn"
+            title={`Sem prova em execução (${notProven.length})`}
+            subtitle="Uma execução FULL regista-as com o impedimento, em vez de as omitir." />
+          <ul className="mt-4 space-y-3">
+            {notProven.map((x) => (
+              <li key={x.id} className="rounded-[12px] border border-[#f6e4c8] bg-[#FFFDF8] p-4">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[11.5px] font-extrabold text-[#a99a9e]">{x.id}</span>
+                  <span className="text-[13.5px] font-extrabold">{x.name_pt}</span>
+                  <Pill className="bg-[#FDF3E0] text-amber-900">{x.blocker?.class}</Pill>
+                </span>
+                <p className="mt-2 text-[13px] leading-[1.55] text-[#1a1a1a]">{x.blocker?.detail_pt}</p>
+                <p className="mt-2 text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">
+                  O que a tornaria executável
+                </p>
+                <p className="mt-1 text-[12.5px] leading-[1.5] text-[#5a4a4e]">{x.blocker?.path_to_proof}</p>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
       {view === 'suites' && (
         <Panel className="p-5">
           <SectionHeader Icon={Library} title={`Suites (${s.suites.length})`}
@@ -60,6 +89,8 @@ export default function RegistryPage() {
           <Why>
             Uma suite existir não significa que algo seja testado. As que não têm percurso nenhum
             aparecem como DECLARED, e incluí-las num perfil não as torna testadas.
+            {notProven.length > 0 && <> Há {notProven.length} marcadas como <strong>NOT_PROVEN</strong>:
+            essas não estão por fazer — bateram num impedimento que está registado e explicado abaixo.</>}
           </Why>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-[13px]">
@@ -180,8 +211,23 @@ function SuiteView({ suite, onBack, onOpen }: {
         <SectionHeader Icon={Library} tone="neutral" title={`Percursos (${suite.journeys.length})`} />
         {suite.journeys.length === 0 ? (
           <div className="mt-4">
-            <Empty title="Nenhum percurso executável definido"
-              detail="Esta suite está DECLARED: o âmbito está escrito, mas não existe cenário que possa ser executado. Incluí-la num perfil não a torna testada." />
+            {suite.blocker ? (
+              <div className="rounded-[12px] border border-[#f6e4c8] bg-[#FFFDF8] p-4">
+                <span className="flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-amber-700" aria-hidden />
+                  <span className="text-[13.5px] font-extrabold">Sem prova em execução</span>
+                  <Pill className="bg-[#FDF3E0] text-amber-900">{suite.blocker.class}</Pill>
+                </span>
+                <p className="mt-2 text-[13px] leading-[1.55] text-[#1a1a1a]">{suite.blocker.detail_pt}</p>
+                <p className="mt-3 text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">
+                  O que a tornaria executável
+                </p>
+                <p className="mt-1 text-[12.5px] leading-[1.5] text-[#5a4a4e]">{suite.blocker.path_to_proof}</p>
+              </div>
+            ) : (
+              <Empty title="Nenhum percurso executável definido"
+                detail="Esta suite está DECLARED: o âmbito está escrito, mas não existe cenário que possa ser executado. Incluí-la num perfil não a torna testada." />
+            )}
           </div>
         ) : (
           <ul className="mt-4 space-y-2">

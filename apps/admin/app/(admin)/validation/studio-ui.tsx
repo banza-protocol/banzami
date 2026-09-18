@@ -116,6 +116,9 @@ export const STATUS_STYLE: Record<string, string> = {
   SPECIFIED: 'bg-[#E8F0FD] text-blue-800',
   AUTOMATED: 'bg-[#EAE9FB] text-indigo-800',
   RUNTIME_PROVEN: 'bg-[#E9F7EE] text-green-800',
+  // Amber, not grey. NOT_PROVEN is not a quieter DECLARED — it is a wall that
+  // was reached, and it should read as something to look at.
+  NOT_PROVEN: 'bg-[#FDF3E0] text-amber-900',
 };
 
 export const STATUS_MEANING: Record<string, string> = {
@@ -123,6 +126,7 @@ export const STATUS_MEANING: Record<string, string> = {
   SPECIFIED: 'Existe pelo menos um percurso com passos e asserções, sem automação ligada.',
   AUTOMATED: 'Um percurso está automatizado e nomeia o harness que o executa.',
   RUNTIME_PROVEN: 'Observado a passar numa execução real. Inalcançável enquanto não existir motor de execução.',
+  NOT_PROVEN: 'Não existe percurso executável, e não é trabalho por fazer: há um impedimento registado que diz porquê.',
 };
 
 export function StatusPill({ status }: { status: string }) {

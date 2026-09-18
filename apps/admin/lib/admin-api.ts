@@ -737,7 +737,16 @@ export interface ValidationOverview {
 // validates, written in TypeScript, is exactly the drift the Studio exists to
 // detect.
 
-export type ImplementationStatus = 'DECLARED' | 'SPECIFIED' | 'AUTOMATED' | 'RUNTIME_PROVEN';
+export type ImplementationStatus =
+  'DECLARED' | 'SPECIFIED' | 'AUTOMATED' | 'RUNTIME_PROVEN' | 'NOT_PROVEN';
+
+/** Why a suite cannot be proven at runtime, and what would change that. */
+export interface ValidationSuiteBlocker {
+  class:         'SAFETY' | 'SECURITY_POLICY' | 'EXTERNAL' | 'TOOLING';
+  detail:        string;
+  detail_pt:     string;
+  path_to_proof: string;
+}
 
 export interface ValidationStep {
   seq:        number;
@@ -782,6 +791,8 @@ export interface ValidationSuiteDetail {
   scope?: string; existing_coverage?: string; rationale?: string;
   journeys: ValidationJourney[];
   implementation_status: ImplementationStatus;
+  runtime_proof?: 'EXECUTABLE' | 'NOT_PROVEN';
+  blocker?: ValidationSuiteBlocker;
   profiles: string[];
   actors: string[];
 }

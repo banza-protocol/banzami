@@ -22,20 +22,49 @@ func TestCatalogue_ASuiteWithNoJourneysSerialisesAsAnEmptyList(t *testing.T) {
 		t.Error("a suite serialised its journeys as null; a consumer counting them would crash")
 	}
 
-	empty := 0
+	empty, notProven := 0, 0
 	for _, s := range cat {
 		if s.Journeys == nil {
 			t.Errorf("%s has a nil journey slice", s.ID)
 		}
 		if len(s.Journeys) == 0 {
 			empty++
-			if s.Status != StatusDeclared {
-				t.Errorf("%s has no journeys but is %s, not DECLARED", s.ID, s.Status)
+			// A suite with no journey is one of exactly two things, and they
+			// mean opposite things: DECLARED is work not yet done, NOT_PROVEN
+			// is work that was done and hit a wall. Anything else here would be
+			// a status invented for a suite that has nothing to execute.
+			switch s.Status {
+			case StatusDeclared:
+				if s.Blocker != nil {
+					t.Errorf("%s is DECLARED but carries a blocker; it should be NOT_PROVEN", s.ID)
+				}
+			case StatusNotProven:
+				notProven++
+				// The blocker is the entire justification. A NOT_PROVEN suite
+				// without one is an unexplained gap wearing a status.
+				if s.Blocker == nil {
+					t.Errorf("%s is NOT_PROVEN with no blocker", s.ID)
+					continue
+				}
+				if s.Blocker.Class == "" || s.Blocker.Detail == "" ||
+					s.Blocker.PathToProof == "" {
+					t.Errorf("%s: blocker is incomplete (%+v)", s.ID, *s.Blocker)
+				}
+				// BANZADMIN speaks Portuguese; an operator reading why a suite
+				// cannot be proven must not be handed English.
+				if s.Blocker.DetailPT == "" {
+					t.Errorf("%s: blocker has no Portuguese copy", s.ID)
+				}
+			default:
+				t.Errorf("%s has no journeys but is %s", s.ID, s.Status)
 			}
 		}
 	}
 	if empty == 0 {
 		t.Error("no suite is empty; this test would pass vacuously")
+	}
+	if notProven == 0 {
+		t.Error("no suite is NOT_PROVEN; the blocker assertions above proved nothing")
 	}
 }
 
