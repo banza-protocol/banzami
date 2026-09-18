@@ -39,15 +39,28 @@ class PaymentNotificationService {
 
   /// How often a foregrounded Business asks whether it has been paid.
   ///
-  /// It was 30 seconds, which is fine for a notification and far too slow for a
-  /// balance: CLAUDE.md §2.6 puts the acceptable perceived latency at five
-  /// seconds, and the merchant seeing the payment is the whole promise of the
-  /// surface. The consumer path polls canonical reads every two seconds, but it
-  /// does so SERVER-side behind one SSE stream; this is a client asking over the
-  /// network, so it sits at the outer bound rather than matching that.
+  /// It was 30 seconds: fine for a notification, far too slow for a balance.
   ///
-  /// Only while foregrounded — [stopPolling] runs on background and on logout.
-  static const pollInterval = Duration(seconds: 5);
+  /// CLAUDE.md §2.6 reads "under 2 seconds — ideal, under 5 seconds —
+  /// acceptable". Five seconds is therefore the outer edge of ACCEPTABLE, not a
+  /// number to sit on: an interval of exactly T puts the worst case at
+  /// T + request latency + render, because a payment can land microseconds
+  /// after a tick. A 5 s interval would exceed the bound on every unlucky
+  /// alignment, and "usually inside" is not a bound.
+  ///
+  /// Two seconds gives worst-case ≈ 2.5 s — inside the ideal band most of the
+  /// time and with ~2.5 s of margin against the acceptable one. It is also the
+  /// number the consumer path already uses (ConsumerRealtimePollInterval), so
+  /// there is one answer in this codebase to "how often do we look".
+  ///
+  /// COST, stated rather than hidden: the consumer's 2 s is SERVER-side behind
+  /// one SSE stream, so its clients cost no requests. This is a client asking
+  /// over the network — two list reads every two seconds per FOREGROUNDED
+  /// Business ([stopPolling] runs on background and on logout). At operator
+  /// scale the durable answer is a merchant SSE stream mirroring
+  /// CONSUMER-HOME-REALTIME-001; until then this is the honest trade, and the
+  /// bound it produces is measured by proof 24 rather than assumed.
+  static const pollInterval = Duration(seconds: 2);
 
   void startPolling() {
     _timer?.cancel();
