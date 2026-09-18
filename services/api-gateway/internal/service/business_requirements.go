@@ -104,6 +104,53 @@ type applicationDocState struct {
 	RejectionReason string
 }
 
+// MissingSubmissionFields returns the mandatory FIELD requirements a submission
+// does not carry, in policy order, by their policy codes.
+//
+// Driven by BusinessApplicationPolicy — the same source
+// GET /v1/merchant/application-requirements publishes — so the requirements a
+// form is told to collect and the requirements a submission is held to cannot
+// drift apart. A hand-written list here would be a second policy.
+//
+// Documents are deliberately NOT checked: they are uploaded against an
+// application that already exists, so they cannot be present at creation.
+// They are enforced at approval, where EvaluateRequirements sees them.
+func MissingSubmissionFields(in MerchantApplicationInput) []string {
+	field := map[string]string{
+		"business_name":        in.BusinessName,
+		"desired_handle":       in.DesiredHandle,
+		"category":             in.Category,
+		"email":                in.Email,
+		"phone":                in.Phone,
+		"nif":                  in.Nif,
+		"province":             in.Province,
+		"municipality":         in.Municipality,
+		"address":              in.Address,
+		"legal_representative": in.LegalRepresentative,
+		"representative_role":  in.RepresentativeRole,
+		"business_activity":    in.BusinessActivity,
+	}
+	missing := []string{}
+	for _, it := range BusinessApplicationPolicy {
+		if it.Kind != RequirementField {
+			continue
+		}
+		if it.Code == "terms_accepted" {
+			if !in.TermsAccepted {
+				missing = append(missing, it.Code)
+			}
+			continue
+		}
+		// A field the policy requires but this function does not map is a
+		// policy the code cannot satisfy, and silently passing it would make an
+		// incomplete submission look complete. Report it as missing instead.
+		if strings.TrimSpace(field[it.Code]) == "" {
+			missing = append(missing, it.Code)
+		}
+	}
+	return missing
+}
+
 // EvaluateRequirements checks an application's fields and documents against
 // the policy. Pure: the caller loads what it needs.
 func EvaluateRequirements(a MerchantApplication, termsAccepted bool, docs map[string]applicationDocState) Requirements {

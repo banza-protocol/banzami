@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
@@ -164,7 +165,16 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 	case errors.Is(err, service.ErrHandleInvalid):
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_HANDLE", "handle must be 3-30 lowercase letters, digits or underscore")
 	case errors.Is(err, service.ErrApplicationIncomplete):
-		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "business name, email and terms acceptance are required")
+		// Name what is missing. The previous message listed three fields
+		// because only three were checked; an applicant missing `nif` was told
+		// to supply a business name they had already given.
+		var inc *service.IncompleteSubmissionError
+		if errors.As(err, &inc) && len(inc.Missing) > 0 {
+			apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR",
+				"these required fields are missing: "+strings.Join(inc.Missing, ", "))
+			return
+		}
+		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "the application is missing required fields")
 	case errors.Is(err, service.ErrHandleReserved):
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_RESERVED", "this handle is reserved")
 	case errors.Is(err, service.ErrMerchantHandleTaken):

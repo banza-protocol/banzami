@@ -358,9 +358,9 @@ func TestSubmit_ExistingBusinessHoldsNothingAndReplaysByKey(t *testing.T) {
 	f := newLifecycle(t)
 	_, handle := f.business()
 	apps := NewPostgresMerchantApplicationService(f.pool)
-	in := MerchantApplicationInput{Environment: "SANDBOX", DesiredHandle: handle, BusinessName: "Negócio Existente",
-		Email: "x@example.test", TermsAccepted: true, ExistingBusiness: true, IdempotencyKey: uuid.NewString(),
-		Origin: ApplicationOriginStandalone}
+	in := completeInput(handle)
+	in.BusinessName, in.Email = "Negócio Existente", "x@example.test"
+	in.ExistingBusiness, in.IdempotencyKey = true, uuid.NewString()
 	id1, err := apps.Submit(f.ctx, in)
 	if err != nil {
 		t.Fatal(err)
@@ -412,8 +412,10 @@ func TestSubmit_OriginIsExplicitAndAProjectHasOneApplicationInProgress(t *testin
 	apps := NewPostgresMerchantApplicationService(f.pool)
 	project := uuid.NewString()
 	base := func(handle string) MerchantApplicationInput {
-		return MerchantApplicationInput{Environment: "SANDBOX", DesiredHandle: handle, BusinessName: "Projeto Lda",
-			Email: handle + "@example.test", TermsAccepted: true}
+		in := completeInput(handle)
+		in.BusinessName, in.Email = "Projeto Lda", handle+"@example.test"
+		in.Origin = "" // these cases are about origin, so it is set per case
+		return in
 	}
 	var created []string
 	t.Cleanup(func() {
@@ -473,5 +475,136 @@ func TestSubmit_OriginIsExplicitAndAProjectHasOneApplicationInProgress(t *testin
 	_ = f.pool.QueryRow(f.ctx, `SELECT count(*) FROM handle_registry WHERE handle=$1`, second.DesiredHandle).Scan(&held)
 	if held != 0 {
 		t.Fatal("a refused application kept its handle hold")
+	}
+}
+
+// ── Submission completeness (Phase C.1) ─────────────────────────────────────
+//
+// Creating an application IS submitting it: nothing writes DRAFT, and the
+// status column has never held one. So a SUBMITTED application must satisfy the
+// field requirements the policy publishes — all of them, from the same source,
+// not a hand-written subset.
+
+func completeInput(handle string) MerchantApplicationInput {
+	return MerchantApplicationInput{
+		Environment: "SANDBOX", DesiredHandle: handle, BusinessName: "Negócio Completo",
+		Category: "retail", Email: "completo@example.test", Phone: "+244912000111",
+		Nif: "5000000111", Province: "Luanda", Municipality: "Luanda",
+		Address: "Rua Completa 1", LegalRepresentative: "Rep Legal",
+		RepresentativeRole: "Administrador", BusinessActivity: "Comércio a retalho",
+		TermsAccepted: true, Origin: ApplicationOriginStandalone,
+	}
+}
+
+func TestSubmit_ACompleteApplicationIsAccepted(t *testing.T) {
+	f := newLifecycle(t)
+	apps := NewPostgresMerchantApplicationService(f.pool)
+	handle := "cp" + hex10()
+	id, err := apps.Submit(f.ctx, completeInput(handle))
+	if err != nil {
+		t.Fatalf("a complete application must be accepted: %v", err)
+	}
+	f.clean = append(f.clean, func() {
+		_, _ = f.pool.Exec(context.Background(), `DELETE FROM merchant_applications WHERE id=$1`, id)
+		_, _ = f.pool.Exec(context.Background(), `DELETE FROM handle_registry WHERE handle=$1`, handle)
+	})
+}
+
+// Every mandatory field, one at a time. A subset-checking implementation passes
+// for the three it knows and fails here for the other nine.
+func TestSubmit_EveryMandatoryFieldIsEnforced(t *testing.T) {
+	f := newLifecycle(t)
+	apps := NewPostgresMerchantApplicationService(f.pool)
+
+	blank := map[string]func(*MerchantApplicationInput){
+		"business_name":        func(i *MerchantApplicationInput) { i.BusinessName = "" },
+		"category":             func(i *MerchantApplicationInput) { i.Category = "" },
+		"email":                func(i *MerchantApplicationInput) { i.Email = "" },
+		"phone":                func(i *MerchantApplicationInput) { i.Phone = "" },
+		"nif":                  func(i *MerchantApplicationInput) { i.Nif = "" },
+		"province":             func(i *MerchantApplicationInput) { i.Province = "" },
+		"municipality":         func(i *MerchantApplicationInput) { i.Municipality = "" },
+		"address":              func(i *MerchantApplicationInput) { i.Address = "" },
+		"legal_representative": func(i *MerchantApplicationInput) { i.LegalRepresentative = "" },
+		"representative_role":  func(i *MerchantApplicationInput) { i.RepresentativeRole = "" },
+		"business_activity":    func(i *MerchantApplicationInput) { i.BusinessActivity = "" },
+		"terms_accepted":       func(i *MerchantApplicationInput) { i.TermsAccepted = false },
+	}
+	for code, blankIt := range blank {
+		in := completeInput("ef" + hex10())
+		blankIt(&in)
+		_, err := apps.Submit(f.ctx, in)
+		if !errors.Is(err, ErrApplicationIncomplete) {
+			t.Errorf("omitting %s was accepted: %v", code, err)
+			continue
+		}
+		var inc *IncompleteSubmissionError
+		if !errors.As(err, &inc) {
+			t.Errorf("omitting %s gave no field list", code)
+			continue
+		}
+		found := false
+		for _, m := range inc.Missing {
+			if m == code {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("omitting %s reported %v, which does not name it", code, inc.Missing)
+		}
+	}
+}
+
+// A refused submission must cost the applicant nothing: no row, and — the part
+// that mattered — no 30-day hold on the @handle it asked for.
+func TestSubmit_AnIncompleteApplicationReservesNothing(t *testing.T) {
+	f := newLifecycle(t)
+	apps := NewPostgresMerchantApplicationService(f.pool)
+	handle := "nr" + hex10()
+
+	in := completeInput(handle)
+	in.Nif = ""
+	if _, err := apps.Submit(f.ctx, in); !errors.Is(err, ErrApplicationIncomplete) {
+		t.Fatalf("an incomplete application was accepted: %v", err)
+	}
+
+	var apps_, holds int
+	_ = f.pool.QueryRow(f.ctx, `SELECT count(*) FROM merchant_applications WHERE desired_handle=$1`, handle).Scan(&apps_)
+	_ = f.pool.QueryRow(f.ctx, `SELECT count(*) FROM handle_registry WHERE handle=$1`, handle).Scan(&holds)
+	if apps_ != 0 {
+		t.Errorf("a refused submission created %d application row(s)", apps_)
+	}
+	if holds != 0 {
+		t.Errorf("a refused submission took %d handle hold(s) — this is the 30-day hold that stranded @e2eb01-03", holds)
+	}
+}
+
+// The enforcement and the published policy come from one source. If a mandatory
+// field is added to BusinessApplicationPolicy and not mapped, it must be
+// reported missing rather than silently pass.
+func TestMissingSubmissionFields_CoversEveryPolicyField(t *testing.T) {
+	var empty MerchantApplicationInput
+	missing := MissingSubmissionFields(empty)
+	for _, it := range BusinessApplicationPolicy {
+		if it.Kind != RequirementField {
+			continue
+		}
+		found := false
+		for _, m := range missing {
+			if m == it.Code {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("policy field %q is not enforced at submission", it.Code)
+		}
+	}
+	// Documents are enforced at approval, not here: they cannot exist yet.
+	for _, m := range missing {
+		for _, it := range BusinessApplicationPolicy {
+			if it.Code == m && it.Kind == RequirementDocument {
+				t.Errorf("document %q must not be required at submission", m)
+			}
+		}
 	}
 }

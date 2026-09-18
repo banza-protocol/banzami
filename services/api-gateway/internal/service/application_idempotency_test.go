@@ -18,10 +18,11 @@ func TestSubmit_AReplayAnswersOnlyTheSameSubmission(t *testing.T) {
 	svc := NewPostgresMerchantApplicationService(pool)
 	key := uuid.NewString()
 	handle := "ik" + uuid.NewString()[:8]
-	in := MerchantApplicationInput{
-		Environment: "SANDBOX", DesiredHandle: handle, BusinessName: "Idem", Email: handle + "@example.test",
-		TermsAccepted: true, Origin: ApplicationOriginStandalone, IdempotencyKey: key,
-	}
+	// Complete: this asserts idempotency, and since Phase C.1 an incomplete
+	// submission is refused before an idempotency key is ever recorded.
+	in := completeInput(handle)
+	in.BusinessName, in.Email = "Idem", handle+"@example.test"
+	in.IdempotencyKey = key
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM merchant_applications WHERE desired_handle = $1`, handle)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM handle_registry WHERE handle = $1`, handle)

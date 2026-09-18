@@ -577,7 +577,11 @@ type gatedSessions struct {
 func newGatedSessions() *gatedSessions {
 	return &gatedSessions{byRef: map[string]*PaymentSession{}, entered: make(chan string, 1), release: make(chan struct{}), gated: true}
 }
-func (g *gatedSessions) preload(ref string, s *PaymentSession) { g.mu.Lock(); g.byRef[ref] = s; g.mu.Unlock() }
+func (g *gatedSessions) preload(ref string, s *PaymentSession) {
+	g.mu.Lock()
+	g.byRef[ref] = s
+	g.mu.Unlock()
+}
 func (g *gatedSessions) Create(_ context.Context, in CreatePaymentSessionInput) (*PaymentSession, error) {
 	g.mu.Lock()
 	if g.gated {

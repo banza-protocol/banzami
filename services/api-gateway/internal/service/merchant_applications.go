@@ -24,6 +24,17 @@ import (
 
 var ErrApplicationIncomplete = errors.New("application is missing required fields")
 
+// IncompleteSubmissionError names the mandatory fields a submission is missing,
+// so the applicant is told what to fix rather than that something is wrong.
+// It satisfies errors.Is(err, ErrApplicationIncomplete) so existing handling
+// keeps working.
+type IncompleteSubmissionError struct{ Missing []string }
+
+func (e *IncompleteSubmissionError) Error() string {
+	return "application is missing required fields: " + strings.Join(e.Missing, ", ")
+}
+func (e *IncompleteSubmissionError) Is(target error) bool { return target == ErrApplicationIncomplete }
+
 // Handle availability reason codes (non-secret; safe for the public form).
 const (
 	HandleAvailable      = ""
@@ -174,9 +185,6 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 	if err := ValidateHandle(handle); err != nil {
 		return "", ErrHandleInvalid
 	}
-	if in.BusinessName == "" || in.Email == "" || !in.TermsAccepted {
-		return "", ErrApplicationIncomplete
-	}
 	switch in.Origin {
 	case ApplicationOriginStandalone:
 		if in.ProjectID != "" {
@@ -200,6 +208,22 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 	parsed := env.Parse(in.Environment)
 	if !parsed.IsKnown() {
 		return "", ErrEnvironmentUndeclared
+	}
+
+	// A submission must satisfy the policy it is published under.
+	//
+	// This checked three fields — business name, email, terms — while
+	// GET /v1/merchant/application-requirements declared twelve plus the
+	// declaration. An application missing the other nine was accepted as
+	// SUBMITTED, took a 30-day hold on its @handle, consumed one of the 30/24h
+	// per-IP submission slots, and could then never be approved: the fields are
+	// immutable after creation and Resubmit carries no body. Three such
+	// applications had to be closed by hand (VL-019).
+	//
+	// Nothing is reserved before this point, so a refusal here costs the
+	// applicant nothing: no handle hold, no quota slot, no row.
+	if missing := MissingSubmissionFields(in); len(missing) > 0 {
+		return "", &IncompleteSubmissionError{Missing: missing}
 	}
 	envName := parsed.String()
 
