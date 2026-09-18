@@ -1,0 +1,218 @@
+# Assurance registry — Banzami Validation Studio.
+#
+# Two things an operator cannot discover from the product itself:
+#
+#   invariants    the guarantees the Studio makes, where each is ENFORCED, and
+#                 what proves it. These currently live only in source and tests,
+#                 which means the person authorising a run cannot see them.
+#
+#   known_issues  validation debt. Not repository TODOs — only things that
+#                 change how much a Validation Run should be trusted.
+#
+# Reviewed as code, like every other registry. The Studio renders it; it does
+# not restate it.
+
+$schema: banzami.validation.assurance/1
+registry_version: 1
+
+invariants:
+  - id: INV-VS-001
+    title: A Validation Run against Live cannot be represented
+    enforced_by: database
+    layer: "CHECK (environment = 'SANDBOX') — migration 0160"
+    proof: tools/check-validation-run-model.mjs
+    why: >-
+      REAL_LIVE_TESTS_EXECUTED=0 is a schema property rather than a policy. A
+      run against Live is not discouraged or hidden behind a UI gate; there is
+      no row that could hold one.
+
+  - id: INV-VS-002
+    title: At most one Validation Run may hold the Sandbox
+    enforced_by: database
+    layer: partial unique index validation_runs_one_active
+    proof: tools/check-validation-run-model.mjs
+    why: >-
+      Two concurrent runs would spend the same rolling volume budget and
+      interleave in the same nine actors' balances. Concurrency here is not a
+      race to handle, it is a state to refuse.
+
+  - id: INV-VS-003
+    title: Only declared state transitions are possible, and a terminal state is terminal
+    enforced_by: database
+    layer: trigger validation_runs_legal_transition
+    proof: tools/check-validation-run-model.mjs
+    why: >-
+      A state machine that lives only in the process currently writing is one
+      crash away from being untrue.
+
+  - id: INV-VS-004
+    title: A run's history is append-only, and a run cannot be deleted
+    enforced_by: database
+    layer: trigger validation_run_events_immutable + non-cascading foreign key
+    proof: tools/check-validation-run-model.mjs
+    why: >-
+      A run is evidence. Evidence that can be edited is not evidence, and
+      evidence that can be deleted is a record of what someone chose to keep.
+
+  - id: INV-VS-005
+    title: A run cannot reach READY without complete mandatory provenance
+    enforced_by: application
+    layer: requireCompleteProvenance, inside the preparation transaction
+    proof: services/admin-api/internal/validation/store_test.go
+    why: >-
+      A run whose provenance is missing is unattributable, and an unattributable
+      result is worse than a known-stale one. Either the provenance rows and the
+      READY transition both commit, or neither does.
+
+  - id: INV-VS-006
+    title: Provenance records the DEPLOYED revision, never the repository HEAD
+    enforced_by: application
+    layer: BANZAMI_BUILD_COMMIT and GET /health .build
+    proof: services/admin-api/internal/validation/provenance_test.go
+    why: >-
+      The source tree and what is running are different things, and usually
+      different commits. Substituting one for the other would silently
+      re-describe what a run actually tested.
+
+  - id: INV-VS-007
+    title: The Studio never holds a credential value or a secret reference
+    enforced_by: application
+    layer: Actor carries credential NAMES only; measured is map[string]int64
+    proof: services/admin-api/internal/validation/registry_test.go
+    why: >-
+      An operator needs to know that A01 has a TOTP seed registered. Knowing
+      where that seed lives is a service nobody needs and a hint an attacker
+      would take. The measured type makes a credential unassignable, so the
+      compiler refuses before any redactor would.
+
+  - id: INV-VS-008
+    title: The preflight consumes no quota
+    enforced_by: application
+    layer: read-only by construction, proven structurally against the source
+    proof: services/admin-api/internal/validation/preflight_test.go
+    why: >-
+      An operator must be able to ask whether the Sandbox is fit as often as
+      they like without spending the budget the answer is about. Asserting
+      afterwards that nothing changed cannot distinguish "wrote nothing" from
+      "wrote something idempotent", so the guard reads the source instead.
+
+  - id: INV-VS-009
+    title: Headroom is measured with the enforcing engine's own definition
+    enforced_by: build
+    layer: pilot_gen.go, extracted from core/compliance/src/pilot{,_enforce}.rs
+    proof: tools/gen-pilot-limits.mjs --check
+    why: >-
+      A preflight that measured headroom differently from the engine that
+      enforces it would clear a run the ledger then refuses halfway through —
+      worse than no preflight at all.
+
+  - id: INV-VS-010
+    title: No code path can start a Validation Run
+    enforced_by: build
+    layer: guard over every non-test source file
+    proof: tools/check-validation-no-start.mjs
+    why: >-
+      Phase C builds the surface, not the starter. The honest way to say that is
+      a guard that fails if a path appears which could, so adding one is a
+      deliberate act rather than an accident.
+
+  - id: INV-VS-011
+    title: Orchestration authority is separate from scenario authority
+    enforced_by: application
+    layer: RBAC — validation.run is not held by COMPLIANCE
+    proof: services/admin-api/internal/server/validation_routes_test.go
+    why: >-
+      An actor that can schedule the validation it participates in is an actor
+      whose PASS means less, because nothing outside the scenario decided the
+      scenario should happen. See doc 31.
+
+  - id: INV-VS-012
+    title: A profile may escalate a suite to blocking, never demote one
+    enforced_by: build
+    layer: check-validation-registries.mjs, cross-checked against suites.yaml
+    proof: tools/check-validation-registries.mjs
+    why: >-
+      A profile must not be able to make a failing invariant stop counting.
+
+known_issues:
+  - id: VD-001
+    title: Only one journey is populated in the registry
+    status: open
+    severity: high
+    scope: the whole validation universe
+    blocks_golden: true
+    blocks_full: true
+    first_observed: "2026-09-18"
+    detail: >-
+      24 suites are declared; one journey (S06-COL-001) is written. A GOLDEN or
+      FULL run today would exercise almost nothing. The Studio reports suite
+      implementation status so this cannot be mistaken for coverage.
+
+  - id: VD-002
+    title: No execution runner exists
+    status: open
+    severity: high
+    scope: execution
+    blocks_golden: true
+    blocks_full: true
+    first_observed: "2026-09-18"
+    detail: >-
+      Phase C deliberately builds the control surface and not the runner. No run
+      can be started, and the guard INV-VS-010 keeps it that way until the
+      decision is taken explicitly.
+
+  - id: VD-003
+    title: BZV-20260918-0001 has no provenance
+    status: closed-historical
+    severity: medium
+    scope: one historical run
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-18"
+    detail: >-
+      The first real prepared run predates C.10's provenance capture. It is
+      preserved exactly, not backfilled: its incompleteness is the evidence that
+      the defect was real. BZV-20260918-0002 carries full provenance.
+
+  - id: VD-004
+    title: The UI's idempotency key is derived from the minute
+    status: open
+    severity: low
+    scope: run preparation
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-18"
+    detail: >-
+      The server mechanism is correct — a unique index on (environment,
+      idempotency_key), and a replay returns the existing run untouched. But the
+      key the UI generates changes every minute, so two clicks a minute apart
+      create two runs instead of replaying one.
+
+  - id: VD-005
+    title: Six pre-existing TestReceipt_* failures in api-gateway
+    status: open
+    severity: low
+    scope: local test database only
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-18"
+    detail: >-
+      Proven pre-existing by stashing the entire Phase C change set: the
+      identical six fail on the clean tree with the identical
+      consumers_active_display_name_present error. Local test-database schema
+      drift, not a product defect. Deliberately not repaired to produce a green
+      report.
+
+  - id: VD-006
+    title: developer-api and website-frontend diverge from the tree
+    status: open
+    severity: low
+    scope: unrelated components
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-18"
+    detail: >-
+      Both predate Phase C and neither is on a Validation Studio path. Recorded
+      rather than repaired: deploying a service to turn a parity line green is
+      the substitution of appearance for correctness this programme exists to
+      prevent.

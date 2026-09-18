@@ -32,7 +32,7 @@ const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const OUT = resolve(ROOT, 'services/admin-api/internal/validation/registry_gen.go');
 const CHECK = process.argv.includes('--check');
 
-const REGISTRIES = ['actors', 'suites', 'profiles', 'journeys'];
+const REGISTRIES = ['actors', 'suites', 'profiles', 'journeys', 'assurance'];
 
 /** Sort object keys recursively so the digest depends on content, not on key order. */
 const canonical = (v) => {

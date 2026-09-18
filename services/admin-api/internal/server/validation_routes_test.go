@@ -33,6 +33,10 @@ func TestValidation_EveryRouteStatesItsCapability(t *testing.T) {
 		{"Get", `"/admin/v1/validation/actors"`, "CapValidationView", false},
 		{"Get", `"/admin/v1/validation/profiles"`, "CapValidationView", false},
 		{"Get", `"/admin/v1/validation/preflight"`, "CapValidationView", false},
+		{"Get", `"/admin/v1/validation/catalogue"`, "CapValidationView", false},
+		{"Get", `"/admin/v1/validation/journeys/{id}"`, "CapValidationView", false},
+		{"Get", `"/admin/v1/validation/components"`, "CapValidationView", false},
+		{"Get", `"/admin/v1/validation/assurance"`, "CapValidationView", false},
 		{"Get", `"/admin/v1/validation/runs"`, "CapValidationView", false},
 		{"Get", `"/admin/v1/validation/runs/{id}"`, "CapValidationView", false},
 

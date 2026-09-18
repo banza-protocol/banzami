@@ -191,6 +191,66 @@ func (h *ValidationHandler) Preflight(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, body)
 }
 
+// Catalogue is the validation universe: every suite, the journeys that actually
+// exist for it, and how far each has got.
+//
+// GET /admin/v1/validation/catalogue
+func (h *ValidationHandler) Catalogue(w http.ResponseWriter, r *http.Request) {
+	cat, err := h.reg.Catalogue()
+	if err != nil {
+		vErr(w, http.StatusInternalServerError, "CATALOGUE_UNREADABLE", err.Error())
+		return
+	}
+	cov, _ := h.reg.Coverage()
+	writeJSON(w, http.StatusOK, map[string]any{"suites": cat, "coverage": cov})
+}
+
+// Journey returns one scenario in full: steps, assertions, actors, what it may
+// change and what it must not.
+//
+// GET /admin/v1/validation/journeys/{id}
+func (h *ValidationHandler) Journey(w http.ResponseWriter, r *http.Request) {
+	js, err := h.reg.Journeys()
+	if err != nil {
+		vErr(w, http.StatusInternalServerError, "CATALOGUE_UNREADABLE", err.Error())
+		return
+	}
+	id := chi.URLParam(r, "id")
+	for _, j := range js {
+		if j.ID == id {
+			writeJSON(w, http.StatusOK, map[string]any{"journey": j})
+			return
+		}
+	}
+	vErr(w, http.StatusNotFound, "JOURNEY_NOT_FOUND", "no such journey: "+id)
+}
+
+// Components is the participating service map with the revisions readable now.
+//
+// GET /admin/v1/validation/components
+func (h *ValidationHandler) Components(w http.ResponseWriter, r *http.Request) {
+	var collected []validation.ProvenanceRow
+	if res, err := h.pre.Run(r.Context(), ""); err == nil {
+		collected = res.Provenance
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"as_of":      "current deployment",
+		"components": h.reg.Components(collected),
+	})
+}
+
+// Assurance is the invariant catalogue and the open validation debt.
+//
+// GET /admin/v1/validation/assurance
+func (h *ValidationHandler) Assurance(w http.ResponseWriter, r *http.Request) {
+	inv, issues, err := h.reg.Assurance()
+	if err != nil {
+		vErr(w, http.StatusInternalServerError, "ASSURANCE_UNREADABLE", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"invariants": inv, "known_issues": issues})
+}
+
 // ListRuns returns the most recent Validation Runs.
 //
 // GET /admin/v1/validation/runs
@@ -229,7 +289,32 @@ func (h *ValidationHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 		vErr(w, http.StatusServiceUnavailable, "VALIDATION_STORE_UNAVAILABLE", err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"run": run, "events": events})
+	// PINNED, not current. A run prepared against gateway 1bf03679 keeps saying
+	// so after the gateway moves on; recomputing it from today's deployment
+	// would silently re-describe historical evidence.
+	provenance, err := h.runs.PinnedProvenance(r.Context(), id)
+	if err != nil {
+		vErr(w, http.StatusServiceUnavailable, "VALIDATION_STORE_UNAVAILABLE", err.Error())
+		return
+	}
+	preflight, err := h.runs.PinnedPreflight(r.Context(), id)
+	if err != nil {
+		vErr(w, http.StatusServiceUnavailable, "VALIDATION_STORE_UNAVAILABLE", err.Error())
+		return
+	}
+
+	// What a reader needs in order not to mistake a prepared run for an
+	// executed one, stated rather than left to inference.
+	writeJSON(w, http.StatusOK, map[string]any{
+		"run":                 run,
+		"events":              events,
+		"pinned_provenance":   provenance,
+		"pinned_preflight":    preflight,
+		"provenance_captured": len(provenance) > 0,
+		"ever_started":        run.StartedAt != nil,
+		"journeys_executed":   0,
+		"evidence_rows":       0,
+	})
 }
 
 // PrepareRun creates a run in PREPARING, preflights it, and leaves it READY or

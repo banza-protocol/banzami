@@ -714,6 +714,101 @@ export interface ValidationOverview {
   active_run:        ValidationRun | null;
   recent_runs:       ValidationRun[];
   runs_ever_started: boolean;
+  coverage:          ValidationCoverage;
+  components:        ValidationComponent[];
+  blocking_issues:   ValidationKnownIssue[] | null;
+}
+
+// ── Deep inspection: the Studio explaining itself ───────────────────────────
+//
+// Every shape here is SERVED by admin-api from the canonical registry. None of
+// it is reconstructed in the browser: a second definition of what Banzami
+// validates, written in TypeScript, is exactly the drift the Studio exists to
+// detect.
+
+export type ImplementationStatus = 'DECLARED' | 'SPECIFIED' | 'AUTOMATED' | 'RUNTIME_PROVEN';
+
+export interface ValidationStep {
+  seq:        number;
+  action:     string;
+  expect_ui?: string;
+  expect_api?: string;
+  evidence?:  string[];
+  mutating:   boolean;
+}
+
+export interface ValidationAssertion {
+  id:       string;
+  kind:     'financial' | 'negative' | 'evidence';
+  describe: string;
+  blocking: boolean;
+  /** Always EXPECTED until a run observes it. Never PASS before observation. */
+  result:   'EXPECTED' | 'PASS' | 'FAIL' | 'SKIPPED' | 'UNAVAILABLE';
+}
+
+export interface ValidationJourney {
+  id:            string;
+  name:          string;
+  suite:         string;
+  capabilities?: string[];
+  actors?:       string[];
+  preconditions?: string[];
+  entry_surface?: string;
+  entry_path?:   string;
+  steps?:        ValidationStep[];
+  assertions?:   ValidationAssertion[];
+  state_changes?: string[];
+  preserved?:    string[];
+  evidence_required?: string[];
+  depends_on?:   string[];
+  automation?:   string;
+  harness?:      string;
+  implementation_status: ImplementationStatus;
+}
+
+export interface ValidationSuiteDetail {
+  id: string; name: string; name_pt: string; blocking: boolean;
+  scope?: string; existing_coverage?: string; rationale?: string;
+  journeys: ValidationJourney[];
+  implementation_status: ImplementationStatus;
+  profiles: string[];
+  actors: string[];
+}
+
+export interface ValidationCoverage {
+  suites: number;
+  suites_declared: number;
+  suites_with_journeys: number;
+  journeys: number;
+  journeys_automated: number;
+  journeys_runtime_proven: number;
+}
+
+export interface ValidationComponent {
+  name: string;
+  responsibility: string;
+  mandatory_for_preparation: boolean;
+  exercised_at_execution: boolean;
+  provenance_source: string;
+  revision?: string;
+  revision_known: boolean;
+}
+
+export interface ValidationInvariant {
+  id: string; title: string; enforced_by: string; layer: string; proof: string; why: string;
+}
+
+export interface ValidationKnownIssue {
+  id: string; title: string; status: string; severity: string; scope: string;
+  blocks_golden: boolean; blocks_full: boolean; first_observed: string; detail: string;
+}
+
+export interface ValidationProvenanceRow {
+  component: string; revision: string; detail?: Record<string, string>;
+}
+
+export interface ValidationPinnedPreflight {
+  id: string; verdict: string; started_at: string; checks: ValidationCheck[];
 }
 
 export class AdminApi {
@@ -779,7 +874,16 @@ export class AdminApi {
   validationRuns(): Promise<{ runs: ValidationRun[] }> {
     return this.req('/admin/v1/validation/runs');
   }
-  validationRun(id: string): Promise<{ run: ValidationRun; events: ValidationRunEvent[] }> {
+  validationRun(id: string): Promise<{
+    run: ValidationRun;
+    events: ValidationRunEvent[];
+    pinned_provenance: ValidationProvenanceRow[];
+    pinned_preflight: ValidationPinnedPreflight | null;
+    provenance_captured: boolean;
+    ever_started: boolean;
+    journeys_executed: number;
+    evidence_rows: number;
+  }> {
     return this.req(`/admin/v1/validation/runs/${encodeURIComponent(id)}`);
   }
   /** Prepares and preflights a run. It does NOT start it — nothing does. */
@@ -796,6 +900,19 @@ export class AdminApi {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+  }
+
+  validationCatalogue(): Promise<{ suites: ValidationSuiteDetail[]; coverage: ValidationCoverage }> {
+    return this.req('/admin/v1/validation/catalogue');
+  }
+  validationJourney(id: string): Promise<{ journey: ValidationJourney }> {
+    return this.req(`/admin/v1/validation/journeys/${encodeURIComponent(id)}`);
+  }
+  validationComponents(): Promise<{ as_of: string; components: ValidationComponent[] }> {
+    return this.req('/admin/v1/validation/components');
+  }
+  validationAssurance(): Promise<{ invariants: ValidationInvariant[]; known_issues: ValidationKnownIssue[] }> {
+    return this.req('/admin/v1/validation/assurance');
   }
 
   /** One request, as the browser should send it: the cookie, and the CSRF token on a mutation. */

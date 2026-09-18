@@ -1,562 +1,452 @@
 'use client';
 
 /**
- * BANZADMIN — Banzami Validation Studio.
+ * BANZADMIN — Validation Studio, visão geral.
  *
- * The canonical OPERATIONAL surface (doc 23: one engine, multiple control
- * surfaces). This page is a control surface and nothing more: every decision it
- * shows — which suites a profile covers, how much a run may spend, whether the
- * Sandbox is fit — is computed by admin-api from registries reviewed as code.
- * Nothing here is a source of truth, and nothing here executes a journey.
- *
- * It also cannot start a run, because no route exists that could.
+ * The dashboard an operator reads before authorising a Validation Run. Every
+ * number is served by admin-api from the canonical registry; nothing is
+ * reconstructed here, and nothing shows a result before something observed it.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { Microscope, ShieldCheck, AlertTriangle, CircleSlash, Ban } from 'lucide-react';
-import { getSession } from '@/lib/session';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  AdminApi,
-  type ValidationOverview, type ValidationActor, type ValidationProfile,
-  type ValidationPreflight, type ValidationRun, type ValidationCheck,
-} from '@/lib/admin-api';
-import { Card, CardHeader, ErrorState } from '@/components/ui/table';
+  Settings2, UsersRound, Layers, FileSliders, PlayCircle, FileCode2, Boxes,
+  BarChart3, ShieldCheck, Clock, BookOpen, Network, AlertTriangle, CircleSlash, Ban, Star, FileText,
+} from 'lucide-react';
+import { useStudio, getApi } from './studio-context';
 import { useToast } from '@/components/ui/toast';
-import { formatKz, formatDateTime, timeAgo } from '@/lib/format';
+import { getSession } from '@/lib/session';
+import { formatKz, timeAgo } from '@/lib/format';
+import type { ValidationProfile, ValidationCheck } from '@/lib/admin-api';
+import {
+  Panel, IconChip, SectionHeader, MetricCard, Pill, Dot, Button, MoreLink, Row,
+  Empty, Skeleton, Hash, Why, STATE_STYLE, CHECK_STYLE, VERDICT_SKIN,
+} from './studio-ui';
 
-function getApi(): AdminApi | null {
-  return getSession() ? new AdminApi() : null;
-}
-
-type Tab = 'overview' | 'actors' | 'profiles' | 'preflight' | 'runs';
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Visão geral' },
-  { id: 'actors',   label: 'Actores' },
-  { id: 'profiles', label: 'Perfis' },
-  { id: 'preflight', label: 'Verificação prévia' },
-  { id: 'runs',     label: 'Execuções' },
-];
-
-const VERDICT_STYLE: Record<string, string> = {
-  HEALTHY:   'border-green-300 bg-green-50 text-green-800',
-  DEGRADED:  'border-amber-300 bg-amber-50 text-amber-900',
-  UNHEALTHY: 'border-red-300 bg-red-50 text-red-800',
-};
-
-const CHECK_STYLE: Record<ValidationCheck['status'], string> = {
-  PASS:        'bg-green-100 text-green-800',
-  WARN:        'bg-amber-100 text-amber-900',
-  FAIL:        'bg-red-100 text-red-800',
-  SKIPPED:     'bg-neutral-100 text-neutral-600',
-  UNAVAILABLE: 'bg-neutral-200 text-neutral-700',
-};
-
-const STATE_STYLE: Record<string, string> = {
-  PREPARING: 'bg-neutral-100 text-neutral-700',
-  PREFLIGHT_RUNNING: 'bg-blue-100 text-blue-800',
-  BLOCKED: 'bg-red-100 text-red-800',
-  READY: 'bg-green-100 text-green-800',
-  QUEUED: 'bg-blue-100 text-blue-800',
-  RUNNING: 'bg-blue-100 text-blue-800',
-  COMPLETED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-neutral-200 text-neutral-700',
-  ABANDONED: 'bg-amber-100 text-amber-900',
-};
-
-function Pill({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-[3px] text-[12px] font-semibold ${className}`}>
-      {children}
-    </span>
-  );
-}
-
-export default function ValidationStudioPage() {
+export default function StudioOverview() {
+  const s = useStudio();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>('overview');
-  const [error, setError] = useState('');
+  const router = useRouter();
 
-  const [overview, setOverview] = useState<ValidationOverview | null>(null);
-  const [actors, setActors] = useState<ValidationActor[] | null>(null);
-  const [profiles, setProfiles] = useState<ValidationProfile[] | null>(null);
-  const [preflight, setPreflight] = useState<ValidationPreflight | null>(null);
-  const [preflightFor, setPreflightFor] = useState<string>('GOLDEN');
-  const [meetsMinimum, setMeetsMinimum] = useState<boolean | null>(null);
-  const [runs, setRuns] = useState<ValidationRun[] | null>(null);
-  const [busy, setBusy] = useState(false);
+  // The preflight costs nothing — no write, no auth, no email, no quota — so
+  // the dashboard may simply ask for it. That property is proven structurally
+  // (INV-VS-008); without it this call would be spending the budget it reports.
+  useEffect(() => {
+    if (!s.loading && !s.preflight) void s.runPreflight('GOLDEN');
+  }, [s.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canPrepare = (() => {
-    const role = getSession()?.user.role;
-    return role === 'SUPER_ADMIN' || role === 'OPERATIONS';
-  })();
+  const canPrepare = ['SUPER_ADMIN', 'OPERATIONS'].includes(getSession()?.user.role ?? '');
 
-  const load = useCallback(async () => {
+  async function prepare(profile: string) {
     const api = getApi();
     if (!api) return;
-    setError('');
+    s.setBusy(true);
     try {
-      const [o, a, p, r] = await Promise.all([
-        api.validationOverview(),
-        api.validationActors(),
-        api.validationProfiles(),
-        api.validationRuns(),
-      ]);
-      setOverview(o);
-      setActors(a.actors);
-      setProfiles(p.profiles);
-      setRuns(r.runs);
-    } catch {
-      setError('Não foi possível carregar o Validation Studio.');
-    }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const runPreflight = useCallback(async (profile: string) => {
-    const api = getApi();
-    if (!api) return;
-    setBusy(true);
-    try {
-      const res = await api.validationPreflight(profile);
-      setPreflight(res.preflight);
-      setMeetsMinimum(res.meets_minimum ?? null);
-      setPreflightFor(profile);
-      setTab('preflight');
-    } catch {
-      toast('danger', 'Não foi possível executar a verificação prévia.');
-    } finally {
-      setBusy(false);
-    }
-  }, [toast]);
-
-  const prepareRun = useCallback(async (profile: string) => {
-    const api = getApi();
-    if (!api) return;
-    setBusy(true);
-    try {
-      // The key makes preparation replayable: two operators clicking at once is
-      // the ordinary case, and the second click must not take a second slot.
       const key = `${profile}-${new Date().toISOString().slice(0, 16)}`;
       const res = await api.validationPrepareRun(profile, key);
-      toast(
-        res.run.state === 'READY' ? 'success' : 'warning',
-        `${res.run.run_ref} preparada (${res.run.state}). ${res.note}`,
-      );
-      setPreflight(res.preflight);
-      setPreflightFor(profile);
-      await load();
-      setTab('runs');
+      toast(res.run.state === 'READY' ? 'success' : 'warning',
+        `${res.run.run_ref} preparada (${res.run.state}). ${res.note}`);
+      await s.reload();
+      router.push('/validation/runs');
     } catch {
       toast('danger', 'Não foi possível preparar a execução.');
-    } finally {
-      setBusy(false);
-    }
-  }, [toast, load]);
+    } finally { s.setBusy(false); }
+  }
 
-  const cancelRun = useCallback(async (run: ValidationRun) => {
-    const api = getApi();
-    if (!api) return;
-    setBusy(true);
-    try {
-      await api.validationCancelRun(run.id, 'cancelada pelo operador no BANZADMIN');
-      toast('success', `${run.run_ref} cancelada.`);
-      await load();
-    } catch {
-      toast('danger', 'Não foi possível cancelar a execução.');
-    } finally {
-      setBusy(false);
-    }
-  }, [toast, load]);
+  if (s.loading) return <DashboardSkeleton />;
+  if (s.error) {
+    return (
+      <Panel className="p-6">
+        <p className="text-[14px] font-bold text-red-800">{s.error}</p>
+        <div className="mt-3"><Button onClick={() => void s.reload()}>Tentar de novo</Button></div>
+      </Panel>
+    );
+  }
+
+  const o = s.overview!;
+  const blockingSuites = s.suites.filter((x) => x.blocking).length;
+  const healthy = s.actors.filter((a) => a.status === 'provisioned').length;
 
   return (
-    <div className="p-[26px]">
-      <div className="mb-[22px] border-b border-[#f1e3e3]">
-        <h1 className="flex items-center gap-2 pb-[14px] text-[26px] font-extrabold text-[#1a1a1a]">
-          <Microscope className="h-6 w-6 text-[#B5101F]" aria-hidden />
-          Validation Studio
-        </h1>
+    <div className="flex flex-col gap-[18px]">
+      {/* A. what this surface is, and what it deliberately is not */}
+      <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_380px]">
+        <Panel className="flex items-start gap-4 border-[#f6dede] bg-[#FDF4F4] px-5 py-[18px]">
+          <IconChip Icon={Network} />
+          <div>
+            <p className="text-[14.5px] font-extrabold leading-snug text-[#1a1a1a]">
+              O Validation Studio prepara, verifica e cancela execuções de validação funcional do Sandbox.
+            </p>
+            <p className="mt-1 text-[13px] leading-[1.5] text-[#6a5a5e]">
+              Não executa percursos — o motor de execução é separado e ainda não existe.
+              Nenhuma execução foi alguma vez iniciada.
+            </p>
+          </div>
+        </Panel>
+
+        <Panel className="flex items-center gap-3.5 px-5 py-[18px]">
+          <IconChip Icon={BookOpen} tone="neutral" />
+          <div className="min-w-0">
+            <p className="text-[13.5px] font-extrabold text-[#1a1a1a]">Ambiente exclusivo de validação</p>
+            <p className="mt-0.5 text-[12.5px] text-[#9a8a8e]">
+              Isolado da produção. O esquema não admite outro ambiente.
+            </p>
+          </div>
+        </Panel>
       </div>
 
-      <p className="mb-5 max-w-[760px] text-[14px] text-[#9a8a8e]">
-        Superfície operacional canónica da validação funcional do Sandbox. Prepara,
-        descreve e cancela execuções; não executa percursos — o motor de execução
-        é separado. Exclusivo do ambiente <strong>SANDBOX</strong>.
-      </p>
-
-      {/* The single most important statement this page makes. */}
-      <div className="mb-6 flex max-w-[760px] items-start gap-3 rounded-[14px] border-[1.5px] border-amber-300 bg-amber-50 px-5 py-4">
-        <Ban className="mt-0.5 h-5 w-5 flex-none text-amber-700" aria-hidden />
-        <p className="text-[13.5px] leading-[1.5] text-amber-900">
-          <strong>Nenhuma execução de validação foi iniciada.</strong> Esta superfície
-          consegue preparar e verificar uma execução real, mas iniciar uma não está
-          implementado — não existe rota que o faça.
-        </p>
+      {/* B. state at a glance */}
+      <div className="grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <MetricCard Icon={Settings2} label="Estado do Studio" tone="good"
+          value={<span className="flex items-center gap-1.5"><Dot tone="good" />Operacional</span>}
+          caption="Ambiente SANDBOX" />
+        <MetricCard Icon={UsersRound} label="Actores" value={healthy}
+          caption={`${healthy}/${s.actors.length} provisionados`} />
+        <MetricCard Icon={Layers} label="Suites" value={s.suites.length}
+          caption={`${blockingSuites} bloqueantes`} />
+        <MetricCard Icon={FileSliders} label="Perfis" value={o.profiles.map((p) => p.id).join(' / ')}
+          caption={`${o.profiles.length} perfis definidos`} />
+        <MetricCard Icon={PlayCircle} label="Execuções activas" value={o.active_run ? 1 : 0}
+          tone={o.active_run ? 'warn' : 'neutral'}
+          caption={o.active_run ? o.active_run.run_ref : 'nenhuma em curso'} />
+        <MetricCard Icon={FileCode2} label="Registo" tone="neutral"
+          value={<span className="font-mono text-[14px]">{o.registry_digest.slice(0, 12)}…</span>}
+          caption="compilado no admin-api" />
       </div>
 
-      <div className="mb-6 flex gap-1 border-b border-[#f1e3e3]">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-[14px] font-semibold transition-colors ${
-              tab === t.id
-                ? 'border-b-[2.5px] border-[#B5101F] text-[#1a1a1a]'
-                : 'text-[#9a8a8e] hover:text-[#1a1a1a]'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* The honesty counterweight the mockup has no room for, and the page needs. */}
+      <Coverage coverage={o.coverage} />
+
+      {/* C + D. readiness beside the preflight */}
+      <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        <Panel className="p-5">
+          <SectionHeader Icon={BarChart3} title="Validation Readiness"
+            subtitle="Estado actual dos perfis de validação no ambiente SANDBOX." />
+          <div className="mt-4 grid gap-3.5 lg:grid-cols-2">
+            {o.profiles.map((p) => (
+              <ProfileReadinessCard key={p.id} p={p}
+                meets={s.preflightProfile === p.id ? s.meetsMinimum : null}
+                verdict={s.preflight?.verdict ?? null}
+                busy={s.busy}
+                onCheck={() => void s.runPreflight(p.id)}
+                onPrepare={canPrepare ? () => void prepare(p.id) : undefined} />
+            ))}
+          </div>
+        </Panel>
+
+        <PreflightSummary checks={s.preflight?.checks ?? null} verdict={s.preflight?.verdict ?? null} busy={s.busy} />
       </div>
 
-      {error ? <ErrorState message={error} /> : !overview ? (
-        <div className="text-[15px] text-[#9a8a8e]">A carregar…</div>
-      ) : (
-        <>
-          {tab === 'overview' && (
-            <Overview
-              overview={overview}
-              onPreflight={runPreflight}
-              onPrepare={canPrepare ? prepareRun : undefined}
-              busy={busy}
-            />
-          )}
-          {tab === 'actors'    && <Actors actors={actors ?? []} />}
-          {tab === 'profiles'  && <Profiles profiles={profiles ?? []} onPreflight={runPreflight} busy={busy} />}
-          {tab === 'preflight' && (
-            <Preflight
-              preflight={preflight}
-              profile={preflightFor}
-              meetsMinimum={meetsMinimum}
-              onRun={runPreflight}
-              busy={busy}
-            />
-          )}
-          {tab === 'runs' && <Runs runs={runs ?? []} onCancel={canPrepare ? cancelRun : undefined} busy={busy} />}
-        </>
+      {/* E + F + G */}
+      <div className="grid gap-[18px] xl:grid-cols-3">
+        <ActorsPreview actors={s.actors} />
+        <ProvenancePreview components={o.components} />
+        <RecentRuns runs={s.runs} everStarted={o.runs_ever_started} />
+      </div>
+
+      {(o.blocking_issues ?? []).length > 0 && (
+        <Panel className="p-5">
+          <SectionHeader Icon={AlertTriangle} tone="warn" title="Bloqueadores operacionais"
+            subtitle="O que impede uma execução de significar o que aparenta."
+            action={<MoreLink label="Todos os registos" href="/validation/registry" />} />
+          <ul className="mt-4 space-y-3">
+            {(o.blocking_issues ?? []).map((i) => (
+              <li key={i.id} className="flex items-start gap-3 border-b border-[#faf0f0] pb-3 last:border-0 last:pb-0">
+                <Pill className="mt-[1px] bg-[#FDECEC] text-red-800">{i.id}</Pill>
+                <div>
+                  <p className="text-[13.5px] font-extrabold text-[#1a1a1a]">{i.title}</p>
+                  <p className="mt-0.5 text-[12.5px] leading-[1.5] text-[#6a5a5e]">{i.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
       )}
     </div>
   );
 }
 
-function Overview({
-  overview, onPreflight, onPrepare, busy,
-}: {
-  overview: ValidationOverview;
-  onPreflight: (p: string) => void;
-  onPrepare?: (p: string) => void;
-  busy: boolean;
-}) {
+/* ── coverage: the number the mockup has no room for ───────────────────── */
+
+function Coverage({ coverage: c }: { coverage: { suites: number; suites_declared: number; journeys: number; journeys_automated: number; journeys_runtime_proven: number } }) {
+  const executable = c.suites - c.suites_declared;
+  const pct = c.suites ? Math.round((executable / c.suites) * 100) : 0;
   return (
-    <div className="grid max-w-[980px] gap-5">
-      <Card className="p-6">
-        <CardHeader title="Estado do Studio" />
-        <dl className="mt-4 grid grid-cols-2 gap-x-8 gap-y-3 text-[14px] md:grid-cols-4">
-          <div><dt className="text-[#9a8a8e]">Ambiente</dt><dd className="font-semibold">{overview.environment}</dd></div>
-          <div><dt className="text-[#9a8a8e]">Actores</dt><dd className="font-semibold">{overview.actors}</dd></div>
-          <div><dt className="text-[#9a8a8e]">Suites</dt><dd className="font-semibold">{overview.suites}</dd></div>
-          <div>
-            <dt className="text-[#9a8a8e]">Registo</dt>
-            <dd className="font-mono text-[12.5px]" title={overview.registry_digest}>
-              {overview.registry_digest.slice(0, 12)}…
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-4 text-[13px] text-[#9a8a8e]">
-          O registo está compilado no binário do admin-api, por isso esta superfície
-          serve exactamente o registo que a revisão implantada reviu.
-        </p>
-      </Card>
-
-      <Card className="p-6">
-        <CardHeader title="Execução em curso" />
-        <div className="mt-4">
-          {overview.active_run ? (
-            <div className="flex items-center gap-3">
-              <Pill className={STATE_STYLE[overview.active_run.state]}>{overview.active_run.state}</Pill>
-              <span className="font-mono text-[13px]">{overview.active_run.run_ref}</span>
-            </div>
-          ) : (
-            <p className="flex items-center gap-2 text-[14px] text-[#1a1a1a]">
-              <ShieldCheck className="h-4 w-4 text-green-600" aria-hidden />
-              Nenhuma execução detém o Sandbox.
-              {!overview.runs_ever_started && (
-                <span className="text-[#9a8a8e]">Nenhuma execução foi alguma vez iniciada.</span>
-              )}
-            </p>
-          )}
-        </div>
-      </Card>
-
-      {overview.profiles.map((p) => (
-        <Card key={p.id} className="p-6">
-          <CardHeader title={`${p.name_pt} — ${p.id} v${p.version}`} />
-          <p className="mt-3 max-w-[720px] text-[13.5px] leading-[1.55] text-[#4a4a4a]">{p.claim}</p>
-          <dl className="mt-4 grid grid-cols-2 gap-x-8 gap-y-3 text-[14px] md:grid-cols-4">
-            <div><dt className="text-[#9a8a8e]">Suites</dt><dd className="font-semibold">{p.suites} ({p.blocking_suites} bloqueantes)</dd></div>
-            <div><dt className="text-[#9a8a8e]">Verificação mínima</dt><dd className="font-semibold">{p.minimum_preflight}</dd></div>
-            <div><dt className="text-[#9a8a8e]">Tecto de volume</dt><dd className="font-semibold">{formatKz(p.max_credit_volume_minor)}</dd></div>
-            <div><dt className="text-[#9a8a8e]">PASS_WITH_RETRY</dt><dd className="font-semibold">{p.max_pass_with_retry}</dd></div>
-          </dl>
-          <div className="mt-5 flex gap-3">
-            <button
-              onClick={() => onPreflight(p.id)}
-              disabled={busy}
-              className="rounded-[10px] border-[1.5px] border-[#e5d5d5] px-4 py-2 text-[14px] font-semibold text-[#1a1a1a] hover:bg-[#faf5f5] disabled:opacity-50"
-            >
-              Verificar Sandbox
-            </button>
-            {onPrepare && (
-              <button
-                onClick={() => onPrepare(p.id)}
-                disabled={busy}
-                className="rounded-[10px] bg-[#B5101F] px-4 py-2 text-[14px] font-semibold text-white hover:bg-[#9A1B22] disabled:opacity-50"
-              >
-                Preparar execução
-              </button>
-            )}
+    <Panel className="p-5">
+      <SectionHeader Icon={Layers} tone="warn" title="Quanto do universo é realmente executável"
+        subtitle="Uma suite existir não significa que algo seja testado."
+        action={<MoreLink label="Ver registos" href="/validation/registry" />} />
+      <div className="mt-4 flex flex-wrap items-center gap-6">
+        <div className="min-w-[220px] flex-1">
+          <div className="h-[9px] w-full overflow-hidden rounded-full bg-[#F1EEEE]">
+            <div className="h-full rounded-full bg-[#B5101F]" style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-2 text-[12.5px] text-[#9a8a8e]">
-            Preparar cria e verifica a execução. Não a inicia.
+            {executable} de {c.suites} suites têm pelo menos um percurso executável definido.
           </p>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function Actors({ actors }: { actors: ValidationActor[] }) {
-  return (
-    <Card className="max-w-[980px] p-6">
-      <CardHeader title={`Actores de validação (${actors.length})`} />
-      <p className="mt-3 text-[13px] text-[#9a8a8e]">
-        Cada actor indica <em>quais</em> credenciais possui, pelo nome. Nunca o valor,
-        nem a referência ao segredo.
-      </p>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-left text-[13.5px]">
-          <thead className="border-b border-[#f1e3e3] text-[12px] uppercase tracking-wide text-[#9a8a8e]">
-            <tr>
-              <th className="py-2 pr-4">ID</th>
-              <th className="py-2 pr-4">Tipo</th>
-              <th className="py-2 pr-4">Identidade</th>
-              <th className="py-2 pr-4">Estado</th>
-              <th className="py-2 pr-4">Credenciais</th>
-              <th className="py-2">Função</th>
-            </tr>
-          </thead>
-          <tbody>
-            {actors.map((a) => (
-              <tr key={a.id} className="border-b border-[#faf0f0] align-top">
-                <td className="py-2.5 pr-4 font-mono font-semibold">{a.id}</td>
-                <td className="py-2.5 pr-4">{a.type}</td>
-                <td className="py-2.5 pr-4 font-mono text-[12.5px]">{a.handle ? `@${a.handle}` : a.email ?? '—'}</td>
-                <td className="py-2.5 pr-4">
-                  <Pill className={a.status === 'provisioned' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-900'}>
-                    {a.status}
-                  </Pill>
-                </td>
-                <td className="py-2.5 pr-4">
-                  {a.credential_names.length
-                    ? a.credential_names.map((n) => (
-                        <Pill key={n} className="mr-1 bg-neutral-100 text-neutral-700">{n}</Pill>
-                      ))
-                    : <span className="text-[#9a8a8e]">—</span>}
-                </td>
-                <td className="py-2.5 max-w-[280px] text-[12.5px] text-[#4a4a4a]">{a.purpose ?? '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  );
-}
-
-function Profiles({
-  profiles, onPreflight, busy,
-}: { profiles: ValidationProfile[]; onPreflight: (p: string) => void; busy: boolean }) {
-  return (
-    <div className="grid max-w-[980px] gap-5">
-      {profiles.map((p) => (
-        <Card key={p.id} className="p-6">
-          <CardHeader title={`${p.id} — ${p.name}`} />
-          <p className="mt-3 max-w-[720px] text-[13.5px] leading-[1.55] text-[#4a4a4a]">{p.claim}</p>
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {(p.suite_ids ?? []).map((s) => (
-              <Pill
-                key={s}
-                className={(p.blocking_ids ?? []).includes(s)
-                  ? 'bg-[#FBD2D0] text-[#9A1B22]'
-                  : 'bg-neutral-100 text-neutral-700'}
-              >
-                {s}
-              </Pill>
-            ))}
-          </div>
-          <p className="mt-3 text-[12.5px] text-[#9a8a8e]">
-            A vermelho: suites bloqueantes — uma falha aqui reprova a execução.
-            Um perfil pode promover uma suite a bloqueante; nunca despromover.
-          </p>
-          <p className="mt-3 font-mono text-[12px] text-[#9a8a8e]" title={p.digest}>
-            digest {p.digest.slice(0, 16)}…
-          </p>
-          <button
-            onClick={() => onPreflight(p.id)}
-            disabled={busy}
-            className="mt-4 rounded-[10px] border-[1.5px] border-[#e5d5d5] px-4 py-2 text-[14px] font-semibold text-[#1a1a1a] hover:bg-[#faf5f5] disabled:opacity-50"
-          >
-            Verificar Sandbox para {p.id}
-          </button>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function Preflight({
-  preflight, profile, meetsMinimum, onRun, busy,
-}: {
-  preflight: ValidationPreflight | null;
-  profile: string;
-  meetsMinimum: boolean | null;
-  onRun: (p: string) => void;
-  busy: boolean;
-}) {
-  if (!preflight) {
-    return (
-      <Card className="max-w-[980px] p-6">
-        <p className="text-[14px] text-[#9a8a8e]">
-          Ainda não foi executada nenhuma verificação nesta sessão.
-        </p>
-        <button
-          onClick={() => onRun(profile)}
-          disabled={busy}
-          className="mt-4 rounded-[10px] bg-[#B5101F] px-4 py-2 text-[14px] font-semibold text-white hover:bg-[#9A1B22] disabled:opacity-50"
-        >
-          Verificar agora ({profile})
-        </button>
-      </Card>
-    );
-  }
-
-  const groups = [...new Set(preflight.checks.map((c) => c.group))];
-
-  return (
-    <div className="grid max-w-[980px] gap-5">
-      <Card className="p-6">
-        <div className={`flex items-start gap-3 rounded-[14px] border-[1.5px] px-5 py-4 ${VERDICT_STYLE[preflight.verdict]}`}>
-          {preflight.verdict === 'HEALTHY'
-            ? <ShieldCheck className="mt-0.5 h-5 w-5 flex-none" aria-hidden />
-            : preflight.verdict === 'DEGRADED'
-              ? <AlertTriangle className="mt-0.5 h-5 w-5 flex-none" aria-hidden />
-              : <CircleSlash className="mt-0.5 h-5 w-5 flex-none" aria-hidden />}
-          <div>
-            <p className="text-[15px] font-bold">{preflight.verdict}</p>
-            <p className="mt-1 text-[13px]">
-              {meetsMinimum === null
-                ? 'Verificação sem perfil.'
-                : meetsMinimum
-                  ? `Satisfaz o mínimo exigido por ${profile}.`
-                  : `NÃO satisfaz o mínimo exigido por ${profile}.`}
-            </p>
-          </div>
         </div>
-        <p className="mt-4 text-[12.5px] text-[#9a8a8e]">
-          Esta verificação não escreveu nada, não autenticou ninguém e não gastou
-          orçamento. {formatDateTime(preflight.ended_at)}
-        </p>
-        <button
-          onClick={() => onRun(profile)}
-          disabled={busy}
-          className="mt-4 rounded-[10px] border-[1.5px] border-[#e5d5d5] px-4 py-2 text-[14px] font-semibold text-[#1a1a1a] hover:bg-[#faf5f5] disabled:opacity-50"
-        >
-          Verificar de novo
-        </button>
-      </Card>
+        <dl className="flex flex-wrap gap-x-9 gap-y-2">
+          <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">Percursos escritos</dt>
+            <dd className="text-[19px] font-black text-[#1a1a1a]">{c.journeys}</dd></div>
+          <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">Automatizados</dt>
+            <dd className="text-[19px] font-black text-[#1a1a1a]">{c.journeys_automated}</dd></div>
+          <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">Provados em execução</dt>
+            <dd className="text-[19px] font-black text-amber-700">{c.journeys_runtime_proven}</dd></div>
+        </dl>
+      </div>
+    </Panel>
+  );
+}
 
-      {groups.map((g) => (
-        <Card key={g} className="p-6">
-          <CardHeader title={g} />
-          <ul className="mt-3 space-y-2.5">
-            {preflight.checks.filter((c) => c.group === g).map((c) => (
-              <li key={`${c.group}.${c.id}`} className="flex items-start gap-3">
-                <Pill className={`${CHECK_STYLE[c.status]} mt-[1px] flex-none`}>{c.status}</Pill>
-                <div>
-                  <p className="font-mono text-[12.5px] text-[#9a8a8e]">{c.id}</p>
-                  <p className="text-[13.5px] text-[#1a1a1a]">{c.detail}</p>
-                </div>
+/* ── profile readiness ─────────────────────────────────────────────────── */
+
+function ProfileReadinessCard({ p, meets, verdict, busy, onCheck, onPrepare }: {
+  p: ValidationProfile; meets: boolean | null; verdict: string | null;
+  busy: boolean; onCheck: () => void; onPrepare?: () => void;
+}) {
+  const state = meets === null
+    ? { label: 'Não verificado', cls: 'bg-[#F4F1F1] text-[#6a5a5e]', tone: 'idle' as const }
+    : meets
+      ? { label: 'Preparado', cls: 'bg-[#E9F7EE] text-green-800', tone: 'good' as const }
+      : { label: 'Bloqueado', cls: 'bg-[#FDECEC] text-red-800', tone: 'bad' as const };
+
+  return (
+    <div className="rounded-[14px] border border-[#f4e7e7] bg-[#FFFCFC] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <IconChip Icon={p.id === 'GOLDEN' ? Star : Layers} size="sm" tone={p.id === 'GOLDEN' ? 'warn' : 'neutral'} />
+          <a href={`/validation/profiles/${p.id}`} className="text-[15.5px] font-black tracking-[-0.01em] text-[#1a1a1a] hover:underline">
+            {p.id} v{p.version}
+          </a>
+        </div>
+        <Pill className={state.cls}><Dot tone={state.tone} />{state.label}</Pill>
+      </div>
+
+      <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-[1.5] text-[#6a5a5e]" title={p.claim}>{p.claim}</p>
+
+      <dl className="mt-3 border-t border-[#f4e7e7] pt-2">
+        <Row label="Suites" value={`${p.suites} (${p.blocking_suites} bloqueantes)`} />
+        <Row label="Verificação mínima" value={
+          <span className={p.minimum_preflight === 'HEALTHY' ? 'text-green-700' : 'text-amber-700'}>{p.minimum_preflight}</span>
+        } />
+        <Row label="Tecto de volume" value={formatKz(p.max_credit_volume_minor)} />
+        <Row label="PASS_WITH_RETRY" value={p.max_pass_with_retry} />
+      </dl>
+
+      {verdict && meets === false && (
+        <p className="mt-2 text-[12px] font-bold text-red-700">
+          Verificação actual {verdict} — não satisfaz {p.minimum_preflight}.
+        </p>
+      )}
+
+      <div className="mt-3.5 grid grid-cols-2 gap-2">
+        <Button onClick={onCheck} disabled={busy} Icon={ShieldCheck}>Verificar</Button>
+        {onPrepare
+          ? <Button onClick={onPrepare} disabled={busy} variant="primary" Icon={PlayCircle}>Preparar</Button>
+          : <Button disabled Icon={PlayCircle}>Preparar</Button>}
+      </div>
+      <p className="mt-1.5 text-[11.5px] text-[#a99a9e]">Preparar cria e verifica. Não inicia.</p>
+    </div>
+  );
+}
+
+/* ── preflight summary ─────────────────────────────────────────────────── */
+
+function PreflightSummary({ checks, verdict, busy }: {
+  checks: ValidationCheck[] | null; verdict: string | null; busy: boolean;
+}) {
+  const worst = (group: string) => {
+    const g = (checks ?? []).filter((c) => c.group === group);
+    if (!g.length) return null;
+    for (const st of ['FAIL', 'WARN', 'UNAVAILABLE', 'SKIPPED', 'PASS']) {
+      const hit = g.find((c) => c.status === st);
+      if (hit) return { status: st, n: g.length, detail: hit.detail };
+    }
+    return null;
+  };
+
+  const groups = [
+    { id: 'registry', label: 'Registo e actores' },
+    { id: 'provenance', label: 'Proveniência dos componentes' },
+    { id: 'actors', label: 'Identidades de produto' },
+    { id: 'budget', label: 'Quota de volume' },
+    { id: 'studio', label: 'Esquema e bloqueio de execução' },
+  ];
+
+  return (
+    <Panel className="flex flex-col p-5">
+      <SectionHeader Icon={ShieldCheck} tone={verdict === 'HEALTHY' ? 'good' : verdict ? 'warn' : 'neutral'}
+        title="Verificação prévia" subtitle="Condições para preparar uma execução."
+        action={verdict
+          ? <Pill className={verdict === 'HEALTHY' ? 'bg-[#E9F7EE] text-green-800' : 'bg-[#FDF3E0] text-amber-900'}>
+              <Dot tone={verdict === 'HEALTHY' ? 'good' : 'warn'} />{verdict}
+            </Pill>
+          : <Pill className="bg-[#F4F1F1] text-[#6a5a5e]">a medir…</Pill>} />
+
+      <ul className="mt-4 flex-1">
+        {!checks ? [0, 1, 2, 3, 4].map((i) => (
+          <li key={i} className="border-b border-[#faf0f0] py-2.5 last:border-0"><Skeleton className="h-[18px] w-full" /></li>
+        )) : groups.map((g) => {
+          const r = worst(g.id);
+          if (!r) return null;
+          const ok = r.status === 'PASS';
+          return (
+            <li key={g.id} className="flex items-center justify-between gap-3 border-b border-[#faf0f0] py-[9px] last:border-0">
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className={`flex h-[19px] w-[19px] flex-none items-center justify-center rounded-full text-[11px] font-black ${
+                  ok ? 'bg-[#E9F7EE] text-green-700' : 'bg-[#FDF3E0] text-amber-700'}`}>{ok ? '✓' : '!'}</span>
+                <span className="truncate text-[13px] text-[#1a1a1a]">{g.label}</span>
+              </span>
+              <Pill className={CHECK_STYLE[r.status]}>{r.status} · {r.n}</Pill>
+            </li>
+          );
+        })}
+      </ul>
+
+      {checks && (
+        <p className="mt-3 text-[11.5px] leading-[1.5] text-[#a99a9e]">
+          Esta verificação não escreveu nada, não autenticou ninguém e não gastou orçamento.
+        </p>
+      )}
+      <div className="mt-3">
+        <Button full disabled={busy} onClick={() => { window.location.href = '/validation/preflight'; }}>
+          Ver detalhes da verificação prévia →
+        </Button>
+      </div>
+    </Panel>
+  );
+}
+
+/* ── lower grid ────────────────────────────────────────────────────────── */
+
+const ACTOR_LABEL: Record<string, string> = {
+  consumer: 'Consumidor', business: 'Comerciante', developer: 'Programador', operator: 'Operador',
+};
+
+function ActorsPreview({ actors }: { actors: { id: string; type: string; status: string }[] }) {
+  return (
+    <Panel className="p-5">
+      <SectionHeader Icon={UsersRound} title="Actores"
+        subtitle={`${actors.length} actores no SANDBOX`}
+        action={<MoreLink label="Ver todos" href="/validation/actors" />} />
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3">
+        {actors.map((a) => (
+          <a key={a.id} href="/validation/actors"
+            className="flex items-center gap-2 rounded-[10px] border border-[#f4e7e7] bg-[#FFFCFC] px-2.5 py-2 hover:bg-[#FDF4F4]">
+            <Dot tone={a.status === 'provisioned' ? 'good' : 'warn'} />
+            <span className="text-[12.5px] font-extrabold text-[#1a1a1a]">{a.id}</span>
+            <span className="truncate text-[11.5px] text-[#9a8a8e]">{ACTOR_LABEL[a.type] ?? a.type}</span>
+          </a>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function ProvenancePreview({ components }: {
+  components: { name: string; revision?: string; revision_known: boolean; mandatory_for_preparation: boolean; provenance_source: string }[];
+}) {
+  const shown = components.filter((c) => c.mandatory_for_preparation);
+  return (
+    <Panel className="p-5">
+      <SectionHeader Icon={Boxes} title="Proveniência / Componentes"
+        subtitle="Revisões actualmente implantadas no SANDBOX"
+        action={<MoreLink label="Ver detalhes" href="/validation/components" />} />
+      <ul className="mt-4">
+        {shown.map((c) => (
+          <li key={c.name} className="flex items-center justify-between gap-3 border-b border-[#faf0f0] py-[9px] last:border-0">
+            <span className="min-w-0">
+              <span className="block truncate text-[13px] font-extrabold text-[#1a1a1a]">{c.name}</span>
+              <span className="block truncate text-[11px] text-[#a99a9e]">{c.provenance_source}</span>
+            </span>
+            <span className="flex flex-none items-center gap-2">
+              {c.revision_known
+                ? <Hash value={c.revision ?? ''} />
+                : <span className="text-[12px] font-bold text-amber-700">indisponível</span>}
+              <Pill className={c.revision_known ? 'bg-[#E9F7EE] text-green-800' : 'bg-[#FDF3E0] text-amber-900'}>
+                {c.revision_known ? 'lida' : 'não exposta'}
+              </Pill>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <Why>
+        Revisões implantadas, nunca o HEAD do repositório. Um componente obrigatório que não
+        saiba dizer a sua revisão impede a preparação de chegar a READY.
+      </Why>
+    </Panel>
+  );
+}
+
+function RecentRuns({ runs, everStarted }: {
+  runs: { id: string; run_ref: string; profile_id: string; state: string; started_at: string | null; requested_at: string }[];
+  everStarted: boolean;
+}) {
+  return (
+    <Panel className="p-5">
+      <SectionHeader Icon={Clock} title="Execuções recentes"
+        subtitle={everStarted ? 'histórico de execuções' : 'nenhuma execução foi alguma vez iniciada'}
+        action={<MoreLink label="Ver todas" href="/validation/runs" />} />
+
+      {runs.length === 0 ? (
+        <div className="mt-4">
+          <Empty Icon={FileText} title="Nenhuma execução foi preparada"
+            detail="O Validation Studio prepara e verifica execuções, mas não as inicia." />
+        </div>
+      ) : (
+        <>
+          <ul className="mt-4">
+            {runs.slice(0, 5).map((r) => (
+              <li key={r.id} className="border-b border-[#faf0f0] py-[9px] last:border-0">
+                <a href={`/validation/runs/${r.id}`} className="flex items-center justify-between gap-3 hover:opacity-80">
+                  <span className="min-w-0">
+                    <span className="block truncate font-mono text-[12.5px] font-extrabold text-[#1a1a1a]">{r.run_ref}</span>
+                    <span className="block text-[11px] text-[#a99a9e]">{r.profile_id} · {timeAgo(r.requested_at)}</span>
+                  </span>
+                  <span className="flex flex-none flex-col items-end gap-1">
+                    <Pill className={STATE_STYLE[r.state]}>{r.state}</Pill>
+                    {!r.started_at && (
+                      <span className="text-[10.5px] font-extrabold uppercase tracking-[0.04em] text-[#a99a9e]">
+                        nunca iniciada
+                      </span>
+                    )}
+                  </span>
+                </a>
               </li>
             ))}
           </ul>
-        </Card>
-      ))}
-    </div>
+          <div className="mt-3 flex items-start gap-2 rounded-[11px] border border-[#f6dede] bg-[#FDF4F4] px-3.5 py-2.5">
+            <Ban className="mt-[1px] h-[15px] w-[15px] flex-none text-[#B5101F]" strokeWidth={2} aria-hidden />
+            <p className="text-[12px] leading-[1.5] text-[#6a5a5e]">
+              Estas execuções foram <strong>preparadas e canceladas</strong>. Nenhuma correu:
+              não existe rota que inicie uma.
+            </p>
+          </div>
+        </>
+      )}
+    </Panel>
   );
 }
 
-function Runs({
-  runs, onCancel, busy,
-}: { runs: ValidationRun[]; onCancel?: (r: ValidationRun) => void; busy: boolean }) {
-  if (!runs.length) {
-    return (
-      <Card className="max-w-[980px] p-6">
-        <p className="text-[14px] text-[#1a1a1a]">Nenhuma execução foi preparada.</p>
-        <p className="mt-2 text-[13px] text-[#9a8a8e]">
-          Nenhuma execução GOLDEN ou FULL foi alguma vez iniciada neste Sandbox.
-        </p>
-      </Card>
-    );
-  }
+/* ── loading ───────────────────────────────────────────────────────────── */
 
-  const terminal = ['COMPLETED', 'CANCELLED', 'ABANDONED'];
-
+function DashboardSkeleton() {
   return (
-    <Card className="max-w-[980px] p-6">
-      <CardHeader title={`Execuções (${runs.length})`} />
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-left text-[13.5px]">
-          <thead className="border-b border-[#f1e3e3] text-[12px] uppercase tracking-wide text-[#9a8a8e]">
-            <tr>
-              <th className="py-2 pr-4">Referência</th>
-              <th className="py-2 pr-4">Perfil</th>
-              <th className="py-2 pr-4">Estado</th>
-              <th className="py-2 pr-4">Veredicto</th>
-              <th className="py-2 pr-4">Preparada</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {runs.map((r) => (
-              <tr key={r.id} className="border-b border-[#faf0f0]">
-                <td className="py-2.5 pr-4 font-mono font-semibold">{r.run_ref}</td>
-                <td className="py-2.5 pr-4">{r.profile_id} v{r.profile_version}</td>
-                <td className="py-2.5 pr-4"><Pill className={STATE_STYLE[r.state]}>{r.state}</Pill></td>
-                <td className="py-2.5 pr-4">{r.verdict ?? '—'}</td>
-                <td className="py-2.5 pr-4 text-[#9a8a8e]" title={formatDateTime(r.requested_at)}>
-                  {timeAgo(r.requested_at)}
-                </td>
-                <td className="py-2.5">
-                  {onCancel && !terminal.includes(r.state) && (
-                    <button
-                      onClick={() => onCancel(r)}
-                      disabled={busy}
-                      className="rounded-[8px] border-[1.5px] border-[#e5d5d5] px-3 py-1 text-[12.5px] font-semibold text-[#1a1a1a] hover:bg-[#faf5f5] disabled:opacity-50"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="flex flex-col gap-[18px]">
+      <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_380px]">
+        <Skeleton className="h-[86px]" /><Skeleton className="h-[86px]" />
       </div>
-      <p className="mt-4 text-[12.5px] text-[#9a8a8e]">
-        Uma execução é evidência: não pode ser apagada, e o seu histórico de
-        transições não pode ser reescrito.
-      </p>
-    </Card>
+      <div className="grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-[86px]" />)}
+      </div>
+      <Skeleton className="h-[120px]" />
+      <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        <Skeleton className="h-[320px]" /><Skeleton className="h-[320px]" />
+      </div>
+      <div className="grid gap-[18px] xl:grid-cols-3">
+        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[260px]" />)}
+      </div>
+    </div>
   );
 }

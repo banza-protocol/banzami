@@ -407,3 +407,84 @@ func requireCompleteProvenance(rows []ProvenanceRow) error {
 	}
 	return nil
 }
+
+// ── Pinned snapshots: what a historical run actually saw ─────────────────────
+
+// PinnedProvenance is a run's component revisions AS CAPTURED at preparation.
+//
+// It is never recomputed from the current deployment. A run prepared against
+// gateway 1bf03679 keeps saying 1bf03679 after the gateway moves on, because
+// that is what it was evaluated against — and rewriting it would silently
+// re-describe historical evidence.
+func (s *Store) PinnedProvenance(ctx context.Context, runID string) ([]ProvenanceRow, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT component, revision, coalesce(detail->>'source', '')
+		  FROM validation_run_provenance WHERE run_id = $1::uuid ORDER BY component`, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []ProvenanceRow{}
+	for rows.Next() {
+		var p ProvenanceRow
+		var source string
+		if err := rows.Scan(&p.Component, &p.Revision, &source); err != nil {
+			return nil, err
+		}
+		if source != "" {
+			p.Detail = map[string]string{"source": source}
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+// PinnedPreflight is the preflight AS PERSISTED with the run, measurements and
+// all — not a fresh one taken now.
+type PinnedPreflight struct {
+	ID        string    `json:"id"`
+	Verdict   string    `json:"verdict"`
+	StartedAt time.Time `json:"started_at"`
+	Checks    []Check   `json:"checks"`
+}
+
+func (s *Store) PinnedPreflight(ctx context.Context, runID string) (*PinnedPreflight, error) {
+	var p PinnedPreflight
+	err := s.pool.QueryRow(ctx, `
+		SELECT id::text, coalesce(verdict, ''), started_at
+		  FROM validation_preflights WHERE run_id = $1::uuid
+		 ORDER BY started_at DESC LIMIT 1`, runID).Scan(&p.ID, &p.Verdict, &p.StartedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := s.pool.Query(ctx, `
+		SELECT check_group, check_id, status, coalesce(detail, ''), measured
+		  FROM validation_preflight_checks WHERE preflight_id = $1::uuid
+		 ORDER BY check_group, check_id`, p.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	p.Checks = []Check{}
+	for rows.Next() {
+		var c Check
+		var raw []byte
+		if err := rows.Scan(&c.Group, &c.ID, &c.Status, &c.Detail, &raw); err != nil {
+			return nil, err
+		}
+		if len(raw) > 0 {
+			var m map[string]int64
+			if json.Unmarshal(raw, &m) == nil && len(m) > 0 {
+				c.Measured = m
+			}
+		}
+		p.Checks = append(p.Checks, c)
+	}
+	return &p, rows.Err()
+}

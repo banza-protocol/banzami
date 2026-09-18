@@ -8,6 +8,7 @@ import { BanzamiLogo } from '@/components/ui/brand';
 import { attentionHref, attentionLabel, attentionPhrase, badgeText, countFor } from '@/lib/attention';
 import { useAttention } from '@/components/layout/attention-provider';
 import { navForRole, isSection, type NavItem } from '@/components/layout/nav-config';
+import { StudioNav, isStudioRoute } from '@/components/layout/studio-nav';
 import { useAdminEnv } from '@/lib/admin-env';
 import { getSession } from '@/lib/session';
 
@@ -90,6 +91,10 @@ export function Sidebar() {
         </span>
       </div>
 
+      {/* Inside the Validation Studio the sidebar becomes the Studio's own, the
+          way a sub-app does. A back link at its top returns to BANZADMIN, so
+          the operator is never trapped in it. */}
+      {isStudioRoute(pathname) ? <StudioNav pathname={pathname} /> : (
       <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-[3px] overflow-y-auto p-3">
         {nav.map((entry) => {
           if (isSection(entry)) {
@@ -107,6 +112,7 @@ export function Sidebar() {
           return <NavLink key={entry.href} item={entry} pathname={pathname} count={countFor(summary, entry.attentionKey)} />;
         })}
       </nav>
+      )}
 
       <div className="border-t border-[#f6eded] p-3">
         <button

@@ -272,6 +272,13 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/actors", validationH.Actors)
 		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/profiles", validationH.Profiles)
 		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/preflight", validationH.Preflight)
+		// Deep inspection, all read-only and all under validation.view. The
+		// Studio explains itself so an operator does not have to read source,
+		// YAML or migrations to know what a run would do.
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/catalogue", validationH.Catalogue)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/journeys/{id}", validationH.Journey)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/components", validationH.Components)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/assurance", validationH.Assurance)
 		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/runs", validationH.ListRuns)
 		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/runs/{id}", validationH.GetRun)
 		r.With(cap(auth.CapValidationRun), stepUp).Post("/admin/v1/validation/runs", validationH.PrepareRun)
