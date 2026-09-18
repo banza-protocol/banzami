@@ -35,7 +35,11 @@ function bff(biz) {
     async balanceMinor() { const w = await this.get('/business/api/v1/wallets?currency=AOA'); if (!w.id) return 0; const b = await this.get(`/business/api/v1/wallets/${w.id}/balance`); return b.available_minor ?? b.availableMinor ?? 0; },
   };
 }
-const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel\s*([\d\s]+)\s*Kz/i) || [])[1]; return m ? parseInt(m.replace(/\s/g, ''), 10) : null; };
+// visibleText() joins accessibility nodes with ' · ', so the balance reads
+// "Saldo disponível ·  0 Kz". The old pattern allowed only digits and spaces
+// after the label, so it matched nothing and returned null — and a null balance
+// made the realtime gate unfalsifiable: it can never converge from null.
+const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel[\s·]*([\d\s]+)\s*Kz/i) || [])[1]; return m ? parseInt(m.replace(/\s/g, ''), 10) : null; };
 
 (async () => {
   let biz;
@@ -75,10 +79,15 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel\s*([\d\s]
     R.mark('BUSINESS_WEB_CREATE_CHARGE_PARITY', chargeShown, 'Business Web created a canonical charge (link + QR)');
     const chargeSlug = await api.newestActiveChargeSlug();
     R.mark('BUSINESS_WEB_CHARGE_ARTIFACT_CANONICAL', !!chargeSlug, `charge slug=${chargeSlug}`);
-    // Back to Home for the realtime observation — through the tab bar, the way a
-    // merchant does it. goBack() is browser history, and this is a single-page
-    // Flutter app: it left the driver somewhere that is not Home, so the balance
-    // read null, and the three gates after this one failed on that alone.
+    // Back to Home for the realtime observation.
+    //
+    // The generated-charge screen is a PUSHED route: its only tappable nodes are
+    // Back, 'Partilhar link' and 'Nova cobrança' — there is no tab bar on it, so
+    // 'Início' is not reachable from here and pageA.goBack() (browser history in
+    // a single-page app) did not pop it either. Pop to Receber first, then take
+    // the tab bar, which is what a merchant's thumb does.
+    await dA.tapButton('Back').catch(() => {});
+    await sleep(1200);
     await dA.tapText('Início').catch(() => {});
     await sleep(2500);
     const onHome = await dA.waitForText('Saldo disponível', { timeout: 20000 }).then(() => true).catch(() => false);

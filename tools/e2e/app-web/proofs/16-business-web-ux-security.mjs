@@ -58,6 +58,9 @@ const looksSecret = (s) => /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/
     // is operable from the keyboard) against the step that still takes typed
     // input: MerchantLoginScreen wires onFieldSubmitted to _continueToPin, so
     // Enter on the handle must advance to the PIN step by itself.
+    // SIGNIN_INLINE_BY_DESIGN: this suite asserts the login is operable from the
+    // KEYBOARD, so it cannot call businessWebSignIn — that helper taps
+    // 'Continuar', which is the very thing under test here.
     await d.waitForText('Conectar conta', { timeout: 25000 });
     await d.tapButton('Conectar conta');
     await d.waitForText('Entrar', { timeout: 15000 });

@@ -385,6 +385,16 @@ check-validation-runner-verdict:
 check-e2e-ui-markers:
 	node tools/check-e2e-ui-markers.mjs
 
+# The ten defects the first Validation Run exposed, held shut — behavioural where
+# the thing can be called, structural where it is a property of how SQL is built.
+check-validation-runner-regressions:
+	node tools/check-validation-runner-regressions.mjs
+
+# The harness defect CLASSES that run exposed. Each had a sibling that was GREEN
+# for the same reason; the red ones got fixed, the green ones had to be found.
+check-e2e-harness-regressions:
+	node tools/check-e2e-harness-regressions.mjs
+
 # FULL must mean FULL. Every suite a profile selects is EXECUTABLE or carries a
 # justified NOT_PROVEN blocker — absence is neither. The failure this prevents is
 # a GREEN run that proved thirteen suites and never mentioned the other eleven.
@@ -392,7 +402,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.

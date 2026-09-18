@@ -528,19 +528,31 @@ function claim(runRef) {
   const [id, ref, profile, environment, adoptedRaw] = row;
   if (!ref || !environment) die(`claim returned an unreadable row: ${JSON.stringify(row)}`);
   if (environment !== ENVIRONMENT) die(`claimed run ${ref} declares ${environment}`);
-  // `::text` on a boolean renders 'true'/'false', NOT psql's bare 't'/'f'. The
-  // first adoption was recorded as an ordinary claim because of it — a small
-  // lie in a permanent log, which is the kind this programme exists to stop.
-  // Both spellings are accepted, and an unrecognised one is refused rather than
-  // quietly read as false.
-  if (!['true', 'false', 't', 'f'].includes(adoptedRaw)) {
-    die(`claim returned an unreadable adoption flag: ${JSON.stringify(adoptedRaw)}`);
-  }
-  const adopted = adoptedRaw === 'true' || adoptedRaw === 't';
+  let adopted;
+  try { adopted = adoptionFromFlag(adoptedRaw); }
+  catch (e) { die(e.message); }
   event(id, 'RUNNING', 'RUNNING', adopted
     ? `adopted by ${EXECUTOR} — previous executor's lease expired`
     : `claimed by ${EXECUTOR}`);
   return { id, ref, profile, adopted };
+}
+
+/**
+ * Read the adoption flag psql returned.
+ *
+ * `::text` on a boolean renders 'true'/'false', NOT psql's bare 't'/'f'. The
+ * first adoption was written to the permanent event log as an ordinary claim
+ * because of that — a small lie in a record that cannot be rewritten, which is
+ * the kind this programme exists to stop.
+ *
+ * Both spellings are accepted. Anything else THROWS rather than being read as
+ * false: a flag nobody can parse must not quietly become the safe-looking
+ * answer, because "not adopted" is the one that loses information.
+ */
+export function adoptionFromFlag(raw) {
+  if (raw === 'true' || raw === 't') return true;
+  if (raw === 'false' || raw === 'f') return false;
+  throw new Error(`claim returned an unreadable adoption flag: ${JSON.stringify(raw)}`);
 }
 
 function event(runID, from, to, reason) {
