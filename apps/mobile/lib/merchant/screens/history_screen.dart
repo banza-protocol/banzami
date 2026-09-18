@@ -5,6 +5,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../../platform/receipt_share.dart';
 import '../models/merchant_payment_entry.dart';
 import '../services/receipt_file_name.dart';
+import '../services/merchant_refresh_bus.dart';
 import '../services/merchant_session_service.dart';
 
 class MerchantHistoryScreen extends StatefulWidget {
@@ -159,6 +160,25 @@ class _TransactionsTabState extends State<_TransactionsTab>
   void initState() {
     super.initState();
     _load();
+    // MerchantMainScreen keeps every tab alive in an IndexedStack, so this
+    // screen is built once at sign-in and its initState never runs again —
+    // tapping back to Histórico re-shows a list, it does not reload one. A
+    // merchant paid after signing in saw a feed that predated the payment until
+    // they pulled down. The bus says WHEN the Business's money data changed;
+    // the reload itself is canonical, exactly as on the Home.
+    MerchantRefreshBus.instance.addListener(_reloadFromBus);
+  }
+
+  @override
+  void dispose() {
+    MerchantRefreshBus.instance.removeListener(_reloadFromBus);
+    super.dispose();
+  }
+
+  /// A bus ping means "re-read", not "append": a new payment belongs at the top,
+  /// so the feed is reset rather than paged onto.
+  void _reloadFromBus() {
+    if (mounted) _load(refresh: true);
   }
 
   Future<void> _load({bool refresh = false}) async {

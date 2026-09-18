@@ -20,6 +20,11 @@ import 'package:http/testing.dart';
 // pull-to-refresh.
 //
 // Detection and notification are now two jobs. These hold them apart.
+//
+// The same fix has a second half. MerchantMainScreen keeps every tab alive in an
+// IndexedStack, so Histórico is built once at sign-in and its initState never
+// runs again: tapping back to it re-shows a list rather than reloading one. Both
+// surfaces read the same money data, so both listen to the same bus.
 
 final _future = DateTime.now().add(const Duration(hours: 1));
 
