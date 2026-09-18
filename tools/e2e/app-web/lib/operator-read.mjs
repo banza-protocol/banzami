@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 
 const HOST = process.env.BZ_SANDBOX_HOST ?? 'root@217.160.9.248';
 
-function psql(sql) {
+export function psql(sql) {
   const remote =
     `PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1); ` +
     `PW=$(cat /root/.banzami/operator_db_url | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#'); ` +

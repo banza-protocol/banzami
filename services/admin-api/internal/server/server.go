@@ -282,6 +282,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/runs", validationH.ListRuns)
 		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/runs/{id}", validationH.GetRun)
 		r.With(cap(auth.CapValidationRun), stepUp).Post("/admin/v1/validation/runs", validationH.PrepareRun)
+		// PHASE D. Starting hands a prepared run to the execution plane. It
+		// carries step-up beside preparation because it is the act that lets
+		// real Sandbox transactions begin — a lifted cookie must not be enough.
+		r.With(cap(auth.CapValidationRun), stepUp).Post("/admin/v1/validation/runs/{id}/start", validationH.StartRun)
 		r.With(cap(auth.CapValidationRun)).Post("/admin/v1/validation/runs/{id}/cancel", validationH.CancelRun)
 		r.With(cap(auth.CapMerchantManage), stepUp).Post("/admin/v1/businesses/{id}/app-pin-reset", applicationsH.ResetBusinessAppPin)
 		// KYB documents (Track 3) — admin review.

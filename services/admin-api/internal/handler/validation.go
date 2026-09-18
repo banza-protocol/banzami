@@ -425,6 +425,45 @@ func (h *ValidationHandler) PrepareRun(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// StartRun hands a READY run to the execution plane.
+//
+// PHASE D. It queues; it does not execute. admin-api is the control plane
+// (doc 23) and must never become the long-running test engine — the runner
+// leases the queued run and does the work, elsewhere.
+//
+// POST /admin/v1/validation/runs/{id}/start
+func (h *ValidationHandler) StartRun(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w) {
+		return
+	}
+
+	operator := ""
+	if p, ok := auth.FromContext(r.Context()); ok {
+		operator = p.ID
+	}
+
+	run, err := h.runs.Start(r.Context(), chi.URLParam(r, "id"), operator)
+	switch {
+	case errors.Is(err, validation.ErrRunNotFound):
+		vErr(w, http.StatusNotFound, "RUN_NOT_FOUND", "no such validation run")
+		return
+	case errors.Is(err, validation.ErrStartRefused):
+		// A precondition, not a fault: the operator can read this and act.
+		vErr(w, http.StatusConflict, "START_REFUSED", err.Error())
+		return
+	case err != nil:
+		vErr(w, http.StatusConflict, "START_FAILED", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"run":      run,
+		"queued":   true,
+		"executed": false,
+		"note":     "queued for the execution plane; nothing has run yet",
+	})
+}
+
 // CancelRun closes a run. Every non-terminal state may be cancelled, because an
 // operator must always be able to stop something.
 //

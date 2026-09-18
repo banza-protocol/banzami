@@ -108,3 +108,543 @@ journeys:
     depends_on: [S01-BIZ-001, S09-FIN-001]
     automation: full
     existing_harness: tools/e2e/app-web/proofs/19-collections-split-settlement.mjs
+
+  - journey_id: S00-ENV-001
+    suite: S00
+    name: Environment and governance are what they claim
+    purpose: >-
+      Every other suite's result is conditional on this one: a PASS proved against the wrong environment is worse than no PASS. Asserts from the running system that this is the Sandbox and that its public surfaces say so.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/22-environment-governance.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S01-IDN-001
+    suite: S01
+    name: Registration to PIN to Home, through the real app
+    purpose: >-
+      A person can become an identity and reach their wallet. Nothing else in the product means anything until this holds.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/01-registration-pin-home.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S01-IDN-002
+    suite: S01
+    name: Business sign-in on the shared web app
+    purpose: >-
+      A Business identity can authenticate on the same surface a consumer uses, without the two contexts bleeding into one another.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/10-business-web-login.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S04-RCV-001
+    suite: S04
+    name: A disabled Receive Point fails closed
+    purpose: >-
+      A receive surface that is disabled or suspended must refuse, not degrade quietly into accepting money it should not.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/14-business-web-fail-closed.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S05-LNK-001
+    suite: S05
+    name: An invalid payment link resolves to a truthful not-found
+    purpose: >-
+      An invalid link must never offer a payment and never leak private information — the failure path of the most public surface Banzami has.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/03-invalid-deeplink.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S05-LNK-002
+    suite: S05
+    name: A valid link authenticates, resumes and pays
+    purpose: >-
+      The link a merchant sends survives the round trip through authentication and resumes to the payment it was for.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/04-deeplink-resume-pay.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S08-P2P-001
+    suite: S08
+    name: Web to web transfer, conserved in the ledger
+    purpose: >-
+      One consumer pays another through the real interface, and the ledger conserves the value exactly.
+    capabilities: []
+    actors: [C01, C02]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/02-web-to-web-p2p.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S09-FIN-001
+    suite: S09
+    name: The ledger's double-entry invariants hold
+    purpose: >-
+      Every posting balances, no leg is orphaned, and the whole Sandbox book sums to zero. Every other suite's PASS is worth exactly as much as this one's.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/21-financial-truth.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S15-RCP-001
+    suite: S15
+    name: A charge produces history and a comprovativo
+    purpose: >-
+      A payment a Business takes appears in its history and yields the comprovativo the payer is entitled to.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/15-business-web-commerce.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S17-SEC-001
+    suite: S17
+    name: Dual-context session security
+    purpose: >-
+      Consumer and Business sessions on one origin do not become each other's, and neither is reachable from JavaScript (ADR-066).
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/12-web-session-security.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S17-SEC-002
+    suite: S17
+    name: Cross-tab context isolation
+    purpose: >-
+      Two tabs in two contexts stay two contexts. Session bleed across tabs is the shape an isolation failure actually takes in a browser.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/17-web-dual-context-cross-tab.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S23-RAIL-001
+    suite: S23
+    name: The external rail boundary fails closed
+    purpose: >-
+      ADR-061's central claim, proven against the deployed Sandbox: with the rail unavailable, internal wallet value still moves while the external path refuses with 503 PROVIDER_UNAVAILABLE and confirms nothing. Fault injection is scoped to the proof's own Project by migration 0145.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/23-rail-boundary.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S02-APP-001
+    suite: S02
+    name: An incoming payment refreshes Home in real time
+    purpose: >-
+      Money arriving is money the payer sees arriving, without a reload.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/05-realtime-incoming-payment.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S02-APP-002
+    suite: S02
+    name: Realtime degrades to a correct fallback
+    purpose: >-
+      When the realtime channel is unavailable the app must still tell the truth, not freeze on a stale balance.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/06-realtime-resilience.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S03-BIZ-001
+    suite: S03
+    name: Business lifecycle and revocation
+    purpose: >-
+      A Business session can be revoked and stays revoked.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/13-business-web-lifecycle.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S03-BIZ-002
+    suite: S03
+    name: Business surface UX and storage security
+    purpose: >-
+      Responsive, keyboard-reachable and accessible, with nothing sensitive left in browser storage.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/16-business-web-ux-security.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S06-COL-002
+    suite: S06
+    name: Public Collections idempotency
+    purpose: >-
+      A replayed public Collection request settles once, never twice.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/20-collections-public-idempotency.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S18-PAR-001
+    suite: S18
+    name: The web QR camera path, end to end
+    purpose: >-
+      A payer scanning a real QR through a real camera reaches the payment it encodes.
+    capabilities: []
+    actors: [C01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/07-web-qr-camera.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S18-PAR-002
+    suite: S18
+    name: QR decoder and deploy integrity
+    purpose: >-
+      The decoder shipped is the decoder tested, and it reads what the engine writes.
+    capabilities: []
+    actors: []
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/08-web-qr-decoder-integrity.mjs
+    timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S18-PAR-003
+    suite: S18
+    name: The Business surface under large accessibility text
+    purpose: >-
+      A merchant who needs large text can still take money.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0 and every recorded gate PASS"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/app-web/proofs/18-business-web-large-text.mjs
+    timeout_seconds: 900
+    retry_policy: none

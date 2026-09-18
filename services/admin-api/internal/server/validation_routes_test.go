@@ -44,6 +44,10 @@ func TestValidation_EveryRouteStatesItsCapability(t *testing.T) {
 		// slot. A lifted cookie must not be enough.
 		{"Post", `"/admin/v1/validation/runs"`, "CapValidationRun", true},
 
+		// PHASE D: starting lets real Sandbox transactions begin, so it carries
+		// step-up beside preparation.
+		{"Post", `"/admin/v1/validation/runs/{id}/start"`, "CapValidationRun", true},
+
 		// Cancelling needs the capability but not step-up: an operator must
 		// always be able to stop something, and a second factor standing
 		// between a human and the stop button is a worse failure than the one
@@ -67,14 +71,18 @@ func TestValidation_EveryRouteStatesItsCapability(t *testing.T) {
 	}
 }
 
-// Phase C builds a surface capable of orchestrating a run. It does not start
-// one, and there is no route that could.
-func TestValidation_NoRouteStartsARun(t *testing.T) {
+// A run is started only through the prepared-run lifecycle. There is no route
+// that takes a profile and runs it, because that would skip preparation,
+// preflight, provenance and the one-active-run lock in a single call.
+func TestValidation_NoRouteExecutesAProfileDirectly(t *testing.T) {
 	src, err := os.ReadFile("server.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, forbidden := range []string{"/start", "/queue", "/execute", "/golden", "/full"} {
+	// PHASE D retired the "no start route" assertion deliberately. What must
+	// still not exist is a route that executes a profile directly, bypassing
+	// preparation, preflight and provenance.
+	for _, forbidden := range []string{"/execute", "/golden", "/full"} {
 		if strings.Contains(string(src), `"/admin/v1/validation`+forbidden) {
 			t.Errorf("a route exists at /admin/v1/validation%s — Phase C builds the surface, not the starter", forbidden)
 		}

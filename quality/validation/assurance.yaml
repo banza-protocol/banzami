@@ -116,15 +116,19 @@ invariants:
       worse than no preflight at all.
 
   - id: INV-VS-010
-    title_pt: "Nenhum caminho de código consegue iniciar uma execução"
-    title: No code path can start a Validation Run
+    title_pt: "O plano de controlo põe em fila; nunca executa"
+    title: admin-api queues a run and never executes one
     enforced_by: build
-    layer: guard over every non-test source file
-    proof: tools/check-validation-no-start.mjs
+    layer: tools/check-validation-execution-boundary.mjs
+    proof: tools/check-validation-execution-boundary.mjs
     why: >-
-      Phase C builds the surface, not the starter. The honest way to say that is
-      a guard that fails if a path appears which could, so adding one is a
-      deliberate act rather than an accident.
+      Until Phase D this invariant said no code path could START a run, and a
+      guard enforced it so that adding a starter would be a deliberate act. It
+      was: the owner authorised Phase D and the starter landed in the commit
+      that deleted the guard. What remains, and always will, is the boundary —
+      a request handler that runs a test suite times out halfway through one and
+      leaves a run whose real state nobody knows. The control plane queues; the
+      execution plane runs.
 
   - id: INV-VS-011
     title_pt: "Autoridade de orquestração é separada da autoridade de cenário"

@@ -359,14 +359,14 @@ gen-pilot-limits:
 check-pilot-limits-drift:
 	node tools/gen-pilot-limits.mjs --check
 
-# Phase C builds a surface CAPABLE of orchestrating a run; it does not start one.
-# The honest way to say that is a guard that fails if a code path appears which
-# could, not a sentence in a report.
-check-validation-no-start:
-	node tools/check-validation-no-start.mjs
+# Where validation may execute, and where it may not: admin-api queues a run and
+# never runs one, and the executor targets SANDBOX only. (This replaces
+# check-validation-no-start, retired when Phase D authorised the starter.)
+check-validation-execution-boundary:
+	node tools/check-validation-execution-boundary.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-no-start check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.

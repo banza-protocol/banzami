@@ -59,6 +59,10 @@ var (
 	ErrRunNotFound = errors.New("validation run not found")
 	// ErrRunActive is the concurrency invariant surfacing as a domain error.
 	ErrRunActive = errors.New("a validation run already holds the Sandbox")
+	// ErrStartRefused is a precondition failing at the moment of starting —
+	// distinct from a transport or database failure, so the caller can tell an
+	// operator what to fix rather than "try again".
+	ErrStartRefused = errors.New("validation run cannot be started")
 )
 
 // Store is the durable side of the control plane.
@@ -238,6 +242,64 @@ func (s *Store) RecordPreflight(ctx context.Context, runID string, profile Profi
 		return Run{}, err
 	}
 	return run, tx.Commit(ctx)
+}
+
+// Start moves a READY run into QUEUED, where an executor can lease it.
+//
+// PHASE D. Until Phase D this method did not exist, and a guard asserted that
+// nothing could write QUEUED. That guard was removed deliberately, in the
+// commit that added this method, which is the amount of deliberation the
+// decision deserved.
+//
+// Starting is NOT executing. This hands the run to the execution plane; the
+// runner claims it, and only then does anything happen against the Sandbox.
+// Every precondition that must hold at the moment of starting is checked here,
+// inside the transaction, so a run cannot be queued on stale information:
+//
+//   - the run is READY (the database refuses any other transition anyway)
+//   - its preflight met the profile's minimum, recorded at preparation
+//   - its mandatory provenance is complete
+//   - no other run holds the Sandbox (the partial unique index enforces it)
+func (s *Store) Start(ctx context.Context, idOrRef, operatorID string) (Run, error) {
+	current, err := s.Get(ctx, idOrRef)
+	if err != nil {
+		return Run{}, err
+	}
+	if current.State != StateReady {
+		return Run{}, fmt.Errorf("%w: a run must be READY to start, this one is %s",
+			ErrStartRefused, current.State)
+	}
+
+	// Provenance was required for READY, but a run can sit in READY while the
+	// world changes. Re-check rather than assume.
+	var provenance int
+	if err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM validation_run_provenance WHERE run_id = $1::uuid`,
+		current.ID).Scan(&provenance); err != nil {
+		return Run{}, err
+	}
+	if provenance < len(MandatoryComponents()) {
+		return Run{}, fmt.Errorf("%w: provenance is incomplete (%d of %d components)",
+			ErrStartRefused, provenance, len(MandatoryComponents()))
+	}
+
+	var operator *string
+	if operatorID != "" {
+		operator = &operatorID
+	}
+
+	row := s.pool.QueryRow(ctx, `
+		UPDATE validation_runs SET state = $2 WHERE id = $1::uuid
+		RETURNING `+strings.ReplaceAll(runColumns, "r.", ""),
+		current.ID, StateQueued)
+	run, err := scanRun(row)
+	if err != nil {
+		return Run{}, fmt.Errorf("start run: %w", err)
+	}
+	if err := s.record(ctx, current.ID, StateReady, StateQueued, "started by operator", operator); err != nil {
+		return Run{}, err
+	}
+	return run, nil
 }
 
 // Cancel closes a run. Every non-terminal state may be cancelled, because an
