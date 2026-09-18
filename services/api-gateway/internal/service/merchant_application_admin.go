@@ -747,7 +747,20 @@ func (s *PostgresMerchantApplicationAdminService) Reject(ctx context.Context, id
 		return RejectionResult{}, err
 	}
 	switch app.Status {
-	case "SUBMITTED", "UNDER_REVIEW":
+	// INFORMATION_REQUIRED is rejectable, and leaving it out stranded
+	// applications permanently. A reviewer asks for information; if it never
+	// arrives — or, as happened here, the applicant CANNOT supply it because the
+	// fields are immutable after submission — the ordinary outcome of the
+	// request is to close it. Without this case there was no such outcome:
+	// `resubmit` answered 422 REQUIREMENTS_NOT_MET, `start-review` and `reject`
+	// both answered 409 NOT_OPEN, and the application sat there holding its
+	// desired @handle for the full 30-day reservation.
+	//
+	// The rest of the codebase already treats it as an open state — see
+	// merchant_documents.go, where INFORMATION_REQUIRED accepts document
+	// uploads alongside SUBMITTED and UNDER_REVIEW. This was an inconsistency,
+	// not a policy.
+	case "SUBMITTED", "UNDER_REVIEW", "INFORMATION_REQUIRED":
 	case "PROVISIONING_FAILED":
 		if app.CreatedMerchantID != "" {
 			return RejectionResult{}, ErrApplicationNotOpen

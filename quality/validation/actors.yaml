@@ -197,15 +197,24 @@ actors:
   - id: A01
     type: operator
     display_name: Validation Operator A01
-    email: "<real mailbox the owner controls — operators are not fixtures>"
+    email: admin02@banzami-e2e.test
     credentials:
       password:       "secret://banzami/validation/a01/password"
       totp_seed:      "secret://banzami/validation/a01/totp_seed"
       recovery_codes: "secret://banzami/validation/a01/recovery_codes"
-    status: blocked-on-owner-ceremony
-    blocked_by: "POST /admin/v1/operators requires CapOperatorManage AND a step-up TOTP proof; only the owner can perform it"
+
     lifecycle: persistent
-    provisioning: ["OWNER CEREMONY — see doc 06 §4"]
+    provisioning: ["OWNER CEREMONY 2026-09-18 — BANZADMIN operator creation,
+                    invite link read back from the Resend sent-message API,
+                    password set, TOTP enrolled with the seed captured BEFORE
+                    confirmation and proven by generating the confirming code
+                    from the stored seed"]
+    product_ids:
+      admin_user_id: 8fe23a98-5dd2-4f87-89e5-3715416046e4
+    status: provisioned
+    provisioned_at: "2026-09-18"
+    creation_evidence: "BANZADMIN operator, role COMPLIANCE, MFA confirmed 10:49:24; recovery codes issued and acknowledged"
+    supersedes: "admin01@banzami-e2e.test — SUSPENDED; its TOTP seed was lost before capture" 
     note: >-
       MFAService.BeginEnrolment returns the TOTP secret in plaintext exactly
       once. Captured into the secret backend, every later code is computed

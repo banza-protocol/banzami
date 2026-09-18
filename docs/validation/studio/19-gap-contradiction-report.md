@@ -290,12 +290,55 @@ measure.
 
 ---
 
+---
+
+## VL-019 · P1 · An incomplete application is a lifecycle dead end
+
+Found while provisioning B01–B03 (2026-09-18).
+
+`POST /v1/merchant/applications` accepts a submission that is missing required
+KYB fields — it returns `201 SUBMITTED`. The fields are then **immutable**:
+there is no public or operator route that updates them (`documents/upload-url`,
+`documents/{id}/confirm`, `GET`, and `resubmit` are the only routes on an
+existing application, and `Resubmit` takes **no body** — it only flips state).
+
+Once a reviewer asks for the missing information, the application reaches a
+state nobody can leave:
+
+| Action | Result |
+|---|---|
+| `POST …/resubmit` (applicant) | `422 REQUIREMENTS_NOT_MET` — the fields it needs cannot be supplied |
+| `POST …/start-review` (operator) | `409 NOT_OPEN` |
+| `POST …/reject` (operator) | `409 NOT_OPEN` |
+
+Three such applications now sit permanently in `INFORMATION_REQUIRED` on the
+Sandbox (`aa39e5e5`, `c1f45803`, `a9c71cb1`). They cannot be completed, and they
+cannot be closed.
+
+Two defects, either of which would have prevented it:
+
+1. **Creation should refuse an incomplete application** rather than accept it
+   and strand it. The requirement list already exists
+   (`GET /v1/merchant/application-requirements`); it is simply not enforced at
+   submission.
+2. **`reject` should be reachable from `INFORMATION_REQUIRED`.** A reviewer who
+   can ask for information should be able to close the request that goes
+   unanswered — that is the ordinary outcome of asking.
+
+Each stranded application also consumes one of the 30/24h per-IP
+`application-submit` slots permanently.
+
+**Owning milestone:** Phase C. Not a Phase B blocker — B01–B03 were created
+again, complete.
+
+---
+
 ## Summary
 
 | Severity | Count | Findings |
 |---|---:|---|
 | **P0** | 1 | VL-001 |
-| **P1** | 7 | VL-002…VL-008 |
+| **P1** | 8 | VL-002…VL-008, VL-019 |
 | **P2** | 5 | VL-009…VL-013 |
 | **P3** | 5 | VL-014…VL-018 |
 

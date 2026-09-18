@@ -311,6 +311,49 @@ func TestReject_AFailedProvisioningThatCreatedNothing(t *testing.T) {
 	}
 }
 
+// An application the reviewer asked information for can be closed, and closing
+// it releases the @handle it was holding.
+//
+// This is a regression for a dead end found while provisioning the Validation
+// Studio's Business actors. INFORMATION_REQUIRED was missing from Reject's open
+// set, and an application whose immutable KYB fields were incomplete could not
+// be resubmitted (422), reviewed (409) or rejected (409). It sat in that state
+// holding its desired handle for the full 30-day reservation, and the handle
+// could not be reused by a corrected application.
+func TestReject_AnApplicationWaitingForInformationCanBeClosed(t *testing.T) {
+	f := newLifecycle(t)
+	appID, handle, _ := f.application("")
+	f.exec(`UPDATE merchant_applications SET status='INFORMATION_REQUIRED', information_request='faltam campos KYB' WHERE id=$1`, appID)
+
+	svc := NewPostgresMerchantApplicationAdminService(f.pool, f.provisioner())
+	if _, err := svc.Reject(f.ctx, appID, "operator", "unanswered", "closing the request"); err != nil {
+		t.Fatalf("an application waiting for information must be rejectable: %v", err)
+	}
+
+	var status string
+	_ = f.pool.QueryRow(f.ctx, `SELECT status FROM merchant_applications WHERE id=$1`, appID).Scan(&status)
+	if status != "REJECTED" {
+		t.Fatalf("status is %q, want REJECTED", status)
+	}
+	var n int
+	_ = f.pool.QueryRow(f.ctx, `SELECT count(*) FROM handle_registry WHERE handle=$1`, handle).Scan(&n)
+	if n != 0 {
+		t.Fatal("closing the request did not release the handle it was holding")
+	}
+}
+
+// A decided application stays decided: rejecting one twice is refused rather
+// than quietly re-running the release.
+func TestReject_ARejectedApplicationIsNotOpen(t *testing.T) {
+	f := newLifecycle(t)
+	appID, _, _ := f.application("")
+	f.exec(`UPDATE merchant_applications SET status='REJECTED' WHERE id=$1`, appID)
+	svc := NewPostgresMerchantApplicationAdminService(f.pool, f.provisioner())
+	if _, err := svc.Reject(f.ctx, appID, "operator", "again", "again"); !errors.Is(err, ErrApplicationNotOpen) {
+		t.Fatalf("rejecting a REJECTED application: %v", err)
+	}
+}
+
 func TestSubmit_ExistingBusinessHoldsNothingAndReplaysByKey(t *testing.T) {
 	f := newLifecycle(t)
 	_, handle := f.business()
