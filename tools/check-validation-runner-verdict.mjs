@@ -31,14 +31,18 @@ process.env.TMPDIR = scratch;
 const evidence = join(scratch, 'banzami-assurance', 'fixture');
 mkdirSync(evidence, { recursive: true });
 
-const { runHarness } = await import('./validation-runner.mjs');
+const { runHarness, parseShellGates, scrub } = await import('./validation-runner.mjs');
 
-const harnessDir = join(repo, 'tools', '.verdict-fixtures');
-mkdirSync(harnessDir, { recursive: true });
+// Fixtures live where a real harness lives, so they travel the runner's real
+// entry point — allow-list included — rather than a test-only side door. They
+// are removed on the way out, pass or fail.
+const harnessDir = join(repo, 'tools/e2e/app-web/proofs');
+const written = [];
 
 /** Write a fixture harness that exits `code` after writing `gates` (or nothing). */
 function fixture(name, { code = 0, gates = null }) {
   const file = join(harnessDir, `${name}.mjs`);
+  written.push(file);
   const body = gates === null
     ? `process.exit(${code});`
     : `import { writeFileSync } from 'node:fs';\n` +
@@ -63,26 +67,70 @@ const FAILG = [{ gate: 'a', verdict: 'FAIL', detail: '' }];
 const NOTES = [{ gate: 'n', verdict: 'NOTE', detail: '42' }];
 
 check('a harness that exits 0 and asserts a PASS passes',
-  runHarness(fixture('ok', { gates: PASS }), 20000).ok, true);
+  runHarness(fixture('zz-fixture-ok', { gates: PASS }), 20000).ok, true);
 
 check('a harness that exits non-zero fails even with passing gates',
-  runHarness(fixture('exits1', { code: 1, gates: PASS }), 20000).ok, false);
+  runHarness(fixture('zz-fixture-exits1', { code: 1, gates: PASS }), 20000).ok, false);
 
 check('a harness that exits 0 but records a FAIL gate fails',
-  runHarness(fixture('gatefail', { gates: [...PASS, ...FAILG] }), 20000).ok, false);
+  runHarness(fixture('zz-fixture-gatefail', { gates: [...PASS, ...FAILG] }), 20000).ok, false);
 
 // The one this guard exists for.
-const silent = runHarness(fixture('silent', { gates: null }), 20000);
+const silent = runHarness(fixture('zz-fixture-silent', { gates: null }), 20000);
 check('a harness that exits 0 and records NOTHING does not pass', silent.ok, false);
 check('  …and says why', /no assertions/.test(silent.reason), true);
 
-const onlyNotes = runHarness(fixture('notesonly', { gates: NOTES }), 20000);
+const onlyNotes = runHarness(fixture('zz-fixture-notesonly', { gates: NOTES }), 20000);
 check('a harness that records only measurements does not pass', onlyNotes.ok, false);
 
 check('a harness that does not exist does not pass',
-  runHarness('tools/.verdict-fixtures/absent.mjs', 20000).ok, false);
+  runHarness('tools/e2e/app-web/proofs/zz-fixture-absent.mjs', 20000).ok, false);
 
-rmSync(harnessDir, { recursive: true, force: true });
+// ── the shell adapter ────────────────────────────────────────────────────────
+// A phase-0 harness prints its assertions and then its own totals. The adapter
+// must either understand BOTH and agree, or say it did not understand.
+console.log('\nshell harness adapter\n');
+
+const good = ['  QR_PAID PASS (200)', '  QR_LEDGER PASS (ok)', 'QR_PAYMENT_E2E: PASS=2 FAIL=0'].join('\n');
+const g1 = parseShellGates(good);
+check('reads every assertion line', g1.gates.length, 2);
+check('agrees with the harness totals', g1.mismatch, null);
+
+const withFail = ['  A PASS (x)', '  B FAIL (got 500 want 200)', 'X_E2E: PASS=1 FAIL=1'].join('\n');
+const g2 = parseShellGates(withFail);
+check('records a failing assertion as FAIL', g2.gates.filter((g) => g.verdict === 'FAIL').length, 1);
+check('a failing harness is still understood', g2.mismatch, null);
+
+// The case this adapter exists to refuse: totals that do not match what was
+// read. Reporting the subset it understood would be a confident partial truth.
+const drifted = ['  A PASS (x)', 'X_E2E: PASS=7 FAIL=0'].join('\n');
+const g3 = parseShellGates(drifted);
+check('refuses a count it cannot reconcile', g3.mismatch !== null, true);
+check('  …and says which side disagreed', /counted 7/.test(g3.mismatch ?? ''), true);
+
+const silentShell = parseShellGates('doing some work\nfinished\n');
+check('output with neither assertions nor a summary is not understood',
+  silentShell.mismatch !== null, true);
+
+check('a secret-shaped token never survives capture',
+  /sk_/.test(scrub('key bz_test_sk_ABC123 used')), false);
+check('a bearer token never survives capture',
+  /abcdef/.test(scrub('Authorization: Bearer abcdefGHIJ.klm')), false);
+check('a financial amount is NOT mistaken for a PIN',
+  /750000 minor/.test(scrub('moved 750000 minor')), true);
+
+console.log('');
+
+// The allow-list is the other half: a declared harness path that is not one of
+// the two known shapes must be refused outright, never executed.
+for (const bad of ['/etc/passwd', '../../etc/passwd', 'tools/deploy.sh',
+                   'tests/phase0/../../etc/passwd', 'tests/phase0/x; rm -rf /.sh']) {
+  const r = runHarness(bad, 5000);
+  check(`refuses an unlisted harness path: ${bad}`, r.ok, false);
+  check('  …without executing it', /allow-listed/.test(r.reason), true);
+}
+
+for (const f of written) rmSync(f, { force: true });
 rmSync(scratch, { recursive: true, force: true });
 
 console.log(failures === 0

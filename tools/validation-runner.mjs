@@ -132,6 +132,136 @@ function planFor(profileID) {
 /* ── harness execution ──────────────────────────────────────────────────── */
 
 /**
+ * The two harness kinds, and the only two shapes a declared harness may take.
+ *
+ * NODE   tools/e2e/app-web/proofs/NN-name.mjs   runs here, writes a gate file
+ * SHELL  tests/phase0/name.sh                   runs ON the Sandbox VM, where
+ *                                               the container secrets are
+ *
+ * A shell harness needs the Sandbox host's own docker socket and secret files,
+ * so it cannot run from this machine. That is the only reason it is executed
+ * remotely, and the remote path is built entirely from these two literals plus
+ * a basename this regex already proved is `[a-z0-9-]+`. No registry string, no
+ * API input and no harness output is ever interpolated into a shell command.
+ */
+const NODE_HARNESS = /^tools\/e2e\/app-web\/proofs\/[0-9a-z-]+\.mjs$/;
+const SHELL_HARNESS = /^tests\/phase0\/[a-z0-9-]+\.sh$/;
+
+/** The secret shapes that must never reach a log or an evidence row. */
+const SECRET_PATTERNS = [
+  /bz_(test|live)_sk_[A-Za-z0-9]+/g,
+  /\b\d{6}\b(?!\s*(?:minor|Kz|kz|AOA))/g,
+  /Bearer\s+[A-Za-z0-9._-]+/gi,
+  /__Host-bz_[a-z_]+=[^;\s]+/g,
+  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+/g, // JWTs
+];
+/** Structural, not a matter of operator discipline: every captured byte passes here. */
+export function scrub(text) {
+  let s = String(text ?? '');
+  for (const re of SECRET_PATTERNS) s = s.replace(re, '‹redacted›');
+  return s;
+}
+
+/**
+ * Execute one shell harness on the Sandbox VM and adapt its output to gates.
+ *
+ * The harness is SHIPPED FROM THIS WORKING TREE for every run, into a
+ * run-scoped directory. The VM already holds copies of some of these scripts
+ * from previous sessions; executing those would mean nobody can say what bytes
+ * actually ran. The file's own sha256 is recorded with the result.
+ *
+ * Its assertions are read from the convention every phase-0 harness shares —
+ * `  TOKEN PASS (detail)` / `  TOKEN FAIL (…)` — and CROSS-CHECKED against the
+ * harness's own `NAME: PASS=n FAIL=n` summary. A mismatch is a failure: it
+ * means the adapter did not understand the harness, and a misunderstood harness
+ * must not be reported as proof.
+ */
+export function runShellHarness(harness, timeoutMs, runRef = 'adhoc') {
+  const script = join(ROOT, harness);
+  if (!SHELL_HARNESS.test(harness)) {
+    return { ok: false, reason: `not an allow-listed shell harness: ${harness}`, gates: [], durationMs: 0 };
+  }
+  if (!existsSync(script)) {
+    return { ok: false, reason: `harness not found: ${harness}`, gates: [], durationMs: 0 };
+  }
+  const base = harness.split('/').pop();
+  const sha256 = createHash('sha256').update(readFileSync(script)).digest('hex');
+  const remoteDir = `/tmp/banzami-validation/${runRef.replace(/[^A-Za-z0-9-]/g, '')}`;
+  const before = Date.now();
+
+  try {
+    // lib/ comes with it: every phase-0 harness sources e2e-run.sh for the
+    // ownership and return-what-you-took discipline.
+    execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, `mkdir -p ${remoteDir}/lib`], { stdio: 'ignore' });
+    execFileSync('scp', ['-o', 'BatchMode=yes', '-q',
+      join(ROOT, 'tests/phase0/lib/e2e-run.sh'),
+      join(ROOT, 'tests/phase0/lib/synthetic-tenant.sh'),
+      `${HOST}:${remoteDir}/lib/`], { stdio: 'ignore' });
+    execFileSync('scp', ['-o', 'BatchMode=yes', '-q', script, `${HOST}:${remoteDir}/`], { stdio: 'ignore' });
+  } catch (e) {
+    return { ok: false, reason: `could not stage harness on the Sandbox host: ${e.message}`, gates: [], durationMs: Date.now() - before };
+  }
+
+  const seconds = Math.ceil(timeoutMs / 1000);
+  const res = spawnSync('ssh', ['-o', 'BatchMode=yes', HOST,
+    // `timeout` on the remote side too: killing the ssh client leaves the
+    // harness running on the VM, holding fixtures it will never return.
+    `cd ${remoteDir} && timeout ${seconds} bash ${base}`,
+  ], { encoding: 'utf8', timeout: timeoutMs + 30_000, maxBuffer: 1 << 26 });
+
+  const durationMs = Date.now() - before;
+  const stdout = scrub((res.stdout ?? '') + (res.stderr ?? ''));
+  const parsed = parseShellGates(stdout, sha256);
+
+  if (res.status === 124) {
+    return { ok: false, reason: `timed out after ${seconds}s`, gates: parsed.gates, durationMs, stdout };
+  }
+  if (parsed.mismatch) {
+    return { ok: false, reason: parsed.mismatch, gates: parsed.gates, durationMs, stdout };
+  }
+  const failures = parsed.gates.filter((g) => g.verdict === 'FAIL');
+  const assertions = parsed.gates.filter((g) => g.verdict !== 'NOTE');
+  const ok = res.status === 0 && failures.length === 0 && assertions.length > 0;
+  const reason = res.status !== 0
+    ? `exit ${res.status}`
+    : failures.length ? `${failures.length} assertion(s) failed`
+    : assertions.length === 0 ? 'harness recorded no assertions (no PASS/FAIL lines)'
+    : '';
+  return { ok, reason, gates: parsed.gates, durationMs, stdout };
+}
+
+/**
+ * Adapt phase-0 stdout to gates, and refuse to guess.
+ *
+ * The harness prints its own totals. If what this parsed disagrees with what
+ * the harness counted, the adapter is wrong about this harness and says so
+ * rather than reporting a confident subset.
+ */
+export function parseShellGates(stdout, sha256 = null) {
+  const gates = [];
+  for (const line of stdout.split('\n')) {
+    const m = line.match(/^\s{2,}(\S+)\s+(PASS|FAIL)\b\s*(.*)$/);
+    if (!m) continue;
+    gates.push({ gate: m[1], verdict: m[2], detail: m[3].trim().slice(0, 300), sha256 });
+  }
+  const summary = stdout.match(/^([A-Z0-9_]+):\s*PASS=(\d+)\s+FAIL=(\d+)\s*$/m);
+  if (!summary) {
+    return { gates, mismatch: gates.length
+      ? null                                     // no summary line to check against
+      : 'harness printed no assertions and no summary — output not understood' };
+  }
+  const wantPass = Number(summary[2]), wantFail = Number(summary[3]);
+  const gotPass = gates.filter((g) => g.verdict === 'PASS').length;
+  const gotFail = gates.filter((g) => g.verdict === 'FAIL').length;
+  if (gotPass !== wantPass || gotFail !== wantFail) {
+    return { gates, mismatch:
+      `adapter read ${gotPass} PASS / ${gotFail} FAIL but ${summary[1]} counted ` +
+      `${wantPass} / ${wantFail} — the harness output was not fully understood` };
+  }
+  return { gates, mismatch: null };
+}
+
+/**
  * Run one harness and return its gates.
  *
  * A harness is a process that exits non-zero on failure and writes an evidence
@@ -139,7 +269,11 @@ function planFor(profileID) {
  * the gates become the assertions. A harness that passes its exit status but
  * reports a failing gate is still a failure — the finer signal wins.
  */
-export function runHarness(harness, timeoutMs) {
+export function runHarness(harness, timeoutMs, runRef = 'adhoc') {
+  if (SHELL_HARNESS.test(harness)) return runShellHarness(harness, timeoutMs, runRef);
+  if (!NODE_HARNESS.test(harness)) {
+    return { ok: false, reason: `not an allow-listed harness path: ${harness}`, gates: [], durationMs: 0 };
+  }
   const script = join(ROOT, harness);
   if (!existsSync(script)) {
     return { ok: false, reason: `harness not found: ${harness}`, gates: [], durationMs: 0 };
@@ -297,7 +431,7 @@ function main() {
       sql(`UPDATE validation_run_journeys SET outcome='OBSERVED', started_at=now()
            WHERE run_id=${lit(run.id)}::uuid AND journey_id=${lit(p.journey)};`, { rows: false });
 
-      const r = runHarness(p.harness, p.timeoutMs);
+      const r = runHarness(p.harness, p.timeoutMs, run.ref);
       for (const g of r.gates) recordGate(run.id, p, g);
 
       const outcome = r.ok ? 'PASSED' : 'FAILED';
