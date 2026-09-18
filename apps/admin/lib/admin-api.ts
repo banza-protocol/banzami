@@ -623,6 +623,99 @@ async function readError(res: Response): Promise<{ code: string; message: string
   return { code, message };
 }
 
+// ---------------------------------------------------------------------------
+// Banzami Validation Studio — the control plane's read model.
+//
+// An actor carries WHICH credentials it holds, by name, and never a value nor a
+// secret:// reference. That is enforced server-side
+// (validation.TestActor_NeverCarriesACredentialValue); the type simply has
+// nowhere to put one.
+// ---------------------------------------------------------------------------
+
+export interface ValidationActor {
+  id:               string;
+  type:             'consumer' | 'business' | 'developer' | 'operator';
+  display_name:     string;
+  handle?:          string;
+  email?:           string;
+  status:           string;
+  lifecycle?:       string;
+  purpose?:         string;
+  provisioned_at?:  string;
+  product_ids?:     Record<string, string>;
+  credential_names: string[];
+}
+
+export interface ValidationProfile {
+  id:                      string;
+  name:                    string;
+  name_pt:                 string;
+  claim:                   string;
+  version:                 number;
+  digest:                  string;
+  suites:                  number;
+  blocking_suites:         number;
+  minimum_preflight:       'HEALTHY' | 'DEGRADED';
+  max_pass_with_retry:     number;
+  max_credit_volume_minor: number;
+  suite_ids?:              string[];
+  blocking_ids?:           string[];
+}
+
+export interface ValidationSuite {
+  id: string; name: string; name_pt: string; blocking: boolean;
+  existing_coverage?: string; scope?: string;
+}
+
+export interface ValidationCheck {
+  group:    string;
+  id:       string;
+  status:   'PASS' | 'WARN' | 'FAIL' | 'SKIPPED' | 'UNAVAILABLE';
+  detail:   string;
+  measured?: Record<string, number>;
+}
+
+export interface ValidationPreflight {
+  verdict:     'HEALTHY' | 'DEGRADED' | 'UNHEALTHY';
+  profile_id?: string;
+  checks:      ValidationCheck[];
+  started_at:  string;
+  ended_at:    string;
+}
+
+export interface ValidationRun {
+  id:              string;
+  run_ref:         string;
+  environment:     string;
+  profile_id:      string;
+  profile_version: number;
+  profile_digest:  string;
+  state:  'PREPARING' | 'PREFLIGHT_RUNNING' | 'BLOCKED' | 'READY'
+        | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'CANCELLED' | 'ABANDONED';
+  verdict:       'PASS' | 'FAIL' | null;
+  requested_by:  string | null;
+  cancel_reason?: string | null;
+  requested_at:  string;
+  started_at:    string | null;
+  ended_at:      string | null;
+}
+
+export interface ValidationRunEvent {
+  seq: number; from_state: string | null; to_state: string;
+  reason: string | null; occurred_at: string;
+}
+
+export interface ValidationOverview {
+  environment:       string;
+  registry_digest:   string;
+  actors:            number;
+  suites:            number;
+  profiles:          ValidationProfile[];
+  active_run:        ValidationRun | null;
+  recent_runs:       ValidationRun[];
+  runs_ever_started: boolean;
+}
+
 export class AdminApi {
   private readonly base: string;
   private readonly passive: boolean;
@@ -656,6 +749,52 @@ export class AdminApi {
     return this.req('/admin/v1/auth/change-password', {
       method: 'POST',
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  }
+
+  // ── Banzami Validation Studio ─────────────────────────────────────────────
+  //
+  // The preflight is a GET and persists nothing: it writes no row, moves no
+  // money, sends no email and authenticates as nobody, so it can be asked as
+  // often as the operator likes without spending the budget it measures.
+
+  validationOverview(): Promise<ValidationOverview> {
+    return this.req('/admin/v1/validation/overview');
+  }
+  validationActors(): Promise<{ environment: string; actors: ValidationActor[] }> {
+    return this.req('/admin/v1/validation/actors');
+  }
+  validationProfiles(): Promise<{ profiles: ValidationProfile[]; suites: ValidationSuite[] }> {
+    return this.req('/admin/v1/validation/profiles');
+  }
+  validationPreflight(profile?: string): Promise<{
+    preflight: ValidationPreflight;
+    persisted: boolean;
+    meets_minimum?: boolean;
+    minimum_required?: string;
+  }> {
+    const q = profile ? `?profile=${encodeURIComponent(profile)}` : '';
+    return this.req(`/admin/v1/validation/preflight${q}`);
+  }
+  validationRuns(): Promise<{ runs: ValidationRun[] }> {
+    return this.req('/admin/v1/validation/runs');
+  }
+  validationRun(id: string): Promise<{ run: ValidationRun; events: ValidationRunEvent[] }> {
+    return this.req(`/admin/v1/validation/runs/${encodeURIComponent(id)}`);
+  }
+  /** Prepares and preflights a run. It does NOT start it — nothing does. */
+  validationPrepareRun(profile: string, idempotencyKey: string): Promise<{
+    run: ValidationRun; preflight: ValidationPreflight; started: boolean; note: string;
+  }> {
+    return this.req('/admin/v1/validation/runs', {
+      method: 'POST',
+      body: JSON.stringify({ profile, idempotency_key: idempotencyKey }),
+    });
+  }
+  validationCancelRun(id: string, reason: string): Promise<{ run: ValidationRun }> {
+    return this.req(`/admin/v1/validation/runs/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
     });
   }
 

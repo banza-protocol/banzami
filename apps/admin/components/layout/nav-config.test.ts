@@ -50,6 +50,7 @@ describe('BANZADMIN nav config', () => {
       'Operações financeiras',
       'Risco e plataforma',
       'Preços e finanças',
+      'Validação',
     ]);
     expect(names).not.toContain('Compliance');
     for (const s of sections) expect(s.items.length, `${s.section} empty`).toBeGreaterThan(0);
@@ -81,5 +82,37 @@ describe('BANZADMIN nav config', () => {
       expect(items.find((i) => i.href === href)?.attentionKey, `${href} must not badge`).toBeUndefined();
     }
     expect(withBadge.length).toBeGreaterThan(0);
+  });
+});
+
+// The Validation Studio has no Live representation at all — migration 0160
+// admits only SANDBOX — so in LIVE the item is HIDDEN rather than disabled. A
+// greyed-out link would promise something that cannot exist.
+describe('Validation Studio in the sidebar', () => {
+  it('is visible in SANDBOX', () => {
+    const items = navItems(navForRole('SUPER_ADMIN', NAV, 'SANDBOX'));
+    expect(items.some((i) => i.href === '/validation')).toBe(true);
+  });
+
+  it('is absent in LIVE, and so is its whole section', () => {
+    const nav = navForRole('SUPER_ADMIN', NAV, 'LIVE');
+    expect(navItems(nav).some((i) => i.href === '/validation')).toBe(false);
+    // An empty section would leave a heading with nothing under it.
+    expect(nav.some((e) => isSection(e) && e.section === 'Validação')).toBe(false);
+  });
+
+  it('is visible to every role that admin-api grants validation.view', () => {
+    // SUPER_ADMIN, OPERATIONS, COMPLIANCE, SUPPORT and READ_ONLY all hold it
+    // (services/admin-api/internal/auth/rbac.go). The sidebar is presentation
+    // only and never authority, but it should not contradict the server.
+    for (const role of ['SUPER_ADMIN', 'OPERATIONS', 'COMPLIANCE', 'SUPPORT', 'READ_ONLY']) {
+      const items = navItems(navForRole(role, NAV, 'SANDBOX'));
+      expect(items.some((i) => i.href === '/validation')).toBe(true);
+    }
+  });
+
+  it('carries no attention badge — it is a place to look, not a queue', () => {
+    const item = navItems(NAV).find((i) => i.href === '/validation');
+    expect(item?.attentionKey).toBeUndefined();
   });
 });

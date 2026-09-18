@@ -8,6 +8,7 @@ import { BanzamiLogo } from '@/components/ui/brand';
 import { attentionHref, attentionLabel, attentionPhrase, badgeText, countFor } from '@/lib/attention';
 import { useAttention } from '@/components/layout/attention-provider';
 import { navForRole, isSection, type NavItem } from '@/components/layout/nav-config';
+import { useAdminEnv } from '@/lib/admin-env';
 import { getSession } from '@/lib/session';
 
 /**
@@ -66,7 +67,11 @@ export function Sidebar() {
   const router = useRouter();
   const { summary } = useAttention();
   // Role scopes only what is SHOWN; admin-api re-authorizes every action.
-  const nav = navForRole(getSession()?.user.role);
+  // The Validation Studio exists only in SANDBOX, so it is hidden in LIVE
+  // rather than disabled — a greyed-out link would promise something that
+  // cannot exist (migration 0160 admits no other environment).
+  const { env } = useAdminEnv();
+  const nav = navForRole(getSession()?.user.role, undefined, env);
 
   // Sign out on the server too (admin-api revokes the session), then leave.
   async function logout() {

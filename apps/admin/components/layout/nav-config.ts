@@ -18,14 +18,17 @@
 import {
   LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog,
   FileCheck, ScanFace, Inbox, ToggleLeft, ShieldCheck, Tags, Coins, HandCoins, PieChart,
-  SlidersHorizontal, ScrollText, Store, FlaskConical, type LucideIcon,
+  SlidersHorizontal, ScrollText, Store, FlaskConical, Microscope, type LucideIcon,
 } from 'lucide-react';
 import type { AttentionKey } from '@/lib/attention';
 
 // `roles`, when set, restricts who SEES the item in the sidebar (presentation
 // only — admin-api re-authorizes every action; the sidebar is never authority).
 // Omitted = visible to every authenticated operator.
-export type NavItem = { href: string; label: string; Icon: LucideIcon; exact?: boolean; attentionKey?: AttentionKey; roles?: string[] };
+// `sandboxOnly` hides an item entirely in LIVE rather than disabling it: the
+// Validation Studio has no Live representation at all — migration 0160 admits
+// only SANDBOX — so a greyed-out link would promise something that cannot exist.
+export type NavItem = { href: string; label: string; Icon: LucideIcon; exact?: boolean; attentionKey?: AttentionKey; roles?: string[]; sandboxOnly?: boolean };
 export type NavSection = { section: string; items: NavItem[] };
 export type NavEntry = NavItem | NavSection;
 
@@ -78,6 +81,15 @@ export const NAV: NavEntry[] = [
       { href: '/application-settlements', label: 'Liquidações de aplicações', Icon: HandCoins, attentionKey: 'application_settlements' },
     ],
   },
+  {
+    // Banzami Validation Studio — the canonical OPERATIONAL surface for Sandbox
+    // functional validation (doc 23: one engine, multiple control surfaces).
+    // No attentionKey: it is a place to look and to prepare, not a queue.
+    section: 'Validação',
+    items: [
+      { href: '/validation', label: 'Validation Studio', Icon: Microscope, sandboxOnly: true },
+    ],
+  },
 ];
 
 export function isSection(e: NavEntry): e is NavSection {
@@ -90,8 +102,10 @@ export function navItems(entries: NavEntry[] = NAV): NavItem[] {
 
 // The sidebar for a role: drops items the role may not see and any section left
 // empty. Presentation only — authority stays with admin-api.
-export function navForRole(role: string | undefined, entries: NavEntry[] = NAV): NavEntry[] {
-  const allowed = (i: NavItem) => !i.roles || (role !== undefined && i.roles.includes(role));
+export function navForRole(role: string | undefined, entries: NavEntry[] = NAV, env: 'SANDBOX' | 'LIVE' = 'SANDBOX'): NavEntry[] {
+  const allowed = (i: NavItem) =>
+    (!i.roles || (role !== undefined && i.roles.includes(role))) &&
+    (!i.sandboxOnly || env === 'SANDBOX');
   return entries
     .map((e) => (isSection(e) ? { ...e, items: e.items.filter(allowed) } : e))
     .filter((e) => (isSection(e) ? e.items.length > 0 : allowed(e as NavItem)));
