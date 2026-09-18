@@ -101,3 +101,68 @@ export function submitCost(harnessRelPath, src) {
   // the VM's address, not to whichever machine is driving the run.
   return { bucket: harnessRelPath.endsWith('.sh') ? 'vm' : 'runner' };
 }
+
+/* ── the OTHER scarce resource: aggregate synthetic funds ─────────────────── */
+
+/**
+ * The Sandbox's aggregate-funds cap, and why it is not the credit ceiling.
+ *
+ * `max_credit_volume_minor` limits money MOVED. This limits money HELD: every
+ * synthetic consumer a run creates is funded, and that balance sits against a
+ * shared 50 000 000 cap until the run gives it back. A run can move very little
+ * and still exhaust it — which is exactly what happened, when proof 15 funded a
+ * consumer 500 000 per run and never retired it. Forty-two runs held 79% of the
+ * cap and the next funding call was refused as INSUFFICIENT_FUNDS, a message
+ * that reads like a product fault and is not one.
+ */
+export const AGGREGATE_FUNDS_CAP = 50_000_000;
+
+/** Sandbox consumer registration AUTO-GRANTS this much (public-api auth.go). */
+export const REGISTRATION_GRANT = 1_000_000;
+
+/** Live aggregate funded value across merchant and consumer wallets. Read-only. */
+export function aggregateFunds() {
+  const out = ssh(
+    `U=$(cat /root/.banzami/operator_db_url); ` +
+    `docker exec ${process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1'} ` +
+    `psql "$U" -tAc "SELECT SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END) ` +
+    `FROM ledger_entries WHERE account_id IN (SELECT available_account_id FROM wallets ` +
+    `UNION SELECT available_account_id FROM consumer_wallets)"`).trim();
+  const used = Number(out);
+  if (!Number.isFinite(used)) throw new Error(`unreadable aggregate funds: ${JSON.stringify(out)}`);
+  return { cap: AGGREGATE_FUNDS_CAP, used, available: Math.max(0, AGGREGATE_FUNDS_CAP - used) };
+}
+
+/**
+ * The most funded value a plan may hold at once, before cleanup.
+ *
+ * A CEILING derived from the harnesses, not a prediction: every consumer a
+ * journey registers receives the automatic grant whether the journey wanted it
+ * or not, plus whatever it funds explicitly. Peak rather than sum, because a
+ * journey returns its funding on the way out — but a FAILED journey may strand
+ * it, so the model does not assume cleanup ran.
+ *
+ * KNOWN IMPRECISION, stated rather than papered over: this counts the literal
+ * register call, and a harness that wraps it in a helper and calls the helper
+ * three times reads as one. The count is therefore a FLOOR, and under-counting
+ * a ceiling is the dangerous direction — so the runner does not rely on it
+ * alone. It measures the ACTUAL peak against the same live source during the
+ * run and reports any divergence from this number as an observation to
+ * investigate, which is the only way an imprecise model stays honest.
+ */
+export function plannedPeakFunds(plan, readSource) {
+  let registrations = 0, explicit = 0;
+  for (const p of plan) {
+    if (!p.harness) continue;
+    let src; try { src = readSource(p.harness); } catch { continue; }
+    registrations += (src.match(/auth\/register/g) ?? []).length;
+    for (const m of src.matchAll(/sandbox\/fund['"`\s,{]*[^}]*?amount_minor:\s*(\d+)/g)) explicit += Number(m[1]);
+    for (const m of src.matchAll(/amount_minor:\s*(\d+)[^}]*\}\s*\)?\s*;?\s*\/\/\s*fund/gi)) explicit += Number(m[1]);
+  }
+  return {
+    registrations,
+    grantExposure: registrations * REGISTRATION_GRANT,
+    explicit,
+    peak: registrations * REGISTRATION_GRANT + explicit,
+  };
+}

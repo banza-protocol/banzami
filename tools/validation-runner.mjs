@@ -29,7 +29,10 @@ import { createHash, randomUUID } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSuiteSummary } from './e2e/lib/parse-suite-summary.mjs';
-import { submitCapacity, runnerBucket, vmBucket, submitCost } from './lib/validation-capacity.mjs';
+import {
+  submitCapacity, runnerBucket, vmBucket, submitCost,
+  aggregateFunds, plannedPeakFunds, AGGREGATE_FUNDS_CAP,
+} from './lib/validation-capacity.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
@@ -589,6 +592,44 @@ function actualSubmits(baseline) {
   } catch { return null; }
 }
 
+/**
+ * The second scarce resource, checked with the same four numbers.
+ *
+ * Aggregate funded value is not transaction volume. The credit ceiling limits
+ * money MOVED; this limits money HELD by synthetic actors before cleanup. A run
+ * can move almost nothing and still exhaust it — and one did, for weeks, one
+ * unretired consumer at a time, surfacing as INSUFFICIENT_FUNDS.
+ *
+ * The reserve is the plan's own peak: enough headroom for this run AND one
+ * complete retry, because a failed journey may strand its funding until cleanup
+ * and the retry then needs its own.
+ */
+function checkFundsBudget(profile, plan) {
+  const planned = plannedPeakFunds(plan, (rel) => readFileSync(join(ROOT, rel), 'utf8'));
+  let live;
+  try { live = aggregateFunds(); }
+  catch (e) { die(`refusing to start: cannot read aggregate Sandbox funds (${e.message}). ` +
+                  `An unknown cap is not an empty one.`); }
+
+  const retryReserve = planned.peak;          // one complete retry
+  const required = planned.peak + retryReserve;
+
+  log(`  funds: cap ${live.cap.toLocaleString('pt-PT')} · used ${live.used.toLocaleString('pt-PT')} · ` +
+      `available ${live.available.toLocaleString('pt-PT')}`);
+  log(`  funds: planned peak ${planned.peak.toLocaleString('pt-PT')} ` +
+      `(${planned.registrations} registration grant(s) + ${planned.explicit.toLocaleString('pt-PT')} explicit) ` +
+      `+ retry reserve ${retryReserve.toLocaleString('pt-PT')} = ${required.toLocaleString('pt-PT')}`);
+
+  if (live.available < required) {
+    die(`VALIDATION_AGGREGATE_FUNDS_CAP_INSUFFICIENT: ` +
+        `cap=${live.cap} currently_used=${live.used} available=${live.available} ` +
+        `planned_peak=${planned.peak} retry_reserve=${retryReserve} required_total=${required}. ` +
+        `Synthetic consumers holding funded balances are the usual cause — ` +
+        `run tools/validation-synthetic-audit.mjs before retiring anything.`);
+  }
+  return { planned, live, required };
+}
+
 /* ── the run loop ───────────────────────────────────────────────────────── */
 
 /**
@@ -723,6 +764,9 @@ function main() {
     // here, between journeys, against the engine's own definition of volume.
     // Before the plan is materialised and long before a Business is provisioned.
     const budget = checkApplicationBudget(profile, plan);
+    const funds = checkFundsBudget(profile, plan);
+    const fundsBaseline = funds.live.used;
+    let fundsPeak = 0;
 
     const ceiling = Number(profile.budget?.max_credit_volume_minor ?? 0);
     // Anchored to the run's own start timestamp, read from the row rather than
@@ -735,6 +779,14 @@ function main() {
 
       // Checked BEFORE the next journey, never after the last one: a ceiling
       // discovered in the post-mortem protects nothing.
+      // Track the ACTUAL funded-value peak against the same live source the
+      // preflight used. The planned figure is a floor (see plannedPeakFunds),
+      // so a divergence here is the thing that catches the model being wrong.
+      try {
+        const nowFunds = aggregateFunds().used;
+        fundsPeak = Math.max(fundsPeak, nowFunds - fundsBaseline);
+      } catch { /* the run is not about this reading */ }
+
       if (ceiling > 0) {
         spent = creditSince(since);
         if (spent > ceiling) {
@@ -780,6 +832,18 @@ function main() {
     // ACTUAL, beside declared and planned. A run that quietly spent more than it
     // said it would has broken the promise the budget exists to make, even if
     // every journey passed.
+    // PLANNED vs ACTUAL, said out loud in both directions. Over is a planner
+    // defect or unexpected retries; under is a skipped journey or reuse. Neither
+    // is normalised away — a model that silently agrees with itself is not a
+    // model.
+    if (fundsPeak > 0 || funds.planned.peak > 0) {
+      const delta = fundsPeak - funds.planned.peak;
+      log(`  funds: planned peak ${funds.planned.peak} · actual peak ${fundsPeak}` +
+          (delta === 0 ? '' : ` · DIVERGENCE ${delta > 0 ? '+' : ''}${delta} — ` +
+            (delta > 0 ? 'the plan under-counted (helper-wrapped registrations, or retries)'
+                       : 'a journey was skipped or reused a fixture')));
+    }
+
     submitsActual = actualSubmits(budget.buckets);
     if (submitsActual !== null) {
       log(`  applications: declared ${budget.declared} · planned ${budget.planned} · actual ${submitsActual}`);
