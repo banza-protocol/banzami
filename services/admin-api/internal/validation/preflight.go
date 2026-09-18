@@ -48,6 +48,13 @@ type PreflightResult struct {
 	Checks    []Check   `json:"checks"`
 	StartedAt time.Time `json:"started_at"`
 	EndedAt   time.Time `json:"ended_at"`
+
+	// Provenance is what the run, if prepared from this preflight, will be
+	// permanently attributable to. It is collected here rather than at
+	// preparation so that an unresolvable component FAILS the preflight — which
+	// lands the run in BLOCKED through the existing state machine, instead of
+	// letting a READY run exist with incomplete evidence.
+	Provenance []ProvenanceRow `json:"provenance"`
 }
 
 // Preflighter answers the question a Full Run must not start without.
@@ -60,11 +67,12 @@ type PreflightResult struct {
 type Preflighter struct {
 	pool *pgxpool.Pool
 	reg  *Registry
+	prov *ProvenanceCollector
 	now  func() time.Time
 }
 
-func NewPreflighter(pool *pgxpool.Pool, reg *Registry) *Preflighter {
-	return &Preflighter{pool: pool, reg: reg, now: time.Now}
+func NewPreflighter(pool *pgxpool.Pool, reg *Registry, prov *ProvenanceCollector) *Preflighter {
+	return &Preflighter{pool: pool, reg: reg, prov: prov, now: time.Now}
 }
 
 // Run executes the preflight for a profile. An unknown profile is an error, not
@@ -110,6 +118,9 @@ func (p *Preflighter) Run(ctx context.Context, profileID string) (PreflightResul
 			Measured: map[string]int64{"provisioned": int64(provisioned)}})
 	}
 
+	// ── provenance ──────────────────────────────────────────────────────────
+	p.checkProvenance(ctx, add, &res)
+
 	if p.pool == nil {
 		add(Check{Group: "database", ID: "reachable", Status: StatusUnavailable,
 			Detail: "the control plane has no database pool; every measured check is unavailable"})
@@ -130,6 +141,44 @@ func (p *Preflighter) Run(ctx context.Context, profileID string) (PreflightResul
 	res.EndedAt = p.now()
 	res.Verdict = verdictOf(res.Checks)
 	return res, nil
+}
+
+// checkProvenance resolves every mandatory component's contemporaneous identity
+// and records one check per component.
+//
+// A component that cannot say what revision it is makes the preflight FAIL,
+// which makes the verdict UNHEALTHY, which lands the run in BLOCKED. That is
+// the invariant "READY => mandatory provenance complete", enforced through the
+// state machine that already exists rather than through a new one.
+func (p *Preflighter) checkProvenance(ctx context.Context, add func(Check), res *PreflightResult) {
+	if p.prov == nil {
+		for _, c := range MandatoryComponents() {
+			add(Check{Group: "provenance", ID: c, Status: StatusFail,
+				Detail: "no provenance collector is configured; a prepared run would be unattributable"})
+		}
+		return
+	}
+
+	rows, err := p.prov.Collect(ctx)
+	res.Provenance = rows
+
+	got := map[string]ProvenanceRow{}
+	for _, r := range rows {
+		got[r.Component] = r
+	}
+	for _, name := range MandatoryComponents() {
+		if r, ok := got[name]; ok {
+			add(Check{Group: "provenance", ID: name, Status: StatusPass,
+				Detail: "deployed revision " + r.Revision + " (" + r.Detail["source"] + ")"})
+			continue
+		}
+		detail := "revision could not be read"
+		if err != nil {
+			detail = err.Error()
+		}
+		add(Check{Group: "provenance", ID: name, Status: StatusFail,
+			Detail: detail + " — a run prepared now would be unattributable"})
+	}
 }
 
 // checkActorsResolve asks whether each actor's product identity still exists.

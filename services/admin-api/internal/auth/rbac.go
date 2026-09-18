@@ -77,11 +77,11 @@ const (
 	// Sandbox-only in effect: the /validation surface is hidden entirely (not
 	// merely disabled) when the active environment is LIVE, so no control here
 	// can reach real-Live validation.
-	CapValidationView     Capability = "validation.view"      // overview, capabilities, journeys, runs
-	CapValidationRun      Capability = "validation.run"       // start / cancel a run
-	CapValidationEvidence Capability = "validation.evidence"  // open evidence artifacts
-	CapValidationActors   Capability = "validation.actors"    // actor lifecycle + credential REFERENCES (never values)
-	CapValidationConfig   Capability = "validation.config"    // registries, retention, policy
+	CapValidationView     Capability = "validation.view"     // overview, capabilities, journeys, runs
+	CapValidationRun      Capability = "validation.run"      // start / cancel a run
+	CapValidationEvidence Capability = "validation.evidence" // open evidence artifacts
+	CapValidationActors   Capability = "validation.actors"   // actor lifecycle + credential REFERENCES (never values)
+	CapValidationConfig   Capability = "validation.config"   // registries, retention, policy
 	// CapValidationPublish authorises an SDK publication inside a Repair Run.
 	// It is step-up gated alongside repricing, settlement and wallet credit:
 	// publishing to a public registry is at least as irreversible as those —

@@ -15,37 +15,46 @@ import (
 // asserting after the fact that nothing changed — cannot distinguish "wrote
 // nothing" from "wrote something that happened to be idempotent".
 func TestPreflight_ConsumesNoQuota(t *testing.T) {
-	src, err := os.ReadFile("preflight.go")
-	if err != nil {
-		t.Fatalf("read preflight.go: %v", err)
-	}
-	code := stripComments(string(src))
-
-	// SQL that writes.
-	for _, verb := range []string{"INSERT ", "UPDATE ", "DELETE ", "TRUNCATE ", "ALTER ", "DROP "} {
-		if strings.Contains(strings.ToUpper(code), verb) {
-			t.Errorf("the preflight contains %q — a preflight that writes is not a preflight", strings.TrimSpace(verb))
+	// Both files: the preflight and the provenance it collects. Splitting the
+	// collector into its own file must not split the guarantee.
+	for _, file := range []string{"preflight.go", "provenance.go"} {
+		src, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatalf("read %s: %v", file, err)
 		}
-	}
+		code := stripComments(string(src))
 
-	// Anything that would spend a metered budget: an HTTP call could submit an
-	// application or trigger an email, both of which are rationed.
-	for _, forbidden := range []string{
-		"http.", "net/http", "Exec(", "SendMail", "Sender", "Login(", "Authenticate",
-	} {
-		if strings.Contains(code, forbidden) {
-			t.Errorf("the preflight references %q — it must neither call out nor authenticate", forbidden)
+		// SQL that writes.
+		for _, verb := range []string{"INSERT ", "UPDATE ", "DELETE ", "TRUNCATE ", "ALTER ", "DROP "} {
+			if strings.Contains(strings.ToUpper(code), verb) {
+				t.Errorf("%s contains %q — a preflight that writes is not a preflight", file, strings.TrimSpace(verb))
+			}
 		}
-	}
 
-	// Every database call must be a read.
-	calls := regexp.MustCompile(`p\.pool\.\w+\(`).FindAllString(code, -1)
-	if len(calls) == 0 {
-		t.Fatal("the preflight makes no database call at all; it cannot be measuring anything")
-	}
-	for _, c := range calls {
-		if !strings.HasPrefix(c, "p.pool.Query") {
-			t.Errorf("the preflight calls %s; only Query/QueryRow are reads", c)
+		// Anything that would spend a metered budget or act as somebody.
+		for _, forbidden := range []string{"Exec(", "SendMail", "Sender", "Login(", "Authenticate", "Authorization"} {
+			if strings.Contains(code, forbidden) {
+				t.Errorf("%s references %q — it must neither write nor authenticate", file, forbidden)
+			}
+		}
+
+		// Every database call must be a read.
+		for _, c := range regexp.MustCompile(`(?:p|c)\.pool\.\w+\(`).FindAllString(code, -1) {
+			if !strings.Contains(c, ".pool.Query") {
+				t.Errorf("%s calls %s; only Query/QueryRow are reads", file, c)
+			}
+		}
+
+		// HTTP is permitted, but ONLY as a GET to a /health endpoint. Reading a
+		// service's own statement of what it is costs nothing; anything else
+		// reachable over HTTP could submit, send or spend.
+		for _, m := range regexp.MustCompile(`http\.Method\w+`).FindAllString(code, -1) {
+			if m != "http.MethodGet" {
+				t.Errorf("%s uses %s; a preflight may only GET", file, m)
+			}
+		}
+		if strings.Contains(code, "http.NewRequest") && !strings.Contains(code, `"/health"`) {
+			t.Errorf("%s makes an HTTP request to something other than /health", file)
 		}
 	}
 }
@@ -139,24 +148,81 @@ func TestPreflight_MeasuresWithTheEnginesOwnDefinition(t *testing.T) {
 	}
 }
 
-// A preflight with no pool must say so rather than silently pass.
-func TestPreflight_WithoutADatabaseIsNotHealthy(t *testing.T) {
-	p := NewPreflighter(nil, MustLoad())
+// A Studio with no database can measure nothing and attribute nothing, so it is
+// UNHEALTHY — not DEGRADED. Before provenance was mandatory this was DEGRADED,
+// which was too generous: a run prepared then would have been unattributable.
+func TestPreflight_WithoutADatabaseIsUnhealthy(t *testing.T) {
+	p := NewPreflighter(nil, MustLoad(), nil)
 	res, err := p.Run(t.Context(), "GOLDEN")
 	if err != nil {
 		t.Fatalf("run: %v", err)
 	}
-	if res.Verdict != VerdictDegraded {
-		t.Errorf("verdict %s; a preflight that could measure nothing is DEGRADED", res.Verdict)
+	if res.Verdict != VerdictUnhealthy {
+		t.Errorf("verdict %s; a Studio that can attribute nothing is UNHEALTHY", res.Verdict)
 	}
-	if MeetsMinimum(res.Verdict, "HEALTHY") {
-		t.Error("a GOLDEN run would have been cleared to start")
+	// No profile may start into an UNHEALTHY lab — not even FULL, which
+	// tolerates DEGRADED.
+	for _, minimum := range []string{VerdictHealthy, VerdictDegraded} {
+		if MeetsMinimum(res.Verdict, minimum) {
+			t.Errorf("a run requiring %s would have been cleared to start", minimum)
+		}
+	}
+	// And it says WHY, per mandatory component, rather than failing opaquely.
+	named := 0
+	for _, c := range res.Checks {
+		if c.Group == "provenance" && c.Status == StatusFail {
+			named++
+		}
+	}
+	if named != len(MandatoryComponents()) {
+		t.Errorf("%d provenance failures reported, want one per mandatory component (%d)",
+			named, len(MandatoryComponents()))
 	}
 }
 
 func TestPreflight_UnknownProfileIsAnError(t *testing.T) {
-	p := NewPreflighter(nil, MustLoad())
+	p := NewPreflighter(nil, MustLoad(), nil)
 	if _, err := p.Run(t.Context(), "NOT_A_PROFILE"); err == nil {
 		t.Error("an unknown profile should be an error, not a verdict")
+	}
+}
+
+// `measured` cannot become a secret sink, and the reason is structural rather
+// than a filter someone has to remember to apply: the type is
+// map[string]int64. A password, PIN, seed, cookie, token or secret:// URI
+// cannot be assigned to it — the compiler refuses before any redactor would.
+//
+// This test guards that decision, because widening it to map[string]any or
+// map[string]string is a one-word change that would silently open the sink.
+func TestPreflight_MeasuredCannotCarryASecret(t *testing.T) {
+	src, err := os.ReadFile("preflight.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !regexp.MustCompile(`Measured\s+map\[string\]int64`).Match(src) {
+		t.Error("Measured is no longer map[string]int64; it can now hold text, " +
+			"and text is where a credential would arrive")
+	}
+
+	// Detail is free text, so it must never be built from anything secret-shaped.
+	code := stripComments(string(src))
+	for _, forbidden := range []string{
+		"secret://", "/run/secrets/", "Password", "Pin", "TotpSeed", "RecoveryCode",
+		"Cookie", "Bearer", "APIKey", "ApiKey", "SessionToken",
+	} {
+		if strings.Contains(code, forbidden) {
+			t.Errorf("the preflight references %q; a check detail could reach the database with it", forbidden)
+		}
+	}
+
+	// And the same for what actually gets persisted: an actor's credential
+	// NAMES may be known, never a value.
+	reg := MustLoad()
+	for _, a := range reg.Actors {
+		for _, n := range a.CredentialNames {
+			if strings.Contains(n, "://") || len(n) > 32 {
+				t.Errorf("actor %s credential name %q looks like a value, not a name", a.ID, n)
+			}
+		}
 	}
 }

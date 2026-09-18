@@ -267,9 +267,14 @@ func main() {
 	if studioPool != nil {
 		studioStore = validation.NewStore(studioPool)
 	}
+	// Provenance reads the DEPLOYED revision of each mandatory component: this
+	// process's own BANZAMI_BUILD_COMMIT, the gateway's /health, the migration
+	// head, and the compiled-in registry digest. Never the repository's HEAD,
+	// which is a different thing and usually a different commit.
+	studioProvenance := validation.NewProvenanceCollector(studioPool, cfg.GatewayStagingInternalURL)
 	validationH := handler.NewValidationHandler(
 		studioRegistry,
-		validation.NewPreflighter(studioPool, studioRegistry),
+		validation.NewPreflighter(studioPool, studioRegistry, studioProvenance),
 		studioStore,
 	)
 	slog.Info("validation studio ready",

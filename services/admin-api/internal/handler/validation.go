@@ -265,9 +265,23 @@ func (h *ValidationHandler) PrepareRun(w http.ResponseWriter, r *http.Request) {
 		operator = p.ID
 	}
 
-	run, err := h.runs.Prepare(r.Context(), profile, operator, in.IdempotencyKey)
+	run, created, err := h.runs.Prepare(r.Context(), profile, operator, in.IdempotencyKey)
 	if err != nil {
 		vErr(w, http.StatusConflict, "PREPARE_FAILED", err.Error())
+		return
+	}
+
+	// A replay returns what the first call made, untouched. Re-preflighting it
+	// would mutate a settled run — and against a cancelled one would attempt an
+	// illegal transition — so the second caller gets the same answer and the
+	// Sandbox gets no second run.
+	if !created {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"run":     run,
+			"replay":  true,
+			"started": false,
+			"note":    "idempotency key already used; this is the run it made",
+		})
 		return
 	}
 
@@ -286,6 +300,7 @@ func (h *ValidationHandler) PrepareRun(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"run":       run,
+		"replay":    false,
 		"preflight": res,
 		// Said explicitly so no caller has to infer it from the state name.
 		"started": false,

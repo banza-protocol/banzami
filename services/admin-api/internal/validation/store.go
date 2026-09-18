@@ -2,6 +2,7 @@ package validation
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -85,22 +86,26 @@ func scanRun(row pgx.Row) (Run, error) {
 // idempotencyKey makes preparation replayable: the same key returns the run it
 // already made rather than a second one. That property belongs here and not in
 // the caller, because two operators clicking at once is the ordinary case.
-func (s *Store) Prepare(ctx context.Context, profile Profile, operatorID string, idempotencyKey string) (Run, error) {
+// The second return value reports whether a run was CREATED. A replay returns
+// the run it already made, and false — the caller must then leave it alone
+// rather than preflight it again, which would both mutate a settled run and,
+// against a terminal one, attempt an illegal transition.
+func (s *Store) Prepare(ctx context.Context, profile Profile, operatorID string, idempotencyKey string) (Run, bool, error) {
 	if profile.ID == "" || profile.Digest == "" {
-		return Run{}, fmt.Errorf("a run must pin a profile and its digest")
+		return Run{}, false, fmt.Errorf("a run must pin a profile and its digest")
 	}
 
 	if idempotencyKey != "" {
 		if existing, err := s.byIdempotencyKey(ctx, idempotencyKey); err == nil {
-			return existing, nil
+			return existing, false, nil
 		} else if !errors.Is(err, ErrRunNotFound) {
-			return Run{}, err
+			return Run{}, false, err
 		}
 	}
 
 	ref, err := s.nextRunRef(ctx)
 	if err != nil {
-		return Run{}, err
+		return Run{}, false, err
 	}
 
 	var operator *string
@@ -121,12 +126,12 @@ func (s *Store) Prepare(ctx context.Context, profile Profile, operatorID string,
 
 	run, err := scanRun(row)
 	if err != nil {
-		return Run{}, fmt.Errorf("prepare run: %w", err)
+		return Run{}, false, fmt.Errorf("prepare run: %w", err)
 	}
 	if err := s.record(ctx, run.ID, "", StatePreparing, "prepared", operator); err != nil {
-		return Run{}, err
+		return Run{}, false, err
 	}
-	return run, nil
+	return run, true, nil
 }
 
 // RecordPreflight persists a preflight and moves the run to READY or BLOCKED
@@ -161,20 +166,53 @@ func (s *Store) RecordPreflight(ctx context.Context, runID string, profile Profi
 	}
 
 	for _, c := range res.Checks {
+		// `measured` is the material state the verdict was taken FROM. Persisting
+		// status and detail while dropping it would leave a stored check that
+		// cannot be re-read against the numbers that produced it — a claim
+		// without its evidence. The schema already holds JSONB; the runtime shape
+		// is kept as-is rather than flattened into prose.
+		measured := c.Measured
+		if measured == nil {
+			measured = map[string]int64{}
+		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO validation_preflight_checks
-				(preflight_id, check_group, check_id, status, detail)
-			VALUES ($1::uuid, $2, $3, $4, $5)
+				(preflight_id, check_group, check_id, status, detail, measured)
+			VALUES ($1::uuid, $2, $3, $4, $5, $6)
 			ON CONFLICT (preflight_id, check_group, check_id) DO NOTHING`,
-			preflightID, c.Group, c.ID, c.Status, c.Detail); err != nil {
+			preflightID, c.Group, c.ID, c.Status, c.Detail, measured); err != nil {
 			return Run{}, fmt.Errorf("record check %s/%s: %w", c.Group, c.ID, err)
 		}
 	}
 
+	// Provenance, in the SAME transaction as the READY transition. There is no
+	// window in which a READY run exists without it: either both commit or
+	// neither does, and the run stays in PREPARING.
 	next := StateBlocked
-	reason := "preflight " + res.Verdict + " does not meet " + profile.Preflight.MinimumVerdict
 	if MeetsMinimum(res.Verdict, profile.Preflight.MinimumVerdict) {
 		next = StateReady
+	}
+	if next == StateReady {
+		if err := requireCompleteProvenance(res.Provenance); err != nil {
+			return Run{}, fmt.Errorf("refusing READY: %w", err)
+		}
+	}
+	for _, pr := range res.Provenance {
+		detail, merr := json.Marshal(pr.Detail)
+		if merr != nil {
+			return Run{}, fmt.Errorf("provenance detail for %s: %w", pr.Component, merr)
+		}
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO validation_run_provenance (run_id, component, revision, detail)
+			VALUES ($1::uuid, $2, $3, $4::jsonb)
+			ON CONFLICT (run_id, component) DO NOTHING`,
+			runID, pr.Component, pr.Revision, string(detail)); err != nil {
+			return Run{}, fmt.Errorf("record provenance %s: %w", pr.Component, err)
+		}
+	}
+
+	reason := "preflight " + res.Verdict + " does not meet " + profile.Preflight.MinimumVerdict
+	if next == StateReady {
 		reason = "preflight " + res.Verdict
 	}
 	if _, err := tx.Exec(ctx,
@@ -343,6 +381,29 @@ func (s *Store) recordRow(ctx context.Context, q interface {
 		runID, fromPtr, to, reason, operator)
 	if err != nil {
 		return fmt.Errorf("record transition %s -> %s: %w", from, to, err)
+	}
+	return nil
+}
+
+// requireCompleteProvenance is the guard behind "READY => mandatory provenance
+// complete". It runs INSIDE the preparation transaction, so a run that cannot
+// be attributed never becomes READY — it is not downgraded, not annotated, and
+// not allowed through with a placeholder.
+func requireCompleteProvenance(rows []ProvenanceRow) error {
+	got := map[string]bool{}
+	for _, r := range rows {
+		if r.Revision != "" && r.Revision != "unknown" {
+			got[r.Component] = true
+		}
+	}
+	missing := []string{}
+	for _, want := range MandatoryComponents() {
+		if !got[want] {
+			missing = append(missing, want)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("mandatory provenance missing for %v", missing)
 	}
 	return nil
 }

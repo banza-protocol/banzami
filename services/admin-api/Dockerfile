@@ -44,4 +44,13 @@ EXPOSE 8082
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
     CMD curl -fsS http://localhost:8082/health || exit 1
 
+# Source revision this image was built from, by the same mechanism the gateway
+# already uses: remote-native-build.sh passes --build-arg BUILD_COMMIT to every
+# service, and the process reads BANZAMI_BUILD_COMMIT at runtime. The Validation
+# Studio records this as a prepared run's provenance — the DEPLOYED revision,
+# never the repository's HEAD, which is a different thing and often a different
+# commit. Not a secret: a commit SHA discloses nothing usable.
+ARG BUILD_COMMIT=unknown
+ENV BANZAMI_BUILD_COMMIT=$BUILD_COMMIT
+
 CMD ["admin-api"]
