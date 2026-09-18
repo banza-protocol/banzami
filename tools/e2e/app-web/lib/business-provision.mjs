@@ -47,6 +47,9 @@ async function api(method, path, { json, body, contentType } = {}) {
 /**
  * @returns {Promise<{handle:string, pin:string, merchantId:string, applicationId:string}>}
  */
+/** Merchant ids supplied by the operator, which this process must never retire. */
+const REUSED = new Map();
+
 export async function provisionBusiness({ handlePrefix = 'e2ebiz', pin = '481516' } = {}) {
   // Reuse a supplied generic Sandbox Business (skips the rate-limited application
   // submit, 30/24h per IP). Set BZ_BIZ_HANDLE (+ BZ_BIZ_PIN, BZ_BIZ_MERCHANT_ID)
@@ -54,13 +57,15 @@ export async function provisionBusiness({ handlePrefix = 'e2ebiz', pin = '481516
   // proof (it persists for the next run).
   const reuse = process.env.BZ_BIZ_HANDLE;
   if (reuse && reuse.trim()) {
-    return {
+    const fixture = {
       handle: reuse.trim().replace(/^@/, '').toLowerCase(),
       pin: process.env.BZ_BIZ_PIN ?? pin,
       merchantId: process.env.BZ_BIZ_MERCHANT_ID ?? '',
       applicationId: null,
       reused: true,
     };
+    if (fixture.merchantId) REUSED.set(fixture.merchantId, fixture.handle);
+    return fixture;
   }
   const handle = `${handlePrefix}${Date.now().toString(36)}`.toLowerCase().slice(0, 28);
   const email = `${handle}@synthetic.test`;
@@ -118,8 +123,24 @@ echo "OK|$TOKEN|$MID"
 
 // Retire a synthetic Business (best-effort, canonical lifecycle) — suspend so its
 // receive point/QR fail closed, without deleting any financial history.
+/**
+ * Retire a Business this run created.
+ *
+ * REFUSES a reused fixture, structurally. The reuse contract above says a
+ * supplied Business persists for the next run, and exactly two of the nine
+ * proofs that call this implemented it — so a reused fixture was SUSPENDED by
+ * whichever proof ran next, and every later run signing in with that handle got
+ * a login error that looks nothing like "your fixture was retired".
+ *
+ * Seven call sites remembering a rule is not a rule. The function that does the
+ * damage is the one that has to know.
+ */
 export async function retireBusiness(merchantId) {
-  if (!merchantId) return;
+  if (!merchantId) return 'no-op';
+  if (REUSED.has(merchantId)) {
+    console.log(`  · not retiring @${REUSED.get(merchantId)} — supplied via BZ_BIZ_HANDLE, it persists`);
+    return 'skipped-reused';
+  }
   try {
     sshOut(`
 CORE=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging')
@@ -127,4 +148,5 @@ IK=$(docker exec "$CORE" sh -c "tr '\\0' '\\n' < /proc/1/environ | sed -n 's/^IN
 docker exec "$CORE" curl -s -o /dev/null -X POST "http://localhost:8081/internal/v1/merchants/${merchantId}/suspend" -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"reason":"app-web-business-e2e cleanup"}' || true
 `);
   } catch { /* best-effort */ }
+  return 'retired';
 }

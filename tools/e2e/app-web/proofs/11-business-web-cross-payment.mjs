@@ -71,8 +71,13 @@ function bffClient() {
 async function payOnce(d, page, amountKz) {
   // Enter the amount and continue → mints a FRESH Payment Session and opens the
   // confirm screen.
-  // charge_screen.dart: the amount label carries its own example.
-  await d.fillFieldBySemantics('Valor (ex: 250,00)', String(amountKz), { verify: false });
+  // MoneyInput renders its `label` as a separate Text ABOVE the field, so the
+  // TextField's only accessible name is its hint. That is an accessibility
+  // gap in the widget — an amount field whose accessible name is "leave blank
+  // for a free amount" is not named, it is annotated — but the harness must
+  // assert what the product DOES, not what it should do, so it locates the
+  // field the way a screen reader would find it today.
+  await d.fillFieldBySemantics('Deixe em branco para valor livre', String(amountKz), { verify: false });
   await sleep(400);
   await d.tapButton('Continuar').catch(() => d.tapText('Continuar'));
   // Confirm the payment (the button reads 'Pagar <amount>'); this is the explicit,

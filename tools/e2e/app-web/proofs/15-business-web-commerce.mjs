@@ -61,19 +61,28 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel\s*([\d\s]
     await dA.waitForText('Criar cobrança', { timeout: 20000 });
     await dA.tapButton('Criar cobrança').catch(() => dA.tapText('Criar cobrança'));
     await dA.waitForText('Gerar cobrança', { timeout: 15000 }).catch(() => {});
-    // The charge form's amount label is the field's own text, example and all
-    // (merchant/screens/charge_screen.dart). It was 'Montante' once; an exact
-    // aria-label match means a copy change fails here rather than at a gate.
-    await dA.fillFieldBySemantics('Valor (ex: 250,00)', '700', { verify: false });
+    // MoneyInput renders its `label` as a separate Text ABOVE the field, so the
+    // TextField's only accessible name is its hint. That is an accessibility
+    // gap in the widget — an amount field whose accessible name is "leave blank
+    // for a free amount" is not named, it is annotated — but the harness must
+    // assert what the product DOES, not what it should do, so it locates the
+    // field the way a screen reader would find it today.
+    await dA.fillFieldBySemantics('Deixe em branco para valor livre', '700', { verify: false });
     await dA.tapButton('Gerar cobrança').catch(() => dA.tapText('Gerar cobrança'));
-    const chargeShown = await dA.waitForText('Copiar ligação', { timeout: 20000 }).then(() => true).catch(() => false);
+    // The generated-charge screen offers 'Partilhar link' and 'Nova cobrança'
+    // (merchant/screens/charge_screen.dart). 'Copiar ligação' is older copy.
+    const chargeShown = await dA.waitForText('Partilhar link', { timeout: 20000 }).then(() => true).catch(() => false);
     R.mark('BUSINESS_WEB_CREATE_CHARGE_PARITY', chargeShown, 'Business Web created a canonical charge (link + QR)');
     const chargeSlug = await api.newestActiveChargeSlug();
     R.mark('BUSINESS_WEB_CHARGE_ARTIFACT_CANONICAL', !!chargeSlug, `charge slug=${chargeSlug}`);
-    // Back to Home for the realtime observation.
-    await pageA.goBack({ waitUntil: 'domcontentloaded' }).catch(() => {});
-    await sleep(2500); await dA.enableSemantics().catch(() => {});
-    await dA.waitForText('Saldo disponível', { timeout: 20000 }).catch(() => {});
+    // Back to Home for the realtime observation — through the tab bar, the way a
+    // merchant does it. goBack() is browser history, and this is a single-page
+    // Flutter app: it left the driver somewhere that is not Home, so the balance
+    // read null, and the three gates after this one failed on that alone.
+    await dA.tapText('Início').catch(() => {});
+    await sleep(2500);
+    const onHome = await dA.waitForText('Saldo disponível', { timeout: 20000 }).then(() => true).catch(() => false);
+    R.mark('BUSINESS_WEB_BACK_TO_HOME', onHome, 'returned to the Business Home through the native tab bar');
     const homeBefore = kzOnHome(await dA.visibleText());
 
     // ── Consumer Web pays the charge through its own authenticated session. ──
