@@ -78,6 +78,7 @@ and summarised in [21 — Owner decisions](21-owner-decisions.md).
 | 28 | [Phase C.0 ground truth](28-phase-c-ground-truth.md) | The system re-read, not carried forward |
 | 29 | [Application root cause](29-phase-c-application-root-cause.md) | The Phase B defect, closed and proven |
 | 30 | [Operational control surface](30-operational-control-surface.md) | BANZADMIN `/validation` — where each decision lives |
+| 31 | [Authority separation](31-authority-separation.md) | CANONICAL — scenario authority is not orchestration authority |
 
 Machine-readable specifications: [`schemas/`](schemas/).
 
