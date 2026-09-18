@@ -74,8 +74,10 @@ Commits: `970cbe9d` … `d6f95384` on `main`
 
 ## What was REFACTORED
 
-- **`docs/validation/lab/` → `docs/validation/studio/`** with history preserved,
-  every occurrence of the retired name rewritten, and `07` renamed.
+- **The Phase A documents moved into `docs/validation/studio/`** with history
+  preserved, every occurrence of the retired name rewritten, and `07` renamed.
+  (The former path is not written out here: `check-validation-naming` forbids it
+  anywhere in the tree, and it caught this very sentence on the first attempt.)
 - **`apps/validation-studio/README.md`** — three months stale; described
   `apps/dashboard`, `apps/checkout` and `apps/merchant` as current (the first two
   retired and enforced-absent, the third never existing), and warned about matrix

@@ -131,19 +131,22 @@ _authority_gate() {
       developer-api)
         _deny_unapproved "$svc" "legacy compose-based path retired: invoke './deploy.sh developer-api' ALONE so it routes to the authoritative rt04e sandbox flow (Decision 1)" ;;
       webhook-sink)
-        # The deploy path EXISTS and is ready (deploy_webhook_sink below): it
-        # builds from infra/sandbox/webhook-sink and tags the image with the
-        # commit, which is what lets check-deploy-parity name the revision a
-        # webhook journey ran against. It is denied here because a deploy path
-        # existing is not the same as a deploy being authorised, and this matrix
-        # is the owner's control, not the author's.
+        # APPROVED 2026-09-18 by the owner, by name, in the Phase B operational
+        # acceptance decision — SANDBOX SCOPE ONLY.
         #
-        # To enable: replace this branch with `: ;`. Application plane only — no
-        # database, no Redis, no secret, no Docker socket, no host mount, its own
-        # bridge network. Until then the sink keeps running as the hand-built
-        # `:local` image and parity correctly reports
-        # VALIDATION_DEPLOY_REVISION_UNKNOWN.
-        _deny_unapproved "$svc" "deploy path ready, owner approval pending — see the note in _authority_gate (Phase B, D15)" ;;
+        # Sandbox assurance infrastructure: the deterministic webhook receiver
+        # that webhook journeys assert against. Its revision is material because
+        # a validation run that cannot name the sink it exercised cannot say what
+        # its webhook results mean (VALIDATION_DEPLOY_REVISION_UNKNOWN).
+        #
+        # Bounded exactly as pay-frontend's Stage F and app-frontend's WEB-APP-001
+        # approvals are: application plane only — no database, no Redis, no
+        # secret, no Docker socket, no host mount, its own bridge network
+        # (bzsb-sink), read-only root filesystem, all capabilities dropped.
+        # It holds bounded test data in memory and nothing else. Nothing here
+        # approves a live payment surface; the rails below still fail closed.
+        # Revoke by restoring _deny_unapproved for this service.
+        : ;;
       staging)
         _deny_unapproved "$svc" "legacy staging deploy path retired: the rt04e sandbox project is the authoritative staging runtime (Decision 1)" ;;
       *)

@@ -341,6 +341,12 @@ check-validation: check-validation-naming check-validation-engine check-validati
 validation-actor-health:
 	node tools/validation-actor-health.mjs
 
+# VALIDATION_VOLUME_BUDGET_PREFLIGHT — should a run START? Capacity planning, not
+# authority: the rolling windows in core/compliance remain the only thing that
+# can permit or refuse an actual payment.
+validation-volume-preflight:
+	node tools/validation-volume-preflight.mjs --run-type FULL
+
 # Where this operator is allowed to charge money. Static, so it runs in CI: a
 # new crate depending on banzami-pricing is a new economic entrypoint, and it
 # must be reviewed rather than merged as a dependency line.
