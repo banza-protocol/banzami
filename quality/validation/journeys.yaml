@@ -1087,3 +1087,43 @@ journeys:
     timeout_seconds: 600
     retry_policy: none
 
+  - journey_id: S19-DOC-001
+    suite: S19
+    name: O guia publicado, seguido por quem só conhece o guia
+    purpose: >-
+      A contract is only kept if someone who has read nothing else can follow it.
+      This walks all twelve steps of the published quickstart against the
+      deployed Sandbox, with the SDK taken from the public registry into an empty
+      directory outside every Banzami checkout — no fixture route, no internal
+      key, no database write, no operator bypass. The harness carries its own
+      anti-vacuity discipline: each of the twelve ends in exactly one of PASS,
+      FAIL, PENDING or NOT_RUN, and it refuses to print a green summary beside a
+      step that is not green. A step nobody ran cannot read as success, and the
+      runner's adapter honours that — only PASS is a pass.
+    capabilities: []
+    actors: [D01]
+    preconditions:
+      - the published documentation and the public npm registry are reachable
+      - the Sandbox public edge answers
+    entry_point: {surface: website, path: "(the published quickstart)"}
+    steps:
+      - action: follow every step the deployed quickstart gives the reader
+        expect_api: "twelve named steps, each PASS; a derived summary; residue measured after cleanup"
+        evidence: [api, document]
+    financial_expectations: []
+    negative_assertions:
+      - a step the page does not explain fails as a documentation gap, not as a product defect
+      - a step that did not run is PENDING or NOT_RUN, never a pass
+    evidence_required: [api]
+    cleanup:
+      disposable: [the reader's workspace, project, keys and test payers]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tools/e2e/docs/quickstart-e2e.mjs
+    evidence_adapter: assurance-json
+    harness_args: [run]
+    evidence_stem: docs-quickstart
+    timeout_seconds: 1800
+    retry_policy: none
+

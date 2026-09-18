@@ -31,7 +31,7 @@ process.env.TMPDIR = scratch;
 const evidence = join(scratch, 'banzami-assurance', 'fixture');
 mkdirSync(evidence, { recursive: true });
 
-const { runHarness, parseShellGates, scrub } = await import('./validation-runner.mjs');
+const { runHarness, parseShellGates, scrub, harvestAssuranceJSON } = await import('./validation-runner.mjs');
 
 // Fixtures live where a real harness lives, so they travel the runner's real
 // entry point — allow-list included — rather than a test-only side door. They
@@ -129,6 +129,54 @@ check('a bearer token never survives capture',
   /abcdef/.test(scrub('Authorization: Bearer abcdefGHIJ.klm')), false);
 check('a financial amount is NOT mistaken for a PIN',
   /750000 minor/.test(scrub('moved 750000 minor')), true);
+
+console.log('');
+
+// ── the assurance-json adapter ───────────────────────────────────────────────
+// The non-app-web estate writes named booleans plus its own totals, in three
+// spellings. One adapter reads all three and reconciles; a shape it does not
+// recognise yields nothing, and nothing does not pass.
+console.log('\nassurance-json adapter\n');
+
+const { writeFileSync: wf } = await import('node:fs');
+let n = 0;
+const report = (obj) => {
+  const stem = `zzrep${++n}`;
+  wf(join(evidence, `${stem}-${Date.now()}.json`), JSON.stringify(obj));
+  return stem;
+};
+const t0 = Date.now() - 1000;
+
+const steps = harvestAssuranceJSON(report({
+  steps: [{ n: 1, verdict: 'PASS' }, { n: 2, verdict: 'PASS' }], summary: { passed: 2, total: 2 },
+}), t0);
+check('reads the steps[] shape', steps.length, 2);
+check('  …and reconciles against the summary', steps.some((g) => g.gate === 'ADAPTER_RECONCILED'), false);
+
+const matrix = harvestAssuranceJSON(report({
+  matrix: [{ id: 'A', ok: true }, { id: 'B', ok: false }], passed: 1, failed: 1,
+}), t0);
+check('reads the matrix[] shape', matrix.length, 2);
+check('  …and records the failing row as FAIL',
+  matrix.filter((g) => g.verdict === 'FAIL').length, 1);
+
+// PENDING and NOT_RUN exist precisely so a step nobody ran cannot read as
+// success. Only PASS is a pass.
+const pending = harvestAssuranceJSON(report({
+  steps: [{ n: 1, verdict: 'PASS' }, { n: 2, verdict: 'PENDING' }, { n: 3, verdict: 'NOT_RUN' }],
+  summary: { passed: 1, total: 3 },
+}), t0);
+check('PENDING and NOT_RUN are not passes',
+  pending.filter((g) => g.verdict === 'PASS').length, 1);
+
+const drift = harvestAssuranceJSON(report({
+  steps: [{ n: 1, verdict: 'PASS' }], summary: { passed: 9, total: 9 },
+}), t0);
+check('refuses totals it cannot reconcile',
+  drift.some((g) => g.gate === 'ADAPTER_RECONCILED' && g.verdict === 'FAIL'), true);
+
+check('an unrecognised shape yields no assertions',
+  harvestAssuranceJSON(report({ whatever: [1, 2, 3] }), t0).length, 0);
 
 console.log('');
 

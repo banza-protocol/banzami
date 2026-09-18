@@ -145,6 +145,9 @@ function planFor(profileID) {
         suite: suiteID,
         name: j.name,
         harness: j.existing_harness ?? null,
+        adapter: j.evidence_adapter ?? null,
+        args: j.harness_args ?? [],
+        evidenceStem: j.evidence_stem ?? null,
         timeoutMs: (j.timeout_seconds ?? 720) * 1000,
         retries: j.retry_policy === 'none' ? 0 : (j.infrastructure_retries ?? 0),
         blocking: blocking.has(suiteID),
@@ -169,7 +172,7 @@ function planFor(profileID) {
  * a basename this regex already proved is `[a-z0-9-]+`. No registry string, no
  * API input and no harness output is ever interpolated into a shell command.
  */
-const NODE_HARNESS = /^tools\/e2e\/app-web\/proofs\/[0-9a-z-]+\.mjs$/;
+const NODE_HARNESS = /^tools\/e2e\/[a-z0-9-]+\/(?:proofs\/)?[0-9a-z-]+\.mjs$/;
 const SHELL_HARNESS = /^tests\/phase0\/[a-z0-9-]+\.sh$/;
 
 /** The secret shapes that must never reach a log or an evidence row. */
@@ -307,10 +310,17 @@ export function parseShellGates(stdout, sha256 = null) {
  * the gates become the assertions. A harness that passes its exit status but
  * reports a failing gate is still a failure — the finer signal wins.
  */
-export function runHarness(harness, timeoutMs, runRef = 'adhoc') {
+export function runHarness(harness, timeoutMs, runRef = 'adhoc', opts = {}) {
   if (SHELL_HARNESS.test(harness)) return runShellHarness(harness, timeoutMs, runRef);
   if (!NODE_HARNESS.test(harness)) {
     return { ok: false, reason: `not an allow-listed harness path: ${harness}`, gates: [], durationMs: 0 };
+  }
+  // Arguments come from the reviewed registry, never from a request, and each
+  // one must be a bare word — they are argv entries, not a command line, but a
+  // harness that accepted a path or a flag from anywhere else would be a way in.
+  const args = (opts.args ?? []).map(String);
+  if (args.some((a) => !/^[A-Za-z0-9_-]+$/.test(a))) {
+    return { ok: false, reason: `harness argument is not a bare word: ${args.join(' ')}`, gates: [], durationMs: 0 };
   }
   const script = join(ROOT, harness);
   if (!existsSync(script)) {
@@ -318,7 +328,7 @@ export function runHarness(harness, timeoutMs, runRef = 'adhoc') {
   }
   const cwd = resolve(script, '..', '..');
   const before = Date.now();
-  const res = spawnSync('node', [script], {
+  const res = spawnSync('node', [script, ...args], {
     cwd: harness.includes('tools/e2e/app-web/') ? join(ROOT, 'tools/e2e/app-web') : cwd,
     encoding: 'utf8', timeout: timeoutMs, maxBuffer: 1 << 26,
     env: { ...process.env, BANZAMI_VALIDATION_RUN: '1' },
@@ -329,7 +339,9 @@ export function runHarness(harness, timeoutMs, runRef = 'adhoc') {
     return { ok: false, reason: `timed out after ${Math.round(timeoutMs / 1000)}s`, gates: [], durationMs, stdout: res.stdout ?? '' };
   }
 
-  const gates = harvestGates(harness, before);
+  const gates = opts.adapter === 'assurance-json'
+    ? harvestAssuranceJSON(opts.evidenceStem ?? harness.split('/').pop().replace(/\.mjs$/, ''), before)
+    : harvestGates(harness, before);
   // A gate is PASS, FAIL or NOTE. A NOTE is a recorded measurement, not an
   // assertion — treating it as a failure would fail every harness that writes
   // down a number.
@@ -382,6 +394,80 @@ function harvestGates(harness, startedAt) {
       sha256: createHash('sha256').update(readFileSync(found[0].p)).digest('hex'),
     }));
   } catch { return []; }
+}
+
+/**
+ * Adapt the OTHER evidence shape the estate writes.
+ *
+ * Only the app-web family uses GateReport. The rest — docs, business,
+ * dev-console, sandbox — each write a JSON report of named booleans plus their
+ * own totals. Those are the same contract in three spellings, not three
+ * contracts, so one adapter reads all of them AND reconciles what it read
+ * against what the harness counted. A shape it does not recognise produces no
+ * assertions, and a journey with no assertions does not pass.
+ *
+ *   steps[]  {n|id|name, verdict|ok}   totals: summary{passed,total} | pass/fail
+ *   matrix[] {id, ok}                  totals: passed/failed
+ */
+export function harvestAssuranceJSON(stem, startedAt) {
+  const doc = newestReport(stem, startedAt);
+  if (!doc) return [];
+  const rows = Array.isArray(doc.json.steps) ? doc.json.steps
+             : Array.isArray(doc.json.matrix) ? doc.json.matrix
+             : null;
+  if (!rows) return [];
+
+  const gates = rows.map((r) => {
+    const name = String(r.name ?? r.id ?? (r.n !== undefined ? `step-${r.n}` : 'unnamed'));
+    // `verdict` may be PASS / FAIL / PENDING / NOT_RUN. Only PASS is a pass;
+    // PENDING and NOT_RUN are the states a suite invented precisely so that a
+    // step nobody ran could not read as success.
+    const verdict = r.verdict !== undefined
+      ? (r.verdict === 'PASS' ? 'PASS' : 'FAIL')
+      : (r.ok === true ? 'PASS' : 'FAIL');
+    const detail = String(r.verdict ?? r.note ?? r.detail ?? '').slice(0, 300);
+    return { gate: name, verdict, detail, file: doc.file, sha256: doc.sha256 };
+  });
+
+  // Reconcile. The harness counted its own result; if this read a different
+  // number, the shape was misunderstood and a confident subset is worse than
+  // nothing. Surfaced as a synthetic FAIL so the journey cannot pass on it.
+  const declaredPass = doc.json.summary?.passed ?? doc.json.passed ?? doc.json.pass;
+  const readPass = gates.filter((g) => g.verdict === 'PASS').length;
+  if (declaredPass !== undefined && Number(declaredPass) !== readPass) {
+    gates.push({
+      gate: 'ADAPTER_RECONCILED', verdict: 'FAIL',
+      detail: `read ${readPass} passing of ${gates.length}, the harness counted ${declaredPass}`,
+      file: doc.file, sha256: doc.sha256,
+    });
+  }
+  return gates;
+}
+
+/** The newest JSON report this run wrote, by stem and mtime. */
+function newestReport(stem, startedAt) {
+  const base = process.env.TMPDIR ? join(process.env.TMPDIR, 'banzami-assurance') : '/tmp/banzami-assurance';
+  if (!existsSync(base)) return null;
+  const found = [];
+  const walk = (dir, depth = 0) => {
+    if (depth > 3) return;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p, depth + 1);
+      else if (e.name.startsWith(stem) && e.name.endsWith('.json')) {
+        const st = statSync(p);
+        if (st.mtimeMs >= startedAt - 2000) found.push({ p, m: st.mtimeMs });
+      }
+    }
+  };
+  try { walk(base); } catch { return null; }
+  if (!found.length) return null;
+  found.sort((a, b) => b.m - a.m);
+  try {
+    const bytes = readFileSync(found[0].p);
+    return { file: found[0].p, sha256: createHash('sha256').update(bytes).digest('hex'),
+             json: JSON.parse(bytes.toString('utf8')) };
+  } catch { return null; }
 }
 
 /* ── the run loop ───────────────────────────────────────────────────────── */
@@ -504,7 +590,8 @@ function main() {
       sql(`UPDATE validation_run_journeys SET outcome='OBSERVED', started_at=now()
            WHERE run_id=${lit(run.id)}::uuid AND journey_id=${lit(p.journey)};`, { rows: false });
 
-      const r = runHarness(p.harness, p.timeoutMs, run.ref);
+      const r = runHarness(p.harness, p.timeoutMs, run.ref,
+        { adapter: p.adapter, args: p.args, evidenceStem: p.evidenceStem });
       for (const g of r.gates) recordGate(run.id, p, g);
 
       const outcome = r.ok ? 'PASSED' : 'FAILED';

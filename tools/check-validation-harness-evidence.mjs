@@ -50,6 +50,31 @@ for (const j of journeys) {
   }
 
   const src = readFileSync(abs, 'utf8');
+
+  // A harness outside the app-web family writes its own report shape and says
+  // so. The declaration is checked against the SOURCE, not trusted: an adapter
+  // named for a shape the harness does not write harvests nothing, and a
+  // journey that harvests nothing is exactly the silent pass this guards.
+  if (j.evidence_adapter === 'assurance-json') {
+    if (!/steps\b|matrix\b/.test(src) || !/writeFileSync/.test(src)) {
+      fail(`${j.journey_id}: ${rel} declares assurance-json but writes no steps[]/matrix[] report`);
+      continue;
+    }
+    const stem = j.evidence_stem;
+    if (!stem) { fail(`${j.journey_id}: assurance-json without an evidence_stem`); continue; }
+    if (!src.includes(stem)) {
+      fail(`${j.journey_id}: evidence_stem '${stem}' appears nowhere in ${rel} — ` +
+           `the runner would look for a file the harness never writes`);
+      continue;
+    }
+    pass(`${j.journey_id}: ${stem} via assurance-json`);
+    continue;
+  }
+  if (j.evidence_adapter && j.evidence_adapter !== 'gate-report') {
+    fail(`${j.journey_id}: unknown evidence_adapter '${j.evidence_adapter}'`);
+    continue;
+  }
+
   const m = src.match(/new GateReport\(\s*'([^']+)'/);
   if (!m) {
     fail(`${j.journey_id}: ${rel} constructs no GateReport — the runner would harvest nothing`);

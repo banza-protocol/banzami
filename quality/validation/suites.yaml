@@ -85,29 +85,14 @@ suites:
     blocking: false
   - {id: S17, name: Security / authority / isolation, name_pt: Segurança e isolamento,  existing_coverage: good,      blocking: true}
   - {id: S18, name: Platform / web-mobile parity,  name_pt: Paridade de plataforma,     existing_coverage: good,      blocking: false}
-  # The contract IS checked — statically and continuously. What is missing is
-  # only the adapter that would let the runner ingest the runtime harness.
+  # Briefly NOT_PROVEN on a TOOLING blocker — the runner could not read this
+  # harness's report shape. A TOOLING blocker is unfinished work wearing a
+  # justification, so the adapter was written instead of the excuse being kept.
   - id: S19
     name: Contracts / OpenAPI / docs
     name_pt: Contratos e documentação
     existing_coverage: strong
     blocking: false
-    runtime_proof: NOT_PROVEN
-    blocker:
-      class: TOOLING
-      detail: >-
-        tools/e2e/docs/quickstart-e2e.mjs walks the published quickstart against
-        the deployed Sandbox and is the honest runtime proof of this suite, but
-        it reports through its own JSON shape rather than the gate-report
-        contract the runner harvests, and it takes a phase argument.
-      detail_pt: >-
-        O harness que percorre o guia publicado contra o Sandbox implantado é a
-        prova correcta desta suite, mas reporta num formato próprio que o
-        executor ainda não sabe ler.
-      path_to_proof: >-
-        An `assurance-json` evidence adapter covering the steps[] / matrix[]
-        report shapes the non-app-web harnesses already write. Ordinary work,
-        not a boundary — named NOT_PROVEN rather than quietly claimed.
   # A dependency suite's real claim is not "the dependency is up". It is: when
   # the dependency is DOWN, the operator classifies it as a dependency failure
   # and confirms nothing. That needs fault injection.
