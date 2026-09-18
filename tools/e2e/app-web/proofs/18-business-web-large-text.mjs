@@ -111,8 +111,8 @@ async function screen(d, page, label, marker, actions = []) {
 
     // ── Criar cobrança (form) ──
     await go(d, 'Criar cobrança');
-    await d.waitForText('Montante', { timeout: 12000 }).catch(() => {});
-    await screen(d, page, 'CRIAR_COBRANCA', ['Montante', 'Gerar cobrança'], ['Gerar cobrança']);
+    await d.waitForText('Valor', { timeout: 12000 }).catch(() => {});
+    await screen(d, page, 'CRIAR_COBRANCA', ['Valor', 'Gerar cobrança'], ['Gerar cobrança']);
     // Return to the shell (the charge screen is a pushed route).
     await page.goto(`${APP}/business`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await d.enableSemantics();

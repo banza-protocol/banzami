@@ -71,7 +71,8 @@ function bffClient() {
 async function payOnce(d, page, amountKz) {
   // Enter the amount and continue → mints a FRESH Payment Session and opens the
   // confirm screen.
-  await d.fillFieldBySemantics('Montante', String(amountKz), { verify: false });
+  // charge_screen.dart: the amount label carries its own example.
+  await d.fillFieldBySemantics('Valor (ex: 250,00)', String(amountKz), { verify: false });
   await sleep(400);
   await d.tapButton('Continuar').catch(() => d.tapText('Continuar'));
   // Confirm the payment (the button reads 'Pagar <amount>'); this is the explicit,

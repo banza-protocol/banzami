@@ -44,7 +44,13 @@ const R = new GateReport('17-web-dual-context-cross-tab');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 if (process.env.BANZAMI_E2E !== 'RUN') { console.error('set BANZAMI_E2E=RUN'); process.exit(2); }
 
-const BUSINESS_MARKER = 'Carteira Banzami Business'; // appears ONLY in the Business shell
+// The string that appears ONLY in the Business shell, taken from the shell
+// itself (merchant/screens/dashboard_screen.dart). It used to be 'Carteira
+// Banzami Business', which the product renamed — and because a string that
+// exists nowhere can never leak, the two "no Business data in the Consumer tab"
+// assertions below had been passing VACUOUSLY ever since. An isolation check
+// whose subject does not exist proves nothing at all.
+const BUSINESS_MARKER = 'Painel de negócio';
 const RATE_RE = /Demasiadas tentativas|Too many attempts/i;
 
 // A same-origin fetch INSIDE a page, so it uses that page's (shared) cookie jar.
@@ -119,7 +125,10 @@ async function registerConsumerUI(page, d, handle) {
     const bText = await dB.visibleText();
     const aClean = aText.includes('Saldo disponível') && !aText.includes(BUSINESS_MARKER) && !aText.includes(bizName) && !aText.includes(`@${biz.handle}`);
     R.mark('CONSUMER_TAB_SHOWS_ONLY_CONSUMER', aClean, aClean ? 'Consumer Home only — no Business identity/wallet' : `LEAK: ${aText.slice(0, 90)}`);
-    const bClean = bText.includes(BUSINESS_MARKER) && bText.includes(`@${biz.handle}`) && !bText.includes(consumerHandle);
+    // The Business Home renders the business NAME; the '@handle' lives on Perfil.
+    // Requiring '@handle' here asserted a different screen — and this gate had
+    // never actually run before, because the proof could not get past sign-in.
+    const bClean = bText.includes(BUSINESS_MARKER) && bText.includes(bizName) && !bText.includes(consumerHandle);
     R.mark('BUSINESS_TAB_SHOWS_ONLY_BUSINESS', bClean, bClean ? 'Business Home only — no Consumer identity' : `LEAK: ${bText.slice(0, 90)}`);
     R.mark('NO_BUSINESS_DATA_IN_CONSUMER_TAB', !aText.includes(BUSINESS_MARKER) && !aText.includes(bizName), 'Business wallet/name absent from the Consumer tab');
     R.mark('NO_CONSUMER_DATA_IN_BUSINESS_TAB', !bText.includes(consumerHandle), `consumer @${consumerHandle} absent from the Business tab`);
@@ -144,9 +153,12 @@ async function registerConsumerUI(page, d, handle) {
     // Tab B, reloaded, falls back to the Business login (business restores from the
     // cookie on load; with the authority gone it shows the login).
     await pageB.reload({ waitUntil: 'domcontentloaded' }); await dB.enableSemantics();
-    const bLoggedOut = await dB.waitForText('Business', { timeout: 20000 }).then(async () => {
+    // After the authority is revoked, a reloaded tab lands on the Business
+    // Welcome — 'Conectar conta' — not on the login form's 'Entrar' header. The
+    // product signs a Business in over two steps now, and Welcome is the first.
+    const bLoggedOut = await dB.waitForText('Conectar conta', { timeout: 20000 }).then(async () => {
       const t = await dB.visibleText();
-      return t.includes('Entrar') && !t.includes(BUSINESS_MARKER);
+      return !t.includes(BUSINESS_MARKER);
     }).catch(() => false);
     R.mark('BUSINESS_TAB_PROPAGATES_LOGOUT', bLoggedOut, 'Tab B fell back to the Business login after logout');
 

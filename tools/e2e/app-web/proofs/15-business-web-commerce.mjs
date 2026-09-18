@@ -61,7 +61,10 @@ const kzOnHome = (txt) => { const m = (txt.match(/Saldo dispon[ií]vel\s*([\d\s]
     await dA.waitForText('Criar cobrança', { timeout: 20000 });
     await dA.tapButton('Criar cobrança').catch(() => dA.tapText('Criar cobrança'));
     await dA.waitForText('Gerar cobrança', { timeout: 15000 }).catch(() => {});
-    await dA.fillFieldBySemantics('Montante', '700', { verify: false });
+    // The charge form's amount label is the field's own text, example and all
+    // (merchant/screens/charge_screen.dart). It was 'Montante' once; an exact
+    // aria-label match means a copy change fails here rather than at a gate.
+    await dA.fillFieldBySemantics('Valor (ex: 250,00)', '700', { verify: false });
     await dA.tapButton('Gerar cobrança').catch(() => dA.tapText('Gerar cobrança'));
     const chargeShown = await dA.waitForText('Copiar ligação', { timeout: 20000 }).then(() => true).catch(() => false);
     R.mark('BUSINESS_WEB_CREATE_CHARGE_PARITY', chargeShown, 'Business Web created a canonical charge (link + QR)');
