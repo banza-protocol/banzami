@@ -66,6 +66,13 @@ pub enum TransferError {
     #[error("an account in this transfer is frozen")]
     AccountFrozen,
 
+    /// A Sandbox pilot limit refused this merchant credit (owner decision D1).
+    /// Carries the deterministic `PILOT_LIMIT_*` code; the threshold is never
+    /// exposed. Never returned when the policy is disabled, which is the default
+    /// and is always the case outside the Sandbox.
+    #[error("pilot limit exceeded: {0}")]
+    PilotLimit(&'static str),
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 }

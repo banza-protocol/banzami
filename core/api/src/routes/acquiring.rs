@@ -128,6 +128,68 @@ pub async fn initiate_payment(
     crate::routes::external_rail::require_external_rail_for_link(&state, payment_link_id.as_uuid())
         .await?;
 
+    // ── Sandbox merchant-credit policy (owner decision D1) ──────────────────
+    //
+    // Gated at INITIATION, not at the settlement callback, and the difference is
+    // not stylistic. By callback time the payer has already paid on the external
+    // rail; refusing the credit there would leave the rail holding money Banzami
+    // will not credit — a financial-integrity defect, not a capacity control.
+    // Asked here, the payer is simply never sent to the provider.
+    //
+    // Same placement as the ADR-061 rail check directly above, and for the same
+    // reason: ask before the provider is called or anything is written.
+    {
+        let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
+        if policy.is_enabled() {
+            // The ledger account this link would credit: its named ADR-042
+            // account when that is still valid, else the wallet default. Same
+            // resolution the settlement uses, so the gate measures the account
+            // the money would actually land in.
+            let dest: Option<(Option<uuid::Uuid>, Option<uuid::Uuid>)> = sqlx::query_as(
+                "SELECT wa.account_id, w.available_account_id
+                   FROM payment_links pl
+                   JOIN wallets w ON w.id = pl.wallet_id
+                   LEFT JOIN wallet_accounts wa
+                          ON wa.id        = pl.wallet_account_id
+                         AND wa.wallet_id = pl.wallet_id
+                         AND wa.status    = 'ACTIVE'
+                         AND wa.currency  = $2
+                  WHERE pl.id = $1 AND w.status = 'ACTIVE'",
+            )
+            .bind(payment_link_id.as_uuid())
+            .bind(currency.code())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+
+            // An unresolvable destination falls through to the engine's own 404
+            // rather than being invented here.
+            if let Some((named, default)) = dest {
+                if let Some(account_id) = named.or(default) {
+                    let mut conn = state
+                        .pool
+                        .acquire()
+                        .await
+                        .map_err(|e| ApiError::internal(e.to_string()))?;
+                    if let Some(v) = banzami_compliance::pilot_enforce::check_merchant_credit(
+                        &mut conn,
+                        account_id,
+                        body.amount_minor,
+                        policy,
+                    )
+                    .await
+                    .map_err(|e| ApiError::internal(e.to_string()))?
+                    {
+                        return Err(ApiError::unprocessable(
+                            v.as_str(),
+                            "This operation exceeds the controlled pilot limit.",
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
     let payment = state
         .acquiring
         .initiate_payment(payment_link_id, amount)

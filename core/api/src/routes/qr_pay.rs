@@ -193,6 +193,31 @@ pub async fn pay(
     }
 
     let now = Utc::now();
+    // ── Sandbox merchant-credit policy (owner decision D1) ──────────────────
+    //
+    // A QR scan that pays a MERCHANT posts the credit here rather than through
+    // the transfer engine, so the gate is applied here too. A consumer-owned QR
+    // (P2P) has `consumer_id: Some(..)` and no merchant window applies.
+    //
+    // Before any posting row is written, and on this transaction's connection.
+    if recipient.consumer_id.is_none() {
+        let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
+        if let Some(v) = banzami_compliance::pilot_enforce::check_merchant_credit(
+            &mut tx,
+            recipient.account_id,
+            amount,
+            policy,
+        )
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+        {
+            return Err(ApiError::unprocessable(
+                v.as_str(),
+                "This operation exceeds the controlled pilot limit.",
+            ));
+        }
+    }
+
     let transfer_id = Uuid::new_v4();
     // The ledger key is the caller's idempotency key, so a retried scan reuses
     // the same posting instead of moving the money twice.

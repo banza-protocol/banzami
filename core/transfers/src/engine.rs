@@ -224,6 +224,36 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
             }
         };
 
+        // ── Sandbox merchant-credit policy (owner decision D1) ──────────────
+        //
+        // THE chokepoint. Banzami is wallet-native, so a merchant payment IS a
+        // wallet transfer: payment links, QR, the Business Receive Point,
+        // Collection shares and consumer pay links all arrive here. Gating the
+        // credit once, where it is posted, covers all of them — and cannot be
+        // forgotten by a new payment surface, because a new surface that credits
+        // a merchant without coming through here would not move money at all.
+        //
+        // Consumer→consumer (P2P) is untouched: `is_merchant_recipient` is false
+        // and no merchant-credit window applies.
+        //
+        // Read on THIS transaction's connection, so the measurement and the
+        // posting see the same snapshot. Disabled by default and never active
+        // outside the Sandbox (`PilotLimitPolicy::from_env`).
+        if is_merchant_recipient {
+            let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
+            if let Some(v) = banzami_compliance::pilot_enforce::check_merchant_credit(
+                &mut db_tx,
+                recipient_credit_acct,
+                req.amount_minor,
+                policy,
+            )
+            .await
+            .map_err(TransferError::Database)?
+            {
+                return Err(TransferError::PilotLimit(v.as_str()));
+            }
+        }
+
         // Derive sender's available balance from ledger entries.
         // LIABILITY account: balance = -(sum of signed_minor_units) = sum(credits) - sum(debits).
         // SUM(BIGINT) returns NUMERIC in PostgreSQL; cast back to BIGINT so sqlx

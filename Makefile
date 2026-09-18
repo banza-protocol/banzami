@@ -306,6 +306,12 @@ check-repo-layout:
 check-validation-naming:
 	node tools/check-validation-studio-naming.mjs
 
+# Sandbox merchant-credit policy (owner decision D1) — every path that can credit
+# a merchant either applies the rolling-window gate or records why it does not,
+# and ADR-048 states no limit the code does not carry.
+check-merchant-credit-policy:
+	node tools/check-merchant-credit-policy-coverage.mjs
+
 # Where this operator is allowed to charge money. Static, so it runs in CI: a
 # new crate depending on banzami-pricing is a new economic entrypoint, and it
 # must be reviewed rather than merged as a dependency line.
@@ -488,7 +494,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation-naming
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation-naming check-merchant-credit-policy
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────

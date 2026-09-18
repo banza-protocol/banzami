@@ -22,14 +22,61 @@ pub mod limits {
     pub const CONSUMER_MAX_BALANCE_MINOR: i64 = 5_000_000;
     /// Merchant: maximum per single received payment — Kz 25.000.
     pub const MERCHANT_PER_RECEIVE_MINOR: i64 = 2_500_000;
-    /// Merchant: maximum cumulative received per day — Kz 100.000.
-    pub const MERCHANT_DAILY_RECEIVE_MINOR: i64 = 10_000_000;
     /// Merchant: maximum wallet balance — Kz 100.000.
     pub const MERCHANT_MAX_BALANCE_MINOR: i64 = 10_000_000;
     /// Aggregate: maximum synthetic funds in circulation — Kz 500.000.
+    ///
+    /// This one is a STOCK, not a flow: it is a signed sum, so retiring synthetic
+    /// value (the exact reverse posting) reduces it. It needs no window.
     pub const AGGREGATE_FUNDS_MINOR: i64 = 50_000_000;
-    /// Aggregate: maximum synthetic transaction volume — Kz 2.000.000.
-    pub const AGGREGATE_VOLUME_MINOR: i64 = 200_000_000;
+
+    // ── Rolling merchant-credit volume windows (owner decision D1) ───────────
+    //
+    // These REPLACE the former lifetime `AGGREGATE_VOLUME_MINOR` (Kz 2.000.000),
+    // which was a monotonic sum of every merchant credit ever posted. Retirement
+    // posts a DEBIT, and a credits-only sum ignores debits, so that counter could
+    // only ever rise: the Sandbox had a finite total number of merchant payments
+    // and no way to recover any of them. A permanent, repeatable validation
+    // programme needs a limit with a steady state, so the measure is now a RATE
+    // over a moving window rather than a lifetime budget.
+    //
+    // Sizing is derived from the deployed Sandbox's own history, not chosen:
+    // the heaviest day ever recorded was 31.165.620 and a full validation run
+    // costs roughly 15–20.000.000.
+    //
+    //   global 24h   ≈ 1,6× the heaviest day ever observed
+    //   global 30d   ≈ 20 full validation runs
+    //   merchant 24h ≈ 3,7× one full run concentrated on a single Business
+    //
+    // The per-merchant windows matter more than they look. With disposable
+    // merchants the largest merchant-day was 1.100.000 — a tenth of the old
+    // per-merchant cap, permanently dormant. Persistent Validation Actors
+    // concentrate a whole run onto three Businesses, which turns a limit that
+    // never fired into one that fires routinely.
+
+    /// Global: merchant-credit volume in any rolling 24 hours — Kz 500.000.
+    pub const GLOBAL_ROLLING_24H_MINOR: i64 = 50_000_000;
+    /// Global: merchant-credit volume in any rolling 30 days — Kz 4.000.000.
+    pub const GLOBAL_ROLLING_30D_MINOR: i64 = 400_000_000;
+    /// Per merchant: merchant-credit volume in any rolling 24 hours — Kz 250.000.
+    pub const MERCHANT_ROLLING_24H_MINOR: i64 = 25_000_000;
+    /// Per merchant: merchant-credit volume in any rolling 30 days — Kz 1.000.000.
+    pub const MERCHANT_ROLLING_30D_MINOR: i64 = 100_000_000;
+
+    // Relationships the numbers must keep, checked at COMPILE time so a future
+    // re-sizing cannot quietly break them. A runtime test could not: these are
+    // constants, and the assertion would be optimised away.
+
+    /// No single merchant can be the sole cause of the global 24h window closing:
+    /// its own cap is at most half the global one.
+    const _: () = assert!(MERCHANT_ROLLING_24H_MINOR * 2 <= GLOBAL_ROLLING_24H_MINOR);
+    /// The same, over 30 days.
+    const _: () = assert!(MERCHANT_ROLLING_30D_MINOR * 2 <= GLOBAL_ROLLING_30D_MINOR);
+    /// A window must be wider than a single payment, or no payment could pass.
+    const _: () = assert!(MERCHANT_PER_RECEIVE_MINOR < MERCHANT_ROLLING_24H_MINOR);
+    /// The 24h window is the narrower of the two, in both scopes.
+    const _: () = assert!(MERCHANT_ROLLING_24H_MINOR < MERCHANT_ROLLING_30D_MINOR);
+    const _: () = assert!(GLOBAL_ROLLING_24H_MINOR < GLOBAL_ROLLING_30D_MINOR);
 }
 
 /// Deterministic machine codes for pilot-limit rejections. Stable strings are
@@ -41,10 +88,12 @@ pub enum PilotLimitCode {
     ConsumerDaily,
     ConsumerBalance,
     MerchantReceive,
-    MerchantDaily,
     MerchantBalance,
     AggregateFunds,
-    AggregateVolume,
+    GlobalVolume24h,
+    GlobalVolume30d,
+    MerchantVolume24h,
+    MerchantVolume30d,
 }
 
 impl PilotLimitCode {
@@ -55,10 +104,12 @@ impl PilotLimitCode {
             Self::ConsumerDaily => "PILOT_LIMIT_CONSUMER_DAILY_EXCEEDED",
             Self::ConsumerBalance => "PILOT_LIMIT_CONSUMER_BALANCE_EXCEEDED",
             Self::MerchantReceive => "PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED",
-            Self::MerchantDaily => "PILOT_LIMIT_MERCHANT_DAILY_EXCEEDED",
             Self::MerchantBalance => "PILOT_LIMIT_MERCHANT_BALANCE_EXCEEDED",
             Self::AggregateFunds => "PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED",
-            Self::AggregateVolume => "PILOT_LIMIT_AGGREGATE_VOLUME_EXCEEDED",
+            Self::GlobalVolume24h => "PILOT_LIMIT_GLOBAL_24H_VOLUME_EXCEEDED",
+            Self::GlobalVolume30d => "PILOT_LIMIT_GLOBAL_30D_VOLUME_EXCEEDED",
+            Self::MerchantVolume24h => "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED",
+            Self::MerchantVolume30d => "PILOT_LIMIT_MERCHANT_30D_VOLUME_EXCEEDED",
         }
     }
     /// A generic, non-internal explanation safe to surface.
@@ -166,23 +217,13 @@ impl PilotLimitPolicy {
     // -- merchant -----------------------------------------------------------
 
     /// Merchant receipt: per-received-payment and cumulative-daily-received caps.
-    pub fn check_merchant_receipt(
-        self,
-        amount_minor: i64,
-        daily_received_minor: i64,
-    ) -> Option<PilotViolation> {
+    pub fn check_merchant_receipt_amount(self, amount_minor: i64) -> Option<PilotViolation> {
         if !self.enabled {
             return None;
         }
         if amount_minor > limits::MERCHANT_PER_RECEIVE_MINOR {
             return Some(PilotViolation {
                 code: PilotLimitCode::MerchantReceive,
-            });
-        }
-        if daily_received_minor.saturating_add(amount_minor) > limits::MERCHANT_DAILY_RECEIVE_MINOR
-        {
-            return Some(PilotViolation {
-                code: PilotLimitCode::MerchantDaily,
             });
         }
         None
@@ -225,22 +266,63 @@ impl PilotLimitPolicy {
         None
     }
 
-    /// Aggregate synthetic transaction-volume cap, evaluated AFTER adding volume.
-    pub fn check_aggregate_volume_after_add(
+    /// Rolling merchant-credit volume windows, evaluated AFTER adding `added_minor`.
+    ///
+    /// All four windows are checked and the FIRST violation is returned, narrowest
+    /// scope first: a caller told "this merchant is at its 24h limit" can wait or
+    /// use another Business, which "the Sandbox is at its limit" does not tell it.
+    ///
+    /// Every argument is a rolling-window total the caller has already measured
+    /// (see `pilot_enforce`); this function performs no I/O and keeps no clock,
+    /// so it is exhaustively testable at the boundary.
+    pub fn check_rolling_volume_after_add(
         self,
-        total_volume_minor: i64,
+        usage: RollingVolumeUsage,
         added_minor: i64,
     ) -> Option<PilotViolation> {
         if !self.enabled {
             return None;
         }
-        if total_volume_minor.saturating_add(added_minor) > limits::AGGREGATE_VOLUME_MINOR {
+        let over = |used: i64, cap: i64| used.saturating_add(added_minor) > cap;
+
+        if over(usage.merchant_24h_minor, limits::MERCHANT_ROLLING_24H_MINOR) {
             return Some(PilotViolation {
-                code: PilotLimitCode::AggregateVolume,
+                code: PilotLimitCode::MerchantVolume24h,
+            });
+        }
+        if over(usage.merchant_30d_minor, limits::MERCHANT_ROLLING_30D_MINOR) {
+            return Some(PilotViolation {
+                code: PilotLimitCode::MerchantVolume30d,
+            });
+        }
+        if over(usage.global_24h_minor, limits::GLOBAL_ROLLING_24H_MINOR) {
+            return Some(PilotViolation {
+                code: PilotLimitCode::GlobalVolume24h,
+            });
+        }
+        if over(usage.global_30d_minor, limits::GLOBAL_ROLLING_30D_MINOR) {
+            return Some(PilotViolation {
+                code: PilotLimitCode::GlobalVolume30d,
             });
         }
         None
     }
+}
+
+/// Merchant-credit volume already used in each rolling window, in minor units.
+///
+/// A plain value object so the decision is pure: `pilot_enforce` measures, this
+/// decides. Nothing here reads a clock or a database.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct RollingVolumeUsage {
+    /// Every merchant's credits, last 24 hours.
+    pub global_24h_minor: i64,
+    /// Every merchant's credits, last 30 days.
+    pub global_30d_minor: i64,
+    /// This merchant's credits, last 24 hours.
+    pub merchant_24h_minor: i64,
+    /// This merchant's credits, last 30 days.
+    pub merchant_30d_minor: i64,
 }
 
 /// Apply the pilot overlay to a consumer payment authorization. Returns
@@ -275,7 +357,7 @@ mod tests {
         assert!(OFF
             .check_consumer_balance_after_credit(i64::MAX, i64::MAX)
             .is_none());
-        assert!(OFF.check_merchant_receipt(i64::MAX, i64::MAX).is_none());
+        assert!(OFF.check_merchant_receipt_amount(i64::MAX).is_none());
         assert!(OFF
             .check_merchant_balance_after_credit(i64::MAX, i64::MAX)
             .is_none());
@@ -283,7 +365,15 @@ mod tests {
             .check_aggregate_funds_after_add(i64::MAX, i64::MAX)
             .is_none());
         assert!(OFF
-            .check_aggregate_volume_after_add(i64::MAX, i64::MAX)
+            .check_rolling_volume_after_add(
+                RollingVolumeUsage {
+                    global_24h_minor: i64::MAX,
+                    global_30d_minor: i64::MAX,
+                    merchant_24h_minor: i64::MAX,
+                    merchant_30d_minor: i64::MAX,
+                },
+                i64::MAX
+            )
             .is_none());
     }
 
@@ -322,18 +412,15 @@ mod tests {
     }
 
     #[test]
-    fn merchant_receipt_per_and_daily() {
-        let v1 = ON
-            .check_merchant_receipt(limits::MERCHANT_PER_RECEIVE_MINOR + 1, 0)
+    fn merchant_receipt_per_transaction_boundary_and_over() {
+        // exactly at the per-receipt cap is allowed
+        assert!(ON
+            .check_merchant_receipt_amount(limits::MERCHANT_PER_RECEIVE_MINOR)
+            .is_none());
+        let v = ON
+            .check_merchant_receipt_amount(limits::MERCHANT_PER_RECEIVE_MINOR + 1)
             .unwrap();
-        assert_eq!(v1.as_str(), "PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED");
-        let v2 = ON
-            .check_merchant_receipt(
-                limits::MERCHANT_PER_RECEIVE_MINOR,
-                limits::MERCHANT_DAILY_RECEIVE_MINOR,
-            )
-            .unwrap();
-        assert_eq!(v2.as_str(), "PILOT_LIMIT_MERCHANT_DAILY_EXCEEDED");
+        assert_eq!(v.as_str(), "PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED");
     }
 
     #[test]
@@ -345,15 +432,156 @@ mod tests {
     }
 
     #[test]
-    fn aggregate_funds_and_volume() {
+    fn aggregate_funds_boundary_and_over() {
+        // exactly at the cap is allowed; one minor over is not
+        assert!(ON
+            .check_aggregate_funds_after_add(limits::AGGREGATE_FUNDS_MINOR, 0)
+            .is_none());
         let vf = ON
             .check_aggregate_funds_after_add(limits::AGGREGATE_FUNDS_MINOR, 1)
             .unwrap();
         assert_eq!(vf.as_str(), "PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED");
-        let vv = ON
-            .check_aggregate_volume_after_add(limits::AGGREGATE_VOLUME_MINOR, 1)
+    }
+
+    // ── Rolling merchant-credit volume windows (owner decision D1) ───────────
+
+    /// Usage that is comfortably inside every window.
+    const fn quiet() -> RollingVolumeUsage {
+        RollingVolumeUsage {
+            global_24h_minor: 0,
+            global_30d_minor: 0,
+            merchant_24h_minor: 0,
+            merchant_30d_minor: 0,
+        }
+    }
+
+    #[test]
+    fn rolling_inside_every_window_is_allowed() {
+        let usage = RollingVolumeUsage {
+            global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR / 2,
+            global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR / 2,
+            merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR / 2,
+            merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR / 2,
+        };
+        assert!(ON.check_rolling_volume_after_add(usage, 1).is_none());
+    }
+
+    #[test]
+    fn rolling_exactly_at_each_cap_is_allowed() {
+        // The cap is inclusive: landing exactly on it must pass, or the last
+        // payment of every window is refused for being precisely on budget.
+        //
+        // Each case loads the window under test to one minor BELOW its cap and
+        // adds exactly one. Loading it the other way round — a tiny used value
+        // and one enormous payment — cannot isolate a window, because the wider
+        // windows are reached through the narrower ones: any single payment big
+        // enough to fill the 30d window has already broken the 24h one. That is
+        // the policy behaving correctly, and the first version of this test was
+        // wrong about it.
+        let at_cap = |usage, add| ON.check_rolling_volume_after_add(usage, add);
+
+        assert!(at_cap(
+            RollingVolumeUsage { merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR - 1, ..quiet() },
+            1
+        )
+        .is_none());
+        assert!(at_cap(
+            RollingVolumeUsage { merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR - 1, ..quiet() },
+            1
+        )
+        .is_none());
+        assert!(at_cap(
+            RollingVolumeUsage { global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR - 1, ..quiet() },
+            1
+        )
+        .is_none());
+        assert!(at_cap(
+            RollingVolumeUsage { global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR - 1, ..quiet() },
+            1
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn a_single_payment_can_never_reach_a_wider_window_before_a_narrower_one() {
+        // A payment large enough to fill the merchant 30d window necessarily
+        // breaks the merchant 24h window first, so the caller is always told the
+        // most actionable thing. This is a property of the cap ordering, and it
+        // is what the boundary test above had to be written around.
+        let v = ON
+            .check_rolling_volume_after_add(quiet(), limits::MERCHANT_ROLLING_30D_MINOR)
             .unwrap();
-        assert_eq!(vv.as_str(), "PILOT_LIMIT_AGGREGATE_VOLUME_EXCEEDED");
+        assert_eq!(v.as_str(), "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED");
+    }
+
+    #[test]
+    fn rolling_one_minor_over_each_cap_is_refused_with_its_own_code() {
+        let cases: [(RollingVolumeUsage, &str); 4] = [
+            (
+                RollingVolumeUsage { merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR, ..quiet() },
+                "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED",
+            ),
+            (
+                RollingVolumeUsage { merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR, ..quiet() },
+                "PILOT_LIMIT_MERCHANT_30D_VOLUME_EXCEEDED",
+            ),
+            (
+                RollingVolumeUsage { global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR, ..quiet() },
+                "PILOT_LIMIT_GLOBAL_24H_VOLUME_EXCEEDED",
+            ),
+            (
+                RollingVolumeUsage { global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR, ..quiet() },
+                "PILOT_LIMIT_GLOBAL_30D_VOLUME_EXCEEDED",
+            ),
+        ];
+        for (usage, expected) in cases {
+            let v = ON.check_rolling_volume_after_add(usage, 1).unwrap();
+            assert_eq!(v.as_str(), expected, "usage {usage:?}");
+        }
+    }
+
+    #[test]
+    fn rolling_reports_the_narrowest_scope_first() {
+        // Every window is over at once. The caller is told about ITS OWN merchant
+        // 24h window, because that is the one it can do something about — wait, or
+        // use another Business. "the Sandbox is full" is not actionable.
+        let all_over = RollingVolumeUsage {
+            global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR,
+            global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR,
+            merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR,
+            merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR,
+        };
+        assert_eq!(
+            ON.check_rolling_volume_after_add(all_over, 1).unwrap().as_str(),
+            "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED"
+        );
+    }
+
+    #[test]
+    fn a_quiet_merchant_is_not_punished_for_a_busy_sandbox_until_the_global_cap() {
+        // One merchant at zero, the Sandbox busy but under its cap → allowed.
+        let usage = RollingVolumeUsage {
+            global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR - 10,
+            global_30d_minor: 0,
+            merchant_24h_minor: 0,
+            merchant_30d_minor: 0,
+        };
+        assert!(ON.check_rolling_volume_after_add(usage, 10).is_none());
+        // One minor more and the global window is what refuses it.
+        assert_eq!(
+            ON.check_rolling_volume_after_add(usage, 11).unwrap().as_str(),
+            "PILOT_LIMIT_GLOBAL_24H_VOLUME_EXCEEDED"
+        );
+    }
+
+    #[test]
+    fn rolling_saturates_instead_of_overflowing() {
+        // An absurd amount must refuse, never panic on overflow.
+        let v = ON.check_rolling_volume_after_add(
+            RollingVolumeUsage { merchant_24h_minor: i64::MAX, ..quiet() },
+            i64::MAX,
+        );
+        assert!(v.is_some());
     }
 
     #[test]
@@ -384,9 +612,16 @@ mod tests {
         assert_eq!(limits::CONSUMER_DAILY_MINOR, 5_000_000);
         assert_eq!(limits::CONSUMER_MAX_BALANCE_MINOR, 5_000_000);
         assert_eq!(limits::MERCHANT_PER_RECEIVE_MINOR, 2_500_000);
-        assert_eq!(limits::MERCHANT_DAILY_RECEIVE_MINOR, 10_000_000);
         assert_eq!(limits::MERCHANT_MAX_BALANCE_MINOR, 10_000_000);
         assert_eq!(limits::AGGREGATE_FUNDS_MINOR, 50_000_000);
-        assert_eq!(limits::AGGREGATE_VOLUME_MINOR, 200_000_000);
+    }
+
+    #[test]
+    fn rolling_window_values_match_owner_decision_d1() {
+        // Kz 500.000 / 4.000.000 global; Kz 250.000 / 1.000.000 per merchant.
+        assert_eq!(limits::GLOBAL_ROLLING_24H_MINOR, 50_000_000);
+        assert_eq!(limits::GLOBAL_ROLLING_30D_MINOR, 400_000_000);
+        assert_eq!(limits::MERCHANT_ROLLING_24H_MINOR, 25_000_000);
+        assert_eq!(limits::MERCHANT_ROLLING_30D_MINOR, 100_000_000);
     }
 }

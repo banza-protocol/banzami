@@ -469,6 +469,7 @@ dependencies = [
 name = "banzami-transfers"
 version = "0.1.0"
 dependencies = [
+ "banzami-compliance",
  "banzami-consumer-wallets",
  "banzami-ledger",
  "banzami-types",

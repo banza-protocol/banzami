@@ -107,6 +107,13 @@ pub async fn send(
             TransferError::AccountFrozen => {
                 ApiError::unprocessable("ACCOUNT_FROZEN", "an account in this transfer is frozen")
             }
+            // Sandbox pilot limit (owner decision D1). 422 with the deterministic
+            // PILOT_LIMIT_* code and a generic message — the threshold itself is
+            // never surfaced. This is a refusal, not an outage: nothing was
+            // created, credited or confirmed.
+            TransferError::PilotLimit(code) => {
+                ApiError::unprocessable(code, "This operation exceeds the controlled pilot limit.")
+            }
             // The payer's own input, refused by the domain: a 4xx that says why,
             // never a 500 that reads as an outage.
             TransferError::InvalidDescription(e) => {
@@ -306,6 +313,13 @@ pub async fn send_p2p(
             }
             TransferError::AccountFrozen => {
                 ApiError::unprocessable("ACCOUNT_FROZEN", "an account in this transfer is frozen")
+            }
+            // Sandbox pilot limit (owner decision D1). 422 with the deterministic
+            // PILOT_LIMIT_* code and a generic message — the threshold itself is
+            // never surfaced. This is a refusal, not an outage: nothing was
+            // created, credited or confirmed.
+            TransferError::PilotLimit(code) => {
+                ApiError::unprocessable(code, "This operation exceeds the controlled pilot limit.")
             }
             TransferError::InvalidDescription(e) => {
                 ApiError::unprocessable("INVALID_DESCRIPTION", e.to_string())
