@@ -148,9 +148,84 @@ preserved?.policy === 'never-delete'
   ? pass('economic history is never-delete')
   : fail('preserved-economic-history must carry policy: never-delete');
 
+// ── 4. Run profiles ─────────────────────────────────────────────────────────
+//
+// A profile decides how much real money a run may move and what a PASS
+// entitles anyone to say. Three things must hold, and none of them can be
+// checked by reading the profile alone — each is a cross-reference.
+
+const profiles = yaml('quality/validation/profiles.yaml');
+const blockingSuites = (suites.suites ?? []).filter((s) => s.blocking).map((s) => s.id);
+
+const defined = profiles?.profiles ?? [];
+for (const want of ['GOLDEN', 'FULL']) {
+  if (!defined.some((p) => p.id === want)) fail(`profile ${want} is not defined`);
+}
+
+// The budget ceilings are stated against the rolling windows ratified as D1.
+// Read the Rust constant rather than restating it: a profile that may spend
+// more than the window allows is a profile that bricks the Sandbox on its
+// first run, and the only way to notice is to compare the two sources.
+const pilot = readFileSync(resolve(ROOT, 'core/compliance/src/pilot.rs'), 'utf8');
+const global24h = Number(
+  (pilot.match(/GLOBAL_ROLLING_24H_MINOR:\s*i64\s*=\s*([0-9_]+)/) ?? [])[1]?.replace(/_/g, ''));
+if (!Number.isFinite(global24h)) {
+  fail('could not read GLOBAL_ROLLING_24H_MINOR from core/compliance/src/pilot.rs');
+}
+
+for (const prof of defined) {
+  const unknown = (prof.suites ?? []).filter((s) => !suiteIds.has(s));
+  if (unknown.length) fail(`profile ${prof.id} names suite(s) that do not exist: ${unknown.join(', ')}`);
+
+  if (prof.environment && prof.environment !== 'SANDBOX') {
+    fail(`profile ${prof.id} declares environment ${prof.environment}; SANDBOX is the only one`);
+  }
+
+  // A profile must not be able to make a failing invariant stop counting.
+  const missingBlocking = blockingSuites.filter((s) => !(prof.suites ?? []).includes(s));
+  if (missingBlocking.length) {
+    fail(`profile ${prof.id} omits blocking suite(s): ${missingBlocking.join(', ')} — ` +
+         'a profile may escalate a suite to blocking, never drop one');
+  }
+
+  const ceiling = prof.budget?.max_credit_volume_minor;
+  if (!Number.isFinite(ceiling)) {
+    fail(`profile ${prof.id} declares no max_credit_volume_minor`);
+  } else if (Number.isFinite(global24h) && ceiling > global24h) {
+    fail(`profile ${prof.id} may spend ${ceiling} minor, above the 24h global window ` +
+         `of ${global24h} — one run would brick the Sandbox`);
+  }
+}
+
+const full = defined.find((p) => p.id === 'FULL');
+if (full) {
+  const uncovered = [...suiteIds].filter((s) => !(full.suites ?? []).includes(s));
+  uncovered.length
+    ? fail(`FULL omits suite(s): ${uncovered.join(', ')} — a full run covers every suite`)
+    : pass(`FULL covers all ${suiteIds.size} suites`);
+}
+const golden = defined.find((p) => p.id === 'GOLDEN');
+if (golden) {
+  pass(`GOLDEN covers ${golden.suites.length} suites, every blocking one included`);
+  golden.retry?.max_pass_with_retry === 0
+    ? pass('GOLDEN permits no PASS_WITH_RETRY')
+    : fail('GOLDEN must permit no PASS_WITH_RETRY');
+  golden.preflight?.minimum_verdict === 'HEALTHY'
+    ? pass('GOLDEN refuses to start into a DEGRADED lab')
+    : fail('GOLDEN must require a HEALTHY preflight');
+}
+if (Number.isFinite(global24h) && golden && full) {
+  const combined = golden.budget.max_credit_volume_minor + full.budget.max_credit_volume_minor;
+  combined <= global24h
+    ? pass(`GOLDEN + FULL ceilings (${combined}) fit inside one 24h window (${global24h})`)
+    : fail(`GOLDEN + FULL ceilings (${combined}) exceed the 24h window (${global24h})`);
+}
+
 if (failures) { console.error(`\n✗ VALIDATION_REGISTRIES=FAIL (${failures})`); process.exit(1); }
 console.log('\n✓ VALIDATION_ACTOR_REGISTRY_READY=PASS');
 console.log('✓ VALIDATION_JOURNEY_REGISTRY_READY=PASS');
 console.log('✓ VALIDATION_SUITE_REGISTRY_READY=PASS');
 console.log(`✓ VALIDATION_ACTORS_PROVISIONED=${provisioned.length}`);
 console.log('✓ VALIDATION_ACTORS_UNOWNED=0');
+console.log(`✓ VALIDATION_PROFILES_REGISTERED=${defined.length}`);
+console.log('✓ VALIDATION_PROFILE_BUDGETS_WITHIN_PILOT_WINDOW=PASS');

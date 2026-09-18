@@ -1,0 +1,140 @@
+# Run profile registry — Banzami Validation Studio.
+#
+# A profile answers one question: WHAT DOES THIS RUN CLAIM IF IT PASSES?
+#
+# Profiles live here, as versioned reviewed code, and NOT in frontend code. A
+# profile decides how much real money moves through the Sandbox, what counts as
+# a blocking failure, and what a PASS entitles anyone to say. That is a
+# governance decision with a diff and a reviewer, not a dropdown default that
+# can be changed by editing a React component.
+#
+# A Validation Run pins `profile_id`, `profile_version` and `profile_digest` at
+# preparation. Editing a profile afterwards therefore cannot re-describe a run
+# that already happened: the digest no longer matches, and the run still says
+# what it was actually prepared from.
+#
+# Suites are referenced, never redefined — quality/validation/suites.yaml is the
+# only place a suite exists. `blocking` likewise comes from the suite registry;
+# a profile may ESCALATE a suite to blocking for its own purposes, never
+# de-escalate one, because a profile must not be able to make a failing
+# invariant stop counting.
+
+$schema: banzami.validation.profiles/1
+registry_version: 1
+environment: SANDBOX          # the only permitted value; enforced by 0160
+
+profile:
+  fields:
+    id:              {pattern: "^[A-Z][A-Z0-9_]{2,15}$"}
+    version:         {type: int, note: "bump on any semantic change"}
+    name:            {type: string}
+    name_pt:         {type: string}
+    claim:           {type: string, note: "what a PASS entitles anyone to say"}
+    suites:          {type: list<suite_id>, min: 1}
+    escalate_blocking: {type: list<suite_id>, note: "may add, never remove"}
+    preflight:
+      minimum_verdict: {enum: [HEALTHY, DEGRADED]}
+    retry:
+      infrastructure_retries: {type: int}
+      max_pass_with_retry:    {type: int, note: "journeys allowed to be PASS_WITH_RETRY"}
+    budget:
+      # A CEILING, not a prediction. The Studio does not know in advance what a
+      # run will spend, so it does not pretend to. It declares the most the run
+      # is permitted to consume, the preflight refuses to start without that
+      # much headroom, and the executor aborts rather than exceed it.
+      max_credit_volume_minor: {type: int}
+      max_applications:        {type: int}
+      max_fixture_emails:      {type: int}
+    evidence:
+      required_for_pass: {type: list<evidence_type>}
+    cleanup:
+      policy: {enum: [retire-disposable, retain-all]}
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+profiles:
+
+  - id: GOLDEN
+    version: 1
+    name: Golden Run
+    name_pt: Execução Golden
+    claim: >-
+      The Banzami Sandbox is behaving correctly on every path a real Angolan
+      consumer or merchant depends on: they can be identified, receive money,
+      pay, be paid, get a comprovativo, and cannot reach anyone else's money —
+      and the ledger agrees with every one of those statements.
+    # The smallest set that, if green, means the NETWORK works. Nine suites, all
+    # of them load-bearing: environment and identity because nothing else means
+    # anything without them; receive/links/transfers because that is the
+    # product; financial truth because that is the promise; receipts because
+    # that is the proof a user holds; isolation and the rail boundary because
+    # those are what separate a payment network from a demo.
+    suites: [S00, S01, S04, S05, S08, S09, S15, S17, S23]
+    escalate_blocking: [S04, S05, S08, S15]
+    preflight:
+      minimum_verdict: HEALTHY     # a Golden Run does not start into a DEGRADED lab
+    retry:
+      infrastructure_retries: 1
+      max_pass_with_retry: 0       # doc: PASS_WITH_RETRY must be 0 for a Golden Run
+    budget:
+      max_credit_volume_minor: 5000000     # 50 000 Kz — 10% of the 24h global window
+      max_applications: 0                  # GOLDEN uses the provisioned actors only
+      max_fixture_emails: 8
+    evidence:
+      required_for_pass: [api, ledger, screenshot, receipt]
+    cleanup:
+      policy: retire-disposable
+
+  - id: FULL
+    version: 1
+    name: Full Validation Run
+    name_pt: Execução completa
+    claim: >-
+      Every suite the Validation Studio knows about was exercised against the
+      deployed Sandbox and its result recorded — including the ones that failed,
+      the ones that are not implemented, and the ones blocked on an external
+      dependency. A FULL PASS means every BLOCKING suite passed; it does not
+      mean every journey passed, and the report says which.
+    suites: [S00, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11,
+             S12, S13, S14, S15, S16, S17, S18, S19, S20, S21, S22, S23]
+    escalate_blocking: []
+    preflight:
+      # A FULL run is allowed to start DEGRADED — discovering what a degraded
+      # Sandbox does is part of what a FULL run is for. UNHEALTHY still refuses,
+      # because an unhealthy lab reports infrastructure faults as product
+      # defects, and that is worse than not running.
+      minimum_verdict: DEGRADED
+    retry:
+      infrastructure_retries: 2
+      max_pass_with_retry: 5
+    budget:
+      max_credit_volume_minor: 20000000    # 200 000 Kz — 40% of the 24h global window
+      max_applications: 2                  # of the 30/24h per-IP allowance
+      max_fixture_emails: 40
+    evidence:
+      required_for_pass: [api, ledger]
+    cleanup:
+      policy: retire-disposable
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Budget derivation
+#
+# The ceilings above are stated against the rolling merchant-credit windows
+# ratified as owner decision D1 (core/compliance/src/pilot.rs):
+#
+#   global   24h  50 000 000 minor      per-merchant  24h  25 000 000 minor
+#   global   30d 400 000 000 minor      per-merchant  30d 100 000 000 minor
+#
+# GOLDEN is capped at 10% of the global 24h window and FULL at 40%, so that:
+#
+#   - a GOLDEN run can always be repeated the same day, several times, which is
+#     the point of a trusted subset;
+#   - a FULL run plus a GOLDEN run plus real Sandbox traffic still fits inside
+#     one 24h window;
+#   - and neither profile can, by itself, brick the Sandbox for the DOA tenant
+#     or for any developer evaluating the platform. Doc 19 VL-001 is the reason
+#     this section exists: the volume budget is the single number that decides
+#     whether the Sandbox survives the programme.
+#
+# These are CEILINGS. A run that would exceed its ceiling aborts and is recorded
+# as aborted. It does not quietly continue, and it does not raise its own limit.
