@@ -969,6 +969,49 @@ capabilities:
   # app-frontend entered deploy parity. It is deliberately SEPARATE from
   # CAP-APP-001/005: the same Flutter source is proven on the web target and
   # gated on the native ones, and one entry could not say both.
+  # The Validation Studio's CONTROL plane. It prepares, describes and cancels;
+  # it never executes a journey (doc 23: one engine, multiple control surfaces).
+  # Sandbox-only by construction — migration 0160 admits no other environment.
+  - id: CAP-VALIDATION-001
+    name: Banzami Validation Studio (BANZADMIN control surface)
+    owner: operator-quality
+    public_status: internal
+    environments:
+      sandbox: true
+      live: false
+    authority: operator-policy
+    authority_ref: BANZAMI-SANDBOX-FULL-VALIDATION-001 Phase C; docs/validation/studio/23, 30
+    implementation:
+      - services/admin-api/internal/validation
+      - services/admin-api/internal/handler/validation.go
+      - db/migrations/0160_validation_runs.sql
+      - quality/validation/profiles.yaml
+      - quality/validation/actors.yaml
+    api_surface:
+      - GET /admin/v1/validation/overview
+      - GET /admin/v1/validation/actors
+      - GET /admin/v1/validation/profiles
+      - GET /admin/v1/validation/preflight
+      - GET /admin/v1/validation/runs
+      - GET /admin/v1/validation/runs/{id}
+      - POST /admin/v1/validation/runs
+      - POST /admin/v1/validation/runs/{id}/cancel
+    threat_category: identity-auth
+    tests:
+      unit:
+        - services/admin-api/internal/validation/registry_test.go
+        - services/admin-api/internal/validation/preflight_test.go
+        - services/admin-api/internal/validation/store_test.go
+      integration:
+        - services/admin-api/internal/server/validation_routes_test.go
+      e2e_sandbox: []
+      negative_security:
+        - tools/check-validation-no-start.mjs
+        - tools/check-validation-run-model.mjs
+    deployment_gate: none
+    cleanup_disposition: active-required
+    launch_scope: sandbox
+
   - id: CAP-APPWEB-001
     name: App Banzami Web (Consumer + Business, shared Flutter source)
     owner: operator-apps

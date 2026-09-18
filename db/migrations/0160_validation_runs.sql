@@ -23,8 +23,11 @@
 --   3. LEGAL TRANSITIONS ONLY. A trigger rejects any state change not in the
 --      declared machine. A terminal state is terminal because UPDATE says so.
 --
---   4. APPEND-ONLY HISTORY. `validation_run_events` refuses UPDATE and DELETE.
---      A run's history is evidence; evidence that can be edited is not evidence.
+--   4. APPEND-ONLY HISTORY. `validation_run_events` refuses UPDATE and DELETE,
+--      and holds a non-cascading foreign key. A run's history is evidence;
+--      evidence that can be edited is not evidence. Since a transition is
+--      recorded the moment a run is prepared, this also makes a Validation Run
+--      undeletable — which is the intended reading of "append-only".
 --
 -- Grants go to `bl_admin_api_runtime` alone. The control plane (BANZADMIN via
 -- admin-api) owns this data. When the execution plane gains a runner it will
@@ -147,7 +150,13 @@ CREATE TRIGGER validation_runs_legal_transition
 
 CREATE TABLE IF NOT EXISTS validation_run_events (
     id          BIGSERIAL PRIMARY KEY,
-    run_id      UUID        NOT NULL REFERENCES validation_runs(id) ON DELETE CASCADE,
+    -- NO CASCADE, deliberately. An append-only child with ON DELETE CASCADE is a
+    -- contradiction: the cascade promises the rows can go, and the trigger below
+    -- refuses to let them. Resolved in favour of the stronger invariant — every
+    -- run records a transition the moment it is prepared, so the foreign key
+    -- makes a Validation Run UNDELETABLE. A run is evidence, and evidence that
+    -- can be deleted is a record of what someone chose to keep.
+    run_id      UUID        NOT NULL REFERENCES validation_runs(id),
     seq         INTEGER     NOT NULL,
     from_state  TEXT,
     to_state    TEXT        NOT NULL,
