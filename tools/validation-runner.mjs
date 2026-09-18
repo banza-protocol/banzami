@@ -29,6 +29,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSuiteSummary } from './e2e/lib/parse-suite-summary.mjs';
+import { submitCapacity, runnerBucket, vmBucket, submitCost } from './lib/validation-capacity.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
@@ -163,6 +164,9 @@ function planFor(profileID) {
         suite: suiteID,
         name: j.name,
         harness: j.existing_harness ?? null,
+        submits: j.existing_harness && existsSync(join(ROOT, j.existing_harness))
+          ? submitCost(j.existing_harness, readFileSync(join(ROOT, j.existing_harness), 'utf8'))
+          : null,
         adapter: j.evidence_adapter ?? null,
         args: j.harness_args ?? [],
         evidenceStem: j.evidence_stem ?? null,
@@ -514,6 +518,77 @@ function newestReport(stem, startedAt) {
   } catch { return null; }
 }
 
+/**
+ * Three numbers, and a refusal.
+ *
+ *   DECLARED   what the profile says the run may spend
+ *   PLANNED    what this plan will actually spend, per limiter bucket
+ *   AVAILABLE  what the live limiter has left, per bucket
+ *
+ * A run that starts without checking all three discovers the problem at its
+ * last provisioned Business, having already spent everything before it. The
+ * profile declaring 0 while the plan spent 4 went unnoticed for exactly as long
+ * as nobody compared them.
+ *
+ * Buckets matter: a node proof submits from wherever the runner runs, a phase-0
+ * shell harness from the Sandbox VM. Twelve free slots summed across the two is
+ * not eleven free in the one that refuses.
+ */
+function checkApplicationBudget(profile, plan) {
+  const declared = Number(profile.budget?.max_applications ?? 0);
+  const planned = { runner: 0, vm: 0 };
+  for (const p of plan) if (p.submits) planned[p.submits.bucket]++;
+  const plannedTotal = planned.runner + planned.vm;
+
+  log(`  applications: declared ${declared} · planned ${plannedTotal} ` +
+      `(runner ${planned.runner}, vm ${planned.vm})`);
+
+  if (plannedTotal > declared) {
+    die(`refusing to start: the plan spends ${plannedTotal} application submit(s) but ` +
+        `${profile.id} declares a budget of ${declared}. Fix the profile or the plan — ` +
+        `a budget that is smaller than the plan is not a budget.`);
+  }
+
+  let buckets;
+  try { buckets = submitCapacity(); }
+  catch (e) { die(`refusing to start: cannot read the application-submit limiter (${e.message}). ` +
+                  `An unknown window is not an empty one.`); }
+
+  const runner = runnerBucket(buckets);
+  const vm = vmBucket(buckets);
+  const need = [
+    { name: "the runner's address", have: runner, want: planned.runner },
+    { name: "the Sandbox VM's address", have: vm, want: planned.vm },
+  ];
+  for (const { name, have, want } of need) {
+    if (want === 0) continue;
+    if (!have) {
+      die(`refusing to start: the plan needs ${want} submit(s) from ${name}, and the limiter ` +
+          `has no record of that bucket. An unknown bucket is not a free one.`);
+    }
+    log(`  limiter ${have.ip}: ${have.used} used, ${have.free} free` +
+        (have.nextFreeAt ? ` (next slot ${have.nextFreeAt})` : ''));
+    if (have.free < want) {
+      die(`refusing to start: the plan needs ${want} submit(s) from ${name} and only ` +
+          `${have.free} remain. The next slot returns at ${have.nextFreeAt ?? 'an unknown time'}.`);
+    }
+  }
+  return { declared, planned: plannedTotal, buckets };
+}
+
+/** What the run has actually spent so far, from the same live limiter. */
+function actualSubmits(baseline) {
+  try {
+    const now = submitCapacity();
+    let spent = 0;
+    for (const b of now) {
+      const before = baseline.find((x) => x.ip === b.ip);
+      spent += Math.max(0, b.used - (before?.used ?? 0));
+    }
+    return spent;
+  } catch { return null; }
+}
+
 /* ── the run loop ───────────────────────────────────────────────────────── */
 
 /**
@@ -633,7 +708,7 @@ function main() {
   const beat = setInterval(() => { try { heartbeat(run.id); } catch { /* next tick */ } }, HEARTBEAT_SECONDS * 1000);
 
   let failedBlocking = 0, passed = 0, failed = 0, skipped = 0;
-  let spent = 0, budgetStopped = null;
+  let spent = 0, budgetStopped = null, submitsActual = null;
   try {
     // The plan is materialised first, so a run always says what it INTENDED to
     // do — even if it is cancelled after the second journey.
@@ -646,6 +721,9 @@ function main() {
     // A profile declares what a run may spend. Until something measures it, that
     // is a promise the run cannot keep or break — it is decoration. Measured
     // here, between journeys, against the engine's own definition of volume.
+    // Before the plan is materialised and long before a Business is provisioned.
+    const budget = checkApplicationBudget(profile, plan);
+
     const ceiling = Number(profile.budget?.max_credit_volume_minor ?? 0);
     // Anchored to the run's own start timestamp, read from the row rather than
     // from this machine's clock — the two are not the same clock.
@@ -699,6 +777,18 @@ function main() {
     // is a journey out of date. Read it once more for the record.
     if (ceiling > 0) spent = creditSince(since);
 
+    // ACTUAL, beside declared and planned. A run that quietly spent more than it
+    // said it would has broken the promise the budget exists to make, even if
+    // every journey passed.
+    submitsActual = actualSubmits(budget.buckets);
+    if (submitsActual !== null) {
+      log(`  applications: declared ${budget.declared} · planned ${budget.planned} · actual ${submitsActual}`);
+      if (submitsActual > budget.declared) {
+        budgetStopped = `run spent ${submitsActual} application submit(s) against a declared budget of ${budget.declared}`;
+        log(`  BUDGET EXCEEDED — ${budgetStopped}`);
+      }
+    }
+
     // Stopping on budget is not a pass with a caveat. The run did not execute
     // its universe, so it cannot claim what passing it would have claimed.
     const verdict = failedBlocking === 0 && failed === 0 && !budgetStopped ? 'PASS' : 'FAIL';
@@ -707,6 +797,7 @@ function main() {
     event(run.id, 'RUNNING', 'COMPLETED',
       `${passed} passed, ${failed} failed (${failedBlocking} blocking), ${skipped} unavailable` +
       (ceiling > 0 ? `; spent ${spent} of ${ceiling} minor` : '') +
+      (submitsActual !== null ? `; ${submitsActual} of ${budget.declared} application submit(s)` : '') +
       (budgetStopped ? `; STOPPED ON BUDGET — ${budgetStopped}` : ''));
     log(`\n${run.ref} COMPLETED ${verdict} — ${passed} passed / ${failed} failed / ${skipped} unavailable`);
   } catch (e) {

@@ -16,6 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { submitCost } from './lib/validation-capacity.mjs';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 const load = (n) => JSON.parse(execFileSync('python3', [
@@ -46,8 +47,8 @@ function describe(rel) {
   // at 3 slots when it spends 4. Fixture reuse is something an operator does by
   // hand while diagnosing; a Validation Run always provisions. The plan states
   // what a RUN costs, so calling provisionBusiness is the whole test.
-  const quota = /provisionBusiness\s*\(/.test(src) ? 1
-              : /\/v1\/merchant\/applications/.test(src) ? 1 : 0;
+  const cost = submitCost(rel, src);
+  const quota = cost ? 1 : 0;
   const funds = /sandbox\/fund|amount_minor/.test(src);
   const mutating = /POST|PUT|PATCH|DELETE|synthetic_tenant|provisionBusiness/.test(src);
   // Count only what this recognises, and say so when it does not. Two harnesses
@@ -61,11 +62,9 @@ function describe(rel) {
   const assertions = counted > 1 ? counted : (emitsOwn ? null : counted);
   return {
     exists: true, shell, quota, funds, mutating, assertions,
-    // The application-submit limiter is PER IP, and these run in two places: a
-    // node proof from wherever the runner is, a shell harness on the Sandbox VM.
-    // One total across both would over-report one bucket and under-report the
-    // other — and the bucket that gates a run is the runner's.
-    quotaBucket: quota ? (shell ? 'vm' : 'runner') : null,
+    // The bucket comes from the shared classifier too: the limiter is PER IP,
+    // and these run in two places. The runner's bucket is the one that gates.
+    quotaBucket: cost?.bucket ?? null,
     optIn: /BANZAMI_E2E/.test(src),
   };
 }
