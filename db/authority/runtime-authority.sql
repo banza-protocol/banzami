@@ -231,6 +231,13 @@ SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."kyc_events"', 'bl_a
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."kyc_reviews"', 'bl_admin_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."platform_settings"', 'bl_admin_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."platform_settings_history"', 'bl_admin_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."validation_evidence"', 'bl_admin_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."validation_preflight_checks"', 'bl_admin_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."validation_preflights"', 'bl_admin_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."validation_run_events"', 'bl_admin_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."validation_run_journeys"', 'bl_admin_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."validation_run_provenance"', 'bl_admin_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."validation_runs"', 'bl_admin_api_runtime');
 
 -- ── bl_app_runtime (operator tooling, no container) ──
 -- Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority, and no write on retirement/lifecycle-truth tables (a host operator must not erase a retirement marker and reopen lifecycle eligibility — MONEY-MODEL-001).

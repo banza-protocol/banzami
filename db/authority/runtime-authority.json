@@ -1,5 +1,5 @@
 {
-  "$comment": "Database authority of every runtime identity (WALLET-NATIVE-001, ADR-061 \u00a72). PostgreSQL privilege is the authority; application_name (0144) is detection. tools/db-authority.mjs generates db/authority/runtime-authority.sql from this file and fails the build when the SQL, the financial-table list in 0144, or a service's own write footprint disagree with it.",
+  "$comment": "Database authority of every runtime identity (WALLET-NATIVE-001, ADR-061 §2). PostgreSQL privilege is the authority; application_name (0144) is detection. tools/db-authority.mjs generates db/authority/runtime-authority.sql from this file and fails the build when the SQL, the financial-table list in 0144, or a service's own write footprint disagree with it.",
   "version": 1,
   "schemas": [
     "public",
@@ -194,14 +194,21 @@
           "public.kyc_events",
           "public.kyc_reviews",
           "public.platform_settings",
-          "public.platform_settings_history"
+          "public.platform_settings_history",
+          "public.validation_evidence",
+          "public.validation_preflight_checks",
+          "public.validation_preflights",
+          "public.validation_run_events",
+          "public.validation_run_journeys",
+          "public.validation_run_provenance",
+          "public.validation_runs"
         ]
       }
     },
     "bl_app_runtime": {
       "service": null,
       "source": [],
-      "purpose": "Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority, and no write on retirement/lifecycle-truth tables (a host operator must not erase a retirement marker and reopen lifecycle eligibility \u2014 MONEY-MODEL-001).",
+      "purpose": "Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority, and no write on retirement/lifecycle-truth tables (a host operator must not erase a retirement marker and reopen lifecycle eligibility — MONEY-MODEL-001).",
       "read_schemas": [
         "public",
         "developer",
