@@ -40,7 +40,13 @@ function describe(rel) {
   // The ONLY thing that spends the per-IP application-submit window is the
   // public application path. Phase-0 harnesses build tenants through internal
   // routes, which is why they cost nothing here.
-  const quota = /provisionBusiness/.test(src) && !/BZ_BIZ_HANDLE/.test(src) ? 1
+  //
+  // This counted a harness as free when its source merely MENTIONED
+  // BZ_BIZ_HANDLE — which proof 10 does, in a comment — and so reported GOLDEN
+  // at 3 slots when it spends 4. Fixture reuse is something an operator does by
+  // hand while diagnosing; a Validation Run always provisions. The plan states
+  // what a RUN costs, so calling provisionBusiness is the whole test.
+  const quota = /provisionBusiness\s*\(/.test(src) ? 1
               : /\/v1\/merchant\/applications/.test(src) ? 1 : 0;
   const funds = /sandbox\/fund|amount_minor/.test(src);
   const mutating = /POST|PUT|PATCH|DELETE|synthetic_tenant|provisionBusiness/.test(src);
@@ -55,6 +61,11 @@ function describe(rel) {
   const assertions = counted > 1 ? counted : (emitsOwn ? null : counted);
   return {
     exists: true, shell, quota, funds, mutating, assertions,
+    // The application-submit limiter is PER IP, and these run in two places: a
+    // node proof from wherever the runner is, a shell harness on the Sandbox VM.
+    // One total across both would over-report one bucket and under-report the
+    // other — and the bucket that gates a run is the runner's.
+    quotaBucket: quota ? (shell ? 'vm' : 'runner') : null,
     optIn: /BANZAMI_E2E/.test(src),
   };
 }
@@ -78,7 +89,7 @@ for (const sid of profile.suites) {
       harness: j.existing_harness ?? '—',
       applicability: d.exists ? 'EXECUTABLE' : 'HARNESS_MISSING',
       blocker: null, actors: j.actors ?? [],
-      mutating: d.mutating, quota: d.quota, funds: d.funds,
+      mutating: d.mutating, quota: d.quota, quotaBucket: d.quotaBucket, funds: d.funds,
       assertions: d.assertions,
       adapter: j.evidence_adapter ?? 'gate-report',
       retry: j.retry_policy ?? 'none',
@@ -93,6 +104,8 @@ if (process.argv.includes('--json')) {
 }
 
 const quota = rows.reduce((n, r) => n + (r.quota ?? 0), 0);
+const quotaRunner = rows.filter((r) => r.quotaBucket === 'runner').length;
+const quotaVm = rows.filter((r) => r.quotaBucket === 'vm').length;
 const exec = rows.filter((r) => r.applicability === 'EXECUTABLE');
 const notProven = rows.filter((r) => r.applicability === 'NOT_PROVEN');
 const broken = rows.filter((r) => !['EXECUTABLE', 'NOT_PROVEN'].includes(r.applicability));
@@ -112,6 +125,8 @@ for (const r of rows) {
 console.log(`\n  executable journeys        ${exec.length}`);
 console.log(`  suites not runtime-proven  ${notProven.length} (${notProven.map((r) => r.suite).join(', ') || '—'})`);
 console.log(`  APPLICATION-SUBMIT COST    ${quota}   (per-IP 30/24h window)`);
+console.log(`    from the runner's IP     ${quotaRunner}   ← the bucket that gates a run`);
+console.log(`    from the Sandbox VM's IP ${quotaVm}`);
 console.log(`  declared credit ceiling    ${Number(profile.budget?.max_credit_volume_minor ?? 0).toLocaleString('pt-PT')} minor`);
 console.log(`  journeys that move money   ${exec.filter((r) => r.funds).length}`);
 if (broken.length) {
