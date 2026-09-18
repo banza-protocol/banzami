@@ -349,7 +349,18 @@ export function runHarness(harness, timeoutMs, runRef = 'adhoc', opts = {}) {
   const res = spawnSync('node', [script, ...args], {
     cwd: harness.includes('tools/e2e/app-web/') ? join(ROOT, 'tools/e2e/app-web') : cwd,
     encoding: 'utf8', timeout: timeoutMs, maxBuffer: 1 << 26,
-    env: { ...process.env, BANZAMI_VALIDATION_RUN: '1' },
+    env: {
+      ...process.env,
+      BANZAMI_VALIDATION_RUN: '1',
+      // Eleven of these harnesses refuse to start without an explicit opt-in,
+      // so that an E2E which mutates the Sandbox cannot run by accident. This
+      // is not a bypass of that guard, it is the thing the guard is asking for:
+      // a Validation Run was prepared by an authenticated operator with
+      // step-up, started by one with step-up again, and claimed by an executor
+      // that proved which database it is talking to. Nothing in this system is
+      // less accidental.
+      BANZAMI_E2E: 'RUN',
+    },
   });
   const durationMs = Date.now() - before;
 
@@ -514,13 +525,22 @@ function claim(runRef) {
     RETURNING id::text, run_ref, profile_id, environment,
               (started_at < now() - interval '1 second')::text AS adopted;`) ?? [];
   if (!row) return null;
-  const [id, ref, profile, environment, adopted] = row;
+  const [id, ref, profile, environment, adoptedRaw] = row;
   if (!ref || !environment) die(`claim returned an unreadable row: ${JSON.stringify(row)}`);
   if (environment !== ENVIRONMENT) die(`claimed run ${ref} declares ${environment}`);
-  event(id, 'RUNNING', 'RUNNING', adopted === 't'
+  // `::text` on a boolean renders 'true'/'false', NOT psql's bare 't'/'f'. The
+  // first adoption was recorded as an ordinary claim because of it — a small
+  // lie in a permanent log, which is the kind this programme exists to stop.
+  // Both spellings are accepted, and an unrecognised one is refused rather than
+  // quietly read as false.
+  if (!['true', 'false', 't', 'f'].includes(adoptedRaw)) {
+    die(`claim returned an unreadable adoption flag: ${JSON.stringify(adoptedRaw)}`);
+  }
+  const adopted = adoptedRaw === 'true' || adoptedRaw === 't';
+  event(id, 'RUNNING', 'RUNNING', adopted
     ? `adopted by ${EXECUTOR} — previous executor's lease expired`
     : `claimed by ${EXECUTOR}`);
-  return { id, ref, profile, adopted: adopted === 't' };
+  return { id, ref, profile, adopted };
 }
 
 function event(runID, from, to, reason) {
