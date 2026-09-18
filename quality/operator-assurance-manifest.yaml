@@ -412,34 +412,60 @@ capabilities:
     disposition: released
     status: verified
 
+  # Reconciled 2026-09-18 (Phase B, owner decision under section 20). Every field
+  # below previously described a frozen, quarantined capability with no surface
+  # and no tests, while the runtime ran Collections with ten mounted gateway
+  # routes, migrations 0156-0159 applied in the TRACKED chain, and real rows
+  # (15 collections / 33 shares / 23 payment intents). check-assurance passed
+  # throughout, because it proved only that DECLARED routes are mounted and never
+  # the inverse — the gap tools/check-runtime-route-registration.mjs now closes.
   - id: CAP-COLLECT-001
     name: Collections (split charge, merchant-only)
     owner: operator-payments
-    public_status: preview-disabled
+    public_status: public-sandbox
     environments:
       sandbox: true
       live: false
     authority: protocol
     authority_ref: BANZA ADR-016 (Payment Collections)
     implementation:
-      - services/api-gateway
-      - db/migrations.phase2 (frozen)
+      - core/collections
+      - services/api-gateway/internal/handler/splits.go
+      - db/migrations/0156_collections.sql
+      - db/migrations/0157_payment_intents.sql
+      - db/migrations/0158_collection_shares.sql
+      - db/migrations/0159_collections_idempotency.sql
     api_surface:
-      - none (frozen; legacy /v1/splits returns 410 at edge)
+      - POST /v1/collections
+      - GET /v1/collections
+      - GET /v1/collections/{id}
+      - PATCH /v1/collections/{id}
+      - POST /v1/collections/{id}/shares
+      - GET /v1/collections/{id}/shares
+      - GET /v1/collections/{id}/events
+      - POST /v1/collections/{id}/cancel
+      - POST /v1/collections/{id}/close
+      - POST /v1/collection-shares/{id}/surface
     threat_category: financial-money-movement
     tests:
-      unit: []
-      integration: []
-      e2e_sandbox: []
-      negative_security: []
+      unit:
+        - core/api/src/routes/collections_guard_tests.rs
+      integration:
+        - services/api-gateway/internal/handler/splits_test.go
+      e2e_sandbox:
+        - tools/e2e/app-web/proofs/19-collections-split-settlement.mjs
+        - tools/e2e/app-web/proofs/20-collections-public-idempotency.mjs
+      negative_security:
+        - tools/e2e/app-web/proofs/20-collections-public-idempotency.mjs
     deployment_gate: sandbox-e2e-required
-    cleanup_disposition: legacy-compat-justified
-    launch_scope: excluded   # frozen in Phase 2 — operator launch scope; protocol authority BANZA ADR-016
+    cleanup_disposition: active-required
+    launch_scope: sandbox
     evidence:
       - docs/architecture/protocol-integration.md
-    surface: none
-    disposition: quarantined
-    status: blocked
+      - tools/e2e/app-web/proofs/19-collections-split-settlement.mjs
+    surface: public
+    disposition: released
+    status: verified
 
   # ─── Events, webhooks, proofs ──────────────────────────────────────────────
 

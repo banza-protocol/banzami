@@ -13,10 +13,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Status | Count |
 |---|---|
-| blocked | 4 |
+| blocked | 3 |
 | in-audit | 1 |
 | removed | 1 |
-| verified | 18 |
+| verified | 19 |
 | **total** | **24** |
 
 ## Capabilities
@@ -31,7 +31,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
@@ -53,11 +53,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| quarantined | 4 |
-| released | 18 |
+| quarantined | 3 |
+| released | 19 |
 | removed | 1 |
 
-Public surfaces released: **17/17**. Full external launch requires 17/17.
+Public surfaces released: **18/18**. Full external launch requires 18/18.
 
 ## Detail
 
@@ -192,18 +192,18 @@ Public surfaces released: **17/17**. Full external launch requires 17/17.
 ### CAP-COLLECT-001 — Collections (split charge, merchant-only)
 
 - **Owner:** operator-payments
-- **Public status:** preview-disabled · **Sandbox:** true · **Live:** false
+- **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** protocol — BANZA ADR-016 (Payment Collections)
 - **Threat category:** financial-money-movement
-- **Implementation:** services/api-gateway, db/migrations.phase2 (frozen)
-- **API/UI surface:** none (frozen; legacy /v1/splits returns 410 at edge)
+- **Implementation:** core/collections, services/api-gateway/internal/handler/splits.go, db/migrations/0156_collections.sql, db/migrations/0157_payment_intents.sql, db/migrations/0158_collection_shares.sql, db/migrations/0159_collections_idempotency.sql
+- **API/UI surface:** POST /v1/collections, GET /v1/collections, GET /v1/collections/{id}, PATCH /v1/collections/{id}, POST /v1/collections/{id}/shares, GET /v1/collections/{id}/shares, GET /v1/collections/{id}/events, POST /v1/collections/{id}/cancel, POST /v1/collections/{id}/close, POST /v1/collection-shares/{id}/surface
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** docs/architecture/protocol-integration.md
-- **Cleanup disposition:** legacy-compat-justified
-- **External surface:** none · **Disposition:** **quarantined**
-- **Launch scope:** excluded
-- **Status:** **blocked**
+- **Tests:** unit [core/api/src/routes/collections_guard_tests.rs] · integration [services/api-gateway/internal/handler/splits_test.go] · e2e_sandbox [tools/e2e/app-web/proofs/19-collections-split-settlement.mjs, tools/e2e/app-web/proofs/20-collections-public-idempotency.mjs] · negative/security [tools/e2e/app-web/proofs/20-collections-public-idempotency.mjs]
+- **Evidence:** docs/architecture/protocol-integration.md, tools/e2e/app-web/proofs/19-collections-split-settlement.mjs
+- **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released**
+- **Launch scope:** sandbox
+- **Status:** **verified**
 
 ### CAP-WEBHOOK-001 — Signed webhooks (banza-signature)
 

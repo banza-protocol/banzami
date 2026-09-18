@@ -1,0 +1,1369 @@
+# Unclassified route ledger — Banzami Validation Studio (owner decision D14)
+#
+# This is the COMPLEMENT of the capability registry, not part of it. It lives
+# beside quality/operator-assurance-manifest.yaml rather than inside it because
+# the manifest is a registry of capabilities, and every row here is by
+# definition a route that is not yet one. Mixing them would make the capability
+# count meaningless.
+#
+# Every externally reachable route must be claimed by exactly one capability's
+# api_surface, or appear here with a class and a reason. A route that is
+# neither is RUNTIME_EXTERNALLY_REACHABLE_BUT_UNREGISTERED: live, with no
+# owner, no journey, no contract and no deprecation path.
+#
+# Enforced by tools/check-runtime-route-registration.mjs:
+#   normal CI   this ledger MUST NOT GROW, and a NEW unregistered route fails
+#   --golden    every 'pending-classification' entry must be gone
+#
+# Seeded 2026-09-18 at 337 entries. That number is the honest size of
+# the gap the inverse check found; it is a baseline to shrink, not a target.
+
+unclassified_routes:
+  - route: "POST /admin/v1/auth/login"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/mfa/enrol"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/mfa/enrol/confirm"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/mfa/enrol/acknowledge"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/mfa/verify"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/password-reset/validate"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/password-reset/complete"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/auth/me"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/logout"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/auth/mfa/status"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/mfa/recovery-codes"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/mfa/replace"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/change-password"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/terminate-sessions"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/auth/step-up"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/transactions/{p}/receipt.pdf"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/wallet-payments"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/operators"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/operators/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/operators"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "PATCH /admin/v1/operators/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/operators/{p}/role"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/operators/{p}/suspend"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/operators/{p}/activate"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/operators/{p}/resend-invite"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/operators/{p}/password-reset"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/operators/{p}/terminate-sessions"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchants"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchants"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchants/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "DELETE /admin/v1/merchants/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "PATCH /admin/v1/merchants/{p}/business-account-type"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "PUT /admin/v1/merchants/{p}/pricing-profile"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchants/{p}/api-keys"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchants/{p}/resend-credentials"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchants/{p}/wallets"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-applications"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-applications/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/approve"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/reject"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/start-review"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/request-information"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/link-existing"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/reissue-activation"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-applications/{p}/link-candidates"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-applications/{p}/business-state"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/businesses/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/businesses/{p}/app-pin-reset"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-applications/{p}/documents"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/documents/{p}/read-url"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/documents/{p}/accept"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-applications/{p}/documents/{p}/reject"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-kyb/documents"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-kyb/merchants"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-kyb/merchants/{p}/documents"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-kyb/merchants/{p}/context"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/merchant-kyb/merchants/{p}/timeline"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-kyb/documents/{p}/read-url"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-kyb/documents/{p}/approve"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/merchant-kyb/documents/{p}/reject"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/attention-summary"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/notifications"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/notifications/{p}/read"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/notifications/{p}/dismiss"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/kyc/cases"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/kyc/cases/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/kyc/cases/{p}/timeline"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/kyc/evidence/{p}/read-url"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/kyc/cases/{p}/approve"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/kyc/cases/{p}/reject"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/kyc/cases/{p}/request-more-info"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/wallets"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/wallets/{p}/accounts"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/wallets/{p}/credit"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/consumers"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/consumers/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/consumers/{p}/suspend"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "PATCH /admin/v1/consumers/{p}/badge"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/compliance/merchants/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/merchants/{p}/approve"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/merchants/{p}/reject"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/merchants/{p}/suspend"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/merchants/{p}/flag-aml"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/compliance/cases"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/compliance/cases/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/compliance/cases/{p}/notes"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/notes"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/assign"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/transfer"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/release"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/escalate"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/resolve"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/priority"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/compliance/cases/{p}/risk"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/platform/mode"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/platform/mode"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/proofs"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/proofs/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/settlements"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/settlements"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/settlements/all"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/settlements/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/settlements/{p}/submit"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/settlements/{p}/confirm"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/settlements/{p}/fail"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/pricing-rules"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/pricing-rules/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/pricing-rules/{p}/versions"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/finance/pricing-rules"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "PATCH /admin/v1/finance/pricing-rules/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/finance/pricing-rules/{p}/disable"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/finance/pricing-rules/{p}/enable"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/finance/pricing-rules/{p}/duplicate"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/dashboard"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/operator-fees"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/operator-fees/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/application-settlements"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/finance/application-settlements/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/finance/application-settlements/{p}/cancel"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/finance/application-settlements/{p}/fail"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/payouts"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/payouts/all"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/payouts/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/payouts/{p}/process"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/payouts/{p}/sent"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/payouts/{p}/confirm"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/payouts/{p}/fail"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/payouts/{p}/returned"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/reconciliation/run"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/reconciliation/runs/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/risk/freeze"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/wallet-accounts/{p}/close"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "DELETE /admin/v1/risk/freeze/{p}/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/risk/flags"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/risk/flags/{p}/resolve"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/risk/audit-log"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/audit-log"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/beta-testers"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/beta-testers/export.csv"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/beta-testers/{p}/status"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/risk/acquiring-recon"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/risk/acquiring-recon"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/risk/acquiring-recon/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/disputes"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/disputes/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/disputes/{p}/resolve"
+    class: operator-surface
+    reason: "BANZADMIN operator surface behind operator session + RBAC + audit; covered conceptually by CAP-APP-003. Enumerating 146 admin routes in one capability adds no information a reader does not already have."
+    owning_milestone: "none — classified"
+  - route: "POST /v1/auth/token"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/auth/token"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/auth/lookup"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/auth/refresh"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/auth/logout"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/platform-mode"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/receive-points/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/beta/testers"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/applications/check-handle"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/applications"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/activation/validate"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/activation/complete"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/applications/{p}/documents/upload-url"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/applications/{p}/documents/{p}/confirm"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/applications/{p}/documents"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/application-requirements"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/applications/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/applications/{p}/resubmit"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/sandbox/scenarios"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/sandbox/external-rail"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "PUT /v1/sandbox/external-rail"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/sandbox/test-payers"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/sandbox/test-payers"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/sandbox/test-payers/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /v1/sandbox/test-payers/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/sandbox/test-payers/{p}/fund"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/sandbox/test-payers/{p}/payments"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/auth/claim"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/project-link-codes"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/transactions"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/transactions"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/transactions/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/wallet-payments"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/push-topic"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/transactions/{p}/receipt.pdf"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/business/receive-point"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/business/receive-point/qr"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/business/receive-point/disable"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchants"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchants/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchants/{p}/suspend"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchants/{p}/api-keys"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchants/{p}/api-keys"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /v1/merchants/{p}/api-keys/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/compliance/customers/verify"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/compliance/customers/status"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/compliance/merchants/verify"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/compliance/merchants/status"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/kyb/status"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/kyb/documents"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/merchant/kyb/documents/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/kyb/documents/{p}/upload-url"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/merchant/kyb/documents/{p}/complete"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/team/members"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/team/members"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /v1/team/members/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/team/access-log"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/wallets/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/wallets/{p}/balance"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/wallets/{p}/analytics"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/payouts/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/consumers"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/consumers/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/qr/decode"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/qr/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/qr/{p}/use"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/disputes"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/disputes"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/disputes/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/disputes/{p}/evidence"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/disputes/{p}/evidence"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/payment-sessions/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/payment-sessions/{p}/link"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/payment-sessions/{p}/qr"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/application-settlements"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/application-settlements/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/integration"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/wallet-accounts"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/wallet-accounts"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/wallet-accounts/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/consumers/handle/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/refunds/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/webhooks/endpoints/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /v1/webhooks/endpoints/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/webhooks/endpoints/{p}/health"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/webhooks/endpoints/{p}/rotate-secret"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/webhooks/endpoints/{p}/test"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/webhooks/events"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/webhooks/events/{p}/deliveries"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/webhooks/deliveries/{p}/replay"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/payment-links/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /v1/payment-links/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/payment-links/{p}/mark-used"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/callbacks/emis"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /public/pay/{p}/status"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /public/pay/{p}/pay"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /public/pay/{p}/test-confirm"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/public/pay/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/public/pay/{p}/status"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/public/pay/{p}/pay"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/public/pay/{p}/test-confirm"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /public/profiles/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /public/consumer-pay-links/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/realtime/payment-sessions/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/auth/register"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/consumer/onboarding/start"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/consumer/onboarding/verify-otp"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/consumer/onboarding/complete"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/consumer-pay-links/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/auth/logout"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/consumers/search"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/me/wallet"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/me/wallet/balance"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/me/activity"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/me/realtime"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/me/push-topic"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/transfers/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/consumer/transactions/{p}/receipt.pdf"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/consumer/transactions/{p}/receipt"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/payment-links/{p}/pay"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/consumer-pay-links"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/consumer-pay-links/{p}/pay"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/receive-points/{p}/pay"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/kyc/cases"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/kyc/cases/current"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/kyc/cases/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /v1/kyc/cases/{p}/status"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/kyc/cases/{p}/evidence/upload-url"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/kyc/cases/{p}/evidence/complete"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/kyc/cases/{p}/submit"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/sandbox/fund"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/debug/push-test"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /workspaces"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /workspaces/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /workspaces/{p}/members"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /workspaces/{p}/invites"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /workspaces/{p}/activity"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /workspaces/{p}/projects"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/keys"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/balances"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/transactions"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/refund-capability"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/financial-setup"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /wallet-account-purposes"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/webhooks/endpoints"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/webhooks/events"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/webhooks/events/{p}/deliveries"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/explorer/operations"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /projects/{p}/footprint"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET /workspaces/{p}/footprint"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /workspaces"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "PATCH /workspaces/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /workspaces/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /workspaces/{p}/archive"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /workspaces/{p}/leave"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "PATCH /projects/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /projects/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/archive"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /projects/{p}/webhooks/endpoints/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/webhooks/deliveries/{p}/replay"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /workspaces/{p}/members"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "PATCH /workspaces/{p}/members/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /workspaces/{p}/members/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /workspaces/{p}/invites/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /invites/accept"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /workspaces/{p}/projects"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/keys"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/explorer/requests"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /keys/{p}/rotate"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "DELETE /keys/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/payments/{p}/refund"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/financial-setup"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "PUT /projects/{p}/financial-setup/use-case"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/financial-onboarding/applications"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/financial-onboarding/link"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/financial-setup/share-code"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/sandbox/reset"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/wallet-accounts"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/webhooks/endpoints"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /projects/{p}/webhooks/endpoints/{p}/rotate-secret"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "PATCH /projects/{p}/webhooks/endpoints/{p}"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET cursor"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET limit"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET type"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET status"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET since"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET until"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET request_id"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET include_archived"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"
+  - route: "GET member"
+    class: pending-classification
+    reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
+    owning_milestone: "Phase B/C capability expansion"

@@ -312,6 +312,16 @@ check-validation-naming:
 check-merchant-credit-policy:
 	node tools/check-merchant-credit-policy-coverage.mjs
 
+# The INVERSE of the api_surface check (owner decision D14): every externally
+# reachable route is claimed by a capability or classified in the ledger. The
+# gap that let CAP-COLLECT-001 say "api_surface: none" while Collections ran.
+# --golden additionally requires the ledger to hold nothing pending.
+check-route-registration:
+	node tools/check-runtime-route-registration.mjs
+
+check-route-registration-golden:
+	node tools/check-runtime-route-registration.mjs --golden
+
 # Where this operator is allowed to charge money. Static, so it runs in CI: a
 # new crate depending on banzami-pricing is a new economic entrypoint, and it
 # must be reviewed rather than merged as a dependency line.
@@ -494,7 +504,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation-naming check-merchant-credit-policy
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation-naming check-merchant-credit-policy check-route-registration
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
