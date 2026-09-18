@@ -153,6 +153,13 @@ mustRefuse('a recorded transition cannot be deleted',
   `DELETE FROM validation_run_events WHERE seq=1;`,
   'append-only');
 
+// A Validation Run is evidence. Since a transition is recorded the moment a run
+// is prepared, and events refuse deletion AND do not cascade, the run itself
+// cannot be removed — not by the Studio, not from a psql prompt.
+mustRefuse('a Validation Run cannot be deleted',
+  `DELETE FROM validation_runs WHERE run_ref='BZV-CHK-0002';`,
+  'validation_run_events_run_id_fkey');
+
 console.log('\n  the idempotent start');
 mustAccept('a run may carry an idempotency key',
   `INSERT INTO validation_runs (run_ref, profile_id, profile_version, profile_digest, idempotency_key)
