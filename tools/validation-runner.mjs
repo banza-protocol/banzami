@@ -238,7 +238,13 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc') {
   try {
     // lib/ comes with it: every phase-0 harness sources e2e-run.sh for the
     // ownership and return-what-you-took discipline.
-    execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, `mkdir -p ${remoteDir}/lib`], { stdio: 'ignore' });
+    // Clear the directory first. It is keyed by run_ref, and anything left in it
+    // from an earlier run with the same ref would be executed or sourced in
+    // preference to what this run shipped — the identical staleness the harness
+    // file itself is shipped fresh to avoid. A guard that removed a staged
+    // dependency once passed anyway, because the VM still had yesterday's copy.
+    execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
+      `rm -rf ${remoteDir} && mkdir -p ${remoteDir}/lib`], { stdio: 'ignore' });
     execFileSync('scp', ['-o', 'BatchMode=yes', '-q',
       join(ROOT, 'tests/phase0/lib/e2e-run.sh'),
       join(ROOT, 'tests/phase0/lib/synthetic-tenant.sh'),
