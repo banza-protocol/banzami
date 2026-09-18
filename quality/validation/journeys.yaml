@@ -12,7 +12,7 @@ journey:
   fields:
     journey_id:   {pattern: "^S[0-9]{2}-[A-Z]{3}-[0-9]{3}$"}
     suite:        {pattern: "^S[0-9]{2}$"}
-    name:         {type: string}
+    name: "        {type: string}"
     capabilities: {type: list<capability_id>, min: 1}
     actors:       {type: list<actor_id>}
     preconditions: {type: list<string>}
@@ -647,4 +647,395 @@ journeys:
     automation: full
     existing_harness: tools/e2e/app-web/proofs/18-business-web-large-text.mjs
     timeout_seconds: 900
+    retry_policy: none
+
+  - journey_id: S07-REF-001
+    suite: S07
+    name: Reembolso completo sob credencial de programador
+    purpose: >-
+      A refund is the one operation that moves money BACKWARDS, so it is where authority errors become theft. The round trip is real — a payment is completed and then refunded with the project's own key — and the negative half matters as much: a second project holding an equally valid key must not be able to refund the first project's payment. Knowing a payment id is not authority over it.
+    capabilities: []
+    actors: [D01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - a foreign project cannot read or refund another project's payment
+      - a read-scoped key cannot refund
+      - a replayed refund moves no money a second time
+      - retired refund paths are gone, and moved nothing on the way out
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/refund-devkey-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1200
+    retry_policy: none
+
+  - journey_id: S07-REF-002
+    suite: S07
+    name: Reembolso parcial e total através do SDK publicado
+    purpose: >-
+      The refund regression closed against the package a real integrator installs from npm, not against the working tree. Partial then remainder, over-refund refused, changed payload refused, and the victim project untouched throughout.
+    capabilities: []
+    actors: [D01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - an over-refund is refused and moves nothing
+      - a replay with a changed payload is refused
+      - a foreign project sees NOT_FOUND, not a refusal that confirms existence
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/refund-published-sdk-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1500
+    retry_policy: none
+
+  - journey_id: S10-SET-001
+    suite: S10
+    name: "Levantamento: taxa, reserva em trânsito e porta KYB"
+    purpose: >-
+      A payout leaves the operator's book. It must reserve before it moves, charge the withdrawal fee as its own paired posting, and refuse a merchant whose KYB is not approved — while nothing at all is posted at initiation.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - an unapproved merchant's payout moves nothing
+      - a payout to a foreign wallet is refused
+      - a replayed payout is the same payout and moves nothing
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/payout-sandbox-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1500
+    retry_policy: none
+
+  - journey_id: S10-SET-002
+    suite: S10
+    name: A taxa do operador é cobrada onde o operador cobra
+    purpose: >-
+      Settlement is one of the only two places this operator charges (the other is payout). This proves the rate that is actually applied is the one the owner assigned, against the deployed Sandbox and with the book sound on both sides of the operation.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - the fee differential is the assigned rate, not a default
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/settlement-economics-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1200
+    retry_policy: none
+
+  - journey_id: S10-SET-003
+    suite: S10
+    name: Matriz reembolso × liquidação
+    purpose: >-
+      Refund and settlement interact, and the interaction is where the arithmetic goes wrong: a refund after settlement must not charge the fee twice, must not drain the beneficiary, and must leave the book summing to zero.
+    capabilities: []
+    actors: [B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - a refund after settlement is charged nothing a second time
+      - no wallet is left negative
+      - no posting is left unbalanced
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/refund-settlement-matrix.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1800
+    retry_policy: none
+
+  - journey_id: S11-DEV-001
+    suite: S11
+    name: "Plataforma de programadores: projectos, chaves e âmbitos"
+    purpose: >-
+      The developer platform is where an integrator's authority is created. This exercises project and key lifecycle against the deployed Sandbox and asserts the refusals — forged keys, wrong scope, no auth — rather than only the happy path.
+    capabilities: []
+    actors: [D01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - a forged key is refused
+      - a key outside its scope is refused
+      - a blocked assertion is reported as blocked, never as a pass
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/developer-platform-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1500
+    retry_policy: none
+
+  - journey_id: S11-DEV-002
+    suite: S11
+    name: "Integrador de plataforma: links, pagamento e idempotência"
+    purpose: >-
+      The path an online platform actually integrates: issue a link, have a payer complete it, and prove the merchant cannot debit the payer, that state and privacy hold on the public read, and that paying twice debits once.
+    capabilities: []
+    actors: [D01, C01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - the merchant cannot debit the payer
+      - the public read does not fabricate state
+      - a second pay call debits nothing further
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/online-platform-sdk.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1800
+    retry_policy: none
+
+  - journey_id: S12-SDK-001
+    suite: S12
+    name: Sub-contas de carteira pelo caminho público do SDK
+    purpose: >-
+      ADR-050 sub-accounts as a published-SDK consumer reaches them — the public path, with its own key, not an internal route. Account identifiers must be distinct rather than collapsing onto one.
+    capabilities: []
+    actors: [D01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - two accounts never collide onto one identifier
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/sdk-wallet-accounts-public.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1200
+    retry_policy: none
+
+  - journey_id: S13-WHK-001
+    suite: S13
+    name: Ciclo de vida de webhooks sob credencial de programador
+    purpose: >-
+      ADR-051 endpoint lifecycle and signed delivery: an event is emitted, signed, and delivered to an endpoint the integrator owns — and to no endpoint it does not.
+    capabilities: []
+    actors: [D01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions: []
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/webhook-lifecycle-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1500
+    retry_policy: none
+
+  - journey_id: S13-WHK-002
+    suite: S13
+    name: Uma reentrega real, verificada por quem não viu a primeira
+    purpose: >-
+      A retry that is only asserted by the sender proves the sender's belief. This verifies the redelivery from a party that never saw the first attempt, which is the only position from which 'it was delivered' means anything.
+    capabilities: []
+    actors: [D01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - a redelivery of the same event changes nothing downstream
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/webhook-retry-cleanroom.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1800
+    retry_policy: none
+
+  - journey_id: S21-ONB-001
+    suite: S21
+    name: Documentos KYB entram e voltam intactos
+    purpose: >-
+      ADR-058/059 places KYB documents in the Sandbox's own bucket. This proves they land there, come back byte-identical, and that the storage boundary refuses what it should.
+    capabilities: []
+    actors: [A01, B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - a document is never served from outside the Sandbox's own bucket
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/kyb-storage-boundary-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1200
+    retry_policy: none
+
+  - journey_id: S22-FIN-001
+    suite: S22
+    name: O preçário segue a política atribuída pelo dono
+    purpose: >-
+      Pricing authority is the operator's most abusable surface: a caller must never influence what it is charged. This proves the rate applied is the one the owner assigned to that merchant, on the deployed Sandbox.
+    capabilities: []
+    actors: [A01, B01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - a caller cannot select its own pricing profile
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/pricing-authority-e2e.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1200
+    retry_policy: none
+
+  - journey_id: S22-FIN-002
+    suite: S22
+    name: "Modelo económico: onde o operador cobra, e onde não cobra"
+    purpose: >-
+      The operator charges at settlement and at payout, and nowhere else — transfer, payment, capture and refund are economically neutral. Fifty-four assertions against the deployed Sandbox, because 'we do not charge here' is a claim that only holds if every 'here' is checked.
+    capabilities: []
+    actors: [B01, C01]
+    preconditions:
+      - the Sandbox public edge answers
+      - the harness provisions and retires whatever it needs
+    entry_point: {surface: api, path: "(see harness)"}
+    steps:
+      - action: run the canonical harness end to end against the deployed Sandbox
+        expect_api: "exit 0, every recorded assertion PASS, and the adapter's count reconciled against the harness's own summary"
+        evidence: [api, trace]
+    financial_expectations: []
+    negative_assertions:
+      - a transfer is charged nothing
+      - a payment is charged nothing
+      - a refund is charged nothing
+    evidence_required: [api]
+    cleanup:
+      disposable: [fixtures the harness created]
+      preserved:  [ledger postings]
+    depends_on: []
+    automation: full
+    existing_harness: tests/phase0/economic-model-smoke.sh
+    evidence_adapter: phase0-stdout
+    timeout_seconds: 1800
     retry_policy: none

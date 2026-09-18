@@ -15,6 +15,15 @@ suite:
     scope:    string
     existing_coverage: {enum: [strong, good, partial, weak, unit-only, none]}
     blocking: {type: bool, description: "does a FAIL here stop the run?"}
+    # A FULL run must not quietly mean "the suites that happened to be easy".
+    # A suite with no executable journey is NOT_PROVEN and must say why, in
+    # terms a reviewer can check — never simply be absent from the results.
+    runtime_proof: {enum: [EXECUTABLE, NOT_PROVEN], default: EXECUTABLE}
+    blocker:
+      class:         {enum: [SAFETY, SECURITY_POLICY, EXTERNAL, TOOLING]}
+      detail:        string
+      detail_pt:     string     # BANZADMIN speaks Portuguese
+      path_to_proof: string     # what would have to be true to make this EXECUTABLE
 
 suites:
   - {id: S00, name: Environment / governance,      name_pt: Ambiente e governação,      existing_coverage: strong,    blocking: true}
@@ -31,13 +40,108 @@ suites:
   - {id: S11, name: Developer Platform,            name_pt: Plataforma de programadores, existing_coverage: strong,   blocking: false}
   - {id: S12, name: SDKs,                          name_pt: SDKs,                       existing_coverage: partial,   blocking: false}
   - {id: S13, name: Webhooks,                      name_pt: Webhooks,                   existing_coverage: strong,    blocking: false}
-  - {id: S14, name: DOA,                           name_pt: DOA,                        existing_coverage: good,      blocking: false}
+  # Every DOA harness acts in DOA's OWN tenant, on purpose. DOA production runs
+  # on this Sandbox, so that tenant holds a third party's live value.
+  - id: S14
+    name: DOA
+    name_pt: DOA
+    existing_coverage: good
+    blocking: false
+    runtime_proof: NOT_PROVEN
+    blocker:
+      class: SAFETY
+      detail: >-
+        The three DOA harnesses write into DOA's live tenant and are gated behind
+        BANZAMI_ALLOW_DOA_TENANT_WRITES=1 for exactly that reason. An unattended
+        Validation Run must not mutate a third party's production data, and
+        doa-public-donation-e2e additionally requires a human browser OTP and
+        caller-supplied PAY_SLUG / ACC_A / ACC_B.
+      detail_pt: >-
+        Os três harnesses do DOA escrevem no inquilino real do DOA e estão por
+        isso protegidos por BANZAMI_ALLOW_DOA_TENANT_WRITES=1. Uma execução
+        autónoma não deve alterar dados de produção de terceiros, e o harness da
+        doação pública exige ainda um código enviado por email a uma pessoa.
+      path_to_proof: >-
+        A DOA-shaped integrator built as a synthetic tenant would prove the
+        integration SHAPE (S11), not DOA. Proving S14 itself requires DOA's owner
+        to authorise writes for a specific window and to supply the campaign
+        identifiers — an owner action, not an engineering gap.
   - {id: S15, name: Receipts / comprovativos,      name_pt: Comprovativos,              existing_coverage: good,      blocking: false}
-  - {id: S16, name: BANZADMIN,                     name_pt: BANZADMIN,                  existing_coverage: weak,      blocking: false}
+  # There is no functional BANZADMIN harness anywhere in the estate, which is
+  # what `existing_coverage: weak` has been saying all along.
+  - id: S16
+    name: BANZADMIN
+    name_pt: BANZADMIN
+    existing_coverage: weak
+    blocking: false
+    runtime_proof: NOT_PROVEN
+    blocker:
+      class: SECURITY_POLICY
+      detail: >-
+        BANZADMIN operator sign-in requires MFA, and privileged actions require
+        step-up on top of it. Automating either means persisting a TOTP seed
+        where an unattended runner can read it — a stored secret this programme
+        forbids. A01 is intentionally COMPLIANCE and is not elevated around it.
+      detail_pt: >-
+        A entrada no BANZADMIN exige um segundo factor, e as acções privilegiadas
+        exigem reautenticação. Automatizar qualquer um deles obrigaria a guardar
+        uma semente TOTP legível pelo executor — um segredo que este programa
+        proíbe guardar. O A01 é COMPLIANCE de propósito e não é elevado.
+      path_to_proof: >-
+        Either a hardware-backed operator credential the runner can exercise
+        without ever holding the seed, or an explicitly scoped read-only
+        BANZADMIN surface with its own non-MFA validation identity. Both are
+        decisions about the security model, not gaps in test coverage.
   - {id: S17, name: Security / authority / isolation, name_pt: Segurança e isolamento,  existing_coverage: good,      blocking: true}
   - {id: S18, name: Platform / web-mobile parity,  name_pt: Paridade de plataforma,     existing_coverage: good,      blocking: false}
-  - {id: S19, name: Contracts / OpenAPI / docs,    name_pt: Contratos e documentação,   existing_coverage: strong,    blocking: false}
-  - {id: S20, name: External dependencies,         name_pt: Dependências externas,      existing_coverage: partial,   blocking: false}
+  # The contract IS checked — statically and continuously. What is missing is
+  # only the adapter that would let the runner ingest the runtime harness.
+  - id: S19
+    name: Contracts / OpenAPI / docs
+    name_pt: Contratos e documentação
+    existing_coverage: strong
+    blocking: false
+    runtime_proof: NOT_PROVEN
+    blocker:
+      class: TOOLING
+      detail: >-
+        tools/e2e/docs/quickstart-e2e.mjs walks the published quickstart against
+        the deployed Sandbox and is the honest runtime proof of this suite, but
+        it reports through its own JSON shape rather than the gate-report
+        contract the runner harvests, and it takes a phase argument.
+      detail_pt: >-
+        O harness que percorre o guia publicado contra o Sandbox implantado é a
+        prova correcta desta suite, mas reporta num formato próprio que o
+        executor ainda não sabe ler.
+      path_to_proof: >-
+        An `assurance-json` evidence adapter covering the steps[] / matrix[]
+        report shapes the non-app-web harnesses already write. Ordinary work,
+        not a boundary — named NOT_PROVEN rather than quietly claimed.
+  # A dependency suite's real claim is not "the dependency is up". It is: when
+  # the dependency is DOWN, the operator classifies it as a dependency failure
+  # and confirms nothing. That needs fault injection.
+  - id: S20
+    name: External dependencies
+    name_pt: Dependências externas
+    existing_coverage: partial
+    blocking: false
+    runtime_proof: NOT_PROVEN
+    blocker:
+      class: EXTERNAL
+      detail: >-
+        Fault injection is available only for the simulated external rail, whose
+        per-Project isolation (migration 0145) makes it safe — and that half is
+        proven in S23. Resend, R2 and the npm registry cannot be failed on demand
+        from the Sandbox, so their failure-classification behaviour cannot be
+        exercised without disabling a control, which this programme forbids.
+      detail_pt: >-
+        Só o canal externo simulado permite injectar falhas em segurança, e essa
+        metade já está provada em S23. O envio de email, o armazenamento e o
+        registo npm não podem ser derrubados a pedido, por isso o seu
+        comportamento em falha não é exercitável sem desligar um controlo.
+      path_to_proof: >-
+        A per-dependency fault-injection seam with the same per-Project
+        isolation the rail already has. That is a product change, not a test.
 
   # ── Added by the Phase A audit ──────────────────────────────────────────────
   - id: S21

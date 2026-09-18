@@ -28,6 +28,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseSuiteSummary } from './e2e/lib/parse-suite-summary.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
@@ -114,6 +115,30 @@ function planFor(profileID) {
     const inSuite = journeys
       .filter((j) => j.suite === suiteID)
       .sort((a, b) => a.journey_id.localeCompare(b.journey_id));
+
+    // A suite with no journey must still appear in the run's own record. If it
+    // simply produced no rows, a FULL result would list twenty suites and never
+    // mention the four it could not prove — and a reader would have no way to
+    // tell that from a FULL that covered everything. The blocker travels with
+    // it, so the omission is readable without the registry to hand.
+    if (inSuite.length === 0) {
+      const suite = suites.find((x) => x.id === suiteID) ?? {};
+      const b = suite.blocker ?? {};
+      plan.push({
+        journey: `${suiteID}-NOT-PROVEN`,
+        suite: suiteID,
+        name: suite.name ?? suiteID,
+        harness: null,
+        notProven: suite.runtime_proof === 'NOT_PROVEN'
+          ? `${b.class}: ${String(b.detail ?? '').replace(/\s+/g, ' ').trim().slice(0, 400)}`
+          : 'no journey declared and no blocker recorded',
+        timeoutMs: 0,
+        retries: 0,
+        blocking: blocking.has(suiteID),
+      });
+      continue;
+    }
+
     for (const j of inSuite) {
       plan.push({
         journey: j.journey_id,
@@ -233,9 +258,17 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc') {
 /**
  * Adapt phase-0 stdout to gates, and refuse to guess.
  *
- * The harness prints its own totals. If what this parsed disagrees with what
- * the harness counted, the adapter is wrong about this harness and says so
- * rather than reporting a confident subset.
+ * The SUMMARY LINE is not re-parsed here. `tools/e2e/lib/parse-suite-summary`
+ * is the repository's one reader of that contract, written after a release gate
+ * grepped for "FAIL" and reported four green suites as failures because the
+ * substring is the LABEL OF THE ZERO. A second parser would be a second chance
+ * to make that mistake, so this calls it — and its `blocked` handling comes
+ * along, which matters: a blocked assertion is not a pass.
+ *
+ * What is added here is the per-assertion read, and the reconciliation between
+ * the two. If what this parsed disagrees with what the harness counted, the
+ * adapter is wrong about this harness and says so rather than reporting a
+ * confident subset.
  */
 export function parseShellGates(stdout, sha256 = null) {
   const gates = [];
@@ -244,21 +277,26 @@ export function parseShellGates(stdout, sha256 = null) {
     if (!m) continue;
     gates.push({ gate: m[1], verdict: m[2], detail: m[3].trim().slice(0, 300), sha256 });
   }
-  const summary = stdout.match(/^([A-Z0-9_]+):\s*PASS=(\d+)\s+FAIL=(\d+)\s*$/m);
+  const summary = parseSuiteSummary(stdout);
   if (!summary) {
-    return { gates, mismatch: gates.length
+    return { gates, summary, mismatch: gates.length
       ? null                                     // no summary line to check against
       : 'harness printed no assertions and no summary — output not understood' };
   }
-  const wantPass = Number(summary[2]), wantFail = Number(summary[3]);
   const gotPass = gates.filter((g) => g.verdict === 'PASS').length;
   const gotFail = gates.filter((g) => g.verdict === 'FAIL').length;
-  if (gotPass !== wantPass || gotFail !== wantFail) {
-    return { gates, mismatch:
-      `adapter read ${gotPass} PASS / ${gotFail} FAIL but ${summary[1]} counted ` +
-      `${wantPass} / ${wantFail} — the harness output was not fully understood` };
+  if (gotPass !== summary.pass || gotFail !== summary.fail) {
+    return { gates, summary, mismatch:
+      `adapter read ${gotPass} PASS / ${gotFail} FAIL but ${summary.suite ?? 'the harness'} counted ` +
+      `${summary.pass} / ${summary.fail} — the harness output was not fully understood` };
   }
-  return { gates, mismatch: null };
+  // A required check that COULD NOT RUN has proved nothing. The harness counts
+  // it separately and never prints it as an assertion, so it would otherwise
+  // vanish between a green summary and a green journey.
+  if (summary.blocked > 0) {
+    return { gates, summary, mismatch: `${summary.blocked} assertion(s) blocked — blocked is not proved` };
+  }
+  return { gates, summary, mismatch: null };
 }
 
 /**
@@ -390,10 +428,10 @@ function main() {
     for (const p of plan) {
       log(`  ${p.suite}  ${p.journey}  ${p.harness ?? 'NO HARNESS'}${p.blocking ? '  [blocking]' : ''}`);
     }
-    const missing = plan.filter((p) => !p.harness).length;
-    const suitesWithNone = profile.suites.filter((s) => !plan.some((p) => p.suite === s));
-    log(`\n  journeys without a harness: ${missing}`);
-    log(`  suites with no journey at all: ${suitesWithNone.length} (${suitesWithNone.join(', ') || '—'})`);
+    const unproven = plan.filter((p) => !p.harness);
+    log(`\n  executable journeys: ${plan.length - unproven.length}`);
+    log(`  suites that cannot be proven at runtime: ${unproven.length}`);
+    for (const u of unproven) log(`    ${u.suite}  ${u.notProven}`);
     return;
   }
 
@@ -421,9 +459,10 @@ function main() {
       if (!p.harness) {
         // Not a failure and not a pass. A journey with nothing to run is
         // UNAVAILABLE, and saying so is the whole point.
-        mark(run.id, p, 'UNAVAILABLE', 'no harness declared for this journey');
+        const why = p.notProven ?? 'no harness declared for this journey';
+        mark(run.id, p, 'UNAVAILABLE', why);
         skipped++;
-        log(`  ${p.journey}  UNAVAILABLE (no harness)`);
+        log(`  ${p.journey}  UNAVAILABLE — ${why.slice(0, 90)}`);
         continue;
       }
 

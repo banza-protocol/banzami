@@ -108,6 +108,17 @@ const g3 = parseShellGates(drifted);
 check('refuses a count it cannot reconcile', g3.mismatch !== null, true);
 check('  …and says which side disagreed', /counted 7/.test(g3.mismatch ?? ''), true);
 
+// The `### SUMMARY pass=n fail=n` dialect is the same contract in another
+// spelling, and the canonical parser already knows it.
+const lower = ['  A PASS (x)', '### SUMMARY pass=1 fail=0 simulated=0 blocked=0'].join('\n');
+check('understands the ### SUMMARY dialect', parseShellGates(lower).mismatch, null);
+
+// A blocked assertion could not run. It is neither a pass nor a measurement.
+const blocked = ['  A PASS (x)', 'X_E2E: PASS=1 FAIL=0 BLOCKED=2'].join('\n');
+const gb = parseShellGates(blocked);
+check('a blocked assertion is not proved', gb.mismatch !== null, true);
+check('  …and says how many', /2 assertion\(s\) blocked/.test(gb.mismatch ?? ''), true);
+
 const silentShell = parseShellGates('doing some work\nfinished\n');
 check('output with neither assertions nor a summary is not understood',
   silentShell.mismatch !== null, true);

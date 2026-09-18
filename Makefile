@@ -378,8 +378,14 @@ check-validation-harness-evidence:
 check-validation-runner-verdict:
 	node tools/check-validation-runner-verdict.mjs
 
+# FULL must mean FULL. Every suite a profile selects is EXECUTABLE or carries a
+# justified NOT_PROVEN blocker — absence is neither. The failure this prevents is
+# a GREEN run that proved thirteen suites and never mentioned the other eleven.
+check-validation-full-coverage:
+	node tools/check-validation-full-coverage.mjs
+
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.

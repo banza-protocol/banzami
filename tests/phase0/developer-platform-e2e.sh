@@ -264,6 +264,10 @@ echo "=== DONE ==="
 #   0  every required assertion passed
 #   1  at least one required assertion failed
 #   3  a required assertion could not run (blocked)
+# The declared summary line (tools/e2e/lib/parse-suite-summary.mjs). Exit status
+# stays the first thing orchestration trusts; this lets a reader RECONCILE what
+# it parsed against what the run counted, instead of believing a subset.
+echo "DEVELOPER_PLATFORM_E2E: PASS=$PASS FAIL=$FAIL BLOCKED=$BLK SIMULATED=$SIM"
 if [ "${FAIL:-0}" -gt 0 ]; then exit 1; fi
 if [ "${BLK:-0}" -gt 0 ]; then exit 3; fi
 if [ "${PASS:-0}" -eq 0 ]; then echo "no assertions ran — refusing to report a vacuous pass"; exit 1; fi
