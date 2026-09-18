@@ -65,6 +65,26 @@ for (const p of profiles) {
   pass(`${p.id}: declared ${declared} = planned ${total} (runner ${planned.runner}, vm ${planned.vm})`);
 }
 
+// ── funded-exposure declarations: UNKNOWN must block ─────────────────────────
+// Static derivation cannot prove the maximum — these harnesses create actors
+// through page objects, so counting source occurrences gives a FLOOR, and a
+// floor must never authorise an execution. Each journey declares its ceiling;
+// a funding-capable journey that declares nothing is UNKNOWN, and UNKNOWN is
+// not zero.
+console.log('');
+const undeclared = journeys.filter((j) => typeof j.max_synthetic_funds_exposure_minor !== 'number');
+if (undeclared.length) {
+  fail(`${undeclared.length} journey(s) declare no max_synthetic_funds_exposure_minor: ` +
+       `${undeclared.map((j) => j.journey_id).join(', ')} — an undeclared exposure is not a zero one`);
+} else {
+  pass(`all ${journeys.length} journeys declare a funded-exposure ceiling`);
+}
+for (const p of profiles) {
+  const peak = journeys.filter((j) => p.suites.includes(j.suite))
+    .reduce((n, j) => n + (j.max_synthetic_funds_exposure_minor ?? 0), 0);
+  pass(`${p.id}: planned peak max ${peak.toLocaleString('pt-PT')} minor (no-cleanup upper bound)`);
+}
+
 console.log(failures === 0
   ? '\n✓ VALIDATION_BUDGET_TRUTH=PASS\n'
   : `\n✗ VALIDATION_BUDGET_TRUTH=FAIL (${failures})\n`);

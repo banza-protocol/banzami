@@ -134,35 +134,55 @@ export function aggregateFunds() {
 }
 
 /**
- * The most funded value a plan may hold at once, before cleanup.
+ * The most funded value a plan may hold at once — an UPPER bound, declared.
  *
- * A CEILING derived from the harnesses, not a prediction: every consumer a
- * journey registers receives the automatic grant whether the journey wanted it
- * or not, plus whatever it funds explicitly. Peak rather than sum, because a
- * journey returns its funding on the way out — but a FAILED journey may strand
- * it, so the model does not assume cleanup ran.
+ * This used to count literal `auth/register` occurrences in the harness source.
+ * That is a FLOOR, not a ceiling: these proofs create actors through page
+ * objects and shared helpers, so the count read 2 where the run created 5, and
+ * a floor must never authorise an execution.
  *
- * KNOWN IMPRECISION, stated rather than papered over: this counts the literal
- * register call, and a harness that wraps it in a helper and calls the helper
- * three times reads as one. The count is therefore a FLOOR, and under-counting
- * a ceiling is the dangerous direction — so the runner does not rely on it
- * alone. It measures the ACTUAL peak against the same live source during the
- * run and reports any divergence from this number as an observation to
- * investigate, which is the only way an imprecise model stays honest.
+ * Static derivation cannot prove the maximum here, so the maximum is DECLARED
+ * per journey (`max_synthetic_funds_exposure_minor`) and guarded: a journey that
+ * can create a funded actor and does not declare one is UNKNOWN, and UNKNOWN
+ * blocks an acceptance run rather than defaulting to zero.
+ *
+ * The sum assumes NO cleanup ran — twelve journeys all holding at once. That is
+ * deliberately pessimistic: every proof retires in a `finally`, so the only way
+ * to reach it is for every journey to be killed before that runs. A bound you
+ * can only reach through total failure is the right bound to authorise against.
  */
-export function plannedPeakFunds(plan, readSource) {
-  let registrations = 0, explicit = 0;
+export function plannedPeakFunds(plan, _readSource, journeysById = null) {
+  let declared = 0, unknown = [];
   for (const p of plan) {
-    if (!p.harness) continue;
-    let src; try { src = readSource(p.harness); } catch { continue; }
-    registrations += (src.match(/auth\/register/g) ?? []).length;
-    for (const m of src.matchAll(/sandbox\/fund['"`\s,{]*[^}]*?amount_minor:\s*(\d+)/g)) explicit += Number(m[1]);
-    for (const m of src.matchAll(/amount_minor:\s*(\d+)[^}]*\}\s*\)?\s*;?\s*\/\/\s*fund/gi)) explicit += Number(m[1]);
+    const j = journeysById?.get?.(p.journey) ?? p;
+    const v = j?.max_synthetic_funds_exposure_minor;
+    if (typeof v !== 'number') { unknown.push(p.journey ?? p.harness ?? '?'); continue; }
+    declared += v;
   }
+  return { peak: declared, unknown };
+}
+
+/**
+ * The worst legitimate state the aggregate cap must survive.
+ *
+ *   a run reaches its peak
+ *   → it fails at the worst moment, having cleaned nothing
+ *   → that residual is still held
+ *   → a retry starts and reaches its own peak
+ *
+ * The first run's peak IS the residual, so it is counted once, not twice: the
+ * requirement is residual + retry peak. Assuming `2 × peak` happens to give the
+ * same number here, but only because the residual bound equals the peak bound —
+ * stating them separately is what lets a journey with proven cleanup-on-failure
+ * lower its residual later without anyone re-deriving the rule.
+ */
+export function requiredFundsHeadroom(peak) {
+  const failedRunResidualMax = peak;   // nothing cleaned
+  const retryPeakMax = peak;           // the retry needs its own
   return {
-    registrations,
-    grantExposure: registrations * REGISTRATION_GRANT,
-    explicit,
-    peak: registrations * REGISTRATION_GRANT + explicit,
+    plannedPeakMax: peak,
+    failedRunResidualMax,
+    retryPeakMax,
+    required: failedRunResidualMax + retryPeakMax,
   };
 }

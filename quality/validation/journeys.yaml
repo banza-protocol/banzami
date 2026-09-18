@@ -108,6 +108,8 @@ journeys:
     depends_on: [S01-BIZ-001, S09-FIN-001]
     automation: full
     existing_harness: tools/e2e/app-web/proofs/19-collections-split-settlement.mjs
+    # a Business and two consumers settling a split
+    max_synthetic_funds_exposure_minor: 3000000
 
   - journey_id: S00-ENV-001
     suite: S00
@@ -133,6 +135,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/22-environment-governance.mjs
+    # read-only: asserts environment identity, creates no actor
+    max_synthetic_funds_exposure_minor: 0
     timeout_seconds: 900
     retry_policy: none
 
@@ -160,6 +164,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/01-registration-pin-home.mjs
+    # registers one consumer — the journey IS registration
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -187,6 +193,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/10-business-web-login.mjs
+    # provisions a Business; allow one consumer grant of margin
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -214,6 +222,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/14-business-web-fail-closed.mjs
+    # one consumer scans a torn-down point
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -241,6 +251,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/03-invalid-deeplink.mjs
+    # one consumer opens an invalid deeplink
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -268,6 +280,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/04-deeplink-resume-pay.mjs
+    # one consumer resumes and pays a link
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -295,6 +309,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/02-web-to-web-p2p.mjs
+    # two consumers, sender and recipient
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -322,6 +338,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/21-financial-truth.mjs
+    # read-only: sums the book, creates no actor
+    max_synthetic_funds_exposure_minor: 0
     timeout_seconds: 900
     retry_policy: none
 
@@ -349,6 +367,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/15-business-web-commerce.mjs
+    # one consumer grant + 500 000 explicit sandbox funding
+    max_synthetic_funds_exposure_minor: 1500000
     timeout_seconds: 900
     retry_policy: none
 
@@ -376,6 +396,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/12-web-session-security.mjs
+    # three consumers across the session-security matrix
+    max_synthetic_funds_exposure_minor: 3000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -403,6 +425,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/17-web-dual-context-cross-tab.mjs
+    # one consumer + one Business across two tabs, plus margin
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -430,6 +454,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/23-rail-boundary.mjs
+    # one consumer pays with the rail down
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -457,6 +483,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/05-realtime-incoming-payment.mjs
+    # two consumers for the realtime observation
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -484,6 +512,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/06-realtime-resilience.mjs
+    # two consumers across a reconnect
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -511,6 +541,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/13-business-web-lifecycle.mjs
+    # Business lifecycle plus one consumer grant
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -538,6 +570,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/16-business-web-ux-security.mjs
+    # Business UX/security plus one consumer grant
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -565,6 +599,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/20-collections-public-idempotency.mjs
+    # a Business and one consumer, idempotency replays
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -592,6 +628,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/07-web-qr-camera.mjs
+    # one consumer drives the camera
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -619,6 +657,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/08-web-qr-decoder-integrity.mjs
+    # decoder integrity: no network actor
+    max_synthetic_funds_exposure_minor: 0
     timeout_seconds: 900
     retry_policy: none
 
@@ -646,6 +686,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/18-business-web-large-text.mjs
+    # Business under large text plus one consumer grant
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 900
     retry_policy: none
 
@@ -678,6 +720,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/refund-devkey-e2e.sh
     evidence_adapter: phase0-stdout
+    # synthetic tenant + a funded payer for the refund round trip
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1200
     retry_policy: none
 
@@ -709,6 +753,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/refund-published-sdk-e2e.sh
     evidence_adapter: phase0-stdout
+    # synthetic tenant + a funded payer, partial then remainder
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1500
     retry_policy: none
 
@@ -740,6 +786,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/payout-sandbox-e2e.sh
     evidence_adapter: phase0-stdout
+    # a merchant wallet funded enough to reserve and pay out
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1500
     retry_policy: none
 
@@ -769,6 +817,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/settlement-economics-e2e.sh
     evidence_adapter: phase0-stdout
+    # a funded payer and a beneficiary for one settlement
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1200
     retry_policy: none
 
@@ -800,6 +850,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/refund-settlement-matrix.sh
     evidence_adapter: phase0-stdout
+    # three settlement shapes, each with its own funded payer
+    max_synthetic_funds_exposure_minor: 3000000
     timeout_seconds: 1800
     retry_policy: none
 
@@ -831,6 +883,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/developer-platform-e2e.sh
     evidence_adapter: phase0-stdout
+    # project and key lifecycle with one funded payer
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1500
     retry_policy: none
 
@@ -862,6 +916,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/online-platform-sdk.sh
     evidence_adapter: phase0-stdout
+    # platform-integrator path: links paid by a funded consumer
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1800
     retry_policy: none
 
@@ -891,6 +947,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/sdk-wallet-accounts-public.sh
     evidence_adapter: phase0-stdout
+    # sub-account reads; one funded actor at most
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 1200
     retry_policy: none
 
@@ -919,6 +977,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/webhook-lifecycle-e2e.sh
     evidence_adapter: phase0-stdout
+    # an event emitted by a real payment from a funded payer
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1500
     retry_policy: none
 
@@ -948,6 +1008,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/webhook-retry-cleanroom.sh
     evidence_adapter: phase0-stdout
+    # a real payment and its redelivery
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1800
     retry_policy: none
 
@@ -977,6 +1039,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/kyb-storage-boundary-e2e.sh
     evidence_adapter: phase0-stdout
+    # an application and its KYB documents; no payment
+    max_synthetic_funds_exposure_minor: 1000000
     timeout_seconds: 1200
     retry_policy: none
 
@@ -1006,6 +1070,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/pricing-authority-e2e.sh
     evidence_adapter: phase0-stdout
+    # a funded payer to observe the assigned rate
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1200
     retry_policy: none
 
@@ -1037,6 +1103,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/economic-model-smoke.sh
     evidence_adapter: phase0-stdout
+    # fifty-four assertions across every place the operator charges
+    max_synthetic_funds_exposure_minor: 3000000
     timeout_seconds: 1800
     retry_policy: none
 
@@ -1084,6 +1152,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/banzadmin-authority-e2e.sh
     evidence_adapter: phase0-stdout
+    # read-only: an operator session asserting its own authority
+    max_synthetic_funds_exposure_minor: 0
     timeout_seconds: 600
     retry_policy: none
 
@@ -1124,6 +1194,8 @@ journeys:
     evidence_adapter: assurance-json
     harness_args: [run]
     evidence_stem: docs-quickstart
+    # the published quickstart provisions and pays as a reader would
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 1800
     retry_policy: none
 
@@ -1161,6 +1233,8 @@ journeys:
     automation: full
     existing_harness: tests/phase0/doa-canonical-binding.sh
     evidence_adapter: phase0-stdout
+    # read-only: asks about DOA's binding, creates nothing
+    max_synthetic_funds_exposure_minor: 0
     timeout_seconds: 600
     retry_policy: none
 
@@ -1202,6 +1276,8 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/24-business-realtime-bound.mjs
+    # one payer grant + 450 000 explicit across five samples
+    max_synthetic_funds_exposure_minor: 1450000
     timeout_seconds: 900
     retry_policy: none
 

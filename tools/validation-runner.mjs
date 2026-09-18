@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { parseSuiteSummary } from './e2e/lib/parse-suite-summary.mjs';
 import {
   submitCapacity, runnerBucket, vmBucket, submitCost,
-  aggregateFunds, plannedPeakFunds, AGGREGATE_FUNDS_CAP,
+  aggregateFunds, plannedPeakFunds, requiredFundsHeadroom, AGGREGATE_FUNDS_CAP,
 } from './lib/validation-capacity.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -167,6 +167,7 @@ function planFor(profileID) {
         suite: suiteID,
         name: j.name,
         harness: j.existing_harness ?? null,
+        max_synthetic_funds_exposure_minor: j.max_synthetic_funds_exposure_minor,
         submits: j.existing_harness && existsSync(join(ROOT, j.existing_harness))
           ? submitCost(j.existing_harness, readFileSync(join(ROOT, j.existing_harness), 'utf8'))
           : null,
@@ -605,29 +606,36 @@ function actualSubmits(baseline) {
  * and the retry then needs its own.
  */
 function checkFundsBudget(profile, plan) {
-  const planned = plannedPeakFunds(plan, (rel) => readFileSync(join(ROOT, rel), 'utf8'));
+  const planned = plannedPeakFunds(plan);
+  if (planned.unknown.length) {
+    die(`VALIDATION_AGGREGATE_FUNDS_PEAK_UNKNOWN: ${planned.unknown.length} journey(s) do not ` +
+        `declare max_synthetic_funds_exposure_minor (${planned.unknown.join(', ')}). ` +
+        `An undeclared exposure is not a zero exposure, and a floor must not authorise a run.`);
+  }
+  const bound = requiredFundsHeadroom(planned.peak);
   let live;
   try { live = aggregateFunds(); }
   catch (e) { die(`refusing to start: cannot read aggregate Sandbox funds (${e.message}). ` +
                   `An unknown cap is not an empty one.`); }
 
-  const retryReserve = planned.peak;          // one complete retry
-  const required = planned.peak + retryReserve;
+  const required = bound.required;
 
   log(`  funds: cap ${live.cap.toLocaleString('pt-PT')} · used ${live.used.toLocaleString('pt-PT')} · ` +
       `available ${live.available.toLocaleString('pt-PT')}`);
-  log(`  funds: planned peak ${planned.peak.toLocaleString('pt-PT')} ` +
-      `(${planned.registrations} registration grant(s) + ${planned.explicit.toLocaleString('pt-PT')} explicit) ` +
-      `+ retry reserve ${retryReserve.toLocaleString('pt-PT')} = ${required.toLocaleString('pt-PT')}`);
+  log(`  funds: planned peak max ${bound.plannedPeakMax.toLocaleString('pt-PT')} · ` +
+      `failed-run residual max ${bound.failedRunResidualMax.toLocaleString('pt-PT')} · ` +
+      `retry peak max ${bound.retryPeakMax.toLocaleString('pt-PT')} · ` +
+      `required ${required.toLocaleString('pt-PT')}`);
 
   if (live.available < required) {
     die(`VALIDATION_AGGREGATE_FUNDS_CAP_INSUFFICIENT: ` +
         `cap=${live.cap} currently_used=${live.used} available=${live.available} ` +
-        `planned_peak=${planned.peak} retry_reserve=${retryReserve} required_total=${required}. ` +
-        `Synthetic consumers holding funded balances are the usual cause — ` +
+        `planned_peak_max=${bound.plannedPeakMax} failed_run_residual_max=${bound.failedRunResidualMax} ` +
+        `retry_peak_max=${bound.retryPeakMax} required_headroom=${required}. ` +
+        `Synthetic actors holding funded balances are the usual cause — ` +
         `run tools/validation-synthetic-audit.mjs before retiring anything.`);
   }
-  return { planned, live, required };
+  return { planned, live, required, bound };
 }
 
 /* ── the run loop ───────────────────────────────────────────────────────── */
@@ -838,7 +846,7 @@ function main() {
     // model.
     if (fundsPeak > 0 || funds.planned.peak > 0) {
       const delta = fundsPeak - funds.planned.peak;
-      log(`  funds: planned peak ${funds.planned.peak} · actual peak ${fundsPeak}` +
+      log(`  funds: planned peak max ${funds.planned.peak} · actual peak ${fundsPeak}` +
           (delta === 0 ? '' : ` · DIVERGENCE ${delta > 0 ? '+' : ''}${delta} — ` +
             (delta > 0 ? 'the plan under-counted (helper-wrapped registrations, or retries)'
                        : 'a journey was skipped or reused a fixture')));

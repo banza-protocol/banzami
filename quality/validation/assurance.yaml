@@ -301,3 +301,27 @@ known_issues:
     detail_pt: >-
       O S19-DOC-001 está registado como EXECUTÁVEL com base num adaptador provado apenas contra fixtures. Foi exactamente assim que o adaptador shell pareceu terminado enquanto o executor nem conseguia arrancar um harness — nenhuma fixture descobre uma dependência que falta no envio. Correr o harness real custa uma candidatura e move dinheiro, e a janela actual está reservada para a execução GOLDEN e a sua repetição. Não bloqueia o GOLDEN; bloqueia o FULL até o adaptador ter lido um relatório real.
 
+  - id: VD-009
+    title_pt: "O limite superior de fundos do FULL excede o tecto do Sandbox"
+    title: FULL's upper-bound funded exposure exceeds the Sandbox cap
+    status: open
+    severity: high
+    scope: S-all — FULL readiness, not GOLDEN
+    blocks_golden: false
+    blocks_full: true
+    first_observed: "2026-09-19"
+    detail: >-
+      With every journey now declaring max_synthetic_funds_exposure_minor, FULL's
+      no-cleanup upper bound is 56 950 000 minor against a shared cap of
+      50 000 000 — and the start gate, which must also survive a failed run plus
+      one retry, needs 113 900 000. FULL is therefore feasible ONLY because
+      cleanup works, and that dependency was invisible while the planner reported
+      a heuristic 4 500 000. GOLDEN is unaffected: 14 500 000 peak, 29 000 000
+      required, and the headroom exists. The fix is not a larger cap. It is for
+      the runner to VERIFY cleanup after each journey and abort when residual
+      accumulates, so the bound that matters becomes the per-journey maximum
+      rather than the sum — which is a real change to how a FULL run is governed,
+      not a number to adjust.
+    detail_pt: >-
+      Com todos os percursos a declarar a sua exposição máxima, o limite superior do FULL sem qualquer limpeza é 56 950 000 minor contra um tecto partilhado de 50 000 000 — e o portão de arranque, que tem de sobreviver a uma execução falhada mais uma repetição, exige 113 900 000. O FULL só é viável PORQUE a limpeza funciona, e essa dependência estava invisível enquanto o planeador reportava uns heurísticos 4 500 000. O GOLDEN não é afectado. A correcção não é um tecto maior: é o executor verificar a limpeza depois de cada percurso e abortar quando fica resíduo.
+
