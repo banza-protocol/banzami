@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../models/merchant_payment_entry.dart';
+import '../services/merchant_refresh_bus.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_dashboard_stats.dart';
 import '../widgets/merchant_kpi_grid.dart';
@@ -52,6 +53,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _load();
+    // A payment landing is the one thing the Home cannot see for itself: it
+    // loads once and then only on pull-to-refresh. The bus says WHEN to refetch;
+    // this still re-reads everything from the backend, so no balance is ever
+    // computed in the client (CLAUDE.md §2.1).
+    MerchantRefreshBus.instance.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    MerchantRefreshBus.instance.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {

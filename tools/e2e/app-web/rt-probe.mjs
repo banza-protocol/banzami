@@ -28,10 +28,25 @@ const req = async (m, p, b) => { const h = { cookie: cch() }; if (b !== undefine
 grab(await fetch(`${APP}/`));
 await req('POST', '/consumer/v1/auth/register', { handle: `rtbuyer${Date.now().toString(36)}`, display_name: 'RT Buyer', pin: '481516' });
 await req('POST', '/consumer/v1/sandbox/fund', { amount_minor: 500000, currency: 'AOA' });
-// Pay the Business through its PERSISTENT Receive Point (ADR-065) — the path a
-// payer actually uses, and the one proof 15 exercises via a charge link.
-const slug = process.env.RP_SLUG;
-const pay = await req('POST', `/consumer/v1/payment-links/${slug}/pay`, { amount_minor: 70000, idempotency_key: `rt-${Date.now()}` });
+// Create the charge through the BROWSER's own authenticated session — it is
+// already signed in, so there is no second auth path to get wrong. A Receive
+// Point slug is not a payment link, and a consumer cannot P2P a Business
+// handle; both are the wallet-native design, not defects.
+const mk = await page.evaluate(async () => {
+  const csrf = document.cookie.split('; ').find((c) => c.startsWith('bz_app_csrf='))?.split('=')[1] ?? '';
+  const w = await fetch('/business/api/v1/wallets?currency=AOA', { credentials: 'include' }).then((x) => x.json()).catch(() => ({}));
+  const r = await fetch('/business/api/v1/payment-links', {
+    method: 'POST', credentials: 'include',
+    headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+    body: JSON.stringify({ wallet_id: w.id, amount_minor: 70000, currency: 'AOA', description: 'rt-probe' }),
+  });
+  let b = null; try { b = await r.json(); } catch {}
+  return { status: r.status, body: b };
+});
+say('CHARGE CREATE', `${mk.status} ${JSON.stringify(mk.body).slice(0, 140)}`);
+const slug = mk.body?.slug ?? mk.body?.data?.slug;
+say('CHARGE SLUG', slug);
+const pay = await req('POST', `/consumer/v1/payment-links/${slug}/pay`, { idempotency_key: `rt-${Date.now()}` });
 say('PAY STATUS', pay.status);
 say('PAY BODY', JSON.stringify(pay.body).slice(0, 200));
 

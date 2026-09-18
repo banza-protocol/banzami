@@ -53,11 +53,22 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
   }
 
   Future<void> _startNotifications() async {
+    final client = context.read<BanzamiClient>();
+
+    // The payment POLLER runs everywhere. It is what tells the Business Home a
+    // payment landed, and the Home has no other way to find out: it loads in
+    // initState and then only on pull-to-refresh.
+    //
+    // This used to sit below the Web guard, so on Web it never started at all —
+    // under a comment claiming "Home loads and refreshes over the BFF like every
+    // other screen", which was not true of the dashboard. A merchant who was
+    // paid while looking at their Home kept seeing the old balance.
+    _notifSvc = PaymentNotificationService(client)..startPolling();
+
     // Web has no FCM / device push and no local-notification plugin (ADR-066):
-    // Home loads and refreshes over the BFF like every other screen. The push
-    // topic, permission prompt and foreground-notification path are native-only.
+    // the push topic, permission prompt and foreground-notification path are
+    // native-only. The refresh above is not.
     if (kIsWeb) return;
-    final client     = context.read<BanzamiClient>();
     final svc        = context.read<MerchantSessionService>();
     final merchantId = svc.session!.merchantId;
     final environment = svc.session!.environment;
@@ -65,7 +76,6 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     // signed-in one: the permission prompt and the APNs wait can outlast a
     // session, and ending it has already taken the device off the topic.
     bool stillThisBusiness() => svc.session?.merchantId == merchantId;
-    _notifSvc = PaymentNotificationService(client)..startPolling();
 
     // Foreground payment push — payment_received AND payment_link_paid: the
     // configurable confirmation sound, and a tappable banner to the history.
