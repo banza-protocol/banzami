@@ -538,16 +538,24 @@ const heartbeat = (runID) => sql(
 const stateOf = (runID) => (sql(`SELECT state FROM validation_runs WHERE id = ${lit(runID)}::uuid;`)[0] ?? ['?'])[0];
 
 /**
- * Merchant-credit volume in the trailing 24 hours.
+ * Merchant credit posted SINCE this run started.
  *
- * The SAME definition core/compliance enforces, extracted rather than restated
- * (tools/gen-pilot-limits.mjs → QueryGlobalRollingVolume). A budget measured by
- * a second definition of "volume" is not a budget, it is a coincidence.
+ * The same definition of "merchant credit" core/compliance enforces — extracted
+ * rather than restated (tools/gen-pilot-limits.mjs → QueryGlobalRollingVolume) —
+ * but anchored to the run instead of to a rolling window.
+ *
+ * Differencing two readings of a ROLLING 24h total would have been wrong in the
+ * permissive direction: over a long run, credits from just over 24 hours ago
+ * age out of the window, and the difference would report less than the run
+ * actually spent. A budget that under-reads is not a budget.
+ *
+ * It does count any other Sandbox activity in the same period. That errs toward
+ * stopping early, which is the correct direction for a ceiling.
  */
-function creditVolume24h() {
+function creditSince(sinceExpr) {
   const [[v]] = sql(
     "SELECT COALESCE(SUM(le.amount_minor), 0)::bigint FROM ledger_entries le " +
-    "WHERE le.entry_type = 'CREDIT' AND le.created_at >= now() - '24 hours'::interval " +
+    `WHERE le.entry_type = 'CREDIT' AND le.created_at >= ${sinceExpr} ` +
     "AND le.account_id IN (SELECT available_account_id FROM wallets);");
   return Number(v);
 }
@@ -592,8 +600,10 @@ function main() {
     // is a promise the run cannot keep or break — it is decoration. Measured
     // here, between journeys, against the engine's own definition of volume.
     const ceiling = Number(profile.budget?.max_credit_volume_minor ?? 0);
-    const volumeAtStart = ceiling > 0 ? creditVolume24h() : 0;
-    if (ceiling > 0) log(`  budget: ${ceiling.toLocaleString('pt-PT')} minor (24h volume now ${volumeAtStart.toLocaleString('pt-PT')})`);
+    // Anchored to the run's own start timestamp, read from the row rather than
+    // from this machine's clock — the two are not the same clock.
+    const since = `(SELECT started_at FROM validation_runs WHERE id = ${lit(run.id)}::uuid)`;
+    if (ceiling > 0) log(`  budget: ${ceiling.toLocaleString('pt-PT')} minor of merchant credit`);
 
     for (const p of plan) {
       if (stateOf(run.id) === 'CANCELLED') { log('cancelled; stopping'); break; }
@@ -601,7 +611,7 @@ function main() {
       // Checked BEFORE the next journey, never after the last one: a ceiling
       // discovered in the post-mortem protects nothing.
       if (ceiling > 0) {
-        spent = creditVolume24h() - volumeAtStart;
+        spent = creditSince(since);
         if (spent > ceiling) {
           budgetStopped = `run spent ${spent.toLocaleString('pt-PT')} minor against a declared ceiling of ${ceiling.toLocaleString('pt-PT')}`;
           log(`  BUDGET EXCEEDED — ${budgetStopped}; stopping before ${p.journey}`);
@@ -640,7 +650,7 @@ function main() {
 
     // The in-loop reading is taken BEFORE each journey, so after the last one it
     // is a journey out of date. Read it once more for the record.
-    if (ceiling > 0) spent = creditVolume24h() - volumeAtStart;
+    if (ceiling > 0) spent = creditSince(since);
 
     // Stopping on budget is not a pass with a caveat. The run did not execute
     // its universe, so it cannot claim what passing it would have claimed.
