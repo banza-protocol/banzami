@@ -59,15 +59,25 @@ const DRY = process.argv.includes('--dry-run');
  */
 function sql(statement, { rows = true } = {}) {
   const b64 = Buffer.from(statement, 'utf8').toString('base64');
+  // A REAL tab, not the two characters \ and t. The previous spelling sent psql
+  // a literal backslash-t as its field separator, so every multi-column row came
+  // back as one unsplit field — invisible for as long as every query returned a
+  // single column, and then a claimed run reported `undefined`.
+  //
+  // -q suppresses the command tag: psql prints `UPDATE 1` after a RETURNING, and
+  // -t does not remove it. It arrived as a phantom row with one field.
   const remote =
     `echo ${b64} | base64 -d | docker exec -i ${PG} sh -lc ` +
-    `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d ${DATABASE} -At -F"\\t" -v ON_ERROR_STOP=1'`;
+    `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d ${DATABASE} -Atq -F"${SEP}" -v ON_ERROR_STOP=1'`;
   const out = execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, remote], {
     encoding: 'utf8', maxBuffer: 1 << 26,
   });
   if (!rows) return out;
-  return out.split('\n').filter(Boolean).map((l) => l.split('\t'));
+  return out.split('\n').filter(Boolean).map((l) => l.split(SEP));
 }
+
+/** The field separator, defined once so the query and the parse cannot disagree. */
+const SEP = '\t';
 
 /** A SQL string literal. Everything user-or-harness supplied goes through this. */
 const lit = (v) => (v === null || v === undefined ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
@@ -85,7 +95,15 @@ function proveEnvironment() {
   if (Number(live) !== 0) {
     die(`refusing to act: ${live} run(s) declare an environment other than ${ENVIRONMENT}`);
   }
-  log(`environment proven: ${DATABASE} · every run is ${ENVIRONMENT}`);
+  // The transport proves itself before anything depends on it. A separator that
+  // does not separate produced a run stuck in RUNNING with no executor; the
+  // cheapest place to catch that class is the first multi-column round trip,
+  // not the one that mutates a row.
+  const [probe] = sql("SELECT 'a', 'b', 'c';");
+  if (!probe || probe.length !== 3 || probe[2] !== 'c') {
+    die(`refusing to act: the database transport does not split columns (got ${JSON.stringify(probe)})`);
+  }
+  log(`environment proven: ${DATABASE} · every run is ${ENVIRONMENT} · transport splits columns`);
 }
 
 /* ── registry ───────────────────────────────────────────────────────────── */
@@ -472,22 +490,37 @@ function newestReport(stem, startedAt) {
 
 /* ── the run loop ───────────────────────────────────────────────────────── */
 
+/**
+ * Take a run, either from the queue or from an executor that stopped.
+ *
+ * ADOPTION. A run is RUNNING because some executor said so, and an executor can
+ * die between saying it and doing anything. The state machine has no way back
+ * to QUEUED — deliberately, since a run that has begun must never look
+ * unstarted — so without adoption a single crash would strand the run and cost
+ * the owner another authorisation ceremony. That is what the lease is for: the
+ * claim is time-bounded, and once it expires without a heartbeat the run is
+ * free. The lease is not waived, only allowed to run out.
+ */
 function claim(runRef) {
-  const where = runRef
-    ? `run_ref = ${lit(runRef)} AND state = 'QUEUED'`
-    : `state = 'QUEUED'`;
+  const pick = runRef ? `run_ref = ${lit(runRef)} AND ` : '';
   const [row] = sql(`
     UPDATE validation_runs SET
-      state = 'RUNNING', started_at = now(), executor_id = ${lit(EXECUTOR)},
+      state = 'RUNNING', started_at = COALESCE(started_at, now()), executor_id = ${lit(EXECUTOR)},
       lease_expires_at = now() + interval '${LEASE_SECONDS} seconds', heartbeat_at = now()
-    WHERE id = (SELECT id FROM validation_runs WHERE ${where}
-                ORDER BY requested_at LIMIT 1 FOR UPDATE SKIP LOCKED)
-    RETURNING id::text, run_ref, profile_id, environment;`) ?? [];
+    WHERE id = (SELECT id FROM validation_runs
+                 WHERE ${pick}(state = 'QUEUED'
+                    OR (state = 'RUNNING' AND lease_expires_at < now()))
+                 ORDER BY requested_at LIMIT 1 FOR UPDATE SKIP LOCKED)
+    RETURNING id::text, run_ref, profile_id, environment,
+              (started_at < now() - interval '1 second')::text AS adopted;`) ?? [];
   if (!row) return null;
-  const [id, ref, profile, environment] = row;
+  const [id, ref, profile, environment, adopted] = row;
+  if (!ref || !environment) die(`claim returned an unreadable row: ${JSON.stringify(row)}`);
   if (environment !== ENVIRONMENT) die(`claimed run ${ref} declares ${environment}`);
-  event(id, 'QUEUED', 'RUNNING', `claimed by ${EXECUTOR}`);
-  return { id, ref, profile };
+  event(id, 'RUNNING', 'RUNNING', adopted === 't'
+    ? `adopted by ${EXECUTOR} — previous executor's lease expired`
+    : `claimed by ${EXECUTOR}`);
+  return { id, ref, profile, adopted: adopted === 't' };
 }
 
 function event(runID, from, to, reason) {
@@ -539,7 +572,7 @@ function main() {
   const runRef = typeof arg('--run') === 'string' ? arg('--run') : null;
   const run = claim(runRef);
   if (!run) { log('no QUEUED run to claim'); return; }
-  log(`claimed ${run.ref} (${run.profile}) as ${EXECUTOR}`);
+  log(`${run.adopted ? 'adopted' : 'claimed'} ${run.ref} (${run.profile}) as ${EXECUTOR}`);
 
   const { profile, plan } = planFor(run.profile);
   const beat = setInterval(() => { try { heartbeat(run.id); } catch { /* next tick */ } }, HEARTBEAT_SECONDS * 1000);
