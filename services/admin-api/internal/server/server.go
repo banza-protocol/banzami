@@ -27,7 +27,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService, proofAdmin *service.ProofAdminService, proofAdminSandbox *service.ProofAdminService, mfa *service.MFAService, betaAdmin *service.BetaTesterAdminService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService, proofAdmin *service.ProofAdminService, proofAdminSandbox *service.ProofAdminService, mfa *service.MFAService, betaAdmin *service.BetaTesterAdminService, validationH *handler.ValidationHandler) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -248,6 +248,34 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/link-candidates", applicationsH.LinkCandidates)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/business-state", applicationsH.BusinessState)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/businesses/{id}", applicationsH.BusinessByID)
+
+		// ── Banzami Validation Studio ───────────────────────────────────────
+		//
+		// The CONTROL plane (doc 23). It prepares, describes and cancels; it
+		// never executes a journey and holds no long-running work, because an
+		// admin request handler that runs a test suite times out halfway
+		// through one and leaves a run whose real state nobody knows.
+		//
+		// The preflight is a GET on purpose: it writes no row, moves no money,
+		// sends no email and authenticates as nobody, so `validation.view` is
+		// the right gate — an operator who may read the Studio may ask whether
+		// the Sandbox is fit as often as they like.
+		//
+		// Preparing a run is `validation.run` AND step-up. Preparation itself
+		// spends nothing, but it is the act that reserves the Sandbox's one
+		// run slot and names what will be spent, and a lifted cookie must not
+		// be enough to do it.
+		//
+		// There is no start route. Phase C builds the surface, not the
+		// starter, and tools/check-validation-no-start.mjs keeps it that way.
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/overview", validationH.Overview)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/actors", validationH.Actors)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/profiles", validationH.Profiles)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/preflight", validationH.Preflight)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/runs", validationH.ListRuns)
+		r.With(cap(auth.CapValidationView)).Get("/admin/v1/validation/runs/{id}", validationH.GetRun)
+		r.With(cap(auth.CapValidationRun), stepUp).Post("/admin/v1/validation/runs", validationH.PrepareRun)
+		r.With(cap(auth.CapValidationRun)).Post("/admin/v1/validation/runs/{id}/cancel", validationH.CancelRun)
 		r.With(cap(auth.CapMerchantManage), stepUp).Post("/admin/v1/businesses/{id}/app-pin-reset", applicationsH.ResetBusinessAppPin)
 		// KYB documents (Track 3) — admin review.
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/documents", applicationsH.ListDocuments)

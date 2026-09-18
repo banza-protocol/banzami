@@ -18,10 +18,12 @@ import (
 
 	"github.com/banzami/banzami/services/admin-api/internal/config"
 	"github.com/banzami/banzami/services/admin-api/internal/email"
+	"github.com/banzami/banzami/services/admin-api/internal/handler"
 	"github.com/banzami/banzami/services/admin-api/internal/kycstorage"
 	"github.com/banzami/banzami/services/admin-api/internal/observability"
 	"github.com/banzami/banzami/services/admin-api/internal/server"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banzami/banzami/services/admin-api/internal/validation"
 )
 
 func main() {
@@ -92,6 +94,11 @@ func main() {
 	var proofAdmin *service.ProofAdminService
 	var proofAdminSandbox *service.ProofAdminService
 	var betaAdmin *service.BetaTesterAdminService
+	// The Validation Studio's control plane reads and writes banzami_staging as
+	// bl_admin_api_runtime — the same pool and the same role the rest of
+	// BANZADMIN uses. Hoisted so the Studio can be wired once, below, whether or
+	// not a database is configured.
+	var studioPool *pgxpool.Pool
 	if cfg.DatabaseURL != "" {
 		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
 		if perr != nil {
@@ -99,6 +106,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer pool.Close()
+		studioPool = pool
 		users = service.NewAdminUserService(pool)
 		audit = service.NewAuditService(pool)
 		walletLister = service.NewPostgresWalletPaymentService(pool)
@@ -245,7 +253,32 @@ func main() {
 		receiptSrc = src
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox, platform, proofAdmin, proofAdminSandbox, mfa, betaAdmin)
+	// Banzami Validation Studio — control plane only (doc 23). The registries are
+	// compiled into this binary, so the surface serves the exact registry this
+	// revision was reviewed at. Without a database the Studio still describes
+	// itself (actors, profiles, suites) and answers preflight as DEGRADED; it
+	// refuses to pretend it can tell you about runs.
+	studioRegistry, sterr := validation.Load()
+	if sterr != nil {
+		slog.Error("validation studio registry is unreadable", "error", sterr)
+		os.Exit(1)
+	}
+	var studioStore *validation.Store
+	if studioPool != nil {
+		studioStore = validation.NewStore(studioPool)
+	}
+	validationH := handler.NewValidationHandler(
+		studioRegistry,
+		validation.NewPreflighter(studioPool, studioRegistry),
+		studioStore,
+	)
+	slog.Info("validation studio ready",
+		"registry_digest", studioRegistry.Digest[:12],
+		"actors", len(studioRegistry.Actors),
+		"profiles", len(studioRegistry.Profiles),
+		"durable", studioStore != nil)
+
+	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox, platform, proofAdmin, proofAdminSandbox, mfa, betaAdmin, validationH)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
