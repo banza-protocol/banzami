@@ -341,8 +341,17 @@ check-validation-registries:
 check-validation-run-model:
 	node tools/check-validation-run-model.mjs
 
+# The registries are canonical in quality/validation/; the control plane compiles
+# them in so the deployed binary carries the exact bytes its revision was
+# reviewed at. Regenerate after editing any registry.
+gen-validation-registry:
+	node tools/gen-validation-registry.mjs
+
+check-validation-registry-drift:
+	node tools/gen-validation-registry.mjs --check
+
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.
