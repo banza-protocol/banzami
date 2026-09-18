@@ -107,9 +107,14 @@ operator-DB-URL bypass, no hand-written authz record. It deploys nothing.
 
 ```bash
 ssh -t root@<sandbox-host> \
-  'cd /srv/banzami/src && git fetch origin && git checkout 4e17714b8d5da4cf78f2e887fe83eb2e512fa974 && \
+  'cd /srv/banzami/src && git fetch origin && git checkout origin/main && \
    bash infra/blueprint/sandbox-ops/scripts/validation-0160-owner-ceremony.sh'
 ```
+
+`origin/main` is correct as long as it contains the authority-manifest fix in
+§3 — it has since `8f3e3d39`. The script binds the release package to whatever
+clean HEAD it finds and refuses a dirty worktree, so pinning a specific SHA is
+optional; what is not optional is that the revision post-dates that fix.
 
 A TTY (`ssh -t`) is required: Sandbox migrations run in an operator context, and
 bypassing that with `psql` is what caused the 0090–0095 drift.
