@@ -136,26 +136,48 @@ func (p *Preflighter) Run(ctx context.Context, profileID string) (PreflightResul
 // A registry that names a consumer the product deleted is a registry that will
 // fail a run for a reason the run report cannot explain.
 func (p *Preflighter) checkActorsResolve(ctx context.Context, add func(Check)) {
+	// Where each kind of product id actually lives. A consumer's wallet is NOT
+	// in `wallets` — that table is merchant-scoped (merchant_id, no
+	// consumer_id) and consumer wallets live in `consumer_wallets`. The first
+	// deployed preflight resolved both against `wallets` and reported C01-C03
+	// as missing; they were not missing, the lookup was wrong. Hence the map is
+	// keyed by (actor type, id kind) rather than by id kind alone.
 	type target struct{ table, column string }
-	lookup := map[string]target{
-		"consumer_id":   {"consumers", "id"},
-		"merchant_id":   {"merchants", "id"},
-		"admin_user_id": {"admin_users", "id"},
-		"wallet_id":     {"wallets", "id"},
+	lookup := map[string]map[string]target{
+		"consumer": {
+			"consumer_id":          {"consumers", "id"},
+			"wallet_id":            {"consumer_wallets", "id"},
+			"available_account_id": {"ledger_accounts", "id"},
+		},
+		"business": {
+			"merchant_id":          {"merchants", "id"},
+			"wallet_id":            {"wallets", "id"},
+			"available_account_id": {"ledger_accounts", "id"},
+		},
+		"operator": {
+			"admin_user_id": {"admin_users", "id"},
+		},
+		// A developer actor's ids belong to the Console's own tables, which the
+		// control plane does not read. Skipped rather than guessed.
+		"developer": {},
 	}
 
 	missing := []string{}
 	checked := 0
 	for _, a := range p.reg.Actors {
+		byKind, known := lookup[a.Type]
+		if !known {
+			continue
+		}
 		keys := make([]string, 0, len(a.ProductIDs))
 		for k := range a.ProductIDs {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
 		for _, key := range keys {
-			t, ok := lookup[key]
+			t, ok := byKind[key]
 			if !ok {
-				continue // ids the control plane has no table for (developer console, projects)
+				continue // an id this control plane has no table for
 			}
 			var exists bool
 			err := p.pool.QueryRow(ctx,
