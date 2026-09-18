@@ -395,6 +395,12 @@ check-validation-runner-regressions:
 check-e2e-harness-regressions:
 	node tools/check-e2e-harness-regressions.mjs
 
+# What a FULL run would actually do, derived from the registry and the harness
+# sources rather than authored: adapter, mutation, per-IP quota cost, actors,
+# assertions, retry. Read it before authorising a run, not after.
+validation-full-plan:
+	node tools/validation-full-plan.mjs
+
 # FULL must mean FULL. Every suite a profile selects is EXECUTABLE or carries a
 # justified NOT_PROVEN blocker — absence is neither. The failure this prevents is
 # a GREEN run that proved thirteen suites and never mentioned the other eleven.
