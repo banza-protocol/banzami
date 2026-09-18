@@ -50,11 +50,14 @@ const pay = await req('POST', `/consumer/v1/payment-links/${slug}/pay`, { idempo
 say('PAY STATUS', pay.status);
 say('PAY BODY', JSON.stringify(pay.body).slice(0, 200));
 
-for (let i = 0; i < 20; i++) {
+// Require an INCREASE over the pre-payment reading. Breaking on the first
+// non-null value reports the OLD balance as convergence — which it did.
+const before = kz(await d.visibleText());
+for (let i = 0; i < 30; i++) {
   await sleep(1500);
   const v = kz(await d.visibleText());
-  if (v) { say('CONVERGED AFTER', `${(i + 1) * 1.5}s → ${v} Kz`); break; }
-  if (i === 19) say('NEVER CONVERGED', `still ${v} Kz after 30s`);
+  if (v != null && before != null && v > before) { say('CONVERGED AFTER', `${(i + 1) * 1.5}s → ${v} Kz (was ${before})`); break; }
+  if (i === 29) say('NEVER CONVERGED', `still ${v} Kz after 45s (was ${before})`);
 }
 await page.reload({ waitUntil: 'domcontentloaded' }); await d.enableSemantics(); await sleep(4000);
 say('AFTER MANUAL RELOAD', kz(await d.visibleText()));

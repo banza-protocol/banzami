@@ -37,9 +37,21 @@ class PaymentNotificationService {
   final   _tracker = ReceivedPaymentTracker();
   int     _notifId = 0;
 
+  /// How often a foregrounded Business asks whether it has been paid.
+  ///
+  /// It was 30 seconds, which is fine for a notification and far too slow for a
+  /// balance: CLAUDE.md §2.6 puts the acceptable perceived latency at five
+  /// seconds, and the merchant seeing the payment is the whole promise of the
+  /// surface. The consumer path polls canonical reads every two seconds, but it
+  /// does so SERVER-side behind one SSE stream; this is a client asking over the
+  /// network, so it sits at the outer bound rather than matching that.
+  ///
+  /// Only while foregrounded — [stopPolling] runs on background and on logout.
+  static const pollInterval = Duration(seconds: 5);
+
   void startPolling() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _poll());
+    _timer = Timer.periodic(pollInterval, (_) => _poll());
     _poll(); // immediate first check
   }
 
