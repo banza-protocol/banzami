@@ -219,7 +219,14 @@ function Coverage({ coverage: c, lastFull }: {
             <dd className={`text-[19px] font-black ${c.journeys_runtime_proven > 0 ? 'text-green-800' : 'text-amber-700'}`}>
               {c.journeys_runtime_proven}
             </dd>
-            <dd className="text-[11px] text-[#a99a9e]">percursos distintos que já passaram</dd></div>
+            {/* HISTÓRICO, e o rótulo tem de o dizer. "13 já passaram alguma vez" e
+                "13 estão provados contra o build actual" divergem no instante em
+                que algo é implantado — e o segundo número existe: a matriz de
+                preverificação lia 12/38 frescos contra este build. Deixar o
+                rótulo ambíguo seria deixar o leitor escolher o que prefere. */}
+            <dd className="text-[11px] leading-[1.35] text-[#a99a9e]">
+              percursos distintos que já passaram<br />em pelo menos uma execução real
+            </dd></div>
           {lastFull && (
             <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">Última FULL alcançou</dt>
               <dd className="text-[19px] font-black text-[#1a1a1a]">

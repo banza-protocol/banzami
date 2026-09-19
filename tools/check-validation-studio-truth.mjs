@@ -62,6 +62,11 @@ check('the handler derives it from the run store',
 check('…and that query counts DISTINCT journeys that PASSED',
   /count\(DISTINCT journey_id\)[\s\S]{0,120}?outcome = 'PASSED'/.test(store));
 
+check('…and the label says it is historical, not proven against this build',
+  /em pelo menos uma execução real/.test(page),
+  '"13 have ever passed" and "13 are proven against the current build" diverge '
+  + 'the moment anything is deployed; the preverification matrix reads 12/38 fresh');
+
 /* ── a verdict is not a state ────────────────────────────────────────────── */
 
 check('the runs list renders the verdict beside the state',
