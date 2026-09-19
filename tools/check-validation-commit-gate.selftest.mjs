@@ -22,11 +22,16 @@ const check = (t, ok, d = '') => { if (ok) return console.log(`  ✓ ${t}`); con
 console.log('\nvalidation commit gate — mutation proof\n');
 
 const box = mkdtempSync(join(tmpdir(), 'bz-gate-'));
-const sh = (cmd, env = {}) => execFileSync('bash', ['-c', cmd], { cwd: box, encoding: 'utf8', env: { ...process.env, ...env } });
+// stdio fully piped: this test makes a guard fail ON PURPOSE, and letting that
+// "✗ COMMIT BLOCKED" reach the terminal makes a passing suite read as a broken
+// one. An intentional failure that looks like a real one is its own defect.
+const sh = (cmd, env = {}) => execFileSync('bash', ['-c', cmd],
+  { cwd: box, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
 const tryShell = (cmd, env = {}) => { try { return { ok: true, out: sh(cmd, env) }; } catch (e) { return { ok: false, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; } };
 
 try {
   sh('git init -q . && git config user.email t@t && git config user.name t');
+  // The inner Makefile prints the intentional failure; keep it inside this box.
   mkdirSync(join(box, '.githooks'), { recursive: true });
   copyFileSync(join(repo, '.githooks/pre-commit'), join(box, '.githooks/pre-commit'));
   chmodSync(join(box, '.githooks/pre-commit'), 0o755);
@@ -40,7 +45,7 @@ try {
   const blocked = tryShell('git commit -q -m "touches validation"');
   check('a failing guard blocks the commit', !blocked.ok, blocked.out.slice(0, 120));
   check('…and says why', /COMMIT BLOCKED/.test(blocked.out), blocked.out.slice(0, 200));
-  const count = tryShell('git rev-list --count HEAD');
+  const count = tryShell('git rev-list --count HEAD 2>/dev/null');
   check('…and nothing was written', !count.ok || count.out.trim() === '0', `HEAD has ${count.out.trim()} commit(s)`);
 
   // The same commit with a guard that PASSES.
