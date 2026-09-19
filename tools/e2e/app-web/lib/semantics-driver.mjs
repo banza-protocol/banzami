@@ -31,16 +31,74 @@
 
 const PLACEHOLDER = 'flt-semantics-placeholder[aria-label="Enable accessibility"]';
 
+/* ── the two budgets, kept apart on purpose ──────────────────────────────────
+ *
+ * Starting the Flutter engine and activating its semantics tree are different
+ * things that fail for different reasons, and they used to share one 20 s
+ * budget: enableSemantics() dispatched clicks at a placeholder that did not
+ * exist yet, and spent the whole allowance waiting for the engine. Under the
+ * FULL run — measurably 1.4x to 2.2x slower than GOLDEN — three journeys died
+ * that way, reporting "no flt-semantics nodes after enabling" as though
+ * activation had been refused.
+ *
+ * The fix is not a longer timeout. A single 60 s budget would hide the state
+ * machine instead of repairing it, and would still report the wrong phase.
+ *
+ * Measured against the deployed app on 2026-09-19:
+ *
+ *   domcontentloaded → flutter-view      1130-1600 ms
+ *   flutter-view → placeholder               4-11 ms
+ *   activation → first flt-semantics       204-217 ms
+ *
+ * So activation is a fifth of a second once the engine is up, and the engine
+ * is what takes time. Sizing them separately means a slow machine spends its
+ * slowness where the slowness is.
+ */
+const ENGINE_BUDGET_MS = 40_000;
+const ACTIVATION_BUDGET_MS = 20_000;
+
+/** A timeout that says WHICH phase ran out. `phase` is machine-readable. */
+export class DriverPhaseTimeout extends Error {
+  constructor(phase, label, detail) {
+    super(`${label}: ${phase} — ${detail}`);
+    this.name = 'DriverPhaseTimeout';
+    this.phase = phase;
+  }
+}
+
 export class FlutterSemanticsDriver {
   constructor(page, { label = 'flutter' } = {}) {
     this.page = page;
     this.label = label;
+    /** Filled by waitForEngine/enableSemantics. Read through `timing`. */
+    this.engineReadyMs = null;
+    this.semanticsReadyMs = null;
   }
 
-  /** Wait for the Flutter engine to mount its view. */
-  async waitForEngine(timeout = 40000) {
-    await this.page.waitForSelector('flutter-view, flt-glass-pane', { timeout });
-    await this.page.waitForTimeout(1200);
+  /**
+   * Wait until the engine is ready FOR THE THING WE ARE ABOUT TO DO.
+   *
+   * The authoritative signal is the accessibility placeholder, because that is
+   * what activation dispatches against — or an already-populated semantics
+   * tree, which means activation already happened. The previous signal was
+   * `flutter-view, flt-glass-pane` followed by a blind 1200 ms sleep; measured,
+   * the placeholder lands 4-11 ms after flutter-view, so that sleep was
+   * compensating for a ten-millisecond gap with more than a second of latency
+   * on every call, while proving nothing about the element actually needed.
+   *
+   * Returns milliseconds waited. Throws DriverPhaseTimeout('ENGINE_TIMEOUT').
+   */
+  async waitForEngine({ timeout = ENGINE_BUDGET_MS } = {}) {
+    const t0 = Date.now();
+    if (await this.semanticsActive()) { this.engineReadyMs = 0; return 0; }
+    try {
+      await this.page.waitForSelector(`${PLACEHOLDER}, flt-semantics`, { timeout, state: 'attached' });
+    } catch {
+      throw new DriverPhaseTimeout('ENGINE_TIMEOUT', this.label,
+        `no accessibility placeholder after ${timeout} ms — the Flutter engine did not become ready`);
+    }
+    this.engineReadyMs = Date.now() - t0;
+    return this.engineReadyMs;
   }
 
   /**
@@ -48,26 +106,64 @@ export class FlutterSemanticsDriver {
    * Throws (never silently continues) if activation does not produce a semantics
    * host — a coordinate-only fallback is explicitly disallowed.
    */
-  async enableSemantics({ timeout = 20000 } = {}) {
+  async enableSemantics({ engineTimeout = ENGINE_BUDGET_MS, activationTimeout = ACTIVATION_BUDGET_MS } = {}) {
     // NOTE: Flutter mounts an EMPTY <flt-semantics-host> as soon as the engine
     // boots, so the host's presence does NOT mean semantics are active. The real
     // signal is populated <flt-semantics> NODES, which appear only after the
     // placeholder is activated. Use the node count as the idempotency check.
-    if (await this.semanticsActive()) return true;
+    if (await this.semanticsActive()) { this.engineReadyMs ??= 0; this.semanticsReadyMs ??= 0; return true; }
+
+    // THE DRIVER OWNS ITS PREREQUISITE. Nine of the ten proofs that call this
+    // never called waitForEngine, because nothing told them they had to — and
+    // a prerequisite a caller has to remember is a prerequisite that gets
+    // forgotten by everyone except whoever wrote it.
+    await this.waitForEngine({ timeout: engineTimeout });
+
+    const t0 = Date.now();
     const ph = this.page.locator(PLACEHOLDER);
-    const deadline = Date.now() + timeout;
-    // The placeholder can appear a beat after the engine mounts, and it is
-    // rebuilt after route changes, so retry the dispatch a few times.
+    const deadline = t0 + activationTimeout;
+    // Dispatch, then poll FINELY. Sleeping 250 ms after each dispatch made
+    // semantics_ready_ms report the poll interval rather than the activation —
+    // 251 ms for a tree that was up in 20 — and a measurement quantised to its
+    // own sampling rate cannot tell anyone where the time went.
+    //
+    // The placeholder is rebuilt after a route change, so re-dispatch
+    // periodically rather than once; DISPATCH_EVERY_MS is long enough that a
+    // normal activation (measured 204-217 ms) never needs a second one.
+    const POLL_MS = 25;
+    const DISPATCH_EVERY_MS = 1_000;
+    let lastDispatch = -Infinity;
     while (Date.now() < deadline) {
-      if (await ph.count()) {
+      if (Date.now() - lastDispatch >= DISPATCH_EVERY_MS && await ph.count()) {
+        lastDispatch = Date.now();
         await ph.first().dispatchEvent('click').catch(() => {});
-        await this.page.waitForTimeout(800);
       }
-      if (await this.semanticsActive()) return true;
-      await this.page.waitForTimeout(500);
+      if (await this.semanticsActive()) {
+        this.semanticsReadyMs = Date.now() - t0;
+        // One line per real activation, so a slow run says WHERE it was slow
+        // instead of leaving the next reader to re-derive it from a timeout.
+        // Only on the activation that did work — the idempotent early return
+        // above logs nothing, or proof 13 would print this four times.
+        console.log(`[semantics] ${this.label} engine_ready=${this.engineReadyMs}ms ` +
+          `semantics_ready=${this.semanticsReadyMs}ms total=${this.engineReadyMs + this.semanticsReadyMs}ms`);
+        return true;
+      }
+      await this.page.waitForTimeout(POLL_MS);
     }
-    if (await this.semanticsActive()) return true;
-    throw new Error(`${this.label}: FLUTTER_SEMANTICS_ACTIVATION failed — no flt-semantics nodes after enabling`);
+    if (await this.semanticsActive()) { this.semanticsReadyMs = Date.now() - t0; return true; }
+    throw new DriverPhaseTimeout('SEMANTICS_ACTIVATION_TIMEOUT', this.label,
+      `engine was ready after ${this.engineReadyMs} ms but no flt-semantics node appeared ` +
+      `within ${activationTimeout} ms of activation`);
+  }
+
+  /** Harness observability, never product truth. */
+  get timing() {
+    return {
+      engine_ready_ms: this.engineReadyMs ?? null,
+      semantics_ready_ms: this.semanticsReadyMs ?? null,
+      total_ready_ms: this.engineReadyMs == null || this.semanticsReadyMs == null
+        ? null : this.engineReadyMs + this.semanticsReadyMs,
+    };
   }
 
   /** True once the accessibility tree has real nodes (not just the empty host). */
