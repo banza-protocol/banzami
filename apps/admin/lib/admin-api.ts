@@ -756,6 +756,12 @@ export interface ValidationProfileOutcome {
   cleanup_failed:    number;
   functional_passed: number;
   cleanup_barrier_triggered: boolean;
+  /** Typed by the planner since migration 0162. A run whose rows predate it
+   *  reports legacy_records > 0 and has no breakdown — classifying those rows
+   *  now would be the inference 0162 exists to abolish. */
+  journey_records: number;
+  control_records: number;
+  legacy_records:  number;
 }
 
 // ── Deep inspection: the Studio explaining itself ───────────────────────────

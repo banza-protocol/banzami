@@ -1300,6 +1300,60 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "validation execution record kinds and reachability (0162) \u2014 D-4 / D-3",
+      "tables": [
+        {
+          "name": "validation_run_journeys",
+          "columns": [
+            {
+              "name": "record_kind",
+              "nullable": true
+            },
+            {
+              "name": "control_classification",
+              "nullable": true
+            },
+            {
+              "name": "control_reason",
+              "nullable": true
+            }
+          ]
+        },
+        {
+          "name": "validation_run_funds_samples",
+          "columns": [
+            {
+              "name": "run_id",
+              "nullable": false
+            },
+            {
+              "name": "journey_id",
+              "nullable": true
+            },
+            {
+              "name": "phase",
+              "nullable": false
+            },
+            {
+              "name": "used_minor",
+              "nullable": false
+            },
+            {
+              "name": "delta_from_baseline_minor",
+              "nullable": false
+            },
+            {
+              "name": "observed_at",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "validation_run_funds_samples_run"
+          ]
+        }
+      ]
     }
   ]
 }

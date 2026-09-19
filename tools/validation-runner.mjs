@@ -208,6 +208,12 @@ export function planFor(profileID) {
         suite: suiteID,
         name: suite.name ?? suiteID,
         harness: null,
+        // DECLARED by the planner that makes it. Every consumer used to infer
+        // this from `harness IS NULL` or from the id ending in NOT-PROVEN —
+        // the inference 0162 exists to abolish.
+        kind: 'CONTROL',
+        controlClassification: suite.runtime_proof === 'NOT_PROVEN' ? 'NOT_PROVEN' : null,
+        controlReason: suite.runtime_proof === 'NOT_PROVEN' ? (b.class ?? null) : null,
         notProven: suite.runtime_proof === 'NOT_PROVEN'
           ? `${b.class}: ${String(b.detail ?? '').replace(/\s+/g, ' ').trim().slice(0, 400)}`
           : 'no journey declared and no blocker recorded',
@@ -223,6 +229,7 @@ export function planFor(profileID) {
         journey: j.journey_id,
         suite: suiteID,
         name: j.name,
+        kind: 'JOURNEY',
         harness: j.existing_harness ?? null,
         max_synthetic_funds_exposure_minor: j.max_synthetic_funds_exposure_minor,
         submits: j.existing_harness && existsSync(join(ROOT, j.existing_harness))
@@ -860,14 +867,18 @@ function main() {
   const { profile, plan } = planFor(run.profile);
   const beat = setInterval(() => { try { heartbeat(run.id); } catch { /* next tick */ } }, HEARTBEAT_SECONDS * 1000);
 
-  let failedBlocking = 0, passed = 0, failed = 0, skipped = 0;
+  let failedBlocking = 0, passed = 0, failed = 0, skipped = 0, notReached = 0;
   let spent = 0, budgetStopped = null, submitsActual = null, cleanupStopped = null;
   try {
     // The plan is materialised first, so a run always says what it INTENDED to
     // do — even if it is cancelled after the second journey.
     for (const p of plan) {
-      sql(`INSERT INTO validation_run_journeys (run_id, journey_id, suite_id, outcome)
-           VALUES (${lit(run.id)}::uuid, ${lit(p.journey)}, ${lit(p.suite)}, 'PLANNED')
+      sql(`INSERT INTO validation_run_journeys
+             (run_id, journey_id, suite_id, outcome, record_kind, control_classification, control_reason)
+           VALUES (${lit(run.id)}::uuid, ${lit(p.journey)}, ${lit(p.suite)}, 'PLANNED',
+                   ${lit(p.kind ?? 'JOURNEY')},
+                   ${p.controlClassification ? lit(p.controlClassification) : 'NULL'},
+                   ${p.controlReason ? lit(p.controlReason) : 'NULL'})
            ON CONFLICT (run_id, journey_id) DO NOTHING;`, { rows: false });
     }
 
@@ -878,7 +889,13 @@ function main() {
     const budget = checkApplicationBudget(profile, plan);
     const funds = checkFundsBudget(profile, plan);
     const fundsBaseline = funds.live.used;
-    let fundsPeak = 0;
+    const fundsSamples = [];
+    const take = (phase, journeyID = null) => {
+      const s = sampleFunds(run.id, phase, journeyID, fundsBaseline);
+      if (s) fundsSamples.push({ phase, journey: journeyID, ...s });
+      return s;
+    };
+    take('BASELINE');
 
     const ceiling = Number(profile.budget?.max_credit_volume_minor ?? 0);
     // Anchored to the run's own start timestamp, read from the row rather than
@@ -894,11 +911,6 @@ function main() {
       // Track the ACTUAL funded-value peak against the same live source the
       // preflight used. The planned figure is a floor (see plannedPeakFunds),
       // so a divergence here is the thing that catches the model being wrong.
-      try {
-        const nowFunds = aggregateFunds().used;
-        fundsPeak = Math.max(fundsPeak, nowFunds - fundsBaseline);
-      } catch { /* the run is not about this reading */ }
-
       if (ceiling > 0) {
         spent = creditSince(since);
         if (spent > ceiling) {
@@ -924,8 +936,8 @@ function main() {
 
       // Read the funded-value baseline immediately before the harness, so the
       // window the residual is measured over is the journey and nothing else.
-      let fundsBaselineForJourney = null;
-      try { fundsBaselineForJourney = aggregateFunds().used; } catch { /* verifyCleanup says UNDECLARED */ }
+      const pre = take('PRE_JOURNEY', p.journey);
+      const fundsBaselineForJourney = pre ? pre.used : null;
 
       const r = runHarness(p.harness, p.timeoutMs, run.ref,
         { adapter: p.adapter, args: p.args, evidenceStem: p.evidenceStem });
@@ -936,7 +948,12 @@ function main() {
       // found it, and that is not a clean pass — for FULL acceptance or for the
       // journey after it, which inherits the resource.
       const functional = r.ok ? 'PASSED' : 'FAILED';
+      // Sampled BEFORE the cleanup verification reads, so exposure created by
+      // the journey is recorded even when cleanup then removes it. Without
+      // this the peak never sees the money a journey held.
+      take('POST_FUNCTIONAL', p.journey);
       const cleanup = verifyCleanup(p, fundsBaselineForJourney);
+      take('POST_CLEANUP', p.journey);
       const outcome = functional === 'PASSED' && ['VERIFIED', 'NOT_REQUIRED'].includes(cleanup.result)
         ? 'PASSED' : 'FAILED';
 
@@ -966,9 +983,14 @@ function main() {
         log(`  CLEANUP BARRIER — ${cleanupStopped}; stopping the run`);
         for (const later of plan.slice(plan.indexOf(p) + 1)) {
           if (stateOf(run.id) === 'CANCELLED') break;
-          mark(run.id, later, 'SKIPPED', 'not started: the run stopped at a cleanup barrier',
-            { functional: 'UNAVAILABLE', cleanup: { result: 'NOT_REACHED', detail: `stopped at ${p.journey}` } });
-          skipped++;
+          // NOT_REACHED, not SKIPPED. These journeys were executable and their
+          // adapters were fine; the run stopped before them. Encoding that as
+          // SKIPPED with functional_result UNAVAILABLE made two fields
+          // conspire to mean a third thing, and made the executor's own
+          // counter disagree with the record it had just written.
+          mark(run.id, later, 'NOT_REACHED', 'not started: the run stopped at a cleanup barrier',
+            { functional: null, cleanup: { result: 'NOT_REACHED', detail: `stopped at ${p.journey}` } });
+          notReached++;
         }
         break;
       }
@@ -988,12 +1010,25 @@ function main() {
     // defect or unexpected retries; under is a skipped journey or reuse. Neither
     // is normalised away — a model that silently agrees with itself is not a
     // model.
-    if (fundsPeak > 0 || funds.planned.peak > 0) {
+    const terminal = take('RUN_TERMINAL');
+    const finalResidual = terminal ? terminal.delta : 0;
+    const { peak: fundsPeak, impossible, samples: sampleCount } = peakFromSamples(fundsSamples, finalResidual);
+    log(`  funds: ${sampleCount} sample(s) · actual peak ${fundsPeak ?? '—'} · final residual ${finalResidual}`);
+    if (impossible) {
+      // Not a number to print. A run cannot end holding more than its highest
+      // observed exposure; if it says so, the instrument is broken and the
+      // figure must not be quoted as evidence.
+      log(`  FUNDS INSTRUMENTATION FAULT — peak ${fundsPeak} is below the final residual ` +
+          `${finalResidual}, which cannot happen. The peak is NOT evidence for this run.`);
+      event(run.id, 'RUNNING', 'RUNNING',
+        `FUNDS_INSTRUMENTATION_FAULT peak=${fundsPeak} final_residual=${finalResidual}`);
+    }
+    if (fundsPeak !== null && (fundsPeak > 0 || funds.planned.peak > 0)) {
       const delta = fundsPeak - funds.planned.peak;
       log(`  funds: planned peak max ${funds.planned.peak} · actual peak ${fundsPeak}` +
           (delta === 0 ? '' : ` · DIVERGENCE ${delta > 0 ? '+' : ''}${delta} — ` +
             (delta > 0 ? 'the plan under-counted (helper-wrapped registrations, or retries)'
-                       : 'a journey was skipped or reused a fixture')));
+                       : 'a journey was not reached, or reused a fixture')));
     }
 
     submitsActual = actualSubmits(budget.buckets);
@@ -1011,7 +1046,8 @@ function main() {
     sql(`UPDATE validation_runs SET state='COMPLETED', verdict=${lit(verdict)}, ended_at=now()
          WHERE id=${lit(run.id)}::uuid;`, { rows: false });
     event(run.id, 'RUNNING', 'COMPLETED',
-      `${passed} passed, ${failed} failed (${failedBlocking} blocking), ${skipped} unavailable` +
+      `${passed} passed, ${failed} failed (${failedBlocking} blocking), ` +
+      `${skipped} unavailable, ${notReached} not reached` +
       (ceiling > 0 ? `; spent ${spent} of ${ceiling} minor` : '') +
       (submitsActual !== null ? `; ${submitsActual} of ${budget.declared} application submit(s)` : '') +
       (budgetStopped ? `; STOPPED ON BUDGET — ${budgetStopped}` : '') +
@@ -1023,7 +1059,7 @@ function main() {
     // is truncated or lost, nothing here was the truth anyway — the database
     // was. Printing counters would mean a lost summary and a disagreeing
     // summary are indistinguishable.
-    summarise(run.id, run.ref, { passed, failed, skipped });
+    summarise(run.id, run.ref, { passed, failed, skipped, notReached });
   } catch (e) {
     // A crashed executor must not leave a run claiming to be RUNNING forever.
     sql(`UPDATE validation_runs SET state='ABANDONED', ended_at=now()
@@ -1056,6 +1092,12 @@ function summarise(runID, runRef, expected) {
                 WHERE j.run_id = r.id AND j.outcome = 'FAILED'),
               (SELECT count(*) FROM validation_run_journeys j
                 WHERE j.run_id = r.id AND j.outcome = 'UNAVAILABLE'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.outcome = 'NOT_REACHED'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.record_kind = 'CONTROL'),
               (SELECT count(*) FROM validation_run_journeys j WHERE j.run_id = r.id),
               (SELECT count(*) FROM validation_evidence e WHERE e.run_id = r.id)
          FROM validation_runs r WHERE r.id = ${lit(runID)}::uuid;`);
@@ -1066,9 +1108,13 @@ function summarise(runID, runRef, expected) {
     log('  read it with: SELECT state, verdict FROM validation_runs WHERE run_ref = \'' + runRef + '\';');
     return;
   }
-  const [state, verdict, endedAt, pass, fail, unavail, total, evidence] = row;
+  const [state, verdict, endedAt, pass, fail, unavail, notReached, journeys, controls, total, evidence] = row;
   log(`\n${runRef}  ${state}  ${verdict}`);
-  log(`  journeys   ${pass} passed / ${fail} failed / ${unavail} unavailable   (${total} planned)`);
+  log(`  journeys   ${pass} passed / ${fail} failed / ${notReached} not reached / ${unavail} unavailable`);
+  // Typed by the planner, counted from the rows. "38 journeys" and "39 rows"
+  // were both true and neither was checkable until record_kind existed.
+  log(`  records    ${journeys} JOURNEY · ${controls} CONTROL · ${total} materialised` +
+      (Number(journeys) + Number(controls) === Number(total) ? '' : '  ← LEGACY rows present (pre-0162)'));
   log(`  evidence   ${evidence} hashed row(s)`);
   log(`  finished   ${endedAt}`);
   log('  (read back from validation_runs; the database is the authority for this run)');
@@ -1077,6 +1123,7 @@ function summarise(runID, runRef, expected) {
   if (Number(pass) !== expected.passed) drift.push(`passed ${expected.passed}→${pass}`);
   if (Number(fail) !== expected.failed) drift.push(`failed ${expected.failed}→${fail}`);
   if (Number(unavail) !== expected.skipped) drift.push(`unavailable ${expected.skipped}→${unavail}`);
+  if (Number(notReached) !== (expected.notReached ?? 0)) drift.push(`not reached ${expected.notReached ?? 0}→${notReached}`);
   if (drift.length) {
     log(`  DIVERGENCE the executor counted ${drift.join(', ')} — the persisted record above stands`);
   }
@@ -1088,7 +1135,9 @@ function mark(runID, p, outcome, detail, results = null) {
   // whether it cleaned up. 0161's CHECK refuses that combination anyway; this
   // is so the refusal never has to fire.
   const extra = results && CLEANUP_BARRIER
-    ? `, functional_result=${lit(results.functional)}` +
+    // A journey that was never attempted has no functional result. NULL says
+    // that; 'UNAVAILABLE' would claim its adapter was the problem.
+    ? `, functional_result=${results.functional ? lit(results.functional) : 'NULL'}` +
       `, cleanup_result=${lit(results.cleanup.result)}` +
       `, cleanup_detail=${lit(results.cleanup.detail)}` +
       `, cleanup_verified_at=${results.cleanup.result === 'VERIFIED' ? 'now()' : 'NULL'}`
@@ -1107,6 +1156,8 @@ function mark(runID, p, outcome, detail, results = null) {
 
 /** Does the deployed schema carry 0161? Probed once, never assumed. */
 let CLEANUP_BARRIER = false;
+/** Does the deployed schema carry 0162's samples table? Probed, never assumed. */
+let FUNDS_SAMPLES = false;
 function probeCleanupBarrier() {
   try {
     const [row] = sql(
@@ -1115,6 +1166,11 @@ function probeCleanupBarrier() {
           AND column_name IN ('functional_result','cleanup_result','cleanup_detail');`);
     CLEANUP_BARRIER = Number(row?.[0]) === 3;
   } catch { CLEANUP_BARRIER = false; }
+  try {
+    const [row] = sql(`SELECT count(*) FROM information_schema.tables
+                        WHERE table_name = 'validation_run_funds_samples';`);
+    FUNDS_SAMPLES = Number(row?.[0]) === 1;
+  } catch { FUNDS_SAMPLES = false; }
   return CLEANUP_BARRIER;
 }
 
@@ -1141,6 +1197,58 @@ function verifyCleanup(p, baseline) {
     catch (e) { unreadable = String(e.message).slice(0, 120); }
   }
   return cleanupVerdict(p, baseline, after, unreadable);
+}
+
+/* ── D-3: funded exposure, sampled where it changes ──────────────────────────
+ *
+ * The peak used to be read once per loop iteration, at the top, so the rise
+ * caused by the LAST executed journey was never sampled at all: a run that
+ * left +2 000 000 behind reported actual peak 0. A peak below the residual it
+ * is meant to bound is not an approximation — the instrument was reading zero
+ * while the needle moved.
+ */
+const FUNDS_PHASES = ['BASELINE', 'PRE_JOURNEY', 'POST_FUNCTIONAL', 'POST_CLEANUP', 'RUN_TERMINAL'];
+
+/**
+ * Take one sample and persist it. Returns the delta, or null if unreadable.
+ *
+ * `read` and `write` are injectable ONLY so the phase sequence can be proven
+ * without a Validation Run: writing test samples against a real run_id would
+ * attach invented evidence to a historical run, which is the one thing 0162
+ * was careful not to do to those rows.
+ */
+export function sampleFunds(runID, phase, journeyID, baseline, {
+  read = () => aggregateFunds().used,
+  write = null,
+} = {}) {
+  if (!FUNDS_PHASES.includes(phase)) throw new Error(`unknown funds phase ${phase}`);
+  let used;
+  try { used = read(); } catch { return null; }
+  const delta = baseline === null ? 0 : used - baseline;
+  const persist = write ?? ((row) => {
+    if (!FUNDS_SAMPLES) return;
+    sql(`INSERT INTO validation_run_funds_samples
+           (run_id, journey_id, phase, used_minor, delta_from_baseline_minor)
+         VALUES (${lit(row.runID)}::uuid, ${row.journeyID ? lit(row.journeyID) : 'NULL'},
+                 ${lit(row.phase)}, ${row.used}, ${row.delta});`, { rows: false });
+  });
+  persist({ runID, journeyID, phase, used, delta });
+  return { used, delta };
+}
+
+/**
+ * The peak, and whether it can be believed.
+ *
+ * `impossible` is the state this whole instrument exists to make unreachable:
+ * a run that ended holding more than it started with, reporting a peak lower
+ * than that residual. It cannot be true, so it is reported as an
+ * instrumentation fault rather than quietly printed as a number.
+ */
+export function peakFromSamples(samples, finalResidual) {
+  const deltas = samples.map((s) => Number(s.delta));
+  const peak = deltas.length ? Math.max(...deltas) : null;
+  const impossible = finalResidual > 0 && (peak === null || peak < finalResidual);
+  return { peak, impossible, samples: deltas.length };
 }
 
 /** The decision, with no I/O in it, so every branch can be proven. */

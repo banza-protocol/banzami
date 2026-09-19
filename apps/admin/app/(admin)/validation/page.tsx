@@ -288,16 +288,32 @@ function ProfileReadinessCard({ p, meets, verdict, outcome, busy, onCheck, onPre
         <Row label="PASS_WITH_RETRY" value={p.max_pass_with_retry} />
         {outcome && (
           <>
-            {/* The denominator counts materialised PLAN RECORDS, and for FULL
-                one of those is a non-journey control row standing in for a
-                suite with no executable journey. Typing CONTROL apart from
-                JOURNEY is migration 0162's job; until it lands the label says
-                what it counts rather than quietly reporting 38. */}
-            <Row label="Alcançado no plano" value={
-              <span className={outcome.journeys_executed === outcome.journeys_planned ? 'text-green-700' : 'text-amber-700'}>
-                {outcome.journeys_executed} / {outcome.journeys_planned} registos
-              </span>
-            } />
+            {/* Since 0162 the planner declares each record's kind, so this can
+                finally say "9 of 38 journeys" without inferring which row is
+                not one. A run predating the migration has no breakdown, and
+                says so rather than guessing backwards. */}
+            {outcome.legacy_records > 0 ? (
+              <>
+                <Row label="Alcançado no plano" value={
+                  <span className="text-amber-700">
+                    {outcome.journeys_executed} / {outcome.journeys_planned} registos
+                  </span>
+                } />
+                <Row label="Tipos de registo" value={
+                  <span className="text-[#9a8a8e]">{outcome.legacy_records} LEGACY (anterior à 0162)</span>
+                } />
+              </>
+            ) : (
+              <>
+                <Row label="Percursos alcançados" value={
+                  <span className={outcome.journeys_executed === outcome.journey_records ? 'text-green-700' : 'text-amber-700'}>
+                    {outcome.journeys_executed} / {outcome.journey_records}
+                  </span>
+                } />
+                <Row label="Registos de controlo" value={`${outcome.control_records} / ${outcome.control_records}`} />
+                <Row label="Total materializado" value={outcome.journeys_planned} />
+              </>
+            )}
             {outcome.cleanup_barrier_triggered && (
               <Row label="Barreira de limpeza" value={<span className="text-amber-700">DISPAROU</span>} />
             )}

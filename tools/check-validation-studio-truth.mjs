@@ -82,10 +82,12 @@ check('the profile card shows what the profile last DID',
   'FULL was shown as "não verificado" after reaching 9 of 38 journeys');
 check('…including the coverage it actually reached',
   /journeys_executed\}\s*\/\s*\{[^}]*journeys_planned/.test(page));
-check('…and the denominator says it counts plan RECORDS, not journeys',
-  /\/ \{outcome\.journeys_planned\} registos/.test(page),
-  'the FULL plan materialises 39 records, one of which is a non-journey control '
-  + 'row; reporting 38 would infer the distinction 0162 exists to make explicit');
+check('…derived from the typed records since 0162, not from a naming guess',
+  /outcome\.journey_records/.test(page) && /outcome\.control_records/.test(page),
+  'the FULL plan materialises 39 records, one of which is a control row');
+check('…and a run predating 0162 reports LEGACY rather than guessing backwards',
+  /outcome\.legacy_records > 0/.test(page) && /LEGACY \(anterior à 0162\)/.test(page),
+  'classifying those rows now would be the inference the migration abolished');
 check('…and says when cleanup was never measured rather than implying clean',
   /!outcome\.cleanup_measured/.test(page) && /introduzido depois desta execução/.test(page),
   'a run predating 0161 is unmeasured, which is not the same as clean');

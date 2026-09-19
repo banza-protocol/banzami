@@ -83,8 +83,10 @@ check('the run event says why it stopped',
 /* ── the two results are two results ─────────────────────────────────────── */
 
 check('functional and cleanup results are persisted separately',
-  /functional_result=\$\{lit\(results\.functional\)\}/.test(runner)
-  && /cleanup_result=\$\{lit\(results\.cleanup\.result\)\}/.test(runner));
+  /functional_result=\$\{results\.functional \? lit\(results\.functional\) : 'NULL'\}/.test(runner)
+  && /cleanup_result=\$\{lit\(results\.cleanup\.result\)\}/.test(runner),
+  'since 0162 a journey that was never attempted writes NULL rather than '
+  + 'claiming UNAVAILABLE, which would blame its adapter');
 check('they are written in the same statement as the outcome',
   /UPDATE validation_run_journeys SET outcome=\$\{lit\(outcome\)\}, detail=\$\{lit\(detail\)\}\$\{extra\}/.test(runner),
   'otherwise there is a window where a journey is PASSED with no cleanup record');

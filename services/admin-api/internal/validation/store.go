@@ -719,6 +719,14 @@ type ProfileOutcome struct {
 	// what it took. The distinction matters: the run did not "fail 30 journeys",
 	// it declined to start them.
 	CleanupBarrierTriggered bool `json:"cleanup_barrier_triggered"`
+
+	// Typed by the planner since 0162. A run whose rows predate it reports
+	// LegacyRecords > 0 and the breakdown is not available for it — which is
+	// the honest answer, because classifying those rows now would mean the
+	// very inference 0162 exists to abolish.
+	JourneyRecords int `json:"journey_records"`
+	ControlRecords int `json:"control_records"`
+	LegacyRecords  int `json:"legacy_records"`
 }
 
 // LastOutcomes returns, per profile, the most recent run that was ever STARTED.
@@ -736,7 +744,10 @@ func (s *Store) LastOutcomes(ctx context.Context) ([]ProfileOutcome, error) {
 		       count(*) FILTER (WHERE j.outcome IN ('PASSED','FAILED')),
 		       count(*) FILTER (WHERE j.outcome = 'PASSED'),
 		       count(*) FILTER (WHERE j.outcome = 'FAILED'),
-		       count(*) FILTER (WHERE j.cleanup_result = 'NOT_REACHED'),
+		       count(*) FILTER (WHERE j.outcome = 'NOT_REACHED' OR j.cleanup_result = 'NOT_REACHED'),
+		       count(*) FILTER (WHERE j.record_kind = 'JOURNEY'),
+		       count(*) FILTER (WHERE j.record_kind = 'CONTROL'),
+		       count(*) FILTER (WHERE j.record_kind IS NULL AND j.journey_id IS NOT NULL),
 		       count(*) FILTER (WHERE j.cleanup_result IS NOT NULL),
 		       count(*) FILTER (WHERE j.cleanup_result IN ('VERIFIED','NOT_REQUIRED')),
 		       count(*) FILTER (WHERE j.cleanup_result = 'FAILED'),
@@ -754,7 +765,8 @@ func (s *Store) LastOutcomes(ctx context.Context) ([]ProfileOutcome, error) {
 		var measured int
 		if err := rows.Scan(&o.ProfileID, &o.RunRef, &o.State, &o.Verdict, &o.EndedAt,
 			&o.JourneysPlanned, &o.JourneysExecuted, &o.Passed, &o.Failed,
-			&o.NotReached, &measured, &o.CleanupVerified, &o.CleanupFailed,
+			&o.NotReached, &o.JourneyRecords, &o.ControlRecords, &o.LegacyRecords,
+			&measured, &o.CleanupVerified, &o.CleanupFailed,
 			&o.FunctionalPassed); err != nil {
 			return nil, err
 		}
