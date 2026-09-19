@@ -77,6 +77,10 @@ check('the profile card shows what the profile last DID',
   'FULL was shown as "não verificado" after reaching 9 of 38 journeys');
 check('…including the coverage it actually reached',
   /journeys_executed\}\s*\/\s*\{[^}]*journeys_planned/.test(page));
+check('…and the denominator says it counts plan RECORDS, not journeys',
+  /\/ \{outcome\.journeys_planned\} registos/.test(page),
+  'the FULL plan materialises 39 records, one of which is a non-journey control '
+  + 'row; reporting 38 would infer the distinction 0162 exists to make explicit');
 check('…and says when cleanup was never measured rather than implying clean',
   /!outcome\.cleanup_measured/.test(page) && /introduzido depois desta execução/.test(page),
   'a run predating 0161 is unmeasured, which is not the same as clean');

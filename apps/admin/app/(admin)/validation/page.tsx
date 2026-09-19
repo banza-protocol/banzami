@@ -225,7 +225,7 @@ function Coverage({ coverage: c, lastFull }: {
               <dd className="text-[19px] font-black text-[#1a1a1a]">
                 {lastFull.journeys_executed} <span className="text-[13px] font-bold text-[#9a8a8e]">/ {lastFull.journeys_planned}</span>
               </dd>
-              <dd className="text-[11px] text-[#a99a9e]">{lastFull.run_ref}</dd></div>
+              <dd className="text-[11px] text-[#a99a9e]">{lastFull.run_ref} · registos do plano</dd></div>
           )}
           <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">NOT_PROVEN estrutural</dt>
             <dd className="text-[19px] font-black text-[#1a1a1a]">{c.suites_declared}</dd>
@@ -281,9 +281,14 @@ function ProfileReadinessCard({ p, meets, verdict, outcome, busy, onCheck, onPre
         <Row label="PASS_WITH_RETRY" value={p.max_pass_with_retry} />
         {outcome && (
           <>
-            <Row label="Cobertura alcançada" value={
+            {/* The denominator counts materialised PLAN RECORDS, and for FULL
+                one of those is a non-journey control row standing in for a
+                suite with no executable journey. Typing CONTROL apart from
+                JOURNEY is migration 0162's job; until it lands the label says
+                what it counts rather than quietly reporting 38. */}
+            <Row label="Alcançado no plano" value={
               <span className={outcome.journeys_executed === outcome.journeys_planned ? 'text-green-700' : 'text-amber-700'}>
-                {outcome.journeys_executed} / {outcome.journeys_planned}
+                {outcome.journeys_executed} / {outcome.journeys_planned} registos
               </span>
             } />
             {outcome.cleanup_barrier_triggered && (
