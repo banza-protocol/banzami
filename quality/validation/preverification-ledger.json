@@ -1,9 +1,9 @@
 {
   "S00-ENV-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/f80518ab18405bac88bbc6fd5a28efe505da2f71/app-web/22-environment-governance-1789774015327.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/22-environment-governance-1789816381714.json",
     "harness": "tools/e2e/app-web/proofs/22-environment-governance.mjs",
     "harness_sha256": "2f5f61b057f0ab2e5ee7fe4a2e69a3799b87d147d756b41d2b7d01285bc74eba",
-    "observed_at": "2026-09-18T23:26:55.328Z",
+    "observed_at": "2026-09-19T11:13:01.714Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -12,10 +12,10 @@
     }
   },
   "S01-IDN-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/f80518ab18405bac88bbc6fd5a28efe505da2f71/app-web/01-registration-pin-home-1789774076250.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/01-registration-pin-home-1789816408101.json",
     "harness": "tools/e2e/app-web/proofs/01-registration-pin-home.mjs",
     "harness_sha256": "5e820842bb263e9eb66737cda5afe6fb60d3a0c428c084fdeb46dd71042c4577",
-    "observed_at": "2026-09-18T23:27:56.253Z",
+    "observed_at": "2026-09-19T11:13:28.102Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -24,10 +24,10 @@
     }
   },
   "S01-IDN-002": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/329de6a15c4751420b3a78d479ab83c59db5194e/app-web/10-business-web-login-1789774554338.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/10-business-web-login-1789816434695.json",
     "harness": "tools/e2e/app-web/proofs/10-business-web-login.mjs",
     "harness_sha256": "27e6d0b28e5f79800dd51d5f318c23853cc14a121ee80a7bb6553a44e24c029a",
-    "observed_at": "2026-09-18T23:35:54.340Z",
+    "observed_at": "2026-09-19T11:13:54.697Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -36,10 +36,10 @@
     }
   },
   "S04-RCV-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/f80518ab18405bac88bbc6fd5a28efe505da2f71/app-web/14-business-web-fail-closed-1789774277052.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/14-business-web-fail-closed-1789816542681.json",
     "harness": "tools/e2e/app-web/proofs/14-business-web-fail-closed.mjs",
     "harness_sha256": "6efdf8662cdcf4004c8a3883cd54cabc5aed00e6e7f0b8ddc7cd96088e981aed",
-    "observed_at": "2026-09-18T23:31:17.053Z",
+    "observed_at": "2026-09-19T11:15:42.683Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -48,10 +48,10 @@
     }
   },
   "S05-LNK-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/f80518ab18405bac88bbc6fd5a28efe505da2f71/app-web/03-invalid-deeplink-1789774047231.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/03-invalid-deeplink-1789816578940.json",
     "harness": "tools/e2e/app-web/proofs/03-invalid-deeplink.mjs",
     "harness_sha256": "1173f0fc0d4a5a7df1de75cdabcf4a394de4c7d64868e2a2561e649ec0c54508",
-    "observed_at": "2026-09-18T23:27:27.234Z",
+    "observed_at": "2026-09-19T11:16:18.942Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -60,10 +60,10 @@
     }
   },
   "S05-LNK-002": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/f80518ab18405bac88bbc6fd5a28efe505da2f71/app-web/04-deeplink-resume-pay-1789774109769.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/04-deeplink-resume-pay-1789816618903.json",
     "harness": "tools/e2e/app-web/proofs/04-deeplink-resume-pay.mjs",
     "harness_sha256": "6c01b7381eadb981df96cf946e4f3a4dd3fad0f669c11662043c3719bede953d",
-    "observed_at": "2026-09-18T23:28:29.769Z",
+    "observed_at": "2026-09-19T11:16:58.904Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -72,10 +72,10 @@
     }
   },
   "S08-P2P-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/f80518ab18405bac88bbc6fd5a28efe505da2f71/app-web/02-web-to-web-p2p-1789774162064.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/02-web-to-web-p2p-1789816680468.json",
     "harness": "tools/e2e/app-web/proofs/02-web-to-web-p2p.mjs",
     "harness_sha256": "974133b635a4c6c514956ad3521fc5c479542ea19f6757d5c124cedcd8c63a04",
-    "observed_at": "2026-09-18T23:29:22.067Z",
+    "observed_at": "2026-09-19T11:18:00.470Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -84,10 +84,10 @@
     }
   },
   "S09-FIN-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/329de6a15c4751420b3a78d479ab83c59db5194e/app-web/21-financial-truth-1789774910106.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/21-financial-truth-1789816694538.json",
     "harness": "tools/e2e/app-web/proofs/21-financial-truth.mjs",
     "harness_sha256": "6940e202fcbe76b7211f2850600e02c69e53a6635d4e6a152167a4695568335b",
-    "observed_at": "2026-09-18T23:41:50.107Z",
+    "observed_at": "2026-09-19T11:18:14.538Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -96,10 +96,10 @@
     }
   },
   "S15-RCP-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/1586753de59aad877a87f3fb92fff0f8b6e91ee3/app-web/15-business-web-commerce-1789773520667.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/15-business-web-commerce-1789816736690.json",
     "harness": "tools/e2e/app-web/proofs/15-business-web-commerce.mjs",
     "harness_sha256": "fb404a3b54f462490e3e058dbaf55664d2b83285656953134b72cb420986d012",
-    "observed_at": "2026-09-18T23:18:40.669Z",
+    "observed_at": "2026-09-19T11:18:56.692Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -108,10 +108,10 @@
     }
   },
   "S17-SEC-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/329de6a15c4751420b3a78d479ab83c59db5194e/app-web/12-web-session-security-1789774822166.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/12-web-session-security-1789816754466.json",
     "harness": "tools/e2e/app-web/proofs/12-web-session-security.mjs",
     "harness_sha256": "0fe3f30000c46dd05ad177064ceccddd0d2c255fce445a68779640b304273bf8",
-    "observed_at": "2026-09-18T23:40:22.167Z",
+    "observed_at": "2026-09-19T11:19:14.467Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -120,10 +120,10 @@
     }
   },
   "S17-SEC-002": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/feea443b30293642c9371b4a853a83b12cb8c4b9/app-web/17-web-dual-context-cross-tab-1789775114307.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/17-web-dual-context-cross-tab-1789816798001.json",
     "harness": "tools/e2e/app-web/proofs/17-web-dual-context-cross-tab.mjs",
     "harness_sha256": "492f302bfa09f5854c21e056dcbb8fcbfaeae879085306cf0b440cb4b96f596a",
-    "observed_at": "2026-09-18T23:45:14.309Z",
+    "observed_at": "2026-09-19T11:19:58.003Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",
@@ -132,10 +132,10 @@
     }
   },
   "S23-RAIL-001": {
-    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/f80518ab18405bac88bbc6fd5a28efe505da2f71/app-web/23-rail-boundary-1789774057410.json",
+    "evidence": "/var/folders/gr/3xmf64jj5j143wt6f83dgjp80000gn/T/banzami-assurance/ebb6ee4ff23a79a4b0d7ddef7a91fcf62fd1f177/app-web/23-rail-boundary-1789816815422.json",
     "harness": "tools/e2e/app-web/proofs/23-rail-boundary.mjs",
     "harness_sha256": "b3b8ebaa4baedc329ac705703a170986edaa9cf8573a55870378de9134205411",
-    "observed_at": "2026-09-18T23:27:37.410Z",
+    "observed_at": "2026-09-19T11:20:15.423Z",
     "components": {
       "app-frontend": "4cd63dd4bd10",
       "api-gateway-staging": "1bf03679d508",

@@ -78,8 +78,27 @@ export function runnerBucket(buckets = submitCapacity()) {
   return candidates.sort((a, b) => b.used - a.used)[0];
 }
 
+/**
+ * The Sandbox VM's bucket.
+ *
+ * Buckets are discovered by scanning the limiter's own keys, so a VM that has
+ * not submitted inside the window has NO key — which is a reading of zero, not
+ * an absence of information. Returning null for it made a FULL readiness gate
+ * fail for want of a number that was, in fact, known and favourable.
+ *
+ * `observed` says which it is. The VM's address is only CONFIRMED once it
+ * submits: until then this is the bucket the limiter would create, and the
+ * claim being made is "nothing has been spent from the VM in this window",
+ * which the empty scan does support.
+ */
 export function vmBucket(buckets = submitCapacity()) {
-  return buckets.find((b) => b.isVM) ?? null;
+  const found = buckets.find((b) => b.isVM);
+  if (found) return { ...found, observed: true };
+  // A second bucket that is not this machine's would mean the VM submits from
+  // an address we did not predict — then we genuinely do not know, and say so.
+  const strangers = buckets.filter((b) => !b.isVM).length;
+  if (strangers > 1) return null;
+  return { ip: null, used: 0, free: SUBMIT_LIMIT, nextFreeAt: null, isVM: true, observed: false };
 }
 
 /**
