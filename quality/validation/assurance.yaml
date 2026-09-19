@@ -302,6 +302,8 @@ known_issues:
       described as one. Its journeys' cleanup_result columns are NULL because
       they predate the barrier, which is the honest record: not clean, not
       dirty — unmeasured.
+    detail_pt: >-
+      RESOURCE_CLEANLINESS_NOT_PROVEN_BY_GOLDEN_0001. A BZV-20260919-0001 mantém GOLDEN_FUNCTIONAL_ACCEPTANCE = PASS sob o modelo de aceitação em vigor quando correu, e nada nela é alterado. Mas esse modelo não tinha barreira de limpeza, e a barreira demonstrou depois o que ele não conseguia ver: o S04-RCV-001 pode ser uma passagem funcional limpa e na mesma deixar valor financiado para trás. Essa execução deixou 2 650 000 minor em três identidades — duas do S04-RCV-001 e uma do S05-LNK-002. Não é portanto uma execução com limpeza provada pós-0161 e nunca deve ser descrita como tal. As colunas cleanup_result dos seus percursos estão a NULL porque são anteriores à barreira, e esse é o registo honesto: nem limpa, nem suja — por medir.
     remediation: >-
       The residual was recovered on 2026-09-19T21:13Z through the canonical
       balanced path, as a LATER remediation event that amends no run. Evidence:
