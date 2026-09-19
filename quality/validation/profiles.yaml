@@ -126,12 +126,15 @@ profiles:
       max_pass_with_retry: 5
     budget:
       max_credit_volume_minor: 20000000    # 200 000 Kz — 40% of the 24h global window
-      # 11 from the runner's address + 1 from the Sandbox VM's (the phase-0 KYB
-      # harness submits from there). The total is the profile's budget; the
+      # 10 from the runner's address + 1 from the Sandbox VM's (the phase-0 KYB
+      # harness submits from there). This read 11 + 1 until the docs quickstart
+      # was actually executed and moved the bucket by 0: it touches URLs under
+      # /v1/merchant/applications to upload a document, which the classifier had
+      # been reading as a submit. The total is the profile's budget; the
       # PER-BUCKET split is what the preflight must check, because twelve free
       # slots summed across two limiters is not eleven free in the one that
       # refuses.
-      max_applications: 12                 # 11 runner + 1 VM, of 30/24h per IP
+      max_applications: 11                 # 10 runner + 1 VM, of 30/24h per IP
       max_fixture_emails: 40
     evidence:
       required_for_pass: [api, ledger]

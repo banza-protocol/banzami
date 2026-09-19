@@ -95,7 +95,17 @@ export function vmBucket(buckets = submitCapacity()) {
  * test and a mention in prose is not a call.
  */
 export function submitCost(harnessRelPath, src) {
-  const spends = /provisionBusiness\s*\(/.test(src) || /\/v1\/merchant\/applications/.test(src);
+  // The limiter sits on the SUBMIT — a POST to the applications collection.
+  // Matching the substring charged a slot for any URL under it, so the docs
+  // quickstart was billed one for uploading a document to an application it had
+  // already created. Measured on 2026-09-19 against the live ZSET: the real run
+  // of that harness moved the bucket by 0, while the plan declared 1.
+  //
+  // (?![/\w-]) is what separates the collection from its sub-resources. The
+  // error was in the safe direction — reserving capacity nobody spends — but a
+  // plan that is wrong where it can be checked is not evidence anywhere else.
+  const spends = /provisionBusiness\s*\(/.test(src)
+    || /\/v1\/merchant\/applications(?![/\w-])/.test(src);
   if (!spends) return null;
   // A phase-0 shell harness runs ON the Sandbox VM, so its submit is charged to
   // the VM's address, not to whichever machine is driving the run.

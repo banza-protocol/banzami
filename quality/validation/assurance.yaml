@@ -282,7 +282,33 @@ known_issues:
   - id: VD-008
     title_pt: "O adaptador assurance-json nunca correu contra um harness real"
     title: The assurance-json adapter has never run against a real harness
-    status: open
+    status: closed
+    closed: "2026-09-19"
+    closed_by: >-
+      tools/e2e/docs/quickstart-e2e.mjs was executed through the runner's own
+      runHarness() with the S19-DOC-001 registry arguments, against the deployed
+      Sandbox: twelve steps PASS, residue 0, @banzami/sdk 0.14.1 installed from
+      the public npm registry into an empty directory. The adapter read that
+      report — 12 gates, reconciled against the harness's own total, no gate
+      manufactured. The report is pinned at
+      evidence/assurance/docs-quickstart/vd008-real-report-20260919.json
+      (sha256 d5f94e6644d0f24dfe73de33d24226294a5965f453fe49a812b7a0bec77510f7)
+      and the harness that produced it at sha256
+      4b187f7deaaf164847598a721a248272e3ba7d410be9fe27f82ac54e88176d80.
+      make check-validation-assurance-adapter drives the shipping adapter over
+      it and over mutations OF it — PENDING, NOT_RUN, SKIPPED, an empty verdict,
+      an inflated total, a truncated file, a report filed under another stem —
+      because the real run took only the all-PASS path and a branch no run
+      exercised still has to be proven against the shape a run produces. It is
+      mutation-proven: letting anything that is not an explicit FAIL count as a
+      pass turns eight of those assertions red.
+    also_found: >-
+      The run cost ZERO application-submit slots, against a plan that declared
+      one. The classifier was matching the substring /v1/merchant/applications,
+      and the harness uploads a document to an application it has already
+      created. FULL's declared budget drops from 12 to 11 (10 runner + 1 VM).
+      The error was in the safe direction; it was still a number nothing had
+      checked against a measurement.
     severity: medium
     scope: S19 — the only journey that uses it
     blocks_golden: false

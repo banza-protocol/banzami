@@ -414,6 +414,10 @@ check-validation-shell-adapter:
 check-validation-budget-truth:
 	node tools/check-validation-budget-truth.mjs
 
+.PHONY: check-validation-assurance-adapter
+check-validation-assurance-adapter:
+	node tools/check-validation-assurance-adapter.mjs
+
 # Every owner gate, read live at the moment it prints. No hand-maintained
 # summary may override it: a prose counter already contradicted itself once,
 # "10 de 12" beside a list of three outstanding journeys, and neither number
@@ -433,7 +437,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-budget-truth check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-budget-truth check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.
