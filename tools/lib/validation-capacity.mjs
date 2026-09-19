@@ -181,8 +181,26 @@ export function aggregateFunds() {
  * can only reach through total failure is the right bound to authorise against.
  */
 export function plannedPeakFunds(plan, _readSource, journeysById = null, { barrier = false } = {}) {
-  let cumulative = 0, concurrent = 0, unknown = [];
+  let cumulative = 0, concurrent = 0, unknown = [], inert = [];
   for (const p of plan) {
+    // A plan row with no harness cannot execute, and therefore cannot spend.
+    // The runner marks exactly these UNAVAILABLE and moves on, so zero here is
+    // DERIVED from the same property, not assumed from an absent declaration.
+    //
+    // They exist because a suite that cannot be proven at runtime must still
+    // appear in the run's own record — otherwise a FULL result would list
+    // twenty suites and never mention the ones it could not prove. Asking such
+    // a placeholder to declare a funds ceiling is asking a question with no
+    // referent, and answering UNKNOWN to it blocked a FULL run that was
+    // otherwise ready.
+    //
+    // Recorded, not skipped silently: a row that stops being inert must stop
+    // being excluded, and the only way anyone notices is if the list is
+    // printed.
+    if ('harness' in p && (p.harness === null || p.harness === undefined)) {
+      inert.push(p.journey ?? '?');
+      continue;
+    }
     const j = journeysById?.get?.(p.journey) ?? p;
     const v = j?.max_synthetic_funds_exposure_minor;
     if (typeof v !== 'number') { unknown.push(p.journey ?? p.harness ?? '?'); continue; }
@@ -211,6 +229,7 @@ export function plannedPeakFunds(plan, _readSource, journeysById = null, { barri
     barrier,
     peak: barrier ? concurrent : cumulative,
     unknown,
+    inert,
   };
 }
 

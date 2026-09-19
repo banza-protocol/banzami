@@ -112,8 +112,13 @@ gate('VM_IP_FREE_SLOTS', VM_SUBMITS === 0 || (!!vb && vb.free >= VM_SUBMITS * 2)
 // ── capacity: aggregate funded value ─────────────────────────────────────────
 const journeys = load('journeys').journeys ?? [];
 const profile = (load('profiles').profiles ?? []).find((p) => p.id === PROFILE);
-const plan = journeys.filter((j) => profile.suites.includes(j.suite))
-  .map((j) => ({ journey: j.journey_id, max_synthetic_funds_exposure_minor: j.max_synthetic_funds_exposure_minor }));
+// The RUNNER's own plan resolver, not a second reading of journeys.yaml. This
+// built 38 rows where the runner builds 39 — the extra one being the
+// placeholder for a suite with no journey — so this gate reported that every
+// journey declared a funds ceiling while the runner, resolving the same
+// profile, found one that did not and refused mid-claim.
+const { planFor } = await import('./validation-runner.mjs');
+const plan = planFor(PROFILE).plan;
 // Whether the concurrent bound may be used is a property of the DEPLOYED
 // schema, read here, never assumed from the fact that the code exists.
 const barrier = (() => {
@@ -138,7 +143,10 @@ gate('CLEANUP_BARRIER_DEPLOYED', barrier || PROFILE !== 'FULL',
             : 'not required for this profile');
 const funds = aggregateFunds();
 gate('AGGREGATE_FUNDS_PEAK_KNOWN', planned.unknown.length === 0,
-  planned.unknown.length ? `UNKNOWN: ${planned.unknown.join(', ')}` : `all ${plan.length} journeys declare a ceiling`);
+  planned.unknown.length
+    ? `UNKNOWN: ${planned.unknown.join(', ')}`
+    : `${plan.length - planned.inert.length} executable journey(s) declare a ceiling` +
+      (planned.inert.length ? ` · ${planned.inert.length} inert row(s) cannot execute: ${planned.inert.join(', ')}` : ''));
 gate('AGGREGATE_FUNDS_PREFLIGHT', funds.available >= bound.required,
   `cap ${funds.cap} · used ${funds.used} · available ${funds.available} · ` +
   `peak ${bound.plannedPeakMax} · residual ${bound.failedRunResidualMax} · retry ${bound.retryPeakMax} · required ${bound.required}` +

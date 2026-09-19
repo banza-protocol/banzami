@@ -170,7 +170,14 @@ function readRegistry(name) {
 }
 
 /** The journeys a profile would execute, in a deterministic order. */
-function planFor(profileID) {
+/**
+ * The plan, exported so that anything which REPORTS on a run resolves it the
+ * same way the runner EXECUTES it. The readiness tool used to build its own
+ * from journeys.yaml — 38 rows — while this builds 39, the extra being the
+ * placeholder for a suite with no journey. Every gate computed from the first
+ * was therefore about a slightly different run than the one that would run.
+ */
+export function planFor(profileID) {
   const profiles = readRegistry('profiles').profiles ?? [];
   const profile = profiles.find((p) => p.id === profileID);
   if (!profile) die(`unknown profile ${profileID}`);

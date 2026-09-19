@@ -143,6 +143,46 @@ check('no journey is permitted to leave funded value behind today',
   overAllowed.length === 0,
   overAllowed.map((j) => `${j.journey_id}=${j.cleanup.funds_residual_allowed_minor}`).join(', '));
 
+/* ── the funds model must ask the question of rows that can answer it ──────
+ *
+ * The FULL plan carries one row per suite that has no journey, so a suite
+ * nobody can prove still appears in the run's record. Those rows have no
+ * harness, the runner marks them UNAVAILABLE without executing anything, and
+ * asking them to declare a funds ceiling has no referent — UNKNOWN to that
+ * question refused the first authorised FULL run at the moment of claim.
+ */
+const { plannedPeakFunds } = await import('./lib/validation-capacity.mjs');
+const mixed = [
+  { journey: 'REAL-A', harness: 'a.mjs', max_synthetic_funds_exposure_minor: 1000 },
+  { journey: 'S99-NOT-PROVEN', harness: null },
+  { journey: 'REAL-B', harness: 'b.mjs', max_synthetic_funds_exposure_minor: 3000 },
+];
+const mix = plannedPeakFunds(mixed, null, null, { barrier: true });
+check('a plan row that cannot execute is not asked what it will spend',
+  mix.unknown.length === 0, mix.unknown.join(', '));
+check('…and is listed, so a row that stops being inert is noticed',
+  mix.inert.length === 1 && mix.inert[0] === 'S99-NOT-PROVEN');
+check('…and contributes nothing to either bound',
+  mix.cumulativeExposureBound === 4000 && mix.concurrentPeakMax === 3000);
+check('a REAL journey that declares nothing is still UNKNOWN',
+  plannedPeakFunds([{ journey: 'REAL-C', harness: 'c.mjs' }]).unknown.length === 1,
+  'an undeclared exposure is not a zero exposure');
+
+/* ── and the reporting tool must resolve the plan the way the runner does ─── */
+const { planFor } = await import('./validation-runner.mjs');
+const readiness = readFileSync(join(repo, 'tools/validation-owner-readiness.mjs'), 'utf8');
+check('the readiness tool uses the runner\'s own plan resolver',
+  /planFor\(PROFILE\)\.plan/.test(readiness),
+  'building a second plan from journeys.yaml measured 38 rows where the runner executes 39');
+check('…and that resolver is exported for exactly that reason',
+  typeof planFor === 'function');
+const runnerPlan = planFor('FULL').plan;
+check('the runner\'s FULL plan carries the inert S20 row',
+  runnerPlan.some((r) => r.journey === 'S20-NOT-PROVEN' && !r.harness),
+  'a suite nobody can prove must still appear in the run record');
+check('the funds model accepts the runner\'s real FULL plan',
+  plannedPeakFunds(runnerPlan, null, null, { barrier: true }).unknown.length === 0);
+
 console.log(failures === 0
   ? `\n✓ VALIDATION_CLEANUP_BARRIER=PASS\n`
   : `\n✗ VALIDATION_CLEANUP_BARRIER=FAIL (${failures})\n`);
