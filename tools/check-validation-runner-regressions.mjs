@@ -12,7 +12,9 @@
  *
  *   node tools/check-validation-runner-regressions.mjs
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, chmodSync, mkdtempSync, rmSync, existsSync, unlinkSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -86,6 +88,91 @@ check('10. shell capture passes through it', /scrub\(\(res\.stdout/.test(src));
 // And the adapter honesty the same run depended on.
 check('+. the shell adapter still reconciles counts',
   parseShellGates(['  A PASS (x)', 'X: PASS=9 FAIL=0'].join('\n')).mismatch !== null);
+
+/* ── the three defects found around the clean GOLDEN, BZV-20260919-0001 ──────
+ *
+ * None of them changed that run's verdict, which came from durable per-journey
+ * reconciliation. All three are about what the runner does OUTSIDE a journey.
+ */
+
+// R-001. An unrecognised command line must stop before the Sandbox, not fall
+//        through into main() with defaults. `--help` did exactly that: it
+//        claimed the queued GOLDEN run and executed it.
+const { parseArgv } = await import('./validation-runner.mjs');
+const refuses = (argv) => { try { parseArgv(argv); return false; } catch { return true; } };
+
+check('R-001. an unknown option is refused', refuses(['--halp']));
+check('R-001. a bare argument is refused', refuses(['GOLDEN']));
+check('R-001. a value-taking option with no value is refused', refuses(['--run']));
+check('R-001. an option cannot swallow the next option as its value', refuses(['--run', '--dry-run']),
+  'otherwise --run --dry-run claims a run literally named "--dry-run"');
+check('R-001. a repeated option is refused', refuses(['--dry-run', '--dry-run']));
+check('R-001. --profile without --dry-run is refused', refuses(['--profile', 'FULL']),
+  'a claimed run names its own profile; silently ignoring this reads as a request to run FULL');
+check('R-001. --help parses and asks for nothing else', parseArgv(['--help']).help === true);
+check('R-001. an empty command line still means "claim the oldest QUEUED"',
+  parseArgv([]).help === false && parseArgv([]).dryRun === false && parseArgv([]).run === undefined);
+check('R-001. parsing happens before the environment is proven',
+  src.indexOf('parseArgv(process.argv') < src.indexOf('proveEnvironment();\n\n  if (cli.dryRun)'),
+  'proveEnvironment opens the database; nothing may reach it on a command line we did not understand');
+
+// The behavioural half: with a shimmed ssh that records every attempt, these
+// command lines must produce NO attempt at all. The control below proves the
+// shim can see one, so a silent zero is not the detector being broken.
+const shim = mkdtempSync(join(tmpdir(), 'bzrunner-'));
+const marker = join(shim, 'attempts');
+writeFileSync(join(shim, 'ssh'), `#!/bin/sh\necho "$*" >> ${marker}\nexit 255\n`);
+chmodSync(join(shim, 'ssh'), 0o755);
+const attempts = (args) => {
+  try { unlinkSync(marker); } catch { /* first run */ }
+  const r = spawnSync(process.execPath, [RUNNER, ...args],
+    { env: { ...process.env, PATH: `${shim}:${process.env.PATH}` }, encoding: 'utf8' });
+  return { code: r.status, n: existsSync(marker) ? readFileSync(marker, 'utf8').trim().split('\n').length : 0 };
+};
+
+const control = attempts(['--dry-run']);
+check('R-001. (control) the ssh detector can see a database attempt', control.n > 0,
+  'if this is 0 the checks below prove nothing');
+for (const bad of [['--help'], ['--halp'], ['--run'], ['GOLDEN']]) {
+  const r = attempts(bad);
+  check(`R-001. \`${bad.join(' ')}\` reaches no database`, r.n === 0, `${r.n} attempt(s)`);
+  check(`R-001. \`${bad.join(' ')}\` exits ${bad[0] === '--help' ? '0' : 'non-zero'}`,
+    bad[0] === '--help' ? r.code === 0 : r.code !== 0, `exit ${r.code}`);
+}
+rmSync(shim, { recursive: true, force: true });
+
+// R-002. The console summary is a read-back of the committed record, not a
+//        second opinion assembled from this process's counters.
+check('R-002. the summary is read back from the database',
+  /function summarise\([\s\S]*?FROM validation_runs r WHERE r\.id/.test(src));
+check('R-002. it runs after the terminal state is persisted',
+  src.indexOf("SET state='COMPLETED'") < src.indexOf('summarise(run.id'));
+check('R-002. journey counts come from validation_run_journeys, not variables',
+  /summarise\([\s\S]*?FROM validation_run_journeys j/.test(src));
+check('R-002. the evidence count comes from validation_evidence',
+  /summarise\([\s\S]*?FROM validation_evidence e/.test(src));
+check('R-002. a divergence from the executor\'s own counters is stated, not hidden',
+  /DIVERGENCE the executor counted/.test(src));
+check('R-002. an unreadable read-back does not invent a summary',
+  /could not be read back for display/.test(src) && !/summarise[\s\S]*?expected\.passed\}\s*passed/.test(src));
+
+// R-003. The static assertion count is an estimate and must never be printed as
+//        a fact. The plan said 115; the run recorded 112, wrong in both
+//        directions across journeys.
+const plan = JSON.parse(spawnSync(process.execPath,
+  [join(repo, 'tools/validation-full-plan.mjs'), '--profile', 'GOLDEN', '--json'],
+  { encoding: 'utf8', maxBuffer: 1 << 24 }).stdout);
+const executable = plan.rows.filter((r) => r.applicability === 'EXECUTABLE');
+check('R-003. the plan resolves its journeys', executable.length > 0);
+check('R-003. every assertion figure carries its precision',
+  executable.every((r) => r.assertionsPrecision === 'ESTIMATE' || r.assertionsPrecision === 'UNKNOWN'),
+  'a bare integer is read as a count by whoever quotes it next');
+check('R-003. no journey claims an exact planned count',
+  executable.every((r) => r.assertionsPrecision !== 'EXACT'),
+  'nothing derives one today: no harness publishes its own assertion inventory');
+check('R-003. the rendered table marks the estimate in its header',
+  spawnSync(process.execPath, [join(repo, 'tools/validation-full-plan.mjs'), '--profile', 'GOLDEN'],
+    { encoding: 'utf8' }).stdout.includes('~ASRT is an ESTIMATE from static source, not a count'));
 
 console.log(failures === 0
   ? `\n✓ VALIDATION_RUNNER_REGRESSIONS=PASS\n`

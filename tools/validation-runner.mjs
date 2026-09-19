@@ -48,11 +48,61 @@ const LEASE_SECONDS = 900;
 const HEARTBEAT_SECONDS = 30;
 const DEFAULT_TIMEOUT_MS = 12 * 60 * 1000;
 
-const arg = (name) => {
-  const i = process.argv.indexOf(name);
-  return i >= 0 ? (process.argv[i + 1] ?? true) : undefined;
+/* ── the command line, parsed explicitly ────────────────────────────────────
+ *
+ * This runner claims an owner-authorised run and executes it against the
+ * Sandbox. Every invocation it does not understand must therefore stop before
+ * it touches anything — the old spelling scanned argv for the flags it knew and
+ * silently ignored everything else, so `--help` fell through into main(),
+ * claimed the queued GOLDEN run and executed it (defect R-001). An unrecognised
+ * command line is not a request to proceed with defaults.
+ */
+const FLAGS = {
+  '--help':    { value: false, help: 'print this usage and exit, touching nothing' },
+  '--dry-run': { value: false, help: 'resolve the plan and print it; claims nothing' },
+  '--profile': { value: true, arg: 'GOLDEN|FULL', help: 'which profile to plan (--dry-run only)' },
+  '--run':     { value: true, arg: 'BZV-…', help: 'claim this run ref instead of the oldest QUEUED' },
 };
-const DRY = process.argv.includes('--dry-run');
+
+function usage() {
+  const lines = Object.entries(FLAGS).map(([f, d]) =>
+    `  ${`${f}${d.value ? ` <${d.arg}>` : ''}`.padEnd(24)} ${d.help}`);
+  return `usage: node tools/validation-runner.mjs [options]\n\n${lines.join('\n')}\n\n` +
+    `With no options the runner claims the oldest QUEUED run and executes it.\n`;
+}
+
+/** Parse argv, or throw. Pure: it reads nothing but its argument. */
+export function parseArgv(argv) {
+  const out = { help: false, dryRun: false, profile: undefined, run: undefined };
+  const seen = new Set();
+  for (let i = 0; i < argv.length; i++) {
+    const token = argv[i];
+    const spec = FLAGS[token];
+    if (!spec) {
+      throw new Error(token.startsWith('-')
+        ? `unknown option ${token}`
+        : `unexpected argument ${JSON.stringify(token)} (this runner takes options only)`);
+    }
+    if (seen.has(token)) throw new Error(`${token} given more than once`);
+    seen.add(token);
+    if (!spec.value) {
+      if (token === '--help') out.help = true; else out.dryRun = true;
+      continue;
+    }
+    const v = argv[++i];
+    // A missing value silently absorbing the NEXT flag is how `--run --dry-run`
+    // becomes a claim of a run literally named "--dry-run".
+    if (v === undefined) throw new Error(`${token} needs a value (${spec.arg})`);
+    if (v.startsWith('-')) throw new Error(`${token} needs a value (${spec.arg}), got the option ${v}`);
+    if (token === '--profile') out.profile = v; else out.run = v;
+  }
+  if (out.profile !== undefined && !out.dryRun) {
+    // Otherwise --profile FULL on a queued GOLDEN reads as a request to run
+    // FULL, and is silently ignored. The run row names the profile.
+    throw new Error('--profile only applies to --dry-run; a claimed run names its own profile');
+  }
+  return out;
+}
 
 /* ── database access, through the operator path ─────────────────────────── */
 
@@ -732,11 +782,18 @@ function creditSince(sinceExpr) {
 }
 
 function main() {
+  // Before proveEnvironment(), which opens the database. Nothing this runner
+  // does to the Sandbox may happen on a command line it did not understand.
+  let cli;
+  try { cli = parseArgv(process.argv.slice(2)); }
+  catch (e) { console.error(`validation-runner: ${e.message}\n\n${usage()}`); process.exit(2); }
+
+  if (cli.help) { process.stdout.write(usage()); return; }
+
   proveEnvironment();
 
-  const profileArg = arg('--profile');
-  if (DRY) {
-    const { profile, plan } = planFor(typeof profileArg === 'string' ? profileArg : 'GOLDEN');
+  if (cli.dryRun) {
+    const { profile, plan } = planFor(cli.profile ?? 'GOLDEN');
     log(`plan for ${profile.id} v${profile.version}: ${plan.length} journey(s)`);
     for (const p of plan) {
       log(`  ${p.suite}  ${p.journey}  ${p.harness ?? 'NO HARNESS'}${p.blocking ? '  [blocking]' : ''}`);
@@ -748,8 +805,7 @@ function main() {
     return;
   }
 
-  const runRef = typeof arg('--run') === 'string' ? arg('--run') : null;
-  const run = claim(runRef);
+  const run = claim(cli.run ?? null);
   if (!run) { log('no QUEUED run to claim'); return; }
   log(`${run.adopted ? 'adopted' : 'claimed'} ${run.ref} (${run.profile}) as ${EXECUTOR}`);
 
@@ -871,7 +927,14 @@ function main() {
       (ceiling > 0 ? `; spent ${spent} of ${ceiling} minor` : '') +
       (submitsActual !== null ? `; ${submitsActual} of ${budget.declared} application submit(s)` : '') +
       (budgetStopped ? `; STOPPED ON BUDGET — ${budgetStopped}` : ''));
-    log(`\n${run.ref} COMPLETED ${verdict} — ${passed} passed / ${failed} failed / ${skipped} unavailable`);
+
+    // The durable record is written and committed above. Only now is there
+    // anything to summarise: the console summary is a READ-BACK, not a second
+    // opinion assembled from this process's counters (defect R-002). If stdout
+    // is truncated or lost, nothing here was the truth anyway — the database
+    // was. Printing counters would mean a lost summary and a disagreeing
+    // summary are indistinguishable.
+    summarise(run.id, run.ref, { passed, failed, skipped });
   } catch (e) {
     // A crashed executor must not leave a run claiming to be RUNNING forever.
     sql(`UPDATE validation_runs SET state='ABANDONED', ended_at=now()
@@ -881,6 +944,52 @@ function main() {
     process.exitCode = 1;
   } finally {
     clearInterval(beat);
+  }
+}
+
+/**
+ * Read the run back from the database and print what it durably says. Called
+ * only after the terminal state is committed; every number below comes from a
+ * SELECT, never from a counter this process was holding.
+ *
+ * `expected` is what the loop believed. It is not printed as the answer — it is
+ * compared, so that a divergence between what the executor thought it did and
+ * what the run actually records is stated out loud instead of averaged away.
+ */
+function summarise(runID, runRef, expected) {
+  let row;
+  try {
+    [row] = sql(
+      `SELECT r.state, r.verdict, to_char(r.ended_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.outcome = 'PASSED'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.outcome = 'FAILED'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.outcome = 'UNAVAILABLE'),
+              (SELECT count(*) FROM validation_run_journeys j WHERE j.run_id = r.id),
+              (SELECT count(*) FROM validation_evidence e WHERE e.run_id = r.id)
+         FROM validation_runs r WHERE r.id = ${lit(runID)}::uuid;`);
+  } catch (e) {
+    // Failing to read the record back does not change the record. Say which
+    // one is missing, and do not invent a summary from memory.
+    log(`\n${runRef} — terminal state is persisted; could not be read back for display: ${e.message}`);
+    log('  read it with: SELECT state, verdict FROM validation_runs WHERE run_ref = \'' + runRef + '\';');
+    return;
+  }
+  const [state, verdict, endedAt, pass, fail, unavail, total, evidence] = row;
+  log(`\n${runRef}  ${state}  ${verdict}`);
+  log(`  journeys   ${pass} passed / ${fail} failed / ${unavail} unavailable   (${total} planned)`);
+  log(`  evidence   ${evidence} hashed row(s)`);
+  log(`  finished   ${endedAt}`);
+  log('  (read back from validation_runs; the database is the authority for this run)');
+
+  const drift = [];
+  if (Number(pass) !== expected.passed) drift.push(`passed ${expected.passed}→${pass}`);
+  if (Number(fail) !== expected.failed) drift.push(`failed ${expected.failed}→${fail}`);
+  if (Number(unavail) !== expected.skipped) drift.push(`unavailable ${expected.skipped}→${unavail}`);
+  if (drift.length) {
+    log(`  DIVERGENCE the executor counted ${drift.join(', ')} — the persisted record above stands`);
   }
 }
 

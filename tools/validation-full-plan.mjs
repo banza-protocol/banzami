@@ -59,9 +59,21 @@ function describe(rel) {
   const counted = shell ? (src.match(/\bchk\s+\S/g) ?? []).length
                         : (src.match(/R\.mark\(/g) ?? []).length;
   const emitsOwn = /console\.log\(`\s*\$\{?\w+\}?\s+PASS|steps\.push|steps\[/.test(src);
+
+  // Counting call SITES in source is not counting assertions, and it is not a
+  // bound in either direction: a mark inside a loop is one site and many
+  // assertions, a mark in a branch that never runs is one site and none. The
+  // clean GOLDEN made this concrete — the plan said 115, the run recorded 112,
+  // and the error went both ways across journeys (defect R-003).
+  //
+  // So the number is carried with its precision attached and can never be read
+  // as a count. There is no DECLARED source today: no harness publishes its own
+  // assertion inventory, and inventing one in YAML would only move the guess.
+  // ACTUAL comes from a run, and a run is the only thing that knows.
   const assertions = counted > 1 ? counted : (emitsOwn ? null : counted);
+  const precision = assertions === null ? 'UNKNOWN' : 'ESTIMATE';
   return {
-    exists: true, shell, quota, funds, mutating, assertions,
+    exists: true, shell, quota, funds, mutating, assertions, precision,
     // The bucket comes from the shared classifier too: the limiter is PER IP,
     // and these run in two places. The runner's bucket is the one that gates.
     quotaBucket: cost?.bucket ?? null,
@@ -78,7 +90,7 @@ for (const sid of profile.suites) {
     rows.push({ suite: sid, name: suite.name_pt ?? sid, journey: '—', harness: '—',
       applicability: suite.runtime_proof === 'NOT_PROVEN' ? 'NOT_PROVEN' : 'NO_JOURNEY',
       blocker: suite.blocker?.class ?? null, actors: [], mutating: null, quota: 0,
-      assertions: 0, adapter: '—', retry: '—' });
+      assertions: 0, precision: 'UNKNOWN', adapter: '—', retry: '—' });
     continue;
   }
   for (const j of inSuite) {
@@ -89,7 +101,7 @@ for (const sid of profile.suites) {
       applicability: d.exists ? 'EXECUTABLE' : 'HARNESS_MISSING',
       blocker: null, actors: j.actors ?? [],
       mutating: d.mutating, quota: d.quota, quotaBucket: d.quotaBucket, funds: d.funds,
-      assertions: d.assertions,
+      assertions: d.assertions, assertionsPrecision: d.precision,
       adapter: j.evidence_adapter ?? 'gate-report',
       retry: j.retry_policy ?? 'none',
       optIn: d.optIn,
@@ -110,7 +122,7 @@ const notProven = rows.filter((r) => r.applicability === 'NOT_PROVEN');
 const broken = rows.filter((r) => !['EXECUTABLE', 'NOT_PROVEN'].includes(r.applicability));
 
 console.log(`\n${profile.id} v${profile.version} — prospective plan\n`);
-console.log('SUITE JOURNEY        ADAPTER        MUT QUOTA ASRT ACTORS      HARNESS');
+console.log('SUITE JOURNEY        ADAPTER        MUT QUOTA ~ASRT ACTORS      HARNESS');
 for (const r of rows) {
   if (r.applicability !== 'EXECUTABLE') {
     console.log(`${r.suite.padEnd(5)} ${'—'.padEnd(14)} ${r.applicability}${r.blocker ? ` · ${r.blocker}` : ''}  ${r.name}`);
@@ -118,7 +130,8 @@ for (const r of rows) {
   }
   console.log(
     `${r.suite.padEnd(5)} ${r.journey.padEnd(14)} ${r.adapter.padEnd(14)} ` +
-    `${(r.mutating ? 'yes' : 'no ')} ${String(r.quota).padStart(5)} ${String(r.assertions ?? '  ?').padStart(4)} ` +
+    `${(r.mutating ? 'yes' : 'no ')} ${String(r.quota).padStart(5)} ` +
+    `${(r.assertions === null || r.assertions === undefined ? '?' : `~${r.assertions}`).padStart(5)} ` +
     `${(r.actors.join(',') || '—').padEnd(11)} ${r.harness.replace(/^tools\/e2e\/|^tests\//, '')}`);
 }
 console.log(`\n  executable journeys        ${exec.length}`);
@@ -128,6 +141,16 @@ console.log(`    from the runner's IP     ${quotaRunner}   ← the bucket that g
 console.log(`    from the Sandbox VM's IP ${quotaVm}`);
 console.log(`  declared credit ceiling    ${Number(profile.budget?.max_credit_volume_minor ?? 0).toLocaleString('pt-PT')} minor`);
 console.log(`  journeys that move money   ${exec.filter((r) => r.funds).length}`);
+
+// Said plainly, every time the plan is printed, so the number is never lifted
+// out of this table and quoted as a count.
+const est = exec.filter((r) => r.assertions !== null && r.assertions !== undefined);
+const unk = exec.length - est.length;
+console.log(`\n  ~ASRT is an ESTIMATE from static source, not a count.`);
+console.log(`     It is neither a floor nor a ceiling: a mark inside a loop is one`);
+console.log(`     call site and many assertions; a mark in an unreached branch is`);
+console.log(`     one call site and none. ACTUAL is only knowable from a run.`);
+console.log(`     estimated ${est.length} journey(s) · unknown ${unk} · no journey DECLARES a count`);
 if (broken.length) {
   console.log(`\n  ✗ ${broken.length} journey(s) name a harness that does not exist`);
   process.exit(1);
