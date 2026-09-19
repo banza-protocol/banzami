@@ -279,6 +279,36 @@ known_issues:
     detail_pt: >-
       A metade da ligação do S14 ESTÁ provada em execução (S14-DOA-001, só-leitura). A metade da doação não: dois harnesses ESCREVEM no inquilino real do DOA — a produção do DOA corre neste Sandbox — e o da doação exige ainda que uma pessoa complete um código enviado por email em www.doadoa.app, mais três identificadores fornecidos por quem chama. O impedimento é consentimento e um passo humano, não engenharia. A FORMA da integração está provada com um inquilino sintético em S11 e S13; o que falta é que o DOA ESPECIFICAMENTE continua a funcionar, e só o dono do DOA pode autorizar isso para uma janela nomeada.
 
+  - id: VD-010
+    title_pt: "O GOLDEN aceite não provou limpeza de recursos"
+    title: The accepted GOLDEN did not prove resource cleanliness
+    status: recorded
+    severity: informational
+    scope: BZV-20260919-0001
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-19"
+    detail: >-
+      RESOURCE_CLEANLINESS_NOT_PROVEN_BY_GOLDEN_0001.
+
+      BZV-20260919-0001 remains GOLDEN_FUNCTIONAL_ACCEPTANCE = PASS under the
+      acceptance model in force when it ran, and nothing about it is amended.
+      But that model had no cleanup barrier, and the barrier later demonstrated
+      what it could not see: S04-RCV-001 can be a clean FUNCTIONAL pass while
+      leaking funded state. That run left 2 650 000 minor behind across three
+      identities — two from S04-RCV-001 and one from S05-LNK-002.
+
+      It is therefore NOT a post-0161 cleanup-proven run and must never be
+      described as one. Its journeys' cleanup_result columns are NULL because
+      they predate the barrier, which is the honest record: not clean, not
+      dirty — unmeasured.
+    remediation: >-
+      The residual was recovered on 2026-09-19T21:13Z through the canonical
+      balanced path, as a LATER remediation event that amends no run. Evidence:
+      evidence/validation/remediation/vd009-residual-recovery-20260919.json.
+      Book sum 0 before and after, 10 counterparty entries added, financial
+      truth PASS. The leak itself remains historical evidence.
+
   - id: VD-008
     title_pt: "O adaptador assurance-json nunca correu contra um harness real"
     title: The assurance-json adapter has never run against a real harness

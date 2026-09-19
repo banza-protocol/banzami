@@ -1,0 +1,42 @@
+{
+  "record": "VD-009 residual recovery",
+  "kind": "REMEDIATION_EVENT",
+  "note": "A later remediation. It does not amend BZV-20260919-0001 or BZV-20260919-0003; both remain exactly as executed, and the leak they recorded remains historical evidence.",
+  "performed_at": "2026-09-19T21:13Z",
+  "authorised_by": "owner, PHASE 2",
+  "method": "canonical balanced retirement — POST core /internal/v1/sandbox/retire-funds (CONSUMER) then /internal/v1/consumers/{id}/suspend. No SQL, no balance mutation, no ledger deletion.",
+  "ownership_evidence": "Each identity's consumers.created_at falls inside the started_at→ended_at window of a named journey of a named run. Validation runs are mutually exclusive (validation_runs_one_active), so a creation inside a journey window is attributable to that journey. Name patterns were NOT used as ownership evidence.",
+  "before": {
+    "book_sum_minor": 0,
+    "ledger_entries": 8940,
+    "aggregate_funds_used_minor": 21772600,
+    "attributable_exposure_minor": 4650000
+  },
+  "resources": [
+    {"handle": "e2efcmu8ai4zc", "consumer_id_prefix": "a613191b", "wallet": "da2100c4-4cb5-4165-bdd8-f2119c001756", "account": "a077e7b0-bad2-4a88-a990-608fe40ea310", "owner_run": "BZV-20260919-0001", "owner_journey": "S04-RCV-001", "created_at": "2026-09-19T11:14:19Z", "journey_window": "11:14:06-11:15:45", "before_minor": 1000000, "after_minor": 0, "funding": "1 CREDIT of 1000000 — SANDBOX_REGISTRATION_GRANT on UI registration", "retire_funds_http": 200, "suspend_http": 200, "status_after": "SUSPENDED"},
+    {"handle": "e2efcmu8aj5xa", "consumer_id_prefix": "8ee9c3a3", "wallet": "b7e153a1-c54e-4a9b-924a-f891886d6249", "account": "613e25d6-fa7d-428f-8fe9-96f9e9f6c815", "owner_run": "BZV-20260919-0001", "owner_journey": "S04-RCV-001", "created_at": "2026-09-19T11:15:07Z", "journey_window": "11:14:06-11:15:45", "before_minor": 1000000, "after_minor": 0, "funding": "1 CREDIT of 1000000 — SANDBOX_REGISTRATION_GRANT on UI registration", "retire_funds_http": 200, "suspend_http": 200, "status_after": "SUSPENDED"},
+    {"handle": "e2ep0ybf9zztu", "consumer_id_prefix": "5122e190", "wallet": "752624fb-2fc5-479e-95a9-9e19e197ddb6", "account": "bc4de026-0308-4ebb-92ed-2c0ec5f3f5e3", "owner_run": "BZV-20260919-0001", "owner_journey": "S05-LNK-002", "created_at": "2026-09-19T11:16:46Z", "journey_window": "11:16:25-11:17:05", "before_minor": 650000, "after_minor": 0, "funding": "1 CREDIT of 1000000 grant, 1 DEBIT of 350000 spent by the journey", "retire_funds_http": 200, "suspend_http": 200, "status_after": "SUSPENDED"},
+    {"handle": "e2efcmu8uwnau", "consumer_id_prefix": "63a96e5b", "wallet": "5b225532-b239-4b2d-8d19-6b9af608fb88", "account": "00e126e7-5bb3-4801-adce-52612cc04447", "owner_run": "BZV-20260919-0003", "owner_journey": "S04-RCV-001", "created_at": "2026-09-19T20:45:29Z", "journey_window": "20:44:52-20:47:39", "before_minor": 1000000, "after_minor": 0, "funding": "1 CREDIT of 1000000 — SANDBOX_REGISTRATION_GRANT on UI registration", "retire_funds_http": 200, "suspend_http": 200, "status_after": "SUSPENDED"},
+    {"handle": "e2efcmu8uyirx", "consumer_id_prefix": "04e9a46b", "wallet": "c883f1dc-be6e-4994-a583-5299db4ff50b", "account": "783ebe83-1ffc-4755-b01d-d3b43c801aff", "owner_run": "BZV-20260919-0003", "owner_journey": "S04-RCV-001", "created_at": "2026-09-19T20:47:00Z", "journey_window": "20:44:52-20:47:39", "before_minor": 1000000, "after_minor": 0, "funding": "1 CREDIT of 1000000 — SANDBOX_REGISTRATION_GRANT on UI registration", "retire_funds_http": 200, "suspend_http": 200, "status_after": "SUSPENDED"}
+  ],
+  "after": {
+    "book_sum_minor": 0,
+    "ledger_entries": 8950,
+    "entries_added": 10,
+    "entries_added_explanation": "2 per consumer — the balanced counterparty posting to transit. No value created or destroyed.",
+    "aggregate_funds_used_minor": 17122600,
+    "attributable_exposure_minor": 0,
+    "negative_synthetic_balances": 0
+  },
+  "financial_truth": {
+    "harness": "tools/e2e/app-web/proofs/21-financial-truth.mjs",
+    "result": "PASS",
+    "gates": 8,
+    "book_sum_minor": 0
+  },
+  "untouched": {
+    "PERMANENT_VALIDATION_ACTOR": "3 active, 3000000 minor — e2ec01, e2ec02, e2ec03",
+    "UNKNOWN": "9 active, 10008380 minor — includes real people's accounts (fm65, priscila, oxfannio, qatester15, kiara)"
+  },
+  "new_finding": "e2ep0ybf9zztu belongs to S05-LNK-002 (proof 04), not S04. A SECOND harness leaks a UI-registered consumer, in a journey that PASSED in the accepted GOLDEN. R1/R2 must cover it."
+}
