@@ -69,6 +69,11 @@ export const CREATORS = [
   { id: 'fn:registerConsumer',   re: /\bregisterConsumer\s*\(/,        kind: 'consumer', grant: REGISTRATION_GRANT_MINOR },
   { id: 'fn:provisionBusiness',  re: /\bprovisionBusiness\s*\(/,       kind: 'business', grant: 0 },
   { id: 'sh:synthetic_tenant',   re: /\bsynthetic_tenant\b\s*\w/,      kind: 'business', grant: 0 },
+  // A Sandbox test payer IS a consumer, and creating one grants it the same
+  // 1 000 000 minor. Proof 23 created and funded one on every execution and
+  // retired only the external rail; four of them sat holding 1 195 000 each,
+  // classified UNKNOWN because their handles begin with `tp` rather than `e2e`.
+  { id: 'api:test-payer',        re: /sandbox\/test-payers['"`]\s*,\s*['"]POST/, kind: 'consumer', grant: REGISTRATION_GRANT_MINOR },
 ];
 
 /**
@@ -90,6 +95,12 @@ export function ownershipOf(sources) {
     /finally\s*\{[\s\S]{0,4000}?retire(Consumer|Business)\s*\(/.test(s)
     || /\.finally\s*\([\s\S]{0,1500}?(e2eCleanup|retire(Consumer|Business))\s*\(/.test(s));
   if (inFinally) return { kind: 'finally-retire', guaranteed: true };
+  // The canonical test-payer retirement, which is a DELETE rather than a
+  // named helper: balance returned by posting, consumer suspended.
+  if (sources.some((x) =>
+    /finally\s*\{[\s\S]{0,4000}?sandbox\/test-payers\/\$\{[^}]+\}`?\s*,\s*'DELETE'/.test(x))) {
+    return { kind: 'finally-retire', guaranteed: true };
+  }
   if (/retire(Consumer|Business)\s*\(/.test(src)) return { kind: 'retire-success-path-only', guaranteed: false };
   return { kind: 'none', guaranteed: false };
 }

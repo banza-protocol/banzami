@@ -30,12 +30,15 @@ const R = new GateReport('23-rail-boundary');
 const idem = (s) => `rail-${Date.now().toString(36)}-${s}`;
 
 async function main() {
+  // Hoisted so the finally can retire it however the proof exits — including
+  // the throw two lines below, which used to leak a funded payer outright.
+  let payerID = null;
   const m = await provisionMerchant({ prefix: 'rail' });
   R.note(`RAIL_PROOF_PROJECT=${m.project}`, 'an isolated Project; only its own rail is touched');
 
   const payer = await m.gw('/v1/sandbox/test-payers', 'POST', { label: 'rail boundary payer' });
   if (payer.status !== 201) throw new Error(`test payer create ${payer.status}`);
-  const payerID = payer.body.id;
+  payerID = payer.body.id;
   const funded = await m.gw(`/v1/sandbox/test-payers/${payerID}/fund`, 'POST',
     { amount_minor: 200_000 }, { 'idempotency-key': idem('fund') });
   R.mark('RAIL_PROOF_PAYER_FUNDED', [200, 201].includes(funded.status), `fund -> ${funded.status}`);
@@ -83,6 +86,23 @@ async function main() {
     const up = await m.gw('/v1/sandbox/external-rail', 'PUT', { state: 'AVAILABLE' });
     R.mark('RAIL_RESTORED_AFTER_PROOF', up.status === 200 && up.body?.state === 'AVAILABLE',
       `PUT -> ${up.status} ${up.body?.state ?? ''}`);
+
+    // The rail was the only thing this proof restored. It also creates a test
+    // payer, which is granted 1 000 000 minor on creation and funded 200 000
+    // here, and a workspace holding the Project — and retired neither. Four of
+    // them were still holding 1 195 000 each when the residue was attributed by
+    // execution window rather than by the `tp` prefix their handles carry.
+    //
+    // DELETE /v1/sandbox/test-payers/{id} is the canonical retirement: the
+    // balance goes back by a posting and the consumer is suspended.
+    let payerRetired = false;
+    if (payerID) {
+      const del = await m.gw(`/v1/sandbox/test-payers/${payerID}`, 'DELETE').catch(() => ({ status: 0 }));
+      payerRetired = [200, 202, 204].includes(del.status);
+      R.mark('RAIL_PROOF_PAYER_RETIRED', payerRetired, `DELETE test-payer -> ${del.status}`);
+    }
+    // …and the workspace, which takes the Project and its keys with it.
+    try { if (m.ws) await m.call('DELETE', `/workspaces/${m.ws}`, { name: m.wsName }); } catch { /* best effort */ }
   }
 
   const out = R.write(assuranceDir('app-web'));
