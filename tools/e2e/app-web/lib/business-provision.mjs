@@ -142,9 +142,22 @@ export async function retireBusiness(merchantId) {
     return 'skipped-reused';
   }
   try {
+    // TWO postings, in this order, exactly as retireConsumer does.
+    //
+    // This used to suspend and stop there, so every Business kept whatever it
+    // had been paid. Proof 24 pays its own fixture 5 x 70 000 across its
+    // sampling phases and left 350 000 behind on every execution — invisible
+    // while the aggregate cap had room, and indistinguishable from a clean run
+    // in every report, because the harness DID call a function named
+    // "retireBusiness". A retirement that returns nothing is a suspension.
+    //
+    // The funds go back through the canonical balanced posting to transit
+    // (owner_type MERCHANT, the same route tools/ops/retire-synthetic-residue.sh
+    // uses), so no value is created or destroyed and the book stays at zero.
     sshOut(`
 CORE=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging')
 IK=$(docker exec "$CORE" sh -c "tr '\\0' '\\n' < /proc/1/environ | sed -n 's/^INTERNAL_API_KEY=//p'")
+docker exec "$CORE" curl -s -o /dev/null -X POST "http://localhost:8081/internal/v1/sandbox/retire-funds" -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"owner_type":"MERCHANT","owner_id":"${merchantId}","reason":"app-web-business-e2e cleanup","retired_by":"app-web-e2e","idempotency_key":"appweb-m-${merchantId}"}' || true
 docker exec "$CORE" curl -s -o /dev/null -X POST "http://localhost:8081/internal/v1/merchants/${merchantId}/suspend" -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"reason":"app-web-business-e2e cleanup"}' || true
 `);
   } catch { /* best-effort */ }

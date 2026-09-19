@@ -107,6 +107,17 @@ check('fixture hygiene · …and that guard is mutation-proven',
   existsSync(join(repo, 'tools/check-validation-fixture-lifecycle.selftest.mjs')));
 
 const prov = read(LIB, 'business-provision.mjs');
+// A retirement that returns nothing is a suspension. retireBusiness suspended
+// and stopped there, so proof 24's fixture kept the 350 000 it was paid on every
+// execution — while the harness could point at a call named "retireBusiness".
+const provSrc = read(LIB, 'business-provision.mjs');
+check('fixtures · retireBusiness returns the value the Business holds',
+  /sandbox\/retire-funds[\s\S]{0,200}?"owner_type":"MERCHANT"/.test(provSrc),
+  'its consumer counterpart has always done the balanced posting before suspending');
+check('fixtures · …and does so BEFORE suspending it',
+  provSrc.indexOf('sandbox/retire-funds') < provSrc.indexOf('/suspend'),
+  'a suspended merchant may no longer accept the posting that empties it');
+
 check('fixtures · retireBusiness refuses a reused id structurally',
   /REUSED\.has\(merchantId\)/.test(prov) && /return 'skipped-reused'/.test(prov),
   'a rule seven call sites have to remember is not a rule');
