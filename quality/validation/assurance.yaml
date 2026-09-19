@@ -304,6 +304,24 @@ known_issues:
       dirty — unmeasured.
     detail_pt: >-
       RESOURCE_CLEANLINESS_NOT_PROVEN_BY_GOLDEN_0001. A BZV-20260919-0001 mantém GOLDEN_FUNCTIONAL_ACCEPTANCE = PASS sob o modelo de aceitação em vigor quando correu, e nada nela é alterado. Mas esse modelo não tinha barreira de limpeza, e a barreira demonstrou depois o que ele não conseguia ver: o S04-RCV-001 pode ser uma passagem funcional limpa e na mesma deixar valor financiado para trás. Essa execução deixou 2 650 000 minor em três identidades — duas do S04-RCV-001 e uma do S05-LNK-002. Não é portanto uma execução com limpeza provada pós-0161 e nunca deve ser descrita como tal. As colunas cleanup_result dos seus percursos estão a NULL porque são anteriores à barreira, e esse é o registo honesto: nem limpa, nem suja — por medir.
+    journeys_proven_capable_of_leaking_while_passing: >-
+      Two of BZV-20260919-0001's own journeys were later shown to leak
+      run-owned funded resources while returning a clean functional PASS:
+
+        S04-RCV-001  2 x 1 000 000 minor — scanFailsClosed() registers a
+                     consumer through the real UI and is called twice
+        S05-LNK-002  1 x 1 000 000 minor — registered inside
+                     lib/deeplink-pay.mjs, three files from the proof
+
+      Their historical functional results are NOT rewritten: the assertions
+      they made did hold. What this records is that a functional PASS was never
+      evidence of resource cleanliness, and that nothing in the pre-0161 model
+      could have told the difference. It is the reason post-0161 cleanup
+      verification is mandatory rather than advisory.
+
+      Both lifecycles were repaired and targeted regressions run on
+      2026-09-19T22Z: functional PASS, cleanup VERIFIED, residual 0 for each,
+      measured at baseline / post-functional / post-cleanup.
     remediation: >-
       The residual was recovered on 2026-09-19T21:13Z through the canonical
       balanced path, as a LATER remediation event that amends no run. Evidence:
