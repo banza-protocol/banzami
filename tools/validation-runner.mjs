@@ -837,6 +837,7 @@ function main() {
   // claim: refusing afterwards would burn an owner authorisation that cannot be
   // reissued without another two step-up ceremonies.
   probeCleanupBarrier();
+  log(`  cleanup barrier: ${CLEANUP_BARRIER ? 'ARMED (0161 applied)' : 'NOT DEPLOYED — cleanup cannot be verified or recorded'}`);
   const waiting = peekQueued(cli.run ?? null);
   if (waiting && waiting.profile === 'FULL' && !CLEANUP_BARRIER) {
     die('VALIDATION_CLEANUP_BARRIER_UNAVAILABLE — the queued run is FULL and the ' +
@@ -847,7 +848,6 @@ function main() {
 
   const run = claim(cli.run ?? null);
   if (!run) { log('no QUEUED run to claim'); return; }
-  log(`  cleanup barrier: ${CLEANUP_BARRIER ? 'ARMED (0161)' : 'not deployed — results not recorded'}`);
   log(`${run.adopted ? 'adopted' : 'claimed'} ${run.ref} (${run.profile}) as ${EXECUTOR}`);
 
   const { profile, plan } = planFor(run.profile);

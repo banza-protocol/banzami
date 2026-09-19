@@ -1230,6 +1230,76 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "validation cleanup barrier (0161) \u2014 VD-009",
+      "tables": [
+        {
+          "name": "validation_run_journeys",
+          "columns": [
+            {
+              "name": "functional_result",
+              "nullable": true
+            },
+            {
+              "name": "cleanup_result",
+              "nullable": true
+            },
+            {
+              "name": "cleanup_detail",
+              "nullable": true
+            },
+            {
+              "name": "cleanup_verified_at",
+              "nullable": true
+            }
+          ]
+        },
+        {
+          "name": "validation_run_resources",
+          "columns": [
+            {
+              "name": "run_id",
+              "nullable": false
+            },
+            {
+              "name": "journey_id",
+              "nullable": false
+            },
+            {
+              "name": "resource_class",
+              "nullable": false
+            },
+            {
+              "name": "resource_ref",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "nullable": false
+            },
+            {
+              "name": "cleanup_required",
+              "nullable": false
+            },
+            {
+              "name": "cleanup_state",
+              "nullable": false
+            },
+            {
+              "name": "cleanup_evidence",
+              "nullable": true
+            },
+            {
+              "name": "cleaned_at",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "validation_run_resources_open"
+          ]
+        }
+      ]
     }
   ]
 }
