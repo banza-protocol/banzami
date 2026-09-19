@@ -391,9 +391,11 @@ func (r *Registry) Coverage() (CoverageSummary, error) {
 			}
 		}
 	}
-	// Nothing has ever executed, so nothing is runtime-proven. This is computed
-	// rather than assumed: when a runner exists it will be derived from runs.
-	c.JourneysRuntimeProven = 0
+	// JourneysRuntimeProven is deliberately NOT set here. The registry knows
+	// what was written; only the run store knows what has executed, and this
+	// type has no database. It read 0 from a constant for as long as that was
+	// true and for one day after it stopped being true, which is the argument
+	// for leaving it to the caller that can actually answer.
 	return c, nil
 }
 

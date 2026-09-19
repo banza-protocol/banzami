@@ -18,10 +18,10 @@ import { useStudio, getApi } from './studio-context';
 import { useToast } from '@/components/ui/toast';
 import { getSession } from '@/lib/session';
 import { formatKz, timeAgo } from '@/lib/format';
-import type { ValidationProfile, ValidationCheck } from '@/lib/admin-api';
+import type { ValidationProfile, ValidationCheck, ValidationProfileOutcome } from '@/lib/admin-api';
 import {
   Panel, IconChip, SectionHeader, MetricCard, Pill, Dot, Button, MoreLink, Row,
-  Empty, Skeleton, Hash, Why, STATE_STYLE, CHECK_STYLE, VERDICT_SKIN,
+  Empty, Skeleton, Hash, Why, STATE_STYLE, CHECK_STYLE, VERDICT_SKIN, RUN_VERDICT_STYLE,
 } from './studio-ui';
 
 export default function StudioOverview() {
@@ -53,6 +53,12 @@ export default function StudioOverview() {
       toast('danger', 'Não foi possível preparar a execução.');
     } finally { s.setBusy(false); }
   }
+
+  // Counted from the runs themselves. The sentence above this used to assert
+  // that the engine did not exist and that nothing had ever started, rendered
+  // directly over a table of runs that engine had executed.
+  const startedRuns = (s.overview?.recent_runs ?? []).filter((r) => r.started_at).length;
+  const outcomeOf = (id: string) => (s.overview?.profile_outcomes ?? []).find((x) => x.profile_id === id);
 
   if (s.loading) return <DashboardSkeleton />;
   if (s.error) {
@@ -87,8 +93,11 @@ export default function StudioOverview() {
               O Validation Studio prepara, verifica e cancela execuções de validação funcional do Sandbox.
             </p>
             <p className="mt-1 text-[13px] leading-[1.5] text-[#6a5a5e]">
-              Não executa percursos — o motor de execução é separado e ainda não existe.
-              Nenhuma execução foi alguma vez iniciada.
+              Não executa percursos: o motor de execução é um processo separado, que reclama
+              a execução autorizada e a leva a cabo fora deste plano de controlo.
+              {' '}{o.runs_ever_started
+                ? `${startedRuns} execuç${startedRuns === 1 ? 'ão' : 'ões'} iniciada${startedRuns === 1 ? '' : 's'} até hoje.`
+                : 'Nenhuma execução foi alguma vez iniciada.'}
             </p>
           </div>
         </Panel>
@@ -125,7 +134,7 @@ export default function StudioOverview() {
 
       {/* The honesty counterweight the mockup has no room for, and the page needs. */}
       {coverage
-        ? <Coverage coverage={coverage} />
+        ? <Coverage coverage={coverage} lastFull={outcomeOf('FULL')} />
         : <Panel className="p-5"><SectionHeader Icon={Layers} tone="warn"
             title="Cobertura indisponível"
             subtitle="O control plane não reportou a cobertura do universo de validação." /></Panel>}
@@ -137,7 +146,7 @@ export default function StudioOverview() {
             subtitle="Estado actual dos perfis de validação no ambiente SANDBOX." />
           <div className="mt-4 grid gap-3.5 lg:grid-cols-2">
             {profiles.map((p) => (
-              <ProfileReadinessCard key={p.id} p={p}
+              <ProfileReadinessCard key={p.id} p={p} outcome={outcomeOf(p.id)}
                 meets={s.preflightProfile === p.id ? s.meetsMinimum : null}
                 verdict={s.preflight?.verdict ?? null}
                 busy={s.busy}
@@ -181,7 +190,10 @@ export default function StudioOverview() {
 
 /* ── coverage: the number the mockup has no room for ───────────────────── */
 
-function Coverage({ coverage: c }: { coverage: { suites: number; suites_declared: number; journeys: number; journeys_automated: number; journeys_runtime_proven: number } }) {
+function Coverage({ coverage: c, lastFull }: {
+  coverage: { suites: number; suites_declared: number; journeys: number; journeys_automated: number; journeys_runtime_proven: number };
+  lastFull?: ValidationProfileOutcome;
+}) {
   const executable = c.suites - c.suites_declared;
   const pct = c.suites ? Math.round((executable / c.suites) * 100) : 0;
   return (
@@ -204,7 +216,20 @@ function Coverage({ coverage: c }: { coverage: { suites: number; suites_declared
           <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">Automatizados</dt>
             <dd className="text-[19px] font-black text-[#1a1a1a]">{c.journeys_automated}</dd></div>
           <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">Provados em execução</dt>
-            <dd className="text-[19px] font-black text-amber-700">{c.journeys_runtime_proven}</dd></div>
+            <dd className={`text-[19px] font-black ${c.journeys_runtime_proven > 0 ? 'text-green-800' : 'text-amber-700'}`}>
+              {c.journeys_runtime_proven}
+            </dd>
+            <dd className="text-[11px] text-[#a99a9e]">percursos distintos que já passaram</dd></div>
+          {lastFull && (
+            <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">Última FULL alcançou</dt>
+              <dd className="text-[19px] font-black text-[#1a1a1a]">
+                {lastFull.journeys_executed} <span className="text-[13px] font-bold text-[#9a8a8e]">/ {lastFull.journeys_planned}</span>
+              </dd>
+              <dd className="text-[11px] text-[#a99a9e]">{lastFull.run_ref}</dd></div>
+          )}
+          <div><dt className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#a99a9e]">NOT_PROVEN estrutural</dt>
+            <dd className="text-[19px] font-black text-[#1a1a1a]">{c.suites_declared}</dd>
+            <dd className="text-[11px] text-[#a99a9e]">suite(s) sem percurso executável</dd></div>
         </dl>
       </div>
     </Panel>
@@ -213,15 +238,25 @@ function Coverage({ coverage: c }: { coverage: { suites: number; suites_declared
 
 /* ── profile readiness ─────────────────────────────────────────────────── */
 
-function ProfileReadinessCard({ p, meets, verdict, busy, onCheck, onPrepare }: {
+function ProfileReadinessCard({ p, meets, verdict, outcome, busy, onCheck, onPrepare }: {
   p: ValidationProfile; meets: boolean | null; verdict: string | null;
+  outcome?: ValidationProfileOutcome;
   busy: boolean; onCheck: () => void; onPrepare?: () => void;
 }) {
-  const state = meets === null
-    ? { label: 'Não verificado', cls: 'bg-[#F4F1F1] text-[#6a5a5e]', tone: 'idle' as const }
-    : meets
-      ? { label: 'Preparado', cls: 'bg-[#E9F7EE] text-green-800', tone: 'good' as const }
-      : { label: 'Bloqueado', cls: 'bg-[#FDECEC] text-red-800', tone: 'bad' as const };
+  // "Não verificado" is true of a profile nobody has preflighted. It was also
+  // being shown for FULL, which had been attempted, reached 9 of 38 journeys
+  // and stopped at a cleanup barrier — one label for two very different states.
+  // The last OUTCOME wins over the current preflight status, because what a
+  // profile did is a stronger fact than whether someone asked it a question.
+  const state = outcome?.verdict === 'PASS'
+    ? { label: 'Última execução: PASS', cls: 'bg-[#E9F7EE] text-green-800', tone: 'good' as const }
+    : outcome?.verdict === 'FAIL'
+      ? { label: 'Última execução: FAIL', cls: 'bg-[#FDECEC] text-red-800', tone: 'bad' as const }
+      : meets === null
+        ? { label: 'Não verificado', cls: 'bg-[#F4F1F1] text-[#6a5a5e]', tone: 'idle' as const }
+        : meets
+          ? { label: 'Preparado', cls: 'bg-[#E9F7EE] text-green-800', tone: 'good' as const }
+          : { label: 'Bloqueado', cls: 'bg-[#FDECEC] text-red-800', tone: 'bad' as const };
 
   return (
     <div className="rounded-[14px] border border-[#f4e7e7] bg-[#FFFCFC] p-4">
@@ -244,7 +279,39 @@ function ProfileReadinessCard({ p, meets, verdict, busy, onCheck, onPrepare }: {
         } />
         <Row label="Tecto de volume" value={formatKz(p.max_credit_volume_minor)} />
         <Row label="PASS_WITH_RETRY" value={p.max_pass_with_retry} />
+        {outcome && (
+          <>
+            <Row label="Cobertura alcançada" value={
+              <span className={outcome.journeys_executed === outcome.journeys_planned ? 'text-green-700' : 'text-amber-700'}>
+                {outcome.journeys_executed} / {outcome.journeys_planned}
+              </span>
+            } />
+            {outcome.cleanup_barrier_triggered && (
+              <Row label="Barreira de limpeza" value={<span className="text-amber-700">DISPAROU</span>} />
+            )}
+            <Row label="Aceitação" value={
+              outcome.verdict === 'PASS' && outcome.journeys_executed === outcome.journeys_planned
+                ? <span className="text-green-700">ALCANÇADA</span>
+                : <span className="text-red-700">NÃO ALCANÇADA</span>
+            } />
+          </>
+        )}
       </dl>
+
+      {outcome && (
+        <p className="mt-2 text-[11.5px] leading-[1.45] text-[#9a8a8e]">
+          {outcome.run_ref} · {outcome.state}
+          {outcome.verdict ? ` · ${outcome.verdict}` : ''}
+          {outcome.passed > 0 || outcome.failed > 0
+            ? ` — ${outcome.passed} passaram, ${outcome.failed} falharam, ${outcome.not_reached} não alcançados`
+            : ''}
+          {/* A run that predates 0161 has no cleanup measurement. Saying nothing
+              would let a reader assume it was clean; it was simply unmeasured. */}
+          {!outcome.cleanup_measured && (
+            <><br />Modelo de limpeza de recursos: introduzido depois desta execução.</>
+          )}
+        </p>
+      )}
 
       {verdict && meets === false && (
         <p className="mt-2 text-[12px] font-bold text-red-700">
@@ -392,7 +459,11 @@ function ProvenancePreview({ components }: {
 }
 
 function RecentRuns({ runs, everStarted }: {
-  runs: { id: string; run_ref: string; profile_id: string; state: string; started_at: string | null; requested_at: string }[];
+  // Includes the verdict. The narrower shape this replaced is why the list
+  // could not show one: a run that passed and a run that failed both arrived
+  // here as nothing but COMPLETED.
+  runs: { id: string; run_ref: string; profile_id: string; state: string; verdict: string | null;
+          started_at: string | null; requested_at: string }[];
   everStarted: boolean;
 }) {
   return (
@@ -417,7 +488,14 @@ function RecentRuns({ runs, everStarted }: {
                     <span className="block text-[11px] text-[#a99a9e]">{r.profile_id} · {timeAgo(r.requested_at)}</span>
                   </span>
                   <span className="flex flex-none flex-col items-end gap-1">
-                    <Pill className={STATE_STYLE[r.state]}>{r.state}</Pill>
+                    <span className="flex items-center gap-1.5">
+                      <Pill className={STATE_STYLE[r.state]}>{r.state}</Pill>
+                      {/* The verdict is its own badge. COMPLETED alone read the
+                          same for a run that passed and one that failed. */}
+                      {r.verdict
+                        ? <Pill className={RUN_VERDICT_STYLE[r.verdict] ?? 'bg-[#F4F1F1] text-[#6a5a5e]'}>{r.verdict}</Pill>
+                        : <Pill className="bg-[#F4F1F1] text-[#a99a9e]">—</Pill>}
+                    </span>
                     {!r.started_at && (
                       <span className="text-[10.5px] font-extrabold uppercase tracking-[0.04em] text-[#a99a9e]">
                         nunca iniciada
@@ -431,8 +509,15 @@ function RecentRuns({ runs, everStarted }: {
           <div className="mt-3 flex items-start gap-2 rounded-[11px] border border-[#f6dede] bg-[#FDF4F4] px-3.5 py-2.5">
             <Ban className="mt-[1px] h-[15px] w-[15px] flex-none text-[#B5101F]" strokeWidth={2} aria-hidden />
             <p className="text-[12px] leading-[1.5] text-[#6a5a5e]">
-              Estas execuções foram <strong>preparadas e canceladas</strong>. Nenhuma correu:
-              não existe rota que inicie uma.
+              {runs.some((r) => r.started_at) ? (
+                <>
+                  Uma execução é <strong>evidência</strong>: o estado diz o que lhe aconteceu,
+                  o veredicto diz o que ela provou. Um <strong>COMPLETED</strong> sem veredicto
+                  não é uma passagem.
+                </>
+              ) : (
+                <>Estas execuções foram <strong>preparadas e canceladas</strong>. Nenhuma correu.</>
+              )}
             </p>
           </div>
         </>

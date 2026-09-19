@@ -69,6 +69,12 @@ func (h *ValidationHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		Coverage       validation.CoverageSummary `json:"coverage"`
 		Components     []validation.Component     `json:"components"`
 		BlockingIssues []validation.KnownIssue    `json:"blocking_issues"`
+
+		// What each profile last actually DID. A profile nobody preflighted is
+		// "não verificado"; FULL is not that — it was attempted, reached 9 of
+		// 38 journeys and stopped at a cleanup barrier. One label for both
+		// states told the operator nothing.
+		Outcomes []validation.ProfileOutcome `json:"profile_outcomes"`
 	}
 
 	out := overview{
@@ -81,6 +87,7 @@ func (h *ValidationHandler) Overview(w http.ResponseWriter, r *http.Request) {
 		// Never nil: a consumer counting them would crash on `null`.
 		Components:     []validation.Component{},
 		BlockingIssues: []validation.KnownIssue{},
+		Outcomes:       []validation.ProfileOutcome{},
 	}
 
 	if cov, err := h.reg.Coverage(); err == nil {
@@ -117,6 +124,15 @@ func (h *ValidationHandler) Overview(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		out.RecentRuns = recent
+
+		// Derived from the evidence, never from a constant.
+		if n, rerr := h.runs.RuntimeProvenJourneys(r.Context()); rerr == nil {
+			out.Coverage.JourneysRuntimeProven = n
+		}
+		if outcomes, oerr := h.runs.LastOutcomes(r.Context()); oerr == nil {
+			out.Outcomes = outcomes
+		}
+
 		for _, run := range recent {
 			// A run that ever reached RUNNING or beyond was started. The
 			// overview says so plainly rather than leaving a reader to infer it.

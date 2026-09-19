@@ -147,6 +147,19 @@ export const STATE_STYLE: Record<string, string> = {
   ABANDONED: 'bg-[#FDF3E0] text-amber-900',
 };
 
+/**
+ * A run's VERDICT, styled apart from its STATE.
+ *
+ * The runs list showed only the state, so BZV-20260919-0001 (COMPLETED PASS)
+ * and BZV-20260919-0003 (COMPLETED FAIL) rendered as the same grey pill. The
+ * one thing a reader most needs from that table is the one thing it did not
+ * carry.
+ */
+export const RUN_VERDICT_STYLE: Record<string, string> = {
+  PASS: 'bg-[#E9F7EE] text-green-800',
+  FAIL: 'bg-[#FDECEC] text-red-800',
+};
+
 export const VERDICT_SKIN: Record<string, string> = {
   HEALTHY: 'border-green-300 bg-[#F2FBF5] text-green-800',
   DEGRADED: 'border-amber-300 bg-[#FDF8EC] text-amber-900',

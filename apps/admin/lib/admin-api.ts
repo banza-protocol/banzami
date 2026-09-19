@@ -728,6 +728,34 @@ export interface ValidationOverview {
   coverage?:         ValidationCoverage;
   components?:       ValidationComponent[];
   blocking_issues?:  ValidationKnownIssue[] | null;
+  /** What each profile last actually DID. Absent on an older control plane,
+   *  which is why the card falls back to "não verificado" rather than
+   *  inventing an outcome. */
+  profile_outcomes?: ValidationProfileOutcome[];
+}
+
+/** Derived from the run rows, never declared. A profile nobody has preflighted
+ *  is "não verificado"; a profile that was attempted, reached 9 of 38 journeys
+ *  and stopped at a cleanup barrier is not the same thing, and the dashboard
+ *  showed one label for both. */
+export interface ValidationProfileOutcome {
+  profile_id: string;
+  run_ref:    string;
+  state:      string;
+  verdict:    string | null;
+  ended_at:   string | null;
+  journeys_planned:  number;
+  journeys_executed: number;
+  passed:            number;
+  failed:            number;
+  not_reached:       number;
+  /** False for runs that predate migration 0161. That is "unmeasured", and the
+   *  card must say so rather than rendering a clean zero. */
+  cleanup_measured:  boolean;
+  cleanup_verified:  number;
+  cleanup_failed:    number;
+  functional_passed: number;
+  cleanup_barrier_triggered: boolean;
 }
 
 // ── Deep inspection: the Studio explaining itself ───────────────────────────

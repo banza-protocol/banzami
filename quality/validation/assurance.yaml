@@ -175,7 +175,26 @@ known_issues:
   - id: VD-002
     title_pt: "Não existe motor de execução"
     title: No execution runner exists
-    status: open
+    status: closed
+    closed: "2026-09-18"
+    closed_by: >-
+      tools/validation-runner.mjs. It claims with FOR UPDATE SKIP LOCKED,
+      leases, heartbeats, materialises the whole plan as PLANNED before the
+      first journey, ABANDONs on crash, refuses a command line it does not
+      understand before opening the database, enforces the per-IP application
+      budget and the aggregate funds cap against live sources, verifies cleanup
+      after every journey and stops when residue is not proven nil, and closes
+      by reading the durable record back rather than printing its own counters.
+
+      It has executed four runs: BZV-20260918-0003 (GOLDEN, FAIL),
+      BZV-20260919-0001 (GOLDEN, PASS, 12/12, 112 hashed evidence rows),
+      BZV-20260919-0002 (FULL, cancelled after refusing at its own funds gate)
+      and BZV-20260919-0003 (FULL, COMPLETED FAIL, 9 of 38 journeys reached,
+      stopped at a cleanup barrier).
+
+      This stayed open — and blocking — for a day after it stopped being true,
+      while the dashboard rendered "o motor de execução ainda não existe" above
+      a table listing runs that motor had executed.
     severity: high
     scope: execution
     blocks_golden: true
@@ -380,7 +399,8 @@ known_issues:
   - id: VD-009
     title_pt: "O limite superior de fundos do FULL excede o tecto do Sandbox"
     title: FULL's upper-bound funded exposure exceeds the Sandbox cap
-    status: owner_gated
+    status: closed
+    closed: "2026-09-19"
     engineering_complete: "2026-09-19"
     resolution: >-
       The fix was never a larger cap: it is for the runner to VERIFY cleanup
@@ -416,12 +436,18 @@ known_issues:
       was a clean FUNCTIONAL pass and left funded value behind — which is
       precisely the distinction 0161 exists to record, and which nothing could
       express before it.
-    blocked_on: >-
-      OWNER — migration 0161 must be applied to the Sandbox through the operator
-      TTY ceremony (never psql; that is what caused the 0090–0095 drift). Until
-      it is, the runner REFUSES to claim a FULL run and says
-      VALIDATION_CLEANUP_BARRIER_UNAVAILABLE, leaving the run QUEUED and unspent
-      rather than burning an owner authorisation it cannot honour.
+    closed_by: >-
+      Migration 0161 was applied on 2026-09-19 through the canonical ceremony
+      (tools/migrate-and-verify.sh), head 160 → 161, manifest gate satisfied.
+      The runner reports "cleanup barrier: ARMED (0161 applied)" before it
+      claims anything, and BZV-20260919-0003 proved the barrier bites on a real
+      journey: S04-RCV-001 was a clean FUNCTIONAL pass that left 2 000 000
+      minor behind, the run stopped there, and the 30 journeys after it are
+      recorded as NOT_REACHED rather than silently absent.
+
+      With the barrier armed FULL's operative bound is the MAX of the declared
+      ceilings rather than their SUM: 3 000 000 peak, 6 000 000 required
+      headroom, against roughly 30 000 000 available.
     severity: high
     scope: S-all — FULL readiness, not GOLDEN
     blocks_golden: false

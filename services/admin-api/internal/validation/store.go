@@ -672,3 +672,95 @@ func (s *Store) PinnedPreflight(ctx context.Context, runID string) (*PinnedPrefl
 	}
 	return &p, rows.Err()
 }
+
+// ── What the runs actually proved ───────────────────────────────────────────
+//
+// The overview used to report `journeys_runtime_proven = 0` from a constant,
+// under a comment saying it would be derived "when a runner exists". The runner
+// has existed since 2026-09-18 and has executed a GOLDEN acceptance run and a
+// FULL attempt since. A number that a comment promises to derive later is a
+// number that stays wrong for exactly as long as nobody rereads the comment.
+
+// RuntimeProvenJourneys counts the DISTINCT journeys that have ever ended a run
+// as PASSED. Distinct, because two runs proving the same journey twice is not
+// two journeys; PASSED and not FAILED-then-PASSED-later, because the question
+// is whether it has ever been shown to work against the deployed system.
+func (s *Store) RuntimeProvenJourneys(ctx context.Context) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(DISTINCT journey_id) FROM validation_run_journeys WHERE outcome = 'PASSED'`).Scan(&n)
+	return n, err
+}
+
+// ProfileOutcome is the last thing a profile actually did. "Não verificado" is
+// true of a profile nobody has preflighted; it is NOT true of FULL, which has
+// been attempted, reached 9 of 38 journeys and stopped at a cleanup barrier.
+type ProfileOutcome struct {
+	ProfileID string     `json:"profile_id"`
+	RunRef    string     `json:"run_ref"`
+	State     string     `json:"state"`
+	Verdict   *string    `json:"verdict"`
+	EndedAt   *time.Time `json:"ended_at"`
+
+	JourneysPlanned  int `json:"journeys_planned"`
+	JourneysExecuted int `json:"journeys_executed"`
+	Passed           int `json:"passed"`
+	Failed           int `json:"failed"`
+	NotReached       int `json:"not_reached"`
+
+	// Post-0161 only. A run that predates the cleanup barrier reports zero
+	// here and CleanupMeasured=false — which is "unmeasured", not "clean".
+	CleanupMeasured  bool `json:"cleanup_measured"`
+	CleanupVerified  int  `json:"cleanup_verified"`
+	CleanupFailed    int  `json:"cleanup_failed"`
+	FunctionalPassed int  `json:"functional_passed"`
+
+	// True when the run stopped because a journey did not prove it returned
+	// what it took. The distinction matters: the run did not "fail 30 journeys",
+	// it declined to start them.
+	CleanupBarrierTriggered bool `json:"cleanup_barrier_triggered"`
+}
+
+// LastOutcomes returns, per profile, the most recent run that was ever STARTED.
+// A prepared-then-cancelled run says nothing about what a profile can do.
+func (s *Store) LastOutcomes(ctx context.Context) ([]ProfileOutcome, error) {
+	rows, err := s.pool.Query(ctx, `
+		WITH last AS (
+		  SELECT DISTINCT ON (profile_id) id, profile_id, run_ref, state, verdict, ended_at
+		    FROM validation_runs
+		   WHERE started_at IS NOT NULL
+		   ORDER BY profile_id, started_at DESC
+		)
+		SELECT l.profile_id, l.run_ref, l.state, l.verdict, l.ended_at,
+		       count(j.*),
+		       count(*) FILTER (WHERE j.outcome IN ('PASSED','FAILED')),
+		       count(*) FILTER (WHERE j.outcome = 'PASSED'),
+		       count(*) FILTER (WHERE j.outcome = 'FAILED'),
+		       count(*) FILTER (WHERE j.cleanup_result = 'NOT_REACHED'),
+		       count(*) FILTER (WHERE j.cleanup_result IS NOT NULL),
+		       count(*) FILTER (WHERE j.cleanup_result IN ('VERIFIED','NOT_REQUIRED')),
+		       count(*) FILTER (WHERE j.cleanup_result = 'FAILED'),
+		       count(*) FILTER (WHERE j.functional_result = 'PASSED')
+		  FROM last l LEFT JOIN validation_run_journeys j ON j.run_id = l.id
+		 GROUP BY l.profile_id, l.run_ref, l.state, l.verdict, l.ended_at`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []ProfileOutcome{}
+	for rows.Next() {
+		var o ProfileOutcome
+		var measured int
+		if err := rows.Scan(&o.ProfileID, &o.RunRef, &o.State, &o.Verdict, &o.EndedAt,
+			&o.JourneysPlanned, &o.JourneysExecuted, &o.Passed, &o.Failed,
+			&o.NotReached, &measured, &o.CleanupVerified, &o.CleanupFailed,
+			&o.FunctionalPassed); err != nil {
+			return nil, err
+		}
+		o.CleanupMeasured = measured > 0
+		o.CleanupBarrierTriggered = o.CleanupFailed > 0 && o.NotReached > 0
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}

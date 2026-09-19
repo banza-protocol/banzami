@@ -82,8 +82,12 @@ func TestCatalogue_CoverageIsDerivedNotAsserted(t *testing.T) {
 		t.Error("declared and with-journeys do not account for every suite")
 	}
 	// Nothing has ever executed, so nothing may claim to be runtime-proven.
+	// The registry cannot know this, and must not guess: runtime-proven comes
+	// from the run store, which this type has no access to. Asserting 0 here is
+	// asserting that Coverage() leaves it alone, not that nothing has run.
 	if cov.JourneysRuntimeProven != 0 {
-		t.Errorf("%d journeys claim RUNTIME_PROVEN, but no run has ever executed", cov.JourneysRuntimeProven)
+		t.Errorf("Coverage() set JourneysRuntimeProven to %d; only the run store may answer that",
+			cov.JourneysRuntimeProven)
 	}
 }
 
