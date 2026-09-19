@@ -459,6 +459,13 @@ check-e2e-semantics-driver:
 check-validation-execution-model:
 	node tools/check-validation-execution-model.mjs
 
+# A balance that could not be read is not a balance of zero. proof 06 coerced a
+# null reading with `?? 0` and then waited 25 s for a consumer holding 10 000 Kz
+# to display 100 — reporting "B did not update" about a product that was fine.
+.PHONY: check-e2e-measurement-honesty
+check-e2e-measurement-honesty:
+	node tools/check-e2e-measurement-honesty.selftest.mjs
+
 # Every owner gate, read live at the moment it prints. No hand-maintained
 # summary may override it: a prose counter already contradicted itself once,
 # "10 de 12" beside a list of three outstanding journeys, and neither number
@@ -478,7 +485,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-validation-budget-truth check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-e2e-measurement-honesty check-validation-budget-truth check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.

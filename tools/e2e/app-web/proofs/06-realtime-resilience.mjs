@@ -22,6 +22,7 @@ import { ReceiptPage } from '../pages/receipt.mjs';
 import { HomePage } from '../pages/home.mjs';
 import { retireConsumer } from '../lib/consumer-retire.mjs';
 import { GateReport, runScopedPin, freshHandle } from '../lib/report.mjs';
+import { requireBalanceBaseline } from '../lib/balance-baseline.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 
 const R = new GateReport('06-realtime-resilience');
@@ -69,16 +70,27 @@ try {
   await cb.page.reload({ waitUntil: 'domcontentloaded' });
   await cb.home.reach();
   const bHome = new HomePage(cb.driver);
-  const before = await bHome.readBalance();
+  // PHASE 1 · BASELINE_READINESS. Separate from anything about realtime: if no
+  // balance is readable, nothing below is a measurement of the product, and
+  // saying "B did not update" would be an accusation built from a missing read.
+  let before;
+  try {
+    before = await requireBalanceBaseline(() => bHome.readBalance(), { label: 'B', timeoutMs: 20000 });
+    R.mark('B_BALANCE_BASELINE_READY', true, `B baseline ${before} Kz (realtime already blocked)`);
+  } catch (e) {
+    R.mark('B_BALANCE_BASELINE_READY', false, e.message);
+    throw e;
+  }
   R.note('FALLBACK_SETUP', `B realtime blocked; B balance=${before} Kz`);
 
   const sent1 = await payAtoB(ca, B.handle, 100);
   R.mark('A_SEND_1', sent1, 'A paid B 100 Kz (B realtime blocked)');
   const tPay1 = Date.now();
-  // Fallback poll is ~15s; allow up to 25s. This proves bounded staleness.
-  const got1 = await waitForBalance(bHome, (before ?? 0) + 100, 25000);
+  // PHASE 2 · the fallback. Target derived from a baseline that was READ, never
+  // from a default. Fallback poll is ~15s; allow up to 25s for bounded staleness.
+  const got1 = await waitForBalance(bHome, before + 100, 25000);
   R.mark('REALTIME_FAILURE_HOME_STALENESS_UNBOUNDED=0', got1 !== null,
-    got1 ? `B updated via fallback in ${got1 - tPay1}ms with realtime blocked` : 'B did not update within 25s');
+    got1 ? `B updated via fallback in ${got1 - tPay1}ms with realtime blocked` : `B stayed at ${before} Kz for 25s with realtime blocked`);
   R.mark('MISSED_EVENT_RECOVERY', got1 !== null, 'payment reached B without realtime (fallback)');
 
   await cb.context.unroute('**/v1/me/realtime');
@@ -89,7 +101,14 @@ try {
   const cc = await registerConsumer(browser, { ...B, handle: cHandle, label: 'C' });
   await cc.home.reach();
   const cHome = new HomePage(cc.driver);
-  const cBefore = await cHome.readBalance();
+  let cBefore;
+  try {
+    cBefore = await requireBalanceBaseline(() => cHome.readBalance(), { label: 'C', timeoutMs: 20000 });
+    R.mark('C_BALANCE_BASELINE_READY', true, `C baseline ${cBefore} Kz`);
+  } catch (e) {
+    R.mark('C_BALANCE_BASELINE_READY', false, e.message);
+    throw e;
+  }
   // Hide the tab (drives Flutter web lifecycle → hidden; the controller drops the
   // stream and stops timers). Use CDP visibility emulation.
   const cdp = await cc.context.newCDPSession(cc.page);
@@ -101,7 +120,8 @@ try {
   // Become visible → onForeground → immediate refresh.
   await cdp.send('Emulation.setVisibilityState', { visibility: 'visible' }).catch(() => {});
   const tVisible = Date.now();
-  const got2 = await waitForBalance(cHome, (cBefore ?? 0) + 100, 15000);
+  // PHASE 3 · MISSED_EVENT_RECOVERY, again from a baseline that was read.
+  const got2 = await waitForBalance(cHome, cBefore + 100, 15000);
   R.mark('WEB_VISIBILITY_HOME_REFRESH', got2 !== null,
     got2 ? `C refreshed ${got2 - tVisible}ms after becoming visible` : 'C did not refresh on visible');
   R.mark('FOREGROUND_MISSED_PAYMENT_RECOVERY', got2 !== null, 'payment received while hidden recovered on visible');

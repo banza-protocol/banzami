@@ -43,9 +43,18 @@ try {
   R.mark('APP_WEB_CONSUMER_UI_ACTUALLY_EXERCISED', o.paidSuccess, `success="${o.successTitle}"`);
   R.mark('APP_WEB_PAYMENT_UI_CONFIRMATION', o.paidSuccess, 'paid via real Pagar control');
 
-  const debited = (o.balanceBeforeConfirm ?? 0) - (o.balanceAfterConfirm ?? 0);
+  // Both readings must exist. `(a ?? 0) - (b ?? 0)` used to produce 0 when
+  // neither balance could be read, and the gate then reported "consumer debited
+  // 0 minor" — which blames the product for a reading that never happened. The
+  // failure is real either way, but only one of those two sentences is true.
+  const readable = typeof o.balanceBeforeConfirm === 'number' && typeof o.balanceAfterConfirm === 'number';
+  const debited = readable ? o.balanceBeforeConfirm - o.balanceAfterConfirm : null;
+  R.mark('CONSUMER_BALANCE_READABLE', readable,
+    readable ? `before ${o.balanceBeforeConfirm} · after ${o.balanceAfterConfirm} minor`
+             : `BALANCE_BASELINE_UNAVAILABLE — before=${o.balanceBeforeConfirm} after=${o.balanceAfterConfirm}`);
   R.mark('PAYMENT_LINK_APP_WEB_E2E', o.paidSuccess && debited === AMOUNT_MINOR,
-    `consumer debited ${debited} minor (expected ${AMOUNT_MINOR} minor)`);
+    readable ? `consumer debited ${debited} minor (expected ${AMOUNT_MINOR} minor)`
+             : 'not assessed: the consumer balance could not be read');
 
   // Canonical integrity: the payment is a real, balanced double-entry movement —
   // value left the consumer and landed in a real account, book still sums to zero.
