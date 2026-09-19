@@ -352,20 +352,29 @@ class _DashboardHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: onRefresh,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: BanzamiColors.white.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: BanzamiColors.white.withValues(alpha: 0.20),
-                      width: 1,
+              // Icon-only, so it carries no name unless one is given. Every
+              // other tap target on this screen wraps text and inherits its
+              // label from it; this one announced itself to a screen reader as
+              // an unnamed button, and a validation run measured it as the only
+              // control on Business Home with no accessible name at all.
+              Semantics(
+                button: true,
+                label: 'Actualizar',
+                child: GestureDetector(
+                  onTap: onRefresh,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: BanzamiColors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: BanzamiColors.white.withValues(alpha: 0.20),
+                        width: 1,
+                      ),
                     ),
+                    child: const Icon(Icons.refresh_rounded, color: BanzamiColors.white, size: 20),
                   ),
-                  child: const Icon(Icons.refresh_rounded, color: BanzamiColors.white, size: 20),
                 ),
               ),
             ],

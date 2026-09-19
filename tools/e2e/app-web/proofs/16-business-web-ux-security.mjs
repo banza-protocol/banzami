@@ -64,6 +64,14 @@ const looksSecret = (s) => /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/
     await d.waitForText('Conectar conta', { timeout: 25000 });
     await d.tapButton('Conectar conta');
     await d.waitForText('Entrar', { timeout: 15000 });
+    // Captured HERE, deterministically, while the handle step is the screen.
+    // Flutter exposes a text field as a disabled screen-reader proxy <input>
+    // whose aria-label is the accessible name; it is not a flt-semantics node,
+    // which is why an aggregate count over flt-semantics never saw it.
+    const loginFieldName = await page.evaluate(() => {
+      const f = document.querySelector('input[data-semantics-role="text-field"]');
+      return f ? (f.getAttribute('aria-label') || '') : '';
+    });
     await d.fillFieldBySemantics('cantina_alex', biz.handle, { verify: false });
     await page.keyboard.press('Enter');
     const kbAdvanced = await d.waitForText('Digite o seu PIN', { timeout: 30000 }).then(() => true).catch(() => false);
@@ -98,16 +106,42 @@ const looksSecret = (s) => /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/
     const mobileOk = await noHScroll(page) && (await d.visibleText()).includes('Saldo disponível');
     R.mark('BUSINESS_WEB_MOBILE_VIEWPORT', mobileOk, 'mobile renders full-screen, no horizontal scroll (no nested phone frame)');
 
-    // a11y basics: the login form exposed labelled inputs (verified pre-login) and
-    // the shell exposes named, role-tagged controls (nav destinations + buttons).
+    // §19 a11y, asserted PER SCREEN against the controls that screen actually has.
+    //
+    // This used to count `flt-semantics[aria-label]` and `[role=button]` across
+    // whatever page happened to be visible, and require both to be non-zero. It
+    // passed on 2026-09-17 with labelled=4 buttons=2 — a login form — and failed
+    // on 2026-09-19 with labelled=0 buttons=8, which is Business Home rendering
+    // correctly: a dashboard has no text fields. The assertion was measuring
+    // which screen it was on.
+    //
+    // Both claims in the proof's own header are kept, each where it applies:
+    // "form fields carry accessible labels" belongs to the login form, "buttons
+    // carry names" to the shell. The login half was captured before sign-in,
+    // above, while the handle step was on screen.
+    R.mark('BUSINESS_WEB_A11Y_LOGIN_FIELD_NAMED', loginFieldName.length > 0,
+      `the handle field's accessible name is ${JSON.stringify(loginFieldName)}`);
+
     await page.setViewportSize({ width: 1440, height: 900 }); await sleep(500);
-    const a11y = await page.evaluate(() => {
-      const labelled = document.querySelectorAll('flt-semantics[aria-label], input[aria-label]').length;
-      const buttons = document.querySelectorAll('[role="button"]').length;
-      return { labelled, buttons };
-    });
-    R.mark('BUSINESS_WEB_KNOWN_CRITICAL_A11Y=0', a11y.labelled > 0 && a11y.buttons > 0, `labelled nodes=${a11y.labelled}, buttons=${a11y.buttons}`);
-    R.mark('BUSINESS_WEB_A11Y', a11y.labelled > 0 && a11y.buttons > 0, 'semantics tree exposes labelled fields + named buttons');
+    const HOME_CONTROLS = ['Cobrar', 'QR', 'Levantar', 'Início', 'Histórico', 'Receber', 'Perfil'];
+    const home = await page.evaluate(() => [...document.querySelectorAll('flt-semantics[role="button"]')]
+      .map((n) => ({ name: (n.getAttribute('aria-label') || n.textContent || '').trim(),
+                     box: (({ width: w, height: h }) => `${Math.round(w)}x${Math.round(h)}`)(n.getBoundingClientRect()) })));
+    const named = new Set(home.map((b) => b.name).filter(Boolean));
+    const missing = HOME_CONTROLS.filter((c) => !named.has(c));
+    R.mark('BUSINESS_WEB_A11Y_HOME_CONTROLS_NAMED', missing.length === 0,
+      missing.length ? `not addressable by name: ${missing.join(', ')}` : `${HOME_CONTROLS.length} expected controls all addressable by name`);
+
+    // A negative, and a real one: every INTERACTIVE control must be addressable.
+    // A button with neither text nor aria-label is announced as "button" and
+    // nothing else. This found exactly one — a 38x38 icon-only refresh control
+    // in the header — which is a product defect, not a harness expectation.
+    const unnamed = home.filter((b) => !b.name);
+    R.mark('BUSINESS_WEB_A11Y_UNNAMED_CONTROLS=0', unnamed.length === 0,
+      unnamed.length ? `${unnamed.length} interactive control(s) with no accessible name (${unnamed.map((u) => u.box).join(', ')})`
+                     : `all ${home.length} interactive controls carry a name`);
+    R.mark('BUSINESS_WEB_A11Y', missing.length === 0 && unnamed.length === 0 && loginFieldName.length > 0,
+      'login field named, expected Home controls addressable, no unnamed interactive control');
 
     // ── §21 logout cache/storage residue (best-effort UI logout; the residue
     // assertion holds regardless because storage carries no credential even while
