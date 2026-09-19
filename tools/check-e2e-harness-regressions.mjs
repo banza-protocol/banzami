@@ -14,7 +14,7 @@
  *
  *   node tools/check-e2e-harness-regressions.mjs
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -89,19 +89,22 @@ for (const f of files) {
 // in one day held 39 600 000 of the cap, and the next run's funding was refused
 // with INSUFFICIENT_FUNDS — which reads like a product fault and is not one.
 // Nine sibling proofs already retired their consumers; nothing made that a rule.
-for (const f of files) {
-  const src = read(PROOFS, f);
-  const registers = /auth\/register/.test(src);
-  const funds = /sandbox\/fund/.test(src);
-  const retires = /retireConsumer\s*\(/.test(src);
-  if (registers && funds) {
-    check(`fixture hygiene · ${f} returns the funding it took`, retires,
-      'a harness that keeps what it was given takes it from every later run');
-  } else if (registers) {
-    check(`fixture hygiene · ${f} retires the consumer it created`, retires,
-      'an unretired consumer is residue even when it holds nothing');
-  }
-}
+// The rule above used to live here as a source match on THIS file only:
+//
+//     /auth\/register/ present  =>  retireConsumer must be present
+//
+// It never applied to proof 14, which registers through the UI, nor to proof 04,
+// whose registration is three files away inside lib/deeplink-pay.mjs. Both
+// leaked a 1 000 000 minor grant per registration for months while this gate
+// stayed green. Lifecycle is now decided across the whole import closure, over
+// API and UI primitives alike, and about the EXCEPTION path — by
+// tools/check-validation-fixture-lifecycle.mjs. What remains here is the
+// assertion that the replacement is actually wired up, so deleting it is loud.
+check('fixture hygiene · lifecycle is decided by the closure-aware guard',
+  existsSync(join(repo, 'tools/check-validation-fixture-lifecycle.mjs')),
+  'the narrow source match this replaced was green through two real leaks');
+check('fixture hygiene · …and that guard is mutation-proven',
+  existsSync(join(repo, 'tools/check-validation-fixture-lifecycle.selftest.mjs')));
 
 const prov = read(LIB, 'business-provision.mjs');
 check('fixtures · retireBusiness refuses a reused id structurally',

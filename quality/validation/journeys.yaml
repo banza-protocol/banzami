@@ -230,7 +230,13 @@ journeys:
     automation: full
     existing_harness: tools/e2e/app-web/proofs/14-business-web-fail-closed.mjs
     # one consumer scans a torn-down point
-    max_synthetic_funds_exposure_minor: 1000000
+    # DERIVED, not estimated: scanFailsClosed() is called twice — once for the
+    # disabled Receive Point and once for the suspended Business — and each
+    # call registers a consumer through the real UI. Sandbox registration
+    # carries an automatic 1 000 000 minor grant. 2 x 1 000 000 = 2 000 000.
+    # This read 1 000 000 while the journey exposed twice that, and the
+    # under-declaration survived because nothing compared it to a measurement.
+    max_synthetic_funds_exposure_minor: 2000000
     timeout_seconds: 900
     retry_policy: none
 

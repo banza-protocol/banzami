@@ -25,6 +25,7 @@ import { CreateAccountPage } from '../pages/create-account.mjs';
 import { PinPage } from '../pages/pin.mjs';
 import { HomePage } from '../pages/home.mjs';
 import { GateReport } from '../lib/report.mjs';
+import { e2eBegin, e2eOwn, e2eCleanup } from '../lib/e2e-own.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 import { writeQrY4m, receivePointPayUrl } from '../business-receive-web-e2e.mjs';
 import { fileURLToPath } from 'node:url';
@@ -63,7 +64,12 @@ async function resolveFailsClosed(slug) {
   return { reached: r.status === 200, status: r.status };
 }
 
-async function scanFailsClosed(slug, label) {
+// Called TWICE — once for the disabled Receive Point and once for the
+// suspended Business — and each call registers a fresh consumer through the
+// real UI. Registration carries a 1 000 000 minor Sandbox grant, so this
+// function leaked 2 000 000 on every execution, including the accepted GOLDEN
+// run. It read as a clean functional PASS because nothing measured the money.
+async function scanFailsClosed(own, slug, label) {
   const media = join(HERE, '..', 'proofs', `x-failclosed-${label}.y4m`);
   writeQrY4m(receivePointPayUrl(slug), media);
   const { browser } = await launchChromium({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${media}`] });
@@ -75,7 +81,13 @@ async function scanFailsClosed(slug, label) {
     const d = new FlutterSemanticsDriver(page, { label: `fc-${label}` });
     const welcome = new WelcomePage(d), create = new CreateAccountPage(d), pinp = new PinPage(d), home = new HomePage(d);
     await welcome.reach(); await welcome.tapCreateAccount();
-    await create.reach(); await create.fill({ handle: `e2efc${Date.now().toString(36)}`.toLowerCase(), name: 'FC' }); await create.submit();
+    const handle = `e2efc${Date.now().toString(36)}`.toLowerCase();
+    await create.reach(); await create.fill({ handle, name: 'FC' }); await create.submit();
+    // Handed over immediately. Everything below can throw — the camera pipeline
+    // is the whole point of this proof — and the catch below deliberately
+    // swallows that into a fallback path, which is exactly how the consumer
+    // escaped before.
+    e2eOwn(own, 'consumer', handle, { created_by: `scanFailsClosed:${label}` });
     await pinp.createDuringOnboarding('719238');
     await home.reach();
     await ctx.grantPermissions(['camera'], { origin: APP });
@@ -93,21 +105,28 @@ async function scanFailsClosed(slug, label) {
   } finally { await browser.close().catch(() => {}); }
 }
 
+const own = e2eBegin('proof-14');
+
 (async () => {
   try {
     const disabled = process.env.BRP_DISABLED_SLUG || dbSlug("SELECT public_slug FROM business_receive_points WHERE status='DISABLED' LIMIT 1;");
     const suspended = process.env.BRP_SUSPENDED_SLUG || dbSlug("SELECT rp.public_slug FROM business_receive_points rp JOIN merchants m ON m.id=rp.merchant_id WHERE m.status='SUSPENDED' AND rp.status='ACTIVE' LIMIT 1;");
     R.mark('TORN_DOWN_SLUGS_RESOLVED', !!disabled && !!suspended, `disabled=${disabled} suspended=${suspended}`);
 
-    const dis = await scanFailsClosed(disabled, 'disabled');
+    const dis = await scanFailsClosed(own, disabled, 'disabled');
     R.mark('BUSINESS_WEB_DISABLED_RECEIVE_POINT_E2E', dis.reached === false, dis.reached ? `REACHED pay flow (leak): ${dis.txt}` : `failed closed via ${dis.method}: ${dis.txt}`);
 
-    const sus = await scanFailsClosed(suspended, 'suspended');
+    const sus = await scanFailsClosed(own, suspended, 'suspended');
     R.mark('BUSINESS_WEB_SUSPENDED_BUSINESS_E2E', sus.reached === false, sus.reached ? `REACHED pay flow (leak): ${sus.txt}` : `failed closed via ${sus.method}: ${sus.txt}`);
 
     R.mark('BUSINESS_WEB_RECEIVE_POINT_STATE_TRUTH', dis.reached === false && sus.reached === false, 'a torn-down Receive Point is never payable from a stale QR scanned by the real camera');
   } catch (e) {
     R.mark('PROOF_14', false, e.message);
+  } finally {
+    // Both consumers go back, whatever happened above — including the fallback
+    // path in scanFailsClosed's catch, which is where they used to escape.
+    const cleanup = await e2eCleanup(own);
+    R.mark('FIXTURE_CLEANUP_VERIFIED', cleanup.result !== 'FAILED', `${cleanup.result}: ${cleanup.detail}`);
   }
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_14_BUSINESS_WEB_FAIL_CLOSED=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Refuse a commit that touches the validation programme while its guards fail.
+#
+# On 2026-09-19 a registry guard reported "known issue VD-010 has no detail_pt"
+# and the commit landed anyway, because the command line was
+#
+#     make check-validation | grep ...; git commit
+#
+# and `;` runs the next thing regardless of what the last one decided. The fix
+# was not to type `&&` more carefully next time: a gate that depends on an
+# operator remembering shell semantics is not a gate. This runs from git, so
+# the decision is no longer mine to forget.
+#
+# Scope is deliberately narrow — only commits that touch validation-owned paths
+# pay the cost, and only the validation guards run. Enable with:
+#
+#     git config core.hooksPath .githooks
+#
+# BANZAMI_SKIP_VALIDATION_GATE=1 bypasses it. That exists for the mutation test
+# that proves this hook can actually block, and for nothing else.
+set -euo pipefail
+
+[ "${BANZAMI_SKIP_VALIDATION_GATE:-}" = "1" ] && exit 0
+
+WATCHED='^(quality/validation/|tools/validation-|tools/check-validation-|tools/e2e/app-web/|tools/lib/validation-|db/migrations/016)'
+staged="$(git diff --cached --name-only --diff-filter=ACMR | grep -E "$WATCHED" || true)"
+[ -z "$staged" ] && exit 0
+
+echo "pre-commit: $(printf '%s\n' "$staged" | wc -l | tr -d ' ') validation file(s) staged — running the validation guards"
+if ! make check-validation >/tmp/bz-validation-gate.log 2>&1; then
+  echo "" >&2
+  echo "✗ COMMIT BLOCKED — the validation guards do not pass." >&2
+  grep -E '✗|=FAIL' /tmp/bz-validation-gate.log | head -20 >&2
+  echo "" >&2
+  echo "  full output: /tmp/bz-validation-gate.log" >&2
+  echo "  fix it, or BANZAMI_SKIP_VALIDATION_GATE=1 if you truly mean to commit a red tree." >&2
+  exit 1
+fi
+echo "pre-commit: validation guards pass"

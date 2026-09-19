@@ -22,7 +22,8 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
-import { provisionBusiness } from '../lib/business-provision.mjs';
+import { provisionBusiness, retireBusiness } from '../lib/business-provision.mjs';
+import { e2eBegin, e2eOwn, e2eCleanup } from '../lib/e2e-own.mjs';
 
 const API = (process.env.BZ_PROVISION_API ?? 'https://sandbox-api.banzami.com').replace(/\/+$/, '');
 const VM = process.env.BZ_SANDBOX_HOST ?? 'root@217.160.9.248';
@@ -42,8 +43,15 @@ function persistedKey(collectionId) {
   return execFileSync('ssh', ['-o', 'BatchMode=yes', VM, remote], { encoding: 'utf8', timeout: 60000 }).trim();
 }
 
+// This proof provisioned a Business on every run and retired none of them. It
+// is create-only and non-economic, which is why it went unnoticed — but an
+// unretired Business is residue whether or not it ever held money, and the
+// early `return` below meant even a considered cleanup would have been skipped.
+const own = e2eBegin('proof-20');
+
 (async () => {
   const biz = await provisionBusiness({ handlePrefix: 'e2ecolidem' });
+  e2eOwn(own, 'business', biz.merchantId ?? biz.handle, { created_by: 'provisionBusiness' });
   const tok = (await (await fetch(`${API}/v1/merchant/auth/token`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ handle: biz.handle, pin: biz.pin }),
@@ -122,4 +130,10 @@ function persistedKey(collectionId) {
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_20_COLLECTIONS_PUBLIC_IDEMPOTENCY=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail) → ${out}`);
   process.exitCode = R.ok ? 0 : 1;
-})().catch((e) => { console.error(e); process.exit(1); });
+})()
+  .catch((e) => { R.mark('PROOF_20', false, e.message); console.error(e); process.exitCode = 1; })
+  // However it ended — success, early return, or throw — the Business goes back.
+  .finally(async () => {
+    const cleanup = await e2eCleanup(own, { retireBusiness });
+    console.log(`FIXTURE_CLEANUP=${cleanup.result} ${cleanup.detail}`);
+  });

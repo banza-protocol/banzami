@@ -13,6 +13,7 @@ import { launchChromium } from '../lib/browser.mjs';
 import { provisionMerchant, createPaymentLink } from '../lib/provision.mjs';
 import { bookSum } from '../lib/operator-read.mjs';
 import { payViaAppWebDeepLink } from '../lib/deeplink-pay.mjs';
+import { e2eBegin, e2eCleanup } from '../lib/e2e-own.mjs';
 import { GateReport, runScopedPin, freshHandle } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
 
@@ -21,7 +22,10 @@ const AMOUNT_KZ = 3500;
 const AMOUNT_MINOR = AMOUNT_KZ * 100;
 const consumer = { handle: freshHandle('e2ep'), name: 'E2E Pagador', pin: runScopedPin() };
 
-let browser; let M;
+// The consumer this proof creates is registered through the real UI, three
+// files away, inside payViaAppWebDeepLink. Ownership travels with it.
+const own = e2eBegin('proof-04');
+let browser; let M; let cleanup = { result: 'NOT_REQUIRED', detail: 'nothing was owned' };
 try {
   ({ browser } = await launchChromium());
   M = await provisionMerchant({ prefix: 'appweb-p04' });
@@ -29,7 +33,7 @@ try {
   const link = await createPaymentLink(M.gw, { amountMinor: AMOUNT_MINOR, description: 'Proof 04 link' });
   R.note('PAYMENT_LINK', `slug=${link.slug} amount=${AMOUNT_MINOR} minor`);
 
-  const o = await payViaAppWebDeepLink(browser, { appWebUrl: link.appWebUrl, consumer });
+  const o = await payViaAppWebDeepLink(browser, { appWebUrl: link.appWebUrl, consumer, own });
 
   R.mark('APP_BOOTS_ON_DEEPLINK', o.appBooted, 'engine+semantics up');
   R.mark('APP_WEB_AUTH_THEN_RESUME', o.authRequired && o.reviewShown, `authRequired=${o.authRequired} review=${o.reviewShown}`);
@@ -54,6 +58,11 @@ try {
 } finally {
   // Cleanup: delete the workspace (revokes keys, retires project resources).
   try { if (M?.ws) await M.call('DELETE', `/workspaces/${M.ws}`, { name: M.wsName }); } catch { /* best effort */ }
+  // …and retire the consumer, whose 1 000 000 minor registration grant this
+  // proof kept on every previous run. Reported as its own result: a cleanup
+  // failure must not overwrite the functional one, and must not vanish either.
+  cleanup = await e2eCleanup(own);
+  R.mark('FIXTURE_CLEANUP_VERIFIED', cleanup.result !== 'FAILED', `${cleanup.result}: ${cleanup.detail}`);
   if (browser) await browser.close().catch(() => {});
   const out = R.write(assuranceDir('app-web'));
   console.log(`\nPROOF_04_DEEPLINK_RESUME_PAY=${R.ok ? 'PASS' : 'FAIL'} (${R.passed} pass / ${R.failed} fail)`);

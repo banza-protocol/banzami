@@ -426,6 +426,16 @@ check-validation-assurance-adapter:
 check-validation-cleanup-barrier:
 	node tools/check-validation-cleanup-barrier.mjs
 
+# Every disposable resource a journey creates must have a declared owner and a
+# retirement that runs when the scenario THROWS. The guard this replaced asked
+# /auth\/register/ of one file, so it never applied to proof 14 (UI) or proof 04
+# (three files deep) — both leaked a 1 000 000 minor grant per run for months.
+.PHONY: check-validation-fixture-lifecycle
+check-validation-fixture-lifecycle:
+	node tools/check-validation-fixture-lifecycle.mjs
+	node tools/check-validation-fixture-lifecycle.selftest.mjs
+	node tools/check-validation-commit-gate.selftest.mjs
+
 # Every owner gate, read live at the moment it prints. No hand-maintained
 # summary may override it: a prose counter already contradicted itself once,
 # "10 de 12" beside a list of three outstanding journeys, and neither number
@@ -445,7 +455,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-budget-truth check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-budget-truth check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.
