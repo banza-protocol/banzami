@@ -38,6 +38,13 @@ journey:
     cleanup:
       disposable: {type: list<string>}
       preserved:  {type: list<string>, note: "economic history — never deleted"}
+      # How much funded value this journey is permitted to LEAVE BEHIND, after
+      # its own cleanup has run. Default 0, and 0 is the answer for every
+      # journey today. This is not the exposure ceiling — that is
+      # max_synthetic_funds_exposure_minor, which is the peak DURING the
+      # journey. The aggregate Sandbox cap is on money HELD, so a journey that
+      # returns to its baseline costs nothing no matter how much it moved.
+      funds_residual_allowed_minor: {type: int, default: 0}
     depends_on:  {type: list<journey_id>}
     automation:  {enum: [full, partial, manual, blocked-external, device-only]}
     existing_harness:

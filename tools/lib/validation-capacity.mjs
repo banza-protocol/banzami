@@ -161,15 +161,38 @@ export function aggregateFunds() {
  * to reach it is for every journey to be killed before that runs. A bound you
  * can only reach through total failure is the right bound to authorise against.
  */
-export function plannedPeakFunds(plan, _readSource, journeysById = null) {
-  let declared = 0, unknown = [];
+export function plannedPeakFunds(plan, _readSource, journeysById = null, { barrier = false } = {}) {
+  let cumulative = 0, concurrent = 0, unknown = [];
   for (const p of plan) {
     const j = journeysById?.get?.(p.journey) ?? p;
     const v = j?.max_synthetic_funds_exposure_minor;
     if (typeof v !== 'number') { unknown.push(p.journey ?? p.harness ?? '?'); continue; }
-    declared += v;
+    cumulative += v;
+    concurrent = Math.max(concurrent, v);
   }
-  return { peak: declared, unknown };
+  // Two different bounds on two different state machines, and which one applies
+  // is a property of the RUNNER, never of the numbers.
+  //
+  //   without the barrier  a journey may leave its exposure behind, so the
+  //                        bound is the SUM: 56 950 000 for FULL, against a
+  //                        shared cap of 50 000 000. FULL does not fit.
+  //
+  //   with it (VD-009)     every journey is proven back at baseline before the
+  //                        next one starts — FAILED and UNDECLARED both stop
+  //                        the run — so at no instant is more than one
+  //                        journey's exposure outstanding, and the bound is the
+  //                        MAX.
+  //
+  // Both are returned always. Reporting only the smaller one would make FULL
+  // look feasible on a runner that cannot deliver the premise, which is exactly
+  // the invisible dependency VD-009 was opened about.
+  return {
+    cumulativeExposureBound: cumulative,
+    concurrentPeakMax: concurrent,
+    barrier,
+    peak: barrier ? concurrent : cumulative,
+    unknown,
+  };
 }
 
 /**

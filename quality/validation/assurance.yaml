@@ -330,7 +330,48 @@ known_issues:
   - id: VD-009
     title_pt: "O limite superior de fundos do FULL excede o tecto do Sandbox"
     title: FULL's upper-bound funded exposure exceeds the Sandbox cap
-    status: open
+    status: owner_gated
+    engineering_complete: "2026-09-19"
+    resolution: >-
+      The fix was never a larger cap: it is for the runner to VERIFY cleanup
+      after every journey and stop when residue is not proven nil. With that
+      barrier armed, no two journeys hold exposure at the same time, so FULL's
+      operative bound stops being the SUM of declared ceilings and becomes the
+      MAX of them:
+
+        CUMULATIVE_EXPOSURE_BOUND  56 950 000   (no barrier — what VD-009 measured)
+        NORMAL_PEAK_MAX             3 000 000   (barrier armed)
+        FAILURE_RESIDUAL_MAX        3 000 000
+        RETRY_PEAK_MAX              3 000 000
+        REQUIRED_HEADROOM           6 000 000   (was 113 900 000)
+
+      Both bounds are always returned by plannedPeakFunds and which one applies
+      is a property of the RUNNER, passed in explicitly — reporting only the
+      smaller one would make FULL look feasible on an executor that cannot
+      deliver the premise, which is the invisible dependency this defect was
+      opened about. FAILED and UNDECLARED both stop the run: the concurrent
+      bound holds only while every journey is PROVEN back at baseline, and an
+      unmeasured journey breaks the proof exactly as a leaking one does.
+      Migration 0161 records FUNCTIONAL_RESULT and CLEANUP_RESULT separately and
+      its CHECK refuses a PASSED journey whose cleanup failed, so the invariant
+      does not depend on the executor — the thing most likely to be edited in a
+      hurry during a failing run. make check-validation-cleanup-barrier is
+      mutation-proven on four points: letting UNDECLARED pass, continuing past a
+      failed cleanup, claiming before refusing, and dropping the schema CHECK.
+    evidence_that_it_was_real: >-
+      Measured on 2026-09-19 after the accepted GOLDEN run: aggregate funded
+      value rose from 14 952 600 to 18 872 600, and the read-only synthetic
+      audit attributes 2 650 000 of it to three RUN_OWNED_DISPOSABLE consumers
+      created that day (e2ep0ybf9zztu, e2efcmu8ai4zc, e2efcmu8aj5xa). The run
+      was a clean FUNCTIONAL pass and left funded value behind — which is
+      precisely the distinction 0161 exists to record, and which nothing could
+      express before it.
+    blocked_on: >-
+      OWNER — migration 0161 must be applied to the Sandbox through the operator
+      TTY ceremony (never psql; that is what caused the 0090–0095 drift). Until
+      it is, the runner REFUSES to claim a FULL run and says
+      VALIDATION_CLEANUP_BARRIER_UNAVAILABLE, leaving the run QUEUED and unspent
+      rather than burning an owner authorisation it cannot honour.
     severity: high
     scope: S-all — FULL readiness, not GOLDEN
     blocks_golden: false

@@ -227,6 +227,10 @@ function planFor(profileID) {
         timeoutMs: (j.timeout_seconds ?? 720) * 1000,
         retries: j.retry_policy === 'none' ? 0 : (j.infrastructure_retries ?? 0),
         blocking: blocking.has(suiteID),
+        // VD-009. A journey that creates nothing disposable has nothing to
+        // verify; every other one must return the funded value it took.
+        disposable: (j.cleanup?.disposable ?? []).length,
+        fundsResidualAllowed: Number(j.cleanup?.funds_residual_allowed_minor ?? 0),
       });
     }
   }
@@ -656,7 +660,10 @@ function actualSubmits(baseline) {
  * and the retry then needs its own.
  */
 function checkFundsBudget(profile, plan) {
-  const planned = plannedPeakFunds(plan);
+  // The barrier state is a fact about THIS executor and THIS schema, probed
+  // before the claim. Passing it in is what stops the smaller bound from being
+  // used by a runner that cannot deliver the premise behind it.
+  const planned = plannedPeakFunds(plan, null, null, { barrier: CLEANUP_BARRIER });
   if (planned.unknown.length) {
     die(`VALIDATION_AGGREGATE_FUNDS_PEAK_UNKNOWN: ${planned.unknown.length} journey(s) do not ` +
         `declare max_synthetic_funds_exposure_minor (${planned.unknown.join(', ')}). ` +
@@ -672,6 +679,9 @@ function checkFundsBudget(profile, plan) {
 
   log(`  funds: cap ${live.cap.toLocaleString('pt-PT')} · used ${live.used.toLocaleString('pt-PT')} · ` +
       `available ${live.available.toLocaleString('pt-PT')}`);
+  log(`  funds: cumulative-exposure bound ${planned.cumulativeExposureBound.toLocaleString('pt-PT')} · ` +
+      `concurrent peak max ${planned.concurrentPeakMax.toLocaleString('pt-PT')} · ` +
+      `bound in force ${planned.barrier ? 'CONCURRENT (barrier armed)' : 'CUMULATIVE (no barrier)'}`);
   log(`  funds: planned peak max ${bound.plannedPeakMax.toLocaleString('pt-PT')} · ` +
       `failed-run residual max ${bound.failedRunResidualMax.toLocaleString('pt-PT')} · ` +
       `retry peak max ${bound.retryPeakMax.toLocaleString('pt-PT')} · ` +
@@ -701,6 +711,23 @@ function checkFundsBudget(profile, plan) {
  * claim is time-bounded, and once it expires without a heartbeat the run is
  * free. The lease is not waived, only allowed to run out.
  */
+/**
+ * What the runner WOULD claim, without claiming it. Read-only.
+ *
+ * A start gate that can only refuse after claiming is not a gate: the claim is
+ * the irreversible step. An owner authorisation costs two step-up ceremonies
+ * and a run is terminal once it completes, so refusing a FULL run into a schema
+ * that cannot verify cleanup has to happen while the run is still QUEUED.
+ */
+function peekQueued(runRef) {
+  const pick = runRef ? `run_ref = ${lit(runRef)} AND ` : '';
+  const [row] = sql(`SELECT run_ref, profile_id FROM validation_runs
+                      WHERE ${pick}(state = 'QUEUED'
+                         OR (state = 'RUNNING' AND lease_expires_at < now()))
+                      ORDER BY requested_at LIMIT 1;`) ?? [];
+  return row ? { ref: row[0], profile: row[1] } : null;
+}
+
 function claim(runRef) {
   const pick = runRef ? `run_ref = ${lit(runRef)} AND ` : '';
   const [row] = sql(`
@@ -805,15 +832,29 @@ function main() {
     return;
   }
 
+  // VD-009. FULL is feasible only because cleanup works, so a FULL run must not
+  // start into a schema that cannot record whether it did. Checked BEFORE the
+  // claim: refusing afterwards would burn an owner authorisation that cannot be
+  // reissued without another two step-up ceremonies.
+  probeCleanupBarrier();
+  const waiting = peekQueued(cli.run ?? null);
+  if (waiting && waiting.profile === 'FULL' && !CLEANUP_BARRIER) {
+    die('VALIDATION_CLEANUP_BARRIER_UNAVAILABLE — the queued run is FULL and the ' +
+        'deployed schema predates migration 0161, so per-journey cleanup cannot be ' +
+        'verified or recorded. FULL\'s upper bound exceeds the aggregate funds cap ' +
+        'without it. The run is left QUEUED and unspent.');
+  }
+
   const run = claim(cli.run ?? null);
   if (!run) { log('no QUEUED run to claim'); return; }
+  log(`  cleanup barrier: ${CLEANUP_BARRIER ? 'ARMED (0161)' : 'not deployed — results not recorded'}`);
   log(`${run.adopted ? 'adopted' : 'claimed'} ${run.ref} (${run.profile}) as ${EXECUTOR}`);
 
   const { profile, plan } = planFor(run.profile);
   const beat = setInterval(() => { try { heartbeat(run.id); } catch { /* next tick */ } }, HEARTBEAT_SECONDS * 1000);
 
   let failedBlocking = 0, passed = 0, failed = 0, skipped = 0;
-  let spent = 0, budgetStopped = null, submitsActual = null;
+  let spent = 0, budgetStopped = null, submitsActual = null, cleanupStopped = null;
   try {
     // The plan is materialised first, so a run always says what it INTENDED to
     // do — even if it is cancelled after the second journey.
@@ -874,16 +915,56 @@ function main() {
       sql(`UPDATE validation_run_journeys SET outcome='OBSERVED', started_at=now()
            WHERE run_id=${lit(run.id)}::uuid AND journey_id=${lit(p.journey)};`, { rows: false });
 
+      // Read the funded-value baseline immediately before the harness, so the
+      // window the residual is measured over is the journey and nothing else.
+      let fundsBaselineForJourney = null;
+      try { fundsBaselineForJourney = aggregateFunds().used; } catch { /* verifyCleanup says UNDECLARED */ }
+
       const r = runHarness(p.harness, p.timeoutMs, run.ref,
         { adapter: p.adapter, args: p.args, evidenceStem: p.evidenceStem });
       for (const g of r.gates) recordGate(run.id, p, g);
 
-      const outcome = r.ok ? 'PASSED' : 'FAILED';
+      // FUNCTIONAL_RESULT and CLEANUP_RESULT are two answers to two questions.
+      // A journey can work perfectly and still leave the Sandbox worse than it
+      // found it, and that is not a clean pass — for FULL acceptance or for the
+      // journey after it, which inherits the resource.
+      const functional = r.ok ? 'PASSED' : 'FAILED';
+      const cleanup = verifyCleanup(p, fundsBaselineForJourney);
+      const outcome = functional === 'PASSED' && ['VERIFIED', 'NOT_REQUIRED'].includes(cleanup.result)
+        ? 'PASSED' : 'FAILED';
+
       const asserted = r.gates.filter((g) => g.verdict !== 'NOTE').length;
-      mark(run.id, p, outcome,
-        r.ok ? `${asserted} assertions, ${r.gates.length - asserted} measurements` : r.reason);
-      if (r.ok) passed++; else { failed++; if (p.blocking) failedBlocking++; }
-      log(`  ${p.journey}  ${outcome}  ${Math.round(r.durationMs / 1000)}s  ${r.reason}`);
+      const detail = functional === 'PASSED'
+        ? `${asserted} assertions, ${r.gates.length - asserted} measurements` +
+          (outcome === 'PASSED' ? '' : ` — cleanup ${cleanup.result}: ${cleanup.detail}`)
+        : r.reason;
+      mark(run.id, p, outcome, detail, { functional, cleanup });
+
+      if (outcome === 'PASSED') passed++; else { failed++; if (p.blocking) failedBlocking++; }
+      log(`  ${p.journey}  ${outcome}  ${Math.round(r.durationMs / 1000)}s  ${r.reason}` +
+          (p.disposable ? `  · cleanup ${cleanup.result}` : ''));
+
+      // The barrier. A journey that left funded value behind has taken a share
+      // of a cap the rest of the run needs, so the next journey does not start:
+      // it would be measured against a baseline that already contains the leak,
+      // and the run would report a cascade of failures with one cause.
+      // FAILED and UNDECLARED both stop the run, for the same reason. The
+      // concurrent-peak bound that makes FULL fit inside the aggregate cap
+      // holds only while every journey is PROVEN to have returned to baseline;
+      // an unmeasured journey breaks the proof just as a leaking one does, and
+      // continuing would mean every later journey measures against a baseline
+      // no longer known to be clean. Unmeasured is not a smaller failure.
+      if (['FAILED', 'UNDECLARED'].includes(cleanup.result)) {
+        cleanupStopped = `${p.journey} — cleanup ${cleanup.result}: ${cleanup.detail}`;
+        log(`  CLEANUP BARRIER — ${cleanupStopped}; stopping the run`);
+        for (const later of plan.slice(plan.indexOf(p) + 1)) {
+          if (stateOf(run.id) === 'CANCELLED') break;
+          mark(run.id, later, 'SKIPPED', 'not started: the run stopped at a cleanup barrier',
+            { functional: 'UNAVAILABLE', cleanup: { result: 'NOT_REACHED', detail: `stopped at ${p.journey}` } });
+          skipped++;
+        }
+        break;
+      }
     }
 
     const state = stateOf(run.id);
@@ -919,14 +1000,15 @@ function main() {
 
     // Stopping on budget is not a pass with a caveat. The run did not execute
     // its universe, so it cannot claim what passing it would have claimed.
-    const verdict = failedBlocking === 0 && failed === 0 && !budgetStopped ? 'PASS' : 'FAIL';
+    const verdict = failedBlocking === 0 && failed === 0 && !budgetStopped && !cleanupStopped ? 'PASS' : 'FAIL';
     sql(`UPDATE validation_runs SET state='COMPLETED', verdict=${lit(verdict)}, ended_at=now()
          WHERE id=${lit(run.id)}::uuid;`, { rows: false });
     event(run.id, 'RUNNING', 'COMPLETED',
       `${passed} passed, ${failed} failed (${failedBlocking} blocking), ${skipped} unavailable` +
       (ceiling > 0 ? `; spent ${spent} of ${ceiling} minor` : '') +
       (submitsActual !== null ? `; ${submitsActual} of ${budget.declared} application submit(s)` : '') +
-      (budgetStopped ? `; STOPPED ON BUDGET — ${budgetStopped}` : ''));
+      (budgetStopped ? `; STOPPED ON BUDGET — ${budgetStopped}` : '') +
+      (cleanupStopped ? `; STOPPED AT CLEANUP BARRIER — ${cleanupStopped}` : ''));
 
     // The durable record is written and committed above. Only now is there
     // anything to summarise: the console summary is a READ-BACK, not a second
@@ -993,9 +1075,94 @@ function summarise(runID, runRef, expected) {
   }
 }
 
-function mark(runID, p, outcome, detail) {
-  sql(`UPDATE validation_run_journeys SET outcome=${lit(outcome)}, detail=${lit(detail)}, ended_at=now()
+function mark(runID, p, outcome, detail, results = null) {
+  // The two results are written in the same statement as the terminal outcome,
+  // so there is no window in which a journey is PASSED with no record of
+  // whether it cleaned up. 0161's CHECK refuses that combination anyway; this
+  // is so the refusal never has to fire.
+  const extra = results && CLEANUP_BARRIER
+    ? `, functional_result=${lit(results.functional)}` +
+      `, cleanup_result=${lit(results.cleanup.result)}` +
+      `, cleanup_detail=${lit(results.cleanup.detail)}` +
+      `, cleanup_verified_at=${results.cleanup.result === 'VERIFIED' ? 'now()' : 'NULL'}`
+    : '';
+  sql(`UPDATE validation_run_journeys SET outcome=${lit(outcome)}, detail=${lit(detail)}${extra}, ended_at=now()
        WHERE run_id=${lit(runID)}::uuid AND journey_id=${lit(p.journey)};`, { rows: false });
+}
+
+/* ── VD-009: the cleanup barrier ─────────────────────────────────────────────
+ *
+ * FULL's no-cleanup upper bound on funded value is 56 950 000 minor against a
+ * shared cap of 50 000 000. FULL is feasible only because cleanup works, and
+ * nothing verified that it did — proof 15 leaked 500 000 per run until 42
+ * consumers held 79% of the cap and the next funding call was refused.
+ */
+
+/** Does the deployed schema carry 0161? Probed once, never assumed. */
+let CLEANUP_BARRIER = false;
+function probeCleanupBarrier() {
+  try {
+    const [row] = sql(
+      `SELECT count(*) FROM information_schema.columns
+        WHERE table_name='validation_run_journeys'
+          AND column_name IN ('functional_result','cleanup_result','cleanup_detail');`);
+    CLEANUP_BARRIER = Number(row?.[0]) === 3;
+  } catch { CLEANUP_BARRIER = false; }
+  return CLEANUP_BARRIER;
+}
+
+/**
+ * Measure what the journey left behind.
+ *
+ * The resource with a ceiling is funded value HELD, and the aggregate reading
+ * is the whole Sandbox — which is exactly the right instrument for this
+ * question: if the total is back where it started, the cap is not being
+ * consumed, regardless of who owned what.
+ *
+ * The confound is real and is not smoothed over: this Sandbox also carries
+ * DOA's production traffic, so a concurrent payment moves the same number. A
+ * rise is therefore treated as failure (fail closed, at the cost of an
+ * occasional false abort) and a fall is NOT read as proof that this journey
+ * leaked nothing — only that the shared resource is not being exhausted, which
+ * is the invariant a FULL run depends on.
+ */
+function verifyCleanup(p, baseline) {
+  let after = null;
+  let unreadable = null;
+  if (baseline !== null) {
+    try { after = aggregateFunds().used; }
+    catch (e) { unreadable = String(e.message).slice(0, 120); }
+  }
+  return cleanupVerdict(p, baseline, after, unreadable);
+}
+
+/** The decision, with no I/O in it, so every branch can be proven. */
+export function cleanupVerdict(p, baseline, after, unreadable = null) {
+  if (!p.disposable) {
+    return { result: 'NOT_REQUIRED', detail: 'the registry declares nothing disposable for this journey' };
+  }
+  if (baseline === null) {
+    return { result: 'UNDECLARED', detail: 'no funded-value baseline was readable before the journey' };
+  }
+  if (unreadable !== null || after === null) {
+    return { result: 'UNDECLARED', detail: `funded value unreadable after the journey: ${unreadable ?? 'no reading'}` };
+  }
+
+  const residual = after - baseline;
+  const allowed = p.fundsResidualAllowed ?? 0;
+  if (residual > allowed) {
+    return {
+      result: 'FAILED',
+      detail: `${residual.toLocaleString('pt-PT')} minor of funded value remained` +
+        (allowed ? ` against an allowance of ${allowed.toLocaleString('pt-PT')}` : ' (allowance 0)'),
+    };
+  }
+  return {
+    result: 'VERIFIED',
+    detail: residual === 0
+      ? 'funded value returned to its pre-journey total'
+      : `funded value ${residual < 0 ? 'fell by' : 'rose by'} ${Math.abs(residual).toLocaleString('pt-PT')} minor, within the allowance`,
+  };
 }
 
 /** One harness gate becomes one evidence row. The artifact is referenced by

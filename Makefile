@@ -418,6 +418,14 @@ check-validation-budget-truth:
 check-validation-assurance-adapter:
 	node tools/check-validation-assurance-adapter.mjs
 
+# VD-009. FULL's no-cleanup upper bound is 56 950 000 minor against a shared cap
+# of 50 000 000: it is feasible only because cleanup works, and nothing verified
+# that it did. Proof 15 leaked 500 000 per run until 42 consumers held 79% of
+# the cap. The accepted GOLDEN run left 2 650 000 behind in three consumers.
+.PHONY: check-validation-cleanup-barrier
+check-validation-cleanup-barrier:
+	node tools/check-validation-cleanup-barrier.mjs
+
 # Every owner gate, read live at the moment it prints. No hand-maintained
 # summary may override it: a prose counter already contradicted itself once,
 # "10 de 12" beside a list of three outstanding journeys, and neither number
@@ -437,7 +445,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-budget-truth check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-budget-truth check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.
