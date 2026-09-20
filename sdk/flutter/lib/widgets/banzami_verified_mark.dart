@@ -33,6 +33,13 @@ class BanzamiVerifiedMark extends StatefulWidget {
   /// immersive receipt's, while staying the exact same object.
   final bool reverseSpin;
 
+  /// Override the dashed ring colour (default: white on dark, primary tint on light).
+  final Color? ringColor;
+
+  /// How far above the dashed ring the fixed BANZAMI label sits, as a fraction of
+  /// size (bigger = higher). Default 0.16.
+  final double labelGap;
+
   const BanzamiVerifiedMark({
     super.key,
     this.size = 96,
@@ -41,6 +48,8 @@ class BanzamiVerifiedMark extends StatefulWidget {
     this.coreMid,
     this.coreEdge,
     this.reverseSpin = false,
+    this.ringColor,
+    this.labelGap = 0.16,
   });
 
   @override
@@ -83,9 +92,10 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
 
     // On a light background the white ring/label vanish — switch them to the
     // primary tone. On dark they stay white. The cherry core never changes.
-    final ringColor = widget.onLight
-        ? BanzamiColors.primary.withValues(alpha: 0.45)
-        : BanzamiColors.white.withValues(alpha: 0.52);
+    final ringColor = widget.ringColor ??
+        (widget.onLight
+            ? BanzamiColors.primary.withValues(alpha: 0.45)
+            : BanzamiColors.white.withValues(alpha: 0.52));
     final labelColor = widget.onLight
         ? BanzamiColors.primaryDark.withValues(alpha: 0.90)
         : BanzamiColors.white.withValues(alpha: 0.92);
@@ -168,7 +178,7 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
           // Stays pinned while the full dashed ring rotates beneath it. The
           // 0.16 offset lifts it clear of the ring for comfortable separation.
           Positioned(
-            top: size * (0.50 - ringR - 0.16),
+            top: size * (0.50 - ringR - widget.labelGap),
             left: 0,
             right: 0,
             child: Text(

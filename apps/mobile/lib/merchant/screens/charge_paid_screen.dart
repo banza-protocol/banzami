@@ -29,7 +29,11 @@ class ChargePaidScreen extends StatelessWidget {
               const Spacer(flex: 2),
               const Center(
                   child: BanzamiVerifiedMark(
-                      size: 96, onLight: true, reverseSpin: true)),
+                      size: 96,
+                      onLight: true,
+                      reverseSpin: true,
+                      ringColor: BanzamiColors.white,
+                      labelGap: 0.30)),
               const SizedBox(height: BanzamiSpacing.lg),
               const Text(
                 'Pagamento recebido',
