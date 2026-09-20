@@ -10,11 +10,15 @@ class ReceivePaidScreen extends StatelessWidget {
   final String currency;
   final String? note;
 
+  /// The payer, "@"-prefixed (e.g. "@ana"), when known.
+  final String? from;
+
   const ReceivePaidScreen({
     super.key,
     required this.amountMinor,
     required this.currency,
     this.note,
+    this.from,
   });
 
   @override
@@ -48,6 +52,15 @@ class ReceivePaidScreen extends StatelessWidget {
                     size: MoneySize.xl,
                     tone: MoneyTone.brand,
                     align: TextAlign.center),
+              if (from != null && from!.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'de ${from!.trim()}',
+                  style: BanzamiTextStyles.bodyMd
+                      .copyWith(color: BanzamiColors.gray700),
+                  textAlign: TextAlign.center,
+                ),
+              ],
               if (note != null && note!.trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(

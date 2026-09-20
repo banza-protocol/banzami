@@ -60,7 +60,17 @@ ConsumerPublicClient _client(_State st) => ConsumerPublicClient(
       httpClient: MockClient((req) async {
         final p = req.url.path;
         if (p.contains('/v1/me/activity')) {
-          return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          // Once paid, the incoming payment appears here carrying the payer's handle.
+          final items = st.paid
+              ? [
+                  {
+                    'activity_id': 'a1', 'item_type': 'TRANSFER', 'direction': 'INCOMING',
+                    'amount_minor': 250000, 'currency': 'AOA', 'status': 'COMPLETED',
+                    'created_at': _now, 'counterparty_handle': 'ana', 'transfer_id': 'tr1',
+                  }
+                ]
+              : <dynamic>[];
+          return http.Response(jsonEncode({'items': items}), 200);
         }
         if (req.method == 'POST' && p.endsWith('/v1/consumer-pay-links')) {
           return http.Response(jsonEncode(_link('ACTIVE')), 200);
@@ -124,6 +134,8 @@ void main() {
     // Confirmation shown; the defined amount is cleared behind it.
     expect(find.text('Pagamento recebido'), findsOneWidget,
         reason: 'received-confirmation screen shown');
+    expect(find.text('de @ana'), findsOneWidget,
+        reason: 'the payer is shown on the confirmation');
 
     // Return to Receber: the amount is gone (back to "Definir montante").
     await t.tap(find.widgetWithText(BanzamiPrimaryButton, 'Concluir'));

@@ -149,14 +149,29 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       final amount = link.amountMinor;
       final currency = link.currency;
       final note = link.note;
+      // Resolve who paid: the incoming activity item for THIS transfer carries the
+      // payer's @handle (the pay link itself does not). Best-effort — omit if unknown.
+      String? from;
+      if (latest.transferId != null) {
+        try {
+          final page = await client.getActivity(limit: 20, directionFilter: 'INCOMING');
+          for (final a in page.items) {
+            if (a.transferId != null && a.transferId == latest.transferId) {
+              from = a.counterpartyAt ?? a.counterpartyDisplayName;
+              break;
+            }
+          }
+        } catch (_) {/* best-effort */}
+      }
+      if (!mounted) return;
       setState(() => _activeLink = null); // QR back to the plain address
       _loadReceived(); // reflect the new incoming payment in the list
-      if (!mounted) return;
       await Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => ReceivePaidScreen(
           amountMinor: amount,
           currency: currency,
           note: note,
+          from: from,
         ),
       ));
     });
