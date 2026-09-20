@@ -8,7 +8,6 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../../branding_assets.dart';
 import '../config.dart';
 import '../services/merchant_session_service.dart';
-import 'charge_paid_screen.dart';
 import 'split_track_screen.dart';
 
 /// Cria uma cobrança (link de pagamento) e exibe o QR + link para partilhar.
@@ -134,13 +133,35 @@ class _ChargeScreenState extends State<ChargeScreen> {
       final amount = link.amountMinor;
       final currency = link.currency;
       final desc = link.description;
+      // Resolve who paid — the same confirmation runs on the Consumer side and shows
+      // the payer, so the Business side does too. The link status is a bare boolean,
+      // so we read the payer from the merchant's own received wallet-payments: the
+      // newest one matching this link's amount (a payment just landed). Best-effort,
+      // with a brief retry for the feed lagging the status flip.
+      String? from;
+      for (var i = 0; i < 5 && from == null && mounted; i++) {
+        try {
+          final page = await client.listMerchantWalletPayments(limit: 20);
+          for (final pmt in page.items) {
+            if ((amount == null || pmt.amountMinor == amount) &&
+                pmt.payerName.trim().isNotEmpty) {
+              from = pmt.payerName.trim();
+              break;
+            }
+          }
+        } catch (_) {/* best-effort */}
+        if (from == null) {
+          await Future<void>.delayed(const Duration(milliseconds: 800));
+        }
+      }
       _reset(); // the QR screen disappears (back to a fresh form)
       if (!mounted) return;
       await Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ChargePaidScreen(
+        builder: (_) => PaymentReceivedScreen(
           amountMinor: amount,
           currency: currency,
-          description: desc,
+          from: from,
+          note: desc,
         ),
       ));
     });

@@ -10,7 +10,6 @@ import '../branding_assets.dart';
 import '../config.dart';
 import '../services/session_service.dart';
 import '../widgets/sandbox_banner.dart';
-import 'receive_paid_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Bottom-sheet widget — collects amount + optional note, calls API, pops link
@@ -174,7 +173,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       setState(() => _activeLink = null); // QR back to the plain address
       _loadReceived(); // reflect the new incoming payment in the list
       await Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ReceivePaidScreen(
+        builder: (_) => PaymentReceivedScreen(
           amountMinor: amount,
           currency: currency,
           note: note,

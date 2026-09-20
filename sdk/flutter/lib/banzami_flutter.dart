@@ -115,6 +115,7 @@ export 'screens/confirm_screen.dart';
 export 'screens/payment_request_screen.dart';
 export 'screens/payment_link_screen.dart';
 export 'screens/receipt_screen.dart';
+export 'screens/payment_received_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
 export 'screens/qr_pay_screen.dart';

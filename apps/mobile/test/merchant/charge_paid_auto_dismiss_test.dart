@@ -79,6 +79,20 @@ BanzamiClient _client(_State st) => BanzamiClient(
         if (p == '/public/pay/SLUGPL1/status') {
           return http.Response(jsonEncode({'paid': st.paid}), 200);
         }
+        // Once paid, the received payment appears here carrying the payer's handle —
+        // the confirmation resolves the payer from it (same as the Consumer side).
+        if (p == '/v1/merchant/wallet-payments') {
+          final items = st.paid
+              ? [
+                  {
+                    'id': 'wp1', 'reference': 'BZM-1', 'amount_minor': 25000,
+                    'currency': 'AOA', 'status': 'COMPLETED', 'payer_name': '@kiara',
+                    'created_at': _now, 'receipt_available': true,
+                  }
+                ]
+              : <dynamic>[];
+          return http.Response(jsonEncode({'items': items}), 200);
+        }
         return http.Response('{}', 200);
       }),
     );
@@ -128,6 +142,8 @@ void main() {
         reason: 'the QR screen auto-dismissed');
     expect(find.text('Pagamento recebido'), findsOneWidget,
         reason: 'the payment confirmation screen is shown');
+    expect(find.text('de @kiara'), findsOneWidget,
+        reason: 'the payer is shown on the Business confirmation too');
     await t.pumpWidget(const SizedBox()); // dispose (cancel the poll)
   });
 
