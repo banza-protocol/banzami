@@ -142,6 +142,9 @@ export const BUSINESS_ALLOWLIST = [
   { m: 'GET', re: `^/v1/payment-links$`, auth: 'required' },
   { m: 'GET', re: `^/v1/payment-links/${G}$`, auth: 'required' },
   { m: 'DELETE', re: `^/v1/payment-links/${G}$`, auth: 'required', mutating: true, csrf: true },
+  // Poll a simple charge's payment link status so the QR screen auto-dismisses into
+  // the confirmation once paid (public read; gateway serves /public/pay/{slug}/status).
+  { m: 'GET', re: `^/public/pay/${G}/status$`, auth: 'optional' },
 
   // Dividir a conta (split charge) — Collections (BANZA ADR-016) + PaymentIntent
   // (ADR-015). The native merchant app's Dividida flow runs on Business Web via the

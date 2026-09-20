@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -6,6 +8,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../../branding_assets.dart';
 import '../config.dart';
 import '../services/merchant_session_service.dart';
+import 'charge_paid_screen.dart';
 import 'split_track_screen.dart';
 
 /// Cria uma cobrança (link de pagamento) e exibe o QR + link para partilhar.
@@ -49,6 +52,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
   static const int _kMaxMinor  = 1000000000; // 10 000 000 Kz sanity cap (minor)
 
   bool         _creating = false;
+  /// Polls the simple-charge link status; on payment the QR auto-dismisses into
+  /// the confirmation screen. Cancelled on reset/dispose/back.
+  Timer?       _paidPoll;
   bool         _sharing  = false;
   String?      _error;
   PaymentLink? _link;          // simple result
@@ -60,6 +66,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
   @override
   void dispose() {
+    _paidPoll?.cancel();
     _descCtrl.dispose();
     super.dispose();
   }
@@ -100,11 +107,43 @@ class _ChargeScreenState extends State<ChargeScreen> {
         description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
       );
       setState(() => _link = link);
+      _startPaidPoll(link);
     } catch (e) {
       if (mounted) setState(() => _error = banzamiErrorMessage(e));
     } finally {
       if (mounted) setState(() => _creating = false);
     }
+  }
+
+  /// Poll the payment link every few seconds while its QR is shown. As soon as it
+  /// is paid, dismiss the QR (reset the form) and show the payment confirmation —
+  /// no manual refresh. Mirrors the split-charge share auto-dismiss.
+  void _startPaidPoll(PaymentLink link) {
+    _paidPoll?.cancel();
+    final client = context.read<BanzamiClient>();
+    _paidPoll = Timer.periodic(const Duration(seconds: 4), (_) async {
+      bool paid;
+      try {
+        paid = await client.getPaymentLinkStatus(link.slug);
+      } catch (_) {
+        return; // transient; try again on the next tick
+      }
+      // Only act if this exact link is still the one on screen.
+      if (!paid || !mounted || _link?.id != link.id) return;
+      _paidPoll?.cancel();
+      final amount = link.amountMinor;
+      final currency = link.currency;
+      final desc = link.description;
+      _reset(); // the QR screen disappears (back to a fresh form)
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ChargePaidScreen(
+          amountMinor: amount,
+          currency: currency,
+          description: desc,
+        ),
+      ));
+    });
   }
 
   // ── Split charge ─────────────────────────────────────────────────────────────
@@ -169,7 +208,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
     }
   }
 
-  void _reset() => setState(() {
+  void _reset() {
+    _paidPoll?.cancel();
+    setState(() {
         _link            = null;
         _error           = null;
         _amountMinor     = null;
@@ -178,6 +219,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
         _people = _kMinPeople;
         _split  = false;
       });
+  }
 
   @override
   Widget build(BuildContext context) {

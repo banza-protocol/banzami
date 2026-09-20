@@ -65,6 +65,8 @@ test('business allow-list forwards the canonical Business routes', () => {
   const surface = matchRoute('POST', '/v1/collection-shares/sh_abc123/surface', 'business');
   assert.ok(surface && surface.auth === 'required' && surface.csrf === true); // surface a share as a payment link
   assert.ok(matchRoute('POST', '/v1/collections/col_abc123/cancel', 'business')?.csrf === true);
+  // Simple-charge QR auto-dismiss polls the public pay-link status through the BFF.
+  assert.ok(matchRoute('GET', '/public/pay/sl_abc123/status', 'business')?.auth === 'optional');
   // Not an open proxy: no unknown collections verb/segment leaks through.
   assert.equal(matchRoute('DELETE', '/v1/collections/col_abc123', 'business'), null);
   assert.equal(matchRoute('POST', '/v1/collections/col_abc123/shares/extra', 'business'), null);
