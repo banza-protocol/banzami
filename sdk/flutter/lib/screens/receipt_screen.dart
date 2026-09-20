@@ -247,18 +247,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
       widget.transfer.completedAt ??
       widget.transfer.createdAt;
 
-  /// The official receipt clock — Luanda time, labelled (WAT) — the same the
-  /// PDF and the public verifier print. An incoming transfer opened from a
-  /// push knows no time of its own until the receipt arrives: it says so
-  /// rather than printing the moment the notification was tapped.
-  String get _dateLong {
-    if (widget.incoming && _receipt?.confirmedAt == null) {
-      return _receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…';
-    }
-    return BanzamiDateFormatter.formatOfficialReceipt(_when);
-  }
-
-  /// The same official instant as [_dateLong], numeric ("20/09/2026, 07:06").
+  /// The official receipt clock — Luanda time (WAT, UTC+1) — the same instant
+  /// the PDF and the public verifier print, shown numeric ("20/09/2026, 07:06").
+  /// An incoming transfer opened from a push knows no time of its own until the
+  /// receipt arrives: it says so rather than printing the moment the
+  /// notification was tapped.
   String get _dateNumeric {
     if (widget.incoming && _receipt?.confirmedAt == null) {
       return _receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…';
@@ -402,7 +395,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         'Referência do comerciante: ${r.merchantReference}',
       if (r.displayContext != null) 'Finalidade: ${r.displayContext}',
       if (r.description != null) 'Descrição: ${r.description}',
-      'Data: $_dateLong',
+      'Data: $_dateNumeric',
       if (r.fundingLabel != null) 'Fonte: ${r.fundingLabel}',
       'Comprovativo: ${r.proofReference}',
       'Verificar: ${r.verificationUrl ?? 'https://banzami.com/r/${r.proofReference}'}',
