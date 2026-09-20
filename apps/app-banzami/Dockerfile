@@ -60,6 +60,9 @@ COPY --from=webbuild /src/apps/mobile/build/web ./web
 # yields a new URL — no browser/CDN can serve a stale font subset after a deploy
 # (BUSINESS-WEB-ICON defect fix). Build-time content hash, not a runtime timestamp.
 RUN node scripts/content-address-fonts.mjs ./web
+# Harden the service worker: purge + unregister any stale offline cache from a
+# previous deploy on activate (BUSINESS-WEB-ICON defect, part 2).
+RUN node scripts/harden-service-worker.mjs ./web
 RUN chown -R banzami:banzami /app
 USER banzami
 EXPOSE 3007

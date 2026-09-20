@@ -35,4 +35,10 @@ cp -R build/web/. "$DEST/"
 # timestamp). Must run AFTER the bundle is staged into $DEST.
 node "$ROOT/apps/app-banzami/scripts/content-address-fonts.mjs" "$DEST"
 
+# Harden the service worker so a browser stuck on a previous deploy's offline
+# cache (e.g. an old MaterialIcons subset missing bar_chart/notifications) is
+# purged and unregistered on activate — not just unregistered (BUSINESS-WEB-ICON
+# defect, part 2).
+node "$ROOT/apps/app-banzami/scripts/harden-service-worker.mjs" "$DEST"
+
 echo "App Banzami Web bundle staged → $DEST (env=$ENVIRONMENT, api=$PUBLIC_API_URL)"
