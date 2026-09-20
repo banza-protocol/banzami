@@ -130,6 +130,7 @@ const ACCEPTED_TOP_LEVEL = new Set([
   'tests',               // cross-cutting test harnesses (e.g. tests/phase0 E2E). Not a source of truth.
   '.git', '.github', '.gitignore', '.env', '.env.example',
   '.claude',             // Claude Code project config (memory, commands)
+  '.githooks',           // tracked git hooks (pre-commit); wired via core.hooksPath
   '.DS_Store',           // macOS filesystem artifact
   '.tmux.conf',          // tmux developer config
   '.gitleaks.toml',      // secret-scan policy for `make security-check` (docs/security/BANZAMI_SECURITY_AUDIT.md)

@@ -870,6 +870,7 @@ The repository layout is frozen. The semantic zones below are binding architectu
 | `SECURITY.md` | How to report a vulnerability, what is in scope, and what is actually running (Sandbox only; Financial LIVE fail-closed). Required for a public repository — without it a researcher's only option is a public issue. |
 | `LICENSE` | Banzami operator/platform source is proprietary, All Rights Reserved. Publication is not a grant of licence. Separately licensed published packages are enumerated there: `sdk/typescript` and `sdk/dart-client`, both MIT. The BANZA protocol is a separate project with its own licence. |
 | `.gitleaks.toml` | Secret-scan policy for `make security-check`. Allowlists generated output and documented placeholders **by value shape**, never by blanket rule suppression — a real credential in any file still fails. |
+| `.githooks/` | Tracked git hooks (e.g. `pre-commit`), wired via `git config core.hooksPath .githooks`. Repo-local developer tooling only — never a source of truth and never a deploy input. |
 | `tests/` | Cross-cutting test harnesses that span more than one zone (e.g. `tests/phase0/` end-to-end and evidence harnesses). Test artifacts only — never a source of truth and never protocol authority. Service-local unit tests still live beside their code. |
 
 ## 19.2 Frozen Rules
