@@ -98,6 +98,14 @@ e2e_begin() {
   E2E_MANIFEST="$E2E_STATE_DIR/$E2E_RUN_ID.tsv"
   : > "$E2E_MANIFEST"
 
+  # Create the runner's manifest empty, so the runner can tell "this harness
+  # ran and owned nothing" from "this harness never reached e2e_begin". Those
+  # are different facts and only one of them is benign.
+  if [ -n "${BZ_OWNERSHIP_MANIFEST:-}" ]; then
+    mkdir -p "$(dirname "$BZ_OWNERSHIP_MANIFEST")"
+    : > "$BZ_OWNERSHIP_MANIFEST"
+  fi
+
   e2e_discover
 
   # A trap on EXIT alone misses Ctrl-C in some shells and misses TERM always.
@@ -118,6 +126,39 @@ e2e_name() { printf 'e2e-%s-%s' "$1" "$E2E_SHORT"; }
 e2e_own() {
   [ -n "${2:-}" ] || return 0
   printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$E2E_MANIFEST"
+  e2e_own_canonical "$1" "$2" "${3:-}"
+}
+
+# ── the runner's ownership contract ─────────────────────────────────────────
+#
+# The TSV above is this harness's own cleanup list and stays exactly as it was.
+# It could never reach the Validation Runner, and the reason was not one bug but
+# three: a different FORMAT (tab-separated versus records), a different NAME
+# (a self-generated run id versus the run and journey), and a different MACHINE
+# — these harnesses execute on the Sandbox VM and the runner reads its own
+# /tmp. Any one alone was enough. So thirteen shell journeys declared ownership
+# correctly, twice each in S10's case, and the runner saw nothing at all.
+#
+# The runner now hands the context down explicitly, and this writes the
+# canonical record beside the TSV. Identity is never derived from a filename or
+# a process name: run_ref, journey_id and the nonce all come from the runner
+# and all travel in every record, so a manifest left by a previous run cannot
+# be mistaken for this one's.
+#
+# Append-only NDJSON: a harness killed mid-write loses at most its last line,
+# and every line before it is still a complete, parseable record.
+e2e_own_canonical() {
+  [ -n "${BZ_OWNERSHIP_MANIFEST:-}" ] || return 0
+  local kind="$1" id="$2" owner="${3:-}"
+  # Values are JSON strings: escape what would otherwise break the record.
+  local esc_id esc_owner esc_kind
+  esc_kind=$(printf '%s' "$kind"  | sed 's/\\/\\\\/g; s/"/\\"/g')
+  esc_id=$(printf '%s' "$id"      | sed 's/\\/\\\\/g; s/"/\\"/g')
+  esc_owner=$(printf '%s' "$owner"| sed 's/\\/\\\\/g; s/"/\\"/g')
+  printf '{"schema_version":1,"run_ref":"%s","journey_id":"%s","nonce":"%s","resource_type":"%s","resource_id":"%s","created_at":"%s","cleanup_required":true,"creation_source":"e2e_own","financial_owner_id":"%s"}\n' \
+    "${BZ_VALIDATION_RUN_REF:-}" "${BZ_VALIDATION_JOURNEY:-}" "${BZ_OWNERSHIP_NONCE:-}" \
+    "$esc_kind" "$esc_id" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$esc_owner" \
+    >> "$BZ_OWNERSHIP_MANIFEST"
 }
 
 # ── retirement ──────────────────────────────────────────────────────────────

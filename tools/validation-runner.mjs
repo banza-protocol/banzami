@@ -25,7 +25,7 @@
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomUUID, randomBytes } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSuiteSummary } from './e2e/lib/parse-suite-summary.mjs';
@@ -299,17 +299,141 @@ export function scrub(text) {
  * means the adapter did not understand the harness, and a misunderstood harness
  * must not be reported as proof.
  */
-export function runShellHarness(harness, timeoutMs, runRef = 'adhoc') {
+/**
+ * The ownership context for one shell journey. The RUNNER allocates it.
+ *
+ * Identity is never derived from a filename or a process name: the run, the
+ * journey and a nonce are minted here and travel in every record the harness
+ * writes, so a manifest left behind by an earlier run — same host, same ref,
+ * same script — cannot be read as belonging to this one.
+ */
+/** Single-quote a value for a remote shell command line. */
+const shq = (v) => `'${String(v).replace(/'/g, `'\\''`)}'`;
+
+/**
+ * Bring the journey's ownership manifest back from the VM.
+ *
+ * Returns a discriminated result rather than an array, because "the harness
+ * ran and owned nothing" and "there is no manifest" are different facts and
+ * only one of them is benign. An empty manifest exists because e2e_begin
+ * creates it; a missing one means the harness never got that far.
+ */
+function collectOwnership(ctx) {
+  let text;
+  try {
+    text = execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
+      `if [ -f ${shq(ctx.manifest)} ]; then cat ${shq(ctx.manifest)}; else echo __BZ_NO_MANIFEST__; fi`],
+      { encoding: 'utf8', maxBuffer: 1 << 24 });
+  } catch (e) {
+    return { state: 'UNREADABLE', owned: [], rejected: [], detail: String(e.message).slice(0, 160) };
+  }
+  if (text.includes('__BZ_NO_MANIFEST__')) {
+    return { state: 'ABSENT', owned: [], rejected: [],
+             detail: 'the harness never reached e2e_begin, so it never opened a manifest' };
+  }
+  const { owned, rejected, lines } = parseOwnershipManifest(text, ctx);
+  return {
+    state: rejected.length && !owned.length ? 'REJECTED' : owned.length ? 'PRESENT' : 'EMPTY',
+    owned, rejected,
+    detail: `${owned.length} owned of ${lines} record(s)` +
+      (rejected.length ? `; ${rejected.length} rejected (${[...new Set(rejected.map((r) => r.reason))].join(',')})` : ''),
+  };
+}
+
+export function ownershipContext(runRef, journeyID) {
+  const nonce = randomBytes(12).toString('hex');
+  const safe = (s) => String(s).replace(/[^A-Za-z0-9._-]/g, '');
+  // Unique to run + journey + nonce. It used to be keyed by the run alone, so
+  // the second journey of a run wiped the first one's manifest on staging.
+  const dir = `/tmp/banzami-validation/${safe(runRef)}/${safe(journeyID)}-${nonce}`;
+  return { runRef, journeyID, nonce, remoteDir: dir, manifest: `${dir}/ownership.ndjson`, schema: 1 };
+}
+
+/**
+ * Parse and VALIDATE a retrieved ownership manifest.
+ *
+ * Every record must name the run, the journey and the nonce this context
+ * minted. A record that does not is not this journey's, whatever it claims,
+ * and is refused rather than attributed. Pure, so every rejection branch is
+ * provable without a VM.
+ */
+export function parseOwnershipManifest(text, ctx) {
+  const owned = [];
+  const rejected = [];
+  const seen = new Set();
+  const lines = String(text ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    let r;
+    try { r = JSON.parse(line); } catch { rejected.push({ reason: 'MALFORMED', line: line.slice(0, 120) }); continue; }
+    if (r.schema_version !== ctx.schema) { rejected.push({ reason: 'SCHEMA', line: String(r.schema_version) }); continue; }
+    if (r.run_ref !== ctx.runRef) { rejected.push({ reason: 'RUN_REF', line: String(r.run_ref) }); continue; }
+    if (r.journey_id !== ctx.journeyID) { rejected.push({ reason: 'JOURNEY_ID', line: String(r.journey_id) }); continue; }
+    if (r.nonce !== ctx.nonce) { rejected.push({ reason: 'NONCE', line: String(r.nonce).slice(0, 12) }); continue; }
+    const kind = String(r.resource_type ?? '').toLowerCase();
+    if (!OWNED_KINDS.has(kind)) { rejected.push({ reason: 'RESOURCE_TYPE', line: kind }); continue; }
+    if (!r.resource_id) { rejected.push({ reason: 'NO_ID', line: kind }); continue; }
+    const key = `${kind}:${r.resource_id}`;
+    // Idempotent: a harness may hand the same resource over twice, and a
+    // resource counted twice would inflate the concurrent exposure sum by its
+    // whole balance.
+    if (seen.has(key)) continue;
+    seen.add(key);
+    owned.push({
+      kind, id: String(r.resource_id),
+      meta: { creation_source: r.creation_source ?? 'e2e_own', financial_owner_id: r.financial_owner_id || null },
+      cleanup_required: r.cleanup_required !== false,
+      created_at: r.created_at ?? null,
+    });
+  }
+  return { owned, rejected, lines: lines.length };
+}
+
+/**
+ * Every resource kind a harness may hand over, mapped to the class 0161 stores.
+ *
+ * ONE map, because two would drift: the validator and the persister must agree
+ * on what is ownable, or a record accepted by one would be dropped by the
+ * other and the difference would look like a journey that owned nothing.
+ *
+ * The vocabulary is the harnesses' own, read from them rather than assumed —
+ * an earlier draft of this listed five kinds and would have rejected
+ * fixture_key, fixture_project, payment_session, payment_link,
+ * webhook_endpoint and merchant_application, which are 73 of the 87 ownership
+ * declarations the shell harnesses actually make.
+ *
+ * An unmapped kind is REFUSED, not guessed: a resource the studio cannot
+ * classify is one it cannot retire or attribute either.
+ */
+const OWNED_CLASS = new Map([
+  ['consumer', 'CONSUMER_IDENTITY'],
+  ['business', 'BUSINESS'],
+  ['merchant', 'BUSINESS'],
+  ['merchant_application', 'MERCHANT_APPLICATION'],
+  ['fixture_project', 'DEVELOPER_PROJECT'],
+  ['fixture_workspace', 'DEVELOPER_WORKSPACE'],
+  ['fixture_key', 'API_KEY'],
+  ['payment_link', 'PAYMENT_LINK'],
+  ['payment_session', 'CHARGE'],
+  ['webhook_endpoint', 'WEBHOOK_ENDPOINT'],
+  ['test_payer', 'TEST_PAYER'],
+  ['wallet_account', 'WALLET_FUNDING'],
+  ['rail_state', 'EXTERNAL_RAIL_STATE'],
+]);
+const OWNED_KINDS = new Set(OWNED_CLASS.keys());
+export const ownedClassFor = (kind) => OWNED_CLASS.get(String(kind).toLowerCase()) ?? null;
+
+export function runShellHarness(harness, timeoutMs, runRef = 'adhoc', journeyID = null) {
   const script = join(ROOT, harness);
   if (!SHELL_HARNESS.test(harness)) {
-    return { ok: false, reason: `not an allow-listed shell harness: ${harness}`, gates: [], durationMs: 0 };
+    return { ok: false, reason: `not an allow-listed shell harness: ${harness}`, gates: [], durationMs: 0, ownership: { state: 'NOT_STARTED', owned: [], rejected: [], detail: 'refused before staging' } };
   }
   if (!existsSync(script)) {
-    return { ok: false, reason: `harness not found: ${harness}`, gates: [], durationMs: 0 };
+    return { ok: false, reason: `harness not found: ${harness}`, gates: [], durationMs: 0, ownership: { state: 'NOT_STARTED', owned: [], rejected: [], detail: 'refused before staging' } };
   }
   const base = harness.split('/').pop();
   const sha256 = createHash('sha256').update(readFileSync(script)).digest('hex');
-  const remoteDir = `/tmp/banzami-validation/${runRef.replace(/[^A-Za-z0-9-]/g, '')}`;
+  const ctx = ownershipContext(runRef, journeyID ?? base.replace(/\.sh$/, ''));
+  const remoteDir = ctx.remoteDir;
   const before = Date.now();
 
   try {
@@ -333,25 +457,40 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc') {
       `${HOST}:${remoteDir}/lib/`], { stdio: 'ignore' });
     execFileSync('scp', ['-o', 'BatchMode=yes', '-q', script, `${HOST}:${remoteDir}/`], { stdio: 'ignore' });
   } catch (e) {
-    return { ok: false, reason: `could not stage harness on the Sandbox host: ${e.message}`, gates: [], durationMs: Date.now() - before };
+    return { ok: false, reason: `could not stage harness on the Sandbox host: ${e.message}`, gates: [], durationMs: Date.now() - before, ownership: { state: 'NOT_STARTED', owned: [], rejected: [], detail: 'staging failed' } };
   }
 
   const seconds = Math.ceil(timeoutMs / 1000);
+  // The context travels as environment, explicitly. A harness must not have to
+  // know the runner's filesystem layout to be able to declare what it created.
+  const env = [
+    `BZ_VALIDATION_RUN_REF=${shq(ctx.runRef)}`,
+    `BZ_VALIDATION_JOURNEY=${shq(ctx.journeyID)}`,
+    `BZ_OWNERSHIP_NONCE=${shq(ctx.nonce)}`,
+    `BZ_OWNERSHIP_MANIFEST=${shq(ctx.manifest)}`,
+    `BZ_OWNERSHIP_SCHEMA=${ctx.schema}`,
+  ].join(' ');
   const res = spawnSync('ssh', ['-o', 'BatchMode=yes', HOST,
     // `timeout` on the remote side too: killing the ssh client leaves the
     // harness running on the VM, holding fixtures it will never return.
-    `cd ${remoteDir} && timeout ${seconds} bash ${base}`,
+    `cd ${remoteDir} && ${env} timeout ${seconds} bash ${base}`,
   ], { encoding: 'utf8', timeout: timeoutMs + 30_000, maxBuffer: 1 << 26 });
+
+  // RETRIEVED UNCONDITIONALLY, before any branch below can return. Ownership
+  // matters most when execution fails: a timeout, a failed assertion and a
+  // failed cleanup are exactly the cases where resources are still held, and
+  // making retrieval conditional on exit 0 would lose it in all three.
+  const ownership = collectOwnership(ctx);
 
   const durationMs = Date.now() - before;
   const stdout = scrub((res.stdout ?? '') + (res.stderr ?? ''));
   const parsed = parseShellGates(stdout, sha256);
 
   if (res.status === 124) {
-    return { ok: false, reason: `timed out after ${seconds}s`, gates: parsed.gates, durationMs, stdout };
+    return { ok: false, reason: `timed out after ${seconds}s`, gates: parsed.gates, durationMs, stdout, ownership };
   }
   if (parsed.mismatch) {
-    return { ok: false, reason: parsed.mismatch, gates: parsed.gates, durationMs, stdout };
+    return { ok: false, reason: parsed.mismatch, gates: parsed.gates, durationMs, stdout, ownership };
   }
   const failures = parsed.gates.filter((g) => g.verdict === 'FAIL');
   const assertions = parsed.gates.filter((g) => g.verdict !== 'NOTE');
@@ -361,7 +500,7 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc') {
     : failures.length ? `${failures.length} assertion(s) failed`
     : assertions.length === 0 ? 'harness recorded no assertions (no PASS/FAIL lines)'
     : '';
-  return { ok, reason, gates: parsed.gates, durationMs, stdout };
+  return { ok, reason, gates: parsed.gates, durationMs, stdout, ownership };
 }
 
 /**
@@ -421,7 +560,7 @@ export function parseShellGates(stdout, sha256 = null) {
  * reports a failing gate is still a failure — the finer signal wins.
  */
 export function runHarness(harness, timeoutMs, runRef = 'adhoc', opts = {}) {
-  if (SHELL_HARNESS.test(harness)) return runShellHarness(harness, timeoutMs, runRef);
+  if (SHELL_HARNESS.test(harness)) return runShellHarness(harness, timeoutMs, runRef, opts.journey ?? null);
   if (!NODE_HARNESS.test(harness)) {
     return { ok: false, reason: `not an allow-listed harness path: ${harness}`, gates: [], durationMs: 0 };
   }
@@ -967,7 +1106,26 @@ function main() {
       // Measured after cleanup so the retirement postings are in the trajectory
       // too: the peak is a maximum over the whole lifecycle, not a reading at
       // the end of it.
-      const manifest = ownershipManifest(run.ref, p.journey);
+      // Two transports, one contract. A node harness writes its manifest on
+      // THIS machine; a shell harness writes it on the VM and the adapter
+      // brings it back — already validated against the run, the journey and
+      // the nonce this execution minted. Either way the runner ends up
+      // holding the same shape, and a shell journey's ownership is no longer
+      // invisible merely because it executed somewhere else.
+      const manifest = r.ownership?.owned?.length
+        ? { runRef: run.ref, journey: p.journey, owned: r.ownership.owned }
+        : ownershipManifest(run.ref, p.journey);
+      if (r.ownership && r.ownership.state !== 'PRESENT') {
+        log(`  ${p.journey}  ownership ${r.ownership.state} — ${r.ownership.detail}`);
+      }
+      if (r.ownership?.rejected?.length) {
+        // Refused records are said out loud. A manifest from a previous run,
+        // or one naming another journey, is not this journey's evidence — and
+        // silently dropping it would look identical to owning nothing.
+        event(run.id, 'RUNNING', 'RUNNING',
+          `OWNERSHIP_RECORDS_REJECTED ${p.journey} ${r.ownership.rejected.length} ` +
+          `(${[...new Set(r.ownership.rejected.map((x) => x.reason))].join(',')})`);
+      }
       const claimed = claimResources(run.id, p.journey, manifest);
       const exposure = measureExposure(p, manifest);
       recordExposure(run.id, p, exposure);
@@ -1342,7 +1500,11 @@ function ownershipManifest(runRef, journeyID) {
 function claimResources(runID, journeyID, manifest) {
   if (!RESOURCE_LEDGER || !manifest?.owned?.length) return 0;
   for (const r of manifest.owned) {
-    const cls = r.kind === 'consumer' ? 'CONSUMER_IDENTITY' : 'BUSINESS';
+    // Fail closed: a kind with no class is not persisted as a BUSINESS just
+    // because BUSINESS was the else-branch. It used to be, so a test payer, a
+    // payment link and an API key would all have been recorded as Businesses.
+    const cls = ownedClassFor(r.kind);
+    if (!cls) continue;
     sql(`INSERT INTO validation_run_resources
            (run_id, journey_id, resource_class, resource_ref, cleanup_required, cleanup_state, cleanup_evidence)
          VALUES (${lit(runID)}::uuid, ${lit(journeyID)}, ${lit(cls)}, ${lit(String(r.id))},
