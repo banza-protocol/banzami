@@ -51,6 +51,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 import { mintSession } from '../console/lib/mint.mjs';
+import { ownCreated } from '../app-web/lib/e2e-own.mjs';
 
 const DOCS = process.env.BZ_DOCS ?? 'https://developers.banzami.com';
 const API = process.env.BZ_DEV_API ?? 'https://developer-api.banzami.com';
@@ -246,10 +247,15 @@ async function prepare({ thenComplete = false } = {}) {
   const ws = await call('/workspaces', 'POST', { name: `docs-qs-${stamp}` });
   ws.status === 201 ? mark(2, 'PASS', ws.body?.id) : mark(2, 'FAIL', `http ${ws.status}`);
   state.created.workspace = ws.body?.id;
+  // The docs quickstart builds its tenant by hand rather than through
+  // provisionMerchant, so it is the one node journey the instrumented creation
+  // primitives do not reach. Owned here, at the same point they would be.
+  ownCreated('fixture_workspace', ws.body?.id, { creation_source: 'docs-quickstart' });
 
   const pr = await call(`/workspaces/${ws.body?.id}/projects`, 'POST', { name: `docs-qs-${stamp}` });
   pr.status === 201 ? mark(3, 'PASS', pr.body?.id) : mark(3, 'FAIL', `http ${pr.status}`);
   state.created.project = pr.body?.id;
+  ownCreated('fixture_project', pr.body?.id, { creation_source: 'docs-quickstart', workspace: ws.body?.id });
 
   // Step 4 — driven by the page first. If the quickstart never mentions
   // Financial Setup, a reader cannot know the step exists, and that is the

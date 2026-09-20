@@ -1,0 +1,92 @@
+{
+  "ran_at": "2026-09-20T23:12:00.700Z",
+  "phase": "complete",
+  "docs": "https://developers.banzami.com",
+  "sdk": {
+    "name": "@banzami/sdk",
+    "version": "0.14.1"
+  },
+  "steps": [
+    {
+      "n": 1,
+      "name": "Create/sign in to Developer account",
+      "verdict": "PASS",
+      "detail": "email + six-digit code, through the product's own sign-in"
+    },
+    {
+      "n": 2,
+      "name": "Create Workspace",
+      "verdict": "PASS",
+      "detail": "258c2b46-11d0-4e0a-9498-237523ddeff3"
+    },
+    {
+      "n": 3,
+      "name": "Create Project",
+      "verdict": "PASS",
+      "detail": "1647ccc2-a3c0-42a2-8f62-608aa37508e1"
+    },
+    {
+      "n": 4,
+      "name": "Complete or connect Financial Setup",
+      "verdict": "PASS",
+      "detail": "financial setup READY"
+    },
+    {
+      "n": 5,
+      "name": "Create secret API key",
+      "verdict": "PASS",
+      "detail": "secret revealed once, prefix bz_test_sk_"
+    },
+    {
+      "n": 6,
+      "name": "Install current official SDK",
+      "verdict": "PASS",
+      "detail": "npm install @banzami/sdk → @banzami/sdk@0.14.1 from the public registry, in an empty directory"
+    },
+    {
+      "n": 7,
+      "name": "Call identity/readiness",
+      "verdict": "PASS",
+      "detail": "SDK me() → SANDBOX, active; the page's curl → 200"
+    },
+    {
+      "n": 8,
+      "name": "Create first payment resource",
+      "verdict": "PASS",
+      "detail": "payment session 76e062af-7684-48f8-8854-f96bf1acf1ae, ACTIVE"
+    },
+    {
+      "n": 9,
+      "name": "Open hosted payment experience",
+      "verdict": "PASS",
+      "detail": "pay.banzami.com/pay/a4b03e065ece → 200, showing the amount"
+    },
+    {
+      "n": 10,
+      "name": "Receive/observe payment confirmation",
+      "verdict": "PASS",
+      "detail": "test payer paid through the Console (LINK, PAID); getPaymentSession → PAID"
+    },
+    {
+      "n": 11,
+      "name": "Receive webhook",
+      "verdict": "PASS",
+      "detail": "signature verified by the SDK; event e76b7e80-2f49-491b-b3e5-853b7270a5d4; duplicate delivery → 1 effect; tampered body refused"
+    },
+    {
+      "n": 12,
+      "name": "View transaction/receipt in Console",
+      "verdict": "PASS",
+      "detail": "Console · Transações lists the 250 000 minor payment"
+    }
+  ],
+  "summary": {
+    "passed": 12,
+    "total": 12,
+    "verdict": "PASS"
+  },
+  "residue": {
+    "count": 0,
+    "detail": "active workspace, project, keys and unretired test payers from this run"
+  }
+}

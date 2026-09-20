@@ -29,12 +29,12 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
-const REPORT = join(repo, 'evidence/assurance/docs-quickstart/vd008-real-report-20260919.json');
+const REPORT = join(repo, 'evidence/assurance/docs-quickstart/vd008-real-report-20260921.json');
 const HARNESS = join(repo, 'tools/e2e/docs/quickstart-e2e.mjs');
 
 /** The harness that produced the pinned report. Pinned, so a rewrite of the
  *  harness cannot quietly inherit evidence produced by a different one. */
-const HARNESS_SHA = '4b187f7deaaf164847598a721a248272e3ba7d410be9fe27f82ac54e88176d80';
+const HARNESS_SHA = 'cb172f67e5b3382305209688e2578acaf838a81c9646d5fc7163a05b37e671c4';
 
 let failures = 0;
 const check = (title, ok, detail = '') => {
