@@ -1035,7 +1035,14 @@ function main() {
     const terminal = take('RUN_TERMINAL');
     const finalResidual = terminal ? terminal.delta : 0;
     const { peak: fundsPeak, impossible, samples: sampleCount } = peakFromSamples(fundsSamples, finalResidual);
-    log(`  funds: ${sampleCount} sample(s) · actual peak ${fundsPeak ?? '—'} · final residual ${finalResidual}`);
+    // GLOBAL, and named so. These samples are aggregateFunds() — every funded
+    // wallet in the Sandbox, including traffic this run did not cause. In
+    // BZV-20260920-0001 the global delta happened to equal S10's attributable
+    // residual because nothing else moved in that window; a quiet Sandbox is a
+    // coincidence, not a construction, and "actual peak" read as if it were
+    // attribution.
+    log(`  funds: ${sampleCount} sample(s) · GLOBAL_ACTUAL_PEAK_MINOR ${fundsPeak ?? '—'}` +
+        ` · final residual ${finalResidual}`);
     if (impossible) {
       // Not a number to print. A run cannot end holding more than its highest
       // observed exposure; if it says so, the instrument is broken and the
@@ -1047,11 +1054,16 @@ function main() {
     }
     if (fundsPeak !== null && (fundsPeak > 0 || funds.planned.peak > 0)) {
       const delta = fundsPeak - funds.planned.peak;
-      log(`  funds: planned peak max ${funds.planned.peak} · actual peak ${fundsPeak}` +
+      log(`  funds: planned peak max ${funds.planned.peak} · GLOBAL_ACTUAL_PEAK_MINOR ${fundsPeak}` +
           (delta === 0 ? '' : ` · DIVERGENCE ${delta > 0 ? '+' : ''}${delta} — ` +
             (delta > 0 ? 'the plan under-counted (helper-wrapped registrations, or retries)'
                        : 'a journey was not reached, or reused a fixture')));
     }
+    // ATTRIBUTABLE, separately, per journey. A global figure cannot answer
+    // "did THIS journey stay inside what it declared" — only the owned
+    // resources' own trajectory can, and where ownership is not provable the
+    // honest answer is UNKNOWN rather than a number borrowed from the global.
+    reportAttributableExposure(run.id);
 
     submitsActual = actualSubmits(budget.buckets);
     if (submitsActual !== null) {
@@ -1395,6 +1407,47 @@ function recordExposure(runID, p, e) {
          exposure_resource_count = ${e.resources}, exposure_event_count = ${e.events},
          exposure_measured_at = now()
        WHERE run_id = ${lit(runID)}::uuid AND journey_id = ${lit(p.journey)};`, { rows: false });
+}
+
+/**
+ * The attributable side of the funds picture, read back from the rows.
+ *
+ * Printed next to the global peak and never merged with it. The four
+ * quantities are named because the ambiguous one — "actual peak" — was read as
+ * attribution when it was a global aggregate delta, and the two are only ever
+ * equal by accident.
+ *
+ * UNKNOWN is listed, not omitted. A journey whose exposure could not be
+ * attributed is the single most important line here: it is the one the
+ * declaration gate cannot enforce.
+ */
+function reportAttributableExposure(runID) {
+  if (!EXPOSURE_COLUMNS) return;
+  let rows;
+  try {
+    rows = sql(`SELECT exposure_verdict, count(*),
+                       coalesce(max(actual_attributable_peak_minor), 0)
+                  FROM validation_run_journeys
+                 WHERE run_id = ${lit(runID)}::uuid
+                   AND record_kind = 'JOURNEY' AND exposure_verdict IS NOT NULL
+                 GROUP BY 1 ORDER BY 1;`);
+  } catch (e) {
+    log(`  exposure: could not be read back (${e.message}) — not quoting a figure`);
+    return;
+  }
+  if (!rows.length) { log('  exposure: no journey recorded an exposure verdict'); return; }
+  const by = Object.fromEntries(rows.map(([v, n, peak]) => [v, { n: Number(n), peak: Number(peak) }]));
+  const verified = by.VERIFIED?.n ?? 0, under = by.UNDER_DECLARED?.n ?? 0, unknown = by.UNKNOWN?.n ?? 0;
+  log(`  exposure: VERIFIED ${verified} · UNDER_DECLARED ${under} · UNKNOWN ${unknown}` +
+      ` · max ATTRIBUTABLE_ACTUAL_PEAK_MINOR ${by.VERIFIED?.peak ?? 0}`);
+  if (unknown > 0) {
+    log(`  EXPOSURE NOT ENFORCEABLE for ${unknown} journey(s) — ownership could not be ` +
+        'established, so the declared peak was not validated against anything');
+  }
+  if (under > 0) {
+    log(`  UNDER_DECLARED ${under} journey(s) — the registry declaration is the bound, ` +
+        'and the run exceeded it; the declaration is NOT raised to match');
+  }
 }
 
 /** The decision, with no I/O in it, so every branch can be proven. */

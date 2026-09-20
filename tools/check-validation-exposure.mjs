@@ -120,6 +120,27 @@ check('S23-RAIL-001 declares at least the grant plus the funding it adds',
   decl('S23-RAIL-001') >= 1_200_000,
   `declares ${decl('S23-RAIL-001')} — its payers were found holding 1 195 000, which is that minus the spend`);
 
+/* ── A2 · global and attributable are never the same sentence ────────────── */
+
+// The runner used to print `actual peak N` from aggregateFunds() samples, which
+// measure EVERY funded wallet in the Sandbox. In BZV-20260920-0001 that figure
+// equalled S10's attributable residual — but only because nothing else moved in
+// that window. An unqualified "actual peak" invites that coincidence to be read
+// as attribution.
+check('A2. the global peak is printed under its own name',
+  /GLOBAL_ACTUAL_PEAK_MINOR/.test(runner));
+check('A2. no unqualified "actual peak" survives in the runner',
+  !/·\s*actual peak\s/.test(runner),
+  'an ambiguous label is the defect: name which of the two it is');
+check('A2. the attributable side is reported separately, per verdict',
+  /ATTRIBUTABLE_ACTUAL_PEAK_MINOR/.test(runner)
+  && /function reportAttributableExposure/.test(runner));
+check('A2. UNKNOWN exposure is surfaced, not omitted',
+  /EXPOSURE NOT ENFORCEABLE/.test(runner),
+  'the journeys whose declaration could not be validated are the ones that matter most');
+check('A2. a runtime measurement never raises the declaration',
+  /the declaration is NOT raised to match/.test(runner));
+
 console.log(failures === 0
   ? `\n✓ VALIDATION_EXPOSURE=PASS\n`
   : `\n✗ VALIDATION_EXPOSURE=FAIL (${failures})\n`);
