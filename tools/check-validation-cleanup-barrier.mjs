@@ -76,7 +76,9 @@ check('the journeys after it are recorded, not silently absent',
   /NOT_REACHED/.test(runner) && /not started: the run stopped at a cleanup barrier/.test(runner),
   'a run that stops must still say what it intended to do');
 check('stopping at the barrier makes the run FAIL',
-  /!budgetStopped && !cleanupStopped \? 'PASS'/.test(runner));
+  /!cleanupStopped\s*\n?\s*&& underDeclared\.length === 0 \? 'PASS'/.test(runner)
+  || /!cleanupStopped[\s\S]{0,80}?\? 'PASS'/.test(runner),
+  'the verdict also accounts for under-declared exposure since 0163');
 check('the run event says why it stopped',
   /STOPPED AT CLEANUP BARRIER/.test(runner));
 

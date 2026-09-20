@@ -61,7 +61,17 @@ export function e2eBegin(label = 'app-web') {
   const runId = `${label}-${Date.now().toString(36)}`;
   const dir = join(tmpdir(), 'banzami-e2e-manifests');
   mkdirSync(dir, { recursive: true });
-  return { runId, manifest: join(dir, `${runId}.json`), owned: [] };
+  // When the runner is driving, the manifest is named for the RUN and JOURNEY
+  // so the executor can find it afterwards and claim the resources against
+  // them. Ownership then reaches the database from the code that created the
+  // resource, rather than being reconstructed later from handles and
+  // timestamps — which is how a `tp` prefix nearly sent a repair to the wrong
+  // harness.
+  const runRef = process.env.BANZAMI_VALIDATION_RUN_REF;
+  const journey = process.env.BANZAMI_VALIDATION_JOURNEY;
+  const name = runRef && journey ? `run-${runRef}-${journey}` : runId;
+  return { runId, runRef: runRef ?? null, journey: journey ?? null,
+           manifest: join(dir, `${name}.json`), owned: [] };
 }
 
 /**
@@ -72,7 +82,9 @@ export function e2eOwn(run, kind, id, meta = {}) {
   if (!KINDS.has(kind)) throw new Error(`e2eOwn: unknown resource kind ${JSON.stringify(kind)}`);
   if (!id) throw new Error(`e2eOwn: ${kind} handed over with no id`);
   run.owned.push({ kind, id: String(id), meta, at: new Date().toISOString() });
-  writeFileSync(run.manifest, JSON.stringify({ runId: run.runId, owned: run.owned }, null, 2));
+  writeFileSync(run.manifest, JSON.stringify({
+    runId: run.runId, runRef: run.runRef, journey: run.journey, owned: run.owned,
+  }, null, 2));
   return id;
 }
 

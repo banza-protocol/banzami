@@ -33,6 +33,7 @@ import {
   submitCapacity, runnerBucket, vmBucket, submitCost,
   aggregateFunds, plannedPeakFunds, requiredFundsHeadroom, AGGREGATE_FUNDS_CAP,
 } from './lib/validation-capacity.mjs';
+import { attributablePeak, exposureVerdict } from './lib/validation-exposure.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
@@ -451,6 +452,11 @@ export function runHarness(harness, timeoutMs, runRef = 'adhoc', opts = {}) {
       // that proved which database it is talking to. Nothing in this system is
       // less accidental.
       BANZAMI_E2E: 'RUN',
+      // So a harness's ownership manifest can be found and claimed against the
+      // run and journey that caused it. Absent when a proof is run by hand,
+      // which is why e2eBegin falls back to its own id.
+      ...(opts.runRef ? { BANZAMI_VALIDATION_RUN_REF: opts.runRef } : {}),
+      ...(opts.journey ? { BANZAMI_VALIDATION_JOURNEY: opts.journey } : {}),
     },
   });
   const durationMs = Date.now() - before;
@@ -869,6 +875,7 @@ function main() {
 
   let failedBlocking = 0, passed = 0, failed = 0, skipped = 0, notReached = 0;
   let spent = 0, budgetStopped = null, submitsActual = null, cleanupStopped = null;
+  const underDeclared = [];
   try {
     // The plan is materialised first, so a run always says what it INTENDED to
     // do — even if it is cancelled after the second journey.
@@ -940,7 +947,8 @@ function main() {
       const fundsBaselineForJourney = pre ? pre.used : null;
 
       const r = runHarness(p.harness, p.timeoutMs, run.ref,
-        { adapter: p.adapter, args: p.args, evidenceStem: p.evidenceStem });
+        { adapter: p.adapter, args: p.args, evidenceStem: p.evidenceStem,
+          runRef: run.ref, journey: p.journey });
       for (const g of r.gates) recordGate(run.id, p, g);
 
       // FUNCTIONAL_RESULT and CLEANUP_RESULT are two answers to two questions.
@@ -954,6 +962,20 @@ function main() {
       take('POST_FUNCTIONAL', p.journey);
       const cleanup = verifyCleanup(p, fundsBaselineForJourney);
       take('POST_CLEANUP', p.journey);
+
+      // §3 · what THIS journey's own resources held, at once, at their peak.
+      // Measured after cleanup so the retirement postings are in the trajectory
+      // too: the peak is a maximum over the whole lifecycle, not a reading at
+      // the end of it.
+      const manifest = ownershipManifest(run.ref, p.journey);
+      const claimed = claimResources(run.id, p.journey, manifest);
+      const exposure = measureExposure(p, manifest);
+      recordExposure(run.id, p, exposure);
+      if (exposure.verdict !== 'VERIFIED') {
+        log(`  ${p.journey}  EXPOSURE ${exposure.verdict} — ${exposure.detail}`);
+      }
+      if (exposure.verdict === 'UNDER_DECLARED') underDeclared.push(`${p.journey}: ${exposure.detail}`);
+      void claimed;
       const outcome = functional === 'PASSED' && ['VERIFIED', 'NOT_REQUIRED'].includes(cleanup.result)
         ? 'PASSED' : 'FAILED';
 
@@ -1042,7 +1064,14 @@ function main() {
 
     // Stopping on budget is not a pass with a caveat. The run did not execute
     // its universe, so it cannot claim what passing it would have claimed.
-    const verdict = failedBlocking === 0 && failed === 0 && !budgetStopped && !cleanupStopped ? 'PASS' : 'FAIL';
+    if (underDeclared.length) {
+      // A planner defect, not a product one — and not a reason to raise the
+      // declaration. The bound is written before the run for a reason.
+      log(`  EXPOSURE UNDER-DECLARED in ${underDeclared.length} journey(s):`);
+      for (const u of underDeclared) log(`    ${u}`);
+    }
+    const verdict = failedBlocking === 0 && failed === 0 && !budgetStopped
+                    && !cleanupStopped && underDeclared.length === 0 ? 'PASS' : 'FAIL';
     sql(`UPDATE validation_runs SET state='COMPLETED', verdict=${lit(verdict)}, ended_at=now()
          WHERE id=${lit(run.id)}::uuid;`, { rows: false });
     event(run.id, 'RUNNING', 'COMPLETED',
@@ -1158,6 +1187,9 @@ function mark(runID, p, outcome, detail, results = null) {
 let CLEANUP_BARRIER = false;
 /** Does the deployed schema carry 0162's samples table? Probed, never assumed. */
 let FUNDS_SAMPLES = false;
+/** Does the deployed schema carry 0161's resource ledger and 0163's verdict? */
+let RESOURCE_LEDGER = false;
+let EXPOSURE_COLUMNS = false;
 function probeCleanupBarrier() {
   try {
     const [row] = sql(
@@ -1171,6 +1203,14 @@ function probeCleanupBarrier() {
                         WHERE table_name = 'validation_run_funds_samples';`);
     FUNDS_SAMPLES = Number(row?.[0]) === 1;
   } catch { FUNDS_SAMPLES = false; }
+  try {
+    const [row] = sql(`SELECT
+        (SELECT count(*) FROM information_schema.tables WHERE table_name='validation_run_resources'),
+        (SELECT count(*) FROM information_schema.columns
+          WHERE table_name='validation_run_journeys' AND column_name='exposure_verdict');`);
+    RESOURCE_LEDGER = Number(row?.[0]) === 1;
+    EXPOSURE_COLUMNS = Number(row?.[1]) === 1;
+  } catch { RESOURCE_LEDGER = false; EXPOSURE_COLUMNS = false; }
   return CLEANUP_BARRIER;
 }
 
@@ -1249,6 +1289,94 @@ export function peakFromSamples(samples, finalResidual) {
   const peak = deltas.length ? Math.max(...deltas) : null;
   const impossible = finalResidual > 0 && (peak === null || peak < finalResidual);
   return { peak, impossible, samples: deltas.length };
+}
+
+/* ── §3: attributable exposure ───────────────────────────────────────────────
+ *
+ * The aggregate samples protect the shared cap. They cannot validate a
+ * journey's declaration, because this Sandbox also carries DOA's production
+ * and the aggregate moves for reasons that have nothing to do with the journey
+ * being measured. This reads the ledger trajectory of the resources the
+ * harness HANDED OVER, which is ownership declared at creation rather than
+ * reconstructed afterwards from handles and timestamps.
+ */
+
+/** What the harness said it owns. Null when it said nothing. */
+function ownershipManifest(runRef, journeyID) {
+  const f = join(process.env.TMPDIR || '/tmp', 'banzami-e2e-manifests', `run-${runRef}-${journeyID}.json`);
+  if (!existsSync(f)) return null;
+  try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; }
+}
+
+/** Claim the resources against the run and journey that created them. */
+function claimResources(runID, journeyID, manifest) {
+  if (!RESOURCE_LEDGER || !manifest?.owned?.length) return 0;
+  for (const r of manifest.owned) {
+    const cls = r.kind === 'consumer' ? 'CONSUMER_IDENTITY' : 'BUSINESS';
+    sql(`INSERT INTO validation_run_resources
+           (run_id, journey_id, resource_class, resource_ref, cleanup_required, cleanup_state, cleanup_evidence)
+         VALUES (${lit(runID)}::uuid, ${lit(journeyID)}, ${lit(cls)}, ${lit(String(r.id))},
+                 true, 'PENDING', ${lit(JSON.stringify(r.meta ?? {}).slice(0, 400))})
+         ON CONFLICT (run_id, journey_id, resource_class, resource_ref) DO NOTHING;`, { rows: false });
+  }
+  return manifest.owned.length;
+}
+
+/**
+ * Every signed balance change on the journey's owned resources, with its
+ * timestamp — a grant, a funding, a payment either way, a retirement posting.
+ * Consumers are resolved by handle because that is what the harness hands
+ * over; the id lookup is read-only.
+ */
+function ownedLedgerEvents(refs) {
+  if (!refs.length) return null;
+  const list = refs.map((r) => lit(String(r))).join(',');
+  try {
+    return sql(`
+      SELECT c.handle,
+             to_char(le.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+             (CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END)::text
+        FROM consumers c
+        JOIN consumer_wallets cw ON cw.consumer_id = c.id
+        JOIN ledger_entries le ON le.account_id = cw.available_account_id
+       WHERE c.handle IN (${list})
+       ORDER BY le.created_at;`)
+      .map(([resource, at, delta]) => ({ resource, at, delta: Number(delta) }));
+  } catch { return null; }
+}
+
+/** Measure, or say honestly that it could not be measured. */
+function measureExposure(p, manifest) {
+  const declared = typeof p.max_synthetic_funds_exposure_minor === 'number'
+    ? p.max_synthetic_funds_exposure_minor : null;
+  const fundingCapable = (p.disposable ?? 0) > 0;
+  if (!fundingCapable) {
+    return { ...exposureVerdict({ declared, actual: 0, fundingCapable: false }), declared, actual: 0, resources: 0, events: 0 };
+  }
+  if (!manifest || !manifest.owned?.length) {
+    // The harness created something disposable and handed nothing over, so
+    // nothing here knows what to measure. UNKNOWN, and UNKNOWN fails closed.
+    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }), declared, actual: null, resources: 0, events: 0 };
+  }
+  const refs = manifest.owned.filter((r) => r.kind === 'consumer').map((r) => r.id);
+  const events = ownedLedgerEvents(refs);
+  if (events === null) {
+    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }), declared, actual: null, resources: refs.length, events: 0 };
+  }
+  const { peak, resources, events: n } = attributablePeak(events);
+  return { ...exposureVerdict({ declared, actual: peak }), declared, actual: peak, resources, events: n };
+}
+
+function recordExposure(runID, p, e) {
+  if (!EXPOSURE_COLUMNS) return;
+  sql(`UPDATE validation_run_journeys SET
+         declared_peak_minor = ${e.declared === null ? 'NULL' : e.declared},
+         actual_attributable_peak_minor = ${e.actual === null ? 'NULL' : e.actual},
+         exposure_verdict = ${lit(e.verdict)},
+         exposure_detail = ${lit(String(e.detail).slice(0, 400))},
+         exposure_resource_count = ${e.resources}, exposure_event_count = ${e.events},
+         exposure_measured_at = now()
+       WHERE run_id = ${lit(runID)}::uuid AND journey_id = ${lit(p.journey)};`, { rows: false });
 }
 
 /** The decision, with no I/O in it, so every branch can be proven. */

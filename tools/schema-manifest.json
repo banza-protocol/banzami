@@ -1354,6 +1354,44 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "validation attributable exposure (0163)",
+      "tables": [
+        {
+          "name": "validation_run_journeys",
+          "columns": [
+            {
+              "name": "declared_peak_minor",
+              "nullable": true
+            },
+            {
+              "name": "actual_attributable_peak_minor",
+              "nullable": true
+            },
+            {
+              "name": "exposure_verdict",
+              "nullable": true
+            },
+            {
+              "name": "exposure_detail",
+              "nullable": true
+            },
+            {
+              "name": "exposure_resource_count",
+              "nullable": true
+            },
+            {
+              "name": "exposure_event_count",
+              "nullable": true
+            },
+            {
+              "name": "exposure_measured_at",
+              "nullable": true
+            }
+          ]
+        }
+      ]
     }
   ]
 }

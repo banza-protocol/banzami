@@ -468,7 +468,15 @@ journeys:
     automation: full
     existing_harness: tools/e2e/app-web/proofs/23-rail-boundary.mjs
     # one consumer pays with the rail down
-    max_synthetic_funds_exposure_minor: 1000000
+    # DERIVED from the lifecycle, not from the observation that caught it:
+    # creating a Sandbox test payer grants it 1 000 000 minor, and the proof
+    # funds 200 000 on top before spending 5 000 through the wallet rail.
+    # Peak is after the funding and before the spend: 1 200 000.
+    #
+    # The four payers this proof left behind held 1 195 000 each, which is
+    # that peak minus the spend — the arithmetic closing is what confirms
+    # the grant, but the bound comes from the lifecycle either way.
+    max_synthetic_funds_exposure_minor: 1200000
     timeout_seconds: 900
     retry_policy: none
 

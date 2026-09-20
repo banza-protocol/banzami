@@ -466,6 +466,22 @@ check-validation-execution-model:
 check-e2e-measurement-honesty:
 	node tools/check-e2e-measurement-honesty.selftest.mjs
 
+# A journey's declaration is validated against what its OWN resources held at
+# once — not against the aggregate, which moves with DOA's production traffic,
+# and not against a final balance, which for S05 would report 650 000 for a
+# journey that held 1 000 000.
+.PHONY: check-validation-exposure
+check-validation-exposure:
+	node tools/check-validation-exposure.mjs
+
+# The counts and the vocabulary are properties of the DATABASE — a CHECK
+# refuses what the executor would happily have written. Proven by materialising
+# the whole FULL plan inside a transaction that is rolled back, rather than by
+# spending an owner ceremony and thirteen minutes to count rows.
+.PHONY: check-validation-materialization
+check-validation-materialization:
+	node tools/check-validation-materialization.mjs
+
 # Every owner gate, read live at the moment it prints. No hand-maintained
 # summary may override it: a prose counter already contradicted itself once,
 # "10 de 12" beside a list of three outstanding journeys, and neither number
@@ -485,7 +501,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-e2e-measurement-honesty check-validation-budget-truth check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-e2e-measurement-honesty check-validation-exposure check-validation-materialization check-validation-budget-truth check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.
