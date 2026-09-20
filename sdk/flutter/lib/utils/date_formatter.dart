@@ -27,6 +27,14 @@ class BanzamiDateFormatter {
     return '${DateFormat("d 'de' MMMM 'de' y", 'pt').format(wat)}, ${_hm(wat)} (WAT)';
   }
 
+  /// "20/09/2026, 07:06" — the same official instant as [formatOfficialReceipt]
+  /// (Luanda / WAT, UTC+1), in a compact numeric form (no spelled-out month, no
+  /// (WAT) label). Used by the comprovativo detail rows.
+  static String formatOfficialReceiptNumeric(DateTime dt) {
+    final wat = dt.toUtc().add(const Duration(hours: 1));
+    return DateFormat('dd/MM/yyyy, HH:mm').format(wat);
+  }
+
   /// Alias for receipt date — satisfies the formatFullDateTime contract.
   static String formatFullDateTime(DateTime dt) => formatReceiptDate(dt);
 

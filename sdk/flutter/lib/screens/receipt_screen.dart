@@ -258,6 +258,38 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     return BanzamiDateFormatter.formatOfficialReceipt(_when);
   }
 
+  /// The same official instant as [_dateLong], numeric ("20/09/2026, 07:06").
+  String get _dateNumeric {
+    if (widget.incoming && _receipt?.confirmedAt == null) {
+      return _receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…';
+    }
+    return BanzamiDateFormatter.formatOfficialReceiptNumeric(_when);
+  }
+
+  /// Compact operation line for the detail row: "Pagamento Link" / "QR" /
+  /// "@banza" (the long [Receipt.operationLine] is still used for copy/share).
+  String get _operationShort {
+    final r = _receipt;
+    if (r == null) return '';
+    return switch (r.channel) {
+      'PAYMENT_LINK' => 'Pagamento Link',
+      'QR' => 'QR',
+      'HANDLE' => '@banza',
+      _ => r.operationLabel,
+    };
+  }
+
+  /// The proof reference trimmed to its first three blocks ("BZM-37T4-2Q6T-…").
+  /// Copy/share always use the whole [proofReference].
+  String get _refDisplay {
+    final r = _proofRef;
+    if (r == null) {
+      return _receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…';
+    }
+    final g = r.split('-');
+    return g.length <= 3 ? r : '${g.take(3).join('-')}-...';
+  }
+
   String get _from {
     // Incoming: the sender is the other party — never this device's handle.
     final h = _receipt?.payer.handle ??
@@ -289,10 +321,6 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     }
     return '${widget.recipientIsHandle ? '@' : ''}${widget.transfer.recipient}';
   }
-
-  String get _refStatus => _proofRef != null
-      ? _receipt!.shortReference!
-      : (_receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…');
 
   Future<void> _copyReference() async {
     final ref = _proofRef;
@@ -652,7 +680,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                 _DetailRow(label: 'Descrição', value: note),
                               _DetailRow(
                                 label: 'Data',
-                                value: _dateLong,
+                                value: _dateNumeric,
                                 onTap: widget.incoming &&
                                         _receipt == null &&
                                         _receiptFailed
@@ -661,14 +689,14 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               ),
                               if (r != null)
                                 _DetailRow(
-                                    label: 'Operação', value: r.operationLine),
+                                    label: 'Operação', value: _operationShort),
                               _DetailRow(
                                 label: 'Fonte',
                                 value: r?.fundingLabel ?? 'Saldo Banzami',
                               ),
                               _DetailRow(
                                 label: 'Referência',
-                                value: _refStatus,
+                                value: _refDisplay,
                                 mono: _proofRef != null,
                                 trailing: _proofRef != null
                                     ? Icons.copy_rounded
@@ -782,30 +810,6 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           const SizedBox(height: BanzamiSpacing.sm),
 
                           // ── Footer — live timestamp + security notice ──
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.shield_outlined,
-                                size: 13,
-                                color: Colors.white.withValues(alpha: 0.48),
-                              ),
-                              const SizedBox(width: 5),
-                              Flexible(
-                                child: Text(
-                                  _proofRef != null
-                                      ? 'Comprovativo Banzami  •  ${_receipt!.shortReference}'
-                                      : 'Comprovativo Banzami',
-                                  style: BanzamiTextStyles.bodySm.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.55),
-                                    fontSize: 11.5,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
                           // The live clock proves the screen is live; it is not
                           // when the payment happened (that is "Data" above).
                           Text(
