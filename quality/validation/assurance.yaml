@@ -298,6 +298,76 @@ known_issues:
     detail_pt: >-
       A metade da ligação do S14 ESTÁ provada em execução (S14-DOA-001, só-leitura). A metade da doação não: dois harnesses ESCREVEM no inquilino real do DOA — a produção do DOA corre neste Sandbox — e o da doação exige ainda que uma pessoa complete um código enviado por email em www.doadoa.app, mais três identificadores fornecidos por quem chama. O impedimento é consentimento e um passo humano, não engenharia. A FORMA da integração está provada com um inquilino sintético em S11 e S13; o que falta é que o DOA ESPECIFICAMENTE continua a funcionar, e só o dono do DOA pode autorizar isso para uma janela nomeada.
 
+  - id: VD-011
+    title_pt: "Não existe rota de operador para retirar um test payer órfão"
+    title: No operator route retires an orphaned test payer
+    status: open
+    severity: low
+    scope: operations capability — not a FULL blocker at current capacity
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-20"
+    detail: >-
+      proof 23 created a Sandbox test payer on every execution, funded it, and
+      its finally restored only the external rail. Four payers were left holding
+      1 195 000 minor each — 4 780 000 in total — which is the 1 000 000 grant
+      plus 200 000 funded minus the 5 000 the proof spends.
+
+      The harness is fixed and the growth has stopped: S23-RAIL-001 now ends at
+      residual 0, verified by measurement.
+
+      The four historical payers are NOT cleaned, and must not be described as
+      such. Canonical retirement of a test payer is the developer-facing
+      DELETE /v1/sandbox/test-payers/{id} with the owning Project's key, or
+      deleting the Project — and those workspaces belong to harness-created
+      developer accounts whose sessions no longer exist. retireConsumer would
+      return the money and leave sandbox_test_payers.retired_at NULL, a
+      half-state the product never produces, so it was not used.
+
+      The 4 780 000 IS included in current aggregate-funds usage. It is bounded,
+      no longer growing, and not blocking: FULL requires 6 000 000 of roughly
+      32 000 000 available.
+    detail_pt: >-
+      A prova 23 criava um test payer do Sandbox em cada execução, financiava-o, e a sua limpeza restaurava apenas o rail externo. Ficaram quatro payers a segurar 1 195 000 minor cada — 4 780 000 no total — que é a concessão de 1 000 000 mais 200 000 financiados menos os 5 000 que a prova gasta. O arnês está corrigido e o crescimento parou: o S23-RAIL-001 termina agora com residual 0, medido. Os quatro históricos NÃO estão limpos e não podem ser descritos como tal: a retirada canónica exige a chave do Projecto ou apagar o Projecto, e esses workspaces pertencem a contas de programador cujas sessões já não existem. O retireConsumer devolveria o dinheiro e deixaria um meio-estado que o produto nunca produz. Os 4 780 000 estão incluídos no uso agregado actual, são limitados, não crescem, e não bloqueiam.
+    capability_gap: >-
+      There is no operator-side route to retire an orphaned test payer. Every
+      other disposable resource class has one; this one is reachable only
+      through the credentials of the Project that created it.
+
+  - id: VD-012
+    title_pt: "Correcção do registo: o primeiro FULL revelou um defeito de produto"
+    title: "Record correction: the first FULL did reveal a product defect"
+    status: closed
+    closed: "2026-09-20"
+    severity: informational
+    scope: programme accounting
+    blocks_golden: false
+    blocks_full: false
+    first_observed: "2026-09-20"
+    detail: >-
+      This programme reported "zero product defects" after the first FULL, and
+      repeated it. That was wrong.
+
+      S03-BIZ-002's accessibility assertion was a genuine harness defect — it
+      counted labelled nodes across whatever screen was visible. But fixing it
+      properly, by asserting per screen against the controls that screen
+      actually has, surfaced a real one: the Business Home refresh control was
+      a 38x38 GestureDetector wrapping an Icon, exposed as role=button with
+      pointer-events:all and NO accessible name. A screen reader announced it
+      as "button" and nothing else.
+
+      Classification: ACCESSIBILITY PRODUCT DEFECT.
+      Status: FIXED — dashboard_screen.dart now wraps it in
+      Semantics(button: true, label: 'Actualizar'), the first Semantics widget
+      in apps/mobile/lib/merchant. Targeted regression PASS: 8 of 8 interactive
+      controls on Business Home carry a name, where one did not.
+
+      The other five first-FULL functional failures remain harness or
+      environment defects. The correct statement is "one confirmed product
+      defect, found and fixed", not "zero".
+    detail_pt: >-
+      Este programa reportou "zero defeitos de produto" depois do primeiro FULL, e repetiu-o. Estava errado. A asserção de acessibilidade do S03-BIZ-002 era mesmo um defeito de arnês, mas corrigi-la como deve ser — por ecrã, contra os controlos que esse ecrã tem — revelou um defeito real: o controlo de actualizar do Home de negócio era um GestureDetector de 38x38 a envolver um Icon, exposto como role=button e SEM nome acessível. Um leitor de ecrã anunciava "botão" e mais nada. Classificação: DEFEITO DE ACESSIBILIDADE DO PRODUTO. Estado: CORRIGIDO, com regressão dirigida a passar. As outras cinco falhas funcionais do primeiro FULL continuam a ser de arnês ou de ambiente. A afirmação correcta é "um defeito de produto confirmado, encontrado e corrigido", não "zero".
+
   - id: VD-010
     title_pt: "O GOLDEN aceite não provou limpeza de recursos"
     title: The accepted GOLDEN did not prove resource cleanliness
