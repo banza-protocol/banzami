@@ -302,6 +302,7 @@ secret_exports_for() {
         bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY \
         webhook_encryption_key:WEBHOOK_ENCRYPTION_KEY \
         push_topic_key:PUSH_TOPIC_KEY \
+        firebase_credentials_json:FIREBASE_CREDENTIALS_JSON \
         kyb_storage_endpoint:KYB_STORAGE_ENDPOINT \
         kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID \
         kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY
@@ -309,7 +310,8 @@ secret_exports_for() {
     public-api-staging)
       printf '%s\n' db_url_public_api:DATABASE_URL jwt_secret:JWT_SECRET \
         core_internal_key:CORE_INTERNAL_KEY core_internal_key:INTERNAL_API_KEY \
-        push_topic_key:PUSH_TOPIC_KEY
+        push_topic_key:PUSH_TOPIC_KEY \
+        firebase_credentials_json:FIREBASE_CREDENTIALS_JSON
       ;;
     developer-api)
       printf '%s\n' db_url_developer_api:DATABASE_URL api_key_pepper:API_KEY_PEPPER \
