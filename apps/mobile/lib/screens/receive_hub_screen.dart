@@ -149,19 +149,26 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       final amount = link.amountMinor;
       final currency = link.currency;
       final note = link.note;
-      // Resolve who paid: the incoming activity item for THIS transfer carries the
-      // payer's @handle (the pay link itself does not). Best-effort — omit if unknown.
+      // Resolve who paid. The public pay-link GET REDACTS payer/transfer ids for
+      // privacy, so we read the payer from the RECEIVER's own incoming activity — the
+      // newest incoming item matching this link's amount (a payment just happened).
+      // Retry briefly: the activity feed can lag a second behind the status flip.
       String? from;
-      if (latest.transferId != null) {
+      final wantAmount = latest.amountMinor ?? link.amountMinor;
+      for (var i = 0; i < 5 && from == null && mounted; i++) {
         try {
-          final page = await client.getActivity(limit: 20, directionFilter: 'INCOMING');
+          final page =
+              await client.getActivity(limit: 20, directionFilter: 'INCOMING');
           for (final a in page.items) {
-            if (a.transferId != null && a.transferId == latest.transferId) {
+            if (a.isIncoming && a.amountMinor == wantAmount) {
               from = a.counterpartyAt ?? a.counterpartyDisplayName;
               break;
             }
           }
         } catch (_) {/* best-effort */}
+        if (from == null) {
+          await Future<void>.delayed(const Duration(milliseconds: 800));
+        }
       }
       if (!mounted) return;
       setState(() => _activeLink = null); // QR back to the plain address
