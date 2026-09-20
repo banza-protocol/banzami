@@ -29,13 +29,45 @@ try {
   ({ browser } = await launchChromium());
   const { context, page, driver } = await freshContext(browser, { url: `${APP}/pay/${INVALID}`, label: 'invalid' });
 
-  // 1. The app boots, not a crash or blank screen.
-  await driver.waitForEngine();
-  await driver.enableSemantics();
-  const booted = await driver.semanticsActive();
-  const bootText = await driver.visibleText();
-  R.mark('APP_BOOTS_ON_DEEPLINK', booted && bootText.length > 0, 'flutter engine + semantics up');
-  R.mark('APP_NO_BLANK_SCREEN', bootText.length > 0, `${bootText.length} chars of accessible content`);
+  // 1. Three SEPARATE properties, because they failed together for one reason
+  //    and only one of them was about the product.
+  //
+  //    In BZV-20260920-0001 both boot assertions failed while all three
+  //    invalid-deeplink safety assertions passed. The app had booted and
+  //    painted; accessibility activation was late. Deriving "did it boot" and
+  //    "is it blank" from the semantics tree made a slow screen reader look
+  //    like a broken application.
+  //
+  //    So: boot is proven from the engine's own mount, not-blank from pixels,
+  //    and semantics readiness stands on its own and carries its timings.
+
+  // 1a. BOOT — structure only. True before anything is ever clicked.
+  const boot = await driver.appBooted();
+  R.mark('APP_BOOTS_ON_DEEPLINK', boot.booted,
+    `flutter-view ${boot.viewW}×${boot.viewH} mounted in ${boot.ms}ms (bound ${boot.bound_ms}ms) · glass-pane=${boot.glassPane} · scene-host=${boot.sceneHost}`);
+
+  // 1b. NOT BLANK — pixels. With semantics off this build exposes no DOM text
+  //     and no canvas, so the screenshot is the only thing that can tell a
+  //     painted screen from a flat one.
+  const px = await driver.renderedPixels();
+  R.mark('APP_NO_BLANK_SCREEN', px.painted,
+    `${px.bytesPerPixel} bytes/pixel of lossless frame (blank ≈ 0.0047, threshold ${px.threshold}) at ${px.width}×${px.height}`);
+
+  // 1c. SEMANTICS — its own gate, and its own budget. Never again folded into
+  //     a claim about the product.
+  let semanticsReady = false;
+  try {
+    await driver.enableSemantics();
+    semanticsReady = await driver.semanticsActive();
+  } catch (e) {
+    semanticsReady = false;
+    R.note('SEMANTICS_TIMEOUT', `${e.phase ?? 'unknown'} — ${driver.timingLine}`);
+  }
+  R.mark('SEMANTICS_ACTIVATION_READY', semanticsReady, driver.timingLine);
+
+  // The accessible text is still what the rest of the proof reads, but its
+  // absence is now attributed to activation rather than to the application.
+  const bootText = semanticsReady ? await driver.visibleText() : '';
 
   const pr = new PaymentRequestPage(driver);
   let state = await pr.resolve({ timeout: 8000 });

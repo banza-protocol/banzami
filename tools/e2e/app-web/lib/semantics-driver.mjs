@@ -57,12 +57,18 @@ const PLACEHOLDER = 'flt-semantics-placeholder[aria-label="Enable accessibility"
 const ENGINE_BUDGET_MS = 40_000;
 const ACTIVATION_BUDGET_MS = 20_000;
 
-/** A timeout that says WHICH phase ran out. `phase` is machine-readable. */
+/**
+ * A timeout that says WHICH phase ran out. `phase` is machine-readable, and
+ * `timing` carries the measurement that was in flight when it expired — a
+ * timeout whose evidence dies with it forces the next reader to reproduce the
+ * failure before they can even describe it.
+ */
 export class DriverPhaseTimeout extends Error {
-  constructor(phase, label, detail) {
+  constructor(phase, label, detail, timing = null) {
     super(`${label}: ${phase} — ${detail}`);
     this.name = 'DriverPhaseTimeout';
     this.phase = phase;
+    this.timing = timing;
   }
 }
 
@@ -73,6 +79,98 @@ export class FlutterSemanticsDriver {
     /** Filled by waitForEngine/enableSemantics. Read through `timing`. */
     this.engineReadyMs = null;
     this.semanticsReadyMs = null;
+    /** Activation forensics, kept whether activation succeeds or times out. */
+    this.semanticsDispatches = 0;
+    this.semanticsElapsedMs = null;
+    this.timeoutPhase = null;
+    this.timeoutBoundMs = null;
+  }
+
+  /**
+   * Did the APPLICATION boot? Structure only — no accessibility involved.
+   *
+   * S05-LNK-001 failed `APP_BOOTS_ON_DEEPLINK` and `APP_NO_BLANK_SCREEN` in
+   * BZV-20260920-0001, and both were derived from the semantics tree. The app
+   * had in fact booted and painted; what was late was accessibility
+   * activation. Two assertions named after the product reported a fault in the
+   * instrument — the same class as `(a ?? 0) - (b ?? 0)` reporting that a
+   * consumer was debited 0.
+   *
+   * The boot signal is the engine's own mount: <flutter-view> containing a
+   * <flt-glass-pane> whose shadow root holds the scene host it paints into.
+   *
+   * It WAITS, because the mount is genuinely later than engine-ready: measured
+   * on this build, waitForEngine() returns while <body> holds only the
+   * placeholder, the announcement host and a script — flutter-view appears
+   * afterwards. The placeholder is the right signal for activation, which
+   * dispatches at it, and the wrong one for boot. Sampling boot at that
+   * instant reports false for an application that is booting normally.
+   */
+  async appBooted({ timeout = 25_000, every = 100 } = {}) {
+    const t0 = Date.now();
+    const read = () => this.page.evaluate(() => {
+      const view = document.querySelector('flutter-view');
+      const pane = document.querySelector('flt-glass-pane');
+      const shadow = pane?.shadowRoot ?? null;
+      const scene = shadow?.querySelector('flt-scene-host') ?? null;
+      const r = view?.getBoundingClientRect?.() ?? null;
+      return {
+        booted: Boolean(view && pane && shadow && scene && r && r.width > 0 && r.height > 0),
+        flutterView: !!view, glassPane: !!pane, shadowRoot: !!shadow, sceneHost: !!scene,
+        viewW: r ? Math.round(r.width) : 0, viewH: r ? Math.round(r.height) : 0,
+      };
+    });
+    let state = await read();
+    while (!state.booted && Date.now() - t0 < timeout) {
+      await this.page.waitForTimeout(every);
+      state = await read();
+    }
+    this.appBootMs = Date.now() - t0;
+    return { ...state, ms: this.appBootMs, bound_ms: timeout };
+  }
+
+  /**
+   * Is anything actually PAINTED? Pixels, because nothing else can answer it.
+   *
+   * This build paints through a surface that is not a DOM canvas: with
+   * semantics off, the scene host is empty, body text is 0 characters and
+   * there is no <canvas> anywhere in the document — while the viewport shows a
+   * complete screen. So DOM inspection cannot distinguish "rendered" from
+   * "blank", and a screenshot can: a blank screen is one flat colour.
+   *
+   * The measurement is the compressed size of a LOSSLESS frame per pixel. PNG
+   * encodes a flat field to almost nothing whatever colour it is, so this
+   * separates "one colour" from "a drawn interface" without decoding an image.
+   *
+   * Calibrated at 1280×720 rather than assumed — an earlier version of this
+   * method counted distinct bytes of the compressed stream, which is not a
+   * colour count at all, and reported a screen as painted before the app had
+   * mounted:
+   *
+   *   about:blank              0.0047 bytes/pixel
+   *   flat white page          0.0047
+   *   flat #B5101F page        0.0047   ← colour does not move it
+   *   app, before first paint  0.0047
+   *   app, painted             0.1184   ← 25× clear of every flat frame
+   *
+   * The threshold sits 4× above every flat frame measured and ~6× below the
+   * painted one. Dimensions come from the PNG's own IHDR, so the ratio does
+   * not silently change with the viewport.
+   *
+   * Deliberately coarse. It proves NOT-BLANK, which is what the assertion
+   * claims — it does not claim the RIGHT screen was drawn, and must not be
+   * used as if it did.
+   */
+  async renderedPixels({ minBytesPerPixel = 0.02 } = {}) {
+    const png = await this.page.screenshot({ type: 'png' });
+    const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+    const perPixel = w && h ? png.length / (w * h) : 0;
+    return {
+      width: w, height: h, bytes: png.length,
+      bytesPerPixel: Number(perPixel.toFixed(4)),
+      threshold: minBytesPerPixel,
+      painted: perPixel >= minBytesPerPixel,
+    };
   }
 
   /**
@@ -94,8 +192,12 @@ export class FlutterSemanticsDriver {
     try {
       await this.page.waitForSelector(`${PLACEHOLDER}, flt-semantics`, { timeout, state: 'attached' });
     } catch {
+      this.timeoutPhase = 'ENGINE';
+      this.timeoutBoundMs = timeout;
+      this.engineReadyMs = Date.now() - t0;
       throw new DriverPhaseTimeout('ENGINE_TIMEOUT', this.label,
-        `no accessibility placeholder after ${timeout} ms — the Flutter engine did not become ready`);
+        `no accessibility placeholder after ${timeout} ms — the Flutter engine did not become ready`,
+        this.timing);
     }
     this.engineReadyMs = Date.now() - t0;
     return this.engineReadyMs;
@@ -136,10 +238,12 @@ export class FlutterSemanticsDriver {
     while (Date.now() < deadline) {
       if (Date.now() - lastDispatch >= DISPATCH_EVERY_MS && await ph.count()) {
         lastDispatch = Date.now();
+        this.semanticsDispatches++;
         await ph.first().dispatchEvent('click').catch(() => {});
       }
       if (await this.semanticsActive()) {
         this.semanticsReadyMs = Date.now() - t0;
+        this.semanticsElapsedMs = this.semanticsReadyMs;
         // One line per real activation, so a slow run says WHERE it was slow
         // instead of leaving the next reader to re-derive it from a timeout.
         // Only on the activation that did work — the idempotent early return
@@ -150,20 +254,50 @@ export class FlutterSemanticsDriver {
       }
       await this.page.waitForTimeout(POLL_MS);
     }
-    if (await this.semanticsActive()) { this.semanticsReadyMs = Date.now() - t0; return true; }
+    if (await this.semanticsActive()) {
+      this.semanticsReadyMs = Date.now() - t0;
+      this.semanticsElapsedMs = this.semanticsReadyMs;
+      return true;
+    }
+    // Record the forensics BEFORE throwing. The bound is not raised here: what
+    // the correct bound should be is a question for measured distribution, and
+    // a timeout that reports how close it came is what makes that measurable.
+    this.semanticsElapsedMs = Date.now() - t0;
+    this.timeoutPhase = 'SEMANTICS_ACTIVATION';
+    this.timeoutBoundMs = activationTimeout;
     throw new DriverPhaseTimeout('SEMANTICS_ACTIVATION_TIMEOUT', this.label,
       `engine was ready after ${this.engineReadyMs} ms but no flt-semantics node appeared ` +
-      `within ${activationTimeout} ms of activation`);
+      `within ${activationTimeout} ms of activation (${this.semanticsDispatches} dispatch(es))`,
+      this.timing);
   }
 
-  /** Harness observability, never product truth. */
+  /**
+   * Harness observability, never product truth.
+   *
+   * Populated on the failure path too. A driver that reports its timings only
+   * when it succeeds tells you nothing on the one run you need to explain.
+   */
   get timing() {
     return {
       engine_ready_ms: this.engineReadyMs ?? null,
       semantics_ready_ms: this.semanticsReadyMs ?? null,
       total_ready_ms: this.engineReadyMs == null || this.semanticsReadyMs == null
         ? null : this.engineReadyMs + this.semanticsReadyMs,
+      semantics_dispatches: this.semanticsDispatches,
+      semantics_elapsed_ms: this.semanticsElapsedMs ?? null,
+      timeout_phase: this.timeoutPhase,
+      timeout_bound_ms: this.timeoutBoundMs,
     };
+  }
+
+  /** The five forensic fields as one line, for an evidence `detail`. */
+  get timingLine() {
+    const t = this.timing;
+    return `engine_ready_ms=${t.engine_ready_ms ?? '—'} ` +
+      `semantics_dispatches=${t.semantics_dispatches} ` +
+      `semantics_elapsed_ms=${t.semantics_elapsed_ms ?? '—'} ` +
+      `timeout_phase=${t.timeout_phase ?? 'none'} ` +
+      `timeout_bound_ms=${t.timeout_bound_ms ?? '—'}`;
   }
 
   /** True once the accessibility tree has real nodes (not just the empty host). */
