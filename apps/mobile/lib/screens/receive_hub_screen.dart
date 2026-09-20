@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +10,7 @@ import '../branding_assets.dart';
 import '../config.dart';
 import '../services/session_service.dart';
 import '../widgets/sandbox_banner.dart';
+import 'receive_paid_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Bottom-sheet widget — collects amount + optional note, calls API, pops link
@@ -103,6 +106,9 @@ class ReceiveHubScreen extends StatefulWidget {
 
 class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   ConsumerPayLink? _activeLink;
+  /// Polls a DEFINED-amount receive link; on payment the QR auto-dismisses into the
+  /// received-confirmation and the amount is cleared. Cancelled on clear/dispose.
+  Timer? _paidPoll;
 
   List<ActivityItem> _received         = [];
   bool               _loadingTransfers = false;
@@ -114,6 +120,46 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   void initState() {
     super.initState();
     _loadReceived();
+  }
+
+  @override
+  void dispose() {
+    _paidPoll?.cancel();
+    super.dispose();
+  }
+
+  /// While a defined-amount receive link is on screen, poll its status. Once paid,
+  /// clear the amount (the Receber QR returns to the plain @handle address — it must
+  /// NOT keep showing the paid request) and show the received-confirmation screen.
+  void _startPaidPoll(ConsumerPayLink link) {
+    _paidPoll?.cancel();
+    if (link.amountMinor == null) return; // only scope a DEFINED-amount request
+    final client = context.read<ConsumerPublicClient>();
+    _paidPoll = Timer.periodic(const Duration(seconds: 4), (_) async {
+      ConsumerPayLink latest;
+      try {
+        latest = await client.getConsumerPayLinkByCode(link.linkCode);
+      } catch (_) {
+        return; // transient; retry next tick
+      }
+      if (!latest.isPaid || !mounted || _activeLink?.linkCode != link.linkCode) {
+        return;
+      }
+      _paidPoll?.cancel();
+      final amount = link.amountMinor;
+      final currency = link.currency;
+      final note = link.note;
+      setState(() => _activeLink = null); // QR back to the plain address
+      _loadReceived(); // reflect the new incoming payment in the list
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ReceivePaidScreen(
+          amountMinor: amount,
+          currency: currency,
+          note: note,
+        ),
+      ));
+    });
   }
 
   Future<void> _loadReceived() async {
@@ -151,7 +197,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     return AppConfig.isSandbox ? '$base?sandbox=1' : base;
   }
 
-  void _clearAmount() => setState(() { _activeLink = null; });
+  void _clearAmount() {
+    _paidPoll?.cancel();
+    setState(() { _activeLink = null; });
+  }
 
   Future<void> _copyHandle(String handle) async {
     HapticFeedback.selectionClick();
@@ -172,7 +221,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       ),
       builder: (_) => _AmountNoteSheet(client: client),
     );
-    if (link != null && mounted) setState(() => _activeLink = link);
+    if (link != null && mounted) {
+      setState(() => _activeLink = link);
+      _startPaidPoll(link);
+    }
   }
 
   Future<void> _shareLink(String handle) async {
