@@ -11,6 +11,7 @@
  * No DOA, no founder project, no pre-existing resource (item 17).
  */
 import { signIn, api as consoleApi } from '../../cleanroom/console-client.mjs';
+import { ownCreated } from './e2e-own.mjs';
 
 export const GW = process.env.BZ_SANDBOX_GW ?? 'https://sandbox-api.banzami.com';
 
@@ -53,6 +54,11 @@ export async function provisionMerchant({ prefix = 'appweb' } = {}) {
   const p = await call('POST', `/workspaces/${ws}/projects`, { name: projectName });
   const project = p.body?.id;
   if (p.status !== 201 || !project) throw new Error(`project create ${p.status}`);
+
+  // Owned at the moment it becomes fundable, before financial-setup can fail:
+  // a project that exists but never reached READY is still a resource this run
+  // created, and cleanup must know about it.
+  ownCreated('merchant', project, { creation_source: 'provisionMerchant', workspace: ws, name: projectName });
 
   const setup = await call('POST', `/projects/${project}/financial-setup`, { use_case: 'STANDARD' });
   if (setup.status !== 200 || !['READY', 'SEALED'].includes(setup.body?.state)) {

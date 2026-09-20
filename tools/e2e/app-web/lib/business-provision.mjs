@@ -25,6 +25,7 @@
  * Override the edge with BZ_PROVISION_API when driving a different Sandbox stack.
  */
 import { execFileSync } from 'node:child_process';
+import { ownCreated } from './e2e-own.mjs';
 
 const VM = process.env.BZ_VM ?? 'root@217.160.9.248';
 const API = (process.env.BZ_PROVISION_API ?? 'https://sandbox-api.banzami.com').replace(/\/+$/, '');
@@ -118,6 +119,10 @@ echo "OK|$TOKEN|$MID"
   const done = await api('POST', '/v1/merchant/activation/complete', { json: { token: activationToken, pin } });
   if (done.status >= 400) throw new Error(`activation/complete failed: HTTP ${done.status} ${(done.text || '').slice(0, 160)}`);
 
+  // A REUSED Business (BZ_BIZ_HANDLE) is deliberately NOT owned above: it
+  // outlives the run and retiring it would destroy a shared fixture. This one
+  // the run created, so it belongs to the run.
+  ownCreated('business', merchantId, { creation_source: 'provisionBusiness', handle, applicationId });
   return { handle, pin, merchantId, applicationId };
 }
 

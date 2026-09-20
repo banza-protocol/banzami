@@ -11,6 +11,7 @@ import { WelcomePage } from '../pages/welcome.mjs';
 import { CreateAccountPage } from '../pages/create-account.mjs';
 import { PinPage } from '../pages/pin.mjs';
 import { HomePage } from '../pages/home.mjs';
+import { ownCreated } from './e2e-own.mjs';
 
 export const APP = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
 
@@ -43,6 +44,12 @@ async function registerConsumerOnce(browser, { handle, name, pin, label = 'consu
     await create.reach();
     await create.fill({ handle, name });
     await create.submit();
+    // OWNERSHIP IS TAKEN HERE, not after home.reach(). The account exists and
+    // its 1 000 000 grant is already issued the moment submit returns; every
+    // step after this one can fail, and each of those failures used to leak a
+    // funded consumer. Registering on the success path only is worth almost
+    // nothing, because the runs that leak are exactly the runs that failed.
+    ownCreated('consumer', handle, { creation_source: 'registerConsumer', label });
     // Some rate limits surface at account creation, before the PIN step even runs.
     if (RATE_LIMIT_RE.test(await driver.visibleText())) throw rateLimitError();
     await pinPage.createDuringOnboarding(pin);

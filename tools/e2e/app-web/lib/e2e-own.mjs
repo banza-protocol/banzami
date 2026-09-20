@@ -54,7 +54,67 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { retireConsumer } from './consumer-retire.mjs';
 
-const KINDS = new Set(['consumer', 'business']);
+const KINDS = new Set(['consumer', 'business', 'merchant', 'test_payer', 'wallet_account']);
+
+/**
+ * THE AMBIENT CONTEXT — why ownership stopped being the harness author's job.
+ *
+ * BZV-20260920-0001 measured adoption honestly for the first time: of 33
+ * funding-capable journeys, 3 had a working manifest. The shape of the misses
+ * is the argument. Six shell harnesses create a consumer through the same
+ * onboarding primitive; five declare it and one does not, and the one that
+ * does not leaked 296 000 minor while reporting FUNCTIONAL PASS. It was not a
+ * shared-primitive defect. It was five people remembering and one forgetting.
+ *
+ * A side effect every caller must remember is a side effect that gets
+ * forgotten by everyone except whoever wrote it. So the code that CREATES the
+ * resource — which is the only code that knows its identity at the moment it
+ * exists — registers it, and the harness does not have to.
+ *
+ * Nothing here recognises ownership: a primitive still hands over an id it
+ * just received. Names and prefixes remain untrusted.
+ */
+let AMBIENT = null;
+
+/** Adopt `run` as the ambient context for creation primitives. */
+export function setAmbientRun(run) { AMBIENT = run ?? null; return AMBIENT; }
+
+/**
+ * The ambient context, creating one from the environment if the runner is
+ * driving and the harness never opened one itself.
+ *
+ * This is what closes the seventeen node journeys that had no manifest at all.
+ * Requiring each of them to call e2eBegin() is the same bet that already lost:
+ * it asks thirty authors to remember a side effect. When
+ * BANZAMI_VALIDATION_RUN_REF and _JOURNEY are set, the run IS a validation
+ * journey whatever the harness believes, and its resources belong to it.
+ *
+ * Outside a validation run this returns null and every primitive behaves
+ * exactly as it did before.
+ */
+export function ambientRun() {
+  if (AMBIENT) return AMBIENT;
+  const runRef = process.env.BANZAMI_VALIDATION_RUN_REF;
+  const journey = process.env.BANZAMI_VALIDATION_JOURNEY;
+  if (!runRef || !journey) return null;
+  return e2eBegin(journey);
+}
+
+/**
+ * Register a resource the CREATION primitive just made.
+ *
+ * A no-op outside a validation context, so `registerConsumer()` in a scratch
+ * script behaves exactly as it always did. Never throws: a primitive must not
+ * fail because bookkeeping did, or the bookkeeping becomes the outage.
+ */
+export function ownCreated(kind, id, meta = {}) {
+  if (!id) return id;
+  const run = ambientRun();
+  if (!run) return id;
+  try { e2eOwn(run, kind, id, { ...meta, creation_source: meta.creation_source ?? 'primitive' }); }
+  catch { /* ownership must not be able to break the thing it is recording */ }
+  return id;
+}
 
 /** Start a run: an id, a manifest, an empty ledger of owned things. */
 export function e2eBegin(label = 'app-web') {
@@ -70,8 +130,11 @@ export function e2eBegin(label = 'app-web') {
   const runRef = process.env.BANZAMI_VALIDATION_RUN_REF;
   const journey = process.env.BANZAMI_VALIDATION_JOURNEY;
   const name = runRef && journey ? `run-${runRef}-${journey}` : runId;
-  return { runId, runRef: runRef ?? null, journey: journey ?? null,
-           manifest: join(dir, `${name}.json`), owned: [] };
+  const run = { runId, runRef: runRef ?? null, journey: journey ?? null,
+                manifest: join(dir, `${name}.json`), owned: [] };
+  // Beginning a run adopts it. Every creation primitive called from here on
+  // registers into it without the harness passing anything down.
+  return setAmbientRun(run);
 }
 
 /**
@@ -81,7 +144,19 @@ export function e2eBegin(label = 'app-web') {
 export function e2eOwn(run, kind, id, meta = {}) {
   if (!KINDS.has(kind)) throw new Error(`e2eOwn: unknown resource kind ${JSON.stringify(kind)}`);
   if (!id) throw new Error(`e2eOwn: ${kind} handed over with no id`);
-  run.owned.push({ kind, id: String(id), meta, at: new Date().toISOString() });
+  // Registering the same resource twice is not an error — a primitive may
+  // register it and a harness may hand it over again — but it must not be
+  // recorded twice, or its balance would be counted twice in the concurrent
+  // exposure sum.
+  const ref = String(id);
+  if (run.owned.some((o) => o.kind === kind && o.id === ref)) return id;
+  run.owned.push({
+    kind, id: ref, meta, at: new Date().toISOString(),
+    resource_type: kind.toUpperCase(),
+    created_at: new Date().toISOString(),
+    cleanup_required: meta.cleanup_required ?? true,
+    creation_source: meta.creation_source ?? 'harness',
+  });
   writeFileSync(run.manifest, JSON.stringify({
     runId: run.runId, runRef: run.runRef, journey: run.journey, owned: run.owned,
   }, null, 2));
