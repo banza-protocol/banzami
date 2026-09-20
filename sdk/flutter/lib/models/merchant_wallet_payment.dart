@@ -8,6 +8,10 @@ class MerchantWalletPayment {
   final String currency;
   final String status;
   final String payerName;
+
+  /// The payer's "@handle" (e.g. "@kiara") when they have one, else "". The
+  /// Banzami identity for the payer — preferred over [payerName] on screen.
+  final String payerHandle;
   final DateTime createdAt;
   final bool receiptAvailable;
 
@@ -18,6 +22,7 @@ class MerchantWalletPayment {
     required this.currency,
     required this.status,
     required this.payerName,
+    this.payerHandle = '',
     required this.createdAt,
     required this.receiptAvailable,
   });
@@ -30,6 +35,7 @@ class MerchantWalletPayment {
       currency: (json['currency'] as String?) ?? 'AOA',
       status: (json['status'] as String?) ?? '',
       payerName: (json['payer_name'] as String?) ?? '',
+      payerHandle: (json['payer_handle'] as String?) ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
       receiptAvailable: (json['receipt_available'] as bool?) ?? false,
     );

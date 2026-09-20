@@ -86,7 +86,8 @@ BanzamiClient _client(_State st) => BanzamiClient(
               ? [
                   {
                     'id': 'wp1', 'reference': 'BZM-1', 'amount_minor': 25000,
-                    'currency': 'AOA', 'status': 'COMPLETED', 'payer_name': '@kiara',
+                    'currency': 'AOA', 'status': 'COMPLETED',
+                    'payer_name': 'Kiara Monteiro', 'payer_handle': '@kiara',
                     'created_at': _now, 'receipt_available': true,
                   }
                 ]

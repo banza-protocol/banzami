@@ -26,6 +26,7 @@ type walletPaymentDTO struct {
 	Currency         string `json:"currency"`
 	Status           string `json:"status"`
 	PayerName        string `json:"payer_name"`
+	PayerHandle      string `json:"payer_handle"`
 	CreatedAt        string `json:"created_at"`
 	ReceiptAvailable bool   `json:"receipt_available"`
 }
@@ -88,6 +89,7 @@ func (h *WalletPaymentsHandler) List(w http.ResponseWriter, r *http.Request) {
 			Currency:         it.Currency,
 			Status:           it.Status,
 			PayerName:        it.PayerName,
+			PayerHandle:      it.PayerHandle,
 			CreatedAt:        it.CreatedAt.UTC().Format(time.RFC3339),
 			ReceiptAvailable: it.Status == "COMPLETED",
 		})

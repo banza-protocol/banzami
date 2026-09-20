@@ -134,18 +134,26 @@ class _ChargeScreenState extends State<ChargeScreen> {
       final currency = link.currency;
       final desc = link.description;
       // Resolve who paid — the same confirmation runs on the Consumer side and shows
-      // the payer, so the Business side does too. The link status is a bare boolean,
-      // so we read the payer from the merchant's own received wallet-payments: the
-      // newest one matching this link's amount (a payment just landed). Best-effort,
-      // with a brief retry for the feed lagging the status flip.
+      // the payer as a "@handle", so the Business side does too. The link status is a
+      // bare boolean, so we read the payer from the merchant's own received
+      // wallet-payments: the newest one matching this link's amount (a payment just
+      // landed). Prefer the payer's @handle (the Banzami identity, and what the
+      // Consumer screen shows), falling back to the display name. Best-effort, with a
+      // brief retry for the feed lagging the status flip.
       String? from;
       for (var i = 0; i < 5 && from == null && mounted; i++) {
         try {
           final page = await client.listMerchantWalletPayments(limit: 20);
           for (final pmt in page.items) {
-            if ((amount == null || pmt.amountMinor == amount) &&
-                pmt.payerName.trim().isNotEmpty) {
-              from = pmt.payerName.trim();
+            if (amount != null && pmt.amountMinor != amount) continue;
+            final handle = pmt.payerHandle.trim();
+            final name = pmt.payerName.trim();
+            if (handle.isNotEmpty) {
+              from = handle;
+              break;
+            }
+            if (name.isNotEmpty) {
+              from = name;
               break;
             }
           }

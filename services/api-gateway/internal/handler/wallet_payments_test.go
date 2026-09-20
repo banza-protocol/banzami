@@ -32,7 +32,7 @@ func wpReq(merchantID, env, query string) (*httptest.ResponseRecorder, *http.Req
 func TestWalletPaymentsList_ScopedAndMapped(t *testing.T) {
 	fl := &fakeLister{
 		items: []service.WalletPaymentListItem{
-			{ID: "aaaa1111-2222-3333-4444-555566667777", AmountMinor: 2500000, Currency: "AOA", Status: "COMPLETED", PayerName: "João Manuel", CreatedAt: time.Date(2026, 6, 27, 14, 32, 0, 0, time.UTC)},
+			{ID: "aaaa1111-2222-3333-4444-555566667777", AmountMinor: 2500000, Currency: "AOA", Status: "COMPLETED", PayerName: "João Manuel", PayerHandle: "@joao", CreatedAt: time.Date(2026, 6, 27, 14, 32, 0, 0, time.UTC)},
 		},
 		next: "CURSOR2",
 	}
@@ -61,7 +61,7 @@ func TestWalletPaymentsList_ScopedAndMapped(t *testing.T) {
 	if !it.ReceiptAvailable {
 		t.Error("COMPLETED should have receipt_available true")
 	}
-	if it.PayerName != "João Manuel" || it.AmountMinor != 2500000 {
+	if it.PayerName != "João Manuel" || it.PayerHandle != "@joao" || it.AmountMinor != 2500000 {
 		t.Errorf("mapping wrong: %+v", it)
 	}
 }

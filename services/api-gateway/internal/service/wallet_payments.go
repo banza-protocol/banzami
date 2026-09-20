@@ -45,6 +45,7 @@ type WalletPaymentListItem struct {
 	Currency    string
 	Status      string
 	PayerName   string
+	PayerHandle string // "@handle" when the payer has one, else ""
 	CreatedAt   time.Time
 }
 
@@ -125,7 +126,8 @@ func (s *PostgresWalletPaymentService) ListForMerchant(ctx context.Context, merc
 	}
 
 	q := `SELECT wp.id::text, wp.amount_minor, wp.currency, wp.status, wp.created_at,
-		COALESCE(c.display_name, CASE WHEN c.handle IS NOT NULL THEN '@'||c.handle ELSE '' END, '')
+		COALESCE(c.display_name, CASE WHEN c.handle IS NOT NULL THEN '@'||c.handle ELSE '' END, ''),
+		COALESCE(CASE WHEN c.handle IS NOT NULL THEN '@'||c.handle ELSE '' END, '')
 		FROM wallet_payments wp
 		LEFT JOIN consumers c ON c.id = wp.consumer_id
 		WHERE ` + strings.Join(where, " AND ") + `
@@ -141,7 +143,7 @@ func (s *PostgresWalletPaymentService) ListForMerchant(ctx context.Context, merc
 	items := make([]WalletPaymentListItem, 0, limit+1)
 	for rows.Next() {
 		var it WalletPaymentListItem
-		if err := rows.Scan(&it.ID, &it.AmountMinor, &it.Currency, &it.Status, &it.CreatedAt, &it.PayerName); err != nil {
+		if err := rows.Scan(&it.ID, &it.AmountMinor, &it.Currency, &it.Status, &it.CreatedAt, &it.PayerName, &it.PayerHandle); err != nil {
 			return nil, "", err
 		}
 		items = append(items, it)
