@@ -54,7 +54,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { retireConsumer } from './consumer-retire.mjs';
 
-const KINDS = new Set(['consumer', 'business', 'merchant', 'test_payer', 'wallet_account']);
+// The vocabulary comes from the ONE registry, so a kind the studio can
+// classify and retire is exactly a kind a primitive may hand over. This list
+// was five entries and would have silently swallowed fixture_project — the
+// throw is caught inside ownCreated, so the registration would simply not have
+// happened and the journey would have measured as owning nothing.
+import { RESOURCE_SCOPE } from '../../../lib/validation-resource-scope.mjs';
+const KINDS = new Set(RESOURCE_SCOPE.keys());
 
 /**
  * THE AMBIENT CONTEXT — why ownership stopped being the harness author's job.

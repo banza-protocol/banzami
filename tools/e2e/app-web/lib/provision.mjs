@@ -58,7 +58,14 @@ export async function provisionMerchant({ prefix = 'appweb' } = {}) {
   // Owned at the moment it becomes fundable, before financial-setup can fail:
   // a project that exists but never reached READY is still a resource this run
   // created, and cleanup must know about it.
-  ownCreated('merchant', project, { creation_source: 'provisionMerchant', workspace: ws, name: projectName });
+  // A DEVELOPER PROJECT, not a merchant. Verified against the schema rather
+  // than named by intuition: a project id matches
+  // developer.dev_project_sandbox_binding.project_id and matches
+  // wallets.merchant_id zero times. Registering it as `merchant` would have
+  // resolved to no account at all, and the journey would have read as owning
+  // nothing — the same silence B2 just removed, reintroduced one layer up.
+  ownCreated('fixture_project', project, { creation_source: 'provisionMerchant', workspace: ws, name: projectName });
+  ownCreated('fixture_workspace', ws, { creation_source: 'provisionMerchant', name: wsName });
 
   const setup = await call('POST', `/projects/${project}/financial-setup`, { use_case: 'STANDARD' });
   if (setup.status !== 200 || !['READY', 'SEALED'].includes(setup.body?.state)) {

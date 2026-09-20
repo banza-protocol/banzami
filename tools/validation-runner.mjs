@@ -34,6 +34,7 @@ import {
   aggregateFunds, plannedPeakFunds, requiredFundsHeadroom, AGGREGATE_FUNDS_CAP,
 } from './lib/validation-capacity.mjs';
 import { attributablePeak, exposureVerdict } from './lib/validation-exposure.mjs';
+import { resolveFinancialAccounts, scopeOf, RESOURCE_SCOPE } from './lib/validation-resource-scope.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
@@ -1520,18 +1521,20 @@ function claimResources(runID, journeyID, manifest) {
  * Consumers are resolved by handle because that is what the harness hands
  * over; the id lookup is read-only.
  */
-function ownedLedgerEvents(refs) {
-  if (!refs.length) return null;
-  const list = refs.map((r) => lit(String(r))).join(',');
+function ownedLedgerEvents(accounts) {
+  if (!accounts.length) return null;
+  const list = accounts.map((a) => lit(String(a))).join(',');
   try {
+    // The resource is the ACCOUNT, not a handle. This used to join
+    // consumers.handle and nothing else, so a journey owning a Business, a
+    // merchant, a test payer or a wallet account resolved to no events at all
+    // and its exposure came back UNKNOWN with a complete manifest in hand.
     return sql(`
-      SELECT c.handle,
+      SELECT le.account_id::text,
              to_char(le.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
              (CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END)::text
-        FROM consumers c
-        JOIN consumer_wallets cw ON cw.consumer_id = c.id
-        JOIN ledger_entries le ON le.account_id = cw.available_account_id
-       WHERE c.handle IN (${list})
+        FROM ledger_entries le
+       WHERE le.account_id::text IN (${list})
        ORDER BY le.created_at;`)
       .map(([resource, at, delta]) => ({ resource, at, delta: Number(delta) }));
   } catch { return null; }
@@ -1550,13 +1553,29 @@ function measureExposure(p, manifest) {
     // nothing here knows what to measure. UNKNOWN, and UNKNOWN fails closed.
     return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }), declared, actual: null, resources: 0, events: 0 };
   }
-  const refs = manifest.owned.filter((r) => r.kind === 'consumer').map((r) => r.id);
-  const events = ownedLedgerEvents(refs);
+  // Resource -> canonical financial account, through the one registry. It used
+  // to be `filter(kind === 'consumer')`, which silently discarded every other
+  // owned resource: a Business, a merchant, a test payer and a wallet account
+  // were all dropped on the floor and the journey then measured as owning
+  // nothing it could price.
+  const scope = resolveFinancialAccounts(manifest.owned, { sql });
+  if (scope.verdict === 'UNKNOWN') {
+    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
+             declared, actual: null, resources: scope.counts.accounts, events: 0, scope };
+  }
+  // A journey whose owned resources are ALL structural holds no balance. That
+  // is a measurement — it resolved, and the answer is zero — not an absence.
+  if (scope.accounts.length === 0) {
+    return { ...exposureVerdict({ declared, actual: 0 }), declared, actual: 0,
+             resources: 0, events: 0, scope };
+  }
+  const events = ownedLedgerEvents(scope.accounts);
   if (events === null) {
-    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }), declared, actual: null, resources: refs.length, events: 0 };
+    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
+             declared, actual: null, resources: scope.accounts.length, events: 0, scope };
   }
   const { peak, resources, events: n } = attributablePeak(events);
-  return { ...exposureVerdict({ declared, actual: peak }), declared, actual: peak, resources, events: n };
+  return { ...exposureVerdict({ declared, actual: peak }), declared, actual: peak, resources, events: n, scope };
 }
 
 function recordExposure(runID, p, e) {

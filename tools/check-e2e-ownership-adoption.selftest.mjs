@@ -103,7 +103,10 @@ rmSync(mf, { force: true });
 
 const wired = {
   'registerConsumer (consumer.mjs)': ['consumer.mjs', /ownCreated\('consumer'/],
-  'provisionMerchant (provision.mjs)': ['provision.mjs', /ownCreated\('merchant'/],
+  // A developer PROJECT, not a merchant: a project id matches
+  // developer.dev_project_sandbox_binding and matches wallets.merchant_id zero
+  // times, so registering it as `merchant` would resolve to no account at all.
+  'provisionMerchant (provision.mjs)': ['provision.mjs', /ownCreated\('fixture_project'/],
   'provisionBusiness (business-provision.mjs)': ['business-provision.mjs', /ownCreated\('business'/],
 };
 for (const [name, [file, re]] of Object.entries(wired)) {
@@ -116,6 +119,11 @@ const consumer = readFileSync(join(LIB, 'consumer.mjs'), 'utf8');
 check('the consumer is owned BEFORE the PIN step can fail',
   /create\.submit\(\);[\s\S]{0,600}?ownCreated\('consumer'[\s\S]{0,400}?createDuringOnboarding/.test(consumer),
   'registering on the success path only is worth almost nothing: the runs that leak are the runs that failed');
+
+const own = readFileSync(join(LIB, 'e2e-own.mjs'), 'utf8');
+check('the ownable kinds come from the one registry, not a second list',
+  /RESOURCE_SCOPE/.test(own) && /new Set\(RESOURCE_SCOPE\.keys\(\)\)/.test(own),
+  'a hand-written list silently swallowed fixture_project: ownCreated catches the throw, so the registration simply never happened');
 
 console.log(failures === 0
   ? '\n✓ E2E_OWNERSHIP_ADOPTION=PASS\n'

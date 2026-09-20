@@ -83,8 +83,18 @@ check('G. a stranger\'s balance is not in the journey\'s event set at all',
 check('G. …and including one would be visible, which is why ownership is declared',
   peak(withStranger) === 41_000_000,
   'the engine sums what it is given; the guard is that it is only ever given owned resources');
-check('G. the runner reads the trajectory of OWNED handles only',
-  /WHERE c\.handle IN \(\$\{list\}\)/.test(runner) && /manifest\.owned/.test(runner));
+// The PROPERTY is that the trajectory comes only from what the journey handed
+// over — not that it is keyed by a handle. Keying it by handle was in fact the
+// defect: a Business, a merchant, a test payer and a wallet account have no
+// consumer handle, so every one of them resolved to nothing and the journey
+// measured as owning nothing it could price. The unit is now the canonical
+// account, reached through the one resolver registry.
+check('G. the runner reads the trajectory of OWNED accounts only',
+  /WHERE le\.account_id::text IN \(\$\{list\}\)/.test(runner)
+  && /resolveFinancialAccounts\(manifest\.owned/.test(runner),
+  'a handle cannot name a Business, and a resolver that only knows handles reports its own blindness as zero exposure');
+check('G. …and an unresolved owned resource is UNKNOWN rather than dropped',
+  /scope\.verdict === 'UNKNOWN'[\s\S]{0,200}ownershipKnown: false/.test(runner));
 check('G. …and global samples remain a separate number',
   /validation_run_funds_samples/.test(runner) && /actual_attributable_peak_minor/.test(runner));
 
