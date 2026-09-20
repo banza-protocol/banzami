@@ -28,6 +28,11 @@ class BanzamiVerifiedMark extends StatefulWidget {
   final Color? coreMid; // core radial mid stop       (default primaryMid)
   final Color? coreEdge; // core radial edge stop      (default primaryDark)
 
+  /// Spin the dashed security ring counter-clockwise instead of clockwise. Used by
+  /// the light-background confirmation screens so their mark turns opposite to the
+  /// immersive receipt's, while staying the exact same object.
+  final bool reverseSpin;
+
   const BanzamiVerifiedMark({
     super.key,
     this.size = 96,
@@ -35,6 +40,7 @@ class BanzamiVerifiedMark extends StatefulWidget {
     this.bloom,
     this.coreMid,
     this.coreEdge,
+    this.reverseSpin = false,
   });
 
   @override
@@ -64,7 +70,8 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _rotCtrl,
-      builder: (_, __) => _buildContent(_rotCtrl.value * 2 * math.pi),
+      builder: (_, __) => _buildContent(
+          _rotCtrl.value * 2 * math.pi * (widget.reverseSpin ? -1 : 1)),
     );
   }
 

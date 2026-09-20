@@ -27,7 +27,9 @@ class ChargePaidScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(flex: 2),
-              const Center(child: BanzamiVerifiedMark(size: 96, onLight: true)),
+              const Center(
+                  child: BanzamiVerifiedMark(
+                      size: 96, onLight: true, reverseSpin: true)),
               const SizedBox(height: BanzamiSpacing.lg),
               const Text(
                 'Pagamento recebido',
