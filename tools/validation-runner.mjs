@@ -1113,19 +1113,34 @@ function main() {
 function summarise(runID, runRef, expected) {
   let row;
   try {
+    // Every outcome counter is scoped to record_kind='JOURNEY'. They were not,
+    // and the CONTROL row — which by construction never executes — was counted
+    // as a journey that was not reached: `17 passed / 2 failed / 20 not reached`
+    // for a universe of 38. The two structural counters below already filtered
+    // by kind, so the same SELECT disagreed with itself.
     [row] = sql(
       `SELECT r.state, r.verdict, to_char(r.ended_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
               (SELECT count(*) FROM validation_run_journeys j
-                WHERE j.run_id = r.id AND j.outcome = 'PASSED'),
+                WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY' AND j.outcome = 'PASSED'),
               (SELECT count(*) FROM validation_run_journeys j
-                WHERE j.run_id = r.id AND j.outcome = 'FAILED'),
+                WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY' AND j.outcome = 'FAILED'),
               (SELECT count(*) FROM validation_run_journeys j
-                WHERE j.run_id = r.id AND j.outcome = 'UNAVAILABLE'),
+                WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY' AND j.outcome = 'UNAVAILABLE'),
               (SELECT count(*) FROM validation_run_journeys j
-                WHERE j.run_id = r.id AND j.outcome = 'NOT_REACHED'),
+                WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY' AND j.outcome = 'NOT_REACHED'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY' AND j.outcome = 'SKIPPED'),
               (SELECT count(*) FROM validation_run_journeys j
                 WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY'),
               (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.record_kind = 'CONTROL'),
+              (SELECT count(*) FROM validation_run_journeys j
+                WHERE j.run_id = r.id AND j.record_kind IS NULL),
+              (SELECT coalesce(string_agg(DISTINCT
+                        coalesce(j.journey_id, '?') || ' ' ||
+                        coalesce(j.control_reason, '?') || ' ' ||
+                        coalesce(j.control_classification, '?'), '; '), '')
+                 FROM validation_run_journeys j
                 WHERE j.run_id = r.id AND j.record_kind = 'CONTROL'),
               (SELECT count(*) FROM validation_run_journeys j WHERE j.run_id = r.id),
               (SELECT count(*) FROM validation_evidence e WHERE e.run_id = r.id)
@@ -1137,13 +1152,16 @@ function summarise(runID, runRef, expected) {
     log('  read it with: SELECT state, verdict FROM validation_runs WHERE run_ref = \'' + runRef + '\';');
     return;
   }
-  const [state, verdict, endedAt, pass, fail, unavail, notReached, journeys, controls, total, evidence] = row;
+  const [state, verdict, endedAt, pass, fail, unavail, notReached, skipped,
+         journeys, controls, legacy, controlDetail, total, evidence] = row;
   log(`\n${runRef}  ${state}  ${verdict}`);
-  log(`  journeys   ${pass} passed / ${fail} failed / ${notReached} not reached / ${unavail} unavailable`);
-  // Typed by the planner, counted from the rows. "38 journeys" and "39 rows"
-  // were both true and neither was checkable until record_kind existed.
-  log(`  records    ${journeys} JOURNEY · ${controls} CONTROL · ${total} materialised` +
-      (Number(journeys) + Number(controls) === Number(total) ? '' : '  ← LEGACY rows present (pre-0162)'));
+  // Three blocks, because they answer three different questions: what the
+  // product did, what was declared unexecutable, and how many rows exist.
+  log(`  JOURNEY    ${pass} passed · ${fail} failed · ${notReached} not reached` +
+      ` · ${unavail} unavailable · ${skipped} skipped · ${journeys} total`);
+  log(`  CONTROL    ${controls} total${controlDetail ? ` — ${controlDetail}` : ''}`);
+  log(`  RECORDS    ${total} materialised` +
+      (Number(legacy) > 0 ? `  ← ${legacy} LEGACY row(s) (pre-0162), counted in neither block` : ''));
   log(`  evidence   ${evidence} hashed row(s)`);
   log(`  finished   ${endedAt}`);
   log('  (read back from validation_runs; the database is the authority for this run)');

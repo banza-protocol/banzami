@@ -478,6 +478,13 @@ check-validation-exposure:
 # refuses what the executor would happily have written. Proven by materialising
 # the whole FULL plan inside a transaction that is rolled back, rather than by
 # spending an owner ceremony and thirteen minutes to count rows.
+.PHONY: check-validation-journey-counters
+# A CONTROL row must not move a JOURNEY counter. BZV-20260920-0001 printed
+# "17 passed / 2 failed / 20 not reached" for 38 journeys: the outcome counters
+# were unscoped while the structural ones in the same SELECT were not.
+check-validation-journey-counters:
+	node tools/check-validation-journey-counters.mjs
+
 .PHONY: check-validation-materialization
 check-validation-materialization:
 	node tools/check-validation-materialization.mjs
@@ -501,7 +508,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-e2e-measurement-honesty check-validation-exposure check-validation-materialization check-validation-budget-truth check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-e2e-measurement-honesty check-validation-exposure check-validation-materialization check-validation-journey-counters check-validation-budget-truth check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.

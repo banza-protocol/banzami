@@ -82,8 +82,14 @@ check('F. the summary reads NOT_REACHED from the rows',
   /outcome = 'NOT_REACHED'\)/.test(runner));
 check('F. …and the record kinds too',
   /record_kind = 'JOURNEY'\)/.test(runner) && /record_kind = 'CONTROL'\)/.test(runner));
+// The PROPERTY is that legacy rows are named as legacy and are counted in
+// neither block — not that the sentence has a particular shape. The summary
+// used to infer their presence from `journeys + controls !== total`; it now
+// counts `record_kind IS NULL` directly, which says the same thing without
+// deriving it. Both satisfy this; a summary that silently folded them into the
+// journey counters would not.
 check('F. …and says so when legacy rows make the two disagree',
-  /LEGACY rows present \(pre-0162\)/.test(runner),
+  /record_kind IS NULL\)/.test(runner) && /LEGACY row\(s\) \(pre-0162\)/.test(runner),
   'pre-0162 rows have no kind, and inventing one would be the inference 0162 abolishes');
 check('F. a divergence between counter and record is still reported',
   /not reached \$\{expected\.notReached/.test(runner));
