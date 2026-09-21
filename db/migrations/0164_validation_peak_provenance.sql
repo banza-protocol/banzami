@@ -82,13 +82,29 @@ ALTER TABLE validation_run_journeys
 -- ownership had never been established at all.
 ALTER TABLE validation_run_journeys
   DROP CONSTRAINT IF EXISTS validation_exposure_needs_complete_ownership;
+--
+-- POSITIVELY, and NOT VALID.
+--
+-- The first draft of this let NULL through on both columns, so a NEW row could
+-- be written VERIFIED with neither prerequisite established and the CHECK
+-- would have accepted it — the constraint would have permitted exactly the
+-- state it exists to forbid. Making NULL legal to accommodate history is how a
+-- gate becomes decorative.
+--
+-- History is preserved the correct way instead: NOT VALID means existing rows
+-- are never examined, while every INSERT and UPDATE from here on must satisfy
+-- it. Pre-0164 rows keep their NULLs and their meaning; a new VERIFIED must
+-- prove both prerequisites positively.
+--
+-- Deliberately NOT followed by VALIDATE CONSTRAINT: validating would scan the
+-- 141 historical journey rows against a model that did not exist when they
+-- ran, and they would fail for being honest about what was not measured.
 ALTER TABLE validation_run_journeys
   ADD CONSTRAINT validation_exposure_needs_complete_ownership
   CHECK (
     exposure_verdict IS DISTINCT FROM 'VERIFIED'
-    OR ownership_completeness IS NULL          -- pre-0164 rows keep their meaning
     OR (ownership_completeness = 'VERIFIED'
-        AND (peak_event_ordering IS NULL OR peak_event_ordering = 'DETERMINISTIC'))
-  );
+        AND peak_event_ordering = 'DETERMINISTIC')
+  ) NOT VALID;
 
 COMMIT;
