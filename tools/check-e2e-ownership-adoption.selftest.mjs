@@ -125,6 +125,39 @@ check('the ownable kinds come from the one registry, not a second list',
   /RESOURCE_SCOPE/.test(own) && /new Set\(RESOURCE_SCOPE\.keys\(\)\)/.test(own),
   'a hand-written list silently swallowed fixture_project: ownCreated catches the throw, so the registration simply never happened');
 
+/* ── 6 · the shared client is the authority, not the journey ─────────────── */
+
+// S23-RAIL-001 owned 1 200 000 in a test payer nothing had declared. Nine
+// files POST /v1/sandbox/test-payers directly and there is no createTestPayer
+// helper, so the registration lives in the CLIENT that performs the creation —
+// the narrowest place that sees every caller.
+const prov = readFileSync(join(LIB, 'provision.mjs'), 'utf8');
+check('the gateway client registers what its creating routes create',
+  /GATEWAY_CREATES/.test(prov) && /ownCreated\(kind, j\.id/.test(prov));
+check('…keyed on method + path, so a GET returning an id creates nothing',
+  /method === 'POST' && \(r\.status === 200 \|\| r\.status === 201\) && j\?\.id/.test(prov));
+check('…and the test-payer route is one of them',
+  /sandbox\\\/test-payers\$\/, 'test_payer'/.test(prov));
+
+const p23 = readFileSync(join(LIB, '..', 'proofs', '23-rail-boundary.mjs'), 'utf8');
+check('proof 23 carries NO journey-specific ownership code',
+  !/ownCreated/.test(p23),
+  'S23 must obtain ownership from the client contract, not because its id is recognised');
+
+// Inheritance is structural, not a list of proofs. Every tenant handed out by
+// provisionMerchant carries THE instrumented client as its `gw`, so a caller
+// gets the contract by using the tenant it was given — there is no second,
+// uninstrumented way to reach the gateway with a project key.
+//
+// An earlier version of this asserted that three named proofs used the client.
+// Only one of them calls it directly; the claim was mine, not the code's.
+check('provisionMerchant hands out THE instrumented client',
+  /gw: gatewayHttp\(secret\)/.test(prov),
+  'a tenant cannot be handed an uninstrumented gateway');
+check('…and gatewayHttp is the only exported gateway constructor',
+  (prov.match(/export function gatewayHttp/g) ?? []).length === 1
+  && !/export function .*[Gg]ateway(?!Http)/.test(prov));
+
 console.log(failures === 0
   ? '\n✓ E2E_OWNERSHIP_ADOPTION=PASS\n'
   : `\n✗ E2E_OWNERSHIP_ADOPTION=FAIL (${failures})\n`);

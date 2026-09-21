@@ -14,6 +14,7 @@
  *   node tools/check-validation-concurrent-peak.selftest.mjs
  */
 import { dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -120,6 +121,30 @@ const fakeSql = (table) => (q) => {
     c.detail);
 }
 {
+  // The S06 shape: a SEGREGATED account under an owned business. The probe
+  // asks the schema for accounts whose account_id differs from the wallet's,
+  // so only these reach it — a PRIMARY never does.
+  const owned = [{ kind: 'business', id: 'm-1' }];
+  const c = ownershipCompleteness(owned, { sql: () => [['wa-campaign', 'm-1']] });
+  check('G. …including a segregated wallet_account under an owned business',
+    c.verdict === 'INCOMPLETE' && c.missing[0]?.kind === 'wallet_account', c.detail);
+  const ok = ownershipCompleteness([...owned, { kind: 'wallet_account', id: 'wa-campaign' }],
+    { sql: () => [['wa-campaign', 'm-1']] });
+  check('…and declaring it closes the gap', ok.verdict === 'VERIFIED');
+}
+{
+  // The correction: a PRIMARY wallet_account IS the wallet's own account.
+  // Measured live — 1211 of 1211 PRIMARY rows have
+  // account_id = wallets.available_account_id, while all 382 CAMPAIGN differ.
+  // The probe's SQL excludes them, so an owned business with only a PRIMARY
+  // underneath is complete. It used to report S06-COL-002 INCOMPLETE for
+  // failing to declare an account its BUSINESS already resolved to.
+  const scope = readFileSync(join(repo, 'tools/lib/validation-resource-scope.mjs'), 'utf8');
+  check('a PRIMARY account is not demanded separately',
+    /account_id IS DISTINCT FROM w\.available_account_id/.test(scope),
+    'owning the business already attributes it; demanding it again is declaration noise');
+}
+{
   const owned = [{ kind: 'fixture_project', id: 'proj-1' }, { kind: 'test_payer', id: 'payer-9' }];
   const c = ownershipCompleteness(owned, { sql: () => [['payer-9', 'proj-1']] });
   check('…and declaring it makes the same manifest VERIFIED', c.verdict === 'VERIFIED', c.detail);
@@ -143,7 +168,7 @@ check('an unmeasurable actual is UNKNOWN, never VERIFIED-by-zero',
 
 /* ── the runner honours both preconditions ───────────────────────────────── */
 
-const { readFileSync } = await import('node:fs');
+
 const runner = readFileSync(join(repo, 'tools/validation-runner.mjs'), 'utf8');
 check('the runner checks completeness BEFORE resolution',
   /ownershipCompleteness\(manifest\.owned[\s\S]{0,400}?resolveFinancialAccounts\(manifest\.owned/.test(runner),
@@ -152,6 +177,19 @@ check('…and an AMBIGUOUS ordering becomes UNKNOWN',
   /ordering === 'AMBIGUOUS'[\s\S]{0,200}ownershipKnown: false/.test(runner));
 check('…and the peak provenance is carried out of the measurement',
   /peakAt, peakGroup, peakAccounts/.test(runner));
+
+/* ── PART 10 · a rejected verdict is a system defect, not a journey result ─ */
+
+check('the executor states both prerequisites when it persists a verdict',
+  /ownership_completeness = \$\{txt\(e\.completeness\?\.verdict\)\}/.test(runner)
+  && /peak_event_ordering = \$\{txt\(e\.ordering/.test(runner),
+  '0165 refuses a VERIFIED whose prerequisites are absent, so silence is rejection');
+check('…and a database rejection is surfaced, never swallowed',
+  /EXPOSURE_PERSISTENCE_REJECTED/.test(runner) && /throw new Error\(`EXPOSURE_PERSISTENCE_REJECTED/.test(runner),
+  'downgrading it to UNKNOWN would hide an executor writing a verdict the model forbids');
+check('…and the figure records which model produced it',
+  /measurement_model = \$\{lit\(MEASUREMENT_MODEL\)\}/.test(runner),
+  'a pre-B4 peak and a B4 peak are not comparable and must not be compared');
 
 console.log(failures === 0
   ? '\n✓ VALIDATION_CONCURRENT_PEAK=PASS\n'

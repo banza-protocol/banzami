@@ -1603,20 +1603,46 @@ function measureExposure(p, manifest) {
   }
   return { ...exposureVerdict({ declared, actual: peak }), declared, actual: peak,
            resources, events: n, scope, completeness: complete,
-           peakAt, peakGroup, peakAccounts };
+           peakAt, peakGroup, peakAccounts, ordering };
 }
 
 function recordExposure(runID, p, e) {
   if (!EXPOSURE_COLUMNS) return;
-  sql(`UPDATE validation_run_journeys SET
-         declared_peak_minor = ${e.declared === null ? 'NULL' : e.declared},
-         actual_attributable_peak_minor = ${e.actual === null ? 'NULL' : e.actual},
-         exposure_verdict = ${lit(e.verdict)},
-         exposure_detail = ${lit(String(e.detail).slice(0, 400))},
-         exposure_resource_count = ${e.resources}, exposure_event_count = ${e.events},
-         exposure_measured_at = now()
-       WHERE run_id = ${lit(runID)}::uuid AND journey_id = ${lit(p.journey)};`, { rows: false });
+  const nz = (v) => (v === null || v === undefined ? 'NULL' : Number(v));
+  const txt = (v) => (v === null || v === undefined ? 'NULL' : lit(String(v).slice(0, 400)));
+  try {
+    sql(`UPDATE validation_run_journeys SET
+           declared_peak_minor = ${nz(e.declared)},
+           actual_attributable_peak_minor = ${nz(e.actual)},
+           exposure_verdict = ${lit(e.verdict)},
+           exposure_detail = ${lit(String(e.detail).slice(0, 400))},
+           exposure_resource_count = ${e.resources}, exposure_event_count = ${e.events},
+           exposure_measured_at = now(),
+           -- 0164/0165. These are not decoration: the database refuses a
+           -- VERIFIED whose prerequisites are not both present and positive,
+           -- so the executor must state them or its own verdict is rejected.
+           ownership_completeness = ${txt(e.completeness?.verdict)},
+           ownership_completeness_detail = ${txt(e.completeness?.detail)},
+           financial_account_count = ${nz(e.scope?.counts?.accounts)},
+           peak_transaction_ref = ${txt(e.peakGroup)},
+           peak_observed_at = ${e.peakAt ? `${lit(e.peakAt)}::timestamptz` : 'NULL'},
+           peak_event_ordering = ${txt(e.ordering ?? (e.actual === null ? null : 'DETERMINISTIC'))},
+           measurement_model = ${lit(MEASUREMENT_MODEL)}
+         WHERE run_id = ${lit(runID)}::uuid AND journey_id = ${lit(p.journey)};`, { rows: false });
+  } catch (err) {
+    // A rejection here is a VALIDATION-SYSTEM defect, not a journey result.
+    // Silently downgrading it to UNKNOWN would hide an executor that tried to
+    // write a verdict the model forbids — which is exactly what 0164 exists to
+    // catch. It is recorded as an event and re-thrown.
+    event(runID, 'RUNNING', 'RUNNING',
+      `EXPOSURE_PERSISTENCE_REJECTED ${p.journey} ${String(err.message).slice(0, 200)}`);
+    throw new Error(`EXPOSURE_PERSISTENCE_REJECTED ${p.journey}: the database refused the ` +
+      `exposure verdict the executor computed — ${String(err.message).slice(0, 200)}`);
+  }
 }
+
+/** Which model produced a figure. A pre-B4 peak and a B4 peak are not comparable. */
+const MEASUREMENT_MODEL = 'B4/0165 complete-ownership concurrent-peak';
 
 /**
  * The attributable side of the funds picture, read back from the rows.

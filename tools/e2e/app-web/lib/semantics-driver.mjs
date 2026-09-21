@@ -138,9 +138,15 @@ export class FlutterSemanticsDriver {
    * complete screen. So DOM inspection cannot distinguish "rendered" from
    * "blank", and a screenshot can: a blank screen is one flat colour.
    *
-   * The measurement is the compressed size of a LOSSLESS frame per pixel. PNG
-   * encodes a flat field to almost nothing whatever colour it is, so this
-   * separates "one colour" from "a drawn interface" without decoding an image.
+   * THE CONTRACT, stated exactly: the rendered frame differs materially from a
+   * uniform, unpainted surface, under a calibrated VISUAL-COMPLEXITY
+   * threshold. It is not a colour count and not a non-white pixel count — the
+   * measurement is the compressed size of a LOSSLESS frame per pixel, and PNG
+   * encodes a flat field to almost nothing whatever colour it is.
+   *
+   * An earlier draft of this comment called it a colour count. It never was,
+   * and naming a proxy after the thing it approximates is how a proxy stops
+   * being questioned.
    *
    * Calibrated at 1280×720 rather than assumed — an earlier version of this
    * method counted distinct bytes of the compressed stream, which is not a

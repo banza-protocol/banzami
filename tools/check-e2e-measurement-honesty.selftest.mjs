@@ -82,6 +82,9 @@ const driver = readFileSync(
 check('boot is proven from the engine mount, not from semantics',
   /appBooted\(\)/.test(p03) && /APP_BOOTS_ON_DEEPLINK', boot\.booted/.test(p03),
   'flutter-view + glass-pane + scene host exist before any placeholder is clicked');
+check('the frame probe names what it measures, not what it approximates',
+  /VISUAL-COMPLEXITY[\s*]+threshold/.test(driver) && /not a colour count/.test(driver),
+  'a proxy named after the thing it approximates stops being questioned');
 check('not-blank is proven from pixels, not from accessible text',
   /renderedPixels\(\)/.test(p03) && /APP_NO_BLANK_SCREEN', px\.painted/.test(p03),
   'with semantics off this build exposes no DOM text and no canvas, so only a frame can answer it');

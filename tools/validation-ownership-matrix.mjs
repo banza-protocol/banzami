@@ -127,12 +127,18 @@ for (const j of journeys) {
   const financial = scopes.filter(([, s]) => s === 'FINANCIAL').map(([k]) => k);
   const structural = scopes.filter(([, s]) => s === 'STRUCTURAL').map(([k]) => k);
 
+  // READY_TO_MEASURE is not RUNTIME_VERIFIED, and the distinction is the whole
+  // point. A journey is ready when its ownership reaches the runner, every
+  // kind it can own is classified, and every FINANCIAL kind resolves to an
+  // account. Whether its peak was inside its declaration is a RUNTIME fact
+  // that only an execution can establish — and requiring 33 executions before
+  // FULL would be running FULL piecemeal to earn the right to run FULL.
   let status;
   if (!fundingCapable) status = 'NOT_APPLICABLE';
   else if (kinds.size === 0) status = 'MISSING_MANIFEST';
   else if (unknownKinds.length) status = 'UNKNOWN';
   else if (financial.length === 0) status = 'STRUCTURAL_ONLY';
-  else status = 'RESOLVABLE';
+  else status = 'READY_TO_MEASURE';
 
   // Own source only, and own kinds only — what THIS file registers or POSTs.
   const ownSrc = srcs[srcs.length - 1] ?? '';
@@ -171,7 +177,7 @@ if (process.argv.includes('--json')) {
 
   // The floor never blocks: it is advisory by construction (see derivedFloor).
   const blocking = rows.filter((r) => r.fundingCapable
-    && ['MISSING_MANIFEST', 'UNKNOWN'].includes(r.status));
+    && ['MISSING_MANIFEST', 'UNKNOWN', 'INCOMPLETE'].includes(r.status));
   const advisory = rows.filter((r) => r.underDeclared);
   if (advisory.length) {
     console.log(`\n  advisory: ${advisory.length} journey(s) name more funding in their own source than they declare: ` +
@@ -179,7 +185,9 @@ if (process.argv.includes('--json')) {
       `\n  a floor cannot authorise a run and does not block one; the runtime concurrent peak decides.`);
   }
   console.log(blocking.length === 0
-    ? '\n✓ OWNERSHIP_MATRIX: every funding-capable journey can be held to its declaration\n'
+    ? '\n✓ OWNERSHIP_MATRIX: every funding-capable journey is READY_TO_MEASURE\n'
+      + '  (structurally able to produce trustworthy exposure evidence when executed;\n'
+      + '   RUNTIME_VERIFIED is a separate fact that only an execution establishes)\n'
     : `\n✗ OWNERSHIP_MATRIX: ${blocking.length} funding-capable journey(s) cannot be: ` +
       `${blocking.map((b) => b.id).join(', ')}\n`);
   process.exit(blocking.length === 0 ? 0 : 1);

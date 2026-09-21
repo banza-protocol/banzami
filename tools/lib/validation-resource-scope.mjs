@@ -260,23 +260,28 @@ const COMPLETENESS_PROBES = [
                              WHERE t.project_id::text IN (${ids})
                                ${since ? `AND t.created_at >= ${since}` : ''}`,
   },
-  {
-    // A segregated account belongs to a merchant and can hold value.
-    container: 'merchant',
+  // A SEGREGATED account belongs to a merchant and holds value of its own.
+  //
+  // PRIMARY is excluded, and the exclusion is measured rather than assumed:
+  // across the live Sandbox, all 1211 PRIMARY wallet_accounts have
+  // account_id = wallets.available_account_id — they ARE the wallet's account,
+  // so owning the business already attributes them. All 382 CAMPAIGN, and the
+  // RESERVE and STORE accounts, carry a DIFFERENT account and are separately
+  // fundable. S10's campaign accounts are exactly that case.
+  //
+  // Demanding a PRIMARY be declared separately was this probe's own false
+  // positive: it reported S06-COL-002 INCOMPLETE for failing to hand over an
+  // account its BUSINESS declaration already resolved to.
+  ...['merchant', 'business'].map((container) => ({
+    container,
     missingKind: 'wallet_account',
     query: (ids, since) => `SELECT DISTINCT wa.id::text, wa.merchant_id::text
                               FROM wallet_accounts wa
+                              JOIN wallets w ON w.id = wa.wallet_id
                              WHERE wa.merchant_id::text IN (${ids})
+                               AND wa.account_id IS DISTINCT FROM w.available_account_id
                                ${since ? `AND wa.created_at >= ${since}` : ''}`,
-  },
-  {
-    container: 'business',
-    missingKind: 'wallet_account',
-    query: (ids, since) => `SELECT DISTINCT wa.id::text, wa.merchant_id::text
-                              FROM wallet_accounts wa
-                             WHERE wa.merchant_id::text IN (${ids})
-                               ${since ? `AND wa.created_at >= ${since}` : ''}`,
-  },
+  })),
 ];
 
 export function ownershipCompleteness(owned, { sql, since = null } = {}) {
