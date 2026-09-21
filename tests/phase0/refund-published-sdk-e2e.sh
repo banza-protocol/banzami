@@ -179,8 +179,13 @@ OUT=$(sdk get "$RID")
 chk REFUND_READABLE "$(printf '%s' "$OUT" | grep -c "$RID")" "1"
 
 echo "### another project cannot refund this payment"
-call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"rfpub-b-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-PROJ2=$(jget project_id); e2e_own fixture_project "$PROJ2"
+# Different TENANT, ephemeral identity — see refund-devkey-e2e.sh. The foreign
+# key below keeps the SAME scopes as the subject's, so the refusal that follows
+# is a tenant boundary and not a missing permission.
+OACTOR=$(e2e_ephemeral_actor)
+chk OTHER_TENANT_ACTOR_DISTINCT "$([ -n "$OACTOR" ] && [ "$OACTOR" != "$ACTOR" ] && echo yes)" yes
+call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"rfpub-b-$R\",\"created_by\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
+PROJ2=$(jget project_id); e2e_own fixture_workspace "$(jget workspace_id)"; e2e_own fixture_project "$PROJ2"
 if [ -n "$PROJ2" ]; then
   # Its own foreign merchant, not the newest row in the table. Scavenging
   # "the most recent merchant" made this test depend on whatever the previous
@@ -194,8 +199,8 @@ if [ -n "$PROJ2" ]; then
   call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT2"
   W2=$(jget id)
   WA2=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$W2' AND purpose='PRIMARY'")
-  call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/binding" "{\"merchant_id\":\"$MID2\",\"wallet_id\":\"$W2\",\"wallet_account_id\":\"$WA2\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-  call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/fixture-keys" "{\"name\":\"rf-foreign-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+  call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/binding" "{\"merchant_id\":\"$MID2\",\"wallet_id\":\"$W2\",\"wallet_account_id\":\"$WA2\",\"actor_user_id\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
+  call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/fixture-keys" "{\"name\":\"rf-foreign-$R\",\"scopes\":$SC,\"created_by\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
   FKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
   export FKEY
   VB=$(bal "$A")

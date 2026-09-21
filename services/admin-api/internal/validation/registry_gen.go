@@ -10,7 +10,7 @@
 package validation
 
 // RegistryDigest is the sha256 over every registry in this build.
-const RegistryDigest = "41d7328b75991c620e3ead1b269bcb1500fb97bf207d0bd417c91a25e2789aa5"
+const RegistryDigest = "e78766dc258b4882e4efd4fe87b13290748644ace679f4a8065c055ea75c2340"
 
 // actorsJSON is quality/validation/actors.yaml, canonicalised.
 const actorsDigest = "d8ae5bd87de0249679f02054345e88825f806d11313c37febc1731d9c0d49fad"
@@ -37,6 +37,47 @@ const assuranceJSON = "{\"$schema\":\"banzami.validation.assurance/1\",\"invaria
 var ProfileDigest = map[string]string{
 	"GOLDEN": "863b63bcfee5a6edca5f17a80773c3508f8be80f97db36cee41102ff241c235c",
 	"FULL":   "6bd806831badeb1c031b55d887e71d2362874c1a7148ff52e5943cf405a8108b",
+}
+
+// WorkspacePolicyDigest is the sha256 of quality/validation/capacity-policy.yaml.
+const WorkspacePolicyDigest = "3aae570943669ecd367d9b6f062cf428ed9c4d2d1b6b67d5b03dc2d6f0458739"
+
+// The workspace limits, read from the service that enforces them
+// (services/developer-api/internal/developer/limits.go) and compiled in so the control plane and the
+// limiter cannot drift apart.
+const WorkspaceActiveLimit = 10
+const WorkspaceCreationLimit24h = 20
+const WorkspaceWindowHours = 24
+
+// WorkspaceReserveModel and WorkspacePermittedRetries are the DECLARED retry
+// reserve policy (quality/validation/capacity-policy.yaml). A model the control
+// plane does not implement is UNKNOWN and refuses; it is never treated as zero.
+var WorkspaceReserveModel = map[string]string{
+	"GOLDEN": "one_full_retry",
+	"FULL":   "one_full_retry",
+}
+
+var WorkspacePermittedRetries = map[string]int{
+	"GOLDEN": 1,
+	"FULL":   1,
+}
+
+// WorkspacePlan is what each profile WILL create, per actor, derived from the
+// harness sources by tools/lib/validation-workspace-capacity.mjs. An entry with
+// an empty Actor is an ephemeral identity the run mints: it has spent nothing
+// by derivation, and the same per-actor limits still apply to it. An empty list
+// means the profile creates none — GOLDEN is entirely node proofs.
+var WorkspacePlan = map[string][]WorkspaceActorPlan{
+	"GOLDEN": {},
+	"FULL": {
+		{Actor: "11111111-2222-4333-8444-555555555555", Kind: "SHARED", Planned: 7, ConcurrentBarrier: 1, ConcurrentNoBarrier: 7},
+		{Actor: "", Kind: "EPHEMERAL", Planned: 1, ConcurrentBarrier: 1, ConcurrentNoBarrier: 1},
+		{Actor: "", Kind: "EPHEMERAL", Planned: 1, ConcurrentBarrier: 1, ConcurrentNoBarrier: 1},
+		{Actor: "", Kind: "EPHEMERAL", Planned: 1, ConcurrentBarrier: 1, ConcurrentNoBarrier: 1},
+		{Actor: "", Kind: "EPHEMERAL", Planned: 1, ConcurrentBarrier: 1, ConcurrentNoBarrier: 1},
+		{Actor: "", Kind: "EPHEMERAL", Planned: 1, ConcurrentBarrier: 1, ConcurrentNoBarrier: 1},
+		{Actor: "", Kind: "EPHEMERAL", Planned: 1, ConcurrentBarrier: 1, ConcurrentNoBarrier: 1},
+	},
 }
 
 // ProfileVersion is the reviewed version of each profile in this build.

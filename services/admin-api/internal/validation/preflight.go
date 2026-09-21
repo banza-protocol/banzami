@@ -142,6 +142,15 @@ func (p *Preflighter) Run(ctx context.Context, profileID string) (PreflightResul
 	p.checkVolumeHeadroom(ctx, add, profile)
 	p.checkAggregateFunds(ctx, add, profile)
 
+	// ── capacity: Developer workspaces ──────────────────────────────────────
+	// A THIRD and FOURTH resource family, absent until BZV-20260921-0001 was
+	// abandoned against one of them while every gate above read green. Reported
+	// as two checks, never one: ACTIVE is concurrency and archiving frees it;
+	// 24H CREATION is cumulative over a sliding window and archiving frees none
+	// of it. A single "workspace capacity: PASS" would hide the one that
+	// refuses, which is exactly how that run died.
+	p.checkWorkspaceCapacity(ctx, add, profile)
+
 	// ── the Studio's own state ──────────────────────────────────────────────
 	p.checkStudioState(ctx, add)
 
@@ -447,6 +456,49 @@ func (p *Preflighter) checkStudioState(ctx context.Context, add func(Check)) {
 // infrastructure faults as product defects. Any WARN or UNAVAILABLE is
 // DEGRADED — not healthy, but a FULL run is allowed to proceed and find out
 // what a degraded Sandbox does. Everything else is HEALTHY.
+// checkWorkspaceCapacity turns both workspace families into preflight checks.
+//
+// FAIL, not WARN: a run that cannot create its workspaces does not degrade, it
+// stops partway through having already spent an owner authorisation, its
+// application slots and its funded value. FAIL makes the verdict UNHEALTHY,
+// which no profile's minimum accepts — so preparation lands in BLOCKED through
+// the existing state machine rather than through a special case here.
+func (p *Preflighter) checkWorkspaceCapacity(ctx context.Context, add func(Check), profile Profile) {
+	if profile.ID == "" {
+		return
+	}
+	for _, fam := range p.WorkspaceCapacities(ctx, profile.ID) {
+		c := Check{Group: "capacity", ID: fam.Family, Detail: fam.Detail}
+		if fam.Reason != "" {
+			c.Detail = fam.Reason + " · " + fam.Detail
+		}
+		if fam.OK {
+			c.Status = StatusPass
+		} else {
+			c.Status = StatusFail
+		}
+		// The operator reading this at 2am needs the numbers, not a verdict.
+		c.Measured = map[string]int64{}
+		for _, a := range fam.Actors {
+			key := a.Actor
+			if a.Kind == "EPHEMERAL" || key == "" {
+				continue // many ephemeral rows share no stable key; they are in Detail
+			}
+			c.Measured[key+".free"] = int64(a.Free)
+			c.Measured[key+".required"] = int64(a.Required)
+			c.Measured[key+".planned"] = int64(a.Planned)
+			c.Measured[key+".retry_reserve"] = int64(a.Reserve)
+			if a.NextUsefulExpiry != nil {
+				c.Measured[key+".next_useful_expiry_unix"] = a.NextUsefulExpiry.Unix()
+			}
+		}
+		if len(c.Measured) == 0 {
+			c.Measured = nil
+		}
+		add(c)
+	}
+}
+
 func verdictOf(checks []Check) string {
 	verdict := VerdictHealthy
 	for _, c := range checks {

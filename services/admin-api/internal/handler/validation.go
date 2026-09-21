@@ -469,6 +469,36 @@ func (h *ValidationHandler) StartRun(w http.ResponseWriter, r *http.Request) {
 		operator = p.ID
 	}
 
+	// CAPACITY IS RE-READ HERE, immediately before the mutation.
+	//
+	// The preflight at preparation is a different moment: the workspace
+	// creation window SLIDES, another operator may have prepared a run of their
+	// own, a harness may have been driven by hand, and the screen the operator
+	// is looking at may be minutes old. A capacity result computed at Prepare
+	// may not authorise a Start, so it does not.
+	//
+	// Refusing here costs the operator a step-up ceremony. Starting a run the
+	// Sandbox cannot finish costs the run, its application slots and its funded
+	// value, and leaves a FAILED row that has to be explained forever.
+	if run, err := h.runs.Get(r.Context(), chi.URLParam(r, "id")); err == nil && run.ProfileID != "" {
+		for _, fam := range h.pre.WorkspaceCapacities(r.Context(), run.ProfileID) {
+			if fam.OK {
+				continue
+			}
+			reason := fam.Reason
+			if reason == "" {
+				reason = validation.ReasonUnknownCapacity
+			}
+			// The precise capacity reason, never a generic refusal: an operator
+			// who cannot tell WHICH resource refused will retry until it works
+			// or give up on the gate.
+			vErr(w, http.StatusConflict, "START_REFUSED",
+				fam.Family+" "+reason+": "+fam.Detail+
+					" — the retry reserve is policy and is never lowered to fit; the run is left unstarted")
+			return
+		}
+	}
+
 	run, err := h.runs.Start(r.Context(), chi.URLParam(r, "id"), operator)
 	switch {
 	case errors.Is(err, validation.ErrRunNotFound):

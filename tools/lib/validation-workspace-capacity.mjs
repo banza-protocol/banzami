@@ -82,8 +82,15 @@ export function workspaceLimits({ readSource = null } = {}) {
 export const SHARED_FIXTURE_ACTOR = '11111111-2222-4333-8444-555555555555';
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-/** A value that is minted at execution time is a DIFFERENT actor every run. */
-const MINTED = /uuidgen|random\/uuid|randomUUID\s*\(|\$\(uuidgen/i;
+/**
+ * A value that is minted at execution time is a DIFFERENT actor every run.
+ *
+ * `e2e_ephemeral_actor` is the ONE canonical primitive (tests/phase0/lib/
+ * e2e-run.sh); the raw kernel/uuidgen spellings are recognised too because a
+ * harness that reintroduces one must still be classified correctly rather than
+ * falling through to UNKNOWN and silently closing the gate on a false alarm.
+ */
+const MINTED = /e2e_ephemeral_actor|uuidgen|random\/uuid|randomUUID\s*\(/i;
 
 /**
  * Resolve the actor a `created_by` reference names.
@@ -306,6 +313,14 @@ export function reserveFor(reserve, planned) {
 /* ── the two gates ───────────────────────────────────────────────────────── */
 
 /**
+ * The two families, named once. They are constants rather than literals at the
+ * call sites for the same reason the Go side has them: one name for two
+ * resources is how a run gets abandoned against a limit nobody was watching.
+ */
+export const FAMILY_ACTIVE = 'WORKSPACE_ACTIVE_CAPACITY';
+export const FAMILY_CREATION = 'WORKSPACE_24H_CREATION_CAPACITY';
+
+/**
  * ACTIVE: concurrency now, plus the most this run will hold at once.
  *
  * The run's own residual is NOT assumed to be cleaned: a reserve that assumed
@@ -313,8 +328,8 @@ export function reserveFor(reserve, planned) {
  */
 export function activeHeadroom({ usage, consumption, limits, reserve }) {
   return perActor({ usage, consumption, limits, reserve,
-    field: 'maxConcurrentAdditional', limitKey: 'activeLimit', usedKey: 'active',
-    name: 'WORKSPACE_ACTIVE_CAPACITY' });
+    field: 'maxConcurrentAdditional', limitField: 'activeLimit', usedField: 'active',
+    name: FAMILY_ACTIVE });
 }
 
 /**
@@ -323,11 +338,11 @@ export function activeHeadroom({ usage, consumption, limits, reserve }) {
  */
 export function creationHeadroom({ usage, consumption, limits, reserve }) {
   return perActor({ usage, consumption, limits, reserve,
-    field: 'planned', limitKey: 'creationLimit24h', usedKey: 'created24h',
-    name: 'WORKSPACE_24H_CREATION_CAPACITY' });
+    field: 'planned', limitField: 'creationLimit24h', usedField: 'created24h',
+    name: FAMILY_CREATION });
 }
 
-function perActor({ usage, consumption, limits, reserve, field, limitKey, usedKey, name }) {
+function perActor({ usage, consumption, limits, reserve, field, limitField, usedField, name }) {
   if (limits.verdict !== 'READ') {
     return { name, verdict: 'CLOSED', reason: 'UNKNOWN_CAPACITY', detail: limits.detail, actors: [] };
   }
@@ -338,7 +353,7 @@ function perActor({ usage, consumption, limits, reserve, field, limitKey, usedKe
   if (reserve.verdict !== 'DECLARED') {
     return { name, verdict: 'CLOSED', reason: 'UNKNOWN_CAPACITY', detail: reserve.detail, actors: [] };
   }
-  const limit = limits[limitKey];
+  const limit = limits[limitField];
   const actors = [];
   for (const rec of consumption.byActor.values()) {
     // An EPHEMERAL actor does not exist until the run mints it, so its usage is
@@ -355,7 +370,7 @@ function perActor({ usage, consumption, limits, reserve, field, limitKey, usedKe
     // alike: both ask what is left after this run fails and the retry runs.
     const res = reserveFor(reserve, field === 'planned' ? rec.planned : rec.maxConcurrentAdditional);
     const required = need + res;
-    const used = live[usedKey];
+    const used = live[usedField];
     const free = Math.max(0, limit - used);
     actors.push({
       actor: rec.actor, kind: rec.kind, used, limit, free,

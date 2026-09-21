@@ -27,7 +27,6 @@ URL=$(cat /root/.banzami/operator_db_url); PW=$(printf "%s" "$URL"|sed -E "s#.*:
 # query. That is exactly how the wrong-database bug above stayed hidden.
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>&1; }
 R="${RANDOM}${RANDOM}${RANDOM}"; RR="${R:0:5}"; SEQ=0
-OP=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen | tr 'A-Z' 'a-z')
 mint(){ SECRET="$SECRET" K="$1" V="$2" node -e 'const c=require("crypto");const b=(o)=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const h=b({alg:"HS256",typ:"JWT"});const cl={scopes:["*"],environment:"SANDBOX",iat:n,exp:n+3600};cl[process.env.K]=process.env.V;const p=b(cl);const s=c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url");process.stdout.write(h+"."+p+"."+s);';}
 LAST="";CODE=""
 call(){ local ct="$1" port="$2" nm="$3" m="$4" p="$5" bd="$6" au="$7" ah="${8:-Authorization: Bearer}";local a=(curl -s -w $'\n%{http_code}' -X "$m" "http://localhost:$port$p");[ "$au" != "-" ]&&a+=(-H "$ah $au");local r;if [ "$bd" = "-" ];then r=$(docker exec "$ct" "${a[@]}" 2>/dev/null);else a+=(-H "Content-Type: application/json" --data @-);r=$(printf '%s' "$bd"|docker exec -i "$ct" "${a[@]}" 2>/dev/null);fi;CODE=$(printf '%s' "$r"|tail -n1);LAST=$(printf '%s' "$r"|sed '$d');[ "$nm" != "-" ]&&echo "  [$nm] http=$CODE $(printf '%s' "$LAST"|head -c 190)";}
@@ -52,6 +51,9 @@ chk(){ local id="$1" got="$2" want="$3";if [ "$got" = "$want" ];then echo "  $id
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+# Minted through the ONE canonical primitive (tests/phase0/lib/e2e-run.sh), so
+# it moves with that definition rather than drifting as a second spelling.
+OP=$(e2e_ephemeral_actor)
 e2e_begin
 
 echo "env: sandbox=$(docker exec "$GW" printenv ENVIRONMENT 2>/dev/null) devkey=$(docker exec "$GW" printenv DEVELOPER_KEY_AUTH_ENABLED 2>/dev/null)"

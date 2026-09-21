@@ -9,6 +9,7 @@ import { Panel, SectionHeader, Pill, Button, AsOf, Why, Skeleton, CHECK_STYLE, V
 const GROUP_LABEL: Record<string, string> = {
   registry: 'Registo', provenance: 'Proveniência', actors: 'Actores',
   budget: 'Capacidade e quota', studio: 'Esquema do Studio', database: 'Base de dados',
+  capacity: 'Workspaces de Programador',
 };
 
 // Why each group exists. A verdict without its reason teaches an operator
@@ -20,6 +21,7 @@ const GROUP_WHY: Record<string, string> = {
   budget: 'Duas famílias de recurso, nunca somadas: as janelas rolantes limitam dinheiro movido; o tecto agregado limita dinheiro retido por actores sintéticos até à limpeza. Falham por razões diferentes, e um número só esconderia qual delas vai recusar a execução.',
   studio: 'O esquema da execução existe e nada detém o Sandbox. Duas execuções em simultâneo gastariam o mesmo orçamento e entrelaçariam os mesmos saldos.',
   database: 'A base de dados responde às leituras de que a verificação depende.',
+  capacity: 'Dois recursos distintos, por actor, nunca somados. ACTIVOS mede concorrência e arquivar liberta-a; CRIAÇÕES/24H mede consumo acumulado numa janela deslizante e arquivar não devolve nada — uma vaga só regressa quando a sua criação sai da janela. Foi contra este segundo limite que a terceira execução FULL foi abandonada, enquanto tudo o resto estava verde. Cada verificação mostra, por actor: livres, planeadas, reserva de repetição e exigidas; quando recusa, diz também quando abriria sozinha — o que é uma previsão e nunca uma autorização.',
 };
 
 export default function PreflightPage() {

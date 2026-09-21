@@ -14,7 +14,7 @@
 import {
   workspaceLimits, workspaceCost, resolveActor, workspaceConsumption,
   retryReserve, activeHeadroom, creationHeadroom, earliestSufficient,
-  workspaceUsage, withKnownActors, SHARED_FIXTURE_ACTOR,
+  workspaceUsage, withKnownActors, reserveFor, SHARED_FIXTURE_ACTOR,
 } from './lib/validation-workspace-capacity.mjs';
 
 let failures = 0;
@@ -254,6 +254,137 @@ check('the retire route is not charged as a creation',
     earliestSufficient({ creations: [], used: 0, limit: 20, required: 5 }).already === true);
 }
 
+/* ── the cross-tenant fixtures, moved off the shared actor ───────────────── */
+//
+// Four "another tenant" fixtures used to be built under the canonical shared
+// fixture actor. The property each proves is that the resource belongs to a
+// DIFFERENT tenant — never that it belongs to that particular actor — so they
+// were moved to per-site ephemeral identities. Nothing below asserts the number
+// 7: every figure is re-derived from the plan's own sources.
+
+{
+  const { readFileSync } = await import('node:fs');
+  const { planFor } = await import('./validation-runner.mjs');
+  const realPlan = planFor('FULL').plan;
+  const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url).pathname, 'utf8');
+
+  const MOVED = [
+    ['tests/phase0/webhook-lifecycle-e2e.sh', 'wh-other-'],
+    ['tests/phase0/webhook-lifecycle-e2e.sh', 'wh-unbound-'],
+    ['tests/phase0/refund-devkey-e2e.sh', 'refund-other-'],
+    ['tests/phase0/refund-published-sdk-e2e.sh', 'rfpub-b-'],
+  ];
+
+  // B. the requirement falls, derived from source.
+  const now = workspaceConsumption(realPlan, { barrier: true });
+  const shared = now.byActor.get(A);
+  const reqNow = shared.planned + reserveFor(RESERVE, shared.planned);
+  check('B. the shared actor requirement is derived and now fits the limit',
+    now.unknown.length === 0 && reqNow <= LIMITS.creationLimit24h,
+    `planned ${shared.planned} + retry ${reserveFor(RESERVE, shared.planned)} = ${reqNow} of ${LIMITS.creationLimit24h}`);
+
+  // A. put the four back where they were: the requirement must become
+  // structurally impossible again, which is what made the repair necessary.
+  const before = workspaceConsumption(realPlan, { barrier: true,
+    readSource: (rel) => read(rel).replace(/\$OACTOR/g, '$ACTOR').replace(/\$UACTOR/g, '$ACTOR') });
+  const sharedBefore = before.byActor.get(A);
+  const reqBefore = sharedBefore.planned + reserveFor(RESERVE, sharedBefore.planned);
+  check('A. with the four fixtures back on the shared actor it exceeds the limit again',
+    reqBefore > LIMITS.creationLimit24h && sharedBefore.planned > shared.planned,
+    `planned ${sharedBefore.planned} → required ${reqBefore} of ${LIMITS.creationLimit24h}`);
+  check('A. …and exactly four creations moved, not three and not five',
+    sharedBefore.planned - shared.planned === MOVED.length,
+    `${sharedBefore.planned - shared.planned} moved`);
+
+  // C. the reserve was never touched to make this fit.
+  check('C. the repair needed no change to the retry reserve',
+    RESERVE.permittedRetries === retryReserve('FULL').permittedRetries
+    && retryReserve('FULL').model === 'one_full_retry',
+    'capacity was bought by moving tenants, not by reserving less');
+
+  // D. one fixture slipping back must raise the requirement on its own.
+  const slipped = workspaceConsumption(realPlan, { barrier: true,
+    readSource: (rel) => (rel.endsWith('refund-devkey-e2e.sh') ? read(rel).replace(/\$OACTOR/g, '$ACTOR') : read(rel)) });
+  check('D. one fixture put back on the shared actor raises the requirement automatically',
+    slipped.byActor.get(A).planned === shared.planned + 1,
+    `${slipped.byActor.get(A).planned} vs ${shared.planned}`);
+
+  // Two foreign tenants inside one harness must not share an identity: two
+  // tenants with one actor are one tenant, and the isolation would be vacuous.
+  const ephemerals = [...now.byActor.values()].filter((r) => r.kind === 'EPHEMERAL');
+  const whk = ephemerals.filter((r) => r.actor.endsWith('@S13-WHK-001'));
+  check('the two foreign tenants in one journey are two DISTINCT ephemeral actors',
+    whk.length === 2, `${whk.length} ephemeral actor(s) in S13-WHK-001`);
+  check('…and no ephemeral actor is assumed to have infinite capacity',
+    ephemerals.every((r) => r.planned > 0) &&
+    creationHeadroom({ usage: withKnownActors(new Map([[A, { active: 0, created24h: 0, creations: [] }]]), now),
+      consumption: now, limits: LIMITS, reserve: RESERVE })
+      .actors.filter((x) => x.kind === 'EPHEMERAL').every((x) => x.limit === LIMITS.creationLimit24h),
+    'the same service limits apply to an identity nobody has used yet');
+
+  /* E · the cross-tenant guard must fail when the identities coincide ─────── */
+  {
+    const { execFileSync } = await import('node:child_process');
+    // The guard as each harness spells it, exercised both ways.
+    const guard = (a, b) => execFileSync('bash', ['-c',
+      `ACTOR=${a}; OACTOR=${b}; printf '%s' "$([ -n "$OACTOR" ] && [ "$OACTOR" != "$ACTOR" ] && echo yes)"`],
+      { encoding: 'utf8' });
+    check('E. distinct identities satisfy the cross-tenant guard', guard('aaa', 'bbb') === 'yes');
+    check('E. …and an ephemeral actor EQUAL to the primary fails it',
+      guard('aaa', 'aaa') === '', 'a foreign tenant that is the subject proves nothing');
+    check('E. …and an empty ephemeral actor fails it too',
+      guard('aaa', '') === '', 'a mint that failed must not read as a different tenant');
+    for (const [rel] of MOVED) {
+      check(`E. ${rel.split('/').pop()} asserts the identities differ before using them`,
+        /chk \w*TENANT_ACTOR_DISTINCT/.test(read(rel)));
+    }
+  }
+
+  /* F · ephemeral ownership is explicit, and its absence is detected ──────── */
+  {
+    // Every fixture-project created under an ephemeral actor must hand over BOTH
+    // the workspace and the project. Recovering the workspace through the
+    // project is a join this run may never live to make.
+    const owns = (src) => {
+      const lines = src.split('\n');
+      const out = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (!/\/internal\/v1\/fixture-projects(?![/\w-])/.test(lines[i])) continue;
+        if (/retire/.test(lines[i]) || !/POST/.test(lines[i])) continue;
+        if (!/\$\{?[A-Z]*ACTOR/.test(lines[i]) || /\$\{?ACTOR\}?\\/.test(lines[i])) { /* fall through */ }
+        const window = lines.slice(i, i + 6).join('\n');
+        out.push({ line: i + 1,
+          workspace: /e2e_own fixture_workspace/.test(window),
+          project: /e2e_own fixture_project/.test(window) });
+      }
+      return out;
+    };
+    for (const rel of [...new Set(MOVED.map((m) => m[0]))]) {
+      const sites = owns(read(rel));
+      check(`F. every fixture-project site in ${rel.split('/').pop()} declares workspace AND project`,
+        sites.length > 0 && sites.every((s) => s.workspace && s.project),
+        sites.map((s) => `line ${s.line} ws=${s.workspace} proj=${s.project}`).join('; '));
+    }
+    // And the detector itself refuses a source that forgot the workspace.
+    const missing = owns('call POST /internal/v1/fixture-projects "{}"\nP=$(jget project_id)\ne2e_own fixture_project "$P"');
+    check('F. …and the detector FAILS a site that owns only the project',
+      missing.length === 1 && missing[0].workspace === false && missing[0].project === true,
+      'a guard that cannot fail is not a guard');
+  }
+
+  // One mechanism, not two: no harness may reintroduce its own inline mint.
+  {
+    const { readdirSync } = await import('node:fs');
+    const dir = new URL('../tests/phase0/', import.meta.url).pathname;
+    const offenders = readdirSync(dir).filter((f) => f.endsWith('.sh'))
+      .filter((f) => /random\/uuid|\buuidgen\b/.test(read(`tests/phase0/${f}`)));
+    check('one canonical ephemeral-actor primitive, and no second spelling',
+      offenders.length === 0, offenders.join(', '));
+    check('…and the primitive itself exists in the shared lib',
+      /e2e_ephemeral_actor\(\)/.test(read('tests/phase0/lib/e2e-run.sh')));
+  }
+}
+
 /* ── every profile the Studio can run must declare a reserve ─────────────── */
 
 {
@@ -329,13 +460,15 @@ check('the retire route is not charged as a creation',
   check('…and ACCEPTS a plan that fits, on the same empty window',
     smallPlan.length === 2 && smallMsg === null, String(smallMsg).slice(0, 120));
 
-  // Pinned, because it is the finding and not an accident of today's usage:
-  // with the declared reserve, the CURRENT FULL plan cannot fit the limit even
-  // against a completely empty window. Changing the plan or the policy is an
-  // owner decision; silently discovering this again is not.
-  check('the CURRENT FULL plan does not fit the creation limit even when empty',
-    typeof runReal(ample) === 'string',
-    'if this ever starts passing, the plan or the policy changed — say which');
+  // This pin used to assert the opposite, and it was right to: before the
+  // cross-tenant fixtures were moved off the shared actor, the FULL plan
+  // required 22 creations against a limit of 20 and could not fit an empty
+  // window at any hour of any day. It now fits — because the PLAN changed, and
+  // not because the reserve was lowered. Test C above holds the reserve, and
+  // test A puts the four fixtures back and watches it become impossible again.
+  check('the CURRENT FULL plan now fits an empty window, with the reserve intact',
+    runReal(ample) === null,
+    'if this starts failing, the plan grew — re-derive it rather than reserving less');
 
   // An unreadable quota is not an empty one.
   let unknownMsg = null;

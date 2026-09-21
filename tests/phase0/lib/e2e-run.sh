@@ -129,6 +129,34 @@ e2e_own() {
   e2e_own_canonical "$1" "$2" "${3:-}"
 }
 
+# ── the canonical ephemeral actor ───────────────────────────────────────────
+#
+# A "different tenant" fixture needs an identity that is NOT the subject's. It
+# does not need to be the canonical shared fixture actor — and using that one
+# spends from a PER-ACTOR quota of twenty workspace creations a rolling day,
+# which is the limit BZV-20260921-0001 was abandoned against.
+#
+# ONE primitive, deliberately. Two spellings of "mint a UUID" is two mechanisms,
+# and this replaces the inline `$(cat /proc/sys/kernel/random/uuid || uuidgen)`
+# that had been copied into separate harnesses.
+#
+#   collision-safe   UUIDv4 from the kernel, not a counter or a timestamp
+#   run-scoped       minted inside a run, never reused across runs
+#   journey-scoped   minted AT THE SITE that needs it. Two foreign tenants in
+#                    one harness must not share an identity: two tenants that
+#                    share an actor are one tenant, and the isolation the test
+#                    claims to prove would be vacuous.
+#
+# What it does NOT change: role, scopes, environment or the permission model.
+# Only identity and tenant ownership move. A cross-tenant test that quietly
+# became an unauthenticated or wrong-role test proves something else.
+e2e_ephemeral_actor() {
+  local a
+  a=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen) || return 1
+  [ -n "$a" ] || return 1
+  printf '%s' "$a" | tr 'A-Z' 'a-z'
+}
+
 # ── the runner's ownership contract ─────────────────────────────────────────
 #
 # The TSV above is this harness's own cleanup list and stays exactly as it was.

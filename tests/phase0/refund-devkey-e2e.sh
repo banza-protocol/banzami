@@ -177,8 +177,15 @@ call "$GW" 8080 POST /v1/refunds "$RB" "$ROKEY"
 chk READ_SCOPE_CANNOT_REFUND "$CODE" "403"
 
 echo "### another project cannot refund this payment"
-call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"refund-other-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+# A different TENANT, which is the property under test — not a different
+# canonical actor. Built under an ephemeral identity of its own so it does not
+# spend the shared actor's rolling workspace-creation quota. Scopes, environment
+# and permission model are unchanged: only ownership moves.
+OACTOR=$(e2e_ephemeral_actor)
+chk OTHER_TENANT_ACTOR_DISTINCT "$([ -n "$OACTOR" ] && [ "$OACTOR" != "$ACTOR" ] && echo yes)" yes
+call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"refund-other-$R\",\"created_by\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OTHER=$(jget project_id)
+e2e_own fixture_workspace "$(jget workspace_id)"
 e2e_own fixture_project "$OTHER"
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"RF$R\",\"email\":\"rf$R@synthetic.test\"}" "$MJWT"; OMID=$(jget id)
@@ -186,10 +193,10 @@ e2e_own merchant "$OMID"
 MJWT=$(mint merchant_id "$OMID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"; OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")
-call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" "{\"name\":\"refund-other-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" "{\"name\":\"refund-other-$R\",\"scopes\":$SC,\"created_by\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
-call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
 call "$GW" 8080 POST /v1/refunds \
   "{\"source_type\":\"$SRC_TYPE\",\"source_id\":\"$SRC\",\"amount_minor\":10000,\"currency\":\"AOA\",\"reason\":\"cross-project attempt\",\"idempotency_key\":\"steal-$R\"}" "$OKEY"

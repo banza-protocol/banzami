@@ -67,7 +67,7 @@ echo "fixtures: merchant=$([ -n "$MID" ]&&echo ok) wallet=$([ -n "$WID" ]&&echo 
 
 # ---- synthetic platform (new sandbox fixture-projects endpoint) ----
 # created_by is an opaque identity UUID (no FK) — use a synthetic UUID actor.
-OP=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen | tr 'A-Z' 'a-z')
+OP=$(e2e_ephemeral_actor)   # the canonical primitive; see tests/phase0/lib/e2e-run.sh
 echo "### platform fixture (new sandbox fixture-projects endpoint)"
 devint pf_create POST /internal/v1/fixture-projects "{\"name\":\"Synthetic Platform $RR\",\"created_by\":\"$OP\"}"
 PROJ=$(jget project_id); e2e_own fixture_project "$PROJ"; PKEY=""; RKEY=""

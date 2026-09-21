@@ -107,8 +107,17 @@ chk ROTATED_SECRET_RETURNED "$([ -n "$SEC2" ] && echo yes)" yes
 chk ROTATED_SECRET_IS_NEW "$([ -n "$SEC2" ] && [ "$SEC2" != "$SEC1" ] && echo yes)" yes
 
 echo "### another project cannot see or touch it"
-call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"wh-other-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+# A DIFFERENT tenant, and therefore a different identity. The property under
+# test is project isolation, never "the canonical fixture actor" — so this
+# foreign tenant is built under an ephemeral actor of its own. Same scopes, same
+# environment, same permission model: only who owns it changes.
+OACTOR=$(e2e_ephemeral_actor)
+chk OTHER_TENANT_ACTOR_DISTINCT "$([ -n "$OACTOR" ] && [ "$OACTOR" != "$ACTOR" ] && echo yes)" yes
+call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"wh-other-$R\",\"created_by\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OTHER=$(jget project_id)
+# The workspace is declared in its own right. Recovering it through the project
+# would be a join this run might never get to make if it dies here.
+e2e_own fixture_workspace "$(jget workspace_id)"
 e2e_own fixture_project "$OTHER"
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"WH$R\",\"email\":\"wh$R@synthetic.test\"}" "$MJWT"; OMID=$(jget id)
@@ -116,10 +125,10 @@ e2e_own merchant "$OMID"
 MJWT=$(mint merchant_id "$OMID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"; OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")
-call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" "{\"name\":\"wh-other-$R\",\"scopes\":$RW,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" "{\"name\":\"wh-other-$R\",\"scopes\":$RW,\"created_by\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
-call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$OACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
 call "$GW" 8080 GET "/v1/webhooks/endpoints/$EP" - "$OKEY"
 chk FOREIGN_GET_404 "$CODE" "404"
@@ -136,10 +145,15 @@ LEAK=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).
 chk FOREIGN_LIST_CLEAN "$LEAK" "clean"
 
 echo "### an unbound project has no webhooks at all"
-call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"wh-unbound-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+# Its own ephemeral tenant too: a second foreign tenant sharing the first one's
+# identity would be the same tenant, and the isolation would be vacuous.
+UACTOR=$(e2e_ephemeral_actor)
+chk UNBOUND_TENANT_ACTOR_DISTINCT "$([ -n "$UACTOR" ] && [ "$UACTOR" != "$ACTOR" ] && [ "$UACTOR" != "$OACTOR" ] && echo yes)" yes
+call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"wh-unbound-$R\",\"created_by\":\"$UACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UNB=$(jget project_id)
+e2e_own fixture_workspace "$(jget workspace_id)"
 e2e_own fixture_project "$UNB"
-call "$DEV" 8086 POST "/internal/v1/projects/$UNB/fixture-keys" "{\"name\":\"wh-unbound-$R\",\"scopes\":$RW,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+call "$DEV" 8086 POST "/internal/v1/projects/$UNB/fixture-keys" "{\"name\":\"wh-unbound-$R\",\"scopes\":$RW,\"created_by\":\"$UACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
 call "$GW" 8080 GET /v1/webhooks/endpoints - "$UKEY"
