@@ -74,6 +74,10 @@ echo "### a real payment into the project's own account"
 call "$GW" 8080 POST /v1/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"REFUND_E2E\",\"reference_id\":\"refund-$R\",\"label\":\"Refund probe\"}" "$KEY"
 ACCT=$(jget id)
+# A CAMPAIGN account carries an account_id distinct from its wallet's — 382
+# of 382 in the live Sandbox — so it is separately fundable and owning the
+# merchant does not attribute it.
+e2e_own wallet_account "$ACCT"
 # A payer of the run's own, funded for this payment. Owned the moment it
 # exists, so the Sandbox value it is given goes back when the run ends.
 PH="+2449${R:0:4}43"; H="rd${R:0:5}p"

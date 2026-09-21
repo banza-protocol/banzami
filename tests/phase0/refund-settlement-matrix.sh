@@ -96,7 +96,12 @@ mk(){ # $1 = profile -> prints merchant|wallet|campaign_account|@banza
      VALUES ('$h','MERCHANT','$mid', now()) ON CONFLICT (handle) DO NOTHING" >/dev/null
   call "$GW" 8080 POST /v1/wallet-accounts \
     "{\"wallet_id\":\"$wid\",\"purpose\":\"CAMPAIGN\",\"reference_type\":\"REFUND_MATRIX\",\"reference_id\":\"src-$mid\",\"label\":\"refund matrix source\"}" "$(mint "$mid")"
-  printf '%s|%s|%s|%s' "$mid" "$wid" "$(jget id)" "$h"
+  local _acct; _acct=$(jget id)
+  # A CAMPAIGN account carries an account_id distinct from its wallet's — 382
+  # of 382 in the live Sandbox — so it is separately fundable and owning the
+  # merchant does not attribute it.
+  e2e_own wallet_account "$_acct"
+  printf '%s|%s|%s|%s' "$mid" "$wid" "$_acct" "$h"
 }
 
 # A captured payment: the wallet ends up holding the full gross.

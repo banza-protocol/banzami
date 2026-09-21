@@ -151,6 +151,47 @@ for (const path of ['timed out after', 'parsed.mismatch', 'ok, reason, gates']) 
     new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^;]*ownership`).test(runner));
 }
 
+/* ── the class, not the instance ─────────────────────────────────────────── */
+
+// Six shell harnesses create a consumer through /v1/consumer/onboarding/complete.
+// Five declared it and one did not, and that one leaked 296 000 minor while
+// reporting FUNCTIONAL PASS. There is no shared creation client in shell —
+// e2e_http discards the response body, so it cannot learn an id — which is
+// why the node side could be fixed centrally and this side cannot. The class
+// is closed with a gate instead: a harness that onboards a consumer must hand
+// it over.
+import { readdirSync, existsSync as _ex } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+const PHASE0 = join(repo, 'tests/phase0');
+
+// Scoped to the FULL universe. These gates protect the journeys a validation
+// run measures, not every script under tests/phase0 — thirteen files create a
+// wallet-account and only four of them are journeys. Policing the rest would
+// be this guard over-reporting, which is a habit worth not acquiring.
+const REGISTRY = new Set(JSON.parse(execFileSync('python3', ['-c',
+  'import sys,yaml,json;json.dump(yaml.safe_load(open(sys.argv[1])),sys.stdout)',
+  join(repo, 'quality/validation/journeys.yaml')], { encoding: 'utf8', maxBuffer: 1 << 24 }))
+  .journeys?.map((j) => j.existing_harness).filter((h) => h?.endsWith('.sh'))
+  .map((h) => h.split('/').pop()) ?? []);
+const registryShell = (f) => REGISTRY.has(f);
+
+const onboarders = readdirSync(PHASE0).filter((f) => f.endsWith('.sh')).filter(registryShell)
+  .filter((f) => /onboarding\/complete/.test(readFileSync(join(PHASE0, f), 'utf8')));
+check('every shell harness that onboards a consumer declares it',
+  onboarders.length > 0 && onboarders.every((f) =>
+    /e2e_own\s+consumer/.test(readFileSync(join(PHASE0, f), 'utf8'))),
+  onboarders.filter((f) => !/e2e_own\s+consumer/.test(readFileSync(join(PHASE0, f), 'utf8')))
+    .join(', ') || `${onboarders.length} harness(es) checked`);
+
+// Likewise for segregated accounts: a CAMPAIGN account's account_id differs
+// from its wallet's, so owning the merchant does not attribute it.
+const segregated = readdirSync(PHASE0).filter((f) => f.endsWith('.sh')).filter(registryShell)
+  .filter((f) => /POST[^\n]*\/v1\/wallet-accounts/.test(readFileSync(join(PHASE0, f), 'utf8')));
+check('every shell harness that creates a wallet-account declares it',
+  segregated.every((f) => /e2e_own\s+wallet_account/.test(readFileSync(join(PHASE0, f), 'utf8'))),
+  segregated.filter((f) => !/e2e_own\s+wallet_account/.test(readFileSync(join(PHASE0, f), 'utf8')))
+    .join(', ') || `${segregated.length} harness(es) checked`);
+
 console.log(failures === 0
   ? '\n✓ VALIDATION_OWNERSHIP_TRANSPORT=PASS\n'
   : `\n✗ VALIDATION_OWNERSHIP_TRANSPORT=FAIL (${failures})\n`);

@@ -132,7 +132,15 @@ onboard(){ # $1 = handle-ish suffix -> prints consumer_id
   call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$sid\",\"otp_code\":\"123456\"}" -
   call "$PUB" 8083 POST /v1/consumer/onboarding/complete \
     "{\"session_id\":\"$sid\",\"banza_handle\":\"$h\",\"pin\":\"1234\"}" -
-  printf '%s|%s' "$(jget consumer_id)" "$h"
+  local cid; cid=$(jget consumer_id)
+  # OWNED AT THE MOMENT IT EXISTS. This consumer is funded on the next lines —
+  # the payer with GROSS*3, the beneficiary by the settlements — and it was the
+  # only one of the six shell harnesses using this primitive that never handed
+  # it over. That single omission left 296 000 minor behind while the journey
+  # reported FUNCTIONAL PASS, because the trap retires what the manifest names
+  # and the manifest named only the merchants.
+  e2e_own consumer "$cid"
+  printf '%s|%s' "$cid" "$h"
 }
 
 IFS='|' read -r PAYER_ID PAYER_HANDLE <<<"$(onboard 71)"
@@ -188,6 +196,11 @@ mkowner(){ # $1 = label -> prints merchant|source_wallet|beneficiary_wallet
     "{\"wallet_id\":\"$sw\",\"purpose\":\"CAMPAIGN\",\"reference_type\":\"SETTLEMENT_E2E\",\"reference_id\":\"src-$1-$R\",\"label\":\"settlement source $1\"}" "$jwt"
   acct=$(jget id)
   [ -n "$acct" ] || { echo "  (mkowner $1: wallet-account create http=$CODE $(printf '%s' "$LAST" | head -c 160))" >&2; return 1; }
+  # A CAMPAIGN account carries an account_id distinct from the wallet's — 382 of
+  # 382 in the live Sandbox — so it is separately fundable and the merchant
+  # declaration does not cover it. It holds the full GROSS between the payment
+  # and the settlement.
+  e2e_own wallet_account "$acct"
 
   # The gross arrives the way it really does: a payer pays a payment session
   # bound to that account. This is the leg the arithmetic in the header depends

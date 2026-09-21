@@ -91,7 +91,11 @@ KEY="${ST_KEY:-}"
 chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 mk(){ call "$GW" 8080 POST /v1/wallet-accounts \
-  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"RF_PUB\",\"reference_id\":\"rf-$1-$R\",\"label\":\"Refund $1\"}" "$KEY"; jget id; }
+  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"RF_PUB\",\"reference_id\":\"rf-$1-$R\",\"label\":\"Refund $1\"}" "$KEY"
+  # A CAMPAIGN account carries an account_id distinct from its wallet's — 382
+  # of 382 in the live Sandbox — so it is separately fundable and owning the
+  # merchant does not attribute it.
+  local _a; _a=$(jget id); e2e_own wallet_account "$_a"; printf '%s' "$_a"; }
 A=$(mk a); B=$(mk b)
 chk ACCOUNTS_OPENED "$([ -n "$A" ] && [ -n "$B" ] && [ "$A" != "$B" ] && echo yes)" yes
 WID=$(psqlro "SELECT wallet_id FROM wallet_accounts WHERE id='$A'")
