@@ -143,7 +143,22 @@ chk('SESSION_HAS_INTERFACE', !!link?.value, true);
 // Ids the run owns, printed for the shell to record. A session that is never
 // paid leaves an ACTIVE payment link — a live URL into a fixture account, with
 // no expiry — so the run has to be able to retire it.
-console.log(`OWNS_SESSIONS ${[sa, sb, quickstart].map((x) => x.session_id).filter(Boolean).join(' ')}`);
+// OWNERSHIP ACROSS THE PROCESS BOUNDARY.
+//
+// This proof runs in a throwaway container that shares no filesystem and no
+// environment with the shell holding the journey's ownership manifest, so
+// nothing it creates can register itself. The resources still exist and still
+// hold value: in BZV-20260921-0001 the two campaign accounts opened here were
+// invisible to the runner, and the journey came back INCOMPLETE.
+//
+// So the boundary reports, generically. `OWNS <resource_type> <id>` for
+// anything created — the wrapper registers whatever it is told without
+// knowing which journey it belongs to or which types to expect.
+const owns = (type, ...ids) => {
+  for (const id of ids.filter(Boolean)) console.log(`OWNS ${type} ${id}`);
+};
+owns('wallet_account', a.id, b.id);
+owns('payment_session', sa.session_id, sb.session_id, quickstart.session_id);
 console.log(`\nSDK_PUBLIC_WALLET_ACCOUNTS: PASS=${pass} FAIL=${fail}`);
 process.exit(fail === 0 ? 0 : 1);
 JS
@@ -164,7 +179,11 @@ printf '%s\n' "$OUT"
 # The sessions the clean room opened, recorded so the run can retire the payment
 # links they leave behind. Parsed from the proof's own output because the SDK
 # runs inside a throwaway container that shares nothing else with this shell.
-for sid in $(printf '%s\n' "$OUT" | sed -n 's/^OWNS_SESSIONS //p'); do
-  e2e_own payment_session "$sid" "$TENANT_MERCHANT"
+# Generic: whatever the subprocess says it created, this journey owns. The
+# previous form parsed a single `OWNS_SESSIONS` line and therefore could only
+# ever recover payment sessions — the two wallet accounts the SDK opened had
+# no line to be carried on.
+printf '%s\n' "$OUT" | sed -n 's/^OWNS \([a-z_]*\) \(.*\)$/\1 \2/p' | while read -r _kind _id; do
+  [ -n "$_kind" ] && [ -n "$_id" ] && e2e_own "$_kind" "$_id" "$TENANT_MERCHANT"
 done
 exit $RC

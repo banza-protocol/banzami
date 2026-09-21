@@ -103,12 +103,33 @@ export const RESOURCE_SCOPE = new Map([
                         AND wa.account_id IS NOT NULL`,
   }],
   ['fixture_project', {
-    scope: 'FINANCIAL',
-    account: 'the wallet its Sandbox binding names',
+    // CONDITIONALLY financial, and the condition is in the schema.
+    //
     // A developer project is not a merchant — verified: a project id matches
-    // developer.dev_project_sandbox_binding.project_id, and matches
-    // wallets.merchant_id zero times. Its value lives in the wallet the
-    // binding points at.
+    // developer.dev_project_sandbox_binding.project_id and matches
+    // wallets.merchant_id zero times. Its value lives in the wallet its
+    // Sandbox binding names.
+    //
+    // A project with NO binding never ran financial-setup: no merchant, no
+    // wallet, and no way to hold funds. Classifying it FINANCIAL made three
+    // journeys report UNKNOWN in BZV-20260921-0001 — S11-DEV-001, S11-DEV-002
+    // and S13-WHK-001 each owned one unbound project, and "a financial
+    // resource that mapped to no account" is what the resolver correctly said
+    // about a resource that cannot have one.
+    //
+    // So the scope is asked of the binding, not assumed from the kind.
+    // Unbound is STRUCTURAL: it contributes zero accounts, which is a
+    // measurement, not an omission. Bound resolves through the binding — and
+    // frequently to the SAME account as the BUSINESS owned beside it, which
+    // account-level deduplication already handles.
+    scope: 'CONDITIONAL',
+    account: 'the wallet its Sandbox binding names, when it has one',
+    /** Which of these ids are bound, answered by the schema. */
+    condition: (ids) => `SELECT DISTINCT b.project_id::text
+                           FROM developer.dev_project_sandbox_binding b
+                           JOIN wallets w ON w.merchant_id = b.merchant_id
+                          WHERE b.project_id::text IN (${ids})
+                            AND w.available_account_id IS NOT NULL`,
     query: (ids) => `SELECT DISTINCT b.project_id::text, w.available_account_id::text
                        FROM developer.dev_project_sandbox_binding b
                        JOIN wallets w ON w.merchant_id = b.merchant_id
@@ -134,6 +155,9 @@ export function scopeOf(kind) {
   return RESOURCE_SCOPE.get(String(kind).toLowerCase())?.scope ?? 'UNKNOWN';
 }
 
+/** Kinds that MAY be financial — for static readiness, where instances are unknown. */
+export const mayBeFinancial = (kind) => ['FINANCIAL', 'CONDITIONAL'].includes(scopeOf(kind));
+
 const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
 /**
@@ -147,6 +171,7 @@ const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
  */
 export function resolveFinancialAccounts(owned, { sql }) {
   const byKind = new Map();
+  const conditional = new Map();
   const unknownKinds = [];
   const structural = [];
   for (const r of owned ?? []) {
@@ -154,8 +179,34 @@ export function resolveFinancialAccounts(owned, { sql }) {
     const spec = RESOURCE_SCOPE.get(kind);
     if (!spec) { unknownKinds.push({ kind, id: r.id }); continue; }
     if (spec.scope === 'STRUCTURAL') { structural.push({ kind, id: r.id }); continue; }
+    // CONDITIONAL kinds are sorted below, once the schema has been asked which
+    // instances actually carry an account.
+    if (spec.scope === 'CONDITIONAL') {
+      if (!conditional.has(kind)) conditional.set(kind, new Set());
+      conditional.get(kind).add(String(r.id).toLowerCase());
+      continue;
+    }
     if (!byKind.has(kind)) byKind.set(kind, new Set());
     byKind.get(kind).add(String(r.id).toLowerCase());
+  }
+
+  // Ask the schema which CONDITIONAL instances are financial. The ones that
+  // are join the financial set; the ones that are not are structural — and
+  // saying so is a measurement, not a shrug.
+  for (const [kind, ids] of conditional) {
+    const spec = RESOURCE_SCOPE.get(kind);
+    const list = [...ids].map(lit).join(',');
+    let bound;
+    try { bound = new Set(sql(spec.condition(list)).map(([id]) => String(id).toLowerCase())); }
+    catch (e) { return unknownResult(`could not establish whether ${kind} is financial: ${String(e.message).slice(0, 100)}`, { structural, unknownKinds }); }
+    for (const id of ids) {
+      if (bound.has(id)) {
+        if (!byKind.has(kind)) byKind.set(kind, new Set());
+        byKind.get(kind).add(id);
+      } else {
+        structural.push({ kind, id, why: 'no Sandbox binding: it never ran financial-setup and cannot hold funds' });
+      }
+    }
   }
 
   const accounts = new Set();

@@ -171,7 +171,7 @@ check('an unmeasurable actual is UNKNOWN, never VERIFIED-by-zero',
 
 const runner = readFileSync(join(repo, 'tools/validation-runner.mjs'), 'utf8');
 check('the runner checks completeness BEFORE resolution',
-  /ownershipCompleteness\(manifest\.owned[\s\S]{0,400}?resolveFinancialAccounts\(manifest\.owned/.test(runner),
+  /ownershipCompleteness\(owned[\s\S]{0,900}?resolveFinancialAccounts\(owned/.test(runner),
   'resolution cannot compensate for an incomplete set, so it must not be asked first');
 check('…and an AMBIGUOUS ordering becomes UNKNOWN',
   /ordering === 'AMBIGUOUS'[\s\S]{0,200}ownershipKnown: false/.test(runner));
@@ -190,6 +190,62 @@ check('…and a database rejection is surfaced, never swallowed',
 check('…and the figure records which model produced it',
   /measurement_model = \$\{lit\(MEASUREMENT_MODEL\)\}/.test(runner),
   'a pre-B4 peak and a B4 peak are not comparable and must not be compared');
+
+/* ── POST-THIRD-FULL · one pipeline, no shortcuts ────────────────────────── */
+
+// BZV-20260921-0001 stopped on S14-DOA-001: an empty financial universe took a
+// shortcut to VERIFIED before completeness or ordering existed, and 0165
+// refused the row. The repair belongs in the executor — the constraint was
+// right.
+check('the empty set is stated positively, never as NULL',
+  /NO_FUNDED_RESOURCES/.test(runner) && /ordering: 'DETERMINISTIC'/.test(runner),
+  'the empty ownership set IS complete and the empty event sequence IS deterministic');
+check('completeness is computed before any verdict can be returned',
+  /const complete = ownershipCompleteness\(owned[\s\S]{0,900}?const scope = resolveFinancialAccounts/.test(runner),
+  'no path may produce a verdict without the prerequisites of that verdict');
+// The EXECUTABLE occurrence, not any occurrence: the comment explaining the
+// defect quotes the old expression verbatim, and an assertion that cannot tell
+// a line of code from a line about code is not checking the code.
+const executable = runner.split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+check('a prose count is no longer read as financial capability',
+  !/const fundingCapable = \(p\.disposable/.test(executable)
+  && /const expectsFinancial = \(declared \?\? 0\) > 0/.test(executable),
+  'cleanup.disposable is a list of sentences written for a human');
+check('a journey that declares a bound and owns nothing fails closed',
+  /expectsFinancial && owned\.length === 0[\s\S]{0,260}ownershipKnown: false/.test(runner));
+
+/* ── terminal reconciliation ─────────────────────────────────────────────── */
+
+check('abandonment reconciles PLANNED to NOT_REACHED',
+  /outcome='NOT_REACHED'[\s\S]{0,200}WHERE run_id=\$\{lit\(run\.id\)\}::uuid AND outcome='PLANNED'/.test(runner),
+  'a terminal run whose records say they are waiting to start describes a state that no longer exists');
+check('…and touches only PLANNED, never a reached record',
+  /AND outcome='PLANNED'/.test(runner)
+  && !/outcome='NOT_REACHED'[^;]*outcome IN \('PASSED'/.test(runner),
+  'PASSED, FAILED and OBSERVED are the record of what happened');
+
+/* ── conditional financial classification ────────────────────────────────── */
+
+{
+  const scopeSrc = readFileSync(join(repo, 'tools/lib/validation-resource-scope.mjs'), 'utf8');
+  check('fixture_project is CONDITIONAL, not unconditionally financial',
+    /\['fixture_project', \{[\s\S]{0,1400}?scope: 'CONDITIONAL'/.test(scopeSrc),
+    'an unbound project never ran financial-setup: no merchant, no wallet, no way to hold funds');
+  check('…and the condition is asked of the schema',
+    /condition: \(ids\) =>[\s\S]{0,200}dev_project_sandbox_binding/.test(scopeSrc));
+
+  // Bound → financial. Unbound → structural. Both from the same input.
+  const owned = [{ kind: 'fixture_project', id: 'bound' }, { kind: 'fixture_project', id: 'unbound' }];
+  const sql = (q) => (/dev_project_sandbox_binding/.test(q) && !/available_account_id::text/.test(q)
+    ? [['bound']]                       // the condition: only `bound` is bound
+    : [['bound', 'acct-W']]);           // the resolver
+  const r = resolveFinancialAccounts(owned, { sql });
+  check('a bound project resolves and an unbound one is structural',
+    r.verdict === 'RESOLVED' && r.accounts.length === 1 && r.structural.length === 1,
+    `${r.accounts.length} account(s), ${r.structural.length} structural — ${r.detail}`);
+  check('…and the structural one says WHY it holds nothing',
+    /never ran financial-setup/.test(r.structural[0]?.why ?? ''));
+}
 
 console.log(failures === 0
   ? '\n✓ VALIDATION_CONCURRENT_PEAK=PASS\n'

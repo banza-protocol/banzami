@@ -91,7 +91,7 @@ check('G. …and including one would be visible, which is why ownership is decla
 // account, reached through the one resolver registry.
 check('G. the runner reads the trajectory of OWNED accounts only',
   /WHERE le\.account_id::text IN \(\$\{list\}\)/.test(runner)
-  && /resolveFinancialAccounts\(manifest\.owned/.test(runner),
+  && /resolveFinancialAccounts\(owned/.test(runner),
   'a handle cannot name a Business, and a resolver that only knows handles reports its own blindness as zero exposure');
 check('G. …and an unresolved owned resource is UNKNOWN rather than dropped',
   /scope\.verdict === 'UNKNOWN'[\s\S]{0,200}ownershipKnown: false/.test(runner));
@@ -150,6 +150,18 @@ check('A2. UNKNOWN exposure is surfaced, not omitted',
   'the journeys whose declaration could not be validated are the ones that matter most');
 check('A2. a runtime measurement never raises the declaration',
   /the declaration is NOT raised to match/.test(runner));
+
+// S02-APP-002 registers THREE consumers, each granted 1 000 000, concurrently
+// funded. BZV-20260921-0001 measured exactly that and recorded UNDER_DECLARED
+// against a declaration of 2 000 000 written for two.
+check('S02-APP-002 declares the three grants its lifecycle takes',
+  decl('S02-APP-002') >= 3 * 1_000_000, `declares ${decl('S02-APP-002')}`);
+// And the bound is a bound: a fourth concurrent grant would exceed it, which
+// is what makes 3 000 000 a claim about the lifecycle rather than a note of
+// what happened once.
+check('…and a fourth concurrent grant would be UNDER_DECLARED',
+  v(decl('S02-APP-002'), 4 * 1_000_000) === 'UNDER_DECLARED',
+  'a declaration that could absorb any observation is not a declaration');
 
 console.log(failures === 0
   ? `\n✓ VALIDATION_EXPOSURE=PASS\n`

@@ -533,8 +533,27 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/06-realtime-resilience.mjs
-    # two consumers across a reconnect
-    max_synthetic_funds_exposure_minor: 2000000
+    # THREE consumers, each granted 1 000 000 on registration, funded at once.
+    #
+    # This said 2 000 000 and "two consumers across a reconnect". The journey
+    # registers three: the payer plus the two whose realtime behaviour it
+    # compares across a reconnect. BZV-20260921-0001 measured 3 000 000 and
+    # recorded UNDER_DECLARED — the first time the declaration gate fired with
+    # cause.
+    #
+    # The bound is NOT 3 000 000 because a run once observed 3 000 000. It is
+    # 3 000 000 because the lifecycle cannot exceed it: three registrations,
+    # one grant each, and the only movements between them are transfers
+    # between accounts this journey owns, which cannot raise a concurrent sum.
+    # Cleanup only reduces it. The authoritative trajectory, per-posting:
+    #
+    #   A +1 000 000                       concurrent 1 000 000
+    #   B +1 000 000                       concurrent 2 000 000
+    #   B +10 000 / A -10 000  (atomic)    concurrent 2 000 000
+    #   C +1 000 000                       concurrent 3 000 000   <- peak
+    #   C +10 000 / A -10 000  (atomic)    concurrent 3 000 000
+    #   cleanup                            concurrent 0
+    max_synthetic_funds_exposure_minor: 3000000
     timeout_seconds: 900
     retry_policy: none
 

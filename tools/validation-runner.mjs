@@ -1264,8 +1264,32 @@ function main() {
     // A crashed executor must not leave a run claiming to be RUNNING forever.
     sql(`UPDATE validation_runs SET state='ABANDONED', ended_at=now()
          WHERE id=${lit(run.id)}::uuid AND state='RUNNING';`, { rows: false });
+    // NOR MAY ANY ROW CLAIM IT IS STILL PLANNED.
+    //
+    // BZV-20260921-0001 ended ABANDONED with 12 JOURNEY rows and its CONTROL
+    // row still PLANNED: the barrier path reconciles unreached journeys, this
+    // one never did. A terminal run whose records say they are waiting to
+    // start describes a state that no longer exists, and anything reading the
+    // table has to know which terminal state to reinterpret PLANNED under.
+    //
+    // Only PLANNED rows are touched. Whatever was reached — PASSED, FAILED,
+    // OBSERVED — is the record of what happened and is left exactly as it is.
+    let reconciled = 0;
+    try {
+      const [[n]] = sql(`WITH moved AS (
+          UPDATE validation_run_journeys SET outcome='NOT_REACHED',
+                 detail = coalesce(detail, 'not started: the run was abandoned')
+           WHERE run_id=${lit(run.id)}::uuid AND outcome='PLANNED'
+           RETURNING 1)
+        SELECT count(*)::text FROM moved;`);
+      reconciled = Number(n);
+    } catch (err) {
+      log(`  reconciliation failed: ${String(err.message).slice(0, 120)}`);
+    }
     event(run.id, 'RUNNING', 'ABANDONED', `executor failed: ${String(e.message).slice(0, 180)}`);
     log(`\n${run.ref} ABANDONED — ${e.message}`);
+    if (reconciled) log(`  ${reconciled} unreached record(s) reconciled PLANNED → NOT_REACHED`);
+    summarise(run.id, run.ref, { passed, failed, skipped, notReached: notReached + reconciled });
     process.exitCode = 1;
   } finally {
     clearInterval(beat);
@@ -1551,54 +1575,80 @@ function ownedLedgerEvents(accounts) {
 function measureExposure(p, manifest) {
   const declared = typeof p.max_synthetic_funds_exposure_minor === 'number'
     ? p.max_synthetic_funds_exposure_minor : null;
-  const fundingCapable = (p.disposable ?? 0) > 0;
-  if (!fundingCapable) {
-    return { ...exposureVerdict({ declared, actual: 0, fundingCapable: false }), declared, actual: 0, resources: 0, events: 0 };
-  }
-  if (!manifest || !manifest.owned?.length) {
-    // The harness created something disposable and handed nothing over, so
-    // nothing here knows what to measure. UNKNOWN, and UNKNOWN fails closed.
-    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }), declared, actual: null, resources: 0, events: 0 };
-  }
-  // Resource -> canonical financial account, through the one registry. It used
-  // to be `filter(kind === 'consumer')`, which silently discarded every other
-  // owned resource: a Business, a merchant, a test payer and a wallet account
-  // were all dropped on the floor and the journey then measured as owning
-  // nothing it could price.
-  // COMPLETENESS FIRST. A manifest can resolve perfectly and still omit the
-  // resource that held the money: S23-RAIL-001 declared a project and a
-  // consumer, every entry resolved, and 1 200 000 sat in a test payer nobody
-  // had handed over. Resolution answers "can I price what I was given";
-  // completeness answers "was I given everything", and only the second can
-  // catch an omission — the manifest cannot testify to what it leaves out.
-  const complete = ownershipCompleteness(manifest.owned, { sql });
+  const owned = manifest?.owned ?? [];
+
+  // WHAT "FUNDING-CAPABLE" MEANS, and what it does not.
+  //
+  // This was `(p.disposable ?? 0) > 0`, and p.disposable is the COUNT OF
+  // FREE-TEXT DESCRIPTIONS the registry lists under cleanup.disposable. So the
+  // sentence "fixtures the harness created" — prose, written for a human —
+  // was the signal deciding whether a journey could hold money. S00-ENV-001
+  // and S09-FIN-001 declare an exposure bound of 0, create nothing financial,
+  // and were classified funding-capable because that list is not empty.
+  //
+  // The registry's own DECLARATION is the authority on whether a journey is
+  // expected to hold value: a declared bound above zero says it can, and zero
+  // says it cannot. A prose count says nothing at all.
+  const expectsFinancial = (declared ?? 0) > 0;
+
+  // ONE PIPELINE, no shortcuts. Completeness and ordering are computed for
+  // every journey including the empty ones, because a verdict without its
+  // prerequisites is what the database now refuses — and rightly: the third
+  // FULL stopped on a VERIFIED whose completeness was NULL.
+  //
+  // An empty financial universe is not an absence of measurement. The empty
+  // ownership set IS complete (nothing is missing from it) and the empty event
+  // sequence IS deterministic (no order can change it). Both are stated
+  // positively; neither is NULL.
+  const complete = ownershipCompleteness(owned, { sql });
   if (complete.verdict !== 'VERIFIED') {
     return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
              declared, actual: null, resources: 0, events: 0,
-             completeness: complete,
+             completeness: complete, ordering: null,
              detail: `ownership ${complete.verdict}: ${complete.detail}` };
   }
-  const scope = resolveFinancialAccounts(manifest.owned, { sql });
+
+  // A journey the registry says can hold value, that handed nothing over, has
+  // not been measured — it has been left unmeasured, and that fails closed.
+  if (expectsFinancial && owned.length === 0) {
+    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
+             declared, actual: null, resources: 0, events: 0,
+             completeness: complete, ordering: null,
+             detail: `declares a bound of ${declared} and handed over no resource` };
+  }
+
+  const scope = resolveFinancialAccounts(owned, { sql });
   if (scope.verdict === 'UNKNOWN') {
     return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
-             declared, actual: null, resources: scope.counts.accounts, events: 0, scope, completeness: complete };
+             declared, actual: null, resources: scope.counts.accounts, events: 0,
+             scope, completeness: complete, ordering: null };
   }
-  // A journey whose owned resources are ALL structural holds no balance. That
-  // is a measurement — it resolved, and the answer is zero — not an absence.
+
+  // No accounts: either the journey owns only structural things, or it owns
+  // nothing at all. Both are MEASUREMENTS whose answer is zero, and both are
+  // deterministic — there is no event sequence to order.
   if (scope.accounts.length === 0) {
-    return { ...exposureVerdict({ declared, actual: 0 }), declared, actual: 0,
-             resources: 0, events: 0, scope, completeness: complete };
+    const reason = owned.length === 0 ? 'NO_FUNDED_RESOURCES' : 'ONLY_STRUCTURAL_RESOURCES';
+    const v = exposureVerdict({ declared, actual: 0 });
+    return { ...v, declared, actual: 0, resources: 0, events: 0,
+             scope, completeness: complete, ordering: 'DETERMINISTIC',
+             peakAt: null, peakGroup: null, peakAccounts: [],
+             detail: `${reason}: ${v.detail}` };
   }
+
   const events = ownedLedgerEvents(scope.accounts);
   if (events === null) {
     return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
-             declared, actual: null, resources: scope.accounts.length, events: 0, scope, completeness: complete };
+             declared, actual: null, resources: scope.accounts.length, events: 0,
+             scope, completeness: complete, ordering: null };
   }
-  const { peak, resources, events: n, ordering, ambiguousInstants, peakAt, peakGroup, peakAccounts } = attributablePeak(events);
-  // §5: a peak whose value could depend on the order we chose is not evidence.
+  const { peak, resources, events: n, ordering, ambiguousInstants,
+          peakAt, peakGroup, peakAccounts } = attributablePeak(events);
+  // A peak whose value could depend on the order we chose is not evidence.
   if (ordering === 'AMBIGUOUS') {
     return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
              declared, actual: null, resources, events: n, scope, completeness: complete,
+             ordering,
              detail: `${ambiguousInstants} instant(s) carry unordered postings; the peak could depend on the order chosen` };
   }
   return { ...exposureVerdict({ declared, actual: peak }), declared, actual: peak,
