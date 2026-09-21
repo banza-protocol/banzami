@@ -34,7 +34,7 @@ import {
   aggregateFunds, plannedPeakFunds, requiredFundsHeadroom, AGGREGATE_FUNDS_CAP,
 } from './lib/validation-capacity.mjs';
 import { attributablePeak, exposureVerdict } from './lib/validation-exposure.mjs';
-import { resolveFinancialAccounts, scopeOf, RESOURCE_SCOPE } from './lib/validation-resource-scope.mjs';
+import { resolveFinancialAccounts, ownershipCompleteness, scopeOf, RESOURCE_SCOPE } from './lib/validation-resource-scope.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
@@ -1529,14 +1529,21 @@ function ownedLedgerEvents(accounts) {
     // consumers.handle and nothing else, so a journey owning a Business, a
     // merchant, a test payer or a wallet account resolved to no events at all
     // and its exposure came back UNKNOWN with a complete manifest in hand.
+    // posting_id comes with the entries, because financial atomicity is what
+    // defines an event boundary: both legs of a transfer must land together or
+    // an owned-to-owned movement reads as an arrival with no departure. The
+    // entry id gives a deterministic order within a posting, so two readings
+    // of the same history cannot disagree about the peak.
     return sql(`
       SELECT le.account_id::text,
              to_char(le.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-             (CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END)::text
+             (CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END)::text,
+             le.posting_id::text, le.id::text
         FROM ledger_entries le
        WHERE le.account_id::text IN (${list})
-       ORDER BY le.created_at;`)
-      .map(([resource, at, delta]) => ({ resource, at, delta: Number(delta) }));
+       ORDER BY le.created_at, le.posting_id, le.id;`)
+      .map(([resource, at, delta, posting, seq]) =>
+        ({ resource, at, delta: Number(delta), posting, seq }));
   } catch { return null; }
 }
 
@@ -1558,24 +1565,45 @@ function measureExposure(p, manifest) {
   // owned resource: a Business, a merchant, a test payer and a wallet account
   // were all dropped on the floor and the journey then measured as owning
   // nothing it could price.
+  // COMPLETENESS FIRST. A manifest can resolve perfectly and still omit the
+  // resource that held the money: S23-RAIL-001 declared a project and a
+  // consumer, every entry resolved, and 1 200 000 sat in a test payer nobody
+  // had handed over. Resolution answers "can I price what I was given";
+  // completeness answers "was I given everything", and only the second can
+  // catch an omission — the manifest cannot testify to what it leaves out.
+  const complete = ownershipCompleteness(manifest.owned, { sql });
+  if (complete.verdict !== 'VERIFIED') {
+    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
+             declared, actual: null, resources: 0, events: 0,
+             completeness: complete,
+             detail: `ownership ${complete.verdict}: ${complete.detail}` };
+  }
   const scope = resolveFinancialAccounts(manifest.owned, { sql });
   if (scope.verdict === 'UNKNOWN') {
     return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
-             declared, actual: null, resources: scope.counts.accounts, events: 0, scope };
+             declared, actual: null, resources: scope.counts.accounts, events: 0, scope, completeness: complete };
   }
   // A journey whose owned resources are ALL structural holds no balance. That
   // is a measurement — it resolved, and the answer is zero — not an absence.
   if (scope.accounts.length === 0) {
     return { ...exposureVerdict({ declared, actual: 0 }), declared, actual: 0,
-             resources: 0, events: 0, scope };
+             resources: 0, events: 0, scope, completeness: complete };
   }
   const events = ownedLedgerEvents(scope.accounts);
   if (events === null) {
     return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
-             declared, actual: null, resources: scope.accounts.length, events: 0, scope };
+             declared, actual: null, resources: scope.accounts.length, events: 0, scope, completeness: complete };
   }
-  const { peak, resources, events: n } = attributablePeak(events);
-  return { ...exposureVerdict({ declared, actual: peak }), declared, actual: peak, resources, events: n, scope };
+  const { peak, resources, events: n, ordering, ambiguousInstants, peakAt, peakGroup, peakAccounts } = attributablePeak(events);
+  // §5: a peak whose value could depend on the order we chose is not evidence.
+  if (ordering === 'AMBIGUOUS') {
+    return { ...exposureVerdict({ declared, actual: null, ownershipKnown: false }),
+             declared, actual: null, resources, events: n, scope, completeness: complete,
+             detail: `${ambiguousInstants} instant(s) carry unordered postings; the peak could depend on the order chosen` };
+  }
+  return { ...exposureVerdict({ declared, actual: peak }), declared, actual: peak,
+           resources, events: n, scope, completeness: complete,
+           peakAt, peakGroup, peakAccounts };
 }
 
 function recordExposure(runID, p, e) {

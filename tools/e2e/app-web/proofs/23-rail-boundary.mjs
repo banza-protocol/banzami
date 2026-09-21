@@ -25,7 +25,6 @@
 import { provisionMerchant, createPaymentLink } from '../lib/provision.mjs';
 import { GateReport } from '../lib/report.mjs';
 import { assuranceDir } from '../../lib/assurance-output.mjs';
-import { ownCreated } from '../lib/e2e-own.mjs';
 
 const R = new GateReport('23-rail-boundary');
 const idem = (s) => `rail-${Date.now().toString(36)}-${s}`;
@@ -40,12 +39,6 @@ async function main() {
   const payer = await m.gw('/v1/sandbox/test-payers', 'POST', { label: 'rail boundary payer' });
   if (payer.status !== 201) throw new Error(`test payer create ${payer.status}`);
   payerID = payer.body.id;
-  // A test payer is granted on creation and funded on the next line, so it is
-  // the single largest thing this journey holds. It was created through the
-  // gateway directly rather than a shared primitive, so nothing registered it
-  // — the ownership matrix showed S23 owning a project and a consumer while
-  // 1 200 000 sat in a resource no one had declared.
-  ownCreated('test_payer', payerID, { creation_source: 'proof-23-rail-boundary', project: m.project });
   const funded = await m.gw(`/v1/sandbox/test-payers/${payerID}/fund`, 'POST',
     { amount_minor: 200_000 }, { 'idempotency-key': idem('fund') });
   R.mark('RAIL_PROOF_PAYER_FUNDED', [200, 201].includes(funded.status), `fund -> ${funded.status}`);

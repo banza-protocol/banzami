@@ -228,3 +228,92 @@ function unknownResult(detail, extra = {}) {
     detail,
   };
 }
+
+/* ── COMPLETENESS ─────────────────────────────────────────────────────────── */
+
+/**
+ * Is the manifest COMPLETE, or merely resolvable?
+ *
+ * B3 proved every declared resource can be priced. It could not prove that
+ * everything worth pricing was declared, and those are different claims.
+ * S23-RAIL-001 is the proof that the difference matters: its manifest listed a
+ * project and a consumer, every entry resolved perfectly, and 1 200 000 minor
+ * sat in a test payer nobody had handed over. A perfectly resolvable manifest
+ * reported a peak that was missing its largest component.
+ *
+ * So completeness is asked of the DATABASE, not of the manifest — the manifest
+ * cannot testify to what it omits. For each owned CONTAINER the schema is
+ * asked what fundable things belong to it, and anything it names that the
+ * manifest does not is a gap.
+ *
+ * The probes below come from relationships verified against the live schema:
+ * sandbox_test_payers.project_id, and wallet_accounts.merchant_id. Names and
+ * prefixes are not consulted anywhere.
+ */
+const COMPLETENESS_PROBES = [
+  {
+    // A test payer belongs to a project, and is granted on creation.
+    container: 'fixture_project',
+    missingKind: 'test_payer',
+    query: (ids, since) => `SELECT DISTINCT t.consumer_id::text, t.project_id::text
+                              FROM sandbox_test_payers t
+                             WHERE t.project_id::text IN (${ids})
+                               ${since ? `AND t.created_at >= ${since}` : ''}`,
+  },
+  {
+    // A segregated account belongs to a merchant and can hold value.
+    container: 'merchant',
+    missingKind: 'wallet_account',
+    query: (ids, since) => `SELECT DISTINCT wa.id::text, wa.merchant_id::text
+                              FROM wallet_accounts wa
+                             WHERE wa.merchant_id::text IN (${ids})
+                               ${since ? `AND wa.created_at >= ${since}` : ''}`,
+  },
+  {
+    container: 'business',
+    missingKind: 'wallet_account',
+    query: (ids, since) => `SELECT DISTINCT wa.id::text, wa.merchant_id::text
+                              FROM wallet_accounts wa
+                             WHERE wa.merchant_id::text IN (${ids})
+                               ${since ? `AND wa.created_at >= ${since}` : ''}`,
+  },
+];
+
+export function ownershipCompleteness(owned, { sql, since = null } = {}) {
+  const have = new Set((owned ?? []).map((r) => `${String(r.kind).toLowerCase()}:${String(r.id).toLowerCase()}`));
+  const haveIds = new Set((owned ?? []).map((r) => String(r.id).toLowerCase()));
+  const byKind = new Map();
+  for (const r of owned ?? []) {
+    const k = String(r.kind).toLowerCase();
+    if (!byKind.has(k)) byKind.set(k, new Set());
+    byKind.get(k).add(String(r.id).toLowerCase());
+  }
+
+  const missing = [];
+  for (const probe of COMPLETENESS_PROBES) {
+    const ids = byKind.get(probe.container);
+    if (!ids?.size) continue;
+    const list = [...ids].map(lit).join(',');
+    let rows;
+    try { rows = sql(probe.query(list, since ? lit(since) : null)); }
+    catch (e) {
+      return { verdict: 'UNKNOWN', missing: [],
+               detail: `could not probe ${probe.container} for ${probe.missingKind}: ${String(e.message).slice(0, 100)}` };
+    }
+    for (const [id, container] of rows) {
+      const ref = String(id).toLowerCase();
+      // A test payer IS a consumer, so owning it under either kind counts.
+      if (have.has(`${probe.missingKind}:${ref}`) || haveIds.has(ref)) continue;
+      missing.push({ kind: probe.missingKind, id, container, containerKind: probe.container });
+    }
+  }
+
+  if (missing.length) {
+    return {
+      verdict: 'INCOMPLETE', missing,
+      detail: `${missing.length} created resource(s) the manifest never declared: ` +
+        missing.map((m) => `${m.kind} under ${m.containerKind} ${String(m.container).slice(0, 8)}…`).join(', '),
+    };
+  }
+  return { verdict: 'VERIFIED', missing: [], detail: 'every fundable resource the schema attributes to an owned container is declared' };
+}

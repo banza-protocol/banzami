@@ -44,6 +44,12 @@ const journeys = JSON.parse(execFileSync('python3', ['-c',
 // ownership. The `derivedFloor` mistake was the first one wearing the second's
 // clothes.
 const OWN_CALL = /\bownCreated\(\s*['"]([a-z_]+)['"]/g;
+// Registration is also route-driven inside the shared gateway client, so a
+// harness that POSTs a creating route owns that kind without naming it. The
+// table is imported rather than restated: a matrix with its own copy would
+// drift, and this one already reported S23 as owning no test payer the moment
+// the registration moved.
+const { GATEWAY_CREATES } = await import(join(ROOT, 'tools/e2e/app-web/lib/provision.mjs'));
 const OWN_SHELL = /\be2e_own\s+([a-z_]+)/g;
 const OWN_EXPLICIT = /\be2eOwn\(\s*\w+\s*,\s*['"]([a-z_]+)['"]/g;
 
@@ -66,6 +72,38 @@ function closure(entry) {
   return out;
 }
 
+/* ── a conservative FLOOR, and only ever a floor ─────────────────────────── */
+
+// Grants read from the source that issues them, not from memory:
+//   public-api auth.go        SandboxCreditConsumer(..., 1_000_000, ...)
+//   service/test_payers.go    TestPayerGrantMinor = 1_000_000
+const GRANT = { consumer: 1_000_000, test_payer: 1_000_000 };
+
+// A FLOOR, from the harness's OWN source only, and ADVISORY.
+//
+// The first version of this computed the floor over the whole import closure
+// and immediately flagged S05-LNK-002 and S23-RAIL-001 as under-declared. Both
+// were wrong: proof 04 contains zero references to /v1/sandbox/test-payers and
+// proof 23 zero to registerConsumer. The kinds came from provision.mjs and
+// consumer.mjs being in their import graphs — a library's CAPABILITY, not the
+// harness's behaviour.
+//
+// That is the `derivedFloor` retraction repeating in new clothes: counting
+// what appears in reachable source, and calling compliant journeys
+// under-declared. So the scope is narrowed to what this harness itself writes,
+// and the result NEVER blocks. It can miss a real under-declaration made
+// inside a helper, and missing one is the safe direction for an advisory
+// signal — the authoritative answer is the runtime concurrent peak, measured
+// against the resources the journey actually owned.
+function derivedFloor(kinds, ownSrc) {
+  let floor = 0;
+  for (const k of kinds) floor += GRANT[k] ?? 0;
+  for (const m of ownSrc.matchAll(/amount_minor["']?\s*[:=]\s*([0-9_]{4,})/g)) {
+    floor += Number(m[1].replace(/_/g, ''));
+  }
+  return floor;
+}
+
 const rows = [];
 for (const j of journeys) {
   const harness = j.existing_harness;
@@ -76,6 +114,11 @@ for (const j of journeys) {
   for (const src of srcs) {
     for (const re of [OWN_CALL, OWN_SHELL, OWN_EXPLICIT]) {
       for (const m of src.matchAll(re)) kinds.add(m[1]);
+    }
+    for (const [route, kind] of GATEWAY_CREATES) {
+      // The literal the harness writes, e.g. '/v1/sandbox/test-payers'.
+      const path = route.source.replace(/^\^|\$$/g, '').replace(/\\\//g, '/').replace(/\([^)]*\)\?/g, '');
+      if (src.includes(path)) kinds.add(kind);
     }
   }
   const fundingCapable = declared > 0;
@@ -91,9 +134,20 @@ for (const j of journeys) {
   else if (financial.length === 0) status = 'STRUCTURAL_ONLY';
   else status = 'RESOLVABLE';
 
+  // Own source only, and own kinds only — what THIS file registers or POSTs.
+  const ownSrc = srcs[srcs.length - 1] ?? '';
+  const ownKinds = financial.filter((k) =>
+    new RegExp(`ownCreated\\(\\s*['"]${k}['"]`).test(ownSrc)
+    || (GATEWAY_CREATES.find(([, kk]) => kk === k)
+        && ownSrc.includes(GATEWAY_CREATES.find(([, kk]) => kk === k)[0].source
+             .replace(/^\^|\$$/g, '').replace(/\\\//g, '/').replace(/\([^)]*\)\?/g, ''))));
+  const floor = fundingCapable ? derivedFloor(ownKinds, ownSrc) : 0;
+  const underDeclared = fundingCapable && floor > declared;
+
   rows.push({
     id: j.journey_id, harness, declared, fundingCapable,
     kinds: [...kinds], financial, structural, unknownKinds, status,
+    derivedFloor: floor, underDeclared,
   });
 }
 
@@ -108,13 +162,22 @@ if (process.argv.includes('--json')) {
       `${String(r.declared ?? 0).padStart(8)}  ` +
       `${(r.financial ?? []).join('+') || '—'}` +
       `${(r.structural ?? []).length ? ` · struct: ${r.structural.join('+')}` : ''}` +
-      `${(r.unknownKinds ?? []).length ? `  ← UNCLASSIFIED: ${r.unknownKinds.join(',')}` : ''}`);
+      `${(r.unknownKinds ?? []).length ? `  ← UNCLASSIFIED: ${r.unknownKinds.join(',')}` : ''}` +
+      `${r.underDeclared ? `  ← advisory floor ${r.derivedFloor} > declared ${r.declared}` : ''}`);
   }
   const by = {};
   for (const r of rows) by[r.status] = (by[r.status] ?? 0) + 1;
   console.log('\n  ' + Object.entries(by).map(([k, v]) => `${k} ${v}`).join(' · '));
 
-  const blocking = rows.filter((r) => r.fundingCapable && ['MISSING_MANIFEST', 'UNKNOWN'].includes(r.status));
+  // The floor never blocks: it is advisory by construction (see derivedFloor).
+  const blocking = rows.filter((r) => r.fundingCapable
+    && ['MISSING_MANIFEST', 'UNKNOWN'].includes(r.status));
+  const advisory = rows.filter((r) => r.underDeclared);
+  if (advisory.length) {
+    console.log(`\n  advisory: ${advisory.length} journey(s) name more funding in their own source than they declare: ` +
+      advisory.map((a) => `${a.id} (floor ${a.derivedFloor} vs ${a.declared})`).join(', ') +
+      `\n  a floor cannot authorise a run and does not block one; the runtime concurrent peak decides.`);
+  }
   console.log(blocking.length === 0
     ? '\n✓ OWNERSHIP_MATRIX: every funding-capable journey can be held to its declaration\n'
     : `\n✗ OWNERSHIP_MATRIX: ${blocking.length} funding-capable journey(s) cannot be: ` +

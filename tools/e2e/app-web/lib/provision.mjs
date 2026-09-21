@@ -15,6 +15,31 @@ import { ownCreated } from './e2e-own.mjs';
 
 export const GW = process.env.BZ_SANDBOX_GW ?? 'https://sandbox-api.banzami.com';
 
+/**
+ * Routes that BRING A RESOURCE INTO EXISTENCE, and what kind it is.
+ *
+ * Ownership is registered here, in the shared client, rather than at each call
+ * site. There is no single `createTestPayer()` helper to instrument: nine
+ * files POST /v1/sandbox/test-payers directly, and S23-RAIL-001 was one of
+ * them — it declared its project and its consumer while 1 200 000 sat in a
+ * test payer nothing had handed over.
+ *
+ * Adding `ownCreated` to proof 23 alone would have fixed that one journey and
+ * left the shape of the defect untouched, which is the same bet that has now
+ * lost twice. The client that performs the creation is the narrowest place
+ * that sees EVERY creation, so it is where the registration belongs.
+ *
+ * Keyed on method + path, never on a response field that happens to be named
+ * `id`: a GET returning an id creates nothing.
+ */
+export const GATEWAY_CREATES = [
+  [/^\/v1\/sandbox\/test-payers$/, 'test_payer'],
+  [/^\/v1\/payment-links$/, 'payment_link'],
+  [/^\/v1\/payment-sessions$/, 'payment_session'],
+  [/^\/v1\/wallet-accounts$/, 'wallet_account'],
+  [/^\/v1\/webhooks(\/endpoints)?$/, 'webhook_endpoint'],
+];
+
 /** Authenticated gateway HTTP with a project secret key. */
 export function gatewayHttp(secret) {
   return async (path, method = 'GET', body, extra = {}) => {
@@ -24,6 +49,10 @@ export function gatewayHttp(secret) {
       method, headers, body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     let j = null; try { j = await r.json(); } catch { /* empty */ }
+    if (method === 'POST' && (r.status === 200 || r.status === 201) && j?.id) {
+      const [, kind] = GATEWAY_CREATES.find(([re]) => re.test(path.split('?')[0])) ?? [];
+      if (kind) ownCreated(kind, j.id, { creation_source: `gateway ${method} ${path.split('?')[0]}` });
+    }
     return { status: r.status, body: j, headers: r.headers };
   };
 }

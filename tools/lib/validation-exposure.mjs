@@ -38,19 +38,53 @@
  * @returns {{peak: number, resources: number, events: number, timeline: Array}}
  */
 export function attributablePeak(events) {
-  const rows = [...events].map((e) => ({ ...e, t: new Date(e.at).getTime() }));
+  const rows = [...events].map((e, i) => ({
+    ...e,
+    t: new Date(e.at).getTime(),
+    // Financial atomicity, where the ledger can tell us: both legs of a
+    // posting land together or the transfer reads as an arrival with no
+    // departure. Falling back to the timestamp keeps the old behaviour for
+    // callers that cannot supply one.
+    group: e.posting != null ? `p:${e.posting}` : `t:${new Date(e.at).getTime()}`,
+    seq: e.seq != null ? Number(e.seq) : i,
+  }));
   if (rows.some((r) => !Number.isFinite(r.t))) throw new Error('attributablePeak: unreadable event timestamp');
-  rows.sort((a, b) => a.t - b.t);
+  // Deterministic: time, then posting, then the authoritative sequence. Two
+  // runs over the same events must produce the same peak, or the number is not
+  // evidence.
+  rows.sort((a, b) => a.t - b.t || (a.group < b.group ? -1 : a.group > b.group ? 1 : 0) || a.seq - b.seq);
+
+  // AMBIGUITY, reported rather than hidden. Distinct postings sharing an
+  // instant are applied in group order here; if the caller has no authoritative
+  // sequence, that order is this function's choice and not the ledger's, and a
+  // transient peak between them could be an artefact either way.
+  const perInstant = new Map();
+  for (const r of rows) {
+    if (!perInstant.has(r.t)) perInstant.set(r.t, []);
+    perInstant.get(r.t).push(r);
+  }
+  // An instant is ambiguous when more than one event lands on it and we cannot
+  // tell whether they are one posting or several. WITHOUT posting ids that is
+  // exactly the unknowable case: two legs of a transfer and two unrelated
+  // movements look identical, and grouping them either way is an assumption.
+  // Collapsing them silently would hide a real transient peak; splitting them
+  // silently would invent one.
+  const ambiguousInstants = [...perInstant.values()].filter((evs) =>
+    evs.length > 1 && (evs.some((e) => e.posting == null)
+                       || new Set(evs.map((e) => e.group)).size > 1)).length;
+  const ordering = ambiguousInstants === 0 ? 'DETERMINISTIC' : 'AMBIGUOUS';
 
   const balance = new Map();
   const timeline = [];
   let peak = 0;
+  let peakAt = null, peakGroup = null, peakAccounts = null;
   let i = 0;
   while (i < rows.length) {
+    const g = rows[i].group;
     const t = rows[i].t;
-    // Apply EVERY event at this instant before measuring. Otherwise moving
+    // Apply EVERY event of this posting before measuring. Otherwise moving
     // 100 from one owned resource to another reads as a momentary +100.
-    while (i < rows.length && rows[i].t === t) {
+    while (i < rows.length && rows[i].group === g) {
       const r = rows[i];
       balance.set(r.resource, (balance.get(r.resource) ?? 0) + Number(r.delta));
       i++;
@@ -58,9 +92,19 @@ export function attributablePeak(events) {
     let sum = 0;
     for (const v of balance.values()) sum += v;
     timeline.push({ at: new Date(t).toISOString(), concurrent: sum });
-    if (sum > peak) peak = sum;
+    if (sum > peak) {
+      peak = sum;
+      peakAt = new Date(t).toISOString();
+      peakGroup = g;
+      peakAccounts = [...balance.entries()].filter(([, v]) => v !== 0).map(([k, v]) => ({ account: k, balance: v }));
+    }
   }
-  return { peak, resources: balance.size, events: rows.length, timeline };
+  return {
+    peak, resources: balance.size, events: rows.length, timeline,
+    ordering, ambiguousInstants,
+    // Provenance: enough to reconstruct the number without rerunning anything.
+    peakAt, peakGroup, peakAccounts: peakAccounts ?? [], totalAtPeak: peak,
+  };
 }
 
 /**
