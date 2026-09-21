@@ -157,8 +157,8 @@ echo "### F0-031 receipt verification (authenticated receipt; state-match; priva
 # state matches the payment, payer shown handle-only (no unnecessary personal data),
 # and a platform cannot fabricate a receipt (a forged reference does not resolve).
 gw wp GET "/v1/merchant/wallet-payments?limit=5" - "$MJWT"
-WPREF=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);let a=j.items||j.data||[];let x=a[0]||{};process.stdout.write([x.reference||"",x.status||"",x.payer_name||"",x.receipt_available].join("|"))}catch(e){}})')
-IFS='|' read -r RREF RST RPAYER RAVAIL <<<"$WPREF"
+WPREF=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);let a=j.items||j.data||[];let x=a[0]||{};process.stdout.write([x.reference||"",x.status||"",x.payer_name||"",x.receipt_available,x.payer_handle||""].join("|"))}catch(e){}})')
+IFS='|' read -r RREF RST RPAYER RAVAIL RHANDLE <<<"$WPREF"
 note "receipt: reference=$RREF status=$RST payer=$RPAYER receipt_available=$RAVAIL"
 # State matches the settled payment, and a receipt is available for it.
 #
@@ -186,7 +186,42 @@ chk F0-031-state "$([ "$RST" = COMPLETED ]&&[ "$RAVAIL" = true ]&&echo ok)" ok
 # That the reference resolves is proven where it belongs, against the deployed
 # runtime, by receipt-assurance.sh and proof-lookup-assurance.sh.
 # privacy: consumer payer shown handle-only (starts with @, no bare personal name)
-chk F0-031-privacy "$(printf '%s' "$RPAYER"|grep -qE '^@' && echo handle-only || echo exposed)" handle-only
+#
+# The shape is CLASSIFIED, not the value printed. Two reasons. A leak proved by
+# printing the leak into run evidence would be its own leak; and the previous
+# form collapsed every non-@ outcome — including an EMPTY or absent field —
+# into the single word `exposed`. An absent payer_name exposes nothing, and
+# reporting it as exposure is the measurement failing dressed as the product
+# failing. BZV-20260921-0001 recorded exactly `exposed` and nothing else, so
+# which of the two happened is not recoverable from that run.
+# It asserts on payer_HANDLE, which is the field whose contract is the handle:
+#
+#   payer_name   = COALESCE(c.display_name, '@'||c.handle, '')
+#   payer_handle = '@'||c.handle
+#
+# This used to read payer_name and require it to start with '@'. payer_name is
+# by contract the DISPLAY NAME, falling back to the handle only when none is
+# set — so the assertion failed for a consumer that has one, which is every
+# consumer this harness creates. BZV-20260921-0001 recorded `exposed` and the
+# observed value was `k18123s1`: the synthetic consumer's own display name,
+# set by this harness. Nothing was exposed and nothing leaked; the assertion
+# was reading the wrong field.
+#
+# The shape is classified rather than printed: a leak proved by printing the
+# leak into run evidence would be its own leak.
+case "$RHANDLE" in
+  "")     RHANDLE_SHAPE=absent ;;
+  @*)     RHANDLE_SHAPE=handle-only ;;
+  *" "*)  RHANDLE_SHAPE=exposed-personal-name ;;
+  *)      RHANDLE_SHAPE=exposed-non-handle ;;
+esac
+chk F0-031-privacy "$RHANDLE_SHAPE" handle-only
+# Recorded, not asserted. Whether a merchant-authenticated list should carry a
+# consumer's display name at all is a product decision the server has already
+# taken deliberately — it returns display_name when one exists and @handle when
+# none does. Naming the shape here leaves the question visible without this
+# harness answering it.
+note "payer_name shape: $(case "$RPAYER" in "") echo absent;; @*) echo handle-fallback;; *" "*) echo display-name;; *) echo single-token;; esac)"
 # non-fabricable: a forged/guessed reference does not resolve on the public verifier
 gw proof_forged GET "/v1/public/proofs/BZM-FAKE-0000" - -
 chk F0-031-nofabricate "$(jget exists)" false

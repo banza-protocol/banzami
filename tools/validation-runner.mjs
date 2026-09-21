@@ -445,8 +445,21 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc', journeyID 
     // preference to what this run shipped — the identical staleness the harness
     // file itself is shipped fresh to avoid. A guard that removed a staged
     // dependency once passed anyway, because the VM still had yesterday's copy.
+    // Staged in the REPOSITORY'S OWN SHAPE, rooted at this journey's directory.
+    //
+    // The harnesses compute `REPO="$(cd "$HERE/../.." && pwd)"` and reach for
+    // things under it. Staging them flat meant REPO resolved to
+    // /tmp/banzami-validation — a directory containing nothing but other runs
+    // — and webhook-retry-cleanroom died with MODULE_NOT_FOUND on
+    // tools/cleanroom/payer-run.mjs. Its PAYER_RUN gate then failed, and the
+    // nine delivery assertions after it failed for having no delivery to
+    // assert on. Ten red gates, one missing file.
+    //
+    // So the script lives at <journey>/tests/phase0/ and REPO lands on
+    // <journey>/ — isolated per journey and per nonce, with no directory
+    // shared between runs.
     execFileSync('ssh', ['-o', 'BatchMode=yes', HOST,
-      `rm -rf ${remoteDir} && mkdir -p ${remoteDir}/lib`], { stdio: 'ignore' });
+      `rm -rf ${remoteDir} && mkdir -p ${remoteDir}/tests/phase0/lib ${remoteDir}/tools/cleanroom`], { stdio: 'ignore' });
     execFileSync('scp', ['-o', 'BatchMode=yes', '-q',
       join(ROOT, 'tests/phase0/lib/e2e-run.sh'),
       join(ROOT, 'tests/phase0/lib/synthetic-tenant.sh'),
@@ -455,8 +468,15 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc', journeyID 
       // a cleanup `rm`'s zero. They look for it beside themselves, so it is
       // staged under lib/ with the rest.
       join(ROOT, 'tools/ops/lib/remote.sh'),
-      `${HOST}:${remoteDir}/lib/`], { stdio: 'ignore' });
-    execFileSync('scp', ['-o', 'BatchMode=yes', '-q', script, `${HOST}:${remoteDir}/`], { stdio: 'ignore' });
+      `${HOST}:${remoteDir}/tests/phase0/lib/`], { stdio: 'ignore' });
+    // The one repo-rooted dependency any registry harness has. Staged for all
+    // of them rather than for the one that needs it: a dependency the adapter
+    // refuses to ship is a dependency nobody discovers until a journey is
+    // finally reached, which is what happened here on the third FULL.
+    execFileSync('scp', ['-o', 'BatchMode=yes', '-q', '-r',
+      join(ROOT, 'tools/cleanroom'), `${HOST}:${remoteDir}/tools/`], { stdio: 'ignore' });
+    execFileSync('scp', ['-o', 'BatchMode=yes', '-q', script,
+      `${HOST}:${remoteDir}/tests/phase0/`], { stdio: 'ignore' });
   } catch (e) {
     return { ok: false, reason: `could not stage harness on the Sandbox host: ${e.message}`, gates: [], durationMs: Date.now() - before, ownership: { state: 'NOT_STARTED', owned: [], rejected: [], detail: 'staging failed' } };
   }
@@ -474,7 +494,7 @@ export function runShellHarness(harness, timeoutMs, runRef = 'adhoc', journeyID 
   const res = spawnSync('ssh', ['-o', 'BatchMode=yes', HOST,
     // `timeout` on the remote side too: killing the ssh client leaves the
     // harness running on the VM, holding fixtures it will never return.
-    `cd ${remoteDir} && ${env} timeout ${seconds} bash ${base}`,
+    `cd ${remoteDir}/tests/phase0 && ${env} timeout ${seconds} bash ${base}`,
   ], { encoding: 'utf8', timeout: timeoutMs + 30_000, maxBuffer: 1 << 26 });
 
   // RETRIEVED UNCONDITIONALLY, before any branch below can return. Ownership
