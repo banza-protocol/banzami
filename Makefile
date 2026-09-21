@@ -485,6 +485,14 @@ check-validation-exposure:
 check-validation-concurrent-peak:
 	node tools/check-validation-concurrent-peak.selftest.mjs
 
+.PHONY: check-validation-workspace-capacity
+# Workspace capacity is TWO resources, per actor, and neither was gated when
+# BZV-20260921-0001 was abandoned against the one that refuses. ACTIVE is
+# concurrency and archiving frees it; 24H CREATION is cumulative over a sliding
+# window and archiving frees NONE of it. One formula for both is the defect.
+check-validation-workspace-capacity:
+	node tools/check-validation-workspace-capacity.selftest.mjs
+
 .PHONY: check-validation-resource-scope check-validation-ownership-matrix
 # A journey's exposure is the balance of the ACCOUNTS it owns, counted once
 # each. The resolver understood consumers.handle and nothing else, so a journey
@@ -541,7 +549,7 @@ check-validation-full-coverage:
 	node tools/check-validation-full-coverage.mjs
 
 # Every Validation Studio invariant in one target.
-check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-e2e-measurement-honesty check-validation-exposure check-validation-materialization check-validation-journey-counters check-e2e-ownership-adoption check-validation-ownership-transport check-validation-resource-scope check-validation-ownership-matrix check-validation-concurrent-peak check-validation-budget-truth check-route-registration check-merchant-credit-policy
+check-validation: check-validation-naming check-validation-engine check-validation-registries check-validation-registry-drift check-pilot-limits-drift check-validation-execution-boundary check-validation-harness-evidence check-validation-runner-verdict check-validation-full-coverage check-e2e-ui-markers check-validation-runner-regressions check-e2e-harness-regressions check-validation-shell-adapter check-validation-assurance-adapter check-validation-cleanup-barrier check-validation-fixture-lifecycle check-validation-studio-truth check-e2e-semantics-driver check-validation-execution-model check-e2e-measurement-honesty check-validation-exposure check-validation-materialization check-validation-journey-counters check-e2e-ownership-adoption check-validation-ownership-transport check-validation-resource-scope check-validation-ownership-matrix check-validation-concurrent-peak check-validation-workspace-capacity check-validation-budget-truth check-route-registration check-merchant-credit-policy
 
 # Can each Validation Actor still do its job? Reports NOT_PROVISIONED for all
 # nine until B10 is authorised — the correct answer, not an error.

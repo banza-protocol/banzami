@@ -1,0 +1,108 @@
+# Validation CAPACITY policy — Banzami Validation Studio.
+#
+# BANZAMI-SANDBOX-FULL-VALIDATION-001. Written after BZV-20260921-0001 was
+# ABANDONED and the owner gate still read OPEN.
+#
+# WHY THIS FILE EXISTS
+#
+# A Validation Run spends from FOUR independent scarce resources. Three of them
+# were gated; the fourth was not gated at all, and nothing in the readiness
+# model knew it existed:
+#
+#   APPLICATION_CAPACITY              rl:application-submit:ip:<ip>  30 / 24h per IP
+#   WORKSPACE_ACTIVE_CAPACITY         MaxActiveWorkspacesPerUser     per ACTOR
+#   WORKSPACE_24H_CREATION_CAPACITY   MaxWorkspacesCreatedPerDay     per ACTOR, rolling 24h
+#   AGGREGATE_FUNDS_CAPACITY          50 000 000 minor held          Sandbox-wide
+#
+# A single aggregated "capacity: PASS" hides exactly the exhaustion that ended
+# the third FULL, so each is gated on its own and each reports its own numbers.
+#
+# THE TWO WORKSPACE RESOURCES ARE NOT THE SAME RESOURCE
+#
+#   ACTIVE        concurrency. Freed by archiving. Measures how many workspaces
+#                 exist at once.
+#   24H CREATION  cumulative consumption over a sliding window. NOT freed by
+#                 archiving — a slot returns only when its creation ages out of
+#                 the window. This is the limit that actually refused.
+#
+# Using one formula for both is the defect this file exists to prevent: a plan
+# that creates nine workspaces SEQUENTIALLY, each retired before the next, needs
+# nine creation slots and may need only one active slot.
+#
+# The LIMITS are not declared here. They are read from the service that enforces
+# them (services/developer-api/internal/developer/limits.go) so the two cannot
+# drift; a limit this file could not read is UNKNOWN and closes the gate.
+
+$schema: banzami.validation.capacity-policy/1
+registry_version: 1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Retry reserve
+#
+# The reserve answers ONE question: after this run fails at the worst possible
+# moment, is there still enough left for the retry it earns?
+#
+# It is the same model already ratified for the aggregate funds cap in
+# tools/lib/validation-capacity.mjs (requiredFundsHeadroom):
+#
+#   a run reaches its peak
+#   → it fails at the worst moment, having cleaned nothing
+#   → that consumption is still spent
+#   → a retry starts and consumes its own
+#
+# For workspace CREATIONS the first run's spend is unrecoverable in-window —
+# archiving does not give a creation slot back — so the two are additive, and
+# the reserve is a whole plan's worth for each permitted retry.
+#
+# For ACTIVE workspaces the first run's holdings ARE recoverable (archive, or
+# the run's own cleanup), but a reserve that assumed recovery would be assuming
+# the cleanup of a run that just failed. So the residual is counted as still
+# held, exactly as the funds model counts it.
+#
+# NEVER set a reserve from what happens to fit. A reserve computed as
+# `free - planned` is not a reserve; it is a rationalisation.
+# ─────────────────────────────────────────────────────────────────────────────
+
+profiles:
+
+  - id: GOLDEN
+    workspace:
+      # GOLDEN is the trusted subset and must be repeatable the same day,
+      # several times — the same reasoning that caps its credit volume at 10%
+      # of the global window rather than 40%.
+      retry_reserve_model: one_full_retry
+      permitted_retries: 1
+
+  - id: FULL
+    workspace:
+      # profiles.yaml declares retry.infrastructure_retries: 2 for FULL. That
+      # figure governs how many times a DEGRADED infrastructure may be retried
+      # around; it is NOT a licence to reserve two further plans' worth of a
+      # limit of twenty. The executor itself performs no journey retries at all
+      # (every journey carries retry_policy: none, and validation-runner.mjs
+      # resolves that to retries: 0), so an actual retry is a NEW run, claimed
+      # through this same gate, which will read capacity live at that time.
+      #
+      # One retry is therefore reserved: enough that a failed FULL does not
+      # leave the Sandbox unable to try again, without reserving for retries
+      # the executor cannot perform.
+      retry_reserve_model: one_full_retry
+      permitted_retries: 1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Models
+#
+#   one_full_retry   reserve = permitted_retries × planned_consumption
+#                    per actor, per resource.
+#
+# A profile with no workspace policy is UNKNOWN, not zero. UNKNOWN closes the
+# gate: an unmeasured reserve and a reserve of nothing are different claims, and
+# only one of them is safe to act on.
+# ─────────────────────────────────────────────────────────────────────────────
+
+models:
+  - id: one_full_retry
+    description: >-
+      Reserve one whole plan's worth of consumption for each permitted retry,
+      on top of what this run itself will consume, because a failed run does
+      not give its consumption back inside the window.

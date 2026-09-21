@@ -33,6 +33,9 @@ import {
   submitCapacity, runnerBucket, vmBucket, submitCost,
   aggregateFunds, plannedPeakFunds, requiredFundsHeadroom, AGGREGATE_FUNDS_CAP,
 } from './lib/validation-capacity.mjs';
+import { workspaceLimits, workspaceConsumption, workspaceUsage, withKnownActors,
+         retryReserve, activeHeadroom, creationHeadroom,
+         earliestSufficient } from './lib/validation-workspace-capacity.mjs';
 import { attributablePeak, exposureVerdict } from './lib/validation-exposure.mjs';
 import { resolveFinancialAccounts, ownershipCompleteness, scopeOf, RESOURCE_SCOPE } from './lib/validation-resource-scope.mjs';
 
@@ -988,6 +991,85 @@ function creditSince(sinceExpr) {
   return Number(v);
 }
 
+
+/**
+ * The FOURTH scarce resource, enforced by the executor itself.
+ *
+ * Developer workspaces are limited PER ACTOR in two independent ways, and a run
+ * that cannot create them dies partway through having already spent its owner
+ * authorisation, its application slots and its funded value. BZV-20260921-0001
+ * ended that way: the shared fixture actor stood at 20/20 creations and nothing
+ * in the readiness model knew the limit existed.
+ *
+ * Checked HERE, before the claim, for the same reason the cleanup barrier is:
+ * refusing after the claim burns an authorisation that costs two step-up
+ * ceremonies to reissue.
+ *
+ * And checked here rather than trusting the owner gate, because between an
+ * owner reading a readiness page and this executor starting there is a sliding
+ * window, another operator, another harness, and a cached screen.
+ */
+export function checkWorkspaceCapacity(profileID, {
+  // Injected so the refusal itself can be proven without a queued run and
+  // without reaching the Sandbox. A guard nobody has watched refuse is not a
+  // guard, and this one cannot be exercised live without burning an owner
+  // authorisation to do it.
+  plan: planIn = null,
+  limits: limitsIn = null,
+  reserve: reserveIn = null,
+  usage: usageIn = null,
+  barrier = CLEANUP_BARRIER,
+  sql: sqlIn = null,
+  fail = die,
+  say = log,
+} = {}) {
+  const plan = planIn ?? planFor(profileID).plan;
+  const limits = limitsIn ?? workspaceLimits();
+  const reserve = reserveIn ?? retryReserve(profileID);
+  const consumption = workspaceConsumption(plan, { barrier });
+  let usage;
+  try {
+    usage = usageIn ?? withKnownActors(workspaceUsage({
+      sql: sqlIn ?? ((stmt) => sql(stmt)), windowHours: limits.windowHours ?? 24,
+    }), consumption);
+  } catch (e) {
+    return fail(`VALIDATION_WORKSPACE_CAPACITY_UNKNOWN: cannot read workspace usage (${e.message}). ` +
+        'An unreadable quota is not an empty one; the run is left QUEUED and unspent.');
+  }
+  const gates = [
+    activeHeadroom({ usage, consumption, limits, reserve }),
+    creationHeadroom({ usage, consumption, limits, reserve }),
+  ];
+  for (const g of gates) {
+    const line = g.actors.map((a) =>
+      `${a.kind === 'EPHEMERAL' ? 'ephemeral' : a.actor.slice(0, 8) + '…'} ` +
+      `used ${a.used}/${a.limit} planned ${a.planned} retry ${a.reserve} required ${a.required} free ${a.free}`)
+      .join(' · ');
+    say(`  workspaces: ${g.name} ${g.verdict}${line ? ` — ${line}` : ''}`);
+  }
+  const blocked = gates.filter((g) => g.verdict !== 'OPEN');
+  if (!blocked.length) return;
+  const detail = blocked.map((g) => `${g.name}=${g.reason}: ${g.detail}`).join(' | ');
+  // Say when it would open on its own, so the refusal is actionable — and say
+  // that the forecast is not an authorisation, because the window slides.
+  const forecasts = [];
+  for (const g of blocked) {
+    for (const a of g.actors.filter((x) => !x.ok)) {
+      const live = usage.get(a.actor);
+      if (!live) continue;
+      const w = earliestSufficient({ creations: live.creations, used: a.used, limit: a.limit,
+        required: a.required, windowHours: limits.windowHours ?? 24 });
+      forecasts.push(w.insufficient
+        ? `${a.actor.slice(0, 8)}…: the ${limits.windowHours ?? 24}h window cannot supply ${a.required} even when every current creation ages out`
+        : w.at ? `${a.actor.slice(0, 8)}…: would open at ${w.at} if nothing else is created (forecast, not an authorisation)`
+        : `${a.actor.slice(0, 8)}…: no forecast`);
+    }
+  }
+  return fail(`VALIDATION_WORKSPACE_CAPACITY_INSUFFICIENT: ${detail}. ` +
+      (forecasts.length ? `${forecasts.join(' | ')}. ` : '') +
+      'The reserve is policy and is never lowered to fit. The run is left QUEUED and unspent.');
+}
+
 function main() {
   // Before proveEnvironment(), which opens the database. Nothing this runner
   // does to the Sandbox may happen on a command line it did not understand.
@@ -1025,6 +1107,11 @@ function main() {
         'verified or recorded. FULL\'s upper bound exceeds the aggregate funds cap ' +
         'without it. The run is left QUEUED and unspent.');
   }
+
+  // The fourth capacity family, enforced immediately before the claim so that a
+  // sliding window, another operator or a stale screen cannot start a run the
+  // Sandbox cannot finish.
+  if (waiting) checkWorkspaceCapacity(waiting.profile);
 
   const run = claim(cli.run ?? null);
   if (!run) { log('no QUEUED run to claim'); return; }

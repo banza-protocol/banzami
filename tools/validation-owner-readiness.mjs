@@ -21,6 +21,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { submitCapacity, runnerBucket, vmBucket, aggregateFunds,
          plannedPeakFunds, requiredFundsHeadroom } from './lib/validation-capacity.mjs';
+import { workspaceLimits, workspaceConsumption, workspaceUsage, withKnownActors,
+         retryReserve, activeHeadroom, creationHeadroom,
+         earliestSufficient } from './lib/validation-workspace-capacity.mjs';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 const run = (cmd, args) => { try { execFileSync(cmd, args, { cwd: repo, stdio: 'pipe' }); return true; } catch { return false; } };
@@ -152,6 +155,53 @@ gate('AGGREGATE_FUNDS_PREFLIGHT', funds.available >= bound.required,
   `peak ${bound.plannedPeakMax} · residual ${bound.failedRunResidualMax} · retry ${bound.retryPeakMax} · required ${bound.required}` +
   ` · bound ${planned.barrier ? 'CONCURRENT' : 'CUMULATIVE'}`);
 
+// ── capacity: Developer workspaces, per actor, as TWO resources ──────────────
+//
+// Absent until BZV-20260921-0001 was ABANDONED with the shared fixture actor at
+// 20/20 creations while this gate printed OPEN. Three resources were watched
+// and a fourth was invisible.
+//
+// ACTIVE and 24H CREATION are reported and gated separately on purpose. One
+// aggregated "workspace capacity: PASS" would hide exactly the exhaustion that
+// ended that run: archiving frees an ACTIVE place and returns nothing at all to
+// the rolling creation window.
+const wsGates = (() => {
+  const limits = workspaceLimits();
+  const reserve = retryReserve(PROFILE);
+  const consumption = workspaceConsumption(plan, { barrier });
+  let usage;
+  try {
+    const PGW = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+    const HOSTW = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
+    const q = (stmt) => {
+      const b64 = Buffer.from(stmt, 'utf8').toString('base64');
+      return execFileSync('ssh', ['-o', 'BatchMode=yes', HOSTW,
+        `echo ${b64} | base64 -d | docker exec -i ${PGW} sh -lc ` +
+        `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d banzami_staging -Atq -F"\t" -v ON_ERROR_STOP=1'`],
+        { encoding: 'utf8', maxBuffer: 1 << 24 })
+        .split('\n').filter(Boolean).map((l) => l.split('\t'));
+    };
+    usage = withKnownActors(workspaceUsage({ sql: q, windowHours: limits.windowHours ?? 24 }), consumption);
+  } catch (e) {
+    // A reading that did not happen is not a reading of zero.
+    usage = null;
+  }
+  if (!usage) {
+    const closed = { verdict: 'CLOSED', reason: 'UNKNOWN_CAPACITY', detail: 'workspace usage unreadable', actors: [] };
+    return { active: closed, creation: closed, limits, reserve, consumption, usage: new Map() };
+  }
+  return {
+    active: activeHeadroom({ usage, consumption, limits, reserve }),
+    creation: creationHeadroom({ usage, consumption, limits, reserve }),
+    limits, reserve, consumption, usage,
+  };
+})();
+
+gate('WORKSPACE_ACTIVE_CAPACITY', wsGates.active.verdict === 'OPEN',
+  `${wsGates.active.reason ? wsGates.active.reason + ' · ' : ''}${wsGates.active.detail}`);
+gate('WORKSPACE_24H_CREATION_CAPACITY', wsGates.creation.verdict === 'OPEN',
+  `${wsGates.creation.reason ? wsGates.creation.reason + ' · ' : ''}${wsGates.creation.detail}`);
+
 // ── the deployed system's own state ──────────────────────────────────────────
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
 const ssh = (cmd) => execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, cmd], { encoding: 'utf8', maxBuffer: 1 << 22 });
@@ -203,6 +253,30 @@ for (const r of rows) {
   console.log(`  ${r.ok ? '✓' : '✗'} ${r.name.padEnd(30)} ${r.detail}`);
 }
 for (const n of notes) console.log(`\n  ${n}`);
+
+// Printed whatever the verdict. A capacity number that only appears when it
+// blocks cannot be checked against the system while it is still favourable.
+console.log(`\n  workspace capacity — per actor · limits ${wsGates.limits.verdict === 'READ'
+  ? `active ${wsGates.limits.activeLimit} · created/${wsGates.limits.windowHours}h ${wsGates.limits.creationLimit24h}`
+  : 'UNKNOWN'} · reserve ${wsGates.reserve.verdict === 'DECLARED'
+  ? `${wsGates.reserve.model} ×${wsGates.reserve.permittedRetries}` : 'UNKNOWN'}`);
+for (const a of wsGates.creation.actors) {
+  const act = wsGates.active.actors.find((x) => x.actor === a.actor);
+  console.log(`    ${a.kind === 'EPHEMERAL' ? 'ephemeral' : a.actor.slice(0, 8) + '…'}  ` +
+    `24h ${a.used}/${a.limit} used · planned ${a.planned} · retry ${a.reserve} · required ${a.required} · ` +
+    `free ${a.free} ${a.ok ? '✓' : '✗'}` +
+    (act ? `   |  active ${act.used}/${act.limit} · concurrent ${act.need} · required ${act.required} ${act.ok ? '✓' : '✗'}` : ''));
+  if (!a.ok) {
+    const live = wsGates.usage.get(a.actor);
+    const when = live ? earliestSufficient({ creations: live.creations, used: a.used,
+      limit: a.limit, required: a.required, windowHours: wsGates.limits.windowHours ?? 24 }) : null;
+    console.log(`      ${when?.insufficient
+      ? 'the window cannot supply this even when every current creation ages out'
+      : when?.at ? `would open at ${when.at} if nothing else is created — a FORECAST, not an authorisation`
+      : 'no forecast available'}`);
+    console.log(`      journeys: ${a.journeys.map((j) => `${j.journey}×${j.creations}`).join(' ')}`);
+  }
+}
 console.log(`\n  VM bucket: ${vb ? `${vb.used}/30 used · ${vb.free} free` : 'not tracked (0 spent)'}`);
 console.log(blocked === 0
   ? '\n  OWNER_GATE = OPEN\n'
