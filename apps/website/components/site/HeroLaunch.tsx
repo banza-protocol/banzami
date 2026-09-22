@@ -173,26 +173,9 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           </div>
         </div>
 
-        {/* ── RIGHT — live App Banzami Web on a premium aura + ripple ── */}
+        {/* ── RIGHT — live App Banzami Web ── */}
         <div className="relative flex min-h-0 items-center justify-center">
-          {/* Decorative backdrop behind the phone: a soft aura bloom, faint
-              concentric "payment ripple" rings, and a dotted texture that fades
-              out radially. Presentation only; nothing here is interactive. */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-            {/* aura bloom */}
-            <div className="absolute left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.22),rgba(232,67,75,.06)_45%,rgba(232,67,75,0)_70%)]" />
-            {/* dotted texture, radially masked so it only reads near the phone */}
-            <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 opacity-60 [background-image:radial-gradient(rgba(181,16,31,0.16)_1px,transparent_1.7px)] [background-size:22px_22px] [mask-image:radial-gradient(circle,#000_28%,transparent_68%)] [-webkit-mask-image:radial-gradient(circle,#000_28%,transparent_68%)]" />
-            {/* concentric ripple rings */}
-            <svg className="absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2" viewBox="0 0 720 720" fill="none">
-              <circle cx="360" cy="360" r="150" stroke="rgba(181,16,31,0.13)" strokeWidth="1.5" />
-              <circle cx="360" cy="360" r="228" stroke="rgba(181,16,31,0.09)" strokeWidth="1.5" />
-              <circle cx="360" cy="360" r="300" stroke="rgba(181,16,31,0.06)" strokeWidth="1.5" />
-              <circle cx="360" cy="360" r="352" stroke="rgba(181,16,31,0.035)" strokeWidth="1.5" />
-            </svg>
-          </div>
-
-          <div className="relative z-10 w-[300px] max-w-full">
+          <div className="w-[300px] max-w-full">
             <AppWebPortal />
           </div>
         </div>
