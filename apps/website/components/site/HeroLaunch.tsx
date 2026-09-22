@@ -1,6 +1,6 @@
 'use client';
 
-// Homepage hero — official beta launch ("A forma mais simples de mover Kwanza").
+// Homepage hero — official beta launch ("O novo caminho do Kwanza.").
 // Two columns: the value proposition + CTAs + audience cards + beta channels on
 // the left; a premium static App Banzami mock (HeroPhone) with floating feature
 // panels on the right. Speaks to end users AND developers. The native-tester
@@ -81,8 +81,8 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
             <Dot />Beta pública · Sandbox
           </span>
 
-          <h1 className="m-0 mt-[clamp(16px,2.4vh,24px)] text-[clamp(38px,3.4vw+1vh,62px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
-            A forma mais simples de mover <span className="text-cherry">Kwanza.</span>
+          <h1 className="m-0 mt-[clamp(28px,3vh,40px)] text-[clamp(38px,3.4vw+1vh,62px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
+            O novo caminho do <span className="text-cherry">Kwanza.</span>
           </h1>
 
           <p className="m-0 mt-[clamp(14px,2vh,22px)] max-w-[540px] text-[clamp(15px,0.5vw+0.7vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
@@ -183,7 +183,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
 
         {/* ── RIGHT — live App Banzami Web, floating over the red field ── */}
         <div className="relative flex min-h-0 items-center justify-center">
-          <div className="anim-floaty w-[300px] max-w-full drop-shadow-[0_44px_74px_rgba(40,3,8,0.55)]">
+          <div className="anim-floaty w-[292px] max-w-full drop-shadow-[0_44px_74px_rgba(40,3,8,0.55)]">
             <AppWebPortal />
           </div>
         </div>
