@@ -200,6 +200,29 @@ export function generate(m) {
       L.push(`GRANT USAGE ON SCHEMA ${s} TO ${role};`);
       L.push(`GRANT SELECT ON ALL TABLES IN SCHEMA ${s} TO ${role};`);
     }
+    // READ ON ONE TABLE, not on a domain.
+    //
+    // `read_schemas` is the right shape when a service is a consumer of a whole
+    // domain. It is the wrong shape when a service needs to answer exactly one
+    // question — the control plane must read developer.dev_workspaces to gate on
+    // workspace quota, and must not thereby acquire the Developer domain.
+    //
+    // No ALTER DEFAULT PRIVILEGES accompanies these: a table added tomorrow must
+    // NOT become readable. That omission is the whole point of the distinction.
+    const readTables = spec.read_tables ?? [];
+    if (readTables.length) {
+      L.push(`-- Read on NAMED TABLES only, never on the domain: ${role} must answer`);
+      L.push('-- exactly these questions and must not acquire the ability to answer');
+      L.push('-- others. No ALTER DEFAULT PRIVILEGES accompanies them, so a table added');
+      L.push('-- to the schema tomorrow does NOT become readable.');
+    }
+    for (const s of [...new Set(readTables.map((t) => t.split('.')[0]))]) {
+      if (!spec.read_schemas.includes(s)) L.push(`GRANT USAGE ON SCHEMA ${s} TO ${role};`);
+    }
+    for (const t of readTables) {
+      const [sch, tbl] = t.split('.');
+      L.push(`SELECT pg_temp.bz_grant('SELECT', '"${sch}"."${tbl}"', '${role}');`);
+    }
     L.push('DO $$');
     L.push('BEGIN');
     L.push("  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN");

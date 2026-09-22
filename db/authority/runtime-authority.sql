@@ -209,6 +209,12 @@ SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."webhook_endpoints"'
 -- BANZADMIN operator API: operator accounts, KYC review, compliance cases, platform settings. Calls Core for every financial operation.
 GRANT USAGE ON SCHEMA public TO bl_admin_api_runtime;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO bl_admin_api_runtime;
+-- Read on NAMED TABLES only, never on the domain: bl_admin_api_runtime must answer
+-- exactly these questions and must not acquire the ability to answer
+-- others. No ALTER DEFAULT PRIVILEGES accompanies them, so a table added
+-- to the schema tomorrow does NOT become readable.
+GRANT USAGE ON SCHEMA developer TO bl_admin_api_runtime;
+SELECT pg_temp.bz_grant('SELECT', '"developer"."dev_workspaces"', 'bl_admin_api_runtime');
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_schema_owner') THEN

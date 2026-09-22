@@ -177,6 +177,9 @@
       "read_schemas": [
         "public"
       ],
+      "read_tables": [
+        "developer.dev_workspaces"
+      ],
       "write": {
         "tables": [
           "public.admin_audit_log",
