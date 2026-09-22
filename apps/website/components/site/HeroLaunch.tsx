@@ -181,9 +181,9 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           </div>
         </div>
 
-        {/* ── RIGHT — live App Banzami Web ── */}
+        {/* ── RIGHT — live App Banzami Web, floating over the red field ── */}
         <div className="relative flex min-h-0 items-center justify-center">
-          <div className="w-[300px] max-w-full">
+          <div className="anim-floaty w-[300px] max-w-full drop-shadow-[0_44px_74px_rgba(40,3,8,0.55)]">
             <AppWebPortal />
           </div>
         </div>
