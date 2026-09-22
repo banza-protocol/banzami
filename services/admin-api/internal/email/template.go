@@ -290,42 +290,41 @@ func betaPlatformLabel(ios, android bool) string {
 	}
 }
 
-// betaInstallLine explains how the install invite arrives, per the chosen
-// platform(s). The operator sends the actual invites by hand in the Apple /
-// Google consoles; this only tells the tester what to expect.
+// betaInstallLine — one short sentence saying where the install invite arrives,
+// naming only the channel(s) for the platform the tester asked for. The operator
+// sends the actual invites by hand in the Apple / Google consoles.
 func betaInstallLine(ios, android bool) string {
 	switch {
 	case ios && android:
-		return "Vai receber, neste mesmo endereço, o convite do TestFlight (para iPhone) e/ou do Google Play (para Android) para instalar. No iPhone, instale primeiro a app TestFlight a partir da App Store; no Android, basta abrir o link do convite no telemóvel."
+		return "O convite para instalar chega a este e-mail — pelo TestFlight (iPhone) e pelo Google Play (Android). Pode demorar alguns minutos."
 	case ios:
-		return "Vai receber, neste mesmo endereço, um convite do TestFlight para instalar. Instale primeiro a app TestFlight a partir da App Store e depois abra o convite."
+		return "O convite para instalar chega a este e-mail, pelo TestFlight (iPhone). Pode demorar alguns minutos."
 	case android:
-		return "Vai receber, neste mesmo endereço, um convite do Google Play para entrar no teste. Abra o link do convite no seu telemóvel Android e siga para instalar."
+		return "O convite para instalar chega a este e-mail, pelo Google Play (Android). Pode demorar alguns minutos."
 	default:
-		return "Vai receber, neste mesmo endereço, o convite para instalar a app."
+		return "O convite para instalar chega a este e-mail. Pode demorar alguns minutos."
 	}
 }
 
 func RenderBetaTesterAdded(d BetaTesterAddedData) (html, text string) {
 	apps := betaAppsLabel(d.AppBanzami, d.AppMerchant)
-	greeting := "Boas notícias"
+	greeting := "Já está nos testes da " + apps + "."
 	if fn := strings.TrimSpace(d.FirstName); fn != "" {
-		greeting = "Olá " + fn + ", boas notícias"
+		greeting = "Olá " + fn + " — já está nos testes da " + apps + "."
 	}
 	paras := []string{
-		greeting + " — foi adicionado ao programa de testes da " + apps + ". Obrigado por ajudar a construir a forma mais simples de mover Kwanza.",
+		greeting,
 		betaInstallLine(d.WantsIOS, d.WantsAndroid),
 	}
 	rows := []infoRow{
-		{Label: "Apps", Value: betaAppsLabel(d.AppBanzami, d.AppMerchant)},
+		{Label: "Apps", Value: apps},
 		{Label: "Plataforma", Value: betaPlatformLabel(d.WantsIOS, d.WantsAndroid)},
 	}
 	body := emTitle("Está nos testes da Banzami") +
 		emPara(paras[0]) + emPara(paras[1]) +
-		emDetailRows(rows) +
-		emNotice("clock", "O convite pode demorar alguns minutos a chegar. Se não o vir, verifique também a pasta de spam.")
+		emDetailRows(rows)
 	html = renderLayout(layoutOpts{Subtitle: "Beta", BadgeKind: "app", SafetyKind: "normal",
-		Preheader: "Foi adicionado aos testes da app Banzami.", Body: body})
+		Preheader: "Já está nos testes da app Banzami.", Body: body})
 	text = textDoc("Está nos testes da Banzami", paras, rows, "", "", footerSafety("normal"))
 	return
 }
