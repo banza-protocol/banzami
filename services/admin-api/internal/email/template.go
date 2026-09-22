@@ -248,3 +248,84 @@ func RenderAdminPasswordReset(d AdminResetData) (html, text string) {
 // ── Merchant Welcome (fluxo existente, fora dos 5 do dossier) ─────────────────
 // Mantido para continuidade do fluxo de criação direta de comerciante; é o único
 // email cuja função é entregar credenciais. Renderizado com o mesmo design system.
+
+// ── Beta tester adicionado aos testes (APP-BETA-001) ─────────────────────────
+
+// BetaTesterAddedData is the notification a prospective tester receives when the
+// operator records that they were added to the mobile beta (INVITED). It carries
+// no link and no secret: the actual install invite arrives separately from Apple
+// (TestFlight) or Google (Play testing), to the same address.
+type BetaTesterAddedData struct {
+	FirstName    string
+	AppBanzami   bool
+	AppMerchant  bool
+	WantsIOS     bool
+	WantsAndroid bool
+}
+
+func betaAppsLabel(banzami, merchant bool) string {
+	var parts []string
+	if banzami {
+		parts = append(parts, "App Banzami")
+	}
+	if merchant {
+		parts = append(parts, "App Banzami Business")
+	}
+	if len(parts) == 0 {
+		return "app Banzami"
+	}
+	return strings.Join(parts, " e ")
+}
+
+func betaPlatformLabel(ios, android bool) string {
+	switch {
+	case ios && android:
+		return "iOS e Android"
+	case ios:
+		return "iOS"
+	case android:
+		return "Android"
+	default:
+		return "—"
+	}
+}
+
+// betaInstallLine explains how the install invite arrives, per the chosen
+// platform(s). The operator sends the actual invites by hand in the Apple /
+// Google consoles; this only tells the tester what to expect.
+func betaInstallLine(ios, android bool) string {
+	switch {
+	case ios && android:
+		return "Vai receber, neste mesmo endereço, o convite do TestFlight (para iPhone) e/ou do Google Play (para Android) para instalar. No iPhone, instale primeiro a app TestFlight a partir da App Store; no Android, basta abrir o link do convite no telemóvel."
+	case ios:
+		return "Vai receber, neste mesmo endereço, um convite do TestFlight para instalar. Instale primeiro a app TestFlight a partir da App Store e depois abra o convite."
+	case android:
+		return "Vai receber, neste mesmo endereço, um convite do Google Play para entrar no teste. Abra o link do convite no seu telemóvel Android e siga para instalar."
+	default:
+		return "Vai receber, neste mesmo endereço, o convite para instalar a app."
+	}
+}
+
+func RenderBetaTesterAdded(d BetaTesterAddedData) (html, text string) {
+	apps := betaAppsLabel(d.AppBanzami, d.AppMerchant)
+	greeting := "Boas notícias"
+	if fn := strings.TrimSpace(d.FirstName); fn != "" {
+		greeting = "Olá " + fn + ", boas notícias"
+	}
+	paras := []string{
+		greeting + " — foi adicionado ao programa de testes da " + apps + ". Obrigado por ajudar a construir a forma mais simples de mover Kwanza.",
+		betaInstallLine(d.WantsIOS, d.WantsAndroid),
+	}
+	rows := []infoRow{
+		{Label: "Apps", Value: betaAppsLabel(d.AppBanzami, d.AppMerchant)},
+		{Label: "Plataforma", Value: betaPlatformLabel(d.WantsIOS, d.WantsAndroid)},
+	}
+	body := emTitle("Está nos testes da Banzami") +
+		emPara(paras[0]) + emPara(paras[1]) +
+		emDetailRows(rows) +
+		emNotice("clock", "O convite pode demorar alguns minutos a chegar. Se não o vir, verifique também a pasta de spam.")
+	html = renderLayout(layoutOpts{Subtitle: "Beta", BadgeKind: "app", SafetyKind: "normal",
+		Preheader: "Foi adicionado aos testes da app Banzami.", Body: body})
+	text = textDoc("Está nos testes da Banzami", paras, rows, "", "", footerSafety("normal"))
+	return
+}

@@ -91,9 +91,14 @@ func header(subtitle, badgeKind string) string {
       </td></tr>`
 }
 
-// badge: "business" (dot) | "security" (shield+border) | "receipt" (check).
+// badge: "business" (dot) | "security" (shield+border) | "receipt" (check) |
+// "app" (dot + "Beta", for the mobile beta programme).
 func badge(kind string) string {
 	switch kind {
+	case "app":
+		return `<span style="display:inline-block;padding:6px 11px;border-radius:30px;background:` + cTint + `;color:` + cRedDark +
+			`;font-family:` + fSans + `;font-weight:800;font-size:11.5px;white-space:nowrap;">` +
+			`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:` + cRed + `;vertical-align:middle;"></span>&nbsp;Beta</span>`
 	case "security":
 		return `<span style="display:inline-block;padding:6px 11px;border-radius:30px;background:#FBEFEF;color:` + cRedDark +
 			`;font-family:` + fSans + `;font-weight:800;font-size:11.5px;border:1px solid ` + cSecBorder + `;white-space:nowrap;">` +

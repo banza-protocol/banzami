@@ -19,16 +19,18 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/banzami/banzami/services/admin-api/internal/email"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
 // BetaTesterAdminHandler serves the operator beta-tester routes.
 type BetaTesterAdminHandler struct {
-	svc *service.BetaTesterAdminService
+	svc    *service.BetaTesterAdminService
+	mailer *email.Sender // may be nil (email not configured / tests) — a no-op then
 }
 
-func NewBetaTesterAdminHandler(svc *service.BetaTesterAdminService) *BetaTesterAdminHandler {
-	return &BetaTesterAdminHandler{svc: svc}
+func NewBetaTesterAdminHandler(svc *service.BetaTesterAdminService, mailer *email.Sender) *BetaTesterAdminHandler {
+	return &BetaTesterAdminHandler{svc: svc, mailer: mailer}
 }
 
 func (h *BetaTesterAdminHandler) available(w http.ResponseWriter) bool {
@@ -128,7 +130,7 @@ func (h *BetaTesterAdminHandler) SetStatus(w http.ResponseWriter, r *http.Reques
 		}
 		body.Note = &n
 	}
-	row, err := h.svc.SetStatus(r.Context(), id, body.Status, body.Note)
+	row, justInvited, err := h.svc.SetStatus(r.Context(), id, body.Status, body.Note)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrBetaInvalidStatus):
@@ -140,6 +142,14 @@ func (h *BetaTesterAdminHandler) SetStatus(w http.ResponseWriter, r *http.Reques
 		}
 		return
 	}
+
+	// The tester was just added to the tests → tell them, once. Non-blocking:
+	// a failed notification must never fail the status change the operator made.
+	// The install invite itself still comes from Apple/Google, by hand.
+	if justInvited && h.mailer != nil && strings.TrimSpace(row.Email) != "" {
+		go h.mailer.BetaTesterAdded(row.Email, row.FirstName, row.AppBanzami, row.AppMerchant, row.WantsIOS, row.WantsAndroid)
+	}
+
 	writeJSON(w, http.StatusOK, row)
 }
 

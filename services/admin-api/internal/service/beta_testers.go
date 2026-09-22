@@ -201,31 +201,43 @@ func (s *BetaTesterAdminService) Export(ctx context.Context, f BetaListFilter) (
 // (re-marking INVITED does not rewrite the original invite time). A note, when
 // given, replaces the operator note. Returns ErrBetaTesterNotFound if the id is
 // unknown.
-func (s *BetaTesterAdminService) SetStatus(ctx context.Context, id, status string, note *string) (BetaTesterRow, error) {
+// justInvited (second return) is true only when THIS call moved the tester into
+// INVITED from another state — the moment to send the "added to the tests"
+// notification exactly once. Re-marking an already-INVITED tester returns false,
+// so the email never fires twice.
+func (s *BetaTesterAdminService) SetStatus(ctx context.Context, id, status string, note *string) (BetaTesterRow, bool, error) {
 	switch status {
 	case "INVITED", "ACTIVE", "REMOVED":
 	default:
-		return BetaTesterRow{}, ErrBetaInvalidStatus
+		return BetaTesterRow{}, false, ErrBetaInvalidStatus
 	}
 	// COALESCE keeps the first timestamp for a state; a REMOVED tester who is
 	// re-invited/activated later gets a fresh stamp because removed_at is cleared
-	// and the invite/active stamps are re-derived from the new status.
-	tag, err := s.pool.Exec(ctx, `
-		UPDATE beta_testers SET
+	// and the invite/active stamps are re-derived from the new status. The CTE
+	// captures the prior status so the caller can tell a first invite from a
+	// repeat without a second read.
+	var prevStatus string
+	err := s.pool.QueryRow(ctx, `
+		WITH prev AS (SELECT id, status AS old_status FROM beta_testers WHERE id = $1)
+		UPDATE beta_testers b SET
 			status      = $2,
 			note        = COALESCE($3, note),
-			invited_at  = CASE WHEN $2 = 'INVITED' AND invited_at   IS NULL THEN now() ELSE invited_at   END,
-			activated_at= CASE WHEN $2 = 'ACTIVE'  AND activated_at IS NULL THEN now() ELSE activated_at END,
+			invited_at  = CASE WHEN $2 = 'INVITED' AND b.invited_at   IS NULL THEN now() ELSE b.invited_at   END,
+			activated_at= CASE WHEN $2 = 'ACTIVE'  AND b.activated_at IS NULL THEN now() ELSE b.activated_at END,
 			removed_at  = CASE WHEN $2 = 'REMOVED' THEN now() ELSE NULL END,
 			updated_at  = now()
-		WHERE id = $1`, id, status, note)
+		FROM prev
+		WHERE b.id = prev.id
+		RETURNING prev.old_status`, id, status, note).Scan(&prevStatus)
 	if err != nil {
-		return BetaTesterRow{}, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return BetaTesterRow{}, false, ErrBetaTesterNotFound
+		}
+		return BetaTesterRow{}, false, err
 	}
-	if tag.RowsAffected() == 0 {
-		return BetaTesterRow{}, ErrBetaTesterNotFound
-	}
-	return s.get(ctx, id)
+	justInvited := status == "INVITED" && prevStatus != "INVITED"
+	row, err := s.get(ctx, id)
+	return row, justInvited, err
 }
 
 func (s *BetaTesterAdminService) get(ctx context.Context, id string) (BetaTesterRow, error) {

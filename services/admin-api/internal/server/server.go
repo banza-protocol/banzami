@@ -461,7 +461,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// beta.view; the lifecycle write behind beta.manage. No money, no step-up —
 		// it is product/onboarding desk work. Every mutation is audited by the
 		// surrounding group.
-		betaH := handler.NewBetaTesterAdminHandler(betaAdmin)
+		betaH := handler.NewBetaTesterAdminHandler(betaAdmin, mailer)
 		r.With(cap(auth.CapBetaView)).Get("/admin/v1/beta-testers", betaH.List)
 		r.With(cap(auth.CapBetaView)).Get("/admin/v1/beta-testers/export.csv", betaH.ExportCSV)
 		r.With(cap(auth.CapBetaManage)).Post("/admin/v1/beta-testers/{id}/status", betaH.SetStatus)

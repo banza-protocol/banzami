@@ -69,7 +69,7 @@ func TestFilterFromQuery_ValidatesEnums(t *testing.T) {
 // With no database configured the surface is unavailable, not a panic: every
 // route answers 503 through the nil-service guard.
 func TestBetaAdmin_UnavailableWithoutService(t *testing.T) {
-	h := NewBetaTesterAdminHandler(nil)
+	h := NewBetaTesterAdminHandler(nil, nil)
 	for _, call := range []func(){
 		func() {
 			w := httptest.NewRecorder()
