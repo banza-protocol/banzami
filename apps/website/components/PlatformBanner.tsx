@@ -1,26 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { getPlatformMode } from '@/lib/api';
 
-// Global SANDBOX banner — a horizontal yellow card shown across the public site
-// whenever the platform is in SANDBOX. Driven by the central platform mode (no
-// rebuild needed to flip it). Hidden only when the mode is confirmed LIVE; on any
-// read failure it stays visible (never assume production on error).
-//
-// It starts shown, not hidden. Starting hidden meant the first paint of every
-// public page — and the whole of it for a reader whose JavaScript never runs —
-// carried no disclosure at all, and only grew one after hydration. On a platform
-// where no money is real, the disclosure is the first thing a reader is owed, so
-// it is present from the first byte and withdrawn only when the mode comes back
-// confirmed LIVE.
+// Global SANDBOX disclosure. Two presentations of the SAME truth (from the
+// central platform mode; hidden only when confirmed LIVE, shown on any read
+// failure — never assume production on error):
+//   • Homepage ("/"): a discreet diagonal CORNER RIBBON ("Sandbox"). The full
+//     disclosure (fictitious money, Financial Live unavailable) is carried
+//     visibly by the hero copy there, plus an sr-only line here for assistive
+//     tech — so nothing is lost.
+//   • Every other page: the horizontal top bar carrying the full disclosure,
+//     since those pages do not repeat it in copy.
 export function PlatformBanner() {
+  const pathname = usePathname();
   const [show, setShow] = useState(true);
-  // Dynamic: the bar retreats as the reader moves down the page and returns the
-  // moment they move up (or reach the top), so it costs no room while reading
-  // but is never more than a small scroll away. It stays in the document the
-  // whole time — the disclosure is collapsed, never removed — so the first paint
-  // and a reader without JavaScript still carry it.
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -41,8 +36,6 @@ export function PlatformBanner() {
       frame = requestAnimationFrame(() => {
         frame = 0;
         const y = window.scrollY;
-        // At the top it is always open; past a small threshold it follows the
-        // direction of travel — away going down, back going up.
         if (y < 12) setCollapsed(false);
         else if (y > last + 4) setCollapsed(true);
         else if (y < last - 4) setCollapsed(false);
@@ -55,10 +48,19 @@ export function PlatformBanner() {
 
   if (!show) return null;
 
-  // A discrete system bar — thin, sticky, no card/pill/shadow/gradient. Inspired
-  // by Stripe/GitHub test-mode banners: a small-caps tag, a hairline middot, and
-  // a quiet line of prose. Shown only in SANDBOX. It collapses its own height to
-  // retreat, so no gap is left where it was.
+  // Homepage — corner ribbon (the visible full disclosure lives in the hero copy).
+  if (pathname === '/') {
+    return (
+      <div role="status" className="pointer-events-none fixed left-0 top-0 z-[60] h-[96px] w-[96px] overflow-hidden">
+        <span className="sr-only">Sandbox — dinheiro fictício. O Financial Live está indisponível.</span>
+        <div className="absolute left-[-54px] top-[20px] w-[178px] -rotate-45 border-y border-amber-200/80 bg-amber-50 py-[5px] text-center text-[11.5px] font-bold tracking-[0.06em] text-amber-900 shadow-[0_6px_14px_-6px_rgba(0,0,0,0.25)]">
+          Sandbox
+        </div>
+      </div>
+    );
+  }
+
+  // Every other page — the horizontal disclosure bar (retreats on scroll down).
   return (
     <div
       role="status"

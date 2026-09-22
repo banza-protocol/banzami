@@ -61,16 +61,24 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
 
   return (
     <section id="inicio" className="relative overflow-hidden px-6 pb-10 pt-[92px] md:pt-[104px]">
-      {/* Background — soft red halos behind the phone; nothing loud. */}
-      <div aria-hidden className="pointer-events-none absolute -right-[140px] -top-[120px] h-[620px] w-[620px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.75),rgba(251,210,208,0)_66%)]" />
-      <div aria-hidden className="pointer-events-none absolute right-[120px] top-[220px] hidden h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.14),rgba(232,67,75,0)_68%)] lg:block" />
-      <div aria-hidden className="pointer-events-none absolute -left-[180px] top-[300px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.08),rgba(232,67,75,0)_66%)]" />
+      {/* Background — clean white on the left; a premium organic red field on the
+          right, bleeding off the edge, with soft folds. Desktop only; on smaller
+          screens the phone stacks on the white background. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute right-[-6%] top-1/2 hidden h-[128%] w-[56%] -translate-y-1/2 overflow-hidden rounded-l-[220px] lg:block"
+        style={{ background: 'radial-gradient(120% 92% at 32% 26%, #D7242E 0%, #B5101F 46%, #86121A 100%)' }}
+      >
+        <div className="absolute left-[6%] top-[-14%] h-[70%] w-[70%] rounded-full opacity-45" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.18), rgba(255,255,255,0) 62%)' }} />
+        <div className="absolute right-[-12%] bottom-[-22%] h-[88%] w-[88%] rounded-full opacity-55" style={{ background: 'radial-gradient(circle, rgba(110,14,20,0.55), rgba(110,14,20,0) 60%)' }} />
+        <div className="absolute left-[22%] bottom-[8%] h-[52%] w-[52%] rounded-full opacity-30" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,255,255,0) 60%)' }} />
+      </div>
 
       <div className="relative mx-auto grid w-full max-w-container grid-cols-1 items-center gap-y-14 lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)] lg:gap-x-[clamp(40px,4vw,72px)]">
         {/* ── LEFT — story + actions ── */}
         <div className="max-w-[600px]">
           <span className="inline-flex items-center gap-2 rounded-pill bg-pink-100 px-3.5 py-1.5 text-[12.5px] font-extrabold text-cherry">
-            <Dot />Lançamento beta · Sandbox pública
+            <Dot />Beta pública · Sandbox
           </span>
 
           <h1 className="m-0 mt-[clamp(16px,2.4vh,24px)] text-[clamp(38px,3.4vw+1vh,62px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
