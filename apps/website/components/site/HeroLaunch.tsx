@@ -154,7 +154,23 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
               </button>
               <button type="button" onClick={() => openFor('ANDROID')} className="flex items-center gap-3 rounded-[14px] border border-border-soft bg-white px-4 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
                 <span className="grid h-8 w-8 shrink-0 place-items-center text-ink">
-                  <svg width="25" height="25" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.52 15.34a1 1 0 110-2 1 1 0 010 2m-11.04 0a1 1 0 110-2 1 1 0 010 2m11.4-6.02l2-3.46a.42.42 0 00-.72-.42l-2.02 3.5A12.2 12.2 0 0012 7.85c-1.85 0-3.59.39-5.14 1.1L4.84 5.44a.42.42 0 10-.72.42l2 3.46C2.69 11.19.34 14.66 0 18.76h24c-.34-4.1-2.69-7.57-6.12-9.44"/></svg>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    {/* antennae */}
+                    <path d="M9.3 4.7 8.2 2.9M14.7 4.7 15.8 2.9" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+                    {/* head */}
+                    <path d="M6.6 9a5.4 5.4 0 0 1 10.8 0z"/>
+                    {/* eyes */}
+                    <circle cx="9.8" cy="6.9" r="0.72" fill="#fff"/>
+                    <circle cx="14.2" cy="6.9" r="0.72" fill="#fff"/>
+                    {/* body */}
+                    <rect x="6.6" y="9.7" width="10.8" height="7.7" rx="1.7"/>
+                    {/* arms */}
+                    <rect x="3.5" y="9.9" width="2" height="6" rx="1"/>
+                    <rect x="18.5" y="9.9" width="2" height="6" rx="1"/>
+                    {/* legs */}
+                    <rect x="8.6" y="17.2" width="2" height="3.4" rx="1"/>
+                    <rect x="13.4" y="17.2" width="2" height="3.4" rx="1"/>
+                  </svg>
                 </span>
                 <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-ink">Android</span><span className="block text-[11px] font-semibold text-ink-muted">Google Play</span></span>
               </button>
