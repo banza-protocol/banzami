@@ -26,8 +26,14 @@ const COPY = {
     firstName: 'Primeiro nome',
     lastName: 'Último nome',
     email: 'E-mail utilizado na App Store ou Google Play',
+    emailIOS: 'E-mail da sua conta App Store',
+    emailAndroid: 'E-mail da sua conta Google Play',
     emailHelp:
       'Usamos este e-mail para o convidar no TestFlight (iPhone) ou no Google Play (Android). Tem de ser o mesmo e-mail da sua conta da App Store ou Google Play — é para esse endereço que o convite chega.',
+    emailHelpIOS:
+      'Usamos este e-mail para o convidar no TestFlight. Tem de ser o mesmo e-mail da sua conta da App Store — é para esse endereço que o convite chega.',
+    emailHelpAndroid:
+      'Usamos este e-mail para o convidar no Google Play. Tem de ser o mesmo e-mail da sua conta Google — é para esse endereço que o convite chega.',
     platform: 'Plataforma',
     platformIOS: 'iPhone (TestFlight)',
     platformAndroid: 'Android (Google Play)',
@@ -63,8 +69,14 @@ const COPY = {
     firstName: 'First name',
     lastName: 'Last name',
     email: 'Email used on the App Store or Google Play',
+    emailIOS: 'Email of your App Store account',
+    emailAndroid: 'Email of your Google Play account',
     emailHelp:
       'We use this email to invite you on TestFlight (iPhone) or Google Play (Android). It must be the same email as your App Store or Google Play account — that is where the invite is sent.',
+    emailHelpIOS:
+      'We use this email to invite you on TestFlight. It must be the same email as your App Store account — that is where the invite is sent.',
+    emailHelpAndroid:
+      'We use this email to invite you on Google Play. It must be the same email as your Google account — that is where the invite is sent.',
     platform: 'Platform',
     platformIOS: 'iPhone (TestFlight)',
     platformAndroid: 'Android (Google Play)',
@@ -160,6 +172,12 @@ export function BetaRegisterForm({
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+
+  // The email is the store account the invite is sent to, so name the right
+  // store once a single platform is fixed or chosen. Both/none keeps the generic
+  // wording (the tester might install on either store).
+  const emailLabel = platform === 'IOS' ? t.emailIOS : platform === 'ANDROID' ? t.emailAndroid : t.email;
+  const emailHelp = platform === 'IOS' ? t.emailHelpIOS : platform === 'ANDROID' ? t.emailHelpAndroid : t.emailHelp;
 
   function toggleApp(a: BetaApp) {
     setSelApps((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
@@ -261,7 +279,7 @@ export function BetaRegisterForm({
       </div>
 
       <div>
-        <label htmlFor={`${uid}-email`} className={label}>{t.email}</label>
+        <label htmlFor={`${uid}-email`} className={label}>{emailLabel}</label>
         <input
           id={`${uid}-email`}
           type="email"
@@ -274,7 +292,7 @@ export function BetaRegisterForm({
           required
         />
         <p id={`${uid}-email-help`} className="mt-1 text-[12.5px] leading-relaxed text-neutral-500">
-          {t.emailHelp}
+          {emailHelp}
         </p>
       </div>
 

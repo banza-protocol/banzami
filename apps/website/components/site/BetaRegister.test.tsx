@@ -20,7 +20,9 @@ afterEach(cleanup);
 async function fillValid(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/Primeiro nome/i), 'María-José');
   await user.type(screen.getByLabelText(/Último nome/i), "d'Almeida");
-  await user.type(screen.getByLabelText(/E-mail utilizado/i), 'maria@example.com');
+  // The email label varies with platform (generic on /testes, App Store /
+  // Google Play spelling when a platform is locked), so match on "E-mail".
+  await user.type(screen.getByLabelText(/^E-mail/i), 'maria@example.com');
 }
 
 describe('BetaRegisterForm', () => {
