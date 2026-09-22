@@ -142,7 +142,16 @@ export function BetaRegisterForm({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [platform, setPlatform] = useState<BetaPlatform | ''>(initialPlatform ?? '');
-  const [selApps, setSelApps] = useState<BetaApp[]>(initialApps ?? (lockApp ? apps : []));
+  // Default selection: the consumer App Banzami only. A tester can add App
+  // Banzami Business or pick just it, but the common case (a payer trying the
+  // wallet) is pre-selected so the form is one tap shorter. When the chooser is
+  // locked to a fixed app (the homepage modal), that app is the selection.
+  const defaultSelApps: BetaApp[] = lockApp
+    ? apps
+    : apps.includes('APP_BANZAMI')
+      ? ['APP_BANZAMI']
+      : apps.slice(0, 1);
+  const [selApps, setSelApps] = useState<BetaApp[]>(initialApps ?? defaultSelApps);
   const [device, setDevice] = useState('');
   const [os, setOs] = useState('');
   const [country, setCountry] = useState('');
