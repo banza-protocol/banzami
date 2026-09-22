@@ -46,8 +46,9 @@ export function parseCookies(header) {
   return out;
 }
 
-export function serializeCookie(name, value, { maxAge, secure, httpOnly = true, sameSite = 'Lax', path = '/' } = {}) {
+export function serializeCookie(name, value, { maxAge, secure, httpOnly = true, sameSite = 'Lax', path = '/', domain } = {}) {
   let c = `${name}=${encodeURIComponent(value)}; Path=${path}; SameSite=${sameSite}`;
+  if (domain) c += `; Domain=${domain}`;
   if (httpOnly) c += '; HttpOnly';
   if (secure) c += '; Secure';
   if (typeof maxAge === 'number') c += `; Max-Age=${Math.max(0, Math.floor(maxAge))}`;

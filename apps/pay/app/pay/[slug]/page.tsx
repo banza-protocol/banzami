@@ -1,8 +1,16 @@
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { deepLink as deepLinkFor } from '@/lib/deep-link';
 import { getPaymentLink, getPlatformMode, formatAmount, linkIsPaid } from '@/lib/api';
 import { paidToLabel } from '@/lib/payee';
 import PayClient from './pay-client';
+
+// The logged-in web app (the shared Flutter app) already pays a link in-app at
+// /pay/<slug>. On desktop there is no OS deep link, so we hand off to it by URL.
+const APP_WEB_URL = process.env.APP_WEB_URL ?? 'https://app.banzami.com';
+// A non-secret hint set by app.banzami.com's BFF on the whole banzami.com zone
+// when this browser has a live web-app session (no session material — just "1").
+const APP_PRESENCE_COOKIE = 'bz_app_present';
 
 interface Props {
   // Next 15: route params arrive as a Promise.
@@ -75,9 +83,17 @@ export default async function PayPage({ params }: Props) {
   // merely hidden.
   const mode = await getPlatformMode();
 
+  // Desktop hand-off to the logged-in web app: open pay/<slug> in the app the
+  // payer already has a session in. appSessionLikely just reflects the presence
+  // hint — the app itself re-checks the session and prompts sign-in if needed.
+  const appPayUrl = `${APP_WEB_URL}/pay/${link.slug}`;
+  const appSessionLikely = (await cookies()).get(APP_PRESENCE_COOKIE)?.value === '1';
+
   return (
     <PayClient
       externalRailAvailable={mode === 'LIVE'}
+      appPayUrl={appPayUrl}
+      appSessionLikely={appSessionLikely}
       slug={link.slug}
       merchantName={link.merchant_name}
       merchantHandle={link.merchant_handle}

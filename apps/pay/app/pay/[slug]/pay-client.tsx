@@ -26,6 +26,17 @@ interface Props {
   expiresAt:     string | null;
   /** Whether the external acquiring rail may be offered (LIVE only). */
   externalRailAvailable: boolean;
+  /**
+   * The logged-in web app's pay URL for this link (app.banzami.com/pay/<slug>),
+   * or null when unknown. Paying there uses the payer's own Banzami wallet.
+   */
+  appPayUrl: string | null;
+  /**
+   * The browser carries the app's presence hint — a live web-app session is
+   * likely, so we auto-open the app (with an escape). Just a hint; the app
+   * re-checks and prompts sign-in if the session is gone.
+   */
+  appSessionLikely: boolean;
   /** The link's Payment Session and its status token, when it has one. */
   realtime?: { sessionId: string; token: string } | null;
   /** The gateway origin the browser calls; the realtime route lives there. */
@@ -55,12 +66,32 @@ export default function PayClient({
   payUrl,
   expiresAt,
   externalRailAvailable,
+  appPayUrl,
+  appSessionLikely,
   realtime,
   gatewayUrl,
 }: Props) {
   const [step, setStep]     = useState<Step>({ type: 'idle' });
   const [expired, setExpired] = useState(false);
   const [copied, setCopied]  = useState(false);
+
+  // Desktop hand-off: when this browser has a live web-app session, open the link
+  // in the logged-in app (pay with the payer's own Banzami wallet) after a short
+  // beat — with a "continuar aqui" escape. A per-tab guard means escaping (or
+  // navigating back) does not re-trigger the redirect.
+  const [autoOpen, setAutoOpen] = useState(appSessionLikely && !!appPayUrl);
+  useEffect(() => {
+    try { if (sessionStorage.getItem(`bz-pay-stay:${slug}`) === '1') setAutoOpen(false); } catch { /* private mode */ }
+  }, [slug]);
+  useEffect(() => {
+    if (!autoOpen || !appPayUrl) return;
+    const t = setTimeout(() => { window.location.href = appPayUrl; }, 1400);
+    return () => clearTimeout(t);
+  }, [autoOpen, appPayUrl]);
+  const stayHere = useCallback(() => {
+    setAutoOpen(false);
+    try { sessionStorage.setItem(`bz-pay-stay:${slug}`, '1'); } catch { /* private mode */ }
+  }, [slug]);
 
   // Link expiry timer
   useEffect(() => {
@@ -197,6 +228,33 @@ export default function PayClient({
     );
   }
 
+  // ── Auto hand-off to the logged-in web app ────────────────────────────────
+  // Reached only for the idle/loading/error steps (confirmed/instructions return
+  // above), so a fresh page hands off; a paid page shows its confirmation.
+  if (autoOpen && appPayUrl) {
+    return (
+      <main className="bz-page">
+        <div className="w-full max-w-sm space-y-5 animate-fade-up text-center">
+          <div className="bz-card space-y-5">
+            <div className="flex justify-center">
+              <span className="h-10 w-10 rounded-full border-2 border-banzami border-t-transparent animate-spin" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">A abrir na app Banzami…</h1>
+              <p className="mt-2 text-sm text-gray-500">
+                Vamos concluir o pagamento com a sua conta Banzami.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <a href={appPayUrl} className="bz-btn-primary">Abrir agora</a>
+              <button onClick={stayHere} className="bz-btn-glass w-full">Continuar aqui</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   // ── Idle / loading / error ────────────────────────────────────────────────
   return (
     <main className="bz-page">
@@ -248,6 +306,15 @@ export default function PayClient({
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
             <p className="text-xs font-medium text-success">Pagamento seguro Banzami</p>
           </div>
+
+          {/* Pay with the payer's own Banzami account in the web app. Primary on
+              desktop, where scanning the QR with the same device is not possible.
+              The app resolves the session and prompts sign-in if needed. */}
+          {appPayUrl && (
+            <a href={appPayUrl} className="bz-btn-primary">
+              Pagar com a minha conta Banzami
+            </a>
+          )}
 
           {/* Floating QR frame */}
           <div className="flex justify-center">

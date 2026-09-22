@@ -115,3 +115,13 @@ test('cookies parse and serialize with the right attributes', () => {
   const csrf = serializeCookie('bz_app_csrf', 'v', { maxAge: 100, secure: true, httpOnly: false });
   assert.doesNotMatch(csrf, /HttpOnly/); // readable by design
 });
+
+test('the presence cookie can be zone-scoped (Domain) for the pay.* hand-off', () => {
+  // A non-secret "1" flag readable across banzami.com so pay.banzami.com can hand
+  // a payment link to the logged-in web app. Domain is applied only when passed.
+  const present = serializeCookie('bz_app_present', '1', { maxAge: 100, secure: true, httpOnly: true, domain: '.banzami.com' });
+  assert.match(present, /Domain=\.banzami\.com/);
+  assert.match(present, /HttpOnly/);
+  const hostOnly = serializeCookie('bz_app_present', '1', { maxAge: 100, secure: true, httpOnly: true });
+  assert.doesNotMatch(hostOnly, /Domain=/); // no domain attribute unless requested
+});

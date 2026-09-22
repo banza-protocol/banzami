@@ -156,17 +156,30 @@ async function serveStatic(req, res) {
 }
 
 // ── Session helpers ───────────────────────────────────────────────────────────
-function sessionCookies(id, csrf, maxAgeMs) {
+// A non-secret, cross-subdomain "there is a live app.banzami.com session on this
+// browser" hint. It carries NO session material — only "1" — and is scoped to the
+// whole banzami.com zone (Domain=.banzami.com in prod) so pay.banzami.com can hand
+// a payment link off to the logged-in web app (open pay/{slug} in-app). Set only
+// on an AUTHENTICATED session, cleared on full logout; never set for a pre-auth seed.
+const PRESENCE_COOKIE = 'bz_app_present';
+const APP_COOKIE_DOMAIN = PROD ? '.banzami.com' : undefined;
+
+function sessionCookies(id, csrf, maxAgeMs, { present = false } = {}) {
   const maxAge = Math.floor(maxAgeMs / 1000);
-  return [
+  const cookies = [
     serializeCookie(SESSION_COOKIE, id, { maxAge, secure: PROD, httpOnly: true, sameSite: 'Lax' }),
     serializeCookie(CSRF_COOKIE, csrf, { maxAge, secure: PROD, httpOnly: false, sameSite: 'Lax' }),
   ];
+  if (present) {
+    cookies.push(serializeCookie(PRESENCE_COOKIE, '1', { maxAge, secure: PROD, httpOnly: true, sameSite: 'Lax', domain: APP_COOKIE_DOMAIN }));
+  }
+  return cookies;
 }
 function clearCookies() {
   return [
     serializeCookie(SESSION_COOKIE, '', { maxAge: 0, secure: PROD, httpOnly: true }),
     serializeCookie(CSRF_COOKIE, '', { maxAge: 0, secure: PROD, httpOnly: false }),
+    serializeCookie(PRESENCE_COOKIE, '', { maxAge: 0, secure: PROD, httpOnly: true, domain: APP_COOKIE_DOMAIN }),
   ];
 }
 // Remaining lifetime under the sliding-idle-bounded-by-absolute policy.
@@ -399,7 +412,7 @@ async function handleBff(req, res, prefix, authority) {
       json.token = TOKEN_SENTINEL;
       return send(res, upstream.status, JSON.stringify(json), {
         'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
-        'Set-Cookie': sessionCookies(newId, csrf, remainingTtlMs(rec2)),
+        'Set-Cookie': sessionCookies(newId, csrf, remainingTtlMs(rec2), { present: true }),
       });
     } catch { return sendJson(res, 502, { code: 'AUTH_DECODE', message: 'unexpected auth response' }); }
   }
@@ -437,7 +450,7 @@ async function handleBff(req, res, prefix, authority) {
       json.merchant_id = rec2.business_authority.merchantId || '';
       return send(res, upstream.status, JSON.stringify(json), {
         'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
-        'Set-Cookie': sessionCookies(newId, csrf, remainingTtlMs(rec2)),
+        'Set-Cookie': sessionCookies(newId, csrf, remainingTtlMs(rec2), { present: true }),
       });
     } catch { return sendJson(res, 502, { code: 'AUTH_DECODE', message: 'unexpected auth response' }); }
   }
