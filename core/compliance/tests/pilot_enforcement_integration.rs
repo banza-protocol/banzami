@@ -8,8 +8,8 @@
 
 use sqlx::PgPool;
 
-use banzami_compliance::pilot::PilotLimitPolicy;
 use banzami_compliance::pilot::limits;
+use banzami_compliance::pilot::PilotLimitPolicy;
 use banzami_compliance::pilot_enforce::{check_funding, check_merchant_credit, Party};
 
 const ON: PilotLimitPolicy = PilotLimitPolicy::enabled();
@@ -153,10 +153,12 @@ async fn merchant_per_received_over_is_rejected(pool: PgPool) {
     let acct = new_account(&pool).await;
     make_merchant_wallet(&pool, acct).await;
     // at cap → allowed
-    assert!(check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 2_500_000, ON)
-        .await
-        .unwrap()
-        .is_none());
+    assert!(
+        check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 2_500_000, ON)
+            .await
+            .unwrap()
+            .is_none()
+    );
     // over cap → PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED
     let v = check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 2_500_001, ON)
         .await
@@ -242,7 +244,11 @@ async fn decide(pool: &PgPool, acct: uuid::Uuid, amount: i64) -> Option<&'static
 async fn merchant_24h_inside_is_allowed(pool: PgPool) {
     let a = merchant_acct(&pool).await;
     volume(&pool, a, limits::MERCHANT_ROLLING_24H_MINOR - 1_000, 1).await;
-    assert_eq!(decide(&pool, a, 1_000).await, None, "exactly at the cap must pass");
+    assert_eq!(
+        decide(&pool, a, 1_000).await,
+        None,
+        "exactly at the cap must pass"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -273,7 +279,13 @@ async fn merchant_30d_over_is_rejected(pool: PgPool) {
     for d in 2..=29 {
         volume(&pool, a, 3_571_428, d * 24).await;
     }
-    volume(&pool, a, limits::MERCHANT_ROLLING_30D_MINOR - 3_571_428 * 28, 48).await;
+    volume(
+        &pool,
+        a,
+        limits::MERCHANT_ROLLING_30D_MINOR - 3_571_428 * 28,
+        48,
+    )
+    .await;
     assert_eq!(
         decide(&pool, a, 1).await,
         Some("PILOT_LIMIT_MERCHANT_30D_VOLUME_EXCEEDED")
@@ -432,12 +444,23 @@ async fn a_policy_decision_never_mutates_financial_history(pool: PgPool) {
 
     let before = ledger_fingerprint(&pool).await;
 
-    assert_eq!(decide(&pool, a, 1).await, Some("PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED"));
-    assert_eq!(ledger_fingerprint(&pool).await, before, "a REFUSED decision wrote something");
+    assert_eq!(
+        decide(&pool, a, 1).await,
+        Some("PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED")
+    );
+    assert_eq!(
+        ledger_fingerprint(&pool).await,
+        before,
+        "a REFUSED decision wrote something"
+    );
 
     let quiet = merchant_acct(&pool).await;
     assert_eq!(decide(&pool, quiet, 1_000).await, None);
-    assert_eq!(ledger_fingerprint(&pool).await, before, "an ALLOWED decision wrote something");
+    assert_eq!(
+        ledger_fingerprint(&pool).await,
+        before,
+        "an ALLOWED decision wrote something"
+    );
 }
 
 // -- disabled policy is a no-op -------------------------------------------------

@@ -289,12 +289,13 @@ async fn seed_synthetic_business(pool: &PgPool, project: Uuid) -> Uuid {
 
 /// A consumer with a wallet; a test payer of `project` when one is named.
 async fn seed_consumer(pool: &PgPool, test_payer_of: Option<Uuid>) -> Uuid {
-    let consumer: Uuid =
-        sqlx::query_scalar("INSERT INTO consumers (handle, display_name) VALUES ($1, 'Test Consumer') RETURNING id")
-            .bind(format!("c{}", &Uuid::new_v4().simple().to_string()[..12]))
-            .fetch_one(pool)
-            .await
-            .unwrap();
+    let consumer: Uuid = sqlx::query_scalar(
+        "INSERT INTO consumers (handle, display_name) VALUES ($1, 'Test Consumer') RETURNING id",
+    )
+    .bind(format!("c{}", &Uuid::new_v4().simple().to_string()[..12]))
+    .fetch_one(pool)
+    .await
+    .unwrap();
     let avail = account(pool, "LIABILITY", "c-available").await;
     let reserved = account(pool, "LIABILITY", "c-reserved").await;
     sqlx::query("INSERT INTO consumer_wallets (consumer_id, currency, available_account_id, reserved_account_id) VALUES ($1,'AOA',$2,$3)")

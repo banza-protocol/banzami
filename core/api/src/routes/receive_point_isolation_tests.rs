@@ -9,7 +9,9 @@ use std::fs;
 use std::path::Path;
 
 fn scan(dir: &Path, forbidden: &[&str], hits: &mut Vec<String>) {
-    let Ok(entries) = fs::read_dir(dir) else { return };
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
@@ -23,7 +25,9 @@ fn scan(dir: &Path, forbidden: &[&str], hits: &mut Vec<String>) {
             if name == "receive_point_isolation_tests.rs" {
                 continue;
             }
-            let Ok(src) = fs::read_to_string(&path) else { continue };
+            let Ok(src) = fs::read_to_string(&path) else {
+                continue;
+            };
             for line in src.lines() {
                 for tok in forbidden {
                     if line.contains(tok) {

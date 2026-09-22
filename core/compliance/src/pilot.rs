@@ -481,22 +481,34 @@ mod tests {
         let at_cap = |usage, add| ON.check_rolling_volume_after_add(usage, add);
 
         assert!(at_cap(
-            RollingVolumeUsage { merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR - 1, ..quiet() },
+            RollingVolumeUsage {
+                merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR - 1,
+                ..quiet()
+            },
             1
         )
         .is_none());
         assert!(at_cap(
-            RollingVolumeUsage { merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR - 1, ..quiet() },
+            RollingVolumeUsage {
+                merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR - 1,
+                ..quiet()
+            },
             1
         )
         .is_none());
         assert!(at_cap(
-            RollingVolumeUsage { global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR - 1, ..quiet() },
+            RollingVolumeUsage {
+                global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR - 1,
+                ..quiet()
+            },
             1
         )
         .is_none());
         assert!(at_cap(
-            RollingVolumeUsage { global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR - 1, ..quiet() },
+            RollingVolumeUsage {
+                global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR - 1,
+                ..quiet()
+            },
             1
         )
         .is_none());
@@ -518,19 +530,31 @@ mod tests {
     fn rolling_one_minor_over_each_cap_is_refused_with_its_own_code() {
         let cases: [(RollingVolumeUsage, &str); 4] = [
             (
-                RollingVolumeUsage { merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR, ..quiet() },
+                RollingVolumeUsage {
+                    merchant_24h_minor: limits::MERCHANT_ROLLING_24H_MINOR,
+                    ..quiet()
+                },
                 "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED",
             ),
             (
-                RollingVolumeUsage { merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR, ..quiet() },
+                RollingVolumeUsage {
+                    merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR,
+                    ..quiet()
+                },
                 "PILOT_LIMIT_MERCHANT_30D_VOLUME_EXCEEDED",
             ),
             (
-                RollingVolumeUsage { global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR, ..quiet() },
+                RollingVolumeUsage {
+                    global_24h_minor: limits::GLOBAL_ROLLING_24H_MINOR,
+                    ..quiet()
+                },
                 "PILOT_LIMIT_GLOBAL_24H_VOLUME_EXCEEDED",
             ),
             (
-                RollingVolumeUsage { global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR, ..quiet() },
+                RollingVolumeUsage {
+                    global_30d_minor: limits::GLOBAL_ROLLING_30D_MINOR,
+                    ..quiet()
+                },
                 "PILOT_LIMIT_GLOBAL_30D_VOLUME_EXCEEDED",
             ),
         ];
@@ -552,7 +576,9 @@ mod tests {
             merchant_30d_minor: limits::MERCHANT_ROLLING_30D_MINOR,
         };
         assert_eq!(
-            ON.check_rolling_volume_after_add(all_over, 1).unwrap().as_str(),
+            ON.check_rolling_volume_after_add(all_over, 1)
+                .unwrap()
+                .as_str(),
             "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED"
         );
     }
@@ -569,7 +595,9 @@ mod tests {
         assert!(ON.check_rolling_volume_after_add(usage, 10).is_none());
         // One minor more and the global window is what refuses it.
         assert_eq!(
-            ON.check_rolling_volume_after_add(usage, 11).unwrap().as_str(),
+            ON.check_rolling_volume_after_add(usage, 11)
+                .unwrap()
+                .as_str(),
             "PILOT_LIMIT_GLOBAL_24H_VOLUME_EXCEEDED"
         );
     }
@@ -578,7 +606,10 @@ mod tests {
     fn rolling_saturates_instead_of_overflowing() {
         // An absurd amount must refuse, never panic on overflow.
         let v = ON.check_rolling_volume_after_add(
-            RollingVolumeUsage { merchant_24h_minor: i64::MAX, ..quiet() },
+            RollingVolumeUsage {
+                merchant_24h_minor: i64::MAX,
+                ..quiet()
+            },
             i64::MAX,
         );
         assert!(v.is_some());

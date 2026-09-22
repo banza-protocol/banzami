@@ -12,11 +12,11 @@ use std::sync::Arc;
 
 use sqlx::PgPool;
 
+use banzami_collections::CollectionEngine;
 use banzami_collections::{
     CollectionError, CollectionRule, CreateCollectionRequest, Divisibility,
     PostgresCollectionEngine, PostgresCollectionRepository,
 };
-use banzami_collections::CollectionEngine;
 use banzami_types::{MerchantId, WalletId};
 
 fn req(m: MerchantId, w: WalletId, total: i64, key: Option<&str>) -> CreateCollectionRequest {
@@ -62,7 +62,10 @@ async fn key_and_fingerprint_are_persisted(pool: PgPool) {
     // NULL and the unique never fired. Prove both columns land.
     let e = engine(&pool);
     let (m, w) = (MerchantId::new(), WalletId::new());
-    let (c, _) = e.create_collection(req(m, w, 45_200, Some("k-persist"))).await.unwrap();
+    let (c, _) = e
+        .create_collection(req(m, w, 45_200, Some("k-persist")))
+        .await
+        .unwrap();
 
     let (k, fp): (Option<String>, Option<String>) = sqlx::query_as(
         "SELECT idempotency_key, request_fingerprint FROM collections WHERE id = $1",
@@ -71,28 +74,46 @@ async fn key_and_fingerprint_are_persisted(pool: PgPool) {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(k.as_deref(), Some("k-persist"), "idempotency_key must be persisted");
-    assert!(fp.is_some_and(|f| f.len() == 64), "request_fingerprint (sha256 hex) must be persisted");
+    assert_eq!(
+        k.as_deref(),
+        Some("k-persist"),
+        "idempotency_key must be persisted"
+    );
+    assert!(
+        fp.is_some_and(|f| f.len() == 64),
+        "request_fingerprint (sha256 hex) must be persisted"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn replay_returns_same_collection(pool: PgPool) {
     let e = engine(&pool);
     let (m, w) = (MerchantId::new(), WalletId::new());
-    let (c1, s1) = e.create_collection(req(m, w, 45_200, Some("k-1"))).await.unwrap();
-    let (c2, s2) = e.create_collection(req(m, w, 45_200, Some("k-1"))).await.unwrap();
+    let (c1, s1) = e
+        .create_collection(req(m, w, 45_200, Some("k-1")))
+        .await
+        .unwrap();
+    let (c2, s2) = e
+        .create_collection(req(m, w, 45_200, Some("k-1")))
+        .await
+        .unwrap();
     assert_eq!(c1.id.as_uuid(), c2.id.as_uuid());
     // The DB repo returns shares created_at ASC — same order both times.
     assert_eq!(
         s1.iter().map(|s| s.id.as_uuid()).collect::<Vec<_>>(),
         s2.iter().map(|s| s.id.as_uuid()).collect::<Vec<_>>(),
     );
-    assert_eq!(count_for(&pool, m, "k-1").await, 1, "exactly one collection row");
-    let shares: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM collection_shares WHERE collection_id = $1")
-        .bind(c1.id.as_uuid())
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    assert_eq!(
+        count_for(&pool, m, "k-1").await,
+        1,
+        "exactly one collection row"
+    );
+    let shares: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM collection_shares WHERE collection_id = $1")
+            .bind(c1.id.as_uuid())
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(shares, 2, "replay did not duplicate shares");
 }
 
@@ -100,18 +121,36 @@ async fn replay_returns_same_collection(pool: PgPool) {
 async fn payload_conflict_is_rejected(pool: PgPool) {
     let e = engine(&pool);
     let (m, w) = (MerchantId::new(), WalletId::new());
-    e.create_collection(req(m, w, 45_200, Some("k-2"))).await.unwrap();
-    let err = e.create_collection(req(m, w, 90_000, Some("k-2"))).await.unwrap_err();
-    assert!(matches!(err, CollectionError::IdempotencyConflict), "got {err:?}");
-    assert_eq!(count_for(&pool, m, "k-2").await, 1, "conflict must not create a second row");
+    e.create_collection(req(m, w, 45_200, Some("k-2")))
+        .await
+        .unwrap();
+    let err = e
+        .create_collection(req(m, w, 90_000, Some("k-2")))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, CollectionError::IdempotencyConflict),
+        "got {err:?}"
+    );
+    assert_eq!(
+        count_for(&pool, m, "k-2").await,
+        1,
+        "conflict must not create a second row"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn cross_business_same_key_is_independent(pool: PgPool) {
     let e = Arc::new(engine(&pool));
     let (a, b, w) = (MerchantId::new(), MerchantId::new(), WalletId::new());
-    let (ca, _) = e.create_collection(req(a, w, 45_200, Some("shared"))).await.unwrap();
-    let (cb, _) = e.create_collection(req(b, w, 45_200, Some("shared"))).await.unwrap();
+    let (ca, _) = e
+        .create_collection(req(a, w, 45_200, Some("shared")))
+        .await
+        .unwrap();
+    let (cb, _) = e
+        .create_collection(req(b, w, 45_200, Some("shared")))
+        .await
+        .unwrap();
     assert_ne!(ca.id.as_uuid(), cb.id.as_uuid());
     assert_eq!(count_for(&pool, a, "shared").await, 1);
     assert_eq!(count_for(&pool, b, "shared").await, 1);
@@ -132,16 +171,27 @@ async fn concurrent_identical_creates_converge_to_one(pool: PgPool) {
     }
     let mut ids = Vec::new();
     for h in handles {
-        let (c, _) = h.await.unwrap().expect("no create may fail — no exposed 500");
+        let (c, _) = h
+            .await
+            .unwrap()
+            .expect("no create may fail — no exposed 500");
         ids.push(c.id.as_uuid());
     }
-    assert!(ids.windows(2).all(|p| p[0] == p[1]), "all callers converge on one id: {ids:?}");
-    assert_eq!(count_for(&pool, m, "race").await, 1, "exactly one collection row");
-    let shares: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM collection_shares WHERE collection_id = $1")
-        .bind(ids[0])
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    assert!(
+        ids.windows(2).all(|p| p[0] == p[1]),
+        "all callers converge on one id: {ids:?}"
+    );
+    assert_eq!(
+        count_for(&pool, m, "race").await,
+        1,
+        "exactly one collection row"
+    );
+    let shares: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM collection_shares WHERE collection_id = $1")
+            .bind(ids[0])
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(shares, 2, "no duplicated shares under concurrency");
 }
 

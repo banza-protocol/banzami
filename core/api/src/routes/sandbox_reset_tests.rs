@@ -135,12 +135,13 @@ pub(super) async fn test_payer(
     project: Uuid,
     amount: i64,
 ) -> (Uuid, Uuid) {
-    let consumer: Uuid =
-        sqlx::query_scalar("INSERT INTO consumers (handle, display_name) VALUES ($1, 'Test Consumer') RETURNING id")
-            .bind(format!("tp{}", &Uuid::new_v4().simple().to_string()[..10]))
-            .fetch_one(pool)
-            .await
-            .unwrap();
+    let consumer: Uuid = sqlx::query_scalar(
+        "INSERT INTO consumers (handle, display_name) VALUES ($1, 'Test Consumer') RETURNING id",
+    )
+    .bind(format!("tp{}", &Uuid::new_v4().simple().to_string()[..10]))
+    .fetch_one(pool)
+    .await
+    .unwrap();
     let avail = account(pool, "LIABILITY").await;
     let reserved = account(pool, "LIABILITY").await;
     sqlx::query("INSERT INTO consumer_wallets (consumer_id, currency, available_account_id, reserved_account_id) VALUES ($1,'AOA',$2,$3)")

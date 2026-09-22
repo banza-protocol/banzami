@@ -74,7 +74,10 @@ impl CollectionRepository for MemRepo {
             .unwrap()
             .insert(c.id.as_uuid(), c.clone());
         for s in shares {
-            self.shares.lock().unwrap().insert(s.id.as_uuid(), s.clone());
+            self.shares
+                .lock()
+                .unwrap()
+                .insert(s.id.as_uuid(), s.clone());
         }
         Ok(CreateOutcome::Inserted)
     }
@@ -789,9 +792,19 @@ async fn create_idempotent_replay_returns_same_collection() {
     // never a second one, and the same shares.
     let e = engine();
     let (m, w) = (MerchantId::new(), WalletId::new());
-    let (c1, s1) = e.create_collection(keyed_req(m, w, 45_200, "k-1")).await.unwrap();
-    let (c2, s2) = e.create_collection(keyed_req(m, w, 45_200, "k-1")).await.unwrap();
-    assert_eq!(c1.id.as_uuid(), c2.id.as_uuid(), "replay returns the SAME collection");
+    let (c1, s1) = e
+        .create_collection(keyed_req(m, w, 45_200, "k-1"))
+        .await
+        .unwrap();
+    let (c2, s2) = e
+        .create_collection(keyed_req(m, w, 45_200, "k-1"))
+        .await
+        .unwrap();
+    assert_eq!(
+        c1.id.as_uuid(),
+        c2.id.as_uuid(),
+        "replay returns the SAME collection"
+    );
     // Same share set (the in-memory test repo does not preserve order; the real
     // Postgres repo returns them created_at ASC — order is asserted in the DB test).
     let mut a: Vec<_> = s1.iter().map(|s| s.id.as_uuid()).collect();
@@ -808,9 +821,17 @@ async fn create_idempotency_payload_conflict() {
     // never a silent return of the unrelated prior collection.
     let e = engine();
     let (m, w) = (MerchantId::new(), WalletId::new());
-    e.create_collection(keyed_req(m, w, 45_200, "k-2")).await.unwrap();
-    let err = e.create_collection(keyed_req(m, w, 90_000, "k-2")).await.unwrap_err();
-    assert!(matches!(err, CollectionError::IdempotencyConflict), "got {err:?}");
+    e.create_collection(keyed_req(m, w, 45_200, "k-2"))
+        .await
+        .unwrap();
+    let err = e
+        .create_collection(keyed_req(m, w, 90_000, "k-2"))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, CollectionError::IdempotencyConflict),
+        "got {err:?}"
+    );
 }
 
 #[tokio::test]
@@ -819,9 +840,19 @@ async fn create_idempotency_cross_business_independent() {
     // (spec §2 scope = merchant + environment + key) → two collections, no collision.
     let e = engine();
     let (a, b, w) = (MerchantId::new(), MerchantId::new(), WalletId::new());
-    let (ca, _) = e.create_collection(keyed_req(a, w, 45_200, "same")).await.unwrap();
-    let (cb, _) = e.create_collection(keyed_req(b, w, 45_200, "same")).await.unwrap();
-    assert_ne!(ca.id.as_uuid(), cb.id.as_uuid(), "same key, different Business = independent");
+    let (ca, _) = e
+        .create_collection(keyed_req(a, w, 45_200, "same"))
+        .await
+        .unwrap();
+    let (cb, _) = e
+        .create_collection(keyed_req(b, w, 45_200, "same"))
+        .await
+        .unwrap();
+    assert_ne!(
+        ca.id.as_uuid(),
+        cb.id.as_uuid(),
+        "same key, different Business = independent"
+    );
 }
 
 #[tokio::test]
@@ -829,8 +860,14 @@ async fn create_different_key_same_payload_independent() {
     // Same request, DIFFERENT key → two independent collections (a new intent).
     let e = engine();
     let (m, w) = (MerchantId::new(), WalletId::new());
-    let (c1, _) = e.create_collection(keyed_req(m, w, 45_200, "k-A")).await.unwrap();
-    let (c2, _) = e.create_collection(keyed_req(m, w, 45_200, "k-B")).await.unwrap();
+    let (c1, _) = e
+        .create_collection(keyed_req(m, w, 45_200, "k-A"))
+        .await
+        .unwrap();
+    let (c2, _) = e
+        .create_collection(keyed_req(m, w, 45_200, "k-B"))
+        .await
+        .unwrap();
     assert_ne!(c1.id.as_uuid(), c2.id.as_uuid());
 }
 

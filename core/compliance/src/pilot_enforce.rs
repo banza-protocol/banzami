@@ -179,8 +179,6 @@ pub async fn check_test_payer_funding(
     Ok(policy.check_consumer_balance_after_credit(bal, credit_minor))
 }
 
-
-
 /// **The merchant-credit gate.** Every path that credits a merchant's available
 /// account calls this BEFORE posting, with the amount about to be credited.
 ///
