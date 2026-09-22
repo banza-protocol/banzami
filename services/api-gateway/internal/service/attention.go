@@ -92,6 +92,11 @@ var attentionCategories = []attentionCategory{
 	// the operator to fail or cancel it.
 	{key: "application_settlements", table: "app_settlements", states: []string{"CREATED", "PENDING"},
 		expr: `(SELECT count(*) FROM app_settlements WHERE environment = $1 AND status IN ('CREATED','PENDING'))`},
+	// Prospective mobile testers who registered and are waiting for the operator
+	// to add them to the tests. The registry is global (no environment column),
+	// so the count is not filtered by $1. INVITED / ACTIVE / REMOVED are done.
+	{key: "beta_testers", table: "beta_testers", states: []string{"PENDING"},
+		expr: `(SELECT count(*) FROM beta_testers WHERE status = 'PENDING')`},
 }
 
 // AttentionService counts, in one round trip after a cheap table probe, every

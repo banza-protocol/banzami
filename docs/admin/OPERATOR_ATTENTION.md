@@ -56,6 +56,7 @@ Response (aggregate counts only — no ids, names, handles or amounts):
 | Disputas | `disputes` | OPEN, or UNDER_REVIEW once evidence arrived — both wait for the operator to resolve | WON_BY_CONSUMER, WON_BY_MERCHANT, CLOSED | `/disputes?attention=1` |
 | Risco & Audit | `risk_flags` | a risk flag is unresolved | resolved flags | the page lists unresolved flags |
 | Finanças › Liquidações de apps | `application_settlements` | CREATED or PENDING — they complete in the request that creates them, so one still in flight is stuck and waits to be failed or cancelled | COMPLETED, FAILED, CANCELLED | `/application-settlements?attention=1` |
+| Beta testers | `beta_testers` | a prospective tester registered and is PENDING — waiting to be added to the tests (the registry is global, not per-environment) | INVITED, ACTIVE, REMOVED | `/beta-testers?attention=1` → status `PENDING` |
 | (bell) | `unread_notifications` | an operator notification is UNREAD | READ, DISMISSED | the bell's list |
 
 Reconciliation items are a run's findings, not a queue: the resolution is to fix
@@ -78,6 +79,7 @@ cannot open is itself information, so it is left out, not zeroed.
 | reconciliation, risk_flags | risk.view | ✓ | ✓ | ✓ | ✓ |
 | disputes | dispute.view | ✓ | — | ✓ | ✓ |
 | application_settlements | finance.view | ✓ | ✓ | ✓ | ✓ |
+| beta_testers | beta.view | ✓ | ✓ | ✓ | ✓ |
 
 SUPER_ADMIN sees every category. An unknown role sees none.
 

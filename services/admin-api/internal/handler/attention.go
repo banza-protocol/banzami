@@ -40,6 +40,7 @@ var AttentionCategories = map[string]auth.Capability{
 	"disputes":                auth.CapDisputeView,     // GET /admin/v1/disputes
 	"risk_flags":              auth.CapRiskView,        // GET /admin/v1/risk/flags
 	"application_settlements": auth.CapFinanceView,     // GET /admin/v1/application-settlements
+	"beta_testers":            auth.CapBetaView,        // GET /admin/v1/beta-testers
 }
 
 // attentionAggregate: the Inbox gathers cases from other queues (applications,

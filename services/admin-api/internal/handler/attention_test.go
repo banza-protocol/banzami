@@ -56,6 +56,7 @@ func sandboxGW() *fakeAttentionGW {
 	return &fakeAttentionGW{env: "SANDBOX", cats: map[string]int{
 		"business_applications": 4, "kyb_documents": 2, "kyc_documents": 1, "settlements": 0,
 		"payouts": 3, "reconciliation": 0, "disputes": 1, "risk_flags": 5, "application_settlements": 0,
+		"beta_testers": 2,
 		"future_category_nobody_mapped": 7,
 	}}
 }
@@ -102,9 +103,9 @@ func TestAttention_SuperAdminSeesEveryMappedCategory(t *testing.T) {
 	if _, leaked := got.Categories["future_category_nobody_mapped"]; leaked {
 		t.Fatal("a category without a capability mapping was returned")
 	}
-	// 4+2+1+0+3+0+1+5+0 = 16; the Inbox (9) aggregates other queues and stays out.
-	if got.Total != 16 {
-		t.Fatalf("total %d, want 16 (inbox excluded)", got.Total)
+	// 4+2+1+0+3+0+1+5+0+2 = 18; the Inbox (9) aggregates other queues and stays out.
+	if got.Total != 18 {
+		t.Fatalf("total %d, want 18 (inbox excluded)", got.Total)
 	}
 	if got.Categories["inbox"].Count != 9 || got.Unread == nil || *got.Unread != 21 {
 		t.Fatalf("inbox %d unread %v", got.Categories["inbox"].Count, got.Unread)
