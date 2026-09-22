@@ -138,7 +138,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           {/* Beta channels — three equal cards: icon (left) + title + channel.
               No label: the "Beta pública · Sandbox" badge and the channel names
               already say it, so the row reads cleaner without the heading. */}
-          <div className="mt-[clamp(26px,3.4vh,38px)] max-w-[560px]">
+          <div className="mt-[clamp(34px,5vh,56px)] max-w-[560px]">
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-[14px] border border-white/10 bg-ink px-4 py-2.5 no-underline shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/10 text-white">
