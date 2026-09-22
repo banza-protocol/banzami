@@ -13,16 +13,41 @@
 // is the primary CTA in the hero's left column. On phones there is no nested
 // frame — a full-screen launch card (§16).
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const EMBED_URL = 'https://app.banzami.com/?embed=phone';
 
 export function AppWebPortal() {
   // The embed loads the whole Flutter app before it paints, so on a refresh the
   // right column was empty for a beat and then the phone popped in. Show a
-  // phone-shaped skeleton immediately and fade the live app in once it has
-  // loaded — the shape is there from the first frame, no jump.
+  // phone-shaped skeleton immediately and reveal the live app once it has loaded.
   const [loaded, setLoaded] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Attach the load listener AND set the src from here — after hydration — so
+  // the iframe cannot fire `load` before the handler is attached (an SSR src
+  // would race hydration and the reveal would never happen). A fallback timer
+  // guarantees the skeleton never stays up forever if `load` never fires.
+  useEffect(() => {
+    const el = iframeRef.current;
+    if (!el) return;
+    let done = false;
+    const reveal = () => {
+      if (done) return;
+      done = true;
+      setLoaded(true);
+    };
+    // Small hold after `load`: it fires when the HTML/resources are in, a beat
+    // before Flutter paints, so we do not reveal over a transparent canvas.
+    const onLoad = () => setTimeout(reveal, 450);
+    el.addEventListener('load', onLoad);
+    if (!el.getAttribute('src')) el.setAttribute('src', EMBED_URL);
+    const fallback = setTimeout(reveal, 12000);
+    return () => {
+      el.removeEventListener('load', onLoad);
+      clearTimeout(fallback);
+    };
+  }, []);
 
   return (
     <div className="flex w-full flex-col items-center">
@@ -64,14 +89,10 @@ export function AppWebPortal() {
         </div>
 
         <iframe
+          ref={iframeRef}
           title="App Banzami Web · Sandbox"
-          src={EMBED_URL}
+          // src is set in the effect above (after the load listener is attached).
           loading="eager"
-          // onLoad fires when the embed's HTML has loaded, which is slightly
-          // before the Flutter runtime paints. A short hold keeps the skeleton up
-          // across that last beat so the app does not fade in over a transparent
-          // canvas.
-          onLoad={() => setTimeout(() => setLoaded(true), 550)}
           data-testid="portal-live-app"
           // A cross-origin embed (app.banzami.com): once a keyboard user tabs to
           // it, focus enters the child browsing context and the embedded app
