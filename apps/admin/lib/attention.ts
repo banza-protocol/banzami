@@ -18,11 +18,13 @@ export type AttentionKey =
   | 'reconciliation'
   | 'disputes'
   | 'risk_flags'
-  | 'application_settlements';
+  | 'application_settlements'
+  | 'beta_testers';
 
 export const ATTENTION_KEYS: readonly AttentionKey[] = [
   'inbox', 'business_applications', 'kyb_documents', 'kyc_documents', 'settlements',
   'payouts', 'reconciliation', 'disputes', 'risk_flags', 'application_settlements',
+  'beta_testers',
 ];
 
 export interface AttentionCategory {

@@ -13,6 +13,7 @@
 //   Disputas             → disputes                → waiting for the operator    → /disputes?attention=1
 //   Risco e auditoria    → risk_flags              → unresolved flags            → /risk?attention=1
 //   Liquidações de apps  → application_settlements → stuck in flight             → /application-settlements?attention=1
+//   Beta testers         → beta_testers            → registered, waiting to be added to the tests → /beta-testers?attention=1 (PENDING)
 // docs/admin/OPERATOR_ATTENTION.md holds the same table with the full rules.
 
 import {
@@ -48,7 +49,7 @@ export const NAV: NavEntry[] = [
       { href: '/consumers', label: 'Consumidores', Icon: Users },
       { href: '/merchant-kyb', label: 'Documentos KYB', Icon: FileCheck, attentionKey: 'kyb_documents' },
       { href: '/consumer-kyc', label: 'Documentos KYC', Icon: ScanFace, attentionKey: 'kyc_documents' },
-      { href: '/beta-testers', label: 'Beta testers', Icon: FlaskConical },
+      { href: '/beta-testers', label: 'Beta testers', Icon: FlaskConical, attentionKey: 'beta_testers' },
     ],
   },
   {

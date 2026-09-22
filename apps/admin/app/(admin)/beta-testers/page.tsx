@@ -18,6 +18,7 @@ import { getSession } from '@/lib/session';
 import { AdminApi, type BetaTester, type BetaTesterFilter } from '@/lib/admin-api';
 import { useDialog } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
+import { useAttentionView } from '@/components/layout/attention-provider';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatDateTime, initials } from '@/lib/format';
@@ -76,12 +77,16 @@ export default function BetaTestersPage() {
   const dialog = useDialog();
   const toast = useToast();
 
+  // The sidebar badge links here with ?attention=1 — the testers waiting to be
+  // added. Open on Pendentes then, so the page shows exactly what the badge counted.
+  const [attention] = useAttentionView();
+
   const [rows, setRows] = useState<BetaTester[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [status, setStatus] = useState<StatusFilter>('');
+  const [status, setStatus] = useState<StatusFilter>(attention ? 'PENDING' : '');
   const [app, setApp] = useState<AppFilter>('');
   const [platform, setPlatform] = useState<PlatformFilter>('');
   const [search, setSearch] = useState('');
@@ -118,6 +123,11 @@ export default function BetaTestersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Arriving via the sidebar badge (?attention=1) focuses the pending queue.
+  useEffect(() => {
+    if (attention) setStatus('PENDING');
+  }, [attention]);
 
   // Filters reset the page to the first.
   useEffect(() => {
