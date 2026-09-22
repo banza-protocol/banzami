@@ -60,18 +60,16 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
   function openFor(p: BetaPlatform) { setPlatform(p); setOpen(true); }
 
   return (
-    <section id="inicio" className="relative overflow-hidden px-6 pb-10 pt-[92px] md:pt-[104px]">
-      {/* Background — clean white on the left; a premium organic red field on the
-          right, bleeding off the edge, with soft folds. Desktop only; on smaller
-          screens the phone stacks on the white background. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[-6%] top-1/2 hidden h-[128%] w-[56%] -translate-y-1/2 overflow-hidden rounded-l-[220px] lg:block"
-        style={{ background: 'radial-gradient(120% 92% at 32% 26%, #D7242E 0%, #B5101F 46%, #86121A 100%)' }}
-      >
-        <div className="absolute left-[6%] top-[-14%] h-[70%] w-[70%] rounded-full opacity-45" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.18), rgba(255,255,255,0) 62%)' }} />
-        <div className="absolute right-[-12%] bottom-[-22%] h-[88%] w-[88%] rounded-full opacity-55" style={{ background: 'radial-gradient(circle, rgba(110,14,20,0.55), rgba(110,14,20,0) 60%)' }} />
-        <div className="absolute left-[22%] bottom-[8%] h-[52%] w-[52%] rounded-full opacity-30" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,255,255,0) 60%)' }} />
+    <section id="inicio" className="relative overflow-hidden bg-white px-6 pb-10 pt-[92px] md:pt-[104px]">
+      {/* Hero background (handoff_hero_background) — white left, a red silk shape
+          on the right (asset). The layer starts at 54% and the image is shifted by
+          -53% of its own width so the shape's left edge lands at the layer start —
+          the red never crosses behind the text. ≤920px: red only at the bottom. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden bg-white">
+        <div className="absolute bottom-0 left-[54%] right-0 top-0 overflow-hidden max-[920px]:left-0 max-[920px]:top-auto max-[920px]:h-[620px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/hero-bg-red.png" alt="" className="absolute left-0 top-0 block h-full w-auto max-w-none -translate-x-[53%]" />
+        </div>
       </div>
 
       <div className="relative mx-auto grid w-full max-w-container grid-cols-1 items-center gap-y-14 lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)] lg:gap-x-[clamp(40px,4vw,72px)]">
