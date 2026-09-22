@@ -140,16 +140,22 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           <div className="mt-[clamp(18px,2.4vh,26px)] max-w-[560px]">
             <p className="m-0 mb-2.5 text-[11px] font-black tracking-[0.09em] text-ink-muted">DISPONÍVEL NO BETA</p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-              <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-[14px] border border-border-soft bg-white px-3.5 py-3 no-underline shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
-                <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2a2024" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.9 5.6 3.9 9S14.5 18.6 12 21C9.5 18.6 8.1 15.4 8.1 12S9.5 5.4 12 3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-[14px] border border-border-soft bg-white px-4 py-3 no-underline shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-ink">
+                  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.7 2.5 4.1 5.8 4.1 9.2S14.7 18.7 12 21.2C9.3 18.7 7.9 15.4 7.9 12S9.3 5.3 12 2.8z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
                 <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-ink">Beta Web</span><span className="block text-[11px] font-semibold text-ink-muted">No browser</span></span>
               </a>
-              <button type="button" onClick={() => openFor('IOS')} className="flex items-center gap-2.5 rounded-[14px] border border-border-soft bg-white px-3.5 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
-                <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="#2a2024" aria-hidden="true"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.3-2.4-1.5-2.9-1.5-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.2 2-.1.3-1.7 4.8 1.4 8.6.6.9 1.4 1.9 2.4 1.8.9 0 1.3-.6 2.4-.6s1.4.6 2.4.6 1.6-.9 2.2-1.7c.7-1 .9-2 .9-2-.1 0-1.9-.7-1.9-2.7zM14.6 6.3c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z"/></svg>
+              <button type="button" onClick={() => openFor('IOS')} className="flex items-center gap-3 rounded-[14px] border border-border-soft bg-white px-4 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-ink">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.15-.46 7.8 1.3 10.36.86 1.25 1.88 2.66 3.22 2.61 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.28 3.12-2.54.98-1.46 1.39-2.87 1.41-2.94-.03-.01-2.71-1.04-2.74-4.12M14.53 5.05c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44"/></svg>
+                </span>
                 <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-ink">iPhone</span><span className="block text-[11px] font-semibold text-ink-muted">TestFlight</span></span>
               </button>
-              <button type="button" onClick={() => openFor('ANDROID')} className="flex items-center gap-2.5 rounded-[14px] border border-border-soft bg-white px-3.5 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
-                <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="#2a2024" aria-hidden="true"><path d="M17.6 9.5l1.4-2.4a.4.4 0 00-.7-.4l-1.4 2.5a8.7 8.7 0 00-7.8 0L7.7 6.7a.4.4 0 00-.7.4l1.4 2.4A8 8 0 004 16h16a8 8 0 00-2.4-6.5zM9 13.6a.9.9 0 110-1.8.9.9 0 010 1.8zm6 0a.9.9 0 110-1.8.9.9 0 010 1.8z"/></svg>
+              <button type="button" onClick={() => openFor('ANDROID')} className="flex items-center gap-3 rounded-[14px] border border-border-soft bg-white px-4 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-ink">
+                  <svg width="25" height="25" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.52 15.34a1 1 0 110-2 1 1 0 010 2m-11.04 0a1 1 0 110-2 1 1 0 010 2m11.4-6.02l2-3.46a.42.42 0 00-.72-.42l-2.02 3.5A12.2 12.2 0 0012 7.85c-1.85 0-3.59.39-5.14 1.1L4.84 5.44a.42.42 0 10-.72.42l2 3.46C2.69 11.19.34 14.66 0 18.76h24c-.34-4.1-2.69-7.57-6.12-9.44"/></svg>
+                </span>
                 <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-ink">Android</span><span className="block text-[11px] font-semibold text-ink-muted">Google Play</span></span>
               </button>
             </div>
