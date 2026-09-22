@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { PUBLIC_TRUTH } from '@/lib/public-truth';
 import type { ReactNode } from 'react';
-import { SITE, mailto } from '@/lib/site';
+import { SITE } from '@/lib/site';
 import { Logo, BrandMark } from './BrandMark';
+import { ContactCTA } from './ContactCTA';
 
 // Official Banzami footer — faithful port of the Claude Design reference.
 // Three blocks (institutional · Explorar · red CTA card) + a bottom bar.
@@ -163,33 +164,27 @@ export function Footer() {
             style={{ border: '40px solid rgba(255,255,255,0.05)' }}
           />
           <div className="relative">
-            <p className="m-0 text-[24px] font-black tracking-[-0.01em]">Construir com o Banzami</p>
+            <p className="m-0 text-[11px] font-black uppercase tracking-[0.12em] text-white/60">Para developers e parceiros</p>
+            <p className="m-0 mt-[10px] text-[26px] font-black leading-[1.1] tracking-[-0.01em]">Integre o Banzami no seu produto</p>
             <p data-testid="footer-environment-status" className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
-              A {PUBLIC_TRUTH.sandbox.name} está disponível, com dinheiro fictício. O {PUBLIC_TRUTH.live.name} está indisponível.
+              A {PUBLIC_TRUTH.sandbox.name} está disponível com dinheiro fictício para testar APIs, SDK e webhooks. O {PUBLIC_TRUTH.live.name} permanece indisponível nesta fase beta.
             </p>
 
             <a
               href="/developers"
               className="bz-foot-cta mt-[22px] flex items-center justify-between rounded-[16px] bg-white px-[20px] py-[16px] text-[15px] font-extrabold text-cherry no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
             >
-              Plataforma para developers
+              Portal developers
               <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="#B5101F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </a>
 
-            <a
-              href={mailto('Contacto Banzami')}
-              className="bz-foot-cta mt-[12px] flex items-center justify-between rounded-[16px] border border-white/25 bg-white/[0.12] px-[20px] py-[16px] text-[15px] font-extrabold text-white no-underline transition hover:bg-white/[0.2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
-            >
-              Falar connosco
-              <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </a>
+            {/* Opens the contact form (delivered to contact@banzami.com). */}
+            <ContactCTA label="Falar com a equipa" />
 
             <p className="m-0 mt-[18px] text-[13px] font-semibold leading-[1.5] text-white/70">
-              A App Banzami está disponível no browser (Sandbox, dinheiro fictício) e em testes no iPhone e Android. <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Abrir App Banzami Web</a> ou <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">participar nos testes nativos</a>.
+              A App Banzami está disponível na Beta Web e em testes no iPhone e Android. <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Explore a plataforma no browser</a> ou <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">participe nos testes nativos</a>.
             </p>
           </div>
         </section>
