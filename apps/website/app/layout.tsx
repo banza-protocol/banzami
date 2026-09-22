@@ -59,6 +59,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* The homepage hero embeds app.banzami.com in an iframe; warm the
+            connection early so the live phone paints sooner on load. */}
+        <link rel="preconnect" href="https://app.banzami.com" />
+        <link rel="dns-prefetch" href="https://app.banzami.com" />
         {/* Dossier font import (README §Tipografia): Nunito + JetBrains Mono.
             Loaded via <link> to avoid a build-time network dependency. */}
         <link
