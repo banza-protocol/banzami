@@ -62,7 +62,7 @@ func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
 		"Recupere a sua palavra-passe Banzami", html, text, ""))
 }
 
-// BetaTesterAdded — "Está nos testes da Banzami". Sent when the operator records
+// BetaTesterAdded — "Está nos testes do Banzami". Sent when the operator records
 // that a prospective tester was added to the mobile beta (INVITED). Automatic
 // notification → From noreply@, Reply-To contact@ so the tester can ask a
 // question. Non-blocking; call in a goroutine.
@@ -72,5 +72,5 @@ func (s *Sender) BetaTesterAdded(to, firstName string, appBanzami, appMerchant, 
 		WantsIOS: wantsIOS, WantsAndroid: wantsAndroid,
 	})
 	s.Deliver(s.Automated("beta_tester_added", to,
-		"Está nos testes da Banzami", html, text, s.ReplyTo()))
+		"Está nos testes do Banzami", html, text, s.ReplyTo()))
 }

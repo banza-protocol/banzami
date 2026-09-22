@@ -263,18 +263,31 @@ type BetaTesterAddedData struct {
 	WantsAndroid bool
 }
 
+// betaAppsLabel is the bare app name(s), no "App " prefix — the detail row is
+// already labelled "Apps", so "Banzami" / "Banzami Business" reads cleaner than
+// repeating the word.
 func betaAppsLabel(banzami, merchant bool) string {
 	var parts []string
 	if banzami {
-		parts = append(parts, "App Banzami")
+		parts = append(parts, "Banzami")
 	}
 	if merchant {
-		parts = append(parts, "App Banzami Business")
+		parts = append(parts, "Banzami Business")
 	}
 	if len(parts) == 0 {
-		return "app Banzami"
+		return "Banzami"
 	}
 	return strings.Join(parts, " e ")
+}
+
+// betaAppsPrefix is the correct article for the sentence — "da app" (one) or
+// "das apps" (both) — so the brand keeps its feminine "app" host and never reads
+// as "da Banzami" (the brand itself is masculine: "o Banzami").
+func betaAppsPrefix(banzami, merchant bool) string {
+	if banzami && merchant {
+		return "das apps "
+	}
+	return "da app "
 }
 
 func betaPlatformLabel(ios, android bool) string {
@@ -308,9 +321,10 @@ func betaInstallLine(ios, android bool) string {
 
 func RenderBetaTesterAdded(d BetaTesterAddedData) (html, text string) {
 	apps := betaAppsLabel(d.AppBanzami, d.AppMerchant)
-	greeting := "Já está nos testes da " + apps + "."
+	lead := "está nos testes " + betaAppsPrefix(d.AppBanzami, d.AppMerchant) + apps + "."
+	greeting := "Já " + lead
 	if fn := strings.TrimSpace(d.FirstName); fn != "" {
-		greeting = "Olá " + fn + " — já está nos testes da " + apps + "."
+		greeting = "Olá " + fn + " — já " + lead
 	}
 	paras := []string{
 		greeting,
@@ -320,11 +334,11 @@ func RenderBetaTesterAdded(d BetaTesterAddedData) (html, text string) {
 		{Label: "Apps", Value: apps},
 		{Label: "Plataforma", Value: betaPlatformLabel(d.WantsIOS, d.WantsAndroid)},
 	}
-	body := emTitle("Está nos testes da Banzami") +
+	body := emTitle("Está nos testes do Banzami") +
 		emPara(paras[0]) + emPara(paras[1]) +
 		emDetailRows(rows)
 	html = renderLayout(layoutOpts{Subtitle: "Beta", BadgeKind: "app", SafetyKind: "normal",
-		Preheader: "Já está nos testes da app Banzami.", Body: body})
-	text = textDoc("Está nos testes da Banzami", paras, rows, "", "", footerSafety("normal"))
+		Preheader: "Já " + lead, Body: body})
+	text = textDoc("Está nos testes do Banzami", paras, rows, "", "", footerSafety("normal"))
 	return
 }
