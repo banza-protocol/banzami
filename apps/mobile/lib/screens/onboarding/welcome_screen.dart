@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../branding_assets.dart';
@@ -40,7 +41,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // Red surface → light status-bar icons (the WebDesktopShell reads this).
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
       backgroundColor: BanzamiColors.primary,
       body: Container(
         decoration: const BoxDecoration(gradient: BanzamiGradients.primary),
@@ -134,6 +141,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             ),
           ),
         ),
+      ),
       ),
     );
   }

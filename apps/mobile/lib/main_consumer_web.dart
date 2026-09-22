@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
@@ -31,6 +32,17 @@ void main() async {
   // Consumer root, exactly as before. Payer routes always stay Consumer.
   final segments = Uri.base.pathSegments.where((s) => s.isNotEmpty).toList();
   final isBusiness = segments.isNotEmpty && segments.first == 'business';
+
+  // Default status-bar intent for the web device shell (WebDesktopShell reads it):
+  // the Consumer home is a LIGHT surface → dark icons (as in the reference); the
+  // Business home is a RED surface → light icons. Individual coloured screens (the
+  // Consumer welcome/onboarding) override this to light via an AnnotatedRegion.
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: isBusiness ? Brightness.light : Brightness.dark,
+    statusBarBrightness: isBusiness ? Brightness.dark : Brightness.light,
+  ));
+
   if (isBusiness) {
     // `/business` runs the ACTUAL native App Banzami Business (the same
     // `BanzamiMerchantApp` root, screens, session and design system as iOS /

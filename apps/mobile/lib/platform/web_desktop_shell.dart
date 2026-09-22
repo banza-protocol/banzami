@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Brightness, SystemChrome;
 import 'package:banzami_flutter/banzami_flutter.dart' show BanzamiColors;
 
 import 'web_location.dart';
@@ -206,17 +207,17 @@ class _PhoneDevice extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Status bar — HERO embed only. A REAL, live clock (not a fixed
-                  // "9:41"), with decorative signal/Wi-Fi/battery, flanking the
-                  // island exactly like iOS. White, to read on the app's coloured
-                  // welcome screen shown in the marketing hero.
-                  if (embed)
-                    const Positioned(
-                      top: 17,
-                      left: 27,
-                      right: 25,
-                      child: IgnorePointer(child: _StatusBar()),
-                    ),
+                  // Status bar — ONE shell, every web surface (hero embed AND
+                  // app.banzami.com). A REAL, live clock (never a fixed "9:41")
+                  // with decorative signal/Wi-Fi/battery, flanking the island like
+                  // iOS. Its colour adapts to the current screen (dark on the light
+                  // home, white on the red welcome) via the app's overlay style.
+                  const Positioned(
+                    top: 17,
+                    left: 27,
+                    right: 25,
+                    child: IgnorePointer(child: _StatusBar()),
+                  ),
                   // Decorative home indicator.
                   Positioned(
                     bottom: 8,
@@ -279,8 +280,9 @@ class _StatusBarState extends State<_StatusBar> {
   void initState() {
     super.initState();
     _now = DateTime.now();
-    // Tick every 10s — enough to flip the minute promptly without churn.
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
+    // Tick every second: keeps the clock honest AND lets the colour follow the
+    // current screen (the overlay style changes on navigation) within ~1s.
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
   }
@@ -296,11 +298,21 @@ class _StatusBarState extends State<_StatusBar> {
 
   @override
   Widget build(BuildContext context) {
-    const white = Colors.white;
+    // Follow the app's own status-bar intent: statusBarIconBrightness.light means
+    // light (white) icons for a dark/coloured screen; .dark means dark icons for a
+    // light screen (the home, matching the reference). Default: dark. The current
+    // screen sets this via its overlay style (main default + per-screen
+    // AnnotatedRegion), which the framework mirrors onto SystemChrome.latestStyle;
+    // read is null-safe, so a future SDK that drops it just falls back to dark.
+    // ignore: invalid_use_of_visible_for_testing_member
+    final iconBrightness = SystemChrome.latestStyle?.statusBarIconBrightness ?? Brightness.dark;
+    final color = iconBrightness == Brightness.light
+        ? Colors.white
+        : const Color(0xFF16110F);
     return DefaultTextStyle(
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: 'Inter',
-        color: white,
+        color: color,
         fontWeight: FontWeight.w700,
         fontSize: 14,
         letterSpacing: 0.2,
@@ -311,14 +323,14 @@ class _StatusBarState extends State<_StatusBar> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(_clock),
-          const Row(
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.signal_cellular_alt, size: 15, color: white),
-              SizedBox(width: 5),
-              Icon(Icons.wifi, size: 15, color: white),
-              SizedBox(width: 5),
-              Icon(Icons.battery_full, size: 16, color: white),
+              Icon(Icons.signal_cellular_alt, size: 15, color: color),
+              const SizedBox(width: 5),
+              Icon(Icons.wifi, size: 15, color: color),
+              const SizedBox(width: 5),
+              Icon(Icons.battery_full, size: 16, color: color),
             ],
           ),
         ],
