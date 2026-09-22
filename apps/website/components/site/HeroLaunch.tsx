@@ -123,7 +123,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
               icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0111 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 19a4.5 4.5 0 015.5-4.4"/></svg>}
               title="Para pessoas e negócios"
               meta="QR · @banza · comprovativos"
-              body="Pagamentos rápidos, seguros e sem complicações."
+              body="Pagamentos rápidos, seguros e simples."
               href="/produto"
             />
             <AudienceCard
