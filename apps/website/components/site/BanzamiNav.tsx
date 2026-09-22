@@ -281,7 +281,7 @@ export function BanzamiNav() {
               transition: 'transform .2s',
             }}
           >
-            Começar
+            Portal developers
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -394,7 +394,7 @@ export function BanzamiNav() {
               onClick={closeMenu}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: 16, borderRadius: 30, background: RED, color: '#fff', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}
             >
-              Começar
+              Portal developers
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Focused test for the homepage primary CTA ("Começar") navigation connection.
+// Focused test for the homepage primary CTA ("Portal developers") navigation connection.
 // Per the Claude Design handoff (§"Ponto de entrada"), the header CTA leads into
 // the Developer Console login flow. This test pins the destination and guards
 // two rules: desktop/mobile lead to the *same* frontend route, and no rendered
@@ -27,7 +27,7 @@ afterEach(cleanup);
 
 const CONSOLE_LOGIN = 'https://developers.banzami.com/login';
 
-describe('Homepage "Começar" CTA → Developer Console login', () => {
+describe('Homepage "Portal developers" CTA → Developer Console login', () => {
   it('exposes the exact Console frontend login route as the single source of truth', () => {
     expect(DEVELOPERS_LOGIN_URL).toBe(CONSOLE_LOGIN);
     // It is the Console *frontend* host — never the authenticated backend API.
@@ -38,7 +38,7 @@ describe('Homepage "Começar" CTA → Developer Console login', () => {
 
   it('desktop CTA is a real keyboard-navigable link to the Console login route', () => {
     render(<BanzamiNav />);
-    const cta = screen.getByRole('link', { name: /Começar/i });
+    const cta = screen.getByRole('link', { name: /Portal developers/i });
     // A real <a href> (focusable / normal browser navigation), not a button/alert.
     expect(cta.tagName).toBe('A');
     expect(cta.getAttribute('href')).toBe(CONSOLE_LOGIN);
@@ -49,7 +49,7 @@ describe('Homepage "Começar" CTA → Developer Console login', () => {
     // Open the mobile overlay via the burger (hidden from the a11y tree by the
     // mobile-only CSS, so target it directly).
     fireEvent.click(container.querySelector('.bz-burger') as Element);
-    const ctas = screen.getAllByRole('link', { name: /Começar/i });
+    const ctas = screen.getAllByRole('link', { name: /Portal developers/i });
     // Desktop + mobile CTA both present.
     expect(ctas.length).toBeGreaterThanOrEqual(2);
     for (const cta of ctas) {

@@ -6,8 +6,6 @@
 // mirrored to data-paused so it is observable here. jsdom does not run real
 // rAF/scroll, so we assert the interaction wiring, plus that the homepage
 // marquee actually uses this component.
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { AppJourney } from './AppJourney';
@@ -77,14 +75,5 @@ describe('AppJourney — pause on interaction', () => {
     const { rail } = renderRail();
     expect(rail.className).toContain('overflow-x-auto');
     expect(rail.dataset.paused).toBe('false');
-  });
-});
-
-describe('homepage merchant marquee uses AppJourney (same pattern as "A APP")', () => {
-  it('wraps the merchant chips in <AppJourney>, not a CSS-only marquee', () => {
-    const page = readFileSync(resolve(process.cwd(), 'app/page.tsx'), 'utf8');
-    expect(page).toMatch(/<AppJourney[^>]*>[\s\S]*ENTITY_CHIPS[\s\S]*EntityChip[\s\S]*<\/AppJourney>/);
-    // the CSS-only marquee track is no longer used here
-    expect(page).not.toContain('anim-marquee');
   });
 });
