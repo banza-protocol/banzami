@@ -26,26 +26,32 @@ function Dot() {
 }
 
 function AudienceCard({
-  icon, title, meta, body, link,
-}: { icon: React.ReactNode; title: string; meta: string; body: string; link?: { label: string; href: string } }) {
-  return (
-    <div className="rounded-[20px] border border-border-soft bg-white p-[16px] shadow-[0_20px_44px_-34px_rgba(181,16,31,.4)]">
+  icon, title, meta, body, link, href,
+}: { icon: React.ReactNode; title: string; meta: string; body: string; link?: { label: string; href: string }; href?: string }) {
+  const card = (
+    <div className="group relative h-full rounded-[20px] border border-border-soft bg-white p-[16px] shadow-[0_20px_44px_-34px_rgba(181,16,31,.4)] transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_30px_56px_-32px_rgba(181,16,31,.55)]">
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] bg-pink-100 text-cherry">{icon}</span>
-        <div className="min-w-0">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] bg-pink-100 text-cherry transition-transform duration-200 group-hover:scale-105">{icon}</span>
+        <div className="min-w-0 flex-1">
           <p className="m-0 text-[14.5px] font-black leading-tight text-ink">{title}</p>
           <p className="m-0 mt-0.5 text-[12px] font-extrabold text-cherry">{meta}</p>
-          <p className="m-0 mt-1.5 text-[12.5px] font-semibold leading-[1.5] text-ink-secondary">{body}</p>
+          <p className={`m-0 mt-1.5 text-[12.5px] font-semibold leading-[1.5] text-ink-secondary ${href ? 'pr-9' : ''}`}>{body}</p>
           {link && (
             <a href={link.href} className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-black text-cherry no-underline hover:underline">
               {link.label}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg className="transition-transform duration-200 group-hover:translate-x-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </a>
           )}
         </div>
       </div>
+      {href && (
+        <span className="absolute bottom-4 right-4 grid h-9 w-9 place-items-center rounded-full bg-pink-100 text-cherry shadow-[0_6px_14px_-8px_rgba(181,16,31,.5)] transition-transform duration-200 group-hover:translate-x-0.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </span>
+      )}
     </div>
   );
+  return href ? <a href={href} className="block no-underline">{card}</a> : card;
 }
 
 export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: string; liveSummaryShort: string }) {
@@ -110,6 +116,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
               title="Para pessoas e negócios"
               meta="QR · @banza · comprovativos verificáveis"
               body="Pagamentos rápidos, seguros e sem complicações."
+              href="/produto"
             />
             <AudienceCard
               icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 8l-4 4 4 4M15.5 8l4 4-4 4"/></svg>}
