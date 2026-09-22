@@ -136,21 +136,21 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
             />
           </div>
 
-          {/* Beta channels */}
-          <div className="mt-[clamp(18px,2.4vh,26px)]">
-            <p className="m-0 mb-2 text-[11px] font-black tracking-[0.09em] text-ink-muted">DISPONÍVEL NO BETA</p>
-            <div className="flex flex-wrap gap-2.5">
-              <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-[13px] border border-border-soft bg-white px-3.5 py-2.5 no-underline transition-transform hover:-translate-y-0.5">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B5101F" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.9 5.6 3.9 9S14.5 18.6 12 21C9.5 18.6 8.1 15.4 8.1 12S9.5 5.4 12 3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                <span className="leading-tight"><span className="block text-[12.5px] font-extrabold text-ink">Beta Web</span><span className="block text-[10.5px] font-semibold text-ink-muted">No browser</span></span>
+          {/* Beta channels — three equal cards: icon (left) + title + channel. */}
+          <div className="mt-[clamp(18px,2.4vh,26px)] max-w-[560px]">
+            <p className="m-0 mb-2.5 text-[11px] font-black tracking-[0.09em] text-ink-muted">DISPONÍVEL NO BETA</p>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-[14px] border border-border-soft bg-white px-3.5 py-3 no-underline shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2a2024" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.9 5.6 3.9 9S14.5 18.6 12 21C9.5 18.6 8.1 15.4 8.1 12S9.5 5.4 12 3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-ink">Beta Web</span><span className="block text-[11px] font-semibold text-ink-muted">No browser</span></span>
               </a>
-              <button type="button" onClick={() => openFor('IOS')} className="inline-flex items-center gap-2 rounded-[13px] border border-border-soft bg-white px-3.5 py-2.5 transition-transform hover:-translate-y-0.5">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="#2a2024"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.3-2.4-1.5-2.9-1.5-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.2 2-.1.3-1.7 4.8 1.4 8.6.6.9 1.4 1.9 2.4 1.8.9 0 1.3-.6 2.4-.6s1.4.6 2.4.6 1.6-.9 2.2-1.7c.7-1 .9-2 .9-2-.1 0-1.9-.7-1.9-2.7zM14.6 6.3c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z"/></svg>
-                <span className="leading-tight text-left"><span className="block text-[12.5px] font-extrabold text-ink">iPhone</span><span className="block text-[10.5px] font-semibold text-ink-muted">TestFlight</span></span>
+              <button type="button" onClick={() => openFor('IOS')} className="flex items-center gap-2.5 rounded-[14px] border border-border-soft bg-white px-3.5 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="#2a2024" aria-hidden="true"><path d="M16.4 12.9c0-2 1.6-3 1.7-3-1-1.3-2.4-1.5-2.9-1.5-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.2 2-.1.3-1.7 4.8 1.4 8.6.6.9 1.4 1.9 2.4 1.8.9 0 1.3-.6 2.4-.6s1.4.6 2.4.6 1.6-.9 2.2-1.7c.7-1 .9-2 .9-2-.1 0-1.9-.7-1.9-2.7zM14.6 6.3c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.4.9.1 1.7-.4 2.3-1.1z"/></svg>
+                <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-ink">iPhone</span><span className="block text-[11px] font-semibold text-ink-muted">TestFlight</span></span>
               </button>
-              <button type="button" onClick={() => openFor('ANDROID')} className="inline-flex items-center gap-2 rounded-[13px] border border-border-soft bg-white px-3.5 py-2.5 transition-transform hover:-translate-y-0.5">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="#2a2024"><path d="M17.6 9.5l1.4-2.4a.4.4 0 00-.7-.4l-1.4 2.5a8.7 8.7 0 00-7.8 0L7.7 6.7a.4.4 0 00-.7.4l1.4 2.4A8 8 0 004 16h16a8 8 0 00-2.4-6.5zM9 13.6a.9.9 0 110-1.8.9.9 0 010 1.8zm6 0a.9.9 0 110-1.8.9.9 0 010 1.8z"/></svg>
-                <span className="leading-tight text-left"><span className="block text-[12.5px] font-extrabold text-ink">Android</span><span className="block text-[10.5px] font-semibold text-ink-muted">Google Play</span></span>
+              <button type="button" onClick={() => openFor('ANDROID')} className="flex items-center gap-2.5 rounded-[14px] border border-border-soft bg-white px-3.5 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="#2a2024" aria-hidden="true"><path d="M17.6 9.5l1.4-2.4a.4.4 0 00-.7-.4l-1.4 2.5a8.7 8.7 0 00-7.8 0L7.7 6.7a.4.4 0 00-.7.4l1.4 2.4A8 8 0 004 16h16a8 8 0 00-2.4-6.5zM9 13.6a.9.9 0 110-1.8.9.9 0 010 1.8zm6 0a.9.9 0 110-1.8.9.9 0 010 1.8z"/></svg>
+                <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-ink">Android</span><span className="block text-[11px] font-semibold text-ink-muted">Google Play</span></span>
               </button>
             </div>
             <p className="m-0 mt-4 flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted">
