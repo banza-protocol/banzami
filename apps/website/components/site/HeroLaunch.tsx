@@ -131,21 +131,21 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           <div className="mt-[clamp(18px,2.4vh,26px)] max-w-[560px]">
             <p className="m-0 mb-2.5 text-[11px] font-black tracking-[0.09em] text-ink-muted">DISPONÍVEL NO BETA</p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-              <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-[14px] border border-white/10 bg-ink px-4 py-3 no-underline shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-white/10 text-white">
-                  <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.7 2.5 4.1 5.8 4.1 9.2S14.7 18.7 12 21.2C9.3 18.7 7.9 15.4 7.9 12S9.3 5.3 12 2.8z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-[14px] border border-white/10 bg-ink px-4 py-2.5 no-underline shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/10 text-white">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.7 2.5 4.1 5.8 4.1 9.2S14.7 18.7 12 21.2C9.3 18.7 7.9 15.4 7.9 12S9.3 5.3 12 2.8z" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </span>
                 <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-white">Beta Web</span><span className="block text-[11px] font-semibold text-white/55">No browser</span></span>
               </a>
-              <button type="button" onClick={() => openFor('IOS')} className="flex items-center gap-3 rounded-[14px] border border-white/10 bg-ink px-4 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-white/10 text-white">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.15-.46 7.8 1.3 10.36.86 1.25 1.88 2.66 3.22 2.61 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.28 3.12-2.54.98-1.46 1.39-2.87 1.41-2.94-.03-.01-2.71-1.04-2.74-4.12M14.53 5.05c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44"/></svg>
+              <button type="button" onClick={() => openFor('IOS')} className="flex items-center gap-2.5 rounded-[14px] border border-white/10 bg-ink px-4 py-2.5 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/10 text-white">
+                  <svg width="25" height="25" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.15-.46 7.8 1.3 10.36.86 1.25 1.88 2.66 3.22 2.61 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.28 3.12-2.54.98-1.46 1.39-2.87 1.41-2.94-.03-.01-2.71-1.04-2.74-4.12M14.53 5.05c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44"/></svg>
                 </span>
                 <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-white">iPhone</span><span className="block text-[11px] font-semibold text-white/55">TestFlight</span></span>
               </button>
-              <button type="button" onClick={() => openFor('ANDROID')} className="flex items-center gap-3 rounded-[14px] border border-white/10 bg-ink px-4 py-3 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-white/10 text-white">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <button type="button" onClick={() => openFor('ANDROID')} className="flex items-center gap-2.5 rounded-[14px] border border-white/10 bg-ink px-4 py-2.5 text-left shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/10 text-white">
+                  <svg width="29" height="29" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     {/* antennae */}
                     <path d="M9.3 4.7 8.2 2.9M14.7 4.7 15.8 2.9" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
                     {/* head */}
