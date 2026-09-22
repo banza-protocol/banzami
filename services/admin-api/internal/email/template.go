@@ -309,13 +309,13 @@ func betaPlatformLabel(ios, android bool) string {
 func betaInstallLine(ios, android bool) string {
 	switch {
 	case ios && android:
-		return "O convite para instalar chega a este e-mail — pelo TestFlight (iPhone) e pelo Google Play (Android). Pode demorar alguns minutos."
+		return "O convite para instalar chega a esta mesma caixa de e-mail — pelo TestFlight (iPhone) e pelo Google Play (Android). Pode demorar alguns minutos."
 	case ios:
-		return "O convite para instalar chega a este e-mail, pelo TestFlight (iPhone). Pode demorar alguns minutos."
+		return "O convite para instalar chega a esta mesma caixa de e-mail, pelo TestFlight (iPhone). Pode demorar alguns minutos."
 	case android:
-		return "O convite para instalar chega a este e-mail, pelo Google Play (Android). Pode demorar alguns minutos."
+		return "O convite para instalar chega a esta mesma caixa de e-mail, pelo Google Play (Android). Pode demorar alguns minutos."
 	default:
-		return "O convite para instalar chega a este e-mail. Pode demorar alguns minutos."
+		return "O convite para instalar chega a esta mesma caixa de e-mail. Pode demorar alguns minutos."
 	}
 }
 
