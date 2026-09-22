@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { BetaRegisterModal } from '@/components/site/BetaRegisterModal';
 import { BetaRegisterForm } from '@/components/site/BetaRegisterForm';
 import type { BetaPlatform } from '@/lib/beta';
-import { HeroPhone } from '@/components/site/HeroPhone';
+import { AppWebPortal } from '@/components/app/AppWebPortal';
 
 const APP_WEB = 'https://app.banzami.com';
 const DEVELOPERS_URL = 'https://developers.banzami.com/login';
@@ -160,9 +160,11 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           </div>
         </div>
 
-        {/* ── RIGHT — premium phone + feature panels ── */}
+        {/* ── RIGHT — live App Banzami Web + feature panels ── */}
         <div className="relative flex min-h-0 flex-col items-center gap-8 xl:flex-row xl:items-center xl:justify-center xl:gap-6">
-          <HeroPhone className="anim-floaty shrink-0" />
+          <div className="w-[300px] max-w-full shrink-0">
+            <AppWebPortal />
+          </div>
 
           {/* Feature panels — a blurred column beside the phone on xl; the two
               audience cards on the left already carry the value props below xl. */}

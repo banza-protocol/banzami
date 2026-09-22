@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:banzami_flutter/banzami_flutter.dart' show BanzamiColors;
@@ -204,6 +206,17 @@ class _PhoneDevice extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Status bar — HERO embed only. A REAL, live clock (not a fixed
+                  // "9:41"), with decorative signal/Wi-Fi/battery, flanking the
+                  // island exactly like iOS. White, to read on the app's coloured
+                  // welcome screen shown in the marketing hero.
+                  if (embed)
+                    const Positioned(
+                      top: 17,
+                      left: 27,
+                      right: 25,
+                      child: IgnorePointer(child: _StatusBar()),
+                    ),
                   // Decorative home indicator.
                   Positioned(
                     bottom: 8,
@@ -243,6 +256,72 @@ class _Island extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0A0A0B),
         borderRadius: BorderRadius.circular(20),
+      ),
+    );
+  }
+}
+
+/// iOS-style status bar for the hero embed: a REAL clock (device time, ticking),
+/// with decorative signal/Wi-Fi/battery. White, so it reads on the app's coloured
+/// hero screen. The clock is the point — never a fixed "9:41".
+class _StatusBar extends StatefulWidget {
+  const _StatusBar();
+
+  @override
+  State<_StatusBar> createState() => _StatusBarState();
+}
+
+class _StatusBarState extends State<_StatusBar> {
+  late DateTime _now;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    // Tick every 10s — enough to flip the minute promptly without churn.
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // 24-hour local time, no leading zero on the hour (e.g. "9:41", "14:07").
+  String get _clock => '${_now.hour}:${_now.minute.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    const white = Colors.white;
+    return DefaultTextStyle(
+      style: const TextStyle(
+        fontFamily: 'Inter',
+        color: white,
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+        letterSpacing: 0.2,
+        decoration: TextDecoration.none,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(_clock),
+          const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.signal_cellular_alt, size: 15, color: white),
+              SizedBox(width: 5),
+              Icon(Icons.wifi, size: 15, color: white),
+              SizedBox(width: 5),
+              Icon(Icons.battery_full, size: 16, color: white),
+            ],
+          ),
+        ],
       ),
     );
   }
