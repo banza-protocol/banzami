@@ -86,8 +86,8 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           </h1>
 
           <p className="m-0 mt-[clamp(14px,2vh,22px)] max-w-[540px] text-[clamp(15px,0.5vw+0.7vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
-            Envie, receba e aceite pagamentos em Kz entre pessoas, negócios e aplicações — através
-            do Banzami ou integrado diretamente no seu produto.
+            Envie, receba e aceite pagamentos em Kz entre pessoas, negócios e aplicações — na app
+            Banzami ou integrado no seu produto.
           </p>
 
           <p data-testid="home-environment-status" className="m-0 mt-3 max-w-[520px] text-[12.5px] font-semibold text-ink-muted">
@@ -122,7 +122,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
             <AudienceCard
               icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0111 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 19a4.5 4.5 0 015.5-4.4"/></svg>}
               title="Para pessoas e negócios"
-              meta="QR · @banza · comprovativos verificáveis"
+              meta="QR · @banza · comprovativos"
               body="Pagamentos rápidos, seguros e sem complicações."
               href="/produto"
             />
