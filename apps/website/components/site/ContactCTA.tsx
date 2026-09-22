@@ -18,6 +18,17 @@ function looksLikeEmail(e: string): boolean {
   return at > 0 && at === t.lastIndexOf('@') && at < t.length - 1 && t.slice(at + 1).includes('.');
 }
 
+// Predefined subjects, plus "Outro" which reveals a free-text field. Required.
+const SUBJECTS = [
+  'Parceria',
+  'Integração / API',
+  'Comerciantes e negócios',
+  'Suporte / dúvida',
+  'Imprensa',
+  'Outro',
+] as const;
+const OTHER = 'Outro';
+
 export function ContactCTA({ label = 'Falar com a equipa' }: { label?: string }) {
   const [open, setOpen] = useState(false);
 
@@ -53,24 +64,29 @@ function ContactForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
+  const [subjectChoice, setSubjectChoice] = useState('');
+  const [subjectOther, setSubjectOther] = useState('');
   const [message, setMessage] = useState('');
   const [website, setWebsite] = useState(''); // honeypot
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
+  const subject = subjectChoice === OTHER ? subjectOther.trim() : subjectChoice;
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr('');
     if (!name.trim() || !email.trim() || !message.trim()) return setErr('Preencha o nome, o e-mail e a mensagem.');
     if (!looksLikeEmail(email)) return setErr('Indique um e-mail válido.');
+    if (!subjectChoice) return setErr('Escolha um assunto.');
+    if (subjectChoice === OTHER && !subjectOther.trim()) return setErr('Indique o assunto.');
 
     setBusy(true);
     const res = await submitContact({
       name: name.trim(),
       email: email.trim(),
-      subject: subject.trim() || undefined,
+      subject,
       message: message.trim(),
       website,
     });
@@ -123,8 +139,31 @@ function ContactForm({ onSuccess }: { onSuccess?: () => void }) {
       </div>
 
       <div>
-        <label htmlFor={`${uid}-subject`} className={label}>Assunto <span className="font-semibold text-neutral-400">(opcional)</span></label>
-        <input id={`${uid}-subject`} type="text" className={field} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="ex.: Parceria, integração, dúvida" />
+        <label htmlFor={`${uid}-subject`} className={label}>Assunto</label>
+        <select
+          id={`${uid}-subject`}
+          className={field}
+          value={subjectChoice}
+          onChange={(e) => setSubjectChoice(e.target.value)}
+          required
+        >
+          <option value="" disabled>Selecione um assunto</option>
+          {SUBJECTS.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        {subjectChoice === OTHER && (
+          <input
+            type="text"
+            aria-label="Indique o assunto"
+            className={`${field} mt-2`}
+            value={subjectOther}
+            onChange={(e) => setSubjectOther(e.target.value)}
+            placeholder="Escreva o assunto"
+            maxLength={160}
+            autoFocus
+          />
+        )}
       </div>
 
       <div>
