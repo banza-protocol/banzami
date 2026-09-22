@@ -120,3 +120,7 @@ replace github.com/banzami/banzami/services/common/clientip => ../common/clienti
 require github.com/banzami/banzami/services/common/edgestatus v0.0.0
 
 replace github.com/banzami/banzami/services/common/edgestatus => ../common/edgestatus
+
+require github.com/banzami/banzami/services/common/email v0.0.0
+
+replace github.com/banzami/banzami/services/common/email => ../common/email
