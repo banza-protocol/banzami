@@ -60,7 +60,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
   function openFor(p: BetaPlatform) { setPlatform(p); setOpen(true); }
 
   return (
-    <section id="inicio" className="relative overflow-hidden bg-white px-6 pb-10 pt-[124px] md:pt-[140px]">
+    <section id="inicio" className="relative overflow-hidden bg-white px-6 pb-10 pt-[108px] md:pt-[120px]">
       {/* Hero background (handoff_hero_background) — the asset already composes
           white-left + red-silk-right. Shown whole (object-cover) so the shape is
           never cut: desktop fills the section; ≤920px it sits as a band at the
