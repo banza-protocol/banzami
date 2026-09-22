@@ -192,15 +192,14 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
       <BetaRegisterModal
         open={open}
         onClose={() => setOpen(false)}
-        title="Participar nos testes da App Banzami"
-        subtitle="A App Banzami está em Sandbox: o dinheiro é fictício e nenhum pagamento é real. Convidamos testers por etapas."
+        title="Participar nos testes das apps Banzami"
+        subtitle="As apps Banzami estão em Sandbox: o dinheiro é fictício e nenhum pagamento é real. Convidamos testers por etapas."
         labelledById="hero-beta-modal-title"
       >
         <BetaRegisterForm
           lang="pt"
           source="home_hero"
-          offeredApps={['APP_BANZAMI']}
-          lockApp
+          offeredApps={['APP_BANZAMI', 'APP_MERCHANT']}
           initialApps={['APP_BANZAMI']}
           initialPlatform={platform}
           lockPlatform
