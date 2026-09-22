@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -45,8 +46,10 @@ class WebDesktopShell extends StatelessWidget {
   static const double _heroPhoneW = 388; // HERO: gently wider, slightly shorter
   static const double _heroPhoneH = 828;
   static const double _bezel = 14;
-  static const double _outerRadius = 56;
-  static const double _innerRadius = 44;
+  // Corner radii match the approved mock's ratios (outer 46/300, inner 38/280),
+  // scaled to this device's logical width so the rendered corners read identically.
+  static const double _outerRadius = 64;
+  static const double _innerRadius = 53;
   static const double _topSafe = 50; // status area; the app's SafeArea uses this
   static const double _bottomSafe = 26; // home-indicator area
   static const double _wideBreakpoint = 640;
@@ -252,8 +255,8 @@ class _Island extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 122,
-      height: 34,
+      width: 128,
+      height: 36,
       decoration: BoxDecoration(
         color: const Color(0xFF0A0A0B),
         borderRadius: BorderRadius.circular(20),
@@ -325,16 +328,125 @@ class _StatusBarState extends State<_StatusBar> {
           Text(_clock),
           Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(Icons.signal_cellular_alt, size: 15, color: color),
-              const SizedBox(width: 5),
-              Icon(Icons.wifi, size: 15, color: color),
-              const SizedBox(width: 5),
-              Icon(Icons.battery_full, size: 16, color: color),
+              _SignalBars(color: color),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 17,
+                height: 12,
+                child: CustomPaint(painter: _WifiPainter(color)),
+              ),
+              const SizedBox(width: 6),
+              _Battery(color: color),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+/// iOS-style signal — four rising bars, the last gently faded. Matches the mock.
+class _SignalBars extends StatelessWidget {
+  const _SignalBars({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    const heights = [4.0, 6.5, 9.0, 11.0];
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < heights.length; i++) ...[
+          if (i > 0) const SizedBox(width: 2),
+          Container(
+            width: 3,
+            height: heights[i],
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: i == 3 ? 0.4 : 1.0),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// iOS-style Wi-Fi — three concentric arcs plus a dot. Matches the mock.
+class _WifiPainter extends CustomPainter {
+  _WifiPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final cx = size.width / 2;
+    final cy = size.height * 0.9;
+    for (final r in [size.width * 0.5, size.width * 0.34, size.width * 0.18]) {
+      canvas.drawArc(
+        Rect.fromCircle(center: Offset(cx, cy), radius: r),
+        math.pi * 1.25,
+        math.pi * 0.5,
+        false,
+        stroke,
+      );
+    }
+    canvas.drawCircle(Offset(cx, cy), 1.0, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_WifiPainter oldDelegate) => oldDelegate.color != color;
+}
+
+/// iOS-style battery — a thin rounded body, a full fill and a small nub. Matches
+/// the mock (never the bulky Material `battery_full`).
+class _Battery extends StatelessWidget {
+  const _Battery({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 22,
+          height: 11,
+          decoration: BoxDecoration(
+            border: Border.all(color: color.withValues(alpha: 0.45), width: 1),
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(1.6),
+            child: Container(
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(1.6),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 1.5),
+        Container(
+          width: 1.6,
+          height: 4,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+      ],
     );
   }
 }
