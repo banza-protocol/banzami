@@ -48,22 +48,6 @@ function AudienceCard({
   );
 }
 
-function FloatPanel({
-  icon, title, body, className = '',
-}: { icon: React.ReactNode; title: string; body: string; className?: string }) {
-  return (
-    <div className={`w-[228px] rounded-[18px] border border-white/70 bg-white/85 p-[15px] shadow-[0_26px_50px_-30px_rgba(181,16,31,.45)] backdrop-blur-md ${className}`}>
-      <div className="flex items-start gap-2.5">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-pink-100 text-cherry">{icon}</span>
-        <div>
-          <p className="m-0 text-[13px] font-black leading-tight text-ink">{title}</p>
-          <p className="m-0 mt-1 text-[11.5px] font-semibold leading-[1.45] text-ink-secondary">{body}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: string; liveSummaryShort: string }) {
   const [open, setOpen] = useState(false);
   const [platform, setPlatform] = useState<BetaPlatform>('IOS');
@@ -182,33 +166,10 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           </div>
         </div>
 
-        {/* ── RIGHT — live App Banzami Web + feature panels ── */}
-        <div className="relative flex min-h-0 flex-col items-center gap-8 xl:flex-row xl:items-center xl:justify-center xl:gap-6">
-          <div className="w-[300px] max-w-full shrink-0">
+        {/* ── RIGHT — live App Banzami Web ── */}
+        <div className="relative flex min-h-0 items-center justify-center">
+          <div className="w-[300px] max-w-full">
             <AppWebPortal />
-          </div>
-
-          {/* Feature panels — a blurred column beside the phone on xl; the two
-              audience cards on the left already carry the value props below xl. */}
-          <div className="hidden w-[228px] flex-col gap-4 xl:-ml-4 xl:flex">
-            <FloatPanel
-              className="xl:translate-x-2"
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z"/><path d="M9.2 11.6l1.9 1.9 3.7-3.7"/></svg>}
-              title="Seguro por design"
-              body="As suas transações protegidas com os mais altos padrões de segurança."
-            />
-            <FloatPanel
-              className="xl:-translate-x-2"
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>}
-              title="Liquidação instantânea"
-              body="Envie e receba dinheiro em segundos, 24/7."
-            />
-            <FloatPanel
-              className="xl:translate-x-2"
-              icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 4a2 2 0 114 0v1.5h1.5A1.5 1.5 0 0117 7v1.5a2 2 0 100 4V14a1.5 1.5 0 01-1.5 1.5H14a2 2 0 10-4 0H8.5A1.5 1.5 0 017 14v-1.5a2 2 0 100-4V7a1.5 1.5 0 011.5-1.5H10z"/></svg>}
-              title="Feito para integrar"
-              body="API, SDKs e webhooks para levar pagamentos Banzami ao seu produto."
-            />
           </div>
         </div>
       </div>
