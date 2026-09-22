@@ -272,18 +272,18 @@ export function BanzamiNav() {
               gap: 7,
               padding: '11px 22px',
               borderRadius: 30,
-              background: RED,
-              color: '#fff',
+              background: '#fff',
+              color: RED,
               fontWeight: 800,
               fontSize: 14,
               textDecoration: 'none',
-              boxShadow: '0 8px 18px -6px rgba(181,16,31,.5), 0 0 0 4px rgba(181,16,31,.12)',
-              transition: 'transform .2s',
+              boxShadow: '0 14px 30px -10px rgba(90,8,16,.5), 0 2px 6px -2px rgba(90,8,16,.25), 0 0 0 1px rgba(181,16,31,.08)',
+              transition: 'transform .2s, box-shadow .2s',
             }}
           >
             Portal developers
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M5 12h14M13 6l6 6-6 6" stroke={RED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </NavA>
         </div>
