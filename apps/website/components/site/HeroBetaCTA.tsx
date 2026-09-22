@@ -4,8 +4,9 @@
 //
 // Two premium platform buttons — iPhone (TestFlight) and Android (Google Play) —
 // in place of the old developer buttons and the "not in the stores" line. Each
-// opens an inline modal (no navigation, no reload) with App Banzami preselected
-// and the platform set from the button that was clicked. The apps are given to
+// opens an inline modal (no navigation, no reload) with the platform set from
+// the button that was clicked, App Banzami preselected and App Banzami Business
+// selectable (the tester can test one or both). The apps are given to
 // invited testers only; these are NOT the official "Download on the App Store" /
 // "Get it on Google Play" store badges, and we never claim a public store
 // listing.
@@ -26,9 +27,9 @@ const COPY = {
     android: 'Testar no Android',
     androidSub: 'Google Play',
     available: 'Use a App Banzami no browser agora — ou teste as apps nativas (iPhone/Android) como tester convidado.',
-    modalTitle: 'Participar nos testes da App Banzami',
+    modalTitle: 'Participar nos testes das apps Banzami',
     modalSubtitle:
-      'A App Banzami está em Sandbox: o dinheiro é fictício e nenhum pagamento é real. Convidamos testers por etapas.',
+      'As apps Banzami estão em Sandbox: o dinheiro é fictício e nenhum pagamento é real. Convidamos testers por etapas.',
     submit: 'Quero participar',
   },
   en: {
@@ -39,9 +40,9 @@ const COPY = {
     android: 'Test on Android',
     androidSub: 'Google Play',
     available: 'Use Banzami in your browser now — or test the native apps (iPhone/Android) as an invited tester.',
-    modalTitle: 'Join the App Banzami tests',
+    modalTitle: 'Join the Banzami app tests',
     modalSubtitle:
-      'App Banzami runs in Sandbox: money is fictitious and no payment is real. We invite testers in stages.',
+      'The Banzami apps run in Sandbox: money is fictitious and no payment is real. We invite testers in stages.',
     submit: 'Count me in',
   },
 } as const;
@@ -154,8 +155,7 @@ export function HeroBetaCTA({ lang = 'pt' }: { lang?: Lang }) {
         <BetaRegisterForm
           lang={lang}
           source="home_hero"
-          offeredApps={['APP_BANZAMI']}
-          lockApp
+          offeredApps={['APP_BANZAMI', 'APP_MERCHANT']}
           initialApps={['APP_BANZAMI']}
           initialPlatform={platform}
           lockPlatform
