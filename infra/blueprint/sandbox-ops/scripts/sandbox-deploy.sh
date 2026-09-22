@@ -303,6 +303,7 @@ secret_exports_for() {
         webhook_encryption_key:WEBHOOK_ENCRYPTION_KEY \
         push_topic_key:PUSH_TOPIC_KEY \
         firebase_credentials_json:FIREBASE_CREDENTIALS_JSON \
+        resend_api_key:RESEND_API_KEY \
         kyb_storage_endpoint:KYB_STORAGE_ENDPOINT \
         kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID \
         kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY
@@ -535,6 +536,19 @@ release_config_env() {
       # payment link the API hands an integration points at the gateway's own
       # JSON route instead of a page a person can pay on.
       echo "PAY_BASE_URL=https://pay.banzami.com"
+      # Mail configuration for the public contact form (POST /v1/contact),
+      # re-applied on every deploy (deploy-one clones the previous env, so a
+      # setting added later would never arrive otherwise). Without it the
+      # endpoint answers 503 instead of pretending a message was sent. The
+      # RESEND_API_KEY arrives as a secret file (see secret_exports_for).
+      echo "EMAIL_PROVIDER=resend"
+      echo "EMAIL_DRY_RUN=false"
+      echo "EMAIL_FROM_NAME=Banzami"
+      echo "EMAIL_FROM_ADDRESS=contact@banzami.com"
+      echo "EMAIL_NOREPLY_NAME=Banzami"
+      echo "EMAIL_NOREPLY_ADDRESS=noreply@banzami.com"
+      echo "EMAIL_REPLY_TO=contact@banzami.com"
+      echo "CONTACT_RECIPIENT=contact@banzami.com"
       # KYB document storage (docs/ops/KYB_R2_SETUP.md): the Sandbox's private
       # bucket. Not enough on its own — the endpoint and the access key arrive
       # as secret files (see kyb_storage_* below). Until they exist the Gateway

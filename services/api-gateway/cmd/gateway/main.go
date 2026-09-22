@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/common/env"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/common/pushtopic"
@@ -264,8 +265,33 @@ func main() {
 		slog.Warn("webhook + team services: in-memory stub (DATABASE_URL not set)")
 	}
 
+	// Transactional email for the public contact form. Nil-safe: when no
+	// provider/credentials are set the sender reports !Enabled() and the
+	// /v1/contact endpoint answers 503 instead of dropping the message silently.
+	mailer := ce.NewSender(ce.Config{
+		Provider:       cfg.EmailProvider,
+		DryRun:         cfg.EmailDryRun,
+		ResendAPIKey:   cfg.ResendAPIKey,
+		SMTPHost:       cfg.SMTPHost,
+		SMTPPort:       cfg.SMTPPort,
+		SMTPUser:       cfg.SMTPUser,
+		SMTPPassword:   cfg.SMTPPassword,
+		FromName:       cfg.EmailFromName,
+		FromAddress:    cfg.EmailFromAddress,
+		ReplyTo:        cfg.EmailReplyTo,
+		NoreplyName:    cfg.EmailNoreplyName,
+		NoreplyAddress: cfg.EmailNoreplyAddress,
+	})
+	if mailer.Enabled() {
+		slog.Info("[contact] email sender configured", "recipient", cfg.ContactRecipient)
+	} else {
+		slog.Warn("[contact] email not configured — /v1/contact will answer 503")
+	}
+
 	deps := server.Dependencies{
 		Redis:                    rdb,
+		Mailer:                   mailer,
+		ContactRecipient:         cfg.ContactRecipient,
 		DBPool:                   readinessDBPool,
 		CoreClient:               coreClient,
 		TransactionSvc:           service.NewCoreApiTransactionService(coreClient),

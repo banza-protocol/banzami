@@ -48,6 +48,25 @@ type Config struct {
 	// empty or shorter than 32 bytes, topic pushes are skipped.
 	PushTopicKey string
 
+	// Transactional email (shared services/common/email). Used by the public
+	// contact form (POST /v1/contact) to reach the team. All empty → email is
+	// disabled and the contact endpoint answers 503 (never a silent drop).
+	EmailProvider       string
+	EmailDryRun         bool
+	ResendAPIKey        string
+	SMTPHost            string
+	SMTPPort            int
+	SMTPUser            string
+	SMTPPassword        string
+	EmailFromName       string
+	EmailFromAddress    string
+	EmailReplyTo        string
+	EmailNoreplyName    string
+	EmailNoreplyAddress string
+	// ContactRecipient is where the public contact form is delivered. Defaults to
+	// contact@banzami.com.
+	ContactRecipient string
+
 	// WebhookEncryptionKey is a base64-encoded 32-byte key used to encrypt
 	// webhook signing secrets at rest (SEC-002). Empty → plaintext (dev only).
 	WebhookEncryptionKey string
@@ -151,6 +170,28 @@ func Load() (*Config, error) {
 	if v := os.Getenv("CROSS_ENV_DATABASE_URL"); v != "" {
 		cfg.CrossEnvDatabaseURL = v
 	}
+	// Transactional email (contact form). Mirrors admin-api / public-api env names.
+	cfg.EmailProvider = strings.TrimSpace(os.Getenv("EMAIL_PROVIDER"))
+	cfg.EmailDryRun = os.Getenv("EMAIL_DRY_RUN") == "true"
+	cfg.ResendAPIKey = strings.TrimSpace(os.Getenv("RESEND_API_KEY"))
+	cfg.SMTPHost = strings.TrimSpace(os.Getenv("SMTP_HOST"))
+	if v := os.Getenv("SMTP_PORT"); v != "" {
+		if p, err := strconv.Atoi(v); err == nil {
+			cfg.SMTPPort = p
+		}
+	}
+	cfg.SMTPUser = strings.TrimSpace(os.Getenv("SMTP_USER"))
+	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
+	cfg.EmailFromName = strings.TrimSpace(os.Getenv("EMAIL_FROM_NAME"))
+	cfg.EmailFromAddress = strings.TrimSpace(os.Getenv("EMAIL_FROM_ADDRESS"))
+	cfg.EmailReplyTo = strings.TrimSpace(os.Getenv("EMAIL_REPLY_TO"))
+	cfg.EmailNoreplyName = strings.TrimSpace(os.Getenv("EMAIL_NOREPLY_NAME"))
+	cfg.EmailNoreplyAddress = strings.TrimSpace(os.Getenv("EMAIL_NOREPLY_ADDRESS"))
+	cfg.ContactRecipient = strings.TrimSpace(os.Getenv("CONTACT_RECIPIENT"))
+	if cfg.ContactRecipient == "" {
+		cfg.ContactRecipient = "contact@banzami.com"
+	}
+
 	if v := os.Getenv("WEBHOOK_ENCRYPTION_KEY"); v != "" {
 		cfg.WebhookEncryptionKey = v
 	}

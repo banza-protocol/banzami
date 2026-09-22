@@ -26,6 +26,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	ce "github.com/banzami/banzami/services/common/email"
 )
 
 // Dependencies holds the runtime dependencies injected into the server.
@@ -70,6 +71,10 @@ type Dependencies struct {
 	BusinessReceivePointSvc  *service.BusinessReceivePointService
 	MerchantAppSvc           service.MerchantApplicationService
 	BetaTesterSvc            service.BetaTesterService
+	// Mailer delivers the public contact form (POST /v1/contact). Nil / not
+	// configured → the endpoint answers 503. ContactRecipient is where it lands.
+	Mailer           *ce.Sender
+	ContactRecipient string
 	MerchantAppAdminSvc      service.MerchantApplicationAdminService
 	MerchantDocumentSvc      service.MerchantDocumentService
 	MerchantKybSvc           *service.PostgresMerchantKybService
@@ -181,6 +186,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	envGate := service.NewEnvGate(cfg.Environment, deps.PlatformSvc)
 	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate)
 	betaTesterHandler := handler.NewBetaTesterHandler(deps.BetaTesterSvc)
+	contactHandler := handler.NewContactHandler(deps.Mailer, deps.ContactRecipient)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate).WithReadiness(deps.SettlementReadinessSvc)
 	businessOnboardingHandler := handler.NewBusinessOnboardingHandler(deps.MerchantAppSvc, deps.MerchantAppAdminSvc, deps.BusinessLinkCodeSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
@@ -291,6 +297,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// TestFlight / Google Play testing. Rate-limited per IP against mass signup.
 		r.With(middleware.RateLimitPerIPWindow(deps.Redis, 20, 24*time.Hour, "beta-register")).
 			Post("/v1/beta/testers", betaTesterHandler.Register)
+		// Public contact form: delivered by email to the team. Rate-limited per IP
+		// so it cannot be turned into a mail relay.
+		r.With(middleware.RateLimitPerIPWindow(deps.Redis, 10, 24*time.Hour, "contact")).
+			Post("/v1/contact", contactHandler.Submit)
 		r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
 		// Each submission reserves an @handle for as long as its application is
 		// open. Thirty a day per address covers a person applying (and
