@@ -74,17 +74,19 @@ const CHIPS: { label: string; icon: IconKey }[] = [
   { label: 'Comprovativo verificável', icon: 'shieldcheck' },
 ];
 
-/** Internal `/` routes use next/link; mailto/external use a plain anchor. */
+/** Internal `/` routes use next/link; mailto/external use a plain anchor.
+    Lighter, editorial link rows (icon · name · arrow) with a soft divider —
+    aligned with the minimalism of sections 01–03, not a dashboard of cards. */
 function ExploreTile({ link }: { link: ExploreLink }) {
   const cls =
-    'bz-foot-tile group flex items-center gap-[14px] rounded-[16px] bg-cream-50 p-[14px] no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#B5101F] focus-visible:outline-offset-2';
+    'bz-foot-link group flex items-center gap-[13px] border-b border-[rgba(20,16,20,0.07)] py-[13px] no-underline transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#B5101F] focus-visible:outline-offset-2';
   const inner = (
     <>
-      <span className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[11px] bg-white text-cherry shadow-[0_4px_10px_-6px_rgba(181,16,31,0.5)]">
-        <Icon name={link.icon} />
+      <span className="flex-none text-cherry/70 transition-colors group-hover:text-cherry">
+        <Icon name={link.icon} size={17} />
       </span>
-      <span className="flex-1 text-[15px] font-extrabold leading-[1.2] text-ink">{link.label}</span>
-      <span className="flex-none text-ink-muted">
+      <span className="flex-1 text-[15px] font-bold leading-[1.2] text-ink transition-colors group-hover:text-cherry">{link.label}</span>
+      <span className="flex-none text-ink-muted transition-colors group-hover:text-cherry">
         <TileArrow external={link.external} />
       </span>
     </>
@@ -141,13 +143,13 @@ export function Footer() {
 
         {/* ---------- B · Explorar ---------- */}
         <section className="rounded-[28px] border border-[rgba(181,16,31,0.10)] bg-white p-[clamp(26px,2.6vw,36px)] shadow-[0_20px_50px_-40px_rgba(181,16,31,0.35)]">
-          <p className="m-0 mb-[18px] text-[22px] font-black tracking-[-0.01em] text-ink">Explorar</p>
-          <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+          <p className="m-0 mb-[10px] text-[22px] font-black tracking-[-0.01em] text-ink">Explorar</p>
+          <div className="grid grid-cols-1 gap-x-[28px] sm:grid-cols-2">
             {EXPLORE.map((l) => (
               <ExploreTile key={l.label} link={l} />
             ))}
           </div>
-          <p className="m-0 mt-[20px] text-[13.5px] font-semibold leading-[1.55] text-ink-muted">
+          <p className="m-0 mt-[18px] text-[13.5px] font-semibold leading-[1.55] text-ink-muted">
             O produto, a plataforma para developers e o estado atual.
           </p>
         </section>
@@ -166,8 +168,11 @@ export function Footer() {
           <div className="relative">
             <p className="m-0 text-[11px] font-black uppercase tracking-[0.12em] text-white/60">Para developers e parceiros</p>
             <p className="m-0 mt-[10px] text-[26px] font-black leading-[1.1] tracking-[-0.01em]">Construa com Banzami</p>
-            <p data-testid="footer-environment-status" className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
-              Aceda às ferramentas para developers ou fale diretamente com a nossa equipa. A {PUBLIC_TRUTH.sandbox.name} está disponível; o {PUBLIC_TRUTH.live.name} permanece indisponível nesta fase Beta.
+            <p className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
+              Aceda às ferramentas para developers ou fale diretamente com a nossa equipa.
+            </p>
+            <p data-testid="footer-environment-status" className="m-0 mt-[10px] text-[13px] font-bold text-white/60">
+              {PUBLIC_TRUTH.sandbox.name} disponível · {PUBLIC_TRUTH.live.name} indisponível nesta fase Beta
             </p>
 
             <a
@@ -184,7 +189,7 @@ export function Footer() {
             <ContactCTA label="Falar com a equipa" />
 
             <p className="m-0 mt-[18px] text-[13px] font-semibold leading-[1.5] text-white/70">
-              Também quer experimentar a app? A <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Beta Web</a> está disponível no browser, com versões iPhone e Android <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">em testes</a>.
+              Também quer experimentar a app? A <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Beta Web</a> no browser, com iPhone e Android <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">em testes</a>.
             </p>
           </div>
         </section>

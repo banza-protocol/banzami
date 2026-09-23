@@ -59,10 +59,6 @@ export function ForDevelopers() {
             aria-hidden="true"
             style={{ position: 'absolute', right: '-8%', top: '-12%', width: '95%', height: '95%', borderRadius: '50%', background: 'radial-gradient(circle,#FFDDDB 0%,rgba(255,236,235,0) 70%)' }}
           />
-          <div style={{ position: 'relative', alignSelf: 'flex-end', fontFamily: "'JetBrains Mono',monospace", fontStyle: 'italic', fontSize: '13px', color: '#9a8a8e', transform: 'rotate(-4deg)' }}>
-            // Build with Banzami
-          </div>
-
           <div style={{ position: 'relative', marginRight: '40px', background: '#1a1416', borderRadius: '22px', padding: '6px 6px 8px', boxShadow: '0 40px 70px -30px rgba(122,16,22,.5)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '36px', padding: '16px 26px 0', fontSize: '16px', fontWeight: 700, color: 'rgba(255,255,255,.6)' }}>
               <span style={{ color: '#fff', paddingBottom: '12px', borderBottom: '3px solid #D8121F' }}>cURL</span>
