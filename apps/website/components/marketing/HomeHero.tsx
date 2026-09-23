@@ -41,7 +41,7 @@ function Arrow({ c = '#fff', s = 17 }: { c?: string; s?: number }) {
 
 export function HomeHero({ lang }: { lang: Lang }) {
   return (
-    <section id="inicio" style={{ position: 'relative', padding: '112px 24px 64px', overflow: 'hidden', background: '#fff', borderRadius: '0 0 48px 48px', boxShadow: '0 40px 80px -60px rgba(122,16,22,.45)' }}>
+    <section id="inicio" style={{ position: 'relative', padding: 'clamp(88px,11vh,104px) 24px clamp(32px,4vh,52px)', overflow: 'hidden', background: '#fff', borderRadius: '0 0 48px 48px', boxShadow: '0 40px 80px -60px rgba(122,16,22,.45)' }}>
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/assets/hero-bg-red.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
@@ -50,10 +50,10 @@ export function HomeHero({ lang }: { lang: Lang }) {
       <div className="bz-g2" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
         <div>
           <Badge>{T.badge[lang]}</Badge>
-          <h1 style={{ margin: '22px 0 0', fontSize: 'clamp(40px,4.9vw,68px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-.035em', color: '#141014', textWrap: 'balance' }}><span style={{ whiteSpace: 'nowrap' }}>{T.h1a[lang]}</span><br /><span style={{ color: '#B5101F' }}>{T.h1b[lang]}</span></h1>
-          <p style={{ margin: '20px 0 0', fontSize: 'clamp(16px,1.4vw,18px)', lineHeight: 1.55, color: '#4a3a3e', fontWeight: 600, maxWidth: '540px', textWrap: 'pretty' }}>{T.lead[lang]}</p>
-          <p style={{ margin: '12px 0 0', fontSize: '13.5px', lineHeight: 1.55, color: '#8a7a7e', fontWeight: 600, maxWidth: '540px', textWrap: 'pretty' }}>{T.small[lang]}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '26px' }}>
+          <h1 style={{ margin: '16px 0 0', fontSize: 'clamp(32px,3.3vw,52px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-.035em', color: '#141014', textWrap: 'balance' }}><span style={{ whiteSpace: 'nowrap' }}>{T.h1a[lang]}</span><br /><span style={{ color: '#B5101F' }}>{T.h1b[lang]}</span></h1>
+          <p style={{ margin: '14px 0 0', fontSize: 'clamp(15px,1.2vw,17px)', lineHeight: 1.5, color: '#4a3a3e', fontWeight: 600, maxWidth: '520px', textWrap: 'pretty' }}>{T.lead[lang]}</p>
+          <p style={{ margin: '10px 0 0', fontSize: '13px', lineHeight: 1.5, color: '#8a7a7e', fontWeight: 600, maxWidth: '520px', textWrap: 'pretty' }}>{T.small[lang]}</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '20px' }}>
             <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="bz-btnlift" style={{ display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '16px 26px', borderRadius: '16px', background: 'linear-gradient(160deg,#C8101F,#9A1B22)', color: '#fff', fontWeight: 800, fontSize: '15.5px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 18px 34px -14px rgba(181,16,31,.6),inset 0 1px 0 rgba(255,255,255,.2)' }}>{T.openBeta[lang]}<Arrow /></a>
             <a href="#como-funciona" className="bz-btnlift" style={{ display: 'inline-flex', alignItems: 'center', gap: '12px', padding: '10px 24px 10px 12px', borderRadius: '16px', background: '#fff', border: '1px solid #F3E3E1', color: '#141014', fontWeight: 800, fontSize: '15.5px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 14px 30px -20px rgba(122,16,22,.4)' }}>
               <span style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#FFF1F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D8121F' }}><svg width="18" height="18" viewBox="0 0 24 24"><path d="M9 7.5v9l7.5-4.5z" fill="currentColor" /></svg></span>{T.howWorks[lang]}
@@ -61,7 +61,7 @@ export function HomeHero({ lang }: { lang: Lang }) {
           </div>
 
           {/* Audience cards */}
-          <div className="bz-herocards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '30px', maxWidth: '590px' }}>
+          <div className="bz-herocards" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '18px', maxWidth: '590px' }}>
             <a href={route('produto', lang)} className="bz-herocard" style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 18px 16px', borderRadius: '22px', textDecoration: 'none', background: 'linear-gradient(180deg,#fff 0%,#FFF9F8 100%)', border: '1px solid #F3E3E1', boxShadow: '0 26px 50px -34px rgba(122,16,22,.5),inset 0 1px 0 #fff' }}>
               <span aria-hidden="true" style={{ position: 'absolute', top: '-60px', right: '-60px', width: '170px', height: '170px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(251,210,208,.7),rgba(0,0,0,0) 70%)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -92,10 +92,10 @@ export function HomeHero({ lang }: { lang: Lang }) {
 
           {/* Platforms — Beta Web opens the app; iPhone/Android open the tester sign-up modal */}
           <HeroPlatforms lang={lang} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '26px' }}><span style={{ width: '28px', height: '2px', borderRadius: '2px', background: '#D8121F' }} /><span style={{ fontSize: '13px', fontWeight: 700, color: '#8a7a7e' }}>{T.building[lang]}</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '16px' }}><span style={{ width: '28px', height: '2px', borderRadius: '2px', background: '#D8121F' }} /><span style={{ fontSize: '13px', fontWeight: 700, color: '#8a7a7e' }}>{T.building[lang]}</span></div>
         </div>
 
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '700px' }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '560px' }}>
           <div aria-hidden="true" style={{ position: 'absolute', width: '420px', height: '420px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,255,255,.18),rgba(255,255,255,0) 70%)' }} />
           <HeroAppPhone lang={lang} />
         </div>
