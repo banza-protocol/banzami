@@ -24,7 +24,7 @@ export function HeroAppPhone({ lang }: { lang: Lang }) {
   };
   return (
     <div style={{ position: 'relative', filter: 'drop-shadow(0 50px 60px rgba(60,0,8,.45))' }}>
-      <div style={{ position: 'relative', width: '300px', height: '560px', borderRadius: '48px', background: '#160a0c', padding: '9px', boxShadow: '0 40px 80px -30px rgba(122,16,22,.45),0 0 0 1px rgba(122,16,22,.08)', animation: 'floaty 6.5s ease-in-out infinite' }}>
+      <div style={{ position: 'relative', width: '300px', height: '540px', borderRadius: '48px', background: '#160a0c', padding: '9px', boxShadow: '0 40px 80px -30px rgba(122,16,22,.45),0 0 0 1px rgba(122,16,22,.08)', animation: 'floaty 6.5s ease-in-out infinite' }}>
         <div aria-hidden="true" style={{ position: 'absolute', top: '18px', left: '50%', transform: 'translateX(-50%)', width: '98px', height: '27px', borderRadius: '15px', background: '#160a0c', zIndex: 40 }} />
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '40px', overflow: 'hidden' }}>
           {opened ? (
@@ -34,7 +34,7 @@ export function HeroAppPhone({ lang }: { lang: Lang }) {
             <iframe
               src={APP_URL}
               title={t.title}
-              style={{ position: 'absolute', top: 0, left: 0, width: '390px', height: '750px', transform: 'scale(0.72308)', transformOrigin: 'top left', border: 'none', background: '#9A1B22' }}
+              style={{ position: 'absolute', top: 0, left: 0, width: '390px', height: '722px', transform: 'scale(0.72308)', transformOrigin: 'top left', border: 'none', background: '#9A1B22' }}
               allow="clipboard-write; camera"
             />
           ) : (
