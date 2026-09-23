@@ -22,7 +22,7 @@ export function ForBusiness() {
         <div>
           <SectionPill num="02" label="PARA NEGÓCIOS" />
           <h2 style={{ margin: '26px 0 0', fontSize: 'clamp(38px, 3.4vw + 1vh, 62px)', lineHeight: 1.02, fontWeight: 900, letterSpacing: '-0.03em', color: '#141014' }}>
-            Receba com<br /><span style={{ color: '#B5101F' }}>Banzami.</span>
+            Receba com<br /><span style={{ color: '#B5101F' }}>Banzami Business.</span>
           </h2>
           <p style={{ margin: '24px 0 0', fontSize: 'clamp(17px,1.6vw,21px)', lineHeight: 1.5, fontWeight: 600, color: '#6a5a5e', maxWidth: '430px', textWrap: 'pretty' }}>
             QR, links e ferramentas de cobrança para receber pagamentos na Sandbox.
