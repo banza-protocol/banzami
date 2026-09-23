@@ -22,7 +22,7 @@ export function HowItWorks() {
         {/* ── left column ── */}
         <div>
           <SectionPill num="01" label="COMO FUNCIONA" />
-          <h2 style={{ margin: '26px 0 0', fontSize: 'clamp(40px,5.4vw,66px)', lineHeight: 1, fontWeight: 900, letterSpacing: '-.035em', color: '#141014' }}>
+          <h2 style={{ margin: '26px 0 0', fontSize: 'clamp(38px, 3.4vw + 1vh, 62px)', lineHeight: 1.02, fontWeight: 900, letterSpacing: '-0.03em', color: '#141014' }}>
             Ler.<br />Confirmar.<br /><span style={{ color: '#B5101F' }}>Pagar.</span>
           </h2>
           <p style={{ margin: '24px 0 0', fontSize: 'clamp(17px,1.6vw,21px)', lineHeight: 1.5, fontWeight: 600, color: '#6a5a5e', maxWidth: '400px', textWrap: 'pretty' }}>

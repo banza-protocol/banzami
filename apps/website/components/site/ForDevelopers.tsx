@@ -27,7 +27,7 @@ export function ForDevelopers() {
         {/* ── left column ── */}
         <div>
           <SectionPill num="03" label="PARA DEVELOPERS" />
-          <h2 style={{ margin: '26px 0 0', fontSize: 'clamp(38px,4.8vw,60px)', lineHeight: 1.03, fontWeight: 900, letterSpacing: '-.035em', color: '#141014' }}>
+          <h2 style={{ margin: '26px 0 0', fontSize: 'clamp(38px, 3.4vw + 1vh, 62px)', lineHeight: 1.02, fontWeight: 900, letterSpacing: '-0.03em', color: '#141014' }}>
             Integre Banzami<br /><span style={{ color: '#B5101F' }}>no seu produto.</span>
           </h2>
           <p style={{ margin: '24px 0 0', fontSize: 'clamp(17px,1.6vw,21px)', lineHeight: 1.5, fontWeight: 600, color: '#6a5a5e', maxWidth: '450px', textWrap: 'pretty' }}>
