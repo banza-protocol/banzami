@@ -49,7 +49,7 @@ export function HomeHero({ lang }: { lang: Lang }) {
       <div className="bz-g2" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
         <div>
           <Badge>{T.badge[lang]}</Badge>
-          <h1 style={{ margin: '22px 0 0', fontSize: 'clamp(40px,4.9vw,68px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-.035em', color: '#141014', textWrap: 'balance' }}>{T.h1a[lang]}<br /><span style={{ color: '#B5101F' }}>{T.h1b[lang]}</span></h1>
+          <h1 style={{ margin: '22px 0 0', fontSize: 'clamp(40px,4.9vw,68px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-.035em', color: '#141014', textWrap: 'balance' }}><span style={{ whiteSpace: 'nowrap' }}>{T.h1a[lang]}</span><br /><span style={{ color: '#B5101F' }}>{T.h1b[lang]}</span></h1>
           <p style={{ margin: '20px 0 0', fontSize: 'clamp(16px,1.4vw,18px)', lineHeight: 1.55, color: '#4a3a3e', fontWeight: 600, maxWidth: '540px', textWrap: 'pretty' }}>{T.lead[lang]}</p>
           <p style={{ margin: '12px 0 0', fontSize: '13.5px', lineHeight: 1.55, color: '#8a7a7e', fontWeight: 600, maxWidth: '540px', textWrap: 'pretty' }}>{T.small[lang]}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '26px' }}>
@@ -110,7 +110,6 @@ export function HomeHero({ lang }: { lang: Lang }) {
           <HeroAppPhone lang={lang} />
         </div>
       </div>
-      <div aria-hidden="true" className="bz-note" style={{ position: 'absolute', fontFamily: "'Caveat',cursive", fontWeight: 600, lineHeight: 1.05, pointerEvents: 'none', right: 'max(18px,calc(50% - 700px))', top: '300px', color: '#fff', fontSize: '30px', transform: 'rotate(-12deg)', textAlign: 'left', whiteSpace: 'pre-line' }}>{T.note[lang]}</div>
     </section>
   );
 }
