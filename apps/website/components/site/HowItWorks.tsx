@@ -7,7 +7,6 @@ const STEPS: {
   n: string;
   title: string;
   desc: string;
-  chips: string[];
   frame: FrameName;
   valor?: string;
   para?: string;
@@ -15,23 +14,20 @@ const STEPS: {
 }[] = [
   {
     n: '1',
-    title: 'Scan',
-    desc: 'Leia um QR Banzami ou escolha um @banza.',
-    chips: ['QR', '@banza', 'Sem IBAN'],
+    title: 'Ler',
+    desc: 'Leia um QR ou escolha um @banza.',
     frame: 'scan',
   },
   {
     n: '2',
     title: 'Confirmar',
-    desc: 'Confirme o pagamento com PIN ou biometria antes de ele ser registado.',
-    chips: ['PIN', 'Biometria', 'Confirmação explícita'],
+    desc: 'Veja o valor e o destinatário antes de autorizar.',
     frame: 'confpag',
   },
   {
     n: '3',
     title: 'Pago',
-    desc: 'O destinatário vê o pagamento concluído e o comprovativo fica disponível.',
-    chips: ['Comprovativo verificável', 'Histórico'],
+    desc: 'O movimento fica registado e o comprovativo disponível.',
     frame: 'comprovativo',
     valor: '1 500',
     para: '@cantina-alex',
@@ -40,9 +36,9 @@ const STEPS: {
 ];
 
 /**
- * "Como funciona" — the three-step scan → confirmar → pago section. Reused
- * section (moved from the Produto page) shown on the homepage right after the
- * metrics block.
+ * "Como funciona" — Ler → Confirmar → Pago. Three steps, real App Banzami
+ * screens, no technical detail (the ledger/architecture lives in Segurança and
+ * Developers, not on the homepage).
  */
 export function HowItWorks() {
   return (
@@ -53,12 +49,12 @@ export function HowItWorks() {
     >
       <div className="mx-auto max-w-container">
         <Reveal className="mx-auto mb-[52px] max-w-[640px] text-center">
-          <p className="m-0 mb-3 text-[14px] font-black text-cherry">COMO FUNCIONA</p>
+          <p className="m-0 mb-3 text-[13px] font-black tracking-[0.14em] text-cherry">COMO FUNCIONA</p>
           <h2 className="m-0 text-[clamp(28px,4.2vw,48px)] font-black leading-[1.04] tracking-[-0.025em]">
-            Ler, confirmar, pago.
+            Ler. Confirmar. Pago.
           </h2>
           <p className="m-0 mt-[18px] text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-            Sem IBAN e sem terminal: o pagamento começa num QR ou num @banza.
+            Do QR ou de um @banza ao comprovativo, em três passos.
           </p>
         </Reveal>
 
@@ -73,19 +69,9 @@ export function HowItWorks() {
                   </span>
                   <span className="text-[21px] font-black text-ink">{s.title}</span>
                 </div>
-                <p className="m-0 mt-[10px] text-center text-[14px] font-semibold leading-[1.5] text-ink-secondary">
+                <p className="m-0 mt-[10px] max-w-[240px] text-center text-[14.5px] font-semibold leading-[1.5] text-ink-secondary">
                   {s.desc}
                 </p>
-                <div className="mt-[13px] flex flex-wrap justify-center gap-[7px]">
-                  {s.chips.map((c) => (
-                    <span
-                      key={c}
-                      className="rounded-pill bg-cream-100 px-[10px] py-[5px] text-[11px] font-extrabold text-cherry-dark"
-                    >
-                      {c}
-                    </span>
-                  ))}
-                </div>
               </div>
               {i < STEPS.length - 1 && (
                 <div
@@ -113,13 +99,6 @@ export function HowItWorks() {
           ))}
         </Reveal>
 
-        <div className="mt-[50px] flex flex-wrap items-center justify-center gap-[18px]">
-          <span className="h-px w-[54px]" style={{ background: '#E8C8C6' }} />
-          <p className="m-0 max-w-[520px] text-center text-[13px] font-semibold leading-[1.55] text-ink-muted md:max-w-none md:whitespace-nowrap">
-            Cada pagamento é um movimento entre carteiras, registado num ledger de dupla entrada.
-          </p>
-          <span className="h-px w-[54px]" style={{ background: '#E8C8C6' }} />
-        </div>
       </div>
     </section>
   );

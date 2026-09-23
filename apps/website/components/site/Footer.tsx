@@ -167,7 +167,7 @@ export function Footer() {
             <p className="m-0 text-[11px] font-black uppercase tracking-[0.12em] text-white/60">Para developers e parceiros</p>
             <p className="m-0 mt-[10px] text-[26px] font-black leading-[1.1] tracking-[-0.01em]">Integre o Banzami no seu produto</p>
             <p data-testid="footer-environment-status" className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
-              A {PUBLIC_TRUTH.sandbox.name} está disponível com dinheiro fictício para testar APIs, SDK e webhooks. O {PUBLIC_TRUTH.live.name} permanece indisponível nesta fase beta.
+              A {PUBLIC_TRUTH.sandbox.name} permite testar APIs, SDKs e webhooks com dinheiro fictício. O {PUBLIC_TRUTH.live.name} permanece indisponível nesta fase Beta.
             </p>
 
             <a
@@ -184,7 +184,7 @@ export function Footer() {
             <ContactCTA label="Falar com a equipa" />
 
             <p className="m-0 mt-[18px] text-[13px] font-semibold leading-[1.5] text-white/70">
-              A App Banzami está disponível na Beta Web e em testes no iPhone e Android. <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Explore a plataforma no browser</a> ou <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">participe nos testes nativos</a>.
+              Também quer experimentar a app? A <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" className="font-black text-white underline-offset-2 hover:underline">Beta Web</a> está disponível no browser, com versões iPhone e Android <a href="/testes" className="font-black text-white underline-offset-2 hover:underline">em testes</a>.
             </p>
           </div>
         </section>

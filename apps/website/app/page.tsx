@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { HowItWorks } from '@/components/site/HowItWorks';
+import { HomeBenefits } from '@/components/site/HomeBenefits';
+import { HomePaths } from '@/components/site/HomePaths';
 import { HeroLaunch } from '@/components/site/HeroLaunch';
 import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
@@ -25,7 +27,13 @@ export default function HomePage() {
       {/* ===================== COMO FUNCIONA ===================== */}
       <HowItWorks />
 
-      {/* ===================== FOOTER (componente partilhado) ===================== */}
+      {/* ===================== O ESSENCIAL (QR · @banza · comprovativos) ===================== */}
+      <HomeBenefits />
+
+      {/* ===================== NEGÓCIOS / DEVELOPERS ===================== */}
+      <HomePaths />
+
+      {/* ===================== FOOTER (o bloco vermelho é o CTA final) ===================== */}
       <Footer />
     </main>
   );

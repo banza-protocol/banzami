@@ -78,24 +78,24 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
         {/* ── LEFT — story + actions ── */}
         <div className="max-w-[600px]">
           <span className="inline-flex items-center gap-2 rounded-pill bg-pink-100 px-3.5 py-1.5 text-[12.5px] font-extrabold text-cherry">
-            <Dot />Beta pública · Sandbox
+            <Dot />Versão Beta · Sandbox
           </span>
 
-          <h1 className="m-0 mt-[clamp(28px,3vh,40px)] text-[clamp(38px,3.4vw+1vh,62px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
+          <h1 className="m-0 mt-[clamp(24px,2.8vh,32px)] text-[clamp(38px,3.4vw+1vh,62px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
             O novo caminho do <span className="text-cherry">Kwanza.</span>
           </h1>
 
-          <p className="m-0 mt-[clamp(14px,2vh,22px)] max-w-[540px] text-[clamp(15px,0.5vw+0.7vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
+          <p className="m-0 mt-[clamp(28px,3.2vh,36px)] max-w-[540px] text-[clamp(15px,0.5vw+0.7vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
             Envie, receba e aceite pagamentos em Kz entre pessoas, negócios e aplicações — na app
             Banzami ou integrado no seu produto.
           </p>
 
-          <p data-testid="home-environment-status" className="m-0 mt-3 max-w-[520px] text-[12.5px] font-semibold text-ink-muted">
+          <p data-testid="home-environment-status" className="m-0 mt-[clamp(22px,2.6vh,28px)] max-w-[520px] text-[12.5px] font-semibold text-ink-muted">
             {sandboxName} disponível com dinheiro fictício. {liveSummaryShort}
           </p>
 
           {/* CTAs */}
-          <div className="mt-[clamp(18px,2.6vh,26px)] flex flex-wrap items-center gap-3">
+          <div className="mt-[clamp(28px,3.4vh,36px)] flex flex-wrap items-center gap-3">
             <a
               href={APP_WEB}
               target="_blank"
@@ -118,7 +118,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           </div>
 
           {/* Audience cards */}
-          <div className="mt-[clamp(18px,2.6vh,28px)] grid max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-[clamp(32px,4vh,40px)] grid max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-2">
             <AudienceCard
               icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0111 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 19a4.5 4.5 0 015.5-4.4"/></svg>}
               title="Para pessoas e negócios"
@@ -138,7 +138,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           {/* Beta channels — three equal cards: icon (left) + title + channel.
               No label: the "Beta pública · Sandbox" badge and the channel names
               already say it, so the row reads cleaner without the heading. */}
-          <div className="mt-[clamp(34px,5vh,56px)] max-w-[560px]">
+          <div className="mt-[clamp(36px,4.6vh,48px)] max-w-[560px]">
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <a href={APP_WEB} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-[14px] border border-white/10 bg-ink px-4 py-2.5 no-underline shadow-[0_10px_26px_-22px_rgba(181,16,31,.3)] transition-transform hover:-translate-y-0.5">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/10 text-white">
@@ -175,7 +175,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
                 <span className="min-w-0 leading-tight"><span className="block text-[13px] font-extrabold text-white">Android</span><span className="block text-[11px] font-semibold text-white/55">Google Play</span></span>
               </button>
             </div>
-            <p className="m-0 mt-4 flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted">
+            <p className="m-0 mt-[clamp(24px,2.8vh,32px)] flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted">
               <span className="inline-block h-[2px] w-6 rounded bg-cherry" />
               Construindo o ecossistema de pagamentos de Angola.
             </p>
