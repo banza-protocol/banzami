@@ -1,5 +1,6 @@
 import { Badge } from './kit';
 import { HeroAppPhone } from './HeroAppPhone';
+import { HeroPlatforms } from './HeroPlatforms';
 import { route, type Lang, type Loc } from '@/lib/marketing/nav';
 
 const APP_URL = 'https://app.banzami.com/';
@@ -89,19 +90,8 @@ export function HomeHero({ lang }: { lang: Lang }) {
             </a>
           </div>
 
-          {/* Platforms */}
-          <div className="bz-plat" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginTop: '14px', maxWidth: '590px' }}>
-            {[
-              { href: APP_URL, ext: true, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.6 2.8 3.8 5.8 3.8 9s-1.2 6.2-3.8 9c-2.6-2.8-3.8-5.8-3.8-9S9.4 5.8 12 3z" /></svg>, t: T.betaWeb[lang], s: T.inBrowser[lang] },
-              { href: route('testes', lang), ext: false, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.89-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.55 0 2 .83 3.37.81 1.39-.03 2.27-1.27 3.12-2.53.98-1.45 1.39-2.85 1.41-2.92-.03-.01-2.7-1.04-2.73-4.11z" /><path d="M14.69 4.86c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z" /></svg>, t: 'iPhone', s: 'TestFlight' },
-              { href: route('testes', lang), ext: false, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M6 9.5h12v7.5a1.5 1.5 0 0 1-1.5 1.5H15v2.5a1.25 1.25 0 0 1-2.5 0V18.5h-1v2.5a1.25 1.25 0 0 1-2.5 0V18.5H7.5A1.5 1.5 0 0 1 6 17zM3.5 10a1.25 1.25 0 0 1 2.5 0v5a1.25 1.25 0 0 1-2.5 0zM18 10a1.25 1.25 0 0 1 2.5 0v5a1.25 1.25 0 0 1-2.5 0zM6 8.6a6 6 0 0 1 12 0z" /></svg>, t: 'Android', s: 'Google Play' },
-            ].map((p, i) => (
-              <a key={i} href={p.href} {...(p.ext ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="bz-btnlift" style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '12px 16px', borderRadius: '14px', background: 'linear-gradient(160deg,#241c1e,#120e0f)', border: '1px solid rgba(255,255,255,.06)', textDecoration: 'none', boxShadow: '0 16px 30px -18px rgba(20,16,20,.7)' }}>
-                <span style={{ display: 'flex' }}>{p.icon}</span>
-                <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}><span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{p.t}</span><span style={{ fontSize: '11.5px', fontWeight: 600, color: 'rgba(255,255,255,.55)' }}>{p.s}</span></span>
-              </a>
-            ))}
-          </div>
+          {/* Platforms — Beta Web opens the app; iPhone/Android open the tester sign-up modal */}
+          <HeroPlatforms lang={lang} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '26px' }}><span style={{ width: '28px', height: '2px', borderRadius: '2px', background: '#D8121F' }} /><span style={{ fontSize: '13px', fontWeight: 700, color: '#8a7a7e' }}>{T.building[lang]}</span></div>
         </div>
 
