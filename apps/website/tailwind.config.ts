@@ -44,6 +44,7 @@ const config: Config = {
       fontFamily: {
         sans: ["'Nunito'", "'Nunito Fallback'", 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ["'JetBrains Mono'", 'ui-monospace', 'monospace'],
+        caveat: ["'Caveat'", 'cursive'],
       },
       borderRadius: {
         pill: '30px', // botões / pílulas

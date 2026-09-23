@@ -63,10 +63,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             connection early so the live phone paints sooner on load. */}
         <link rel="preconnect" href="https://app.banzami.com" />
         <link rel="dns-prefetch" href="https://app.banzami.com" />
-        {/* Dossier font import (README §Tipografia): Nunito + JetBrains Mono.
+        {/* Dossier font import (README §Tipografia): Nunito + JetBrains Mono +
+            Caveat (notas manuscritas decorativas, só ≥1380px).
             Loaded via <link> to avoid a build-time network dependency. */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
