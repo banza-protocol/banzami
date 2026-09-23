@@ -154,6 +154,7 @@ body {
 /* Home sections (handoff_home_sections): Como funciona · Para negócios · Para developers */
 @keyframes bzScanline { 0% { top: 14%; } 100% { top: 78%; } }
 @keyframes bzring { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes bzpulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.5); } 50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(255,255,255,0); } }
 
 /* Marketing shell (handoff_site_completo): floating header, mega-menu, language dropdown */
 .bz-navitem { position: relative; }

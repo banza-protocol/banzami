@@ -6,14 +6,16 @@ import { ForBusiness } from '@/components/site/ForBusiness';
 import { ForDevelopers } from '@/components/site/ForDevelopers';
 
 export const metadata: Metadata = {
-  alternates: { canonical: 'https://banzami.com/', languages: { en: 'https://banzami.com/en' } },
+  title: 'Banzami — Kwanza payments, from wallet to wallet',
+  alternates: { canonical: 'https://banzami.com/en', languages: { pt: 'https://banzami.com/' } },
 };
 
-// Home — rebuilt from handoff_site_completo on the shared marketing shell.
-export default function HomePage() {
+// EN home — /en (handoff_site_completo). Hero is bilingual; section EN copy
+// is being translated in a follow-up pass.
+export default function HomePageEN() {
   return (
-    <SiteShell lang="pt" current="home">
-      <HomeHero lang="pt" />
+    <SiteShell lang="en" current="home">
+      <HomeHero lang="en" />
       <HowItWorks />
       <ForBusiness />
       <ForDevelopers />
