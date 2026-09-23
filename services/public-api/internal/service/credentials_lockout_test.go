@@ -30,7 +30,7 @@ func TestVerify_WrongPinsLockTheAccountEvenUnderConcurrency(t *testing.T) {
 	seed := func() (string, string) {
 		id := uuid.NewString()
 		handle := "lk" + id[:8]
-		if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status) VALUES ($1,$2,'ACTIVE')`, id, handle); err != nil {
+		if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status, display_name) VALUES ($1,$2,'ACTIVE',$2)`, id, handle); err != nil {
 			t.Fatal(err)
 		}
 		h, _ := bcrypt.GenerateFromPassword([]byte("246810"), bcrypt.MinCost)
@@ -98,7 +98,7 @@ func TestSessions_SuspensionAndSignOutEndThem(t *testing.T) {
 	t.Cleanup(pool.Close) // not defer: Cleanups run after defers, and a closed pool made every cleanup a silent no-op
 	id := uuid.NewString()
 	handle := "ss" + id[:8]
-	if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status) VALUES ($1,$2,'ACTIVE')`, id, handle); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status, display_name) VALUES ($1,$2,'ACTIVE',$2)`, id, handle); err != nil {
 		t.Fatal(err)
 	}
 	h, _ := bcrypt.GenerateFromPassword([]byte("246810"), bcrypt.MinCost)
@@ -160,7 +160,7 @@ func TestVerify_ATestPayerDoesNotSignIn(t *testing.T) {
 	seed := func(testPayer bool) string {
 		id := uuid.NewString()
 		handle := "tpc" + id[:8]
-		if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status) VALUES ($1,$2,'ACTIVE')`, id, handle); err != nil {
+		if _, err := pool.Exec(ctx, `INSERT INTO consumers (id, handle, status, display_name) VALUES ($1,$2,'ACTIVE',$2)`, id, handle); err != nil {
 			t.Fatal(err)
 		}
 		h, _ := bcrypt.GenerateFromPassword([]byte("246810"), bcrypt.MinCost)

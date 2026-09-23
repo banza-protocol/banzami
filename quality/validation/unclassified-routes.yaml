@@ -635,6 +635,10 @@ unclassified_routes:
     class: pending-classification
     reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
     owning_milestone: "Phase B/C capability expansion"
+  - route: "POST /v1/contact"
+    class: pending-classification
+    reason: "Public website contact form (PUBLIC-WEBSITE-CONTACT-001): no auth, rate-limited, delivered by email to the team; stores nothing. A product surface not yet claimed by a capability, like the public beta and onboarding routes."
+    owning_milestone: "Phase B/C capability expansion"
   - route: "POST /v1/merchant/applications/check-handle"
     class: pending-classification
     reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."

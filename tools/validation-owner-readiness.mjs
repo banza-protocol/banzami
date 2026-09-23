@@ -105,7 +105,8 @@ const RUNNER_SUBMITS = planCost.filter((r) => r.quotaBucket === 'runner').length
 const VM_SUBMITS = planCost.filter((r) => r.quotaBucket === 'vm').length;
 gate('RUNNER_IP_FREE_SLOTS', !!rb && rb.free >= RUNNER_SUBMITS * 2,
   rb ? `${rb.used}/30 used · ${rb.free} free · need ${RUNNER_SUBMITS}+${RUNNER_SUBMITS}=${RUNNER_SUBMITS * 2} · next ${rb.nextFreeAt ?? '—'}`
-     : 'the limiter has no record of this machine');
+       + (rb.observed ? '' : ' · no key in this window, so nothing spent from here')
+     : 'more than one unidentified bucket — which one is this machine is not known');
 gate('VM_IP_FREE_SLOTS', VM_SUBMITS === 0 || (!!vb && vb.free >= VM_SUBMITS * 2),
   VM_SUBMITS === 0 ? 'this profile spends nothing from the VM'
     : vb ? `${vb.used}/30 used · ${vb.free} free · need ${VM_SUBMITS * 2}` +

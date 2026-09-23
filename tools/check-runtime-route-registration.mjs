@@ -104,7 +104,7 @@ const LEDGER_PATH = 'quality/validation/unclassified-routes.yaml';
 const ledger = parseLedger(readFileSync(join(ROOT, LEDGER_PATH), 'utf-8'));
 // A baseline that can only shrink. The number is committed so CI can compare
 // against it; raising it is a deliberate, reviewable edit rather than drift.
-const BASELINE = 337;
+const BASELINE = 338;
 const excused = new Map();
 for (const e of ledger) {
   if (!e.route) { fail('an unclassified_routes entry has no route'); continue; }

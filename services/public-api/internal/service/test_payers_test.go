@@ -34,7 +34,7 @@ func testPayerPool(t *testing.T) *pgxpool.Pool {
 func newConsumer(t *testing.T, pool *pgxpool.Pool) string {
 	t.Helper()
 	id := uuid.NewString()
-	if _, err := pool.Exec(context.Background(), `INSERT INTO consumers (id, handle) VALUES ($1, $2)`, id, "tpt"+id[:8]); err != nil {
+	if _, err := pool.Exec(context.Background(), `INSERT INTO consumers (id, handle, display_name) VALUES ($1, $2, $2)`, id, "tpt"+id[:8]); err != nil {
 		t.Fatal(err)
 	}
 	return id

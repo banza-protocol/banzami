@@ -73,9 +73,25 @@ export function submitCapacity() {
  */
 export function runnerBucket(buckets = submitCapacity()) {
   const candidates = buckets.filter((b) => !b.isVM);
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    // NO non-VM key exists. That is a SUCCESSFUL scan returning nothing, not a
+    // measurement that failed — and it says something definite: no non-VM
+    // address has submitted inside the window, this machine included.
+    //
+    // The limiter is the authority on what it will refuse, and a limiter with
+    // no key for an address allows the whole window. Reading this as UNKNOWN
+    // closed the owner gate at the exact moment the resource was maximally
+    // available: on 2026-09-23 every entry had aged out, the scan returned zero
+    // buckets, and RUNNER_IP_FREE_SLOTS reported "the limiter has no record of
+    // this machine" against 30 free slots.
+    //
+    // `observed: false` keeps the distinction visible, exactly as vmBucket does
+    // for a VM that has not submitted: the figure is derived, and the address
+    // is only CONFIRMED once something is spent from it.
+    return { ip: null, used: 0, free: SUBMIT_LIMIT, nextFreeAt: null, isVM: false, observed: false };
+  }
   // The busiest non-VM bucket is the one this machine has been spending from.
-  return candidates.sort((a, b) => b.used - a.used)[0];
+  return { ...candidates.sort((a, b) => b.used - a.used)[0], observed: true };
 }
 
 /**

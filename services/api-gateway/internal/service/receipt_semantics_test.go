@@ -62,7 +62,15 @@ func (f *semFixture) ledgerAccount(name string) string {
 
 func (f *semFixture) consumer(handle, name string) string {
 	id := uuid.NewString()
-	f.exec(`INSERT INTO consumers (id, handle, display_name, status) VALUES ($1,$2,$3,'ACTIVE')`, id, handle, name)
+	// Post-0152 only a non-ACTIVE consumer may be nameless (the declared-name
+	// guarantee is scoped to ACTIVE). The nameless-case tests exercise the
+	// receipt's @handle fallback, so seed those as SUSPENDED with a NULL name;
+	// named consumers stay ACTIVE.
+	status := "ACTIVE"
+	if name == "" {
+		status = "SUSPENDED"
+	}
+	f.exec(`INSERT INTO consumers (id, handle, display_name, status) VALUES ($1,$2,NULLIF($3,''),$4)`, id, handle, name, status)
 	f.cleanup(`DELETE FROM consumers WHERE id=$1`, id)
 	return id
 }
