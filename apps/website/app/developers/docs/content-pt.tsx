@@ -30,7 +30,7 @@ const SDKS: { name: string; lang: string; state: string; tone: Tone; consume: st
   // banzami_client is the PUBLIC client SDK; banzami_flutter is Banzami's own
   // application framework and is not published (Banzami ADR-053).
   { name: 'banzami_client', lang: 'Dart / Flutter', state: 'Publicado — cliente, só leitura', tone: 'ok', consume: 'dart pub add banzami_client' },
-  { name: 'banzami-python', lang: 'Python', state: 'Não publicado', tone: 'val', consume: '—' },
+  { name: 'banzami-python', lang: 'Python', state: 'Publicado — servidor', tone: 'ok', consume: 'pip install banzami-python' },
   { name: 'banzami/sdk-php', lang: 'PHP', state: 'Não publicado', tone: 'val', consume: '—' },
 ]
 
@@ -1959,7 +1959,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><Code>@banzami/sdk</Code> (npm) é o SDK de servidor e usa a chave secreta.</LI>
                 <LI><Code>banzami_client</Code> (pub.dev) é o SDK cliente e usa apenas a chave publicável, de leitura.</LI>
-                <LI>Os SDKs de Python, PHP e Go não estão publicados; esta documentação não mostra comandos de instalação para pacotes que nenhum registo disponibiliza.</LI>
+                <LI>Os SDKs de PHP e Go não estão publicados; esta documentação não mostra comandos de instalação para pacotes que nenhum registo disponibiliza.</LI>
               </UL>
 
               <H2 id="sdk-first">O que o SDK trata por si</H2>
@@ -1992,7 +1992,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                     {([
                       ['JavaScript / TypeScript', 'Publicado', '@banzami/sdk', 'Servidor — chave secreta'],
                       ['Dart / Flutter (cliente)', 'Publicado', 'banzami_client', 'Cliente — chave publicável, só leitura'],
-                      ['Python', 'Não publicado', '—', 'Código-fonte'],
+                      ['Python', 'Publicado', 'banzami-python', 'Servidor — chave secreta'],
                       ['PHP', 'Não publicado', '—', 'Código-fonte'],
                     ] as [string, string, string, string][]).map((r) => (
                       <tr key={r[0]}><td style={TD_HEAD}>{r[0]}</td><td style={TD}>{r[1]}</td><td style={TD_MONO}>{r[2]}</td><td style={TD}>{r[3]}</td></tr>

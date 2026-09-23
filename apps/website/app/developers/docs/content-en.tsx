@@ -215,7 +215,7 @@ const EVENTS: string[] = EVENT_NAMES;
 const SDKS: { name: string; lang: string; state: string; consume: string }[] = [
   { name: '@banzami/sdk', lang: 'TypeScript / Node.js', state: 'Published — server', consume: 'npm install @banzami/sdk' },
   { name: 'banzami_client', lang: 'Dart / Flutter', state: 'Published — client, read-only', consume: 'dart pub add banzami_client' },
-  { name: 'banzami-python', lang: 'Python', state: 'Not published', consume: '—' },
+  { name: 'banzami-python', lang: 'Python', state: 'Published — server', consume: 'pip install banzami-python' },
   { name: 'banzami/sdk-php', lang: 'PHP', state: 'Not published', consume: '—' },
 ]
 
@@ -1973,7 +1973,7 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><Code>@banzami/sdk</Code> (npm) is the server SDK and uses the secret key.</LI>
                 <LI><Code>banzami_client</Code> (pub.dev) is the client SDK and uses only the read-only publishable key.</LI>
-                <LI>The Python, PHP and Go SDKs are not published; these docs show no install command for packages no registry offers.</LI>
+                <LI>The PHP and Go SDKs are not published; these docs show no install command for packages no registry offers.</LI>
               </UL>
 
               <H2 id="sdk-first">What the SDK handles for you</H2>
@@ -2006,7 +2006,7 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                     {([
                       ['JavaScript / TypeScript', 'Published', '@banzami/sdk', 'Server — secret key'],
                       ['Dart / Flutter (client)', 'Published', 'banzami_client', 'Client — publishable key, read-only'],
-                      ['Python', 'Not published', '—', 'Source code'],
+                      ['Python', 'Published', 'banzami-python', 'Server — secret key'],
                       ['PHP', 'Not published', '—', 'Source code'],
                     ] as [string, string, string, string][]).map((r) => (
                       <tr key={r[0]}><td style={TD_HEAD}>{r[0]}</td><td style={TD}>{r[1]}</td><td style={TD_MONO}>{r[2]}</td><td style={TD}>{r[3]}</td></tr>
