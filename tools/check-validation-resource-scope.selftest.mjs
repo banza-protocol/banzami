@@ -53,6 +53,52 @@ const own = (kind, id) => ({ kind, id });
     r.verdict === 'RESOLVED' && r.accounts[0] === 'acct-M', r.detail);
 }
 
+/* ── existing-with-no-account is a reading; absent is not ────────────────── */
+//
+// BZV-20260923-0001 measured S22-FIN-001 as UNKNOWN for a merchant created by
+// INSERT with no wallet at all — a deliberately unpriced owner, used to prove
+// that an owner with no policy is refused rather than settled free. It cannot
+// hold money and never could, and the schema can say so.
+//
+// The distinction the resolver now makes, and must keep making:
+//   the row IS there and carries no account  → derived zero, classified, with a why
+//   the row is NOT there                     → UNKNOWN, because retired-holding-
+//                                              anything and wrong-join look alike
+{
+  // `query` finds nothing; `exists` finds the merchant. Answered, not shrugged.
+  const sqlExists = (q) => (/FROM merchants m/.test(q) ? [['m-bare']] : []);
+  const r = resolveFinancialAccounts([own('merchant', 'm-bare')], { sql: sqlExists });
+  check('a merchant that exists with no wallet resolves to a DERIVED zero',
+    r.verdict === 'RESOLVED' && r.accounts.length === 0, `${r.verdict} · ${r.detail ?? ''}`);
+  check('…and is classified structural WITH a reason, never dropped',
+    r.structural.some((x) => x.kind === 'merchant' && x.id === 'm-bare' && /carries no account/.test(x.why ?? '')),
+    JSON.stringify(r.structural));
+}
+{
+  // Neither query nor existence probe finds it: retired holding anything, or a
+  // join that is simply wrong. Those look identical from here.
+  const r = resolveFinancialAccounts([own('merchant', 'm-gone')], { sql: () => [] });
+  check('a merchant that is ABSENT stays UNKNOWN',
+    r.verdict === 'UNKNOWN', `${r.verdict} · ${r.detail ?? ''}`);
+  check('…and the refusal says a financial resource mapped to no account',
+    /mapped to no account/.test(r.detail ?? ''), r.detail);
+}
+{
+  // A kind with no existence probe keeps the old, conservative answer.
+  const r = resolveFinancialAccounts([own('test_payer', 'tp-1')], { sql: () => [] });
+  check('a FINANCIAL kind with no existence probe is still UNKNOWN',
+    r.verdict === 'UNKNOWN',
+    'the fix must not widen into kinds whose absence cannot be told from their emptiness');
+}
+{
+  // And the probe must not rescue a resource that DOES resolve — no double count.
+  const sqlBoth = (q) => (/FROM merchants m/.test(q) ? [['m-2']] : [['m-2', 'acct-M2']]);
+  const r = resolveFinancialAccounts([own('merchant', 'm-2')], { sql: sqlBoth });
+  check('a resolvable merchant is not ALSO counted as accountless',
+    r.verdict === 'RESOLVED' && r.accounts.length === 1
+    && !r.structural.some((x) => x.id === 'm-2'), JSON.stringify(r.structural));
+}
+
 /* ── C · BUSINESS + MERCHANT on one wallet is ONE balance ────────────────── */
 
 {

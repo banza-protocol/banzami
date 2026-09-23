@@ -418,6 +418,13 @@ async function complete() {
     const saysTestPayer = /pagador de teste|test payer/i.test(page);
     const payer = await call(`/projects/${state.created.project}/explorer/requests`, 'POST', { operation_id: 'createTestPayer', body: { label: 'Quickstart payer' } });
     const payerId = payer.body?.body?.id;
+    // Handed over, like the workspace and the project above. Created through the
+    // Console explorer rather than the gateway, so the transport's own
+    // gateway-create sweep never saw it: BZV-20260923-0001 measured this journey
+    // as ownership INCOMPLETE — "1 created resource the manifest never declared:
+    // test_payer under fixture_project" — and an incomplete manifest makes the
+    // whole exposure UNKNOWN rather than merely missing one line.
+    ownCreated('test_payer', payerId, { creation_source: 'docs-quickstart:createTestPayer' });
     const pay = payerId
       ? await call(`/projects/${state.created.project}/explorer/requests`, 'POST', { operation_id: 'payAsTestPayer', path_params: { id: payerId }, body: { payment_session_id: session.session_id }, idempotency_key: `idem_qs_pay_${state.stamp}` })
       : null;

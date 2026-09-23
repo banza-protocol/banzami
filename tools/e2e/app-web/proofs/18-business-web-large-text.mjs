@@ -100,14 +100,27 @@ async function screen(d, page, label, marker, actions = []) {
     // ── Home ──
     await screen(d, page, 'HOME', ['Saldo disponível'], []);
     const homeText = await d.visibleText();
-    R.mark('LARGE_TEXT_HOME_IDENTITY', homeText.includes(`@${biz.handle}`), `@${biz.handle} shown`);
+    // The detail used to be the constant `@handle shown` — printed whether the
+    // handle was there or not. BZV-20260923-0001 recorded this gate FAILED with
+    // "shown" beside it, which tells the next reader nothing and actively
+    // misleads: a message that is identical on both branches is not evidence.
+    const homeHasHandle = homeText.includes(`@${biz.handle}`);
+    R.mark('LARGE_TEXT_HOME_IDENTITY', homeHasHandle,
+      homeHasHandle ? `@${biz.handle} shown`
+        : `@${biz.handle} NOT in Home's visible text under large text — saw: ${homeText.replace(/\s+/g, ' ').slice(0, 140)}`);
 
     // ── Receber (QR + identity block) ──
     await go(d, 'Receber');
     await d.waitForText('Mostre este QR', { timeout: 15000 }).catch(() => {});
     const recvOk = await screen(d, page, 'RECEBER', ['Mostre este QR', 'QR Code e ligação'], ['Criar cobrança', 'Partilhar QR']);
     const recvText = await d.visibleText();
-    R.mark('LARGE_TEXT_QR_USABLE', recvOk && /Receber em @/.test(recvText), 'Receive QR card + identity render intact under large text');
+    // Same defect, same fix: two separate conditions behind one constant string.
+    // Which of them failed is the whole question, so the detail now says.
+    const recvIdentity = /Receber em @/.test(recvText);
+    R.mark('LARGE_TEXT_QR_USABLE', recvOk && recvIdentity,
+      recvOk && recvIdentity ? 'Receive QR card + identity render intact under large text'
+        : `card=${recvOk ? 'intact' : 'incomplete'} identity=${recvIdentity ? 'present' : 'MISSING'}` +
+          ` — saw: ${recvText.replace(/\s+/g, ' ').slice(0, 140)}`);
 
     // ── Criar cobrança (form) ──
     await go(d, 'Criar cobrança');

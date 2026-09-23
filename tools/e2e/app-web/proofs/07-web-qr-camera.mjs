@@ -91,9 +91,38 @@ async function openScanner(c, wait = 2500) {
   await c.driver.tapButton('QR Code');
   await c.page.waitForTimeout(wait);
 }
+/** The scanner's own prompt: present exactly while it is open. */
+const SCANNER_PROMPT = /Aponte para o código QR/;
+
+/** Every close this proof attempted, and whether the scanner actually went away. */
+const closes = [];
+
+/**
+ * Close the scanner, and PROVE it closed.
+ *
+ * This was `tapButton('Fechar').catch(() => tapText('Voltar').catch(() => {}))`:
+ * both failures swallowed, so a close that never happened was indistinguishable
+ * from one that did. The four camera-lifecycle gates downstream — release,
+ * duplicate streams, background capture, visibility — then read a scanner that
+ * was still open as an application refusing to release the camera.
+ *
+ * BZV-20260923-0001 failed all four (started=3 stopped=2 active=1) with a screen
+ * showing three stacked scanner overlays, and the evidence could not say which
+ * of the two it was: a product that does not release, or an instrument that
+ * never asked. That is the defect. The reading is now taken.
+ */
 async function closeScanner(c) {
-  await c.driver.tapButton('Fechar').catch(() => c.driver.tapText('Voltar').catch(() => {}));
+  let how = null;
+  try { await c.driver.tapButton('Fechar'); how = 'Fechar'; }
+  catch {
+    try { await c.driver.tapText('Voltar'); how = 'Voltar'; }
+    catch { how = null; }
+  }
   await c.page.waitForTimeout(1200);
+  // The observation, not the intention: is the scanner still on screen?
+  const stillOpen = SCANNER_PROMPT.test(await text(c));
+  closes.push({ how, closed: !stillOpen });
+  return { how, closed: !stillOpen };
 }
 
 async function section(name, launchOpts, grant, fn) {
@@ -138,6 +167,17 @@ try {
     // RELEASE ON CLOSE + NO DUPLICATE STREAMS: open/close several times.
     await closeScanner(c);
     for (let i = 0; i < 2; i++) { await openScanner(c, 1800); await closeScanner(c); }
+    // THE INSTRUMENT ANSWERS FIRST. Every gate below reads camera state after a
+    // close, so a close that did not land makes all of them lie in the same
+    // direction. Stated as its own gate so the next reader is never left
+    // choosing between two explanations for one number.
+    const closed = closes.filter((x) => x.closed).length;
+    R.mark('WEB_SCANNER_CLOSE_IS_REAL', closes.length > 0 && closed === closes.length,
+      `${closed}/${closes.length} close(s) actually dismissed the scanner` +
+      (closed === closes.length ? '' :
+        ` — via ${[...new Set(closes.map((x) => x.how ?? 'no control found'))].join(', ')};` +
+        ' the camera gates below are NOT evidence about the application while this fails'));
+
     const s1 = await camStats(c);
     const released = s1 && s1.activeV === 0 && s1.startedV >= 2;
     R.mark('WEB_CAMERA_RELEASE_ON_CLOSE', released, s1 ? `started=${s1.startedV} stopped=${s1.stoppedV} active=${s1.activeV}` : 'no cam stats');

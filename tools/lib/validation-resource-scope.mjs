@@ -73,6 +73,11 @@ export const RESOURCE_SCOPE = new Map([
     query: (ids) => `SELECT DISTINCT w.merchant_id::text, w.available_account_id::text
                        FROM wallets w WHERE w.merchant_id::text IN (${ids})
                         AND w.available_account_id IS NOT NULL`,
+    // EXISTS is a different question from RESOLVES, and only asking the first
+    // can tell an accountless resource from a missing one. A merchant row with
+    // zero wallets holds nothing — the schema says so — while a merchant row
+    // that is gone might have been retired holding anything.
+    exists: (ids) => `SELECT m.id::text FROM merchants m WHERE m.id::text IN (${ids})`,
   }],
   ['merchant', {
     scope: 'FINANCIAL',
@@ -80,6 +85,11 @@ export const RESOURCE_SCOPE = new Map([
     query: (ids) => `SELECT DISTINCT w.merchant_id::text, w.available_account_id::text
                        FROM wallets w WHERE w.merchant_id::text IN (${ids})
                         AND w.available_account_id IS NOT NULL`,
+    // EXISTS is a different question from RESOLVES, and only asking the first
+    // can tell an accountless resource from a missing one. A merchant row with
+    // zero wallets holds nothing — the schema says so — while a merchant row
+    // that is gone might have been retired holding anything.
+    exists: (ids) => `SELECT m.id::text FROM merchants m WHERE m.id::text IN (${ids})`,
   }],
   ['test_payer', {
     scope: 'FINANCIAL',
@@ -225,13 +235,34 @@ export function resolveFinancialAccounts(owned, { sql }) {
       accounts.add(accountID);
       resolved.push({ kind, id: resourceID, account: accountID });
     }
-    // A FINANCIAL resource that resolves to nothing is UNKNOWN, not zero. It
-    // may have been retired, or it may be a kind whose join is wrong — and
-    // those two look identical from here, so neither may be assumed.
-    for (const id of ids) {
-      const hit = resolved.some((x) => x.kind === kind && String(x.id).toLowerCase() === id)
-        || seen.has(id);
-      if (!hit) unresolved.push({ kind, id });
+    // A FINANCIAL resource that resolves to nothing is UNKNOWN, not zero — it may
+    // have been retired holding anything, or its join may simply be wrong, and
+    // from here those look identical.
+    //
+    // Unless the schema can tell them apart. Where the kind carries an `exists`
+    // probe, a row that IS there and has no account is a DERIVED zero: it holds
+    // nothing, and that is a reading rather than a shrug. A row that is NOT
+    // there stays UNKNOWN, because that is the case the paragraph above is about.
+    //
+    // BZV-20260923-0001 measured S22-FIN-001 as UNKNOWN for a merchant created
+    // by INSERT with no wallet at all — a deliberately unpriced owner, used to
+    // prove that an owner with no policy is refused rather than settled free. It
+    // cannot hold money and never could.
+    const missing = [...ids].filter((id) =>
+      !seen.has(id) && !resolved.some((x) => x.kind === kind && String(x.id).toLowerCase() === id));
+    if (missing.length && typeof spec.exists === 'function') {
+      let present;
+      try { present = new Set(sql(spec.exists(missing.map(lit).join(','))).map(([id]) => String(id).toLowerCase())); }
+      catch (e) { return unknownResult(`could not establish whether ${kind} exists: ${String(e.message).slice(0, 100)}`, { structural, unknownKinds }); }
+      for (const id of missing) {
+        if (present.has(id)) {
+          structural.push({ kind, id, why: 'the resource exists and carries no account: it cannot hold funds' });
+        } else {
+          unresolved.push({ kind, id });
+        }
+      }
+    } else {
+      for (const id of missing) unresolved.push({ kind, id });
     }
   }
 

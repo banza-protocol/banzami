@@ -668,8 +668,17 @@ journeys:
     depends_on: []
     automation: full
     existing_harness: tools/e2e/app-web/proofs/07-web-qr-camera.mjs
-    # one consumer drives the camera
-    max_synthetic_funds_exposure_minor: 1000000
+    # Three sections (allowed, denied, no-cam), each a fresh browser, and each
+    # reaching Home twice — six registrations, six grants of 1 000 000, all held
+    # at once because nothing is retired until the proof ends.
+    #
+    # This said 1 000 000 and the comment said "one consumer drives the camera".
+    # It was written from the shape of the test, never measured: BZV-20260923-0001
+    # was the first run ever to reach this journey and recorded six owned
+    # identities, twelve ledger events and a concurrent peak of 6 000 000.
+    # A seventh concurrent grant would exceed this, which is what makes it a
+    # bound on the lifecycle rather than a note of what happened once.
+    max_synthetic_funds_exposure_minor: 6000000
     timeout_seconds: 900
     retry_policy: none
 
