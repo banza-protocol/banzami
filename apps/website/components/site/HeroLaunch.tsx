@@ -77,7 +77,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
       <div className="relative mx-auto grid w-full max-w-container grid-cols-1 items-center gap-y-14 lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)] lg:gap-x-[clamp(40px,4vw,72px)]">
         {/* ── LEFT — story + actions ── */}
         <div className="max-w-[600px]">
-          <span className="inline-flex items-center gap-2 rounded-pill bg-pink-100 px-3.5 py-1.5 text-[12.5px] font-extrabold text-cherry">
+          <span className="inline-flex items-center gap-2 rounded-pill bg-white px-3.5 py-1.5 text-[12.5px] font-extrabold text-cherry shadow-[0_6px_20px_-8px_rgba(122,16,22,0.25)]">
             <Dot />Versão Beta · Sandbox
           </span>
 
