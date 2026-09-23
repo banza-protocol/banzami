@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 // Web platform adapter — the ONLY web-specific transport code (WEB-APP-001 §3,
 // §8, §12). The shared Consumer widgets, screens, models and API client are
 // unchanged across iOS, Android and Web; only how the browser reaches the

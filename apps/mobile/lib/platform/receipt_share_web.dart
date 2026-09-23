@@ -1,3 +1,6 @@
+// This is a web-only platform adapter that legitimately uses dart:html; the
+// non-web build never sees it. Silence the web-library and deprecation infos.
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 
 /// Web: hand the browser the official Banzami PDF as a download. There is no OS

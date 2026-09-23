@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 // Web implementation of the same-origin location helpers (ADR-066).
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;

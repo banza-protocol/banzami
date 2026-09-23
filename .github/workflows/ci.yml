@@ -491,6 +491,13 @@ jobs:
         working-directory: apps/mobile
         run: flutter pub get
 
+      # analyze resolves each package against its own .dart_tool, so the shared
+      # sdk/flutter package needs its own pub get or every file there fails to
+      # find package:flutter/material.dart.
+      - name: Resolve shared SDK dependencies
+        working-directory: sdk/flutter
+        run: flutter pub get
+
       # The shared Consumer code must compile for every target; analyze covers
       # the Dart across iOS, Android and Web (the mobile entrypoints included).
       - name: Analyze shared Consumer code
