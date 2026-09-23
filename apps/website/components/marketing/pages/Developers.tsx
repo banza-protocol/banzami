@@ -147,8 +147,8 @@ const T = {
 type SdkRow = { pkg: string; lang: string; published: boolean; badge: Loc; badgeBg: string; badgeColor: string; install: string };
 const SDK_ROWS: SdkRow[] = [
   { pkg: '@banzami/sdk', lang: 'TypeScript / Node.js', published: true, badge: L('Publicado · servidor', 'Published · server'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E', install: 'npm install @banzami/sdk' },
-  { pkg: 'banzami_client', lang: 'Dart / Flutter', published: true, badge: L('Publicado · cliente, só leitura', 'Published · client, read-only'), badgeBg: '#EAF1FB', badgeColor: '#2A5CA8', install: 'dart pub add banzami_client' },
   { pkg: 'banzami-python', lang: 'Python', published: true, badge: L('Publicado · servidor', 'Published · server'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E', install: 'pip install banzami-python' },
+  { pkg: 'banzami_client', lang: 'Dart / Flutter', published: true, badge: L('Publicado · cliente, só leitura', 'Published · client, read-only'), badgeBg: '#EAF1FB', badgeColor: '#2A5CA8', install: 'dart pub add banzami_client' },
   { pkg: 'banzami/sdk-php', lang: 'PHP', published: false, badge: L('Não publicado', 'Not published'), badgeBg: '#F4EFEE', badgeColor: '#8a7a7e', install: '—' },
 ];
 
