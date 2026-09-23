@@ -1,4 +1,3 @@
-import { Badge } from './kit';
 import { HeroAppPhone } from './HeroAppPhone';
 import { HeroPlatforms } from './HeroPlatforms';
 import { route, type Lang, type Loc } from '@/lib/marketing/nav';
@@ -49,7 +48,8 @@ export function HomeHero({ lang }: { lang: Lang }) {
 
       <div className="bz-g2" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
         <div>
-          <Badge>{T.badge[lang]}</Badge>
+          {/* Badge removed by owner request; reserve its exact height (37px) so nothing shifts. */}
+          <div aria-hidden="true" style={{ height: '37px' }} />
           <h1 style={{ margin: '16px 0 0', fontSize: 'clamp(32px,3.3vw,52px)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-.035em', color: '#141014', textWrap: 'balance' }}><span style={{ whiteSpace: 'nowrap' }}>{T.h1a[lang]}</span><br /><span style={{ color: '#B5101F' }}>{T.h1b[lang]}</span></h1>
           <p style={{ margin: '14px 0 0', fontSize: 'clamp(15px,1.2vw,17px)', lineHeight: 1.5, color: '#4a3a3e', fontWeight: 600, maxWidth: '520px', textWrap: 'pretty' }}>{T.lead[lang]}</p>
           <p style={{ margin: '10px 0 0', fontSize: '13px', lineHeight: 1.5, color: '#8a7a7e', fontWeight: 600, maxWidth: '520px', textWrap: 'pretty' }}>{T.small[lang]}</p>
