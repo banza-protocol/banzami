@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Ribbon, Badge } from '../kit';
+import { Badge } from '../kit';
 import { Rotator } from '../Rotator';
 import { Reveal } from '@/components/Reveal';
 import type { Lang, Loc } from '@/lib/marketing/nav';
@@ -208,7 +208,7 @@ export function VerificarPage({ lang }: { lang: Lang }) {
             <img src="/assets/hero-bg-red.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
           </div>
         </div>
-        <Ribbon />
+
         <div className="sp-herogrid" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
           <Reveal>
             <Badge>{lang === 'en' ? 'Beta · Sandbox' : 'Versão Beta · Sandbox'}</Badge>

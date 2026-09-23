@@ -1,4 +1,4 @@
-import { Ribbon, Badge } from './kit';
+import { Badge } from './kit';
 import { HeroAppPhone } from './HeroAppPhone';
 import { route, type Lang, type Loc } from '@/lib/marketing/nav';
 
@@ -45,7 +45,7 @@ export function HomeHero({ lang }: { lang: Lang }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/assets/hero-bg-red.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
       </div>
-      <Ribbon />
+
       <div className="bz-g2" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
         <div>
           <Badge>{T.badge[lang]}</Badge>

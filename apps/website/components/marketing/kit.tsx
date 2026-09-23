@@ -66,11 +66,12 @@ export function ArrowIcon({ color = 'currentColor', size = 16 }: { color?: strin
 }
 
 // ── SANDBOX ribbon (corner) ───────────────────────────────────────────────
-// Replaces the old global PlatformBanner: carries the same sr-only disclosure
-// for assistive tech and crawlers (the hero copy also states it visibly).
+// Global, fixed to the viewport's top-left so it shows on every route. Carries
+// the sr-only disclosure for assistive tech and crawlers (the hero copy also
+// states it visibly). Rendered once in the root layout — not per page.
 export function Ribbon() {
   return (
-    <div role="status" style={{ position: 'absolute', top: 0, left: 0, zIndex: 61, width: '150px', height: '150px', overflow: 'hidden', pointerEvents: 'none' }}>
+    <div role="status" style={{ position: 'fixed', top: 0, left: 0, zIndex: 80, width: '150px', height: '150px', overflow: 'hidden', pointerEvents: 'none' }}>
       <span className="sr-only">Ambiente SANDBOX — dinheiro fictício. O Financial Live está indisponível.</span>
       <div aria-hidden="true" style={{ position: 'absolute', top: '12px', left: '-52px', transform: 'rotate(-45deg)', width: '150px', padding: '5px 0', textAlign: 'center', background: 'linear-gradient(90deg,#FBE6A6,#F2CD6E)', color: '#7A4A06', fontSize: '9.5px', fontWeight: 900, letterSpacing: '.16em', boxShadow: '0 8px 18px -8px rgba(122,74,6,.5)' }}>SANDBOX</div>
     </div>

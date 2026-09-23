@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Ribbon, Badge, H1, H2, HeroLead, Small, SectionLabel, Icon, type IconName } from '../kit';
+import { Badge, H1, H2, HeroLead, Small, SectionLabel, Icon, type IconName } from '../kit';
 import { Field, Check, FGrid, SubmitBtn, BackBtn, SuccessMark } from '../form-kit';
 import { Rotator } from '../Rotator';
 import { Reveal } from '@/components/Reveal';
@@ -163,7 +163,7 @@ export function ComerciantesActivarPage({ lang }: { lang: Lang }) {
           <div style={{ position: 'absolute', right: '-8%', top: '-20%', width: '640px', height: '640px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(251,210,208,.75),rgba(251,210,208,0) 68%)' }} />
           <div style={{ position: 'absolute', left: '-12%', bottom: '-40%', width: '520px', height: '520px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,228,226,.8),rgba(255,228,226,0) 70%)' }} />
         </div>
-        <Ribbon />
+
         <div className="bz-g2" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '56px', alignItems: 'center' }}>
           <Reveal>
             <Badge>{t.badge}</Badge>

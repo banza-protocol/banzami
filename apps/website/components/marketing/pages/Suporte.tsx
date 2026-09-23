@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Ribbon, Badge, H1, H2, SectionLabel } from '../kit';
+import { Badge, H1, H2, SectionLabel } from '../kit';
 import { Field, SubmitBtn, SuccessMark } from '../form-kit';
 import { Reveal } from '@/components/Reveal';
 import { submitContact } from '@/lib/contact';
@@ -234,7 +234,7 @@ export function SuportePage({ lang }: { lang: Lang }) {
           <div style={{ position: 'absolute', right: '-8%', top: '-20%', width: '640px', height: '640px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(251,210,208,.75),rgba(251,210,208,0) 68%)' }} />
           <div style={{ position: 'absolute', left: '-12%', bottom: '-40%', width: '520px', height: '520px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,228,226,.8),rgba(255,228,226,0) 70%)' }} />
         </div>
-        <Ribbon />
+
         <div className="bz-g2" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.1fr .9fr', gap: '56px', alignItems: 'center' }}>
           <Reveal>
             <Badge>{lang === 'en' ? 'Support' : 'Suporte'}</Badge>

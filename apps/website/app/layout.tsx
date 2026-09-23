@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import './globals.css';
+import { Ribbon } from '@/components/marketing/kit';
 
 export const viewport: Viewport = {
   themeColor: '#FBD2D0',
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           only emit a comment as raw HTML, hence the two constant markers. */}
       <body>
         <span hidden dangerouslySetInnerHTML={{ __html: '<!--email_off-->' }} />
+        <Ribbon />
         {children}
         <span hidden dangerouslySetInnerHTML={{ __html: '<!--/email_off-->' }} />
       </body>

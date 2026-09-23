@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Reveal } from '@/components/Reveal';
 import { LiveClock } from '@/components/site/LiveClock';
-import { Ribbon, Badge, SectionLabel, H1, H2, HeroLead, Small, Lead, Btn, Row, SandboxNotice, Icon, type IconName } from '../kit';
+import { Badge, SectionLabel, H1, H2, HeroLead, Small, Lead, Btn, Row, SandboxNotice, Icon, type IconName } from '../kit';
 import { Rotator } from '../Rotator';
 import { route, type Lang, type Loc } from '@/lib/marketing/nav';
 
@@ -284,7 +284,7 @@ function HeroProduto({ lang }: { lang: Lang }) {
           <img src="/assets/hero-bg-red.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
         </div>
       </div>
-      <Ribbon />
+
       <div className="bz-g2" style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: '48px', alignItems: 'center' }}>
         <Reveal>
           <Badge>{L('Versão Beta · Sandbox', 'Beta · Sandbox')[lang]}</Badge>

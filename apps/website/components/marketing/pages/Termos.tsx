@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { Ribbon, Badge, Icon } from '../kit';
+import { Badge, Icon } from '../kit';
 import { type Lang, type Loc } from '@/lib/marketing/nav';
 
 /**
@@ -170,7 +170,7 @@ export function TermosPage({ lang }: { lang: Lang }) {
           <div style={{ position: 'absolute', right: '-8%', top: '-20%', width: '640px', height: '640px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(251,210,208,.75),rgba(251,210,208,0) 68%)' }} />
           <div style={{ position: 'absolute', left: '-12%', bottom: '-40%', width: '520px', height: '520px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,228,226,.8),rgba(255,228,226,0) 70%)' }} />
         </div>
-        <Ribbon />
+
         <div style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto' }}>
           <div>
             <Badge>{T.badge[lang]}</Badge>
