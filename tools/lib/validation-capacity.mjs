@@ -57,10 +57,32 @@ export function submitCapacity() {
       used,
       free: Math.max(0, SUBMIT_LIMIT - used),
       nextFreeAt: oldestMs ? new Date(oldestMs + SUBMIT_WINDOW_SECONDS * 1000).toISOString() : null,
-      isVM: key.endsWith(HOST.split('@').pop()),
+      isVM: isInternalSubmitter(key.slice(KEY_PREFIX.length)),
     });
   }
   return buckets;
+}
+
+/**
+ * Is this limiter key the Sandbox's own submit path rather than a client's?
+ *
+ * The phase-0 KYB harness runs ON the VM and reaches the gateway from inside,
+ * so the edge records the unspecified address — `::/64` — not the host's public
+ * IPv4. Matching on the IPv4 therefore never identified it, and once a second
+ * bucket existed the VM reading became UNKNOWN and closed the gate.
+ *
+ * The test is not a guess about which address the VM happens to use: `::`,
+ * `::1` and 127.0.0.0/8 are addresses a PUBLIC CLIENT CANNOT PRESENT. A request
+ * carrying one did not cross the internet, so it is ours. The host's own
+ * address still counts, for the case where it does appear.
+ */
+export function isInternalSubmitter(ip) {
+  const a = String(ip ?? '').trim().toLowerCase();
+  if (!a) return false;
+  if (a.endsWith(HOST.split('@').pop())) return true;
+  const bare = a.replace(/\/\d+$/, '');          // strip a /64-style suffix
+  return bare === '::' || bare === '::1' || bare === 'localhost'
+      || /^127\./.test(bare);
 }
 
 /**

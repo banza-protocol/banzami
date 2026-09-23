@@ -20,7 +20,7 @@
  *
  *   node tools/check-validation-limiter-reading.selftest.mjs
  */
-import { runnerBucket, vmBucket, SUBMIT_LIMIT } from './lib/validation-capacity.mjs';
+import { runnerBucket, vmBucket, isInternalSubmitter, SUBMIT_LIMIT } from './lib/validation-capacity.mjs';
 
 let failures = 0;
 const check = (t, ok, d = '') => { if (ok) return console.log(`  ✓ ${t}`); console.log(`  ✗ ${t}${d ? `\n      ${d}` : ''}`); failures++; };
@@ -72,6 +72,43 @@ check('an observed VM bucket reports what it actually holds',
 check('more than one unidentified non-VM bucket leaves the VM genuinely UNKNOWN',
   vmBucket([otherRow('1.2.3.4', 1), otherRow('5.6.7.8', 2)]) === null,
   'that is the shape where the reading really cannot be made');
+
+/* ── which bucket is OURS, and why it is derivable ───────────────────────── */
+//
+// The phase-0 KYB harness runs ON the VM and reaches the gateway from inside,
+// so the edge records `::/64` — the unspecified address — not the host's public
+// IPv4. Matching on the IPv4 never identified it, and the moment a second
+// bucket existed the VM reading became UNKNOWN and closed the owner gate with
+// 29 slots free.
+//
+// This is not a guess about which address the VM happens to use. `::`, `::1`
+// and 127.0.0.0/8 are addresses a PUBLIC CLIENT CANNOT PRESENT: a request
+// carrying one did not cross the internet, so it is ours.
+
+check('the unspecified address is an internal submitter', isInternalSubmitter('::/64'));
+check('…as are ::1 and loopback', isInternalSubmitter('::1') && isInternalSubmitter('127.0.0.1'));
+check('…and the host\'s own address, for when it does appear',
+  isInternalSubmitter('217.160.9.248'));
+check('a global client prefix is NOT internal',
+  !isInternalSubmitter('2001:861:8bb2:8650::/64'),
+  'this machine\'s own bucket must never be mistaken for the VM\'s');
+check('a public IPv4 is NOT internal', !isInternalSubmitter('8.8.8.8'));
+check('an empty key is NOT internal', !isInternalSubmitter('') && !isInternalSubmitter(null),
+  'an unreadable key is not a claim of ownership');
+
+{
+  // The live shape: one client bucket and one internal bucket. Both must be
+  // identified, and neither may be taken for the other.
+  const rows = [
+    { ip: '2001:861:8bb2:8650::/64', used: 19, free: 11, nextFreeAt: null, isVM: false },
+    { ip: '::/64', used: 1, free: 29, nextFreeAt: null, isVM: true },
+  ];
+  check('the runner reads the client bucket', runnerBucket(rows).used === 19);
+  check('…and the VM reads the internal one', vmBucket(rows).used === 1);
+  check('…and neither is UNKNOWN when both are present',
+    runnerBucket(rows) !== null && vmBucket(rows) !== null,
+    'two buckets that ARE identifiable must not close the gate');
+}
 
 /* ── the property, stated once ───────────────────────────────────────────── */
 
