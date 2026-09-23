@@ -75,7 +75,7 @@ const CASES = [
   },
   {
     name: 'live — the homepage store badges come back',
-    mutate: (d) => edit(d, `${W}/app/page.tsx`, (s) => s.replace('O novo caminho do Kwanza.', 'DISPONÍVEL NA App Store')),
+    mutate: (d) => edit(d, `${W}/components/site/HeroLaunch.tsx`, (s) => s.replace('O novo caminho do <span', 'DISPONÍVEL NA App Store <span')),
     expect: fails('PUBLIC_SITE_LIVE_CLAIMS'),
   },
   {
@@ -115,7 +115,7 @@ const CASES = [
   },
   {
     name: 'status — the banner goes back to "ambiente de testes" only',
-    mutate: (d) => edit(d, `${W}/components/PlatformBanner.tsx`, (s) => s.replace('Dinheiro fictício — o Financial Live está indisponível.', 'Esta plataforma encontra-se em ambiente de testes.')),
+    mutate: (d) => edit(d, `${W}/components/PlatformBanner.tsx`, (s) => s.replace('O Financial Live está indisponível.', 'Esta plataforma encontra-se em ambiente de testes.')),
     expect: fails('PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING'),
   },
   {
@@ -175,7 +175,7 @@ const CASES = [
   },
   {
     name: 'comments do not count — history in a comment passes',
-    mutate: (d) => edit(d, `${W}/app/page.tsx`, (s) => s.replace('// What is available today.', '// It used to say DISPONÍVEL NA App Store and em segundos. What is available today.')),
+    mutate: (d) => edit(d, `${W}/app/page.tsx`, (s) => s.replace('{/* ===================== HERO ===================== */}', '{/* HERO — it used to say DISPONÍVEL NA App Store and em segundos */}')),
     expect: (c) => c.code === 0,
   },
 ];
