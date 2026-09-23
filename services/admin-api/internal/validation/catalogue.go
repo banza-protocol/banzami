@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // The catalogue is the Validation Studio explaining itself.
@@ -152,7 +153,12 @@ func (r *Registry) Journeys() ([]Journey, error) {
 	var doc struct {
 		Journeys []rawJourney `json:"journeys"`
 	}
-	if err := json.Unmarshal([]byte(journeysJSON), &doc); err != nil {
+	// UseNumber so a financial expectation's numeric fields (delta_minor) arrive
+	// as json.Number — an exact integer minor-unit value — never a float. Money
+	// is never round-tripped through a float. Typed struct fields decode as usual.
+	dec := json.NewDecoder(strings.NewReader(journeysJSON))
+	dec.UseNumber()
+	if err := dec.Decode(&doc); err != nil {
 		return nil, fmt.Errorf("journeys: %w", err)
 	}
 
@@ -229,12 +235,15 @@ func describeFinancial(f map[string]any) string {
 		return "invariant holds: " + inv
 	}
 	acct, _ := f["account"].(string)
-	if d, ok := f["delta_minor"].(float64); ok {
+	// delta_minor is an exact integer minor-unit amount (json.Number under
+	// UseNumber) — read it as int64, never through a float.
+	if n, ok := f["delta_minor"].(json.Number); ok {
+		d, _ := n.Int64()
 		sign := "+"
 		if d < 0 {
 			sign = ""
 		}
-		return fmt.Sprintf("%s changes by %s%d minor", acct, sign, int64(d))
+		return fmt.Sprintf("%s changes by %s%d minor", acct, sign, d)
 	}
 	return fmt.Sprintf("%v", f)
 }

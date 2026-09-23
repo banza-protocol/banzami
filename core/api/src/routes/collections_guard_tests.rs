@@ -36,6 +36,16 @@ async fn state(pool: PgPool) -> AppState {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn without_the_frozen_schema_collections_are_unavailable_not_broken(pool: PgPool) {
+    // 0156 folded the Collections schema into the active migrations, so a plain
+    // migration run now HAS it. Reproduce a database that predates the schema by
+    // dropping the three tables — the guard must still answer "unavailable", not
+    // 500 on a missing relation.
+    for t in ["collection_shares", "payment_intents", "collections"] {
+        sqlx::query(&format!("DROP TABLE IF EXISTS {t} CASCADE"))
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
     let st = state(pool).await;
     assert!(!collections::collections_available(&st).await);
     let err = collections::list(
