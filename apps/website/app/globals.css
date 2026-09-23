@@ -150,6 +150,27 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bz-portal-shimmer { animation: none; }
 }
+
+/* Home sections (handoff_home_sections): Como funciona · Para negócios · Para developers */
+@keyframes bzScanline { 0% { top: 14%; } 100% { top: 78%; } }
+@keyframes bzspin { to { transform: rotate(360deg); } }
+@keyframes bzspinccw { to { transform: rotate(-360deg); } }
+@keyframes bzdotmove {
+  0% { left: 0; opacity: 0; }
+  15% { opacity: 1; }
+  80% { left: calc(100% - 10px); opacity: 1; }
+  100% { left: calc(100% - 10px); opacity: 0; }
+}
+.bzhs-cta { transition: transform .2s, box-shadow .2s, background .2s; }
+.bzhs-cta:hover { background: #9A1B22 !important; transform: translateY(-2px); box-shadow: 0 16px 34px -10px rgba(181,16,31,.45); }
+@media (max-width: 1080px) { .bzhs-split-dev { grid-template-columns: 1fr !important; gap: 40px !important; } }
+@media (max-width: 980px)  { .bzhs-float { display: none !important; } }
+@media (max-width: 920px)  { .bzhs-split { grid-template-columns: 1fr !important; gap: 34px !important; } }
+@media (max-width: 720px)  { .bzhs-howphones { zoom: .72; } }
+@media (max-width: 520px)  { .bzhs-howphones { zoom: .5; } }
+@media (prefers-reduced-motion: reduce) {
+  .bzhs-root [style*="animation"] { animation: none !important; }
+}
 @keyframes floaty {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }

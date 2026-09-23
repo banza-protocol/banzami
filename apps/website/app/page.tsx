@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { HowItWorks } from '@/components/site/HowItWorks';
-import { HomePaths } from '@/components/site/HomePaths';
+import { ForBusiness } from '@/components/site/ForBusiness';
+import { ForDevelopers } from '@/components/site/ForDevelopers';
 import { HeroLaunch } from '@/components/site/HeroLaunch';
 import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
@@ -23,13 +24,14 @@ export default function HomePage() {
         liveSummaryShort={PUBLIC_TRUTH.live.summaryShort}
       />
 
-      {/* ===================== COMO FUNCIONA ===================== */}
+      {/* ===================== 01 · COMO FUNCIONA ===================== */}
       <HowItWorks />
 
-      {/* ===================== NEGÓCIOS / DEVELOPERS ===================== */}
-      {/* The QR · @banza · comprovativos pillars are already covered by
-          "Como funciona" above, so the homepage goes straight to the two paths. */}
-      <HomePaths />
+      {/* ===================== 02 · PARA NEGÓCIOS ===================== */}
+      <ForBusiness />
+
+      {/* ===================== 03 · PARA DEVELOPERS ===================== */}
+      <ForDevelopers />
 
       {/* ===================== FOOTER (o bloco vermelho é o CTA final) ===================== */}
       <Footer />
