@@ -154,6 +154,35 @@ body {
 /* Home sections (handoff_home_sections): Como funciona · Para negócios · Para developers */
 @keyframes bzScanline { 0% { top: 14%; } 100% { top: 78%; } }
 @keyframes bzring { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.4); opacity: 0; } }
+
+/* Marketing shell (handoff_site_completo): floating header, mega-menu, language dropdown */
+.bz-navitem { position: relative; }
+.bz-navitem > a { padding: 9px 10px; border-radius: 14px; transition: background .2s, color .2s; }
+.bz-navitem:hover > a, .bz-navitem:focus-within > a { background: #FFF1F0; color: #B5101F !important; }
+.bz-navitem > a svg.bz-chev { transition: transform .25s; }
+.bz-navitem:hover > a svg.bz-chev, .bz-navitem:focus-within > a svg.bz-chev { transform: rotate(180deg); }
+.bz-mega { position: absolute; left: 50%; top: 100%; width: min(780px, calc(100vw - 40px)); transform: translate(-50%, -8px); margin-top: 8px; padding: 12px; border-radius: 30px; background: rgba(255,255,255,.98); border: 1px solid rgba(181,16,31,.07); box-shadow: 0 50px 100px -40px rgba(122,16,22,.4); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .2s, transform .2s, visibility .2s; z-index: 70; }
+.bz-navitem:hover .bz-mega, .bz-navitem:focus-within .bz-mega { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; }
+.bz-mega::before { content: ''; position: absolute; left: 0; right: 0; top: -26px; height: 26px; }
+.bz-ml { display: block; padding: 8px 12px; border-radius: 14px; transition: background .2s; text-decoration: none; }
+.bz-ml:hover { background: #FFF6F5; }
+.bz-mcta:hover { background: linear-gradient(160deg,#9A1B22,#7C1016) !important; }
+.bz-langdd { position: relative; }
+.bz-langmenu { position: absolute; right: 0; top: 100%; margin-top: 8px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-6px); transition: opacity .2s, transform .2s, visibility .2s; z-index: 70; }
+.bz-langdd:hover .bz-langmenu, .bz-langdd:focus-within .bz-langmenu { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+.bz-langdd:hover .bz-langbtn, .bz-langdd:focus-within .bz-langbtn { background: #FFF1F0; }
+.bz-langbtn svg.bz-chev { transition: transform .25s; }
+.bz-langdd:hover .bz-langbtn svg.bz-chev, .bz-langdd:focus-within .bz-langbtn svg.bz-chev { transform: rotate(180deg); }
+.bz-lo { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; text-decoration: none; transition: background .2s; }
+.bz-lo:hover { background: #FFF6F5; }
+@media (max-width: 1440px) { .bz-langcode { display: none; } }
+@media (max-width: 1260px) { .bz-navitem > a { padding: 9px 9px; } }
+@media (max-width: 1120px) { .bz-navlinks, .bz-langdd { display: none !important; } .bz-burger { display: flex !important; } }
+.bz-acc[open] .bz-acc-chev { transform: rotate(180deg); }
+.bz-footlink { transition: background .2s, transform .2s; }
+.bz-footlink:hover { background: #FBE9E7; transform: translateX(2px); }
+@media (max-width: 920px) { .bz-footgrid { grid-template-columns: 1fr !important; } }
+@media (max-width: 560px) { .bz-explore { grid-template-columns: 1fr !important; } }
 @keyframes bzspin { to { transform: rotate(360deg); } }
 @keyframes bzspinccw { to { transform: rotate(-360deg); } }
 @keyframes bzdotmove {
