@@ -25,6 +25,9 @@ const SOURCE = {
   'public-api-staging': ['services/public-api'],
   'developer-api': ['services/developer-api'],
   'admin-api': ['services/admin-api'],
+  // The App Banzami web BFF is a Node service; its one secret is read from
+  // process.env (lib/session_store.mjs), so the scanner reads JS/TS too.
+  'app-frontend': ['apps/app-banzami'],
 };
 
 /** The deploy's own mapping: service → [{ file, env }]. */
@@ -45,14 +48,18 @@ function envNamesRead(dirs) {
   const names = new Set();
   const walk = (dir) => {
     for (const entry of readdirSync(dir)) {
-      if (['node_modules', 'target', '.git', 'testdata'].includes(entry)) continue;
+      // 'web' is the built Flutter bundle (app-frontend), not source.
+      if (['node_modules', 'target', '.git', 'testdata', 'web'].includes(entry)) continue;
       const path = join(dir, entry);
       const st = statSync(path);
       if (st.isDirectory()) { walk(path); continue; }
-      if (!/\.(go|rs)$/.test(entry) || /_test\.(go|rs)$/.test(entry)) continue;
+      const isGoRust = /\.(go|rs)$/.test(entry) && !/_test\.(go|rs)$/.test(entry);
+      const isNode = /\.(mjs|js|ts|tsx)$/.test(entry) && !/\.test\.(mjs|js|ts|tsx)$/.test(entry);
+      if (!isGoRust && !isNode) continue;
       const src = readFileSync(path, 'utf8');
-      for (const m of src.matchAll(/(?:Getenv|LookupEnv|env::var|var)\("([A-Z][A-Z0-9_]*)"\)/g)) {
-        names.add(m[1]);
+      // Go os.Getenv/LookupEnv, Rust env::var, and Node process.env.NAME / ['NAME'].
+      for (const m of src.matchAll(/(?:Getenv|LookupEnv|env::var|var)\("([A-Z][A-Z0-9_]*)"\)|process\.env\.([A-Z][A-Z0-9_]*)|process\.env\[['"]([A-Z][A-Z0-9_]*)['"]\]/g)) {
+        names.add(m[1] || m[2] || m[3]);
       }
     }
   };
