@@ -158,8 +158,8 @@ func authInjector(consumerID string, expiresAt time.Time, next http.HandlerFunc)
 // Tests
 // ---------------------------------------------------------------------------
 
-// 1. Snapshot fallback: a plain (non-stream) read returns one JSON snapshot of
-//    this consumer's own available balance + marker.
+//  1. Snapshot fallback: a plain (non-stream) read returns one JSON snapshot of
+//     this consumer's own available balance + marker.
 func TestConsumerRealtime_JSONSnapshot(t *testing.T) {
 	h, fr := newConsumerRealtime(t)
 	fr.set("consumer-1", 500000, "act-1")
@@ -198,8 +198,8 @@ func TestConsumerRealtime_Unauthenticated(t *testing.T) {
 	}
 }
 
-// 3. Stream: snapshot first, then wallet.changed on a simulated balance change,
-//    and a heartbeat comment (never an event).
+//  3. Stream: snapshot first, then wallet.changed on a simulated balance change,
+//     and a heartbeat comment (never an event).
 func TestConsumerRealtime_StreamSnapshotThenChange(t *testing.T) {
 	h, fr := newConsumerRealtime(t)
 	fr.set("consumer-1", 100000, "act-1")
@@ -301,8 +301,8 @@ func TestConsumerRealtime_PerIPCap(t *testing.T) {
 	}
 }
 
-// 7. CONSUMER ISOLATION: consumer A's stream never carries consumer B's balance
-//    or activity, even as B's canonical state changes underneath.
+//  7. CONSUMER ISOLATION: consumer A's stream never carries consumer B's balance
+//     or activity, even as B's canonical state changes underneath.
 func TestConsumerRealtime_ConsumerIsolation(t *testing.T) {
 	h, fr := newConsumerRealtime(t)
 	fr.set("consumer-A", 100000, "act-A1")
@@ -363,7 +363,7 @@ func TestConsumerRealtime_NoWalletYet(t *testing.T) {
 	}
 }
 
-// 10. No write verb exists under /v1/me/realtime: it is a read-only notification
+//  10. No write verb exists under /v1/me/realtime: it is a read-only notification
 //     channel with no mutation authority.
 func TestConsumerRealtime_NoWriteVerb(t *testing.T) {
 	h, _ := newConsumerRealtime(t)

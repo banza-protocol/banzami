@@ -73,19 +73,19 @@ type Dependencies struct {
 	BetaTesterSvc            service.BetaTesterService
 	// Mailer delivers the public contact form (POST /v1/contact). Nil / not
 	// configured → the endpoint answers 503. ContactRecipient is where it lands.
-	Mailer           *ce.Sender
-	ContactRecipient string
-	MerchantAppAdminSvc      service.MerchantApplicationAdminService
-	MerchantDocumentSvc      service.MerchantDocumentService
-	MerchantKybSvc           *service.PostgresMerchantKybService
-	ActivationSvc            service.ActivationService
-	ComplianceSvc            service.ComplianceService
-	WalletPaymentSvc         service.WalletPaymentReader
-	WalletPaymentLister      service.WalletPaymentLister
-	AttentionSvc             *service.AttentionService
-	PlatformSvc              *service.PlatformReadService
-	ProofSvc                 *service.ProofService
-	BusinessSelfSvc          *service.BusinessSelfService
+	Mailer              *ce.Sender
+	ContactRecipient    string
+	MerchantAppAdminSvc service.MerchantApplicationAdminService
+	MerchantDocumentSvc service.MerchantDocumentService
+	MerchantKybSvc      *service.PostgresMerchantKybService
+	ActivationSvc       service.ActivationService
+	ComplianceSvc       service.ComplianceService
+	WalletPaymentSvc    service.WalletPaymentReader
+	WalletPaymentLister service.WalletPaymentLister
+	AttentionSvc        *service.AttentionService
+	PlatformSvc         *service.PlatformReadService
+	ProofSvc            *service.ProofService
+	BusinessSelfSvc     *service.BusinessSelfService
 	// Core's settlement readiness engine, behind GET /v1/financial-setup.
 	SettlementReadinessSvc service.SettlementReadinessService
 	ProofHashSalt          string

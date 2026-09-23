@@ -56,7 +56,7 @@ func sandboxGW() *fakeAttentionGW {
 	return &fakeAttentionGW{env: "SANDBOX", cats: map[string]int{
 		"business_applications": 4, "kyb_documents": 2, "kyc_documents": 1, "settlements": 0,
 		"payouts": 3, "reconciliation": 0, "disputes": 1, "risk_flags": 5, "application_settlements": 0,
-		"beta_testers": 2,
+		"beta_testers":                  2,
 		"future_category_nobody_mapped": 7,
 	}}
 }
