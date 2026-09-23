@@ -9,8 +9,10 @@ import { useEffect, useRef, type ReactNode } from 'react';
  * dossier markup with data-ri / data-ri-ic / data-ri-tag / data-ri-bar (+ the
  * step variant data-ri-num for numbered pills).
  */
-export function Rotator({ mode = 'list', className, style, children }: {
+export function Rotator({ mode = 'list', idle, className, style, children }: {
   mode?: 'list' | 'card';
+  /** Idle (non-active) card background, mirrors the dossier data-rot-idle attribute. */
+  idle?: string;
   className?: string;
   style?: React.CSSProperties;
   children: ReactNode;
@@ -55,7 +57,7 @@ export function Rotator({ mode = 'list', className, style, children }: {
     set(0);
     if (!reduced) timer = setInterval(() => { if (!st.h) set((st.i + 1) % its.length); }, 6000);
     return () => { if (timer) clearInterval(timer); };
-  }, [mode]);
+  }, [mode, idle]);
 
-  return <div ref={ref} className={className} style={style}>{children}</div>;
+  return <div ref={ref} className={className} style={style} data-idle={idle}>{children}</div>;
 }

@@ -1,15 +1,23 @@
 import type { Metadata } from 'next';
-import { PrivacidadeContent } from '@/components/site/PrivacidadeContent';
+import { SiteShell } from '@/components/marketing/SiteShell';
+import { PrivacidadePage } from '@/components/marketing/pages/Privacidade';
 
 export const metadata: Metadata = {
-  title: 'Privacidade',
-  description: 'Como o Banzami trata os dados recolhidos no programa de testers.',
+  title: { absolute: 'Política de Privacidade — Banzami' },
+  description: 'Como o Banzami trata os seus dados pessoais (versão provisória).',
   alternates: {
     canonical: 'https://banzami.com/privacidade',
-    languages: { pt: 'https://banzami.com/privacidade', en: 'https://banzami.com/privacidade/en' },
+    languages: { en: 'https://banzami.com/en/privacidade' },
   },
+  // Provisional legal document — kept out of the search index until final text lands.
+  robots: { index: false },
 };
 
-export default function PrivacidadePage() {
-  return <PrivacidadeContent lang="pt" />;
+// Política de Privacidade — rebuilt entirely from handoff_site_completo on the shared marketing shell.
+export default function Page() {
+  return (
+    <SiteShell lang="pt" current="privacidade">
+      <PrivacidadePage lang="pt" />
+    </SiteShell>
+  );
 }

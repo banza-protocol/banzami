@@ -127,7 +127,7 @@ export function TestesContent({ lang, initialApps }: { lang: Lang; initialApps?:
               lang={lang}
               source="testes"
               initialApps={initialApps}
-              privacyHref={lang === 'pt' ? '/privacidade' : '/privacidade/en'}
+              privacyHref={lang === 'pt' ? '/privacidade' : '/en/privacidade'}
             />
           </div>
         </div>

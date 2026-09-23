@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
-import { CandidaturaForm } from './CandidaturaForm';
+import { SiteShell } from '@/components/marketing/SiteShell';
+import { CandidaturaPage } from '@/components/marketing/pages/Candidatura';
 
 export const metadata: Metadata = {
-  title: 'Banzami Business — Registe o seu negócio',
-  description:
-    'Registe o seu negócio no Banzami: dados, documentos e verificação, num formulário online.',
-  alternates: { canonical: 'https://banzami.com/comerciantes/candidatura' },
+  title: { absolute: 'Registar o negócio — Banzami Business' },
+  description: 'Candidatura online para receber pagamentos com o Banzami Business.',
+  alternates: {
+    canonical: 'https://banzami.com/comerciantes/candidatura',
+    languages: { en: 'https://banzami.com/en/comerciantes/candidatura' },
+  },
 };
 
-// Self-contained onboarding page (its own top bar + sidebar + panel), per the
-// Banzami Business design dossier — no marketing SiteHeader/Footer here.
-export default function CandidaturaPage() {
+// Merchant KYB application — rebuilt from handoff_site_completo on the shared shell.
+export default function Page() {
   return (
-    <main className="min-h-screen bg-[#FFF7F6] px-6 pb-[60px] pt-7">
-      <div className="mx-auto max-w-[1180px]">
-        <CandidaturaForm />
-      </div>
-    </main>
+    <SiteShell lang="pt" current="candidatura">
+      <CandidaturaPage lang="pt" />
+    </SiteShell>
   );
 }

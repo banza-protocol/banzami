@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
-import { ApplicationStatusView } from './ApplicationStatusView';
+import { SiteShell } from '@/components/marketing/SiteShell';
+import { CandidaturaEstadoPage } from '@/components/marketing/pages/CandidaturaEstado';
 
 export const metadata: Metadata = {
-  title: 'Banzami Business — Estado da candidatura',
-  description: 'Veja em que ponto está a sua candidatura ao Banzami Business e responda a pedidos de informação.',
-  robots: { index: false, follow: false },
+  title: { absolute: 'Estado da candidatura — Banzami Business' },
+  description: 'Consulte o estado da candidatura do seu negócio ao Banzami Business.',
+  alternates: {
+    canonical: 'https://banzami.com/comerciantes/candidatura/estado',
+    languages: { en: 'https://banzami.com/en/comerciantes/candidatura/estado' },
+  },
 };
 
-export default function ApplicationStatusPage() {
+// Application status lookup — rebuilt from handoff_site_completo on the shared shell.
+export default function Page() {
   return (
-    <main className="min-h-screen bg-[#FFF7F6] px-6 pb-[60px] pt-7">
-      <div className="mx-auto max-w-[760px]">
-        <Suspense fallback={null}>
-          <ApplicationStatusView />
-        </Suspense>
-      </div>
-    </main>
+    <SiteShell lang="pt" current="estado">
+      <CandidaturaEstadoPage lang="pt" />
+    </SiteShell>
   );
 }

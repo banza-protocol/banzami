@@ -1,34 +1,22 @@
 import type { Metadata } from 'next';
-import { TestesContent } from '@/components/site/TestesContent';
-import type { BetaApp } from '@/lib/beta';
+import { SiteShell } from '@/components/marketing/SiteShell';
+import { TestesPage } from '@/components/marketing/pages/Testes';
 
 export const metadata: Metadata = {
-  title: 'Testers',
+  title: { absolute: 'Programa Beta — Banzami' },
   description:
-    'Ajude-nos a testar as apps do Banzami — App Banzami e App Banzami Business — no iPhone (TestFlight) e Android (Google Play). Registe o seu interesse.',
+    'Inscreva-se no Programa Beta do Banzami: Beta Web, iPhone (TestFlight) e Android, na Sandbox.',
   alternates: {
     canonical: 'https://banzami.com/testes',
-    languages: {
-      pt: 'https://banzami.com/testes',
-      en: 'https://banzami.com/testes/en',
-    },
+    languages: { en: 'https://banzami.com/en/testes' },
   },
 };
 
-// ?app=banzami / ?app=comerciante only preselects which app the form offers. It
-// is a UI convenience, never authority — the person can still change it, and the
-// backend decides nothing from it.
-function appsFrom(app?: string): BetaApp[] | undefined {
-  if (app === 'banzami') return ['APP_BANZAMI'];
-  if (app === 'comerciante') return ['APP_MERCHANT'];
-  return undefined;
-}
-
-export default async function TestesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ app?: string }>;
-}) {
-  const { app } = await searchParams;
-  return <TestesContent lang="pt" initialApps={appsFrom(app)} />;
+// Programa Beta — rebuilt entirely from handoff_site_completo on the shared marketing shell.
+export default function Page() {
+  return (
+    <SiteShell lang="pt" current="testes">
+      <TestesPage lang="pt" />
+    </SiteShell>
+  );
 }
