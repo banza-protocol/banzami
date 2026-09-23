@@ -6,7 +6,7 @@ import { DevelopersPage } from '@/components/marketing/pages/Developers';
 // handoff_site_completo on the shared marketing shell. Console/docs subroutes
 // live under app/developers/* and are untouched by this page.
 export const metadata: Metadata = {
-  title: 'Banzami Developers — Integre pagamentos em Kwanza',
+  title: { absolute: 'Banzami Developers — Integre pagamentos em Kwanza' },
   description: 'API v1, SDK TypeScript e webhooks assinados para integrar pagamentos em Kwanza. Sandbox disponível.',
   alternates: { canonical: 'https://banzami.com/developers', languages: { en: 'https://banzami.com/en/developers' } },
 };

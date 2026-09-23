@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { ComerciantesPage } from '@/components/marketing/pages/Comerciantes';
 
 export const metadata: Metadata = {
-  title: 'Banzami Business — Receive Kwanza payments',
+  title: { absolute: 'Banzami Business — Receive Kwanza payments' },
   description:
     'QR, payment links, bill splitting and history with receipts for your business. Available in the Banzami Sandbox.',
   alternates: { canonical: 'https://banzami.com/en/comerciantes', languages: { pt: 'https://banzami.com/comerciantes' } },

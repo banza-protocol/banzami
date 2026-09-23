@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { ProdutoPage } from '@/components/marketing/pages/Produto';
 
 export const metadata: Metadata = {
-  title: 'Banzami app — Pay and get paid in Kwanza',
+  title: { absolute: 'Banzami app — Pay and get paid in Kwanza' },
   description:
     'The Banzami app to pay by QR, send to a @banza and get paid in seconds, with a verifiable receipt. Public Beta in the Sandbox.',
   alternates: {
