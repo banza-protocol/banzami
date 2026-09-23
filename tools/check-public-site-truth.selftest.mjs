@@ -69,6 +69,23 @@ const CASES = [
     expect: fails('PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS'),
   },
   {
+    // banzami-python 0.1.0 reached PyPI on 2026-09-23, proven by a clean-room
+    // install from the public registry. Its install command is now TRUE, and a
+    // gate that still refused it would be forcing the site to omit something
+    // real — the same defect as claiming something unreal, pointing the other
+    // way.
+    name: 'SDK — the published Python install command is allowed',
+    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('<li>Dinheiro fictício: nada entra ou sai de um banco.</li>', '<li>Dinheiro fictício: nada entra ou sai de um banco. pip install banzami-python</li>')),
+    expect: (c) => c.code === 0 && c.counters.PUBLIC_SITE_TRUTH === 'PASS',
+  },
+  {
+    // …and the exemption is for THAT package, not for pip. A future unpublished
+    // Python package must not inherit an install command by association.
+    name: 'SDK — pip install of an unpublished package still fails',
+    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('<li>Dinheiro fictício: nada entra ou sai de um banco.</li>', '<li>Dinheiro fictício: nada entra ou sai de um banco. pip install banzami-go</li>')),
+    expect: fails('PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS'),
+  },
+  {
     name: 'version — the facts module claims v2',
     mutate: (d) => edit(d, `${W}/lib/public-truth.ts`, (s) => s.replace("apiVersion: 'v1'", "apiVersion: 'v2'")),
     expect: fails('PUBLIC_SITE_API_VERSION_DRIFT'),

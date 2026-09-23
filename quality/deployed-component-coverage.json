@@ -915,7 +915,7 @@
     {
       "id": "sdk-python",
       "kind": "sdk",
-      "runtime": "sdk/python (banzami-python) — not published on PyPI",
+      "runtime": "sdk/python (banzami-python) — published on PyPI (0.1.0)",
       "entry_points": [
         "client"
       ],

@@ -13,7 +13,7 @@ Version: 1.0
 | Flutter | `banzami_flutter` | 0.1.0 | 93 files / 19 655 L | yes | n/a | `publish_to: none` (ADR-053) — correct |
 | Go | `banzami-go` | — | 7 files / 1 192 L | CI job | none | unpublished |
 | PHP | `banzami/sdk-php` | — | 11 files / 890 L | CI job | none | unpublished |
-| Python | `banzami-python` | 0.1.0 | 59 files | CI job | none | unpublished |
+| Python | `banzami-python` | 0.1.0 | 59 files | CI job | none | **published (PyPI)** |
 | Checkout web | `@banzami/checkout` | 0.1.0 | 6 files / 460 L | — | none | `UNLICENSED`, unpublished |
 
 Findings:

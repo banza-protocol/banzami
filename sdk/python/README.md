@@ -9,12 +9,10 @@ Official async Python SDK for the [Banzami](https://banzami.com) payments platfo
 
 ## Installation
 
-The distribution is `banzami-python` (imported as `banzami`). It is **not
-published on PyPI** — a `pip install` of a registry name would fetch nothing, or
-someone else's package. Install it from this repository:
+The distribution is `banzami-python`, imported as `banzami`:
 
 ```bash
-pip install ./sdk/python
+pip install banzami-python
 ```
 
 ## Environments

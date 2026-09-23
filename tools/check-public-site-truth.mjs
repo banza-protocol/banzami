@@ -78,8 +78,14 @@ const RULES = [
   ['PUBLIC_SITE_LEGACY_API_REFS', /applicationFeeBps|application_fee_bps/g, 'applicationFeeBps, which the API does not accept'],
   ['PUBLIC_SITE_LEGACY_API_REFS', /\/v[2-9]\//g, 'an API version other than v1'],
   ['PUBLIC_SITE_LEGACY_API_REFS', /['"`]\/developers#[a-z-]+/g, 'an anchor into the retired /developers API reference'],
-  ['PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS', /\b(?:Python|PHP|Ruby|Java|\.NET|iOS|Android|Go|Flutter)\b[^.\n]{0,40}\bSDKs?\b|\bSDKs?\b[^.\n]{0,40}\b(?:Python|PHP|Ruby|Java|\.NET|iOS|Android|Go|Flutter)\b/g, 'an SDK no registry serves'],
-  ['PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS', /pip install|composer require|go get |pod ['"]|banzami_flutter|banzami-python|banzami-go\b|sdk-php/g, 'an install command or package that is not published'],
+  // Python left this list on 2026-09-23: banzami-python 0.1.0 is on PyPI, proven
+  // by a clean-room install from the public registry (not from the disk that
+  // built it). Every other language here still names an SDK no registry serves.
+  ['PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS', /\b(?:PHP|Ruby|Java|\.NET|iOS|Android|Go|Flutter)\b[^.\n]{0,40}\bSDKs?\b|\bSDKs?\b[^.\n]{0,40}\b(?:PHP|Ruby|Java|\.NET|iOS|Android|Go|Flutter)\b/g, 'an SDK no registry serves'],
+  // `pip install` stays forbidden for everything EXCEPT the package that is
+  // actually published. Dropping the whole pattern would have let any future
+  // unpublished Python package claim an install command by inheritance.
+  ['PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS', /pip install(?!\s+banzami-python\b)|composer require|go get |pod ['"]|banzami_flutter|banzami-go\b|sdk-php/g, 'an install command or package that is not published'],
   ['PUBLIC_SITE_LIVE_CLAIMS', /\b(?:Live|produção|produção real)\s+(?:já\s+)?(?:está\s+)?(?:disponível|ativo|ativa|operacional|aberto)\b/gi, 'Live stated as available'],
   ['PUBLIC_SITE_LIVE_CLAIMS', /licen[cç]a (?:do |pelo )?BNA|licenciad[oa]|autorizad[oa] pelo BNA|certificad[oa] (?:pel[oa]|como)|PST-SP|licen[cç]a pendente|license pending|pending licen[cs]e/gi, 'a licence or certification claim'],
   ['PUBLIC_SITE_LIVE_CLAIMS', /(?:EMIS|Multicaixa(?: Express)?)\s+integrad[oa]/gi, 'a rail integration stated as live'],

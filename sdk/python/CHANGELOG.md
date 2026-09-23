@@ -5,7 +5,15 @@ All notable changes to the Banzami Python SDK are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] — 2026-09-23
+
+First public release on PyPI: `pip install banzami-python`. Async client
+(`BanzamiClient` / `Banzami`) for the Banzami Sandbox — payment sessions and
+links, QR helpers, transactions, wallets, payouts, refunds, disputes,
+webhooks with `banza-signature` verification, typed models, a typed error
+hierarchy, retries with backoff and automatic idempotency keys.
+
+### Included from prior unreleased work
 
 ### Changed — a dispute names no consumer
 `Dispute.consumer_id` is `str | None` and `disputes.open(consumer_id=…)` is
