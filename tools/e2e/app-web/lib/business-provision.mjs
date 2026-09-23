@@ -69,11 +69,15 @@ export async function provisionBusiness({ handlePrefix = 'e2ebiz', pin = '481516
     return fixture;
   }
   const handle = `${handlePrefix}${Date.now().toString(36)}`.toLowerCase().slice(0, 28);
+  // ONE spelling of the name: submitted below and returned at the end. The
+  // Business Home renders this and never the @banza, so a proof that checks
+  // Home identity compares against the thing that was actually created.
+  const businessName = `E2E ${handle}`;
   const email = `${handle}@synthetic.test`;
 
   // 1. Submit application — the REAL public edge (this machine's IP bucket).
   const submit = await api('POST', '/v1/merchant/applications', { json: {
-    desired_handle: handle, business_name: `E2E ${handle}`, category: 'retail',
+    desired_handle: handle, business_name: businessName, category: 'retail',
     email, phone: '+244900000000', nif: '5417000000', country: 'AO',
     province: 'Luanda', municipality: 'Luanda', city: 'Luanda', address: 'Luanda, Angola',
     legal_representative: 'E2E Rep', representative_role: 'Director',
@@ -123,7 +127,11 @@ echo "OK|$TOKEN|$MID"
   // outlives the run and retiring it would destroy a shared fixture. This one
   // the run created, so it belongs to the run.
   ownCreated('business', merchantId, { creation_source: 'provisionBusiness', handle, applicationId });
-  return { handle, pin, merchantId, applicationId };
+  // The NAME as well as the handle. The dashboard renders session.merchantName
+  // and never the @banza, so a proof checking Business Home identity needs it —
+  // and it is returned from the SAME constant the application was submitted
+  // with, because two spellings of a name is two chances for them to differ.
+  return { handle, pin, merchantId, applicationId, name: businessName };
 }
 
 // Retire a synthetic Business (best-effort, canonical lifecycle) — suspend so its
