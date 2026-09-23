@@ -97,6 +97,16 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
         // camera track after the user closed the scanner. Recreating here is
         // exactly what _retry already does for the denied→allowed transition,
         // and for the same reason.
+        //
+        // NOT PROVEN TO CLOSE THAT DEFECT. Measured against the deployed
+        // Sandbox with the same instrument, before and after: started=3
+        // stopped=2 active=1, unchanged. This is correct hygiene — releasing
+        // before re-acquiring — and it is not the cause of the leak. The
+        // commit that introduced it (57dbf165) claims more than the evidence
+        // supports; the leak is open, and the harness now measures it as
+        // "195ms, 59ms, NEVER (active=2 after 6367ms)": the first two closes
+        // release, the third never does. Whatever is holding that third
+        // stream is somewhere else.
         try { await _controller.dispose(); } catch (_) { /* noop */ }
         _controller = _makeController();
         MobileScannerPlatform.instance
