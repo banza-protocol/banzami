@@ -38,7 +38,10 @@ echo "── [4] RUNTIME AUTHORITY apply (staged, hash-verified; runs on the VM 
 ssh "$VM" "BZ_AUTHORITY_REPO=/root/brp-ceremony bash /root/brp-ceremony/runtime-authority.sh apply"
 
 echo "── [5] verify runtime authority (read-only, sanctioned checker) ──"
-ssh "$VM" "BZ_AUTHORITY_REPO=/root/brp-ceremony bash /root/brp-ceremony/runtime-authority.sh verify" | tail -8
+# Capture the remote status before printing: with set -e a failed sanctioned
+# verify aborts the ceremony here, instead of a `| tail` swallowing its verdict.
+AUTHV="$(ssh "$VM" "BZ_AUTHORITY_REPO=/root/brp-ceremony bash /root/brp-ceremony/runtime-authority.sh verify")"
+printf '%s\n' "$AUTHV" | tail -8 | sed 's/^/    /'
 # Robust read-only verify: ship the SQL as a file (a quoted heredoc), so nested
 # ssh→docker→psql quoting cannot mangle the string literals, then pipe it into psql
 # on the VM via stdin. Grants first (gateway writes; public-api does not), then schema.
