@@ -156,7 +156,6 @@ export function HomeComoFunciona({ lang }: { lang: Lang }) {
           </Rotator>
         </div>
       </div>
-      <div aria-hidden="true" className="bz-note" style={{ position: 'absolute', fontFamily: "'Caveat',cursive", fontWeight: 600, lineHeight: 1.05, pointerEvents: 'none', right: 'max(18px,calc(50% - 700px))', top: '44%', color: '#9a8a8e', fontSize: '28px', transform: 'rotate(-10deg)', whiteSpace: 'pre-line' }}>{CF.note[lang]}</div>
     </section>
   );
 }
@@ -246,7 +245,6 @@ export function HomeNegocios({ lang }: { lang: Lang }) {
           </div>
         </div>
       </div>
-      <div aria-hidden="true" className="bz-note" style={{ position: 'absolute', fontFamily: "'Caveat',cursive", fontWeight: 600, lineHeight: 1.05, pointerEvents: 'none', right: 'max(18px,calc(50% - 700px))', top: '58%', color: '#9a8a8e', fontSize: '27px', transform: 'rotate(-10deg)', whiteSpace: 'pre-line' }}>{NG.note[lang]}</div>
     </section>
   );
 }
@@ -306,7 +304,6 @@ export function HomeDevelopers({ lang }: { lang: Lang }) {
           </Rotator>
         </div>
       </div>
-      <div aria-hidden="true" className="bz-note" style={{ position: 'absolute', right: 'max(18px,calc(50% - 700px))', top: '64px', fontFamily: "'Caveat',cursive", fontSize: '24px', lineHeight: 1.1, color: '#9a8a8e', transform: 'rotate(-8deg)', textAlign: 'right', whiteSpace: 'pre-line' }}>{DV.note[lang]}</div>
     </section>
   );
 }
