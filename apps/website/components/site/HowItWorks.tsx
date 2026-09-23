@@ -37,10 +37,10 @@ export function HowItWorks() {
               target="_blank"
               rel="noopener noreferrer"
               className="bzhs-cta"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '14px', padding: '20px 40px', borderRadius: '40px', background: '#C8101F', color: '#fff', fontWeight: 800, fontSize: '19px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 20px 40px -14px rgba(181,16,31,.55)' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '14px 28px', borderRadius: '40px', background: '#C8101F', color: '#fff', fontWeight: 800, fontSize: '15px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 16px 32px -16px rgba(181,16,31,.55)' }}
             >
               Experimentar a app web
-              <CtaArrow />
+              <CtaArrow size={18} />
             </a>
           </div>
         </div>

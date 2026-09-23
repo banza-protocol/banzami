@@ -36,17 +36,17 @@ export function ForDevelopers() {
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '32px', marginTop: '34px' }}>
             <a
               href="/developers"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '14px', padding: '20px 38px', borderRadius: '40px', whiteSpace: 'nowrap', background: '#1a1416', color: '#fff', fontWeight: 800, fontSize: '19px', textDecoration: 'none', boxShadow: '0 20px 40px -16px rgba(20,16,20,.55)' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '14px 28px', borderRadius: '40px', whiteSpace: 'nowrap', background: '#1a1416', color: '#fff', fontWeight: 800, fontSize: '15px', textDecoration: 'none', boxShadow: '0 16px 32px -16px rgba(20,16,20,.55)' }}
             >
               Portal Developers
-              <CtaArrow />
+              <CtaArrow size={18} />
             </a>
             <a
               href="/developers/docs"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#141014', fontWeight: 700, fontSize: '18px', whiteSpace: 'nowrap', textDecoration: 'none' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#141014', fontWeight: 700, fontSize: '15px', whiteSpace: 'nowrap', textDecoration: 'none' }}
             >
               Documentação
-              <CtaArrow size={18} />
+              <CtaArrow size={16} />
             </a>
           </div>
         </div>
