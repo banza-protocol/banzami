@@ -111,18 +111,44 @@ const closes = [];
  * of the two it was: a product that does not release, or an instrument that
  * never asked. That is the defect. The reading is now taken.
  */
-async function closeScanner(c) {
+/**
+ * Wait for the camera to go quiet, and say how long it took.
+ *
+ * `waitForTimeout(1200)` was a fixed sleep standing in for a condition. Track
+ * release is asynchronous: measured 1200 ms after a close, the reading was
+ * started=3 stopped=2 active=1 — exactly one behind — and maxActive=2, which is
+ * what a stop landing after the NEXT open looks like. Both are what a lagging
+ * release produces, and both are also what a genuine leak produces, so the
+ * fixed sleep could not tell them apart.
+ *
+ * Polling to a bound can. A track that never goes quiet is a leak; one that
+ * goes quiet at 1.4 s was always going to.
+ */
+async function waitForCameraQuiet(c, boundMs = 6000) {
+  const t0 = Date.now();
+  for (;;) {
+    const s = await camStats(c);
+    if (s && s.activeV === 0) return { quiet: true, ms: Date.now() - t0 };
+    if (Date.now() - t0 >= boundMs) return { quiet: false, ms: Date.now() - t0, active: s?.activeV ?? null };
+    await c.page.waitForTimeout(150);
+  }
+}
+
+async function closeScanner(c, { settle = true } = {}) {
   let how = null;
   try { await c.driver.tapButton('Fechar'); how = 'Fechar'; }
   catch {
     try { await c.driver.tapText('Voltar'); how = 'Voltar'; }
     catch { how = null; }
   }
-  await c.page.waitForTimeout(1200);
+  await c.page.waitForTimeout(600);
   // The observation, not the intention: is the scanner still on screen?
   const stillOpen = SCANNER_PROMPT.test(await text(c));
-  closes.push({ how, closed: !stillOpen });
-  return { how, closed: !stillOpen };
+  // Settle BEFORE the caller opens again, so a release still in flight can
+  // never be counted as a second concurrent stream by the next open.
+  const q = settle ? await waitForCameraQuiet(c) : { quiet: null, ms: 0 };
+  closes.push({ how, closed: !stillOpen, quiet: q.quiet, ms: q.ms, active: q.active });
+  return { how, closed: !stillOpen, ...q };
 }
 
 async function section(name, launchOpts, grant, fn) {
@@ -177,6 +203,10 @@ try {
       (closed === closes.length ? '' :
         ` — via ${[...new Set(closes.map((x) => x.how ?? 'no control found'))].join(', ')};` +
         ' the camera gates below are NOT evidence about the application while this fails'));
+    // How long release actually took, stated. A bound that is met with room to
+    // spare and a bound that is missed look identical in a pass/fail alone.
+    R.mark('WEB_CAMERA_RELEASE_IS_PROMPT', closes.every((x) => x.quiet !== false),
+      closes.map((x) => (x.quiet ? `${x.ms}ms` : `NEVER (active=${x.active} after ${x.ms}ms)`)).join(', '));
 
     const s1 = await camStats(c);
     const released = s1 && s1.activeV === 0 && s1.startedV >= 2;
