@@ -181,6 +181,24 @@ body {
 .bz-acc[open] .bz-acc-chev { transform: rotate(180deg); }
 .bz-footlink { transition: background .2s, transform .2s; }
 .bz-footlink:hover { background: #FBE9E7; transform: translateX(2px); }
+.bz-btnlift { transition: transform .2s; }
+.bz-btnlift:hover { transform: translateY(-2px); }
+.bz-btntext { transition: color .2s; }
+.bz-btntext:hover { color: #B5101F; }
+@media (prefers-reduced-motion: reduce) { .bz-btnlift, .bz-footlink { transition-duration: .001ms; } }
+/* Marketing grid + phone responsiveness (site-kit EXTRA_CSS) */
+@media (max-width: 920px) {
+  .bz-g2 { grid-template-columns: 1fr !important; gap: 40px !important; }
+  .bz-g2 .bz-first { order: -1; }
+  .bz-g3 { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  .bz-g4 { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  .bz-toc { display: none !important; }
+  .bz-doc { grid-template-columns: 1fr !important; }
+  .bz-fgrid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 560px) { .bz-g3, .bz-g4, .bz-g2s { grid-template-columns: 1fr !important; } .bz-plat { grid-template-columns: 1fr !important; } .bz-stepper .bz-stl { display: none !important; } }
+@media (max-width: 720px) { .bz-phones { zoom: .78; } .bz-tablewrap { overflow-x: auto; } }
+@media (max-width: 460px) { .bz-phones { zoom: .6; } }
 @media (max-width: 920px) { .bz-footgrid { grid-template-columns: 1fr !important; } }
 @media (max-width: 560px) { .bz-explore { grid-template-columns: 1fr !important; } }
 @keyframes bzspin { to { transform: rotate(360deg); } }
