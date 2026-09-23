@@ -465,7 +465,9 @@ jobs:
       # The host is pure Node built-ins — no dependency install step.
       - name: BFF security unit tests
         working-directory: apps/app-banzami
-        run: node --test test/
+        # Explicit glob, not a bare directory: Node 22's test runner tries to
+        # load "test/" as a module and fails ("Cannot find module …/test").
+        run: node --test test/*.test.mjs
 
       - name: Server syntax check
         working-directory: apps/app-banzami
