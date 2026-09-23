@@ -5,7 +5,9 @@ const SECTION: React.CSSProperties = {
   position: 'relative',
   padding: 'clamp(56px,7vw,96px) 24px',
   overflow: 'hidden',
-  background: '#fff',
+  // A warm off-white band sets this section apart from the white sections
+  // above and below — a modern separation without a hairline rule.
+  background: '#FCF3F2',
 };
 
 /**
