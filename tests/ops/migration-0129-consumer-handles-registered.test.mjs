@@ -26,10 +26,10 @@ describe('migration 0129', () => {
     execFileSync('psql', [ADMIN, '-Atc', `DROP DATABASE IF EXISTS ${db}`]);
     execFileSync('psql', [ADMIN, '-Atc', `CREATE DATABASE ${db}`]);
     migrate(128);
-    psql(`INSERT INTO consumers (id, handle, status, created_at, updated_at) VALUES ('${missing}','sem_registo','ACTIVE',now(),now())`);
+    psql(`INSERT INTO consumers (id, handle, status, display_name, created_at, updated_at) VALUES ('${missing}','sem_registo','ACTIVE','sem_registo',now(),now())`);
     psql(`INSERT INTO merchants (id, name, email, status) VALUES ('${biz}','B','${biz}@example.test','ACTIVE')`);
     psql(`INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('nome_da_loja','MERCHANT','${biz}')`);
-    psql(`INSERT INTO consumers (id, handle, status, created_at, updated_at) VALUES ('${clash}','nome_da_loja','ACTIVE',now(),now())`);
+    psql(`INSERT INTO consumers (id, handle, status, display_name, created_at, updated_at) VALUES ('${clash}','nome_da_loja','ACTIVE','nome_da_loja',now(),now())`);
     migrate(129);
   });
   after(() => execFileSync('psql', [ADMIN, '-Atc', `DROP DATABASE IF EXISTS ${db}`]));

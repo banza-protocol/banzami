@@ -62,7 +62,7 @@ function seedMislabelled() {
              ('${A2}', 'LIABILITY', 'seed reserved',  'AOA');
     INSERT INTO wallets (id, merchant_id, currency, available_account_id, reserved_account_id)
       VALUES ('${W}', '${M}', 'AOA', '${A1}', '${A2}');
-    INSERT INTO consumers (id, handle) VALUES ('${C1}', 'seed_sender'), ('${C2}', 'seed_recipient');
+    INSERT INTO consumers (id, handle, display_name) VALUES ('${C1}', 'seed_sender', 'seed_sender'), ('${C2}', 'seed_recipient', 'seed_recipient');
 
     INSERT INTO payment_links (id, slug, merchant_id, wallet_id, currency, environment)
       VALUES (gen_random_uuid(), 'seed-link', '${M}', '${W}', 'AOA', 'LIVE');

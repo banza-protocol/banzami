@@ -97,7 +97,10 @@ const writeRe = guarded.length ? new RegExp(`\\b(?:INSERT\\s+INTO|UPDATE|DELETE\
 const NON_CORE = [
   ...walk('services', /\.go$/).filter((f) => !f.endsWith('_test.go')),
   ...walk('apps', /\.(ts|tsx|mjs|js)$/).filter((f) => !/\.test\.|\/e2e\//.test(f)),
-  ...walk('tools', /\.(mjs|js|sh|sql|py)$/).filter((f) => !/selftest|check-wallet-native-architecture/.test(f)),
+  // Sibling gate tools reference the guarded-table write pattern inside their
+  // OWN detection regexes; they are not writers. Exclude them like this gate
+  // excludes itself.
+  ...walk('tools', /\.(mjs|js|sh|sql|py)$/).filter((f) => !/selftest|check-wallet-native-architecture|check-merchant-credit-policy-coverage/.test(f)),
   ...walk('tests', /\.(sh|mjs|sql)$/).filter((f) => !/\.test\.mjs$/.test(f)),
   ...walk('sdk', /\.(ts|mjs|js|dart)$/),
   ...walk('infra', /\.(sh|sql)$/),

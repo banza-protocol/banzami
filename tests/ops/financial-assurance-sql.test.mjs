@@ -76,7 +76,7 @@ describe('financial assurance counters', () => {
   });
 
   it('a link payment proven the old way — empty payee, generated description — is caught', () => {
-    psql(`INSERT INTO consumers (id, handle, status) VALUES ('c0000000-0000-4000-8000-000000000001','payerx','ACTIVE');
+    psql(`INSERT INTO consumers (id, handle, status, display_name) VALUES ('c0000000-0000-4000-8000-000000000001','payerx','ACTIVE','payerx');
           INSERT INTO merchants (id, name, email, status) VALUES ('d0000000-0000-4000-8000-000000000001','Loja','l@x.test','ACTIVE');
           INSERT INTO ledger_accounts (id, account_type, name, currency) VALUES
             ('a0000000-0000-4000-8000-000000000011','LIABILITY','w1','AOA'), ('a0000000-0000-4000-8000-000000000012','LIABILITY','w2','AOA');
@@ -167,7 +167,7 @@ describe('financial assurance counters', () => {
 
   it('a consumer whose @banza is not in the namespace is caught', () => {
     const before = counts().CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE;
-    psql(`INSERT INTO consumers (id, handle, status, created_at, updated_at) VALUES ('d0000000-0000-4000-8000-0000000000c9','fora_do_registo','ACTIVE',now(),now())`);
+    psql(`INSERT INTO consumers (id, handle, status, display_name, created_at, updated_at) VALUES ('d0000000-0000-4000-8000-0000000000c9','fora_do_registo','ACTIVE','fora_do_registo',now(),now())`);
     assert.equal(counts().CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE - before, 1);
   });
 
