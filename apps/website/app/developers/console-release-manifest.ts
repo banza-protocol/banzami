@@ -43,6 +43,8 @@ export const CONSOLE_SURFACES: ConsoleSurface[] = [
   // The person's own account — distinct from the workspace, the project and the
   // business. Profile, the real auth model, and where the account is signed in.
   { key: 'account', route: '/conta', state: 'RELEASED' },
+  // The App Banzami surface in the Console — a page and a sidebar entry.
+  { key: 'appbanzami', route: '/app-banzami', state: 'RELEASED' },
 
   {
     key: 'customers',
