@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Badge, H1, HeroLead, Small, Icon, type IconName } from '../kit';
 import { Field, Check, FGrid, SubmitBtn, BackBtn, SuccessMark } from '../form-kit';
 import { Reveal } from '@/components/Reveal';
+import { getPlatformMode } from '@/lib/api';
 import { route, type Lang } from '@/lib/marketing/nav';
 
 /**
@@ -69,6 +70,8 @@ const T = {
     v_telefone: 'Introduza um telefone válido.',
     v_termos: 'É necessário aceitar os termos.',
     v_sandbox: 'Confirme que compreende a fase Sandbox.',
+    sbxFill: 'Usar dados de teste',
+    sbxToast: 'Secção preenchida com dados sandbox.',
   },
   en: {
     badge: 'Beta · Sandbox',
@@ -120,6 +123,8 @@ const T = {
     v_telefone: 'Enter a valid phone number.',
     v_termos: 'You must accept the terms.',
     v_sandbox: 'Confirm you understand the Sandbox phase.',
+    sbxFill: 'Use test data',
+    sbxToast: 'Section filled with sandbox data.',
   },
 } as const;
 
@@ -148,13 +153,29 @@ function FlowStepper({ steps, current, done }: { steps: string[]; current: numbe
   );
 }
 
-function StepHead({ kicker, title, sub }: { kicker: string; title: string; sub: string }) {
+function StepHead({ kicker, title, sub, action }: { kicker: string; title: string; sub: string; action?: React.ReactNode }) {
   return (
-    <div style={{ margin: '30px 0 20px' }}>
-      <p style={{ margin: 0, fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', color: '#B5101F' }}>{kicker}</p>
-      <h2 style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: 900, letterSpacing: '-.02em', color: '#141014' }}>{title}</h2>
-      <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 600, color: '#8a7a7e' }}>{sub}</p>
+    <div style={{ margin: '30px 0 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ margin: 0, fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', color: '#B5101F' }}>{kicker}</p>
+        <h2 style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: 900, letterSpacing: '-.02em', color: '#141014' }}>{title}</h2>
+        <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 600, color: '#8a7a7e' }}>{sub}</p>
+      </div>
+      {action}
     </div>
+  );
+}
+
+// SANDBOX-only "fill with test data" control — amber ghost, unobtrusive, right
+// aligned in the step header (mirrors the old onboarding form's SbxFillButton).
+const SbxSpark = (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+);
+function SbxFill({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="bz-btnlift" style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', borderRadius: '10px', border: '1.5px solid #F2CD6E', background: 'rgba(252,239,196,.6)', color: '#7A4A06', fontSize: '12.5px', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      {SbxSpark}{label}
+    </button>
   );
 }
 
@@ -181,6 +202,51 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
   const [err, setErr] = useState<Errs>({});
   const [appCode, setAppCode] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
+
+  // SANDBOX-only autofill (ADR-025): the fill controls follow the live Platform
+  // Mode. It fails closed to SANDBOX, and the controls are never shown in LIVE.
+  const [isSandbox, setIsSandbox] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void getPlatformMode().then((p) => { if (active) setIsSandbox(p.mode !== 'LIVE'); });
+    return () => { active = false; };
+  }, []);
+
+  // Transient toast confirming a section was filled.
+  const [toast, setToast] = useState<{ id: number; msg: string } | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  // Set several fields at once and clear their errors. A 4-digit seed keeps the
+  // e-mail unique per fill so repeated sandbox applications never collide.
+  const fillMany = (obj: Partial<typeof initial>) => {
+    setF((s) => ({ ...s, ...obj }));
+    setErr((e) => { const n = { ...e }; Object.keys(obj).forEach((k) => delete n[k]); return n; });
+    setToast({ id: Date.now(), msg: t.sbxToast });
+  };
+  const seed = () => Math.floor(1000 + Math.random() * 9000);
+  const fillStep1 = () => fillMany({
+    nome_comercial: lang === 'en' ? 'Kilamba Canteen' : 'Cantina do Kilamba',
+    nome_legal: 'Kilamba Comércio, Lda.',
+    nif: '5001234567',
+    categoria: t.categorias[0],
+    provincia: t.provincias[0],
+    descricao: lang === 'en' ? 'Meals and drinks to go' : 'Refeições e bebidas para levar',
+  });
+  const fillStep2 = () => fillMany({
+    resp_nome: 'João da Silva',
+    resp_cargo: lang === 'en' ? 'Owner' : 'Sócio-gerente',
+    resp_doc: '000000000LA000',
+  });
+  const fillStep3 = () => fillMany({
+    email: `negocio.teste${seed()}@exemplo.co.ao`,
+    telefone: '+244 923 000 000',
+    morada: lang === 'en' ? 'Rua Direita do Kilamba, Talatona' : 'Rua Direita do Kilamba, Bairro Talatona',
+  });
+  const fillStep4 = () => fillMany({ termos: true, sandbox: true });
 
   const rules: Record<string, { re?: RegExp; bad?: string; msg?: string }> = {
     email: { re: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, bad: t.v_email },
@@ -255,7 +321,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
 
                 {!done && step === 1 && (
                   <>
-                    <StepHead kicker={t.of(1)} title={t.s1t} sub={t.s1s} />
+                    <StepHead kicker={t.of(1)} title={t.s1t} sub={t.s1s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep1} /> : undefined} />
                     <FGrid>
                       <Field name="nome_comercial" label={t.l_nome_comercial} placeholder={t.ph_nome_comercial} autoComplete="organization" value={f.nome_comercial} error={err.nome_comercial} onChange={(v) => set('nome_comercial', v)} />
                       <Field name="nome_legal" label={t.l_nome_legal} placeholder={t.ph_nome_legal} value={f.nome_legal} error={err.nome_legal} onChange={(v) => set('nome_legal', v)} />
@@ -270,7 +336,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
 
                 {!done && step === 2 && (
                   <>
-                    <StepHead kicker={t.of(2)} title={t.s2t} sub={t.s2s} />
+                    <StepHead kicker={t.of(2)} title={t.s2t} sub={t.s2s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep2} /> : undefined} />
                     <FGrid>
                       <Field name="resp_nome" label={t.l_resp_nome} placeholder={t.ph_resp_nome} autoComplete="name" value={f.resp_nome} error={err.resp_nome} onChange={(v) => set('resp_nome', v)} />
                       <Field name="resp_cargo" label={t.l_resp_cargo} placeholder={t.ph_resp_cargo} value={f.resp_cargo} error={err.resp_cargo} onChange={(v) => set('resp_cargo', v)} />
@@ -282,7 +348,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
 
                 {!done && step === 3 && (
                   <>
-                    <StepHead kicker={t.of(3)} title={t.s3t} sub={t.s3s} />
+                    <StepHead kicker={t.of(3)} title={t.s3t} sub={t.s3s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep3} /> : undefined} />
                     <FGrid>
                       <Field name="email" label={t.l_email} type="email" placeholder={t.ph_email} autoComplete="email" value={f.email} error={err.email} onChange={(v) => set('email', v)} />
                       <Field name="telefone" label={t.l_telefone} type="tel" placeholder={t.ph_telefone} autoComplete="tel" value={f.telefone} error={err.telefone} onChange={(v) => set('telefone', v)} />
@@ -294,7 +360,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
 
                 {!done && step === 4 && (
                   <>
-                    <StepHead kicker={t.of(4)} title={t.s4t} sub={t.s4s} />
+                    <StepHead kicker={t.of(4)} title={t.s4t} sub={t.s4s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep4} /> : undefined} />
                     <div style={{ padding: '4px 18px', borderRadius: '18px', background: '#FFFBFA', border: '1px solid #F5E8E6', marginBottom: '18px' }}>
                       <SumRow label={t.sum.negocio} value={f.nome_comercial} />
                       <SumRow label={t.sum.nif} value={f.nif} />
@@ -357,6 +423,15 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
           </div>
         </div></Reveal>
       </section>
+
+      {/* SANDBOX autofill toast */}
+      {toast && (
+        <div role="status" aria-live="polite" style={{ position: 'fixed', insetInline: 0, bottom: '24px', zIndex: 90, display: 'flex', justifyContent: 'center', padding: '0 16px', pointerEvents: 'none' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '14px', background: '#2a2024', color: '#fff', padding: '12px 20px', fontSize: '13.5px', fontWeight: 800, boxShadow: '0 16px 40px -12px rgba(0,0,0,.5)' }}>
+            <span style={{ color: '#F2CD6E' }}>{SbxSpark}</span>{toast.msg}
+          </div>
+        </div>
+      )}
     </>
   );
 }
