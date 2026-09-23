@@ -4,14 +4,6 @@ import { useState, type ReactNode } from 'react';
 
 export type CodeTab = { k: string; label: string; code: ReactNode };
 
-// Syntax-highlight token helpers (dossier palette).
-export const tok = {
-  k: (t: ReactNode) => <span style={{ color: '#FF7A7A' }}>{t}</span>,
-  p: (t: ReactNode) => <span style={{ color: '#FF9A8A' }}>{t}</span>,
-  v: (t: ReactNode) => <span style={{ color: '#FFD58A' }}>{t}</span>,
-  c: (t: ReactNode) => <span style={{ color: '#8a7a7e' }}>{t}</span>,
-};
-
 /** Terminal-style code window with tabs (cURL / TypeScript / …). */
 export function CodeWindow({ tabs, minH = 236, style }: { tabs: CodeTab[]; minH?: number; style?: React.CSSProperties }) {
   const [active, setActive] = useState(tabs[0]?.k);

@@ -200,6 +200,9 @@ body {
 @media (max-width: 560px) { .bz-g3, .bz-g4, .bz-g2s { grid-template-columns: 1fr !important; } .bz-plat { grid-template-columns: 1fr !important; } .bz-stepper .bz-stl { display: none !important; } }
 @media (max-width: 720px) { .bz-phones { zoom: .78; } .bz-tablewrap { overflow-x: auto; } }
 @media (max-width: 460px) { .bz-phones { zoom: .6; } }
+/* Caveat handwritten notes only on wide screens (README §Tipografia: ≥1380px) */
+.bz-note { display: none; }
+@media (min-width: 1381px) { .bz-note { display: block; } }
 @media (max-width: 920px) { .bz-footgrid { grid-template-columns: 1fr !important; } }
 @media (max-width: 560px) { .bz-explore { grid-template-columns: 1fr !important; } }
 @keyframes bzspin { to { transform: rotate(360deg); } }

@@ -49,6 +49,14 @@ export function Icon({ name, size = 18, color = 'currentColor', width = 2 }: { n
   );
 }
 
+// Code syntax-highlight token helpers (dossier palette) — server-safe.
+export const tok = {
+  k: (t: ReactNode) => <span style={{ color: '#FF7A7A' }}>{t}</span>,
+  p: (t: ReactNode) => <span style={{ color: '#FF9A8A' }}>{t}</span>,
+  v: (t: ReactNode) => <span style={{ color: '#FFD58A' }}>{t}</span>,
+  c: (t: ReactNode) => <span style={{ color: '#8a7a7e' }}>{t}</span>,
+};
+
 export function ArrowIcon({ color = 'currentColor', size = 16 }: { color?: string; size?: number }) {
   return (
     <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -58,9 +66,14 @@ export function ArrowIcon({ color = 'currentColor', size = 16 }: { color?: strin
 }
 
 // ── SANDBOX ribbon (corner) ───────────────────────────────────────────────
+// Replaces the old global PlatformBanner: carries the same sr-only disclosure
+// for assistive tech and crawlers (the hero copy also states it visibly).
 export function Ribbon() {
   return (
-    <div aria-hidden="true" style={{ position: 'absolute', top: '12px', left: '-52px', zIndex: 61, transform: 'rotate(-45deg)', width: '150px', padding: '5px 0', textAlign: 'center', background: 'linear-gradient(90deg,#FBE6A6,#F2CD6E)', color: '#7A4A06', fontSize: '9.5px', fontWeight: 900, letterSpacing: '.16em', boxShadow: '0 8px 18px -8px rgba(122,74,6,.5)' }}>SANDBOX</div>
+    <div role="status" style={{ position: 'absolute', top: 0, left: 0, zIndex: 61, width: '150px', height: '150px', overflow: 'hidden', pointerEvents: 'none' }}>
+      <span className="sr-only">Ambiente SANDBOX — dinheiro fictício. O Financial Live está indisponível.</span>
+      <div aria-hidden="true" style={{ position: 'absolute', top: '12px', left: '-52px', transform: 'rotate(-45deg)', width: '150px', padding: '5px 0', textAlign: 'center', background: 'linear-gradient(90deg,#FBE6A6,#F2CD6E)', color: '#7A4A06', fontSize: '9.5px', fontWeight: 900, letterSpacing: '.16em', boxShadow: '0 8px 18px -8px rgba(122,74,6,.5)' }}>SANDBOX</div>
+    </div>
   );
 }
 
