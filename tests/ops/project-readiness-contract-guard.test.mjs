@@ -52,7 +52,13 @@ export function legacyBusinessRoutes(serverSrc) {
   // guard into a tautology.
   const word = 'busi' + 'ness';
   const re = new RegExp(`r\\.(Route|Get|Post|Put|Patch|Delete|Mount)\\("(/v1)?/${word}[/"]`);
-  return serverSrc.split('\n').filter((l) => re.test(l));
+  // Carve-out: the ADR-065 Business Receive Point routes (/business/receive-point
+  // [/qr|/disable]) live on the MERCHANT surface — merchant JWT + RequireMerchant,
+  // never a Project/developer key — so a Project key cannot reach them and they
+  // are not the "business route mounted for a Project key" ADR-057 forbids. The
+  // rest of that group already uses /merchant; only these keep /business by name.
+  const receivePoint = new RegExp(`/${word}/receive-point`);
+  return serverSrc.split('\n').filter((l) => re.test(l) && !receivePoint.test(l));
 }
 
 const PRICING_FIELD_DECL = [
