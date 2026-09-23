@@ -407,7 +407,7 @@ function ComprovativosSection({ lang }: { lang: Lang }) {
               <div className="bz-phones" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ position: 'relative' }}>
                   <PhoneComprovativo lang={lang} />
-                  <div aria-hidden="true" className="bz-float" style={{ position: 'absolute', zIndex: 3, left: '-40px', bottom: '8px', width: '220px', padding: '14px 16px', borderRadius: '18px', background: '#fff', boxShadow: '0 26px 50px -20px rgba(122,16,22,.45)', animation: 'floaty 6s ease-in-out infinite' }}>
+                  <div aria-hidden="true" className="bz-float" style={{ position: 'absolute', zIndex: 3, left: '-40px', bottom: '-6px', width: '220px', padding: '14px 16px', borderRadius: '18px', background: '#fff', boxShadow: '0 26px 50px -20px rgba(122,16,22,.45)', animation: 'floaty 6s ease-in-out infinite' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#1E8E4E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>
                       <div>
