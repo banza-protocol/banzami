@@ -25,11 +25,11 @@ export function PlatformBadge() {
 
   if (!show) return null;
 
+  // Consistent SANDBOX corner ribbon (same as banzami.com and the other surfaces).
   return (
-    <div className="fixed left-1/2 top-2 z-[100] -translate-x-1/2">
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400 bg-amber-100 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-amber-900 shadow-sm">
-        🟡 SANDBOX
-      </span>
+    <div role="status" style={{ position: 'fixed', top: 0, left: 0, zIndex: 100, width: '150px', height: '150px', overflow: 'hidden', pointerEvents: 'none' }}>
+      <span className="sr-only">Ambiente SANDBOX — dinheiro fictício. O Financial Live está indisponível.</span>
+      <div aria-hidden="true" style={{ position: 'absolute', top: '12px', left: '-52px', transform: 'rotate(-45deg)', width: '150px', padding: '5px 0', textAlign: 'center', background: 'linear-gradient(90deg,#FBE6A6,#F2CD6E)', color: '#7A4A06', fontSize: '9.5px', fontWeight: 900, letterSpacing: '.16em', boxShadow: '0 8px 18px -8px rgba(122,74,6,.5)' }}>SANDBOX</div>
     </div>
   );
 }
