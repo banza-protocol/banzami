@@ -1,4 +1,5 @@
 import { ROUTES, route, type Lang, type RouteKey, type Loc } from '@/lib/marketing/nav';
+import { ContactCTA } from './ContactCTA';
 
 const L = (pt: string, en: string): Loc => ({ pt, en });
 const CONSOLE_URL = '/developers/login';
@@ -105,7 +106,6 @@ const T = {
   built: L('Construído sobre o BANZA.', 'Built on BANZA.'),
 };
 
-const MAILTO_PARTNER = 'mailto:contact@banzami.com?subject=Banzami%20%E2%80%94%20Parceria';
 
 export function Footer({ lang }: { lang: Lang }) {
   return (
@@ -148,7 +148,7 @@ export function Footer({ lang }: { lang: Lang }) {
           <p style={{ position: 'relative', margin: '12px 0 20px', fontSize: '13.5px', lineHeight: 1.55, color: 'rgba(255,255,255,.88)', fontWeight: 600, textWrap: 'pretty' }}>{T.redDesc[lang]}</p>
           <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             <a href={CONSOLE_URL} style={{ flex: 1, minWidth: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#fff', color: '#9A1B22', borderRadius: '12px', padding: '12px 16px', fontWeight: 800, fontSize: '13.5px', textDecoration: 'none', whiteSpace: 'nowrap' }}>{T.portal[lang]}<Arrow c="#9A1B22" /></a>
-            <a href={MAILTO_PARTNER} style={{ flex: 1, minWidth: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.4)', color: '#fff', borderRadius: '12px', padding: '12px 16px', fontWeight: 800, fontSize: '13.5px', textDecoration: 'none', whiteSpace: 'nowrap' }}>{T.team[lang]}<Arrow c="#fff" /></a>
+            <ContactCTA lang={lang} label={T.team[lang]} />
           </div>
           <p style={{ position: 'relative', margin: '16px 0 0', fontSize: '12.5px', lineHeight: 1.5, fontWeight: 600, color: 'rgba(255,255,255,.8)' }}>
             {T.betaBefore[lang]}<a href="https://app.banzami.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', fontWeight: 900, textDecoration: 'none' }}>{T.betaWeb[lang]}</a>{T.betaMid[lang]}<a href={route('testes', lang)} style={{ color: '#fff', fontWeight: 900, textDecoration: 'none' }}>{T.betaTesting[lang]}</a>{T.betaAfter[lang]}
