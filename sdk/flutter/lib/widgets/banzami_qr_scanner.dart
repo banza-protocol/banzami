@@ -84,6 +84,24 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
       if (kIsWeb && !_triedFallback && facing == CameraFacing.back &&
           (cls == _CamError.notFound || cls == _CamError.generic)) {
         _triedFallback = true;
+        // RELEASE THE FAILED ATTEMPT BEFORE STARTING ANOTHER.
+        //
+        // On the web a rear-camera start can acquire a MediaStream and only
+        // then be rejected by the facing constraint. Booting the fallback on
+        // the same controller leaves that first stream live: the controller
+        // tracks one stream, so disposing it later stops the SECOND and the
+        // first keeps the camera on with nothing on screen.
+        //
+        // BZV-20260923-0001 measured started=3 stopped=2 active=1 on a device
+        // with no rear camera, with the scanner proven dismissed 3/3 — a live
+        // camera track after the user closed the scanner. Recreating here is
+        // exactly what _retry already does for the denied→allowed transition,
+        // and for the same reason.
+        try { await _controller.dispose(); } catch (_) { /* noop */ }
+        _controller = _makeController();
+        MobileScannerPlatform.instance
+            .setBarcodeLibraryScriptUrl('/zxing-library-0.21.3.js');
+        if (mounted) setState(() {});
         await _boot(facing: CameraFacing.front);
         return;
       }
@@ -113,8 +131,21 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
       detail = '${e.errorDetails?.code ?? ''} ${e.errorDetails?.message ?? ''}';
     }
     final blob = '$e $detail'.toLowerCase();
+
+    // PRECISE SIGNALS FIRST, LOOSE KEYWORDS LAST.
+    //
+    // `blob.contains('permission')` used to be tested before everything else,
+    // and it is the weakest test here: any message that merely MENTIONS
+    // permission wins it, including the wrapper text around a missing device.
+    // BZV-20260923-0001 measured nocam→non-permission=false on a machine with
+    // no camera at all — the user was told to grant a permission they had
+    // already granted, for a device that does not exist.
+    //
+    // The error's own NAME is not ambiguous, so it decides first. The keyword
+    // stays as a last resort, because a wrapper that says only "permission"
+    // and nothing else is still a denial.
     if (code == MobileScannerErrorCode.permissionDenied ||
-        blob.contains('notallowed') || blob.contains('permission')) {
+        blob.contains('notallowed')) {
       return _CamError.denied;
     }
     if (blob.contains('notfound') || blob.contains('overconstrained') ||
@@ -124,6 +155,9 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
     if (blob.contains('notreadable') || blob.contains('aborterror') ||
         blob.contains('could not start') || blob.contains('trackstart')) {
       return _CamError.notReadable;
+    }
+    if (blob.contains('permission')) {
+      return _CamError.denied;
     }
     if (code == MobileScannerErrorCode.unsupported || blob.contains('unsupported')) {
       return _CamError.unsupported;
