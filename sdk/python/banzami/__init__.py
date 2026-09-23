@@ -9,21 +9,21 @@ Quick start:
         print(tx.id)
 """
 
-from .client import BanzamiClient, BanzamiHooks, Banzami
+from .client import Banzami, BanzamiClient, BanzamiHooks
 from .config import BanzamiConfig
 from .exceptions import (
     BanzamiAPIError,
-    BanzamiError,
     BanzamiAuthenticationError,
     BanzamiConflictError,
+    BanzamiError,
     BanzamiInsufficientFundsError,
+    BanzamiNetworkError,
     BanzamiNotFoundError,
     BanzamiPermissionError,
     BanzamiRateLimitError,
     BanzamiServerError,
     BanzamiTimeoutError,
     BanzamiValidationError,
-    BanzamiNetworkError,
     BanzamiWebhookSignatureError,
 )
 from .models import (
@@ -32,10 +32,10 @@ from .models import (
     DisputeStatus,
     Merchant,
     NewApiKey,
-    Payout,
-    PayoutStatus,
     PaymentLink,
     PaymentLinkStatus,
+    Payout,
+    PayoutStatus,
     QrCode,
     QrPayment,
     Refund,

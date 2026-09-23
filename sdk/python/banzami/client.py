@@ -12,8 +12,8 @@ import httpx
 from .auth import APIKeyAuth
 from .config import BanzamiConfig, default_base_url
 from .exceptions import (
-    BanzamiTimeoutError,
     BanzamiNetworkError,
+    BanzamiTimeoutError,
     api_error_from_response,
 )
 from .resources import (

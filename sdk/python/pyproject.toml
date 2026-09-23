@@ -9,7 +9,7 @@ description = "Official Python SDK for the Banzami payments platform"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
-keywords = ["banzami", "banzami", "payments", "angola", "aoa", "fintech"]
+keywords = ["banzami", "banza", "payments", "angola", "aoa", "fintech", "kwanza"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -38,9 +38,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage    = "https://banzami.com"
-Repository  = "https://github.com/banzami-protocol/sdk-python"
-"Bug Tracker" = "https://github.com/banzami-protocol/sdk-python/issues"
+Homepage      = "https://banzami.com"
+Documentation = "https://banzami.com/developers/docs"
+Repository    = "https://github.com/banza-protocol/banzami"
+"Bug Tracker" = "https://github.com/banza-protocol/banzami/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["banzami"]
