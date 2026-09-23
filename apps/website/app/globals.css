@@ -178,7 +178,7 @@ body {
 .bz-lo:hover { background: #FFF6F5; }
 @media (max-width: 1440px) { .bz-langcode { display: none; } }
 @media (max-width: 1260px) { .bz-navitem > a { padding: 9px 9px; } }
-@media (max-width: 1120px) { .bz-navlinks, .bz-langdd { display: none !important; } .bz-burger { display: flex !important; } }
+@media (max-width: 1120px) { .bz-navlinks { display: none !important; } .bz-burger { display: flex !important; } }
 .bz-acc[open] .bz-acc-chev { transform: rotate(180deg); }
 .bz-footlink { transition: background .2s, transform .2s; }
 .bz-footlink:hover { background: #FBE9E7; transform: translateX(2px); }
