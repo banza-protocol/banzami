@@ -5,6 +5,7 @@ import { HowItWorks } from '@/components/site/HowItWorks';
 import { ForBusiness } from '@/components/site/ForBusiness';
 import { ForDevelopers } from '@/components/site/ForDevelopers';
 import { HeroLaunch } from '@/components/site/HeroLaunch';
+import { HomeDivider } from '@/components/site/home-sections-parts';
 import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
 export const metadata: Metadata = {
@@ -27,8 +28,12 @@ export default function HomePage() {
       {/* ===================== 01 · COMO FUNCIONA ===================== */}
       <HowItWorks />
 
+      <HomeDivider />
+
       {/* ===================== 02 · PARA NEGÓCIOS ===================== */}
       <ForBusiness />
+
+      <HomeDivider />
 
       {/* ===================== 03 · PARA DEVELOPERS ===================== */}
       <ForDevelopers />

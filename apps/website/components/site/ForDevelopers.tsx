@@ -1,3 +1,4 @@
+import { Reveal } from '@/components/Reveal';
 import { SectionPill, CtaArrow } from './home-sections-parts';
 
 const SECTION: React.CSSProperties = {
@@ -20,6 +21,7 @@ const VAL = { color: '#FFD58A' };
 export function ForDevelopers() {
   return (
     <section id="developers" className="bzhs-root" style={SECTION}>
+      <Reveal>
       <div
         className="bzhs-split bzhs-split-dev"
         style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '.9fr 1.1fr', gap: '48px', alignItems: 'center' }}
@@ -103,6 +105,7 @@ export function ForDevelopers() {
           </div>
         </div>
       </div>
+      </Reveal>
     </section>
   );
 }

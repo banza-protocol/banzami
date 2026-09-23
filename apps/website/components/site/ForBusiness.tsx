@@ -1,3 +1,4 @@
+import { Reveal } from '@/components/Reveal';
 import { SectionPill, CtaArrow, StatusBar, HomeIndicator, Phone } from './home-sections-parts';
 
 const SECTION: React.CSSProperties = {
@@ -14,6 +15,7 @@ const SECTION: React.CSSProperties = {
 export function ForBusiness() {
   return (
     <section id="negocios" className="bzhs-root" style={SECTION}>
+      <Reveal>
       <div
         className="bzhs-split"
         style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '.95fr 1.05fr', gap: '48px', alignItems: 'center' }}
@@ -115,6 +117,7 @@ export function ForBusiness() {
           </div>
         </div>
       </div>
+      </Reveal>
     </section>
   );
 }

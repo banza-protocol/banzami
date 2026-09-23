@@ -94,6 +94,15 @@ export function Connector({ delay }: { delay: string }) {
   );
 }
 
+// ── subtle divider between home sections (hairline, fades at the edges) ─────
+export function HomeDivider() {
+  return (
+    <div aria-hidden="true" style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
+      <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(20,16,20,0.10), transparent)' }} />
+    </div>
+  );
+}
+
 // ── the phone bezel wrapper (decorative) ────────────────────────────────────
 export function Phone({ style, screenStyle, children }: { style: CSSProperties; screenStyle: CSSProperties; children: ReactNode }) {
   return (

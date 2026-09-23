@@ -1,3 +1,4 @@
+import { Reveal } from '@/components/Reveal';
 import { LiveClock } from './LiveClock';
 import { SectionPill, CtaArrow, StatusBar, HomeIndicator, Connector, Phone } from './home-sections-parts';
 
@@ -15,6 +16,7 @@ const SECTION: React.CSSProperties = {
 export function HowItWorks() {
   return (
     <section id="como-funciona" className="bzhs-root" style={SECTION}>
+      <Reveal>
       <div
         className="bzhs-split bzhs-split-dev"
         style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto', display: 'grid', gridTemplateColumns: '.8fr 1.2fr', gap: '40px', alignItems: 'center' }}
@@ -156,6 +158,7 @@ export function HowItWorks() {
           </div>
         </div>
       </div>
+      </Reveal>
     </section>
   );
 }
