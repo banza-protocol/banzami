@@ -28,10 +28,13 @@ export function HeroAppPhone({ lang }: { lang: Lang }) {
         <div aria-hidden="true" style={{ position: 'absolute', top: '18px', left: '50%', transform: 'translateX(-50%)', width: '98px', height: '27px', borderRadius: '15px', background: '#160a0c', zIndex: 40 }} />
         <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '40px', overflow: 'hidden' }}>
           {opened ? (
+            // Render the app at a real phone width (390px) and scale it down to
+            // fit the frame, so the layout is a proper phone layout (no overflow).
+            // Inner screen ≈ 282×602; 390 × (282/390) = 282, 833 × 0.7231 ≈ 602.
             <iframe
               src={APP_URL}
               title={t.title}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', borderRadius: '40px', background: '#9A1B22' }}
+              style={{ position: 'absolute', top: 0, left: 0, width: '390px', height: '833px', transform: 'scale(0.72308)', transformOrigin: 'top left', border: 'none', background: '#9A1B22' }}
               allow="clipboard-write; camera"
             />
           ) : (
