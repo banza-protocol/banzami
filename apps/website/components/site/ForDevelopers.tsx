@@ -93,13 +93,13 @@ export function ForDevelopers() {
           </div>
 
           <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '28px' }}>
-            <Highlight strong="APIs" rest="robustas">
+            <Highlight strong="API v1" rest="documentada">
               <path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4" />
             </Highlight>
-            <Highlight strong="SDKs" rest="oficiais">
+            <Highlight strong="SDK TypeScript" rest="publicado">
               <path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5" />
             </Highlight>
-            <Highlight strong="Webhooks" rest="em tempo real">
+            <Highlight strong="Webhooks assinados" rest="eventos verificáveis">
               <path d="M13 2L4 14h7l-1 8 9-12h-7z" />
             </Highlight>
           </div>

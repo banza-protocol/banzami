@@ -165,16 +165,16 @@ export function Footer() {
           />
           <div className="relative">
             <p className="m-0 text-[11px] font-black uppercase tracking-[0.12em] text-white/60">Para developers e parceiros</p>
-            <p className="m-0 mt-[10px] text-[26px] font-black leading-[1.1] tracking-[-0.01em]">Integre o Banzami no seu produto</p>
+            <p className="m-0 mt-[10px] text-[26px] font-black leading-[1.1] tracking-[-0.01em]">Construa com Banzami</p>
             <p data-testid="footer-environment-status" className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
-              A {PUBLIC_TRUTH.sandbox.name} permite testar APIs, SDKs e webhooks com dinheiro fictício. O {PUBLIC_TRUTH.live.name} permanece indisponível nesta fase Beta.
+              Aceda às ferramentas para developers ou fale diretamente com a nossa equipa. A {PUBLIC_TRUTH.sandbox.name} está disponível; o {PUBLIC_TRUTH.live.name} permanece indisponível nesta fase Beta.
             </p>
 
             <a
               href="/developers"
               className="bz-foot-cta mt-[22px] flex items-center justify-between rounded-[16px] bg-white px-[20px] py-[16px] text-[15px] font-extrabold text-cherry no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
             >
-              Portal developers
+              Portal Developers
               <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="#B5101F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>

@@ -37,7 +37,7 @@ export function ForBusiness() {
               className="bzhs-cta"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '14px 28px', borderRadius: '40px', whiteSpace: 'nowrap', background: '#C8101F', color: '#fff', fontWeight: 800, fontSize: '15px', textDecoration: 'none', boxShadow: '0 16px 32px -16px rgba(181,16,31,.55)' }}
             >
-              Explorar para negócios
+              Ver soluções para negócios
               <CtaArrow size={18} />
             </a>
           </div>

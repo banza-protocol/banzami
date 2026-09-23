@@ -30,9 +30,6 @@ export function HowItWorks() {
           <p style={{ margin: '24px 0 0', fontSize: 'clamp(17px,1.6vw,21px)', lineHeight: 1.5, fontWeight: 600, color: '#6a5a5e', maxWidth: '400px', textWrap: 'pretty' }}>
             Do QR ou de um @banza ao comprovativo, em três passos.
           </p>
-          <p style={{ margin: '18px 0 0', fontSize: '16px', lineHeight: 1.55, fontWeight: 600, color: '#7a6a6e', maxWidth: '380px', textWrap: 'pretty' }}>
-            Veja o valor, confirme o destinatário e receba o comprovativo imediatamente.
-          </p>
           <div style={{ display: 'flex', marginTop: '34px' }}>
             <a
               href="https://app.banzami.com"
