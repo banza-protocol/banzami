@@ -98,15 +98,23 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
         // exactly what _retry already does for the denied→allowed transition,
         // and for the same reason.
         //
-        // NOT PROVEN TO CLOSE THAT DEFECT. Measured against the deployed
-        // Sandbox with the same instrument, before and after: started=3
-        // stopped=2 active=1, unchanged. This is correct hygiene — releasing
-        // before re-acquiring — and it is not the cause of the leak. The
-        // commit that introduced it (57dbf165) claims more than the evidence
-        // supports; the leak is open, and the harness now measures it as
-        // "195ms, 59ms, NEVER (active=2 after 6367ms)": the first two closes
-        // release, the third never does. Whatever is holding that third
-        // stream is somewhere else.
+        // WHAT THE EVIDENCE ACTUALLY SUPPORTS, stated carefully because the
+        // commit that introduced this (57dbf165) claimed more.
+        //
+        // Measured with the OLD instrument, before and after this change:
+        // started=3 stopped=2 active=1, unchanged. So this alone did not move
+        // the number, and it must not be read as the fix.
+        //
+        // With an instrument that waits for the camera to go quiet instead of
+        // sleeping 1200 ms, one run recorded "195ms, 59ms, NEVER (active=2
+        // after 6367ms)" — two tracks still live six seconds after the scanner
+        // was proven dismissed. That reading is real and stands.
+        //
+        // Four consecutive runs since have been clean: release in 0-3 ms, three
+        // starts and three stops, nothing live while closed. So the symptom is
+        // INTERMITTENT and has not recurred. It is not declared closed here.
+        // What is certain is that the instrument can now see it: a recurrence
+        // names itself instead of hiding inside a fixed sleep.
         try { await _controller.dispose(); } catch (_) { /* noop */ }
         _controller = _makeController();
         MobileScannerPlatform.instance

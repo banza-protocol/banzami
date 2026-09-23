@@ -147,7 +147,9 @@ async function closeScanner(c, { settle = true } = {}) {
   // Settle BEFORE the caller opens again, so a release still in flight can
   // never be counted as a second concurrent stream by the next open.
   const q = settle ? await waitForCameraQuiet(c) : { quiet: null, ms: 0 };
-  closes.push({ how, closed: !stillOpen, quiet: q.quiet, ms: q.ms, active: q.active });
+  const after = await camStats(c);
+  closes.push({ how, closed: !stillOpen, quiet: q.quiet, ms: q.ms, active: q.active,
+                started: after?.startedV, stopped: after?.stoppedV, live: after?.activeV });
   return { how, closed: !stillOpen, ...q };
 }
 
@@ -206,7 +208,8 @@ try {
     // How long release actually took, stated. A bound that is met with room to
     // spare and a bound that is missed look identical in a pass/fail alone.
     R.mark('WEB_CAMERA_RELEASE_IS_PROMPT', closes.every((x) => x.quiet !== false),
-      closes.map((x) => (x.quiet ? `${x.ms}ms` : `NEVER (active=${x.active} after ${x.ms}ms)`)).join(', '));
+      closes.map((x, i) => `#${i + 1} ${x.quiet ? `${x.ms}ms` : `NEVER after ${x.ms}ms`}` +
+        ` [started=${x.started} stopped=${x.stopped} live=${x.live}]`).join(' · '));
 
     const s1 = await camStats(c);
     const released = s1 && s1.activeV === 0 && s1.startedV >= 2;
