@@ -123,16 +123,15 @@ describe('comerciantes CTAs point to the application form', () => {
   });
 });
 
-describe('activation success — Abrir Banzami Business is a real action', () => {
-  const src = readFileSync(join(__dirname, '../app/comerciantes/activar/ActivarFlow.tsx'), 'utf8');
-  it('button is not a # placeholder', () => {
-    expect(src).toContain('Abrir Banzami Business');
+describe('activation is a real backend flow, not a fake success', () => {
+  const src = readFileSync(join(__dirname, '../components/marketing/pages/ComerciantesActivar.tsx'), 'utf8');
+  it('the success screen opens the real web app, not a # placeholder', () => {
+    expect(src).toContain('APP_URL');
     expect(src).not.toContain('href="#"');
   });
-  it('attempts the app scheme and shows a fallback instruction', () => {
-    expect(src).toContain("'banzami://'");
-    expect(src).toContain('onClick={openBusinessApp}');
-    expect(src).toMatch(/Se a app não abrir/);
+  it('validates and completes activation against the backend (with a PIN)', () => {
+    expect(src).toContain('validateActivation');
+    expect(src).toContain('completeActivation');
   });
 });
 
@@ -149,21 +148,13 @@ describe('KYB documents — NIF is a field, not a document', () => {
     expect(REQUIRED_KYB_DOCUMENTS as string[]).not.toContain('BANK_PROOF');
   });
 
-  it('the form has the right 3 cards and NIF is a text field, not a document', () => {
-    const src = readFileSync(
-      join(__dirname, '../app/comerciantes/candidatura/CandidaturaForm.tsx'),
-      'utf8',
-    );
-    expect(src).not.toContain('PROOF_OF_ADDRESS');
-    expect(src).not.toMatch(/[Cc]omprovativo de [Mm]orada/);
-    // Cards: Registo Comercial (req), Documento de identidade do representante (req),
-    // Documento adicional (optional).
-    expect(src).toContain('Registo Comercial');
-    expect(src).toContain('Documento de identidade do representante');
-    expect(src).toContain('BI ou Passaporte');
-    expect(src).toContain('Documento adicional');
-    // NIF da Empresa is a labelled text field, not a document card / TAX_ID upload.
-    expect(src).toContain('label="NIF da Empresa"');
-    expect(src).not.toMatch(/type: 'TAX_ID'/);
+  it('the Sandbox application form collects no NIF and no documents (data minimization)', () => {
+    // Public Beta Sandbox onboarding is minimal (name, @negócio, category, email);
+    // NIF and KYB documents belong to Financial Live, which is unavailable. This
+    // must match the Privacy Policy and the backend Sandbox policy.
+    const src = readFileSync(join(__dirname, '../components/marketing/pages/Candidatura.tsx'), 'utf8');
+    expect(src).not.toMatch(/name="nif"/);
+    expect(src).not.toContain('uploadKybDocument');
+    expect(src).not.toContain('BUSINESS_REGISTRATION');
   });
 });

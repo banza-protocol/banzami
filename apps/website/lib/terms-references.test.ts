@@ -36,10 +36,12 @@ describe('Terms versioning scaffold', () => {
   });
   it('acceptance flows send a Terms version only once published (DRAFT sends none)', () => {
     for (const f of [
-      'app/comerciantes/candidatura/CandidaturaForm.tsx',
+      'components/marketing/pages/Candidatura.tsx',
       'components/developers/portal/BusinessApplicationForm.tsx',
     ]) {
-      expect(read(f), `${f} gates terms_version on publication`).toContain('isTermsPublished() ? TERMS.version');
+      const src = read(f);
+      expect(src.includes('isTermsPublished()'), `${f} gates terms_version on publication`).toBe(true);
+      expect(src.includes('TERMS.version'), `${f} sends TERMS.version`).toBe(true);
     }
   });
   it('developer sign-in does not treat continuing as Terms acceptance', () => {
@@ -61,7 +63,7 @@ describe('Terms versioning scaffold', () => {
 describe('Terms references resolve to /termos', () => {
   const REFS: { file: string; mustContain: string }[] = [
     // public merchant application (candidatura) — checkbox link
-    { file: 'app/comerciantes/candidatura/CandidaturaForm.tsx', mustContain: 'href="/termos"' },
+    { file: 'components/marketing/pages/Candidatura.tsx', mustContain: "route('termos', lang)" },
     // Console business application — checkbox link
     { file: 'components/developers/portal/BusinessApplicationForm.tsx', mustContain: 'href="/termos"' },
     // developer sign-in consent

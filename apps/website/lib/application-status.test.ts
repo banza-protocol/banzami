@@ -51,7 +51,7 @@ describe('the applicant status', () => {
   });
 
   it('the confirmation screen links to the status page', () => {
-    const form = readFileSync(join(__dirname, '../app/comerciantes/candidatura/CandidaturaForm.tsx'), 'utf8');
-    expect(form).toMatch(/\/comerciantes\/candidatura\/estado\?ref=\$\{applicationId\}/);
+    const form = readFileSync(join(__dirname, '../components/marketing/pages/Candidatura.tsx'), 'utf8');
+    expect(form).toMatch(/route\('estado', lang\)\}\?ref=/);
   });
 });

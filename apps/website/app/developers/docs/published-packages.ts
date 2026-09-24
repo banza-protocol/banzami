@@ -28,6 +28,12 @@ export const PUBLISHED_PACKAGES: {
     registry: 'pub.dev',
     evidence: 'evidence/assurance/sdk/cap-sdk-002-public-install.json',
   },
+  {
+    name: 'banzami-python',
+    install: 'pip install banzami-python',
+    registry: 'PyPI',
+    evidence: 'evidence/assurance/sdk/cap-sdk-003-public-install.json',
+  },
 ];
 
 /**
@@ -35,7 +41,10 @@ export const PUBLISHED_PACKAGES: {
  * so a developer following one gets an error that looks like their mistake.
  */
 export const FAKE_INSTALL_COMMANDS = [
-  'pip install banzami',
+  // NOTE: no bare `pip install banzami` here — it is a substring of the real,
+  // published `pip install banzami-python` (see PUBLISHED_PACKAGES) and would
+  // false-positive on every correct usage. The bare name is not published, but
+  // the docs never emit it.
   'composer require banzami/sdk',
   'go get github.com/banzami',
   'pod "Banzami"',

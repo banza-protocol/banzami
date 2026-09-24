@@ -26,7 +26,9 @@ describe('website vocabulary', () => {
     expect(volumeFaixaLabel('100.000 – 500.000 Kz')).toBe('100 000 – 500 000 Kz');
     expect(volumeFaixaLabel('Mais de 10.000.000 Kz')).toBe('Mais de 10 000 000 Kz');
     for (const v of VOLUME_FAIXAS) expect(volumeFaixaLabel(v)).not.toMatch(/\d\.\d/);
-    for (const rel of ['app/comerciantes/candidatura/CandidaturaForm.tsx', 'components/developers/portal/BusinessApplicationForm.tsx']) {
+    // The volume band lives on the Console (LIVE) business application; the
+    // public Sandbox candidatura is data-minimized and has no volume field.
+    for (const rel of ['components/developers/portal/BusinessApplicationForm.tsx']) {
       expect(read(rel), rel).toMatch(/options=\{VOLUME_FAIXAS\} labelFor=\{volumeFaixaLabel\}/);
     }
   });
