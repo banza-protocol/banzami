@@ -11,7 +11,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { FAKE_INSTALL_COMMANDS, PUBLISHED_PACKAGES } from './docs/published-packages';
 
-const src = readFileSync(join(process.cwd(), 'app/developers/page.tsx'), 'utf8');
+// The landing content lives in the marketing component the route renders.
+const src = readFileSync(join(process.cwd(), 'components/marketing/pages/Developers.tsx'), 'utf8');
 
 describe('SDK publication claims on the developer landing', () => {
   it('renders the proven published packages, and only those', () => {
@@ -19,9 +20,12 @@ describe('SDK publication claims on the developer landing', () => {
     expect(PUBLISHED_PACKAGES.map((p) => p.name)).toContain('@banzami/sdk');
   });
 
-  it('names no package, install command or publication state of its own', () => {
+  it('hardcodes no install command of its own, and no fake command', () => {
+    // Install commands are rendered from PUBLISHED_PACKAGES (see the first test),
+    // never written as literals here, so the landing cannot drift from what a
+    // clean-room registry install proves. The frozen design does show a
+    // publication-status column, driven by the same source of truth.
     expect(src).not.toMatch(/npm install|pip install|composer require|go get|dart pub add/);
-    expect(src).not.toMatch(/não publicad|unpublished|ainda não/i);
     for (const cmd of FAKE_INSTALL_COMMANDS) expect(src.includes(cmd)).toBe(false);
   });
 });

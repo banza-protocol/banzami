@@ -1,0 +1,51 @@
+{
+  "suite": "CAP-SDK-003 — public Banzami Python SDK, published on PyPI outside every Banzami repository",
+  "package": "banzami-python",
+  "registry": {
+    "name": "PyPI",
+    "latest": "0.1.0",
+    "requires_python": ">=3.12",
+    "summary": "Official Python SDK for the Banzami payments platform",
+    "project_urls": {
+      "Homepage": "https://banzami.com",
+      "Repository": "https://github.com/banza-protocol/banzami",
+      "Documentation": "https://banzami.com/developers/docs"
+    },
+    "files": [
+      "banzami_python-0.1.0-py3-none-any.whl",
+      "banzami_python-0.1.0.tar.gz"
+    ],
+    "metadata_url": "https://pypi.org/pypi/banzami-python/json"
+  },
+  "generated_at": "2026-09-24",
+  "clean_project": {
+    "inside_git_repo": false,
+    "dependency_spec": "banzami-python",
+    "local_path_dependency": false,
+    "git_dependency": false
+  },
+  "assertions": [
+    {
+      "id": "SDK3.registry.published",
+      "pass": true,
+      "note": "PyPI /pypi/banzami-python/json returns 200 with latest=0.1.0 and both a py3-none-any wheel and an sdist"
+    },
+    {
+      "id": "SDK3.registry.identity",
+      "pass": true,
+      "note": "summary 'Official Python SDK for the Banzami payments platform'; project URLs point to banzami.com and github.com/banza-protocol/banzami — the package is Banzami's, not a name-squat"
+    },
+    {
+      "id": "SDK3.registry.bare-name-not-squatted",
+      "pass": true,
+      "note": "the bare 'banzami' name is NOT published (PyPI /pypi/banzami/json returns 404); the real, published package is 'banzami-python'"
+    },
+    {
+      "id": "SDK3.install.from-registry",
+      "pass": "PENDING",
+      "note": "a py3.12+ clean-room `pip install banzami-python` + run was NOT executed here (this host's pip targets Python <3.12, which the package's Requires-Python >=3.12 excludes). Registry publication + wheel presence are proven; the run-and-consume assertion is a follow-up on a py3.12 environment."
+    }
+  ],
+  "note": "Recorded so PUBLISHED_PACKAGES may carry a real `pip install banzami-python` command. The claim proven here is registry publication and package identity; a full py3.12 clean-room install-and-run is a follow-up.",
+  "promotable": true
+}

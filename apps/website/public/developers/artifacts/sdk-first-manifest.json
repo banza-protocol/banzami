@@ -25,8 +25,9 @@
     {
       "family": "python",
       "name": "banzami-python",
-      "status": "controlled_preview_not_published",
-      "registry": "PyPI (not published)"
+      "status": "published",
+      "registry": "PyPI (published)",
+      "install": "pip install banzami-python"
     },
     {
       "family": "php",

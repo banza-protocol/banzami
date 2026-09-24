@@ -1,4 +1,5 @@
 import { Reveal } from '@/components/Reveal';
+import { PUBLISHED_PACKAGES } from '@/app/developers/docs/published-packages';
 import { type Lang, type Loc } from '@/lib/marketing/nav';
 import {
   SectionLabel, H1, H2, HeroLead, Small, Lead, Btn, Row, Section, RedCard,
@@ -143,13 +144,27 @@ const T = {
   ),
 };
 
-// SDK table rows (exact truth — do not change).
+// SDK table rows — publication state and install commands come from
+// PUBLISHED_PACKAGES (the evidence-based source of truth), never hardcoded here,
+// so the landing cannot drift from what a clean-room registry install proves.
+// This block only carries display metadata (language, badge colours).
 type SdkRow = { pkg: string; lang: string; published: boolean; badge: Loc; badgeBg: string; badgeColor: string; install: string };
+const SDK_META: Record<string, { lang: string; badge: Loc; badgeBg: string; badgeColor: string }> = {
+  '@banzami/sdk': { lang: 'TypeScript / Node.js', badge: L('Publicado · servidor', 'Published · server'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E' },
+  'banzami-python': { lang: 'Python', badge: L('Publicado · servidor', 'Published · server'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E' },
+  'banzami_client': { lang: 'Dart / Flutter', badge: L('Publicado · cliente, só leitura', 'Published · client, read-only'), badgeBg: '#EAF1FB', badgeColor: '#2A5CA8' },
+};
+// Families that are source-only (not published) — shown for transparency, with
+// no install command.
+const UNPUBLISHED_FAMILIES: { pkg: string; lang: string }[] = [
+  { pkg: 'banzami/sdk-php', lang: 'PHP' },
+];
 const SDK_ROWS: SdkRow[] = [
-  { pkg: '@banzami/sdk', lang: 'TypeScript / Node.js', published: true, badge: L('Publicado · servidor', 'Published · server'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E', install: 'npm install @banzami/sdk' },
-  { pkg: 'banzami-python', lang: 'Python', published: true, badge: L('Publicado · servidor', 'Published · server'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E', install: 'pip install banzami-python' },
-  { pkg: 'banzami_client', lang: 'Dart / Flutter', published: true, badge: L('Publicado · cliente, só leitura', 'Published · client, read-only'), badgeBg: '#EAF1FB', badgeColor: '#2A5CA8', install: 'dart pub add banzami_client' },
-  { pkg: 'banzami/sdk-php', lang: 'PHP', published: false, badge: L('Não publicado', 'Not published'), badgeBg: '#F4EFEE', badgeColor: '#8a7a7e', install: '—' },
+  ...PUBLISHED_PACKAGES.map((p): SdkRow => {
+    const m = SDK_META[p.name] ?? { lang: '', badge: L('Publicado', 'Published'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E' };
+    return { pkg: p.name, lang: m.lang, published: true, badge: m.badge, badgeBg: m.badgeBg, badgeColor: m.badgeColor, install: p.install };
+  }),
+  ...UNPUBLISHED_FAMILIES.map((u): SdkRow => ({ pkg: u.pkg, lang: u.lang, published: false, badge: L('Não publicado', 'Not published'), badgeBg: '#F4EFEE', badgeColor: '#8a7a7e', install: '—' })),
 ];
 
 const th: React.CSSProperties = { textAlign: 'left', padding: '14px 18px', fontSize: '11px', fontWeight: 900, letterSpacing: '.14em', color: '#9a8487', borderBottom: '1px solid #F3E3E1', background: '#FFFBFA' };

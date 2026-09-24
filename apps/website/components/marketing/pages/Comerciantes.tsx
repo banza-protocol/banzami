@@ -264,7 +264,7 @@ export function ComerciantesPage({ lang }: { lang: Lang }) {
             <Small mw={540}>{h.small[lang]}</Small>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', marginTop: '26px' }}>
               <Btn href={route('candidatura', lang)} kind="red">{h.ctaMain[lang]}</Btn>
-              <Btn href="#como" kind="ghost">{h.ctaAlt[lang]}</Btn>
+              <Btn href={route('estado', lang)} kind="ghost">{h.ctaAlt[lang]}</Btn>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '22px' }}>
               {h.chips.map((c, i) => <Chip key={i} icon={c.icon}>{c.label[lang]}</Chip>)}

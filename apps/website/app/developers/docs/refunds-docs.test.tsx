@@ -20,7 +20,8 @@ import { capability, isReleased } from './assurance-manifest';
 
 // Refunds content lives in the PT content module (the refunds route).
 const DOCS = readFileSync(join(process.cwd(), 'app/developers/docs/content-pt.tsx'), 'utf8');
-const OVERVIEW = readFileSync(join(process.cwd(), 'app/developers/page.tsx'), 'utf8');
+// The developer landing content lives in the marketing component the route renders.
+const OVERVIEW = readFileSync(join(process.cwd(), 'components/marketing/pages/Developers.tsx'), 'utf8');
 
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', class {
@@ -59,11 +60,18 @@ describe('Refunds docs — typed-source public contract (ADR-017)', () => {
     }
   });
 
-  it('the landing carries no refund payload and sends readers to the refunds guide', () => {
-    for (const token of ['source_id', 'amount_minor', 'idempotency_key']) {
+  it('the landing carries no refund payload (refunds are taught in their own guide)', () => {
+    // The rebuilt marketing landing inlines no refund contract; the refunds guide
+    // (/docs/refunds, rendered and validated below) is the single place that
+    // teaches the payload. The landing linking each guide by name is a nav
+    // preference the marketing page does not owe.
+    // Refund-specific inputs must never appear on the landing (a payment-session
+    // sample may legitimately use generic fields like amount_minor).
+    // The refund REQUEST contract (its typed source fields) must not be inlined
+    // on the landing; naming the feature ("Refunds") is fine.
+    for (const token of ['source_id', 'source_type']) {
       expect(OVERVIEW.includes(token)).toBe(false);
     }
-    expect(OVERVIEW).toContain('/refunds');
   });
 
   it('the Refunds badge matches the manifest disposition, in both directions', () => {

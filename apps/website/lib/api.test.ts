@@ -114,10 +114,11 @@ describe('activation', () => {
 });
 
 describe('comerciantes CTAs point to the application form', () => {
-  it('hero CTAs link to /comerciantes/candidatura, not mailto/#como', () => {
-    const src = readFileSync(join(__dirname, '../app/comerciantes/page.tsx'), 'utf8');
-    expect(src).toContain('href="/comerciantes/candidatura"');
-    expect(src).not.toContain("mailto('Quero aceitar pagamentos')");
+  it('hero CTAs link to the application form, not mailto/#como', () => {
+    // Content lives in the marketing component the route renders.
+    const src = readFileSync(join(__dirname, '../components/marketing/pages/Comerciantes.tsx'), 'utf8');
+    expect(src).toContain("route('candidatura', lang)");
+    expect(src).not.toContain('mailto');
     expect(src).not.toContain('href="#como"');
   });
 });

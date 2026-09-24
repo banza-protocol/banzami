@@ -72,8 +72,8 @@ describe('P2B — install commands match what is actually published', () => {
   // that are genuinely unpublished. A blanket "nothing is published" is now the
   // false claim, and it was the one steering readers away from a real install.
   it('the unpublished families are still flagged in both languages', () => {
-    expect(PT).toContain('Os SDKs de Python, PHP e Go não estão publicados');
-    expect(EN).toContain('The Python, PHP and Go SDKs are not published');
+    expect(PT).toContain('Os SDKs de PHP e Go não estão publicados');
+    expect(EN).toContain('The PHP and Go SDKs are not published');
     expect(PT).not.toMatch(/SDKs ainda não estão publicados publicamente/);
     expect(EN).not.toMatch(/SDKs are not yet publicly published/);
   });

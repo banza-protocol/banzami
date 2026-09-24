@@ -116,8 +116,12 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
   // banzami_flutter, Banzami's own application framework, deliberately never
   // published (ADR-053). Forbidding the published one would have made the
   // test enforce the very false claim it exists to prevent.
-  const FAKE_INSTALLS = ['npm install @banzami', 'pip install banzami', 'composer require banzami', 'pub add banzami_flutter', 'pod "Banzami"', 'com.banzami:sdk'];
-  const PUBLISHED_INSTALLS = ['npm install @banzami/sdk', 'dart pub add banzami_client'];
+  // Genuinely-fake, non-colliding commands only. `npm install @banzami` and
+  // `pip install banzami` are omitted: they are substrings of the real published
+  // `npm install @banzami/sdk` and `pip install banzami-python`, so matching them
+  // would flag correct usage. The real commands are asserted via PUBLISHED_INSTALLS.
+  const FAKE_INSTALLS = ['composer require banzami', 'pub add banzami_flutter', 'pod "Banzami"', 'com.banzami:sdk'];
+  const PUBLISHED_INSTALLS = ['npm install @banzami/sdk', 'dart pub add banzami_client', 'pip install banzami-python'];
 
   it('no invented endpoints or unverified events in EN or the shared reference', () => {
     for (const src of [EN, REF]) {
@@ -128,19 +132,13 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
   });
   it('EN gives the real @banzami/sdk install and no command for unpublished families', () => {
     for (const cmd of FAKE_INSTALLS) {
-      // EN may NAME the forbidden command only inside its own "Do not run" anti-instruction.
-      const occurrences = EN.split(cmd).length - 1;
-      if (cmd === 'npm install @banzami') {
-        // Published: EN documents the real command rather than warning against it.
-        expect(occurrences).toBeGreaterThanOrEqual(1);
-        expect(EN.includes('Do not run'), 'the EN anti-instruction must not survive publication').toBe(false);
-      } else {
-        expect(occurrences, `EN must not contain "${cmd}"`).toBe(0);
-      }
+      expect(EN.split(cmd).length - 1, `EN must not contain "${cmd}"`).toBe(0);
     }
     for (const cmd of PUBLISHED_INSTALLS) {
       expect(EN.includes(cmd), `EN must document the real install "${cmd}"`).toBe(true);
     }
+    // A published family documents its real command rather than warning against it.
+    expect(EN.includes('Do not run'), 'the EN anti-instruction must not survive publication').toBe(false);
     expect(EN).toContain('are not published');
   });
   it('EN names the refunds/transfers project scopes and matches the manifest', () => {

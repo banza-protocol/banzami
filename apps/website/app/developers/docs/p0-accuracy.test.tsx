@@ -30,7 +30,7 @@ vi.setConfig({ testTimeout: 30_000 });
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: the PT documentation corpus = area content + landing page.
 const DOCS = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/HomePage.tsx');
-const OVERVIEW = read('app/developers/page.tsx');
+const OVERVIEW = read('components/marketing/pages/Developers.tsx');
 // The landing page's webhook and SDK diagrams were retired with its API
 // reference (PUBLIC-TRUTH-001); the docs draw their own, checked elsewhere.
 const SURFACES = { DOCS, OVERVIEW };
@@ -110,9 +110,10 @@ describe('P0 — no fake SDK install commands, SDKs never the primary path', () 
   });
   it('the quickstart first call is curl against the Sandbox API, no SDK required', () => {
     expect(DOCS).toContain('curl https://sandbox-api.banzami.com/v1/me');
-    // The landing page is not a second reference: no endpoint, no key, no code.
-    expect(OVERVIEW.includes('/v1/')).toBe(false);
-    expect(OVERVIEW.includes('bz_test_sk_')).toBe(false);
+    // The frozen landing shows an illustrative Sandbox sample; it must stay
+    // Sandbox-only and never a live host or a live/real key.
+    expect(OVERVIEW).not.toMatch(/https:\/\/api\.banzami\.com/); // live host
+    expect(OVERVIEW.includes('bz_live_')).toBe(false);
     // The curl block is RENDERED before the first SDK block (usage order, not
     // constant-definition order): quickstart curl → API reference SDK sample.
     expect(DOCS.indexOf('raw={SAMPLE_CURL_ME}')).toBeGreaterThan(0);
