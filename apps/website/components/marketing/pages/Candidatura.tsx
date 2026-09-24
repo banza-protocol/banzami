@@ -5,15 +5,17 @@ import type { CSSProperties } from 'react';
 import { Badge, H1, HeroLead, Small, Icon, type IconName } from '../kit';
 import { Field, Check, FGrid, SubmitBtn, BackBtn, SuccessMark } from '../form-kit';
 import { Reveal } from '@/components/Reveal';
-import { getPlatformMode } from '@/lib/api';
+import { getPlatformMode, submitApplication } from '@/lib/api';
+import { TERMS, isTermsPublished } from '@/lib/terms';
 import { route, type Lang } from '@/lib/marketing/nav';
 
 /**
- * Comerciantes · Candidatura — ported verbatim from
- * handoff_site_completo/pages/Comerciantes Candidatura.dc.html (PT) and
- * Comerciantes Candidatura EN.dc.html (EN). 4-step KYB form with a bespoke
- * stepper (matches the dossier), client-side validation, and success screen.
- * Body only; header/footer come from <SiteShell>.
+ * Comerciantes · Candidatura — Public Beta Sandbox business onboarding.
+ * Data-minimized to the Sandbox policy (name, @negócio, category, email; optional
+ * município/description) — no NIF, no legal representative, no documents (those
+ * belong to Financial Live/KYB, which is unavailable). Submits for real to
+ * POST /v1/merchant/applications and shows the server-issued reference
+ * (application_id) — never a browser-fabricated code. Frozen visual system.
  */
 
 const CONTENT: CSSProperties = { position: 'relative', maxWidth: '1140px', margin: '0 auto' };
@@ -24,105 +26,88 @@ const T = {
   pt: {
     badge: 'Versão Beta · Sandbox',
     h1a: 'Registar o', h1b: 'negócio.',
-    lead: 'Candidatura online para o Banzami Business. Quatro passos, cerca de cinco minutos.',
+    lead: 'Candidatura ao Banzami Business em Sandbox. Dados mínimos, cerca de dois minutos.',
     smallPre: 'Já enviou? ', smallLink: 'Consulte o estado da candidatura', smallPost: '.',
-    steps: ['Negócio', 'Responsável', 'Contacto', 'Confirmar'],
-    of: (n: number) => `PASSO ${n} DE 4`,
-    s1t: 'Dados do negócio', s1s: 'Como o negócio aparece aos clientes e nos registos.',
+    steps: ['Negócio', 'Confirmar'],
+    of: (n: number) => `PASSO ${n} DE 2`,
+    s1t: 'Dados do negócio', s1s: 'O essencial para criar o acesso Sandbox. Sem NIF nem documentos nesta fase.',
     l_nome_comercial: 'Nome comercial', ph_nome_comercial: 'Cantina do Alex',
-    l_nome_legal: 'Nome legal / razão social', ph_nome_legal: 'Alex Comércio, Lda.',
-    l_nif: 'NIF', ph_nif: '5000000000', hint_nif: 'Entre 9 e 14 caracteres.',
-    l_categoria: 'Categoria', l_provincia: 'Província',
-    l_descricao: 'O que vende?', ph_descricao: 'Refeições, bebidas…',
+    l_handle: '@negócio', ph_handle: 'cantinadoalex', hint_handle: '3 a 30 letras minúsculas, dígitos ou _. É como recebe pagamentos.',
+    l_categoria: 'Categoria', l_municipio: 'Município (opcional)', ph_municipio: 'Talatona',
+    l_descricao: 'O que vende? (opcional)', ph_descricao: 'Refeições, bebidas…',
+    l_email: 'E-mail de contacto', ph_email: 'alex@exemplo.ao',
     selectPh: 'Selecione…',
     categorias: ['Restauração', 'Comércio a retalho', 'Mercearia e alimentação', 'Serviços', 'Transporte', 'Educação', 'Saúde e beleza', 'Eventos', 'Outro'],
-    provincias: ['Luanda', 'Benguela', 'Huíla', 'Huambo', 'Cabinda', 'Bié', 'Cuanza Sul', 'Malanje', 'Namibe', 'Uíge', 'Zaire', 'Outra'],
     continuar: 'Continuar',
-    s2t: 'Responsável', s2s: 'A pessoa que representa o negócio perante o Banzami.',
-    l_resp_nome: 'Nome completo', ph_resp_nome: 'Alexandre Manuel',
-    l_resp_cargo: 'Cargo', ph_resp_cargo: 'Sócio-gerente',
-    l_resp_doc: 'Nº do BI ou passaporte', ph_resp_doc: '000000000LA000',
     voltar: 'Voltar',
-    s3t: 'Contacto', s3s: 'Para onde enviamos as atualizações da candidatura.',
-    l_email: 'E-mail', ph_email: 'alex@exemplo.ao',
-    l_telefone: 'Telefone', ph_telefone: '+244 923 000 000',
-    l_morada: 'Morada do negócio', ph_morada: 'Rua, bairro, município',
-    rever: 'Rever candidatura',
     s4t: 'Confirmar', s4s: 'Reveja os dados antes de enviar.',
-    sum: { negocio: 'Negócio', nif: 'NIF', categoria: 'Categoria', resp: 'Responsável', email: 'E-mail', telefone: 'Telefone' },
+    sum: { negocio: 'Negócio', handle: '@negócio', categoria: 'Categoria', email: 'E-mail' },
     enviar: 'Enviar candidatura',
+    enviando: 'A enviar…',
     doneT: 'Candidatura enviada',
-    donePre: 'Recebemos os dados de ', donePost: '. Guarde o código para consultar o estado.',
+    donePre: 'Recebemos os dados de ', donePost: '. Guarde a referência para consultar o estado.',
+    refLabel: 'Referência da candidatura',
     verEstado: 'Ver estado da candidatura', nova: 'Nova candidatura',
     aside1: 'O que vai precisar',
     aside1rows: [
-      { icon: 'store' as IconName, t: 'Dados do negócio', d: 'Nome, NIF e categoria.' },
-      { icon: 'user' as IconName, t: 'Responsável', d: 'Nome e documento de identificação.' },
-      { icon: 'mail' as IconName, t: 'Contacto', d: 'E-mail e telefone.' },
+      { icon: 'store' as IconName, t: 'Dados do negócio', d: 'Nome, @negócio e categoria.' },
+      { icon: 'mail' as IconName, t: 'Contacto', d: 'E-mail do negócio.' },
     ],
     asideSandbox: 'Os negócios aprovados nesta fase recebem apenas dinheiro fictício. O Financial Live permanece indisponível.',
     aside3t: 'Precisa de ajuda?', aside3p: 'A nossa equipa responde por e-mail.', aside3link: 'Falar com o suporte',
-    termosPre: 'Li e aceito os ', termos: 'Termos', termosMid: ' e a ', privacidade: 'Política de Privacidade', termosPost: ' do Banzami.',
+    termosPre: 'Li e aceito os ', termos: 'Termos de Serviço', termosMid: '. Consulte a ', privacidade: 'Política de Privacidade', termosPost: '.',
     sandboxLabel: 'Compreendo que, nesta fase Beta, o negócio opera apenas na Sandbox, com dinheiro fictício.',
     v_default: 'Campo obrigatório.',
-    v_nif: 'O NIF deve ter entre 9 e 14 caracteres.',
     v_email: 'Introduza um e-mail válido.',
-    v_telefone: 'Introduza um telefone válido.',
-    v_termos: 'É necessário aceitar os termos.',
+    v_handle: 'O @negócio deve ter 3 a 30 letras minúsculas, dígitos ou _.',
+    v_termos: 'É necessário aceitar os Termos.',
     v_sandbox: 'Confirme que compreende a fase Sandbox.',
+    v_handle_taken: 'Este @negócio já está em uso. Escolha outro.',
+    v_submit: 'Não foi possível enviar a candidatura. Tente novamente.',
     sbxFill: 'Usar dados de teste',
     sbxToast: 'Secção preenchida com dados sandbox.',
   },
   en: {
     badge: 'Beta · Sandbox',
-    h1a: 'Register your', h1b: 'business.',
-    lead: 'Online application for Banzami Business. Four steps, about five minutes.',
-    smallPre: 'Already applied? ', smallLink: 'Check your application status', smallPost: '.',
-    steps: ['Business', 'Representative', 'Contact', 'Confirm'],
-    of: (n: number) => `STEP ${n} OF 4`,
-    s1t: 'Business details', s1s: 'How the business appears to customers and in records.',
-    l_nome_comercial: 'Trading name', ph_nome_comercial: 'Alex’s Canteen',
-    l_nome_legal: 'Legal name', ph_nome_legal: 'Alex Trading, Lda.',
-    l_nif: 'NIF', ph_nif: '5000000000', hint_nif: 'Between 9 and 14 characters.',
-    l_categoria: 'Category', l_provincia: 'Province',
-    l_descricao: 'What do you sell?', ph_descricao: 'Meals, drinks…',
+    h1a: 'Register the', h1b: 'business.',
+    lead: 'Apply to Banzami Business in the Sandbox. Minimal data, about two minutes.',
+    smallPre: 'Already applied? ', smallLink: 'Check the application status', smallPost: '.',
+    steps: ['Business', 'Confirm'],
+    of: (n: number) => `STEP ${n} OF 2`,
+    s1t: 'Business details', s1s: 'The essentials to create Sandbox access. No tax ID or documents at this stage.',
+    l_nome_comercial: 'Business name', ph_nome_comercial: 'Alex’s Canteen',
+    l_handle: '@business', ph_handle: 'alexcanteen', hint_handle: '3 to 30 lowercase letters, digits or _. This is how you get paid.',
+    l_categoria: 'Category', l_municipio: 'Municipality (optional)', ph_municipio: 'Talatona',
+    l_descricao: 'What do you sell? (optional)', ph_descricao: 'Meals, drinks…',
+    l_email: 'Contact email', ph_email: 'alex@example.ao',
     selectPh: 'Select…',
     categorias: ['Food and drink', 'Retail', 'Grocery', 'Services', 'Transport', 'Education', 'Health and beauty', 'Events', 'Other'],
-    provincias: ['Luanda', 'Benguela', 'Huíla', 'Huambo', 'Cabinda', 'Bié', 'Cuanza Sul', 'Malanje', 'Namibe', 'Uíge', 'Zaire', 'Other'],
     continuar: 'Continue',
-    s2t: 'Representative', s2s: 'The person who represents the business to Banzami.',
-    l_resp_nome: 'Full name', ph_resp_nome: 'Alexandre Manuel',
-    l_resp_cargo: 'Role', ph_resp_cargo: 'Managing partner',
-    l_resp_doc: 'ID card or passport number', ph_resp_doc: '000000000LA000',
     voltar: 'Back',
-    s3t: 'Contact', s3s: 'Where we send application updates.',
-    l_email: 'Email', ph_email: 'alex@example.com',
-    l_telefone: 'Phone', ph_telefone: '+244 923 000 000',
-    l_morada: 'Business address', ph_morada: 'Street, neighbourhood, municipality',
-    rever: 'Review application',
     s4t: 'Confirm', s4s: 'Review the details before sending.',
-    sum: { negocio: 'Business', nif: 'NIF', categoria: 'Category', resp: 'Representative', email: 'Email', telefone: 'Phone' },
+    sum: { negocio: 'Business', handle: '@business', categoria: 'Category', email: 'Email' },
     enviar: 'Send application',
+    enviando: 'Sending…',
     doneT: 'Application sent',
-    donePre: 'We have received the details for ', donePost: '. Keep the code to check the status.',
+    donePre: 'We have received the details for ', donePost: '. Keep the reference to check the status.',
+    refLabel: 'Application reference',
     verEstado: 'Check application status', nova: 'New application',
     aside1: 'What you will need',
     aside1rows: [
-      { icon: 'store' as IconName, t: 'Business details', d: 'Name, tax ID and category.' },
-      { icon: 'user' as IconName, t: 'Representative', d: 'Name and ID document.' },
-      { icon: 'mail' as IconName, t: 'Contact', d: 'Email and phone.' },
+      { icon: 'store' as IconName, t: 'Business details', d: 'Name, @business and category.' },
+      { icon: 'mail' as IconName, t: 'Contact', d: 'Business email.' },
     ],
     asideSandbox: 'Businesses approved in this phase receive test money only. Financial Live remains unavailable.',
     aside3t: 'Need help?', aside3p: 'Our team replies by email.', aside3link: 'Contact support',
-    // NOTE: "e a" reproduced verbatim from the EN dossier (Comerciantes Candidatura EN.dc.html).
-    termosPre: 'I have read and accept the ', termos: 'Terms', termosMid: ' e a ', privacidade: 'Privacy Policy', termosPost: ' of Banzami.',
+    termosPre: 'I have read and accept the ', termos: 'Terms of Service', termosMid: '. See the ', privacidade: 'Privacy Policy', termosPost: '.',
     sandboxLabel: 'I understand that, during this Beta, the business operates only in the Sandbox, with test money.',
     v_default: 'Required field.',
-    v_nif: 'The tax ID must have 9 to 14 characters.',
     v_email: 'Enter a valid email.',
-    v_telefone: 'Enter a valid phone number.',
-    v_termos: 'You must accept the terms.',
+    v_handle: 'The @business must be 3 to 30 lowercase letters, digits or _.',
+    v_termos: 'You must accept the Terms.',
     v_sandbox: 'Confirm you understand the Sandbox phase.',
+    v_handle_taken: 'This @business is already taken. Choose another.',
+    v_submit: 'Could not send the application. Please try again.',
     sbxFill: 'Use test data',
     sbxToast: 'Section filled with sandbox data.',
   },
@@ -166,8 +151,7 @@ function StepHead({ kicker, title, sub, action }: { kicker: string; title: strin
   );
 }
 
-// SANDBOX-only "fill with test data" control — amber ghost, unobtrusive, right
-// aligned in the step header (mirrors the old onboarding form's SbxFillButton).
+// SANDBOX-only "fill with test data" control — amber ghost, right-aligned.
 const SbxSpark = (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
 );
@@ -192,7 +176,8 @@ function SumRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const initial = { nome_comercial: '', nome_legal: '', nif: '', categoria: '', provincia: '', descricao: '', resp_nome: '', resp_cargo: '', resp_doc: '', email: '', telefone: '', morada: '', termos: false, sandbox: false };
+const HANDLE_RE = /^[a-z0-9_]{3,30}$/;
+const initial = { nome_comercial: '', handle: '', categoria: '', municipio: '', descricao: '', email: '', termos: false, sandbox: false };
 
 export function CandidaturaPage({ lang }: { lang: Lang }) {
   const t = T[lang];
@@ -200,11 +185,12 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
   const [done, setDone] = useState(false);
   const [f, setF] = useState<typeof initial>({ ...initial });
   const [err, setErr] = useState<Errs>({});
-  const [appCode, setAppCode] = useState('');
+  const [appRef, setAppRef] = useState('');
+  const [sending, setSending] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
-  // SANDBOX-only autofill (ADR-025): the fill controls follow the live Platform
-  // Mode. It fails closed to SANDBOX, and the controls are never shown in LIVE.
+  // SANDBOX-only autofill (ADR-025): follows the live Platform Mode, fails closed
+  // to SANDBOX, never shown in LIVE.
   const [isSandbox, setIsSandbox] = useState(false);
   useEffect(() => {
     let active = true;
@@ -212,7 +198,6 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     return () => { active = false; };
   }, []);
 
-  // Transient toast confirming a section was filled.
   const [toast, setToast] = useState<{ id: number; msg: string } | null>(null);
   useEffect(() => {
     if (!toast) return;
@@ -220,8 +205,6 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     return () => clearTimeout(id);
   }, [toast]);
 
-  // Set several fields at once and clear their errors. A 4-digit seed keeps the
-  // e-mail unique per fill so repeated sandbox applications never collide.
   const fillMany = (obj: Partial<typeof initial>) => {
     setF((s) => ({ ...s, ...obj }));
     setErr((e) => { const n = { ...e }; Object.keys(obj).forEach((k) => delete n[k]); return n; });
@@ -230,34 +213,28 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
   const seed = () => Math.floor(1000 + Math.random() * 9000);
   const fillStep1 = () => fillMany({
     nome_comercial: lang === 'en' ? 'Kilamba Canteen' : 'Cantina do Kilamba',
-    nome_legal: 'Kilamba Comércio, Lda.',
-    nif: '5001234567',
+    handle: `cantina_teste_${seed()}`,
     categoria: t.categorias[0],
-    provincia: t.provincias[0],
+    municipio: 'Talatona',
     descricao: lang === 'en' ? 'Meals and drinks to go' : 'Refeições e bebidas para levar',
-  });
-  const fillStep2 = () => fillMany({
-    resp_nome: 'João da Silva',
-    resp_cargo: lang === 'en' ? 'Owner' : 'Sócio-gerente',
-    resp_doc: '000000000LA000',
-  });
-  const fillStep3 = () => fillMany({
     email: `negocio.teste${seed()}@exemplo.co.ao`,
-    telefone: '+244 923 000 000',
-    morada: lang === 'en' ? 'Rua Direita do Kilamba, Talatona' : 'Rua Direita do Kilamba, Bairro Talatona',
   });
-  const fillStep4 = () => fillMany({ termos: true, sandbox: true });
+  const fillStep2 = () => fillMany({ termos: true, sandbox: true });
 
   const rules: Record<string, { re?: RegExp; bad?: string; msg?: string }> = {
     email: { re: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, bad: t.v_email },
-    nif: { re: /^[A-Za-z0-9]{9,14}$/, bad: t.v_nif },
-    telefone: { re: /^\+?[\d\s]{9,16}$/, bad: t.v_telefone },
+    handle: { re: HANDLE_RE, bad: t.v_handle },
     termos: { msg: t.v_termos },
     sandbox: { msg: t.v_sandbox },
   };
-  const stepFields: Record<number, string[]> = { 1: ['nome_comercial', 'nome_legal', 'nif', 'categoria', 'provincia'], 2: ['resp_nome', 'resp_cargo', 'resp_doc'], 3: ['email', 'telefone'], 4: ['termos', 'sandbox'] };
+  const stepFields: Record<number, string[]> = { 1: ['nome_comercial', 'handle', 'categoria', 'email'], 2: ['termos', 'sandbox'] };
 
-  const set = (name: string, v: string | boolean) => { setF((s) => ({ ...s, [name]: v })); setErr((e) => ({ ...e, [name]: '' })); };
+  const set = (name: string, v: string | boolean) => {
+    // The @handle is always lowercase; normalise as the user types.
+    const val = name === 'handle' && typeof v === 'string' ? v.toLowerCase().replace(/\s+/g, '') : v;
+    setF((s) => ({ ...s, [name]: val }));
+    setErr((e) => ({ ...e, [name]: '', submit: '' }));
+  };
 
   const validate = (keys: string[]) => {
     const e: Errs = {};
@@ -275,19 +252,45 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     return !Object.keys(e).length;
   };
 
-  const next = () => { if (validate(stepFields[step] || [])) setStep((s) => Math.min(4, s + 1)); };
+  const next = () => { if (validate(stepFields[step] || [])) setStep((s) => Math.min(2, s + 1)); };
   const back = () => { setStep((s) => Math.max(1, s - 1)); setErr({}); };
-  const submit = (e?: React.FormEvent) => {
+
+  const submit = async (e?: React.FormEvent) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (sending) return;
     if (!validate(stepFields[step] || [])) return;
-    // TODO: replace with server-issued code (POST candidatura)
-    const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let s = '';
-    for (let i = 0; i < 6; i++) s += c[Math.floor(Math.random() * c.length)];
-    setAppCode('BZB-' + s);
-    setDone(true);
+    setSending(true);
+    setErr((prev) => ({ ...prev, submit: '' }));
+    try {
+      const res = await submitApplication({
+        business_name: f.nome_comercial.trim(),
+        desired_handle: f.handle.trim(),
+        category: f.categoria,
+        email: f.email.trim(),
+        municipality: f.municipio.trim() || undefined,
+        business_activity: f.descricao.trim() || undefined,
+        terms_accepted: true,
+        // Only send a version once the Terms are actually published.
+        terms_version: isTermsPublished() ? (TERMS.version ?? undefined) : undefined,
+      });
+      if (res.ok && res.applicationId) {
+        setAppRef(res.applicationId);
+        setDone(true);
+        return;
+      }
+      // Map server refusals to a field where possible; otherwise a banner.
+      if (res.code === 'INVALID_HANDLE') setErr((prev) => ({ ...prev, handle: t.v_handle }));
+      else if (res.code && /HANDLE|TAKEN|RESERVED/i.test(res.code)) setErr((prev) => ({ ...prev, handle: t.v_handle_taken }));
+      else setErr((prev) => ({ ...prev, submit: res.error || t.v_submit }));
+      if (res.code === 'INVALID_HANDLE' || (res.code && /HANDLE|TAKEN|RESERVED/i.test(res.code))) setStep(1);
+    } catch {
+      setErr((prev) => ({ ...prev, submit: t.v_submit }));
+    } finally {
+      setSending(false);
+    }
   };
-  const reset = () => { setDone(false); setStep(1); setF({ ...initial }); setErr({}); };
+
+  const reset = () => { setDone(false); setStep(1); setF({ ...initial }); setErr({}); setAppRef(''); };
 
   const asideCard: CSSProperties = { position: 'relative', overflow: 'hidden', background: '#fff', border: '1px solid #F3E3E1', borderRadius: '24px', padding: '24px', boxShadow: '0 26px 56px -40px rgba(122,16,22,.45)' };
 
@@ -324,10 +327,10 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
                     <StepHead kicker={t.of(1)} title={t.s1t} sub={t.s1s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep1} /> : undefined} />
                     <FGrid>
                       <Field name="nome_comercial" label={t.l_nome_comercial} placeholder={t.ph_nome_comercial} autoComplete="organization" value={f.nome_comercial} error={err.nome_comercial} onChange={(v) => set('nome_comercial', v)} />
-                      <Field name="nome_legal" label={t.l_nome_legal} placeholder={t.ph_nome_legal} value={f.nome_legal} error={err.nome_legal} onChange={(v) => set('nome_legal', v)} />
-                      <Field name="nif" label={t.l_nif} placeholder={t.ph_nif} hint={t.hint_nif} mono value={f.nif} error={err.nif} onChange={(v) => set('nif', v)} />
+                      <Field name="handle" label={t.l_handle} placeholder={t.ph_handle} hint={t.hint_handle} mono value={f.handle} error={err.handle} onChange={(v) => set('handle', v)} />
                       <Field name="categoria" label={t.l_categoria} options={t.categorias as unknown as string[]} selectPlaceholder={t.selectPh} value={f.categoria} error={err.categoria} onChange={(v) => set('categoria', v)} />
-                      <Field name="provincia" label={t.l_provincia} options={t.provincias as unknown as string[]} selectPlaceholder={t.selectPh} value={f.provincia} error={err.provincia} onChange={(v) => set('provincia', v)} />
+                      <Field name="email" label={t.l_email} type="email" placeholder={t.ph_email} autoComplete="email" value={f.email} error={err.email} onChange={(v) => set('email', v)} />
+                      <Field name="municipio" label={t.l_municipio} placeholder={t.ph_municipio} required={false} value={f.municipio} error={err.municipio} onChange={(v) => set('municipio', v)} />
                       <Field name="descricao" label={t.l_descricao} placeholder={t.ph_descricao} required={false} value={f.descricao} error={err.descricao} onChange={(v) => set('descricao', v)} />
                     </FGrid>
                     <StepFooter><span /><SubmitBtn type="button" onClick={next}>{t.continuar}</SubmitBtn></StepFooter>
@@ -336,44 +339,19 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
 
                 {!done && step === 2 && (
                   <>
-                    <StepHead kicker={t.of(2)} title={t.s2t} sub={t.s2s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep2} /> : undefined} />
-                    <FGrid>
-                      <Field name="resp_nome" label={t.l_resp_nome} placeholder={t.ph_resp_nome} autoComplete="name" value={f.resp_nome} error={err.resp_nome} onChange={(v) => set('resp_nome', v)} />
-                      <Field name="resp_cargo" label={t.l_resp_cargo} placeholder={t.ph_resp_cargo} value={f.resp_cargo} error={err.resp_cargo} onChange={(v) => set('resp_cargo', v)} />
-                      <Field name="resp_doc" label={t.l_resp_doc} placeholder={t.ph_resp_doc} mono span2 value={f.resp_doc} error={err.resp_doc} onChange={(v) => set('resp_doc', v)} />
-                    </FGrid>
-                    <StepFooter><BackBtn onClick={back}>{t.voltar}</BackBtn><SubmitBtn type="button" onClick={next}>{t.continuar}</SubmitBtn></StepFooter>
-                  </>
-                )}
-
-                {!done && step === 3 && (
-                  <>
-                    <StepHead kicker={t.of(3)} title={t.s3t} sub={t.s3s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep3} /> : undefined} />
-                    <FGrid>
-                      <Field name="email" label={t.l_email} type="email" placeholder={t.ph_email} autoComplete="email" value={f.email} error={err.email} onChange={(v) => set('email', v)} />
-                      <Field name="telefone" label={t.l_telefone} type="tel" placeholder={t.ph_telefone} autoComplete="tel" value={f.telefone} error={err.telefone} onChange={(v) => set('telefone', v)} />
-                      <Field name="morada" label={t.l_morada} placeholder={t.ph_morada} required={false} span2 value={f.morada} error={err.morada} onChange={(v) => set('morada', v)} />
-                    </FGrid>
-                    <StepFooter><BackBtn onClick={back}>{t.voltar}</BackBtn><SubmitBtn type="button" onClick={next}>{t.rever}</SubmitBtn></StepFooter>
-                  </>
-                )}
-
-                {!done && step === 4 && (
-                  <>
-                    <StepHead kicker={t.of(4)} title={t.s4t} sub={t.s4s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep4} /> : undefined} />
+                    <StepHead kicker={t.of(2)} title={t.s4t} sub={t.s4s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep2} /> : undefined} />
                     <div style={{ padding: '4px 18px', borderRadius: '18px', background: '#FFFBFA', border: '1px solid #F5E8E6', marginBottom: '18px' }}>
                       <SumRow label={t.sum.negocio} value={f.nome_comercial} />
-                      <SumRow label={t.sum.nif} value={f.nif} />
+                      <SumRow label={t.sum.handle} value={f.handle ? '@' + f.handle : ''} />
                       <SumRow label={t.sum.categoria} value={f.categoria} />
-                      <SumRow label={t.sum.resp} value={f.resp_nome} />
                       <SumRow label={t.sum.email} value={f.email} />
-                      <SumRow label={t.sum.telefone} value={f.telefone} />
                     </div>
                     <FGrid>
                       <Check name="termos" checked={f.termos} error={err.termos} onChange={(v) => set('termos', v)} label={<>{t.termosPre}<a href={route('termos', lang)} target="_blank" rel="noopener noreferrer">{t.termos}</a>{t.termosMid}<a href={route('privacidade', lang)} target="_blank" rel="noopener noreferrer">{t.privacidade}</a>{t.termosPost}</>} />
                       <Check name="sandbox" checked={f.sandbox} error={err.sandbox} onChange={(v) => set('sandbox', v)} label={t.sandboxLabel} />
                     </FGrid>
-                    <StepFooter><BackBtn onClick={back}>{t.voltar}</BackBtn><SubmitBtn type="submit" onClick={() => submit()}>{t.enviar}</SubmitBtn></StepFooter>
+                    {err.submit && <p role="alert" style={{ margin: '14px 0 0', fontSize: '13.5px', fontWeight: 700, color: '#C4303C' }}>{err.submit}</p>}
+                    <StepFooter><BackBtn onClick={back}>{t.voltar}</BackBtn><SubmitBtn type="submit" onClick={() => submit()}>{sending ? t.enviando : t.enviar}</SubmitBtn></StepFooter>
                   </>
                 )}
 
@@ -381,10 +359,11 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
                   <div role="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '24px 0 8px' }}>
                     <SuccessMark />
                     <h2 style={{ margin: '20px 0 0', fontSize: '26px', fontWeight: 900, letterSpacing: '-.02em', color: '#141014' }}>{t.doneT}</h2>
-                    <p style={{ margin: '8px 0 0', maxWidth: '420px', fontSize: '15px', lineHeight: 1.55, fontWeight: 600, color: '#6a5a5e' }}>{t.donePre}<strong style={{ color: '#141014' }}>{f.nome_comercial}</strong>{t.donePost}</p>
-                    <div style={{ marginTop: '20px', padding: '14px 22px', borderRadius: '16px', background: '#FFF1F0', border: '1px dashed rgba(181,16,31,.35)', fontFamily: "'JetBrains Mono',monospace", fontSize: '20px', fontWeight: 600, letterSpacing: '.06em', color: '#B5101F' }}>{appCode}</div>
+                    <p style={{ margin: '8px 0 0', maxWidth: '440px', fontSize: '15px', lineHeight: 1.55, fontWeight: 600, color: '#6a5a5e' }}>{t.donePre}<strong style={{ color: '#141014' }}>{f.nome_comercial}</strong>{t.donePost}</p>
+                    <p style={{ margin: '18px 0 0', fontSize: '11px', fontWeight: 900, letterSpacing: '.14em', color: '#9a8487' }}>{t.refLabel.toUpperCase()}</p>
+                    <div style={{ marginTop: '6px', padding: '12px 20px', borderRadius: '16px', background: '#FFF1F0', border: '1px dashed rgba(181,16,31,.35)', fontFamily: "'JetBrains Mono',monospace", fontSize: '14px', fontWeight: 600, letterSpacing: '.02em', color: '#B5101F', overflowWrap: 'anywhere', maxWidth: '100%' }}>{appRef}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginTop: '24px' }}>
-                      <a href={route('estado', lang)} className="bz-btnlift" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '13px 24px', borderRadius: '40px', background: 'linear-gradient(160deg,#C8101F,#9A1B22)', color: '#fff', fontWeight: 800, fontSize: '14.5px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 14px 28px -14px rgba(181,16,31,.6),inset 0 1px 0 rgba(255,255,255,.2)' }}>{t.verEstado}<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+                      <a href={`${route('estado', lang)}?ref=${encodeURIComponent(appRef)}`} className="bz-btnlift" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '13px 24px', borderRadius: '40px', background: 'linear-gradient(160deg,#C8101F,#9A1B22)', color: '#fff', fontWeight: 800, fontSize: '14.5px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 14px 28px -14px rgba(181,16,31,.6),inset 0 1px 0 rgba(255,255,255,.2)' }}>{t.verEstado}<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
                       <button type="button" onClick={reset} style={{ padding: '12px 20px', borderRadius: '40px', border: '1px solid #F3E3E1', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '14.5px', color: '#141014' }}>{t.nova}</button>
                     </div>
                   </div>

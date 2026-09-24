@@ -1,19 +1,19 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Badge, H1, H2, HeroLead, Small, SectionLabel } from '../kit';
 import { Field, SubmitBtn } from '../form-kit';
 import { Rotator } from '../Rotator';
 import { Reveal } from '@/components/Reveal';
 import { route, type Lang } from '@/lib/marketing/nav';
+import { fetchApplicationStatus, isApplicationReference, STATUS_COPY, type ApplicationStatus } from '@/lib/application-status';
 
 /**
- * Comerciantes · Estado da candidatura — ported verbatim from
- * handoff_site_completo/pages/Comerciantes Estado.dc.html (PT) and
- * Comerciantes Estado EN.dc.html (EN). Status lookup by BZB- code; on submit
- * shows a 4-phase timeline (currently always "Em análise"). Client-side only.
- * Body only; header/footer come from <SiteShell>.
+ * Comerciantes · Estado da candidatura — real status lookup by the application
+ * reference (the server-issued application id / UUID). Renders only real backend
+ * states; no fabricated timeline. Prefilled from ?ref= after a submission. Body
+ * only; header/footer come from <SiteShell>.
  */
 
 const CONTENT: CSSProperties = { position: 'relative', maxWidth: '1140px', margin: '0 auto' };
@@ -24,10 +24,11 @@ const T = {
     h1a: 'Estado da', h1b: 'candidatura.',
     lead: 'Introduza o código da candidatura para ver em que fase está o registo do seu negócio.',
     smallPre: 'Ainda não se registou? ', smallLink: 'Registar o negócio', smallPost: '.',
-    cardT: 'Consultar candidatura', cardSub: 'O código foi enviado por e-mail quando submeteu a candidatura.',
-    l_codigo: 'Código da candidatura', ph_codigo: 'BZB-7Q4K2M',
-    consultar: 'Consultar estado',
-    resultLabel: 'CANDIDATURA', statusBadge: 'Em análise',
+    cardT: 'Consultar candidatura', cardSub: 'A referência foi mostrada quando submeteu a candidatura e enviada por e-mail.',
+    l_codigo: 'Referência da candidatura', ph_codigo: '00000000-0000-0000-0000-000000000000',
+    consultar: 'Consultar estado', consultando: 'A consultar…',
+    resultLabel: 'CANDIDATURA',
+    needLabel: 'Ainda em falta', notFound: 'Não encontrámos uma candidatura com essa referência. Verifique e tente de novo.', unavailable: 'Não foi possível consultar agora. Tente novamente.',
     phases: [
       { t: 'Recebida', d: 'A candidatura deu entrada.' },
       { t: 'Em análise', d: 'A equipa está a rever os dados do negócio.', current: 'Atual' },
@@ -43,17 +44,18 @@ const T = {
       { tag: '03', t: 'Decisão', d: 'Aprovada ou com pedido de informação adicional.' },
       { tag: '04', t: 'Ativação', d: 'Ativa o negócio com o link recebido.' },
     ],
-    v_default: 'Campo obrigatório.', v_codigo: 'Use o formato BZB-XXXXXX.',
+    v_default: 'Campo obrigatório.', v_codigo: 'Use a referência (UUID) que recebeu.',
   },
   en: {
     badge: 'Beta · Sandbox',
     h1a: 'Application', h1b: 'status.',
     lead: 'Enter your application code to see what stage your business registration is at.',
     smallPre: 'Not registered yet? ', smallLink: 'Register your business', smallPost: '.',
-    cardT: 'Check application', cardSub: 'The code was emailed to you when you submitted the application.',
-    l_codigo: 'Application code', ph_codigo: 'BZB-7Q4K2M',
-    consultar: 'Check status',
-    resultLabel: 'APPLICATION', statusBadge: 'Under review',
+    cardT: 'Check application', cardSub: 'The reference was shown when you submitted and emailed to you.',
+    l_codigo: 'Application reference', ph_codigo: '00000000-0000-0000-0000-000000000000',
+    consultar: 'Check status', consultando: 'Checking…',
+    resultLabel: 'APPLICATION',
+    needLabel: 'Still needed', notFound: 'We could not find an application with that reference. Check it and try again.', unavailable: 'Could not check right now. Please try again.',
     phases: [
       { t: 'Received', d: 'The application has been received.' },
       { t: 'Under review', d: 'The team is reviewing the business details.', current: 'Current' },
@@ -69,9 +71,34 @@ const T = {
       { tag: '03', t: 'Decision', d: 'Approved, or a request for more information.' },
       { tag: '04', t: 'Activation', d: 'Activate the business with the link you receive.' },
     ],
-    v_default: 'Required field.', v_codigo: 'Use the format BZB-XXXXXX.',
+    v_default: 'Required field.', v_codigo: 'Use the reference (UUID) you received.',
   },
 } as const;
+
+// Bilingual status copy (title + one line), keyed by the real backend statuses.
+const STATUS_LABEL: Record<ApplicationStatus['status'], { pt: string; en: string; body_en: string }> = {
+  DRAFT: { pt: STATUS_COPY.DRAFT.title, en: 'Draft', body_en: 'The application has not been submitted yet.' },
+  SUBMITTED: { pt: STATUS_COPY.SUBMITTED.title, en: 'Received', body_en: 'The Banzami team will review your business details.' },
+  UNDER_REVIEW: { pt: STATUS_COPY.UNDER_REVIEW.title, en: 'Under review', body_en: 'The Banzami team is reviewing your application.' },
+  INFORMATION_REQUIRED: { pt: STATUS_COPY.INFORMATION_REQUIRED.title, en: 'More information needed', body_en: 'Review is on hold until you answer the request below. The application stays open and the @business stays reserved.' },
+  APPROVED: { pt: STATUS_COPY.APPROVED.title, en: 'Approved', body_en: 'Your business was approved. You received an email with the link to activate access to the Banzami Business app.' },
+  REJECTED: { pt: STATUS_COPY.REJECTED.title, en: 'Not approved', body_en: 'The application was not approved. You received the reason by email and can apply again.' },
+  CANCELLED: { pt: STATUS_COPY.CANCELLED.title, en: 'Cancelled', body_en: 'This application was cancelled.' },
+  PROVISIONING_FAILED: { pt: STATUS_COPY.PROVISIONING_FAILED.title, en: 'Approved — finishing', body_en: 'The application was approved and the Banzami team is finishing creating your account.' },
+};
+
+// Which of the four visible phases a real status sits at.
+function phaseFor(status: ApplicationStatus['status']): number {
+  switch (status) {
+    case 'DRAFT': return 0;
+    case 'SUBMITTED': return 1;
+    case 'UNDER_REVIEW': case 'INFORMATION_REQUIRED': return 1;
+    case 'REJECTED': return 2;
+    case 'APPROVED': case 'PROVISIONING_FAILED': return 3;
+    case 'CANCELLED': return 2;
+    default: return 1;
+  }
+}
 
 // phase-card icons (dossier order: doc · search · check · key)
 const CARD_ICONS: ReactNode[] = [
@@ -89,25 +116,43 @@ function InfoDot() {
 
 export function CandidaturaEstadoPage({ lang }: { lang: Lang }) {
   const t = T[lang];
-  const [done, setDone] = useState(false);
   const [codigo, setCodigo] = useState('');
   const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<ApplicationStatus | null>(null);
+  const [lookupError, setLookupError] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
+  const done = status !== null;
 
-  const re = /^BZB-[A-Z0-9]{4,}$/i;
-  const submit = (e?: React.FormEvent) => {
-    if (e && e.preventDefault) e.preventDefault();
-    // TODO: GET estado from backend
-    let m = '';
-    const v = codigo;
-    if (v === undefined || v === '') m = t.v_default;
-    else if (!re.test(String(v).trim())) m = t.v_codigo;
-    setErr(m);
-    if (m) { const el = formRef.current?.querySelector<HTMLElement>('[name="codigo"]'); el?.focus(); return; }
-    setDone(true);
+  const lookup = async (refValue: string) => {
+    const v = (refValue || '').trim();
+    if (!v) { setErr(t.v_default); return; }
+    if (!isApplicationReference(v)) {
+      setErr(t.v_codigo);
+      formRef.current?.querySelector<HTMLElement>('[name="codigo"]')?.focus();
+      return;
+    }
+    setErr(''); setLookupError(''); setLoading(true);
+    const res = await fetchApplicationStatus(v);
+    setLoading(false);
+    if (res.ok) setStatus(res.status);
+    else setLookupError(res.reason === 'NOT_FOUND' ? t.notFound : t.unavailable);
   };
-  const reset = () => { setDone(false); setCodigo(''); setErr(''); };
-  const codeUp = String(codigo || '').toUpperCase();
+  const submit = (e?: React.FormEvent) => { if (e && e.preventDefault) e.preventDefault(); void lookup(codigo); };
+  const reset = () => { setStatus(null); setCodigo(''); setErr(''); setLookupError(''); };
+
+  // Prefill and auto-look-up from ?ref= (the candidatura success screen links here).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref && isApplicationReference(ref)) { setCodigo(ref); void lookup(ref); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const currentPhase = status ? phaseFor(status.status) : 1;
+  const stBody = status ? (lang === 'en' ? STATUS_LABEL[status.status].body_en : STATUS_COPY[status.status].body) : '';
+  const stTitle = status ? (lang === 'en' ? STATUS_LABEL[status.status].en : STATUS_LABEL[status.status].pt) : '';
+  const dueFields = status ? status.requirements.currently_due : [];
 
   return (
     <>
@@ -134,32 +179,45 @@ export function CandidaturaEstadoPage({ lang }: { lang: Lang }) {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,minmax(0,1fr))', gap: '16px 18px' }}>
                     <Field name="codigo" label={t.l_codigo} placeholder={t.ph_codigo} mono span2 value={codigo} error={err} onChange={(v) => { setCodigo(v); setErr(''); }} />
                   </div>
+                  {lookupError && <p role="alert" style={{ margin: '14px 0 0', fontSize: '13.5px', fontWeight: 700, color: '#C4303C' }}>{lookupError}</p>}
                   <div style={{ marginTop: '18px' }}>
-                    <SubmitBtn type="submit" onClick={() => submit()}>{t.consultar}</SubmitBtn>
+                    <SubmitBtn type="submit" onClick={() => submit()}>{loading ? t.consultando : t.consultar}</SubmitBtn>
                   </div>
                 </>
               )}
-              {done && (
+              {done && status && (
                 <div role="status">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: '11px', fontWeight: 900, letterSpacing: '.16em', color: '#9a8487' }}>{t.resultLabel}</p>
-                      <p style={{ margin: '4px 0 0', fontFamily: "'JetBrains Mono',monospace", fontSize: '17px', fontWeight: 600, color: '#B5101F' }}>{codeUp}</p>
+                      <p style={{ margin: '4px 0 0', fontFamily: "'JetBrains Mono',monospace", fontSize: '12.5px', fontWeight: 600, color: '#B5101F', overflowWrap: 'anywhere' }}>{status.requested_handle ? '@' + status.requested_handle : status.application_id}</p>
                     </div>
-                    <span style={{ padding: '6px 12px', borderRadius: '20px', background: '#FCEFC4', border: '1px solid #E9C66A', fontSize: '12px', fontWeight: 900, color: '#7A4A06' }}>{t.statusBadge}</span>
+                    <span style={{ flex: 'none', padding: '6px 12px', borderRadius: '20px', background: '#FCEFC4', border: '1px solid #E9C66A', fontSize: '12px', fontWeight: 900, color: '#7A4A06' }}>{stTitle}</span>
                   </div>
+                  <p style={{ margin: '14px 0 0', fontSize: '13.5px', lineHeight: 1.5, fontWeight: 600, color: '#6a5a5e' }}>{stBody}</p>
+                  {status.status === 'INFORMATION_REQUIRED' && status.information_request && (
+                    <p style={{ margin: '10px 0 0', padding: '12px 14px', borderRadius: '14px', background: '#FFF1F0', border: '1px solid rgba(181,16,31,.18)', fontSize: '13px', fontWeight: 700, color: '#B5101F' }}>{status.information_request}</p>
+                  )}
+                  {dueFields.length > 0 && (
+                    <div style={{ margin: '12px 0 0' }}>
+                      <p style={{ margin: 0, fontSize: '11px', fontWeight: 900, letterSpacing: '.14em', color: '#9a8487' }}>{t.needLabel.toUpperCase()}</p>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {dueFields.map((d) => <li key={d.code} style={{ fontSize: '13px', fontWeight: 700, color: '#6a5a5e' }}>{d.label}</li>)}
+                      </ul>
+                    </div>
+                  )}
                   <div style={{ marginTop: '22px' }}>
                     {t.phases.map((ph, i) => {
-                      const isDone = i === 0, isCurrent = i === 1;
+                      const isDone = i < currentPhase, isCurrent = i === currentPhase;
                       return (
                         <div key={i} style={{ position: 'relative', display: 'flex', gap: '14px', paddingBottom: '18px' }}>
                           <span style={{ flex: 'none', width: '30px', height: '30px', borderRadius: '50%', background: isDone ? '#1a1416' : isCurrent ? 'linear-gradient(150deg,#D8121F,#8E1620)' : '#fff', color: isDone || isCurrent ? '#fff' : '#9a8487', border: `1.5px solid ${isDone || isCurrent ? 'transparent' : '#EFDCDA'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'JetBrains Mono',monospace", fontSize: '11.5px', fontWeight: 600, boxShadow: isCurrent ? '0 0 0 5px rgba(216,18,31,.14)' : undefined }}>
                             {isDone ? <InfoDot /> : i + 1}
                           </span>
                           <div>
-                            <p style={{ margin: '4px 0 0', fontSize: '14.5px', fontWeight: 900, color: i <= 1 ? '#141014' : '#9a8487' }}>
+                            <p style={{ margin: '4px 0 0', fontSize: '14.5px', fontWeight: 900, color: i <= currentPhase ? '#141014' : '#9a8487' }}>
                               {ph.t}
-                              {'current' in ph && ph.current && <span style={{ marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: '#FFF1F0', fontSize: '11px', color: '#B5101F' }}>{ph.current}</span>}
+                              {isCurrent && 'current' in ph && ph.current && <span style={{ marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: '#FFF1F0', fontSize: '11px', color: '#B5101F' }}>{ph.current}</span>}
                             </p>
                             <p style={{ margin: '3px 0 0', fontSize: '13px', lineHeight: 1.45, fontWeight: 600, color: '#8a7a7e' }}>{ph.d}</p>
                           </div>

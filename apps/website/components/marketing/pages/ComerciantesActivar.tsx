@@ -4,17 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Badge, H1, H2, HeroLead, Small, SectionLabel, Icon, type IconName } from '../kit';
-import { Field, Check, FGrid, SubmitBtn, BackBtn, SuccessMark } from '../form-kit';
+import { Field, Check, FGrid, SubmitBtn, SuccessMark } from '../form-kit';
 import { Rotator } from '../Rotator';
 import { Reveal } from '@/components/Reveal';
+import { validateActivation, completeActivation, type ActivationStatus } from '@/lib/api';
 import { route, APP_URL, type Lang } from '@/lib/marketing/nav';
 
 /**
- * Comerciantes · Activar — ported verbatim from
- * handoff_site_completo/pages/Comerciantes Activar.dc.html (PT) and
- * Comerciantes Activar EN.dc.html (EN). Two-step activation (code + consents)
- * with a bespoke stepper; the code prefills from ?codigo=. Client-side only.
- * Body only; header/footer come from <SiteShell>.
+ * Comerciantes · Activar — real activation of an approved Sandbox business.
+ * The approval email links here with ?token=<capability>. We validate the token,
+ * then take a PIN and call POST /v1/merchant/activation/complete. No manual code,
+ * no fabricated success. Body only; header/footer come from <SiteShell>.
  */
 
 const CONTENT: CSSProperties = { position: 'relative', maxWidth: '1140px', margin: '0 auto' };
@@ -24,20 +24,25 @@ const T = {
   pt: {
     badge: 'Versão Beta · Sandbox',
     h1a: 'Ativar o', h1b: 'negócio.',
-    lead: 'A candidatura foi aprovada. Falta confirmar os dados e aceitar os termos para começar a receber.',
-    smallPre: 'Não tem código? ', smallLink: 'Consulte o estado da candidatura', smallPost: '.',
-    steps: ['Código', 'Consentimento'],
-    s1t: 'Código de ativação', s1s: 'Está no e-mail de aprovação. Se abriu o link, já vem preenchido.',
-    l_codigo: 'Código', ph_codigo: 'ACT-7Q4K-2M9A',
-    continuar: 'Continuar', voltar: 'Voltar',
-    s2t: 'Consentimento', s2pre: 'Para ativar ', s2post: ', confirme:',
-    c1: 'Os dados do negócio enviados na candidatura estão corretos.',
-    c2pre: 'Aceito os ', c2terms: 'Termos', c2mid: ' do Banzami Business e a ', c2priv: 'Política de Privacidade', c2post: '.',
+    lead: 'A candidatura foi aprovada. Defina um PIN e aceite os termos para começar a receber na Sandbox.',
+    smallPre: 'Sem link de ativação? ', smallLink: 'Consulte o estado da candidatura', smallPost: '.',
+    validating: 'A validar o link de ativação…',
+    noToken: 'Abra o link de ativação que recebeu no e-mail de aprovação. O link identifica o seu negócio com segurança.',
+    invalid: 'Este link de ativação não é válido.',
+    expired: 'Este link de ativação expirou. Peça um novo à equipa Banzami.',
+    used: 'Este link de ativação já foi utilizado.',
+    rate: 'Demasiadas tentativas. Tente novamente mais tarde.',
+    unavailable: 'Não foi possível validar o link agora. Tente novamente.',
+    activatePre: 'Ativar ', activateFallback: 'o seu negócio',
+    l_pin: 'Defina um PIN', hint_pin: '4 a 8 dígitos. Vai usá-lo para entrar na app Banzami Business.',
+    l_pin2: 'Confirmar PIN',
+    c2pre: 'Aceito os ', c2terms: 'Termos de Serviço', c2mid: ' e a ', c2priv: 'Política de Privacidade', c2post: ' do Banzami.',
     c3: 'Compreendo que, nesta fase, o negócio recebe apenas dinheiro fictício na Sandbox.',
-    ativar: 'Ativar o negócio',
+    ativar: 'Ativar o negócio', ativando: 'A ativar…',
     doneT: 'Negócio ativado na Sandbox',
     doneP: 'Já pode criar cobranças por QR e links de pagamento com dinheiro fictício.',
     abrir: 'Abrir Beta Web', ver: 'Ver Banzami Business',
+    verEstado: 'Consultar estado', suporte: 'Falar com o suporte',
     depoisLabel: 'DEPOIS DE ATIVAR', depoisA: 'Pronto para', depoisB: 'receber.',
     depoisLead: 'Assim que ativa, o negócio fica disponível na Sandbox.',
     cards: [
@@ -45,26 +50,32 @@ const T = {
       { icon: 'link' as IconName, t: 'Links de pagamento', d: 'Partilhe por qualquer canal.', tag: '02' },
       { icon: 'list' as IconName, t: 'Histórico e comprovativos', d: 'Cada venda fica registada.', tag: '03' },
     ],
-    v_default: 'Campo obrigatório.', v_codigo: 'Código inválido.',
-    v_c1: 'Confirme os dados.', v_c2: 'É necessário aceitar os termos.', v_c3: 'Confirme que compreende a fase Sandbox.',
+    v_pin: 'O PIN deve ter 4 a 8 dígitos.', v_pin_match: 'Os PINs não coincidem.',
+    v_c2: 'É necessário aceitar os Termos.', v_c3: 'Confirme que compreende a fase Sandbox.',
+    v_submit: 'Não foi possível ativar. Tente novamente.',
   },
   en: {
     badge: 'Beta · Sandbox',
     h1a: 'Activate your', h1b: 'business.',
-    lead: 'Your application has been approved. Confirm the details and accept the terms to start receiving.',
-    smallPre: 'No code? ', smallLink: 'Check your application status', smallPost: '.',
-    steps: ['Code', 'Consent'],
-    s1t: 'Activation code', s1s: 'It is in the approval email. If you opened the link, it is already filled in.',
-    l_codigo: 'Code', ph_codigo: 'ACT-7Q4K-2M9A',
-    continuar: 'Continue', voltar: 'Back',
-    s2t: 'Consent', s2pre: 'To activate ', s2post: ', please confirm:',
-    c1: 'The business details sent in the application are correct.',
-    c2pre: 'I accept the ', c2terms: 'Terms', c2mid: ' of Banzami Business and the ', c2priv: 'Privacy Policy', c2post: '.',
+    lead: 'Your application has been approved. Set a PIN and accept the terms to start receiving in the Sandbox.',
+    smallPre: 'No activation link? ', smallLink: 'Check your application status', smallPost: '.',
+    validating: 'Validating the activation link…',
+    noToken: 'Open the activation link from your approval email. The link securely identifies your business.',
+    invalid: 'This activation link is not valid.',
+    expired: 'This activation link has expired. Ask the Banzami team for a new one.',
+    used: 'This activation link has already been used.',
+    rate: 'Too many attempts. Please try again later.',
+    unavailable: 'Could not validate the link right now. Please try again.',
+    activatePre: 'Activate ', activateFallback: 'your business',
+    l_pin: 'Set a PIN', hint_pin: '4 to 8 digits. You will use it to sign in to the Banzami Business app.',
+    l_pin2: 'Confirm PIN',
+    c2pre: 'I accept the ', c2terms: 'Terms of Service', c2mid: ' and the ', c2priv: 'Privacy Policy', c2post: ' of Banzami.',
     c3: 'I understand that, in this phase, the business only receives test money in the Sandbox.',
-    ativar: 'Activate your business',
+    ativar: 'Activate your business', ativando: 'Activating…',
     doneT: 'Business activated in the Sandbox',
     doneP: 'You can now create QR charges and payment links with test money.',
     abrir: 'Open Beta Web', ver: 'See Banzami Business',
+    verEstado: 'Check status', suporte: 'Contact support',
     depoisLabel: 'AFTER ACTIVATION', depoisA: 'Ready to', depoisB: 'get paid.',
     depoisLead: 'Once activated, the business is available in the Sandbox.',
     cards: [
@@ -72,88 +83,84 @@ const T = {
       { icon: 'link' as IconName, t: 'Payment links', d: 'Share on any channel.', tag: '02' },
       { icon: 'list' as IconName, t: 'History and receipts', d: 'Every sale is recorded.', tag: '03' },
     ],
-    v_default: 'Required field.', v_codigo: 'Invalid code.',
-    v_c1: 'Confirm the details.', v_c2: 'You must accept the terms.', v_c3: 'Confirm you understand the Sandbox phase.',
+    v_pin: 'The PIN must be 4 to 8 digits.', v_pin_match: 'The PINs do not match.',
+    v_c2: 'You must accept the Terms.', v_c3: 'Confirm you understand the Sandbox phase.',
+    v_submit: 'Could not activate. Please try again.',
   },
 } as const;
 
-function FlowStepper({ steps, current, done }: { steps: string[]; current: number; done?: boolean }) {
-  const n = steps.length;
-  const pct = (done ? 100 : Math.round(((current - 1) / Math.max(1, n - 1)) * 100)) + '%';
-  const align = (i: number) => (i === 0 ? 'flex-start' : i === n - 1 ? 'flex-end' : 'center');
-  return (
-    <div className="bz-stepper" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n},minmax(0,1fr))`, gap: '8px' }}>
-      <div aria-hidden="true" style={{ position: 'absolute', left: '16px', right: '16px', top: '15px', height: '3px', borderRadius: '3px', background: '#F4E6E4' }}>
-        <div style={{ height: '100%', width: pct, borderRadius: '3px', background: 'linear-gradient(90deg,#D8121F,#9A1B22)', transition: 'width .5s cubic-bezier(.16,1,.3,1)' }} />
-      </div>
-      {steps.map((s, i) => {
-        const nn = i + 1;
-        const filled = nn < current || done;
-        const active = nn <= current || done;
-        return (
-          <div key={i} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: align(i), gap: '8px' }}>
-            <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: filled ? '#1a1416' : nn === current ? 'linear-gradient(150deg,#D8121F,#8E1620)' : '#fff', color: active ? '#fff' : '#9a8487', border: `1.5px solid ${active ? 'transparent' : '#EFDCDA'}`, fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .4s,color .4s' }}>{nn}</span>
-            <span className="bz-stl" style={{ fontSize: '12.5px', fontWeight: 800, color: active ? '#141014' : '#9a8487' }}>{s}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function StepFooter({ children }: { children: ReactNode }) {
-  return <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: '28px', paddingTop: '22px', borderTop: '1px solid #F5E8E6' }}>{children}</div>;
+  return <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginTop: '28px', paddingTop: '22px', borderTop: '1px solid #F5E8E6' }}>{children}</div>;
 }
 
-const initial = { codigo: '', c1: false, c2: false, c3: false };
+const PIN_RE = /^[0-9]{4,8}$/;
+type Phase = 'validating' | 'no_token' | 'error' | 'ready' | 'done';
 
 export function ComerciantesActivarPage({ lang }: { lang: Lang }) {
   const t = T[lang];
   const sp = useSearchParams();
-  const [step, setStep] = useState(1);
-  const [done, setDone] = useState(false);
-  const [f, setF] = useState<typeof initial>({ ...initial });
+  const [phase, setPhase] = useState<Phase>('validating');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [token, setToken] = useState('');
+  const [pin, setPin] = useState('');
+  const [pin2, setPin2] = useState('');
+  const [c2, setC2] = useState(false);
+  const [c3, setC3] = useState(false);
   const [err, setErr] = useState<Errs>({});
+  const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
+  const reasonMsg = (r: string) =>
+    r === 'EXPIRED' ? t.expired : r === 'USED' ? t.used : r === 'RATE_LIMITED' ? t.rate : r === 'UNAVAILABLE' ? t.unavailable : t.invalid;
+
   useEffect(() => {
-    const c = sp.get('codigo');
-    if (c) setF((s) => ({ ...s, codigo: c }));
+    const tok = sp.get('token') || '';
+    if (!tok) { setPhase('no_token'); return; }
+    setToken(tok);
+    let active = true;
+    void validateActivation(tok).then((res: ActivationStatus) => {
+      if (!active) return;
+      if (res.valid) {
+        setBusinessName(res.business_name || '');
+        setPhase('ready');
+      } else {
+        setErrorMsg(reasonMsg(res.reason));
+        setPhase('error');
+      }
+    });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp]);
 
-  const rules: Record<string, { re?: RegExp; bad?: string; msg?: string }> = {
-    codigo: { re: /^[A-Z0-9-]{6,}$/i, bad: t.v_codigo },
-    c1: { msg: t.v_c1 }, c2: { msg: t.v_c2 }, c3: { msg: t.v_c3 },
-  };
-  const stepFields: Record<number, string[]> = { 1: ['codigo'], 2: ['c1', 'c2', 'c3'] };
-
-  const set = (name: string, v: string | boolean) => { setF((s) => ({ ...s, [name]: v })); setErr((e) => ({ ...e, [name]: '' })); };
-
-  const validate = (keys: string[]) => {
-    const e: Errs = {};
-    keys.forEach((k) => {
-      const v = (f as Record<string, string | boolean>)[k];
-      const r = rules[k];
-      if (v === undefined || v === '' || v === false) e[k] = r && r.msg ? r.msg : t.v_default;
-      else if (r && r.re && !r.re.test(String(v).trim())) e[k] = r.bad || t.v_default;
-    });
-    setErr(e);
-    if (Object.keys(e).length && formRef.current) {
-      const el = formRef.current.querySelector<HTMLElement>('[name="' + Object.keys(e)[0] + '"]');
-      if (el && el.focus) el.focus();
-    }
-    return !Object.keys(e).length;
-  };
-
-  const next = () => { if (validate(stepFields[step] || [])) setStep((s) => Math.min(2, s + 1)); };
-  const back = () => { setStep((s) => Math.max(1, s - 1)); setErr({}); };
-  const submit = (e?: React.FormEvent) => {
+  const submit = async (e?: React.FormEvent) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (!validate(stepFields[step] || [])) return;
-    // TODO: POST ativação
-    setDone(true);
+    if (submitting) return;
+    const e2: Errs = {};
+    if (!PIN_RE.test(pin.trim())) e2.pin = t.v_pin;
+    else if (pin.trim() !== pin2.trim()) e2.pin2 = t.v_pin_match;
+    if (!c2) e2.c2 = t.v_c2;
+    if (!c3) e2.c3 = t.v_c3;
+    setErr(e2);
+    if (Object.keys(e2).length) {
+      formRef.current?.querySelector<HTMLElement>('[name="' + Object.keys(e2)[0] + '"]')?.focus();
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await completeActivation(token, pin.trim());
+      if (res.ok) { setPhase('done'); return; }
+      if (res.status === 429) setErr({ submit: t.rate });
+      else if (res.error && /PIN/i.test(res.error)) setErr({ pin: t.v_pin });
+      else setErr({ submit: t.v_submit });
+    } catch {
+      setErr({ submit: t.v_submit });
+    } finally {
+      setSubmitting(false);
+    }
   };
-  const codeUp = String(f.codigo || '').toUpperCase();
+
+  const activateTitle = t.activatePre + (businessName || t.activateFallback);
 
   return (
     <>
@@ -173,33 +180,37 @@ export function ComerciantesActivarPage({ lang }: { lang: Lang }) {
           </Reveal>
           <Reveal delay={120}>
             <div ref={formRef} style={{ position: 'relative', background: '#fff', border: '1px solid #F3E3E1', borderRadius: '28px', padding: 'clamp(22px,3vw,32px)', boxShadow: '0 40px 80px -50px rgba(122,16,22,.5)' }}>
-              {!done && <FlowStepper steps={t.steps as unknown as string[]} current={step} done={done} />}
+              {phase === 'validating' && (
+                <p role="status" style={{ margin: 0, padding: '20px 0', textAlign: 'center', fontSize: '14.5px', fontWeight: 700, color: '#8a7a7e' }}>{t.validating}</p>
+              )}
 
-              {!done && step === 1 && (
-                <div style={{ marginTop: '26px' }}>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{t.s1t}</h3>
-                  <p style={{ margin: '6px 0 18px', fontSize: '13.5px', fontWeight: 600, color: '#8a7a7e' }}>{t.s1s}</p>
-                  <FGrid cols={1}>
-                    <Field name="codigo" label={t.l_codigo} placeholder={t.ph_codigo} mono span2 value={f.codigo} error={err.codigo} onChange={(v) => set('codigo', v)} />
-                  </FGrid>
-                  <StepFooter><span /><SubmitBtn type="button" onClick={next}>{t.continuar}</SubmitBtn></StepFooter>
+              {(phase === 'no_token' || phase === 'error') && (
+                <div role="status">
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{t.h1a} {t.h1b}</h3>
+                  <p style={{ margin: '10px 0 0', fontSize: '14px', lineHeight: 1.55, fontWeight: 600, color: '#6a5a5e' }}>{phase === 'no_token' ? t.noToken : errorMsg}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '20px' }}>
+                    <a href={route('estado', lang)} className="bz-btnlift" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '12px 22px', borderRadius: '40px', background: 'linear-gradient(160deg,#C8101F,#9A1B22)', color: '#fff', fontWeight: 800, fontSize: '14.5px', textDecoration: 'none', whiteSpace: 'nowrap' }}>{t.verEstado}</a>
+                    <a href={route('suporte', lang)} className="bz-btntext" style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', color: '#141014', fontWeight: 800, fontSize: '14.5px', textDecoration: 'none' }}>{t.suporte}</a>
+                  </div>
                 </div>
               )}
 
-              {!done && step === 2 && (
-                <div style={{ marginTop: '26px' }}>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{t.s2t}</h3>
-                  <p style={{ margin: '6px 0 18px', fontSize: '13.5px', fontWeight: 600, color: '#8a7a7e' }}>{t.s2pre}<span style={{ fontFamily: "'JetBrains Mono',monospace", color: '#B5101F' }}>{codeUp}</span>{t.s2post}</p>
+              {phase === 'ready' && (
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{activateTitle}</h3>
+                  <p style={{ margin: '6px 0 18px', fontSize: '13.5px', fontWeight: 600, color: '#8a7a7e' }}>{t.hint_pin}</p>
                   <FGrid cols={1}>
-                    <Check name="c1" checked={f.c1} error={err.c1} onChange={(v) => set('c1', v)} label={t.c1} />
-                    <Check name="c2" checked={f.c2} error={err.c2} onChange={(v) => set('c2', v)} label={<>{t.c2pre}<a href={route('termos', lang)} target="_blank" rel="noopener noreferrer">{t.c2terms}</a>{t.c2mid}<a href={route('privacidade', lang)} target="_blank" rel="noopener noreferrer">{t.c2priv}</a>{t.c2post}</>} />
-                    <Check name="c3" checked={f.c3} error={err.c3} onChange={(v) => set('c3', v)} label={t.c3} />
+                    <Field name="pin" label={t.l_pin} type="password" placeholder="••••" mono span2 value={pin} error={err.pin} onChange={(v) => { setPin(v.replace(/[^0-9]/g, '')); setErr((x) => ({ ...x, pin: '', submit: '' })); }} />
+                    <Field name="pin2" label={t.l_pin2} type="password" placeholder="••••" mono span2 value={pin2} error={err.pin2} onChange={(v) => { setPin2(v.replace(/[^0-9]/g, '')); setErr((x) => ({ ...x, pin2: '', submit: '' })); }} />
+                    <Check name="c2" checked={c2} error={err.c2} onChange={(v) => { setC2(v); setErr((x) => ({ ...x, c2: '' })); }} label={<>{t.c2pre}<a href={route('termos', lang)} target="_blank" rel="noopener noreferrer">{t.c2terms}</a>{t.c2mid}<a href={route('privacidade', lang)} target="_blank" rel="noopener noreferrer">{t.c2priv}</a>{t.c2post}</>} />
+                    <Check name="c3" checked={c3} error={err.c3} onChange={(v) => { setC3(v); setErr((x) => ({ ...x, c3: '' })); }} label={t.c3} />
                   </FGrid>
-                  <StepFooter><BackBtn onClick={back}>{t.voltar}</BackBtn><SubmitBtn type="submit" onClick={() => submit()}>{t.ativar}</SubmitBtn></StepFooter>
+                  {err.submit && <p role="alert" style={{ margin: '14px 0 0', fontSize: '13.5px', fontWeight: 700, color: '#C4303C' }}>{err.submit}</p>}
+                  <StepFooter><SubmitBtn type="submit" onClick={() => submit()}>{submitting ? t.ativando : t.ativar}</SubmitBtn></StepFooter>
                 </div>
               )}
 
-              {done && (
+              {phase === 'done' && (
                 <div role="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '16px 0 4px' }}>
                   <SuccessMark />
                   <h2 style={{ margin: '20px 0 0', fontSize: '24px', fontWeight: 900, letterSpacing: '-.02em', color: '#141014' }}>{t.doneT}</h2>
