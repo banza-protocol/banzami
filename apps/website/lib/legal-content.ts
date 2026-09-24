@@ -12,9 +12,14 @@ export type Loc = { pt: string; en: string };
 export type Block = { p: Loc } | { ul: Loc[] };
 export type LegalSection = { id: string; n: string; title: Loc; body: Block[] };
 
+// Version history (immutable once published):
+//   2026-09-beta.1 — initial same-day publication (operator name + contact).
+//   2026-09-beta.2 — complete legal-entity identification (NIF + registered
+//                    seat) woven into §01 of both documents. See
+//                    docs/legal/LEGAL-CHANGELOG.md.
 /** Immutable once published. Bump on any material change (see reacceptance). */
-export const TERMS_VERSION = '2026-09-beta.1';
-export const PRIVACY_VERSION = '2026-09-beta.1';
+export const TERMS_VERSION = '2026-09-beta.2';
+export const PRIVACY_VERSION = '2026-09-beta.2';
 /** ISO date the Beta legal documents take effect / were published. */
 export const LEGAL_EFFECTIVE_DATE = '2026-09-24';
 

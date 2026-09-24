@@ -91,6 +91,77 @@ func TestRequirements_EveryPolicyItemIsCheckedAndLabelled(t *testing.T) {
 	}
 }
 
+// ── Public Beta Sandbox: a distinct, minimal policy (no KYB, no documents) ────
+
+func TestSandboxPolicy_MinimalApplicationIsCompleteWithoutKYBOrDocuments(t *testing.T) {
+	// A Sandbox application needs only name + @handle + category + email + terms.
+	a := MerchantApplication{
+		Status: "SUBMITTED", Environment: "SANDBOX",
+		BusinessName: "Loja", DesiredHandle: "loja", Category: "Retalho", Email: "l@example.test",
+		// deliberately NO nif, legal representative, address, documents.
+	}
+	r := EvaluateRequirements(a, true, nil)
+	if !r.Complete() {
+		t.Fatalf("a minimal SANDBOX application must be complete; due=%v errors=%v", codes(r.CurrentlyDue), codes(r.Errors))
+	}
+	for _, c := range codes(r.CurrentlyDue) {
+		if c == "BUSINESS_REGISTRATION" || c == "REPRESENTATIVE_ID" || c == "nif" || c == "legal_representative" {
+			t.Fatalf("SANDBOX must not require %s", c)
+		}
+	}
+	if r.PolicyVersion != SandboxRequirementPolicyVersion {
+		t.Fatalf("policy version = %q, want %q", r.PolicyVersion, SandboxRequirementPolicyVersion)
+	}
+}
+
+func TestSandboxPolicy_IsStrictlyDistinctFromLive(t *testing.T) {
+	// Mutation guard: the SAME minimal data must be COMPLETE in SANDBOX but
+	// INCOMPLETE in LIVE — proving Sandbox is a separate, looser policy and LIVE
+	// never silently loses its KYB requirements.
+	base := MerchantApplication{
+		Status: "SUBMITTED", BusinessName: "Loja", DesiredHandle: "loja", Category: "Retalho", Email: "l@example.test",
+	}
+	sb := base
+	sb.Environment = "SANDBOX"
+	if !EvaluateRequirements(sb, true, nil).Complete() {
+		t.Fatal("minimal data must be complete in SANDBOX")
+	}
+	live := base
+	live.Environment = "LIVE"
+	if EvaluateRequirements(live, true, nil).Complete() {
+		t.Fatal("minimal data must NOT be complete in LIVE (KYB + documents still required)")
+	}
+	// An empty/unknown environment must fail safe to the strict LIVE policy.
+	unknown := base
+	unknown.Environment = ""
+	if EvaluateRequirements(unknown, true, nil).Complete() {
+		t.Fatal("unknown environment must fail safe to the strict policy")
+	}
+}
+
+func TestSandboxPolicy_MissingSubmissionFieldsMinimalVsFull(t *testing.T) {
+	// SANDBOX submission with only the minimal fields is accepted.
+	sb := MerchantApplicationInput{
+		Environment: "SANDBOX", BusinessName: "Loja", DesiredHandle: "loja", Category: "Retalho",
+		Email: "l@example.test", TermsAccepted: true,
+	}
+	if m := MissingSubmissionFields(sb); len(m) != 0 {
+		t.Fatalf("minimal SANDBOX submission should be complete, missing=%v", m)
+	}
+	// The SAME input in LIVE is missing the KYB fields.
+	live := sb
+	live.Environment = "LIVE"
+	missing := map[string]bool{}
+	for _, c := range MissingSubmissionFields(live) {
+		missing[c] = true
+	}
+	for _, need := range []string{"nif", "legal_representative", "representative_role", "municipality", "address", "phone", "business_activity"} {
+		if !missing[need] {
+			t.Fatalf("LIVE submission must report %q missing", need)
+		}
+	}
+}
+
 // ── the transitions, against Postgres ────────────────────────────────────────
 
 func TestRequestInformation_HoldsTheReviewAndResubmitReturnsIt(t *testing.T) {

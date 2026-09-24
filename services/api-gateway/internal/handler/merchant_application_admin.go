@@ -303,9 +303,14 @@ func (h *MerchantApplicationAdminHandler) RequestInformation(w http.ResponseWrit
 // GET /v1/merchant/application-requirements — the policy every surface
 // renders: which fields and documents a Business application needs.
 func (h *MerchantApplicationAdminHandler) RequirementsPolicy(w http.ResponseWriter, r *http.Request) {
+	// The policy a form must collect follows the stack's environment: the minimal
+	// Sandbox policy on a SANDBOX stack, the full KYB policy on LIVE. This is the
+	// same source MissingSubmissionFields/EvaluateRequirements use, so what a form
+	// is told to collect and what a submission is held to cannot drift apart.
+	env := h.gate.StackEnv()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"policy_version": service.RequirementPolicyVersion,
-		"items":          service.BusinessApplicationPolicy,
+		"policy_version": service.PolicyVersionFor(env),
+		"items":          service.PolicyFor(env),
 	})
 }
 

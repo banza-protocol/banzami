@@ -33,6 +33,14 @@ type querier interface {
 // against. Bump it when an item is added or removed.
 const RequirementPolicyVersion = "ao-business-2026-09"
 
+// SandboxRequirementPolicyVersion identifies the minimal Public Beta Sandbox
+// policy. Sandbox uses test money only, so it asks for what identifies and
+// addresses a business in-product and nothing more — no KYB identity, no
+// documents (data minimization; see the Privacy Policy). It is a distinct
+// policy, not a runtime "skip KYB" branch, so LIVE onboarding cannot lose a
+// requirement by accident.
+const SandboxRequirementPolicyVersion = "ao-business-sandbox-2026-09"
+
 // RequirementKind distinguishes information the applicant types from
 // documents they attach.
 type RequirementKind string
@@ -98,6 +106,37 @@ var BusinessApplicationPolicy = []RequirementItem{
 	{"REPRESENTATIVE_ID", RequirementDocument, "Documento de identidade do representante", capabilityReceive},
 }
 
+// SandboxBusinessApplicationPolicy is the minimal policy for Public Beta Sandbox
+// access (test money). It deliberately omits NIF, legal representative, address
+// and the KYB documents — those belong to Financial Live onboarding, which is
+// not available. Municipality and description are optional and so are not in the
+// policy. Keep this consistent with the Privacy Policy's Sandbox data section.
+var SandboxBusinessApplicationPolicy = []RequirementItem{
+	{"business_name", RequirementField, "Nome do negócio", capabilityReceive},
+	{"desired_handle", RequirementField, "@negócio", capabilityReceive},
+	{"category", RequirementField, "Categoria do negócio", capabilityReceive},
+	{"email", RequirementField, "Email", capabilityReceive},
+	{"terms_accepted", RequirementField, "Termos e condições", capabilityReceive},
+}
+
+// PolicyFor returns the requirement policy for an environment: the minimal
+// Sandbox policy for SANDBOX, the full KYB policy for LIVE (or anything else,
+// fail-safe to the stricter policy).
+func PolicyFor(environment string) []RequirementItem {
+	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
+		return SandboxBusinessApplicationPolicy
+	}
+	return BusinessApplicationPolicy
+}
+
+// PolicyVersionFor returns the policy version string for an environment.
+func PolicyVersionFor(environment string) string {
+	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
+		return SandboxRequirementPolicyVersion
+	}
+	return RequirementPolicyVersion
+}
+
 // applicationDocState is one document's latest state, by type.
 type applicationDocState struct {
 	Status          string // UPLOADED | ACCEPTED | REJECTED
@@ -131,7 +170,7 @@ func MissingSubmissionFields(in MerchantApplicationInput) []string {
 		"business_activity":    in.BusinessActivity,
 	}
 	missing := []string{}
-	for _, it := range BusinessApplicationPolicy {
+	for _, it := range PolicyFor(in.Environment) {
 		if it.Kind != RequirementField {
 			continue
 		}
@@ -155,7 +194,7 @@ func MissingSubmissionFields(in MerchantApplicationInput) []string {
 // the policy. Pure: the caller loads what it needs.
 func EvaluateRequirements(a MerchantApplication, termsAccepted bool, docs map[string]applicationDocState) Requirements {
 	r := Requirements{
-		PolicyVersion:       RequirementPolicyVersion,
+		PolicyVersion:       PolicyVersionFor(a.Environment),
 		CurrentlyDue:        []RequirementIssue{},
 		PendingVerification: []RequirementIssue{},
 		Errors:              []RequirementIssue{},
@@ -175,7 +214,7 @@ func EvaluateRequirements(a MerchantApplication, termsAccepted bool, docs map[st
 		"representative_role":  a.RepresentativeRole,
 		"business_activity":    a.BusinessActivity,
 	}
-	for _, it := range BusinessApplicationPolicy {
+	for _, it := range PolicyFor(a.Environment) {
 		issue := RequirementIssue{Code: it.Code, Kind: it.Kind, Label: it.Label}
 		switch it.Kind {
 		case RequirementField:
