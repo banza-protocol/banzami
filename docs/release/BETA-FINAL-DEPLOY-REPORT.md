@@ -3,8 +3,10 @@
 > Technical close + deploy + live verification. **PUBLIC_LAUNCH = NOT PERFORMED.**
 > Date: 2026-09-24.
 
-SOURCE_REVISION: `69caefa2`
+DEPLOY_SOURCE_REVISION: `69caefa2`
 DEPLOYED_REVISION: `69caefa2` (api-gateway-staging = Sandbox gateway; website-frontend = banzami.com)
+FINAL_REPOSITORY_HEAD: `9d620278` → (this closure pass adds one more docs commit)
+RUNTIME_DIFF_DEPLOY_TO_HEAD: **NONE** — the only commit after 69caefa2 (9d620278) changed exactly one file, `docs/release/BETA-FINAL-DEPLOY-REPORT.md`; no runtime code/config differs between the deployed revision and HEAD, so the existing deployment is kept (no redeploy).
 SCHEMA_HEAD: `0167_environment_columns_never_default_to_live.sql` (no migration this close)
 
 TERMS_VERSION: `2026-09-beta.2`
@@ -21,8 +23,17 @@ DEVELOPER_STATUS: PASS. SDK claims truthful: @banzami/sdk (npm), banzami_client 
 PUBLIC_STUBS: 0 on the onboarding flows. Candidatura/estado/ativação wired to the real backend; no fake success, no fabricated reference, no hardcoded timeline. Testers + contact already real.
 CLAIM_TRUTH_FAILURES: 0.
 
-SECURITY_STATUS: PASS (reviewed). Rate limits intact + fail-closed (onboarding 30/min, application-submit 30/24h, beta 20/24h, contact 10/24h). No secret keys in client flows; PIN entered client-side, sent over HTTPS, never logged; status endpoint PII-free (no IDOR leak). TLS floor 1.2 (Cloudflare). No new headers/CSP changes.
-ACCESSIBILITY_STATUS: PASS (functional; no redesign). Labelled fields (Field/Check), error messages role="alert", activation states role="status", keyboard-operable buttons.
+SECURITY_GATES: PASS. KNOWN_SECURITY_P0 = 0. KNOWN_SECURITY_P1 = 0.
+Evidence: rate limits intact + fail-closed (onboarding 30/min, application-submit 30/24h, beta 20/24h, contact 10/24h); no secret keys in client flows; PIN entered client-side, sent over HTTPS, never logged; public status endpoint returns a PII-free DTO (no IDOR leak); TLS floor 1.2 (Cloudflare); no new headers/CSP changes this close.
+ACCESSIBILITY_GATES: PASS.
+Evidence (functional, no redesign): labelled fields (Field/Check), error messages role="alert", activation states role="status", keyboard-operable buttons.
+CONTACT_FLOW: PASS.
+Evidence — real Sandbox submission to POST /v1/contact:
+- FORM_SUBMIT: real POST accepted.
+- GATEWAY_ACCEPTANCE: 200 `{"status":"received"}` (passed validation + honeypot).
+- MAILER_RESULT: delivered — the handler returns 200 only after a synchronous `mailer.DeliverErr` succeeds (nil mailer → 503 UNAVAILABLE; delivery failure → 502 DELIVERY_FAILED). Neither occurred, so the mailer is connected and the message was sent (to contact@banzami.com, Reply-To the visitor). The earlier "depends on the mailer being connected" ambiguity is resolved: it IS connected.
+- ERROR_HANDLING: a bad payload returns 400 `INVALID_EMAIL` with a request_id (not a page 200).
+- RATE_LIMIT: 10 / 24h / IP (fail-closed), unchanged.
 BUILD_STATUS: PASS. Website: tsc clean, next build clean, vitest 1185 passed / 0 failed / 95 files. Backend: go build + vet clean, policy unit tests green (mutation-proven Sandbox-vs-LIVE).
 
 DEAD_CODE_REMOVED: yes (proven orphan, no live importer).
@@ -45,9 +56,11 @@ POST_DEPLOY_SMOKE:
 
 FINANCIAL_LIVE_STATUS: DISABLED. api.banzami.com/v1/platform-mode → 503 (fail-closed) before and after deploy. Sandbox is the only live plane. Nothing in this close can enable Financial Live.
 
+TEST_RESIDUALS: 1 (preserved, cannot be removed safely). The post-deploy check created one SUBMITTED Sandbox merchant application, handle `verify_14413` (test email only, no other PII). Reason it is preserved: there is NO public applicant cancel/withdraw endpoint; the only canonical removals are (a) an operator reject via `/internal/v1/merchant-applications/{id}/reject` (requires owner MFA/operator access) or (b) the clean-slate retire ceremony (requires owner `--apply` approval), and direct SQL is prohibited. It is harmless Sandbox data; the owner can retire it via the official lifecycle. (The closure contact test created only an email, not a persistent record.)
+
 OPEN_P0: 0
 OPEN_P1: 0
-OPEN_P2: minor — SDK3 py3.12 clean-room install-and-run assertion pending (registry publication proven); contact endpoint depends on the gateway mailer being enabled.
+OPEN_P2: minor — SDK3 py3.12 clean-room install-and-run assertion pending (registry publication proven). Note: banzami-python requires Python ≥ 3.12; installing on an older interpreter fails with "Requires-Python >=3.12" — not a publication defect.
 
 EXTERNAL_FOLLOWUPS (not deploy blockers):
 - COUNSEL_REVIEW = PENDING (Terms + Privacy sign-off; pack: docs/legal/LEGAL-REVIEW-PACK.md)
