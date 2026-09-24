@@ -41,7 +41,7 @@ function Arrow({ c = '#fff', s = 17 }: { c?: string; s?: number }) {
 export function HomeHero({ lang }: { lang: Lang }) {
   return (
     <section id="inicio" style={{ position: 'relative', padding: 'clamp(84px,10vh,100px) 24px clamp(22px,3vh,40px)', overflow: 'hidden', background: '#fff', borderRadius: '0 0 48px 48px', boxShadow: '0 40px 80px -60px rgba(122,16,22,.45)' }}>
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      <div aria-hidden="true" className="bz-homeherobg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/assets/hero-bg-red.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
       </div>
