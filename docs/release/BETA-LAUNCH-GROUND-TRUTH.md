@@ -84,9 +84,9 @@ The old, fully-wired forms (`app/comerciantes/candidatura/CandidaturaForm.tsx`,
 
 | Item | Value | Source |
 |------|-------|--------|
-| Operator name (self-asserted) | BANZAMI – Tecnologia e Serviços, Lda. | `apps/website/lib/terms.ts` |
-| Registered address | **NOT IN REPO — owner input required** | — |
-| NIF | **NOT IN REPO — owner input required** | — |
+| Operator name | BANZAMI – Tecnologia e Serviços, Lda. (sociedade por quotas) | AGT registration + statutes (verified 2026-09-24) |
+| NIF | 5003208729 | AGT "Comprovativo Fiscal de Registo de Contribuinte" |
+| Registered seat | Rua Avenida 21 de Janeiro, Bairro Morro Bento, Samba, Luanda | Company statutes |
 | General/legal contact | contact@banzami.com | terms.ts, footer |
 | Security contact | security@banzami.com | SECURITY.md |
 | Jurisdiction | Angola | site copy |
@@ -111,7 +111,7 @@ in the Privacy Policy.
 
 ## Named blockers carried into the plan
 
-- **BLOCKER-1 (owner input):** registered address + NIF + confirmation of exact
-  registered legal name. Undrivable from the repo (§52).
+- **BLOCKER-1 (owner input): CLEARED 2026-09-24** — legal name, NIF (5003208729)
+  and registered seat verified from AGT + statutes and published.
 - **BLOCKER-2 (human):** lawyer review of the published Terms + Privacy (§40).
 - **Design is frozen** — only functional-truth / legal / a11y / security changes.

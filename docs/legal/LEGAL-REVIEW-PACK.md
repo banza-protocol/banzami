@@ -19,23 +19,27 @@
 | Terms version | `2026-09-beta.1` |
 | Privacy version | `2026-09-beta.1` |
 | Effective / published | `2026-09-24` |
-| Content hash (sha256 of legal-content.ts) | `0b8fac2e8ffe34081c09899b3c0d707000a59050a4f595c520ff82dd15e842c5` |
+| Content hash (sha256 of legal-content.ts) | `dc742559fc276601d7703673e2c9ea2d36e8c87cf0c858dbb6c3706dd6586b40` |
 | Immutability guard | `apps/website/lib/legal-content.test.ts` |
 
-## Legal entity (as stated by the company)
+## Legal entity (verified from official documents — BLOCKER-1 CLEARED 2026-09-24)
+
+Source: AGT "Comprovativo Fiscal de Registo de Contribuinte" (Registo de Pessoa
+Colectiva, emitido 10-06-2026) + company statutes (Contrato de Sociedade por
+Quotas). Personal data of the shareholders from those documents is **not** used
+in the published legal text or stored in the repo.
 
 | Field | Value | Status |
 |-------|-------|--------|
-| Name | BANZAMI – Tecnologia e Serviços, Lda. | Self-asserted (lib/terms.ts / legal-content.ts) |
-| Form / seat | Sociedade de direito angolano; opera a partir de Angola | Stated |
+| Legal name | BANZAMI – Tecnologia e Serviços, Lda. (sociedade por quotas) | Verified (AGT + statutes) |
+| NIF | 5003208729 | Verified (AGT registration) |
+| Registered seat | Rua Avenida 21 de Janeiro, Bairro Morro Bento, Município da Samba, Luanda, Angola | Verified (statutes) |
+| Repartição Fiscal | 04.02 — Maianga | AGT |
 | General/legal contact | contact@banzami.com | Active |
 | Security contact | security@banzami.com | Active |
-| **Registered address** | **NOT SUPPLIED** | **BLOCKER-1 (owner)** |
-| **NIF** | **NOT SUPPLIED** | **BLOCKER-1 (owner)** |
 
-The documents identify the operator by name, form, jurisdiction and contact,
-which is accurate and invents no registration. Complete the address + NIF (and
-confirm the exact registered name) to finalise the entity identification.
+The published Terms and Privacy Policy now identify the operator by legal name,
+form, NIF and registered seat.
 
 ## Sources cited
 
@@ -67,9 +71,9 @@ See `docs/legal/BETA-LEGAL-SOURCES.md`:
 
 ## Named blockers to "LEGAL FINAL"
 
-- **BLOCKER-1 (owner input):** registered address + NIF + confirmation of the
-  exact registered legal name.
-- **BLOCKER-2 (human):** counsel sign-off on the published Beta documents.
+- **BLOCKER-1 (owner input): CLEARED 2026-09-24** — legal name, NIF and
+  registered seat verified from AGT + statutes and published.
+- **BLOCKER-2 (human): OPEN** — counsel sign-off on the published Beta documents.
 
-Until BLOCKER-1 and BLOCKER-2 are cleared, `LEGAL_STATUS = PUBLISHED (Beta),
-pending counsel + entity details` — not `LEGAL FINAL`.
+`LEGAL_STATUS = PUBLISHED (Beta), entity identification complete, pending
+counsel sign-off` — not `LEGAL FINAL` until BLOCKER-2 clears.

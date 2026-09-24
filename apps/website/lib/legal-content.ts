@@ -18,11 +18,16 @@ export const PRIVACY_VERSION = '2026-09-beta.1';
 /** ISO date the Beta legal documents take effect / were published. */
 export const LEGAL_EFFECTIVE_DATE = '2026-09-24';
 
-/** Operator identity, as stated by the company. Registered address and NIF are
- *  not yet recorded; the documents identify the operator by name, form, seat
- *  jurisdiction and contact, which is accurate and does not fabricate a
- *  registration. Fill these when available (docs/legal/LEGAL-REVIEW-PACK.md). */
+/** Operator identity — from the AGT taxpayer registration (NIF 5003208729) and
+ *  the company statutes (sociedade por quotas). Registered seat and NIF are the
+ *  company's own public identification; personal data of the shareholders is
+ *  never placed here. */
 export const OPERATOR_NAME = 'BANZAMI – Tecnologia e Serviços, Lda.';
+export const OPERATOR_NIF = '5003208729';
+export const OPERATOR_ADDRESS: Loc = {
+  pt: 'Rua Avenida 21 de Janeiro, Bairro Morro Bento, Município da Samba, Luanda, Angola',
+  en: 'Rua Avenida 21 de Janeiro, Bairro Morro Bento, Samba Municipality, Luanda, Angola',
+};
 export const OPERATOR_CONTACT = 'contact@banzami.com';
 export const OPERATOR_SECURITY = 'security@banzami.com';
 export const OPERATOR_JURISDICTION: Loc = { pt: 'Angola', en: 'Angola' };
@@ -38,12 +43,12 @@ export const TERMS_SECTIONS: LegalSection[] = [
     id: 'identificacao', n: '01', title: { pt: 'Identificação do operador', en: 'Who we are' },
     body: [
       p(
-        `Estes Termos de Serviço («Termos») são disponibilizados por ${OPERATOR_NAME} («Banzami», «nós»), sociedade de direito angolano e operadora de referência da rede de pagamentos aberta BANZA.`,
-        `These Terms of Service ("Terms") are provided by ${OPERATOR_NAME} ("Banzami", "we"), a company incorporated under Angolan law and the reference operator of the open BANZA payment network.`,
+        `Estes Termos de Serviço («Termos») são disponibilizados por ${OPERATOR_NAME} («Banzami», «nós»), sociedade por quotas de direito angolano, com o NIF ${OPERATOR_NIF} e sede na ${OPERATOR_ADDRESS.pt}, operadora de referência da rede de pagamentos aberta BANZA.`,
+        `These Terms of Service ("Terms") are provided by ${OPERATOR_NAME} ("Banzami", "we"), a private limited company incorporated under Angolan law, tax number (NIF) ${OPERATOR_NIF}, with registered office at ${OPERATOR_ADDRESS.en}, the reference operator of the open BANZA payment network.`,
       ),
       p(
-        `Contacto geral e jurídico: ${OPERATOR_CONTACT}. Comunicações de segurança: ${OPERATOR_SECURITY}. O Banzami opera a partir de ${OPERATOR_JURISDICTION.pt}.`,
-        `General and legal contact: ${OPERATOR_CONTACT}. Security reports: ${OPERATOR_SECURITY}. Banzami operates from ${OPERATOR_JURISDICTION.en}.`,
+        `Contacto geral e jurídico: ${OPERATOR_CONTACT}. Comunicações de segurança: ${OPERATOR_SECURITY}.`,
+        `General and legal contact: ${OPERATOR_CONTACT}. Security reports: ${OPERATOR_SECURITY}.`,
       ),
       p(
         'O Banzami não é, nesta fase, uma instituição financeira, um prestador de serviços de pagamento licenciado nem uma entidade regulada, e não faz qualquer afirmação nesse sentido.',
@@ -294,8 +299,8 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'responsavel', n: '01', title: { pt: 'Responsável pelo tratamento', en: 'Data controller' },
     body: [
       p(
-        `${OPERATOR_NAME} («Banzami») é o responsável pelo tratamento dos dados pessoais recolhidos através da app Banzami, do Banzami Business, da plataforma para developers e do website. Contacto para questões de privacidade e para exercer os seus direitos: ${OPERATOR_CONTACT}.`,
-        `${OPERATOR_NAME} ("Banzami") is the controller of the personal data collected through the Banzami app, Banzami Business, the developer platform and the website. Contact for privacy questions and to exercise your rights: ${OPERATOR_CONTACT}.`,
+        `${OPERATOR_NAME} («Banzami»), NIF ${OPERATOR_NIF}, com sede na ${OPERATOR_ADDRESS.pt}, é o responsável pelo tratamento dos dados pessoais recolhidos através da app Banzami, do Banzami Business, da plataforma para developers e do website. Contacto para questões de privacidade e para exercer os seus direitos: ${OPERATOR_CONTACT}.`,
+        `${OPERATOR_NAME} ("Banzami"), tax number (NIF) ${OPERATOR_NIF}, with registered office at ${OPERATOR_ADDRESS.en}, is the controller of the personal data collected through the Banzami app, Banzami Business, the developer platform and the website. Contact for privacy questions and to exercise your rights: ${OPERATOR_CONTACT}.`,
       ),
     ],
   },
