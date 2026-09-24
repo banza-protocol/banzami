@@ -208,7 +208,7 @@ body {
    viewport. Instead of zoom+clip (which cut the last phone), make the row a
    controlled horizontal swipe — full-size, legible, nothing hard-clipped. */
 @media (max-width: 720px) {
-  .bz-phones { overflow-x: auto; overflow-y: visible; justify-content: flex-start; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; padding: 30px 24px; margin: -30px -24px -18px; scrollbar-width: none; }
+  .bz-phones { min-width: 0; max-width: 100%; align-self: stretch; overflow-x: auto; overflow-y: visible; justify-content: flex-start; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; padding: 30px 24px; margin: -30px -24px -18px; scrollbar-width: none; }
   .bz-phones::-webkit-scrollbar { display: none; }
   .bz-phones > * { scroll-snap-align: center; }
   .bz-tablewrap { overflow-x: auto; }
