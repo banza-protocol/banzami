@@ -299,7 +299,7 @@ export function DevelopersPage({ lang }: { lang: Lang }) {
             </div>
             <p style={{ margin: '0 0 6px', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '480px', textWrap: 'pretty' }}>{T.sdkLead[lang]}</p>
           </div>
-          <div className="bz-tablewrap" style={{ marginTop: '40px', border: '1px solid #F3E3E1', borderRadius: '22px', overflow: 'hidden', background: '#fff', boxShadow: '0 24px 50px -40px rgba(122,16,22,.4)' }}>
+          <div className="bz-tablewrap" style={{ marginTop: '40px', border: '1px solid #F3E3E1', borderRadius: '22px', overflowX: 'auto', overflowY: 'hidden', background: '#fff', boxShadow: '0 24px 50px -40px rgba(122,16,22,.4)' }}>
             <table className="bz-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '14.5px', fontWeight: 600, color: '#4a3a3e', minWidth: '640px' }}>
               <thead>
                 <tr>
