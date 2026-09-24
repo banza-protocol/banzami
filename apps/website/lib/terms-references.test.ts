@@ -25,12 +25,14 @@ describe('Terms versioning scaffold', () => {
   it('the /termos route exists', () => {
     expect(() => read('app/termos/page.tsx')).not.toThrow();
   });
-  it('link infrastructure is ready but the document is still DRAFT (not published)', () => {
-    // TERMS_LINK_INFRASTRUCTURE=PASS vs TERMS_DOCUMENT_PUBLICATION_STATUS=DRAFT:
-    // a 200 placeholder does not mean the Terms are legally available.
-    expect(TERMS.status).toBe('DRAFT');
-    expect(isTermsPublished()).toBe(false);
-    expect(TERMS.version).toBeNull();
+  it('the Beta Sandbox Terms + Privacy are PUBLISHED and versioned', () => {
+    // PUBLIC-WEBSITE-LEGAL-RELEASE-001 closed for the Beta: real, versioned,
+    // content-hashed legal documents (see legal-content.test.ts).
+    expect(TERMS.status).toBe('PUBLISHED');
+    expect(isTermsPublished()).toBe(true);
+    expect(TERMS.version).toBeTruthy();
+    expect(TERMS.privacyVersion).toBeTruthy();
+    expect(TERMS.documentHash).toMatch(/^[0-9a-f]{64}$/);
   });
   it('acceptance flows send a Terms version only once published (DRAFT sends none)', () => {
     for (const f of [
@@ -45,8 +47,12 @@ describe('Terms versioning scaffold', () => {
     expect(login).not.toContain('concorda com os nossos');
     expect(login).toContain('Ao entrar, aplica-se a nossa');
   });
-  it('a DRAFT (unpublished) Terms page is noindex — no draft text in the index', () => {
-    if (TERMS.status !== 'PUBLISHED') {
+  it('a PUBLISHED Terms page is indexable (no noindex)', () => {
+    // Published legal documents belong in the index; a DRAFT one would be noindex.
+    if (TERMS.status === 'PUBLISHED') {
+      expect(read('app/termos/page.tsx')).not.toContain('index: false');
+      expect(read('app/privacidade/page.tsx')).not.toContain('index: false');
+    } else {
       expect(read('app/termos/page.tsx')).toContain('index: false');
     }
   });

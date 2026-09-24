@@ -1,43 +1,56 @@
-// PUBLIC-WEBSITE-LEGAL-RELEASE-001 — Terms of Service metadata.
+// PUBLIC-WEBSITE-LEGAL-RELEASE-001 — Terms of Service + Privacy Policy metadata.
 //
-// The Terms BODY is human-approved legal content and is NOT authored here. This
-// file only carries the versioning + identity scaffold around it. Until an
-// approved document is supplied, status stays 'DRAFT' and /termos renders a
-// controlled placeholder (noindex) that fabricates no clauses.
+// The legal BODY lives in lib/legal-content.ts (single source of truth, rendered
+// by /termos and /privacidade). This file pins the published version, dates and
+// a content hash over that module, so a published version is immutable: the hash
+// changes if the text changes, and legal-content.test.ts fails unless the hash
+// is updated deliberately together with a version bump (reacceptance rule).
 //
-// When the approved document is published, set status to 'PUBLISHED' and fill
-// version / effectiveDate / publishedAt / documentHash from the approved source.
-// A published version is immutable: never change version while changing the body.
+// Scope: PUBLIC BETA SANDBOX. Nothing here or in the content claims Banzami is a
+// licensed/regulated financial institution; Financial Live is out of scope.
+
+import {
+  TERMS_VERSION,
+  PRIVACY_VERSION,
+  LEGAL_EFFECTIVE_DATE,
+  OPERATOR_NAME,
+  OPERATOR_CONTACT,
+} from './legal-content';
 
 export type TermsStatus = 'DRAFT' | 'PUBLISHED';
 
 export interface TermsMeta {
   status: TermsStatus;
-  /** Human-readable, immutable once published (e.g. '2026-10-01'). */
+  /** Terms version, immutable once published. */
   version: string | null;
-  /** When the version takes effect (ISO date). */
+  /** Privacy Policy version, immutable once published. */
+  privacyVersion: string | null;
+  /** When the versions take effect (ISO date). */
   effectiveDate: string | null;
-  /** When it was published (ISO date). */
+  /** When they were published (ISO date). */
   publishedAt: string | null;
-  /** Stable content hash of the approved body, proving the version did not change. */
+  /** sha256 of lib/legal-content.ts — proves the published body did not change.
+   *  Recomputed and asserted by legal-content.test.ts. */
   documentHash: string | null;
-  /** Registered legal entity responsible for the document (approved identity). */
+  /** Registered legal entity responsible for the documents (self-asserted name). */
   legalEntity: string;
-  /** Canonical contact for legal questions. */
+  /** Canonical contact for legal/privacy questions. */
   contactEmail: string;
 }
 
-/** The one canonical public Terms route. */
+/** The canonical public legal routes. */
 export const TERMS_ROUTE = '/termos';
+export const PRIVACY_ROUTE = '/privacidade';
 
 export const TERMS: TermsMeta = {
-  status: 'DRAFT',
-  version: null,
-  effectiveDate: null,
-  publishedAt: null,
-  documentHash: null,
-  legalEntity: 'BANZAMI – Tecnologia e Serviços, Lda.',
-  contactEmail: 'contact@banzami.com',
+  status: 'PUBLISHED',
+  version: TERMS_VERSION,
+  privacyVersion: PRIVACY_VERSION,
+  effectiveDate: LEGAL_EFFECTIVE_DATE,
+  publishedAt: LEGAL_EFFECTIVE_DATE,
+  documentHash: '0b8fac2e8ffe34081c09899b3c0d707000a59050a4f595c520ff82dd15e842c5',
+  legalEntity: OPERATOR_NAME,
+  contactEmail: OPERATOR_CONTACT,
 };
 
 /** True only when an approved document is published with a real version. */
