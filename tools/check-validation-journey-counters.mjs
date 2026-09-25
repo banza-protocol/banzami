@@ -75,10 +75,19 @@ const counters = (alias) => `
 // Two readings of the same probe run: before the CONTROL row exists, and after.
 const out = sql(`
 BEGIN;
-INSERT INTO validation_runs (run_ref, environment, profile_id, profile_version, profile_digest, state, requested_by)
+INSERT INTO validation_runs (run_ref, environment, profile_id, profile_version, profile_digest, state, ended_at, requested_by)
 -- requested_by is FK'd to admin_users: borrow a real operator rather than
 -- inventing one, so the probe exercises the same shape a real run does.
-VALUES ('${REF}', 'SANDBOX', 'FULL', 1, repeat('c', 64), 'QUEUED',
+--
+-- The state is CANCELLED, not QUEUED, and deliberately so. No counter below
+-- reads validation_runs.state — they all count validation_run_journeys rows —
+-- but validation_runs_one_active (0160) admits a single QUEUED/RUNNING run per
+-- environment, so a QUEUED probe made this gate unrunnable whenever a real run
+-- was waiting: make check-validation died on a unique-violation exactly when
+-- the Sandbox was in use, which is when you most want to run it. A rollback-only
+-- probe must not pretend to hold the Sandbox. CANCELLED is terminal, so
+-- validation_runs_ended_iff_terminal requires ended_at, and verdict stays NULL.
+VALUES ('${REF}', 'SANDBOX', 'FULL', 1, repeat('c', 64), 'CANCELLED', now(),
         (SELECT requested_by FROM validation_runs WHERE requested_by IS NOT NULL LIMIT 1));
 
 INSERT INTO validation_run_journeys (run_id, journey_id, suite_id, outcome, record_kind)

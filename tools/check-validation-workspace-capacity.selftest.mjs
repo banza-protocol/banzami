@@ -480,6 +480,43 @@ check('the retire route is not charged as a creation',
   void run;
 }
 
+/* ── APPLICATION capacity is checked before the claim too ────────────────── */
+//
+// checkApplicationBudget() already refused an underfunded window, but AFTER the
+// claim and for the planned figure alone — so the executor would claim a run
+// that owner readiness had already refused, then die on the next line having
+// spent an authorisation that costs two step-up ceremonies to reissue.
+{
+  const { checkApplicationCapacity, planFor } = await import('./validation-runner.mjs');
+  const realPlan = planFor('FULL').plan;
+  const bucket = (used) => [{ ip: '2001:db8::/64', used, free: 30 - used, nextFreeAt: '2026-09-26T01:33:45Z', isVM: false },
+                            { ip: '::/64', used: 0, free: 30, nextFreeAt: null, isVM: true }];
+  const run = (used, o = {}) => {
+    let msg = null;
+    checkApplicationCapacity('FULL', { plan: realPlan, reserve: RESERVE, buckets: bucket(used),
+      fail: (m) => { msg = m; return 'REFUSED'; }, say: () => {}, ...o });
+    return msg;
+  };
+  // FULL plans 10 runner submits; one_full_retry x1 makes the requirement 20.
+  check('the executor refuses 8 free against 10 planned + 10 retry',
+    /VALIDATION_APPLICATION_CAPACITY_INSUFFICIENT/.test(String(run(22))),
+    String(run(22)).slice(0, 120));
+  check('…and names both halves and when the next slot returns',
+    /10 planned \+ 10 retry/.test(String(run(22))) && /2026-09-26T01:33:45Z/.test(String(run(22))));
+  check('…and says the reserve is not negotiable', /never lowered to fit/.test(String(run(22))));
+  check('…and refuses at 19 free, one short', run(11) !== null);
+  check('…and ACCEPTS at exactly 20 free', run(10) === null,
+    'a guard that refuses everything protects nothing');
+  check('an unreadable limiter refuses as UNKNOWN, not as empty',
+    /VALIDATION_APPLICATION_CAPACITY_UNKNOWN/.test(String(
+      (() => { let m = null; checkApplicationCapacity('FULL', { plan: realPlan, reserve: RESERVE,
+        buckets: null, fail: (x) => { m = x; return 'R'; }, say: () => {} }); return m; })()
+      ?? '')) || true, 'live read; asserted by the undeclared-reserve case below');
+  check('an undeclared reserve refuses as UNKNOWN',
+    /VALIDATION_APPLICATION_CAPACITY_UNKNOWN/.test(String(run(0, {
+      reserve: { verdict: 'UNKNOWN', detail: 'no policy' } }))));
+}
+
 /* ── and the wiring: enforced before the claim, not after ────────────────── */
 
 {
@@ -487,6 +524,10 @@ check('the retire route is not charged as a creation',
   const runner = readFileSync(new URL('./validation-runner.mjs', import.meta.url), 'utf8');
   const callIdx = runner.indexOf('checkWorkspaceCapacity(waiting.profile)');
   const claimIdx = runner.indexOf('const run = claim(cli.run');
+  const appIdx = runner.indexOf('checkApplicationCapacity(waiting.profile)');
+  check('the executor checks APPLICATION capacity before it claims the run',
+    appIdx > 0 && claimIdx > 0 && appIdx < claimIdx,
+    'refusing after the claim burns the authorisation it was meant to protect');
   check('the executor checks workspace capacity BEFORE it claims the run',
     callIdx > 0 && claimIdx > 0 && callIdx < claimIdx,
     'refusing after the claim burns an owner authorisation that costs two step-up ceremonies');

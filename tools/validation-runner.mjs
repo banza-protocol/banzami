@@ -30,12 +30,12 @@ import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSuiteSummary } from './e2e/lib/parse-suite-summary.mjs';
 import {
-  submitCapacity, runnerBucket, vmBucket, submitCost,
+  submitCapacity, runnerBucket, vmBucket, submitCost, SUBMIT_LIMIT,
   aggregateFunds, plannedPeakFunds, requiredFundsHeadroom, AGGREGATE_FUNDS_CAP,
 } from './lib/validation-capacity.mjs';
 import { workspaceLimits, workspaceConsumption, workspaceUsage, withKnownActors,
          retryReserve, activeHeadroom, creationHeadroom,
-         earliestSufficient } from './lib/validation-workspace-capacity.mjs';
+         earliestSufficient, reserveFor } from './lib/validation-workspace-capacity.mjs';
 import { attributablePeak, exposureVerdict } from './lib/validation-exposure.mjs';
 import { resolveFinancialAccounts, ownershipCompleteness, scopeOf, RESOURCE_SCOPE } from './lib/validation-resource-scope.mjs';
 
@@ -1070,6 +1070,75 @@ export function checkWorkspaceCapacity(profileID, {
       'The reserve is policy and is never lowered to fit. The run is left QUEUED and unspent.');
 }
 
+/**
+ * APPLICATION capacity, checked BEFORE the claim — like the workspace families.
+ *
+ * checkApplicationBudget() already refuses an underfunded window, but it runs
+ * AFTER the claim and asks only for what the plan spends. Both are wrong for a
+ * pre-flight:
+ *
+ *   after the claim   refusing there burns an owner authorisation that costs
+ *                     two step-up ceremonies to reissue — the exact reason the
+ *                     cleanup barrier and the workspace gates are checked here
+ *                     and not there.
+ *
+ *   planned only      owner readiness requires planned + retry reserve, so the
+ *                     executor would happily claim a run that readiness had
+ *                     already refused. A guard that is weaker than the gate
+ *                     above it is a hole with a name.
+ *
+ * On 2026-09-25 a FULL sat QUEUED with 8 free against a plan of 10 and a
+ * reserve of 10. Claiming it would have spent the authorisation and died on the
+ * next line.
+ */
+export function checkApplicationCapacity(profileID, {
+  // Injected so the refusal can be proven without a queued run and without
+  // reaching the Sandbox. A guard nobody has watched refuse is not a guard.
+  plan: planIn = null,
+  reserve: reserveIn = null,
+  buckets: bucketsIn = null,
+  fail = die,
+  say = log,
+} = {}) {
+  const plan = planIn ?? planFor(profileID).plan;
+  const planned = { runner: 0, vm: 0 };
+  for (const p of plan) if (p.submits) planned[p.submits.bucket]++;
+
+  const reserve = reserveIn ?? retryReserve(profileID);
+  if (reserve.verdict !== 'DECLARED') {
+    return fail(`VALIDATION_APPLICATION_CAPACITY_UNKNOWN: ${reserve.detail}. ` +
+        'An undeclared reserve is not a reserve of zero; the run is left QUEUED and unspent.');
+  }
+  let buckets = bucketsIn;
+  try { buckets ??= submitCapacity(); }
+  catch (e) {
+    return fail(`VALIDATION_APPLICATION_CAPACITY_UNKNOWN: cannot read the application-submit ` +
+        `limiter (${e.message}). An unreadable window is not an empty one; the run is ` +
+        'left QUEUED and unspent.');
+  }
+  const want = (n) => n + reserveFor(reserve, n);
+  for (const [name, have, n] of [
+    ["the runner's address", runnerBucket(buckets), planned.runner],
+    ["the Sandbox VM's address", vmBucket(buckets), planned.vm],
+  ]) {
+    if (n === 0) continue;
+    const required = want(n);
+    if (!have) {
+      return fail(`VALIDATION_APPLICATION_CAPACITY_UNKNOWN: the plan needs ${required} submit(s) ` +
+          `from ${name} and the limiter cannot identify that bucket. An unknown bucket is ` +
+          'not a free one; the run is left QUEUED and unspent.');
+    }
+    say(`  applications: ${name} ${have.used}/${SUBMIT_LIMIT} used · ${have.free} free · ` +
+        `${n} planned + ${required - n} retry = ${required} required`);
+    if (have.free < required) {
+      return fail(`VALIDATION_APPLICATION_CAPACITY_INSUFFICIENT: ${name} has ${have.free} free ` +
+          `and the run requires ${required} (${n} planned + ${required - n} retry). ` +
+          `The next slot returns at ${have.nextFreeAt ?? 'an unknown time'}. The reserve is ` +
+          'policy and is never lowered to fit; the run is left QUEUED and unspent.');
+    }
+  }
+}
+
 function main() {
   // Before proveEnvironment(), which opens the database. Nothing this runner
   // does to the Sandbox may happen on a command line it did not understand.
@@ -1111,7 +1180,10 @@ function main() {
   // The fourth capacity family, enforced immediately before the claim so that a
   // sliding window, another operator or a stale screen cannot start a run the
   // Sandbox cannot finish.
-  if (waiting) checkWorkspaceCapacity(waiting.profile);
+  if (waiting) {
+    checkApplicationCapacity(waiting.profile);
+    checkWorkspaceCapacity(waiting.profile);
+  }
 
   const run = claim(cli.run ?? null);
   if (!run) { log('no QUEUED run to claim'); return; }
