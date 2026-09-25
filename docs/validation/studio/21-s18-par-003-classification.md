@@ -12,6 +12,14 @@ and this one did for about an hour.
 
 ## Status
 
+> **Superseded 2026-09-25.** The status below was written while the
+> reproduction was contaminated. A clean paired experiment has since proven the
+> cause by mechanism: `PRODUCT_DEFECT_CONFIRMED = YES`,
+> `ROOT_CAUSE = semantics node announces a button and carries no tap action`.
+> See `22-final-closure-state.md`. This document is kept unedited below it,
+> because how the wrong conclusion was reached and withdrawn is the part worth
+> re-reading.
+
 ```text
 HISTORICAL_FULL_RESULT        = FAILED
 HISTORICAL_EVIDENCE           = PRESERVED
