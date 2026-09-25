@@ -217,6 +217,21 @@ class _BanzamiPrimaryButtonState extends State<BanzamiPrimaryButton>
         button: true,
         enabled: !isDisabled,
         label: widget.label,
+        // THE ACTION THE NODE CLAIMS TO HAVE.
+        //
+        // excludeSemantics removes the GestureDetector's own semantics, so
+        // without this the accessible node announced a button with no way to
+        // activate it. On Flutter Web that node is a transparent DOM overlay
+        // above the canvas: activating it dispatches a semantics action, and
+        // with none registered nothing happens — a tap then only works when it
+        // happens to fall through to the canvas at the button's real position.
+        //
+        // That is what S18-PAR-003 failed on in BZV-20260923-0001 and
+        // BZV-20260924-0001: at 1.50x accessibility text the "Criar cobrança"
+        // control was visible, named and located, and no tap by any strategy
+        // navigated, while the same control worked at 1.00x. The geometry moved;
+        // the missing action was always missing.
+        onTap: isDisabled ? null : _onTap,
         excludeSemantics: true,
         child: GestureDetector(
         onTapDown: (_) => _controller.reverse(),
@@ -469,6 +484,9 @@ class _BanzamiActionTileState extends State<BanzamiActionTile>
         child: Semantics(
           button: true,
           label: widget.label,
+          // Same defect, same fix — see BanzamiPrimaryButton above. This tile
+          // performs its work in onTapUp, so that is what the action invokes.
+          onTap: widget.onTap,
           excludeSemantics: true,
           child: GestureDetector(
           onTapDown: (_) {
