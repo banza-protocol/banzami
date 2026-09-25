@@ -58,10 +58,18 @@ export async function provisionBusiness({ handlePrefix = 'e2ebiz', pin = '481516
   // proof (it persists for the next run).
   const reuse = process.env.BZ_BIZ_HANDLE;
   if (reuse && reuse.trim()) {
+    const reusedHandle = reuse.trim().replace(/^@/, '').toLowerCase();
     const fixture = {
-      handle: reuse.trim().replace(/^@/, '').toLowerCase(),
+      handle: reusedHandle,
       pin: process.env.BZ_BIZ_PIN ?? pin,
       merchantId: process.env.BZ_BIZ_MERCHANT_ID ?? '',
+      // The NAME travels with the fixture too. A caller that checks Business
+      // Home identity compares against session.merchantName, and the reuse
+      // path returned no name at all — so the check failed for want of the
+      // datum rather than for anything the product did. BZ_BIZ_NAME carries it
+      // when the fixture came from elsewhere; otherwise it is the same shape
+      // provisioning gives a Business it created.
+      name: process.env.BZ_BIZ_NAME?.trim() || `E2E ${reusedHandle}`,
       applicationId: null,
       reused: true,
     };
