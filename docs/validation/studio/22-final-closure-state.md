@@ -184,3 +184,64 @@ REASON                     every targeted gate is closed; the only remaining
                            blocker is APPLICATION_CAPACITY, and the reserve is
                            not lowered to fit
 ```
+
+---
+
+## 6 · Pre-execution state of BZV-20260925-0001
+
+Read from live authority at 2026-09-25T10:20Z, after the owner queued the run.
+
+```text
+BZV-20260925-0001  QUEUED  FULL v1  6bd806831badeb1c  requested 2026-09-25 10:07
+```
+
+The pinned profile digest is byte-identical to `ProfileDigest["FULL"]` compiled
+into the deployed admin-api (`registry_gen.go:39`), so the run will execute the
+profile it says it will. Nothing about the run needs repairing; it needs
+capacity.
+
+### Owner readiness — three gates closed, two facts
+
+| Gate | State | What it actually says |
+|---|---|---|
+| `RUNNER_IP_FREE_SLOTS` | ✗ | 21/30 used · 9 free · needs 10 planned + 10 retry |
+| `PREFLIGHT` | ✗ | `no_active_run` FAIL — 15 of 16 checks PASS |
+| `ACTIVE_VALIDATION_RUN_COUNT` | ✗ | 1 active |
+
+The second and third are the same fact as each other, and that fact is
+**BZV-20260925-0001 itself**. Owner readiness answers "may a run be started",
+and a run has been started; it is not the executor's precondition. Every other
+preflight check — actors, digest parity, deployed revisions of admin-api,
+api-gateway and schema 0166, identity resolution, all four funding windows,
+and both workspace resources — is PASS.
+
+So exactly **one** real blocker remains, and it is a clock.
+
+### The window
+
+`rl:application-submit:ip:<runner>` holds 25 entries, 21 inside the rolling 24h
+window. Reaching 20 free requires 11 of them to age out:
+
+```text
+free ≥ 1   2026-09-25T10:24:02Z
+free ≥ 20  2026-09-26T01:33:45Z   ← the executor may claim from here
+```
+
+The reserve is not lowered to meet the clock. Nine free against a requirement of
+twenty is a shortfall of eleven, and a FULL that cannot afford its own retry is a
+FULL that reports infrastructure as product.
+
+### A gap closed while waiting
+
+The executor checked workspace capacity *before* `claim()` and the application
+budget *after* it, for the planned figure alone. Running it now would have
+claimed the run and died on the next line, spending an owner authorisation on a
+shortfall readiness had already refused. `checkApplicationCapacity()` now runs
+pre-claim on the same `PLANNED + RETRY_RESERVE` arithmetic
+(`daeb6dc9`), mutation-proven in both directions: refuses at 19 free, accepts at
+exactly 20.
+
+The same commit stopped the journey-counters probe from inserting its
+rollback-only run as `QUEUED`. `validation_runs_one_active` made that gate
+unrunnable whenever a real run was waiting — `make check-validation` failed on a
+unique violation precisely when the Sandbox was in use.
