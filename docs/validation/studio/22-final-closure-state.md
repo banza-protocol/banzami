@@ -37,8 +37,10 @@ accessible node (`ACTIVATION_ACCEPTED_TREE_EMPTY`). One dispatch is the shape of
 the second. Both states are proven in the driver selftest.
 
 ```text
-S03_TARGETED               NOT RUN — needs one application submit
-S03_CLASSIFICATION         instrumented, not yet observed
+S03_TARGETED               PASS — 5/0 on 2026-09-25T09:50Z
+ACTIVATION                 succeeded; the two-state classification was never
+                           reached, so the failure is INTERMITTENT and the
+                           driver now names which state a recurrence is in
 ```
 
 ## S18-PAR-003 — root cause proven, journey not yet re-run
@@ -104,16 +106,48 @@ SOURCE_REVISION            27b74b67
 DEPLOYED_REVISION          27b74b67 (app-frontend), parity proven
 MECHANISM_PROOF            apps/mobile/test/semantics_tap_action_test.dart
                            mutation-proven both ways
-S18_TARGETED_JOURNEY       NOT RUN — needs one application submit
+```
+
+### Targeted result against the deployed fix — 2026-09-25
+
+Every run reused one Business (`BZ_BIZ_HANDLE`), so the whole matrix cost a
+single application submit. The BFF auth limiter was read before and after each
+run and never approached its bound.
+
+```text
+S18_1.00   PASS 13/0      S18_1.25   PASS 13/0      S18_1.50   PASS 13/0
+S18_1.75   PASS 13/0      S18_2.00   PASS 13/0
+NAV_CRIAR_COBRANCA        reached the form via role=button at every scale
+BUSINESS_WEB_LARGE_TEXT   6/6 screens clean at every scale
+```
+
+An earlier attempt at 1.25×, 1.75× and 2.00× failed at the sign-in step with
+`auth=15/12` on the limiter. That was measured, not inferred, and the runs were
+repeated inside a clean window rather than interpreted.
+
+SIBLING CONTROLS: `BanzamiSecondaryButton` (Partilhar QR) and
+`BanzamiGhostButton` build on Material's `OutlinedButton`/`TextButton`, which
+carry their own semantics and action, and neither uses `excludeSemantics`. The
+defect was specific to the two components that hid a `GestureDetector` behind
+it. `Partilhar QR` is asserted reachable by the journey itself at every scale.
+
+One harness gap surfaced and was closed: the reuse branch of
+`provisionBusiness` returned no business name, so `LARGE_TEXT_HOME_IDENTITY`
+failed for want of the datum rather than for anything the product did. A reuse
+path that returns less than the provision path turns every saving into a false
+failure somewhere else.
+
+```text
+S18_TARGETED_JOURNEY       PASS
 ```
 
 ## The blocker
 
 ```text
 BLOCKER                    APPLICATION_CAPACITY (runner bucket)
-CURRENT_USAGE              30/30
+CURRENT_USAGE              24/30 · 6 free          (read 2026-09-25T10:04Z)
 REQUIRED_CAPACITY          20 free (10 planned + 10 reserve, unchanged)
-NEXT_USEFUL_TIME           2026-09-26T01:32:58Z
+NEXT_USEFUL_TIME           2026-09-26T01:33:45Z
 ```
 
 Self-inflicted, and worth recording as such: the S18 diagnosis spent it, one
@@ -140,7 +174,13 @@ to answer a question.
    authority and run a new FULL.
 
 ```text
+S03_TARGETED               PASS
+S18_TARGETED               PASS (1.00× through 2.00×)
+CHECK_VALIDATION           PASS
+RUNTIME_PARITY             PASS (10 of 10)
+
 FULL_RETRY_ELIGIBLE        NO
-REASON                     S03 and S18 targeted runs are unrun, and the
-                           application window cannot yet satisfy the reserve
+REASON                     every targeted gate is closed; the only remaining
+                           blocker is APPLICATION_CAPACITY, and the reserve is
+                           not lowered to fit
 ```
