@@ -241,6 +241,38 @@ async function screen(d, page, label, marker, actions = []) {
     // swallowed a failed tap, and the screen gate below then reported the
     // Receber screen's content as a Criar-cobrança failure — a navigation
     // problem wearing an accessibility problem's name.
+    // ROOT-CAUSE PROBE, off unless asked. Reads the overlay's geometry and
+    // interactivity at the moment of the tap, under this proof's own conditions
+    // — a standalone probe could not sign in at >=1.25x, so measuring here is
+    // the only way to observe the failing control in the state that fails.
+    if (process.env.BZ_S18_PROBE === '1') {
+      const g = await page.evaluate((name) => {
+        const pick = [...document.querySelectorAll('flt-semantics')]
+          .filter((e) => (e.getAttribute('aria-label') || '').includes(name)
+                      || (e.textContent || '').trim() === name);
+        const n = pick[pick.length - 1];
+        const host = document.querySelector('flt-semantics-host');
+        const rect = (e) => { const b = e?.getBoundingClientRect?.();
+          return b ? `${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}x${Math.round(b.height)}` : '—'; };
+        if (!n) return { found: 0, host: rect(host) };
+        const b = n.getBoundingClientRect();
+        const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+        const chain = []; let el = document.elementFromPoint(cx, cy);
+        for (let i = 0; el && i < 5; i++) { const l = el.getAttribute?.('aria-label');
+          chain.push(el.tagName.toLowerCase() + (l ? `[${l.slice(0, 18)}]` : '')); el = el.parentElement; }
+        const cs = getComputedStyle(n), hs = host ? getComputedStyle(host) : null;
+        return {
+          found: pick.length, rect: rect(n), pe: cs.pointerEvents, z: cs.zIndex,
+          transform: (cs.transform || 'none').slice(0, 46),
+          host: rect(host), hostPE: hs?.pointerEvents, hostOverflow: hs?.overflow,
+          hostTransform: (hs?.transform || 'none').slice(0, 46),
+          centre: `${Math.round(cx)},${Math.round(cy)}`, chain: chain.join('>'),
+          innerH: window.innerHeight, scrollY: window.scrollY,
+        };
+      }, 'Criar cobrança').catch((e) => ({ err: String(e.message).slice(0, 80) }));
+      console.log('[S18 PROBE] ' + JSON.stringify(g));
+    }
+
     const navVia = await go(d, 'Criar cobrança', { until: 'Nova cobrança' });
     // Waited for 'Valor', which this screen has never had: charge_screen.dart
     // offers 'Nova cobrança', 'Detalhes da cobrança', 'Total' and 'Gerar

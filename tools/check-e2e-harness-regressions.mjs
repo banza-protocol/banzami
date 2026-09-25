@@ -122,6 +122,44 @@ check('fixtures · retireBusiness refuses a reused id structurally',
   /REUSED\.has\(merchantId\)/.test(prov) && /return 'skipped-reused'/.test(prov),
   'a rule seven call sites have to remember is not a rule');
 
+/* ── diagnostic instrumentation must be inert when it is off ─────────────── */
+//
+// Proof 18 carries a root-cause probe behind BZ_S18_PROBE. Instrumentation that
+// can change a verdict is not instrumentation — it is a second, undeclared
+// harness. These are the properties that make "off by default" a fact rather
+// than an intention.
+{
+  const { readFileSync } = await import('node:fs');
+  const p18 = readFileSync(new URL('./e2e/app-web/proofs/18-business-web-large-text.mjs', import.meta.url), 'utf8');
+  const guard = "if (process.env.BZ_S18_PROBE === '1') {";
+  const at = p18.indexOf(guard);
+  check('probe · proof 18 gates its root-cause probe on BZ_S18_PROBE', at > 0,
+    'an ungated probe runs on every validation run');
+
+  // The whole block, by brace balance from the guard.
+  let depth = 0, end = at;
+  for (let i = at + guard.length - 1; i < p18.length; i++) {
+    if (p18[i] === '{') depth++;
+    else if (p18[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+  }
+  const block = p18.slice(at, end + 1);
+  check('probe · it records no gate, so it cannot change a verdict',
+    at > 0 && !/R\.mark\(/.test(block), 'a probe that marks is a harness');
+  check('probe · it only reads and prints',
+    at > 0 && !/\bclick\(|\btype\(|tapButton|tapText|tapLocatorBox|goto\(|wheel\(/.test(block),
+    'a probe that acts changes the thing it is measuring');
+  check('probe · a failure inside it cannot fail the proof',
+    at > 0 && /\.catch\(/.test(block), 'an unguarded evaluate would throw out of the journey');
+  check('probe · exactly one such gated block exists',
+    (p18.match(/process\.env\.BZ_S18_PROBE/g) ?? []).length === 1);
+
+  // And the scale lever: overridable, but the DEFAULT is the scale the journey
+  // exists to test. A default that drifted to 16px would turn this proof into a
+  // normal-text proof wearing a large-text name.
+  check('probe · the text scale defaults to the 1.50x this journey tests',
+    /BZ_LARGE_FONT_PX \?\? 24/.test(p18), 'the default is the assertion');
+}
+
 console.log(failures === 0
   ? `\n✓ E2E_HARNESS_REGRESSIONS=PASS\n`
   : `\n✗ E2E_HARNESS_REGRESSIONS=FAIL (${failures})\n`);
