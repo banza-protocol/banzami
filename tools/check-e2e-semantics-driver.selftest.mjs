@@ -26,10 +26,15 @@ const check = (title, ok, detail = '') => {
  * accessibility placeholder appears; `activationTakes` is how long the
  * semantics tree needs once activation is dispatched.
  */
-function fakePage({ engineAfter = 0, activationTakes = 20, engineNever = false, semanticsNever = false } = {}) {
+function fakePage({ engineAfter = 0, activationTakes = 20, engineNever = false, semanticsNever = false,
+                   // Flutter REMOVES the placeholder when it accepts activation. Modelling
+                   // that is what separates an app that ignored the click from one that
+                   // accepted it and rendered no accessible node.
+                   placeholderVanishesOnActivation = false } = {}) {
   const born = Date.now();
   let activatedAt = null;
-  const placeholderUp = () => !engineNever && Date.now() - born >= engineAfter;
+  const placeholderUp = () => !engineNever && Date.now() - born >= engineAfter
+    && !(placeholderVanishesOnActivation && activatedAt !== null);
   const semanticsUp = () => !semanticsNever && activatedAt !== null && Date.now() - activatedAt >= activationTakes;
   const present = (sel) => {
     const wantsPlaceholder = sel.includes('flt-semantics-placeholder');
@@ -106,6 +111,46 @@ console.log('\nsemantics driver — engine and activation are two phases\n');
     r.phase === 'SEMANTICS_ACTIVATION_TIMEOUT', `phase ${r.phase}`);
   check('C. …and the message says the engine WAS ready, so nobody chases the wrong phase',
     /engine was ready after \d+ ms/.test(r.err?.message ?? ''), r.err?.message);
+}
+
+/* C2 · the SAME timeout, two opposite causes ───────────────────────────────
+ *
+ * BZV-20260924-0001 failed S03-BIZ-003 with "no flt-semantics node appeared
+ * within 20000 ms (1 dispatch(es))". One dispatch could mean the clicks were
+ * being swallowed, or that the first one was accepted and the tree stayed
+ * empty. Those are opposite defects — an app that does not respond, and an app
+ * that responded with nothing — and the message could not tell them apart.
+ */
+{
+  // The placeholder is still there at the deadline: the app never took it.
+  const d = drive({ engineAfter: 20, semanticsNever: true });
+  const r = await outcome(d);
+  check('C2. placeholder still present at the deadline → ACTIVATION_IGNORED',
+    d.timing.activation_verdict === 'ACTIVATION_IGNORED'
+    && d.timing.placeholder_at_timeout === 'PRESENT', JSON.stringify(d.timing));
+  check('C2. …and the message names it, so nobody has to infer it from a count',
+    /ACTIVATION_IGNORED: placeholder PRESENT/.test(r.err?.message ?? ''), r.err?.message);
+}
+{
+  // The placeholder went away on the first dispatch — Flutter accepted it — and
+  // no node ever arrived.
+  const d = drive({ engineAfter: 20, semanticsNever: true, placeholderVanishesOnActivation: true });
+  const r = await outcome(d);
+  check('C2. placeholder gone at the deadline → ACTIVATION_ACCEPTED_TREE_EMPTY',
+    d.timing.activation_verdict === 'ACTIVATION_ACCEPTED_TREE_EMPTY'
+    && d.timing.placeholder_at_timeout === 'GONE', JSON.stringify(d.timing));
+  check('C2. …and it dispatched exactly once, which is the shape S03-BIZ-003 recorded',
+    d.timing.semantics_dispatches === 1, `${d.timing.semantics_dispatches} dispatch(es)`);
+  check('C2. …and the message names THIS one, not the other',
+    /ACTIVATION_ACCEPTED_TREE_EMPTY: placeholder GONE/.test(r.err?.message ?? ''), r.err?.message);
+}
+{
+  // And a successful activation carries no verdict at all — the fields exist to
+  // explain a failure, not to decorate a pass.
+  const d = drive({ engineAfter: 20, activationTakes: 20 });
+  await outcome(d);
+  check('C2. a successful activation records no failure verdict',
+    d.timing.activation_verdict === null && d.timing.placeholder_at_timeout === null);
 }
 
 /* D + E · idempotence */

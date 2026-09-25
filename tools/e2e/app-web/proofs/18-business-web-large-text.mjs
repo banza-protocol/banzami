@@ -35,7 +35,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 if (process.env.BANZAMI_E2E !== 'RUN') { console.error('set BANZAMI_E2E=RUN'); process.exit(2); }
 
 // 1.5× is a realistic "Large" accessibility text setting; the base default is 16px.
-const LARGE_FONT_PX = 24;
+// Overridable ONLY so the same proof can be run at the base size as a control:
+// a failure that reproduces at 16px is not a large-text defect, and there was no
+// way to ask. The default is the 1.5× this proof exists to test.
+const LARGE_FONT_PX = Number(process.env.BZ_LARGE_FONT_PX ?? 24);
 const BASE_FONT_PX = 16;
 // A tall desktop viewport so a correctly-built (scrollable) screen does not need
 // Flutter-internal wheel scrolling to expose its primary action — a layout DEFECT
@@ -51,13 +54,43 @@ const defaultFontPx = (page) => page.evaluate(() => {
 // Tap a shell destination/button by name. NavigationBar destinations expose their
 // label as an aria-label (not text content, not always role=button), so try the
 // role, then the aria-labelled semantics node's live box, then the text.
-async function go(d, name) {
+//
+// It also SAYS WHICH WAY IT TAPPED. Three strategies were tried in order and
+// each swallowed its own failure, so a tap that landed on the wrong node was
+// indistinguishable from one that landed on the right node and did not
+// navigate. BZV-20260924-0001 failed LARGE_TEXT_NAV_CRIAR_COBRANCA with "did
+// NOT leave the current screen" — true, and silent about which of the three
+// did the tapping. Returns the method that reported success, or null.
+async function go(d, name, { until = null } = {}) {
   await d.enableSemantics();
-  try { await d.tapButton(name, { timeout: 3000 }); await sleep(1200); return; } catch { /* not a role=button */ }
-  const byLabel = d.page.locator(`flt-semantics[aria-label="${name}"], [role="tab"][aria-label="${name}"], [aria-label="${name}"]`).first();
-  if (await byLabel.count()) { try { await d.tapLocatorBox(byLabel); await sleep(1200); return; } catch { /* fall through */ } }
-  await d.tapText(name);
-  await sleep(1200);
+  const arrived = async () => (until ? (await d.visibleText()).includes(until) : true);
+
+  const strategies = [
+    ['role=button', async () => { await d.tapButton(name, { timeout: 3000 }); }],
+    ['aria-label box', async () => {
+      const byLabel = d.page.locator(`flt-semantics[aria-label="${name}"], [role="tab"][aria-label="${name}"], [aria-label="${name}"]`).first();
+      if (!(await byLabel.count())) throw new Error('no aria-labelled node');
+      await d.tapLocatorBox(byLabel);
+    }],
+    ['text node', async () => { await d.tapText(name); }],
+  ];
+
+  const tried = [];
+  for (const [via, tap] of strategies) {
+    try { await tap(); } catch { tried.push(`${via}:threw`); continue; }
+    await sleep(1200);
+    // A TAP THAT RESOLVED IS NOT A TAP THAT ARRIVED.
+    //
+    // Playwright's click resolves when it has clicked the element's box. A
+    // Flutter semantics node is a transparent overlay above the canvas, so a
+    // stale or zero-sized box makes the click land on nothing and resolve
+    // anyway. BZV-20260924-0001 recorded "tapped via role=button" on a screen
+    // that never changed — the first strategy reported success and the two
+    // reliable ones below it were never reached.
+    if (await arrived()) return via;
+    tried.push(`${via}:no-effect`);
+  }
+  return tried.length ? `NONE (${tried.join(', ')})` : null;
 }
 
 // Assert one screen: it rendered (a marker is visible), no horizontal overflow,
@@ -208,7 +241,7 @@ async function screen(d, page, label, marker, actions = []) {
     // swallowed a failed tap, and the screen gate below then reported the
     // Receber screen's content as a Criar-cobrança failure — a navigation
     // problem wearing an accessibility problem's name.
-    await go(d, 'Criar cobrança');
+    const navVia = await go(d, 'Criar cobrança', { until: 'Nova cobrança' });
     // Waited for 'Valor', which this screen has never had: charge_screen.dart
     // offers 'Nova cobrança', 'Detalhes da cobrança', 'Total' and 'Gerar
     // cobrança'. The wait could only ever time out, and the swallowed catch
@@ -217,8 +250,9 @@ async function screen(d, page, label, marker, actions = []) {
     try { await d.waitForText('Nova cobrança', { timeout: 12000 }); }
     catch { reachedCharge = false; }
     R.mark('LARGE_TEXT_NAV_CRIAR_COBRANCA', reachedCharge,
-      reachedCharge ? 'tapping Criar cobrança reached the form under large text'
-        : `tapping Criar cobrança did NOT leave the current screen — saw: ${
+      reachedCharge ? `tapping Criar cobrança reached the form under large text (via ${navVia})`
+        : `tapping Criar cobrança did NOT leave the current screen — tapped via ${
+          navVia ?? 'NOTHING: all three strategies failed'} — saw: ${
           (await d.visibleText()).replace(/\s+/g, ' ').slice(0, 160)}`);
     await screen(d, page, 'CRIAR_COBRANCA', ['Nova cobrança', 'Detalhes da cobrança'], ['Gerar cobrança']);
     // Return to the shell (the charge screen is a pushed route).

@@ -265,6 +265,30 @@ export class FlutterSemanticsDriver {
       this.semanticsElapsedMs = this.semanticsReadyMs;
       return true;
     }
+    // WHICH FAILURE IS THIS? Two opposite defects were arriving under one
+    // message, and "1 dispatch(es)" was the only clue either way.
+    //
+    // Flutter REMOVES the placeholder when activation is accepted. So at the
+    // deadline:
+    //
+    //   placeholder still there   activation was dispatched and IGNORED — the
+    //                             app never turned semantics on
+    //   placeholder gone          activation was ACCEPTED and the tree is still
+    //                             empty — the app turned semantics on and
+    //                             rendered no accessible node inside the budget
+    //
+    // The first is an application that does not respond; the second is one that
+    // responded and had nothing to show yet. BZV-20260924-0001 failed
+    // S03-BIZ-003 with exactly one dispatch, which is the shape of the second —
+    // but the message could not say so, and a reader would reasonably have
+    // concluded the clicks were being swallowed.
+    this.placeholderAtTimeout = (await ph.count()) > 0 ? 'PRESENT' : 'GONE';
+    this.semanticsHostAtTimeout =
+      (await this.page.locator('flt-semantics-host').count()) > 0 ? 'PRESENT' : 'ABSENT';
+    this.activationVerdict = this.placeholderAtTimeout === 'PRESENT'
+      ? 'ACTIVATION_IGNORED'
+      : 'ACTIVATION_ACCEPTED_TREE_EMPTY';
+
     // Record the forensics BEFORE throwing. The bound is not raised here: what
     // the correct bound should be is a question for measured distribution, and
     // a timeout that reports how close it came is what makes that measurable.
@@ -272,6 +296,8 @@ export class FlutterSemanticsDriver {
     this.timeoutPhase = 'SEMANTICS_ACTIVATION';
     this.timeoutBoundMs = activationTimeout;
     throw new DriverPhaseTimeout('SEMANTICS_ACTIVATION_TIMEOUT', this.label,
+      `${this.activationVerdict}: placeholder ${this.placeholderAtTimeout}, ` +
+      `flt-semantics-host ${this.semanticsHostAtTimeout} — ` +
       `engine was ready after ${this.engineReadyMs} ms but no flt-semantics node appeared ` +
       `within ${activationTimeout} ms of activation (${this.semanticsDispatches} dispatch(es))`,
       this.timing);
@@ -293,6 +319,10 @@ export class FlutterSemanticsDriver {
       semantics_elapsed_ms: this.semanticsElapsedMs ?? null,
       timeout_phase: this.timeoutPhase,
       timeout_bound_ms: this.timeoutBoundMs,
+      // Which of the two activation failures this was; null when it succeeded.
+      activation_verdict: this.activationVerdict ?? null,
+      placeholder_at_timeout: this.placeholderAtTimeout ?? null,
+      semantics_host_at_timeout: this.semanticsHostAtTimeout ?? null,
     };
   }
 
