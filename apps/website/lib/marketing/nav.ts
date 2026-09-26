@@ -47,6 +47,11 @@ export type NavItem = {
   label: Loc;
   /** Top-level target (route key + optional hash). */
   to: { key: RouteKey; hash?: string };
+  /** Route keys this top-level item represents in the header's active state, so a
+   *  consolidated hub (Sobre) stays highlighted on its member pages (Segurança,
+   *  Suporte, …) even though they are no longer separate top-level items. The
+   *  pages themselves are unchanged — same route, H1, canonical and SEO. */
+  group?: RouteKey[];
   mega?: {
     title: Loc;
     desc: Loc;
@@ -121,47 +126,28 @@ export const NAV: NavItem[] = [
     },
   },
   {
-    key: 'seguranca',
-    label: L('Segurança', 'Security'),
-    to: { key: 'seguranca' },
-  },
-  {
-    key: 'banza',
-    label: L('BANZA', 'BANZA'),
-    to: { key: 'sobre', hash: '#banza' },
-    mega: {
-      title: L('BANZA', 'BANZA'),
-      desc: L('O protocolo aberto sobre o qual o Banzami é construído.', 'The open protocol Banzami is built on.'),
-      cta: { label: L('Conhecer o BANZA', 'Discover BANZA'), to: { key: 'sobre', hash: '#banza' } },
-      tile: L('protocolo banza', 'banza protocol'),
-      links: [
-        { label: L('Protocolo BANZA', 'BANZA protocol'), desc: L('As regras abertas.', 'The open rules.'), to: { key: 'sobre', hash: '#banza' } },
-        { label: L('BANZA e Banzami', 'BANZA and Banzami'), desc: L('Protocolo e operador.', 'Protocol and operator.'), to: { key: 'sobre', hash: '#banza' } },
-        { label: L('Segurança', 'Security'), desc: L('Como protegemos o sistema.', 'How we protect the system.'), to: { key: 'seguranca' } },
-      ],
-    },
-  },
-  {
+    // The institutional hub: the startup, its people, how the platform is
+    // protected, the protocol it is built on, and how to get help or reach us.
+    // Segurança, BANZA and Suporte moved here from the top level — their pages
+    // are unchanged and stay public; only their place in the header changed.
     key: 'sobre',
     label: L('Sobre', 'About'),
     to: { key: 'sobre' },
+    group: ['sobre', 'seguranca', 'suporte'],
     mega: {
       title: L('Sobre', 'About'),
-      desc: L('A startup que está a construir a rede de pagamentos Banzami.', 'The startup building the Banzami payment network.'),
+      desc: L('A startup, a equipa e a infraestrutura por trás do Banzami.', 'The startup, the team and the infrastructure behind Banzami.'),
       cta: { label: L('Falar connosco', 'Talk to us'), to: { key: 'suporte', hash: '#contacto' } },
       tile: L('banzami', 'banzami'),
       links: [
         { label: L('A startup', 'The startup'), desc: L('Missão e princípios.', 'Mission and principles.'), to: { key: 'sobre', hash: '#missao' } },
         { label: L('Fundadores', 'Founders'), desc: L('Fidel Monteiro e Jesus Monteiro.', 'Fidel Monteiro and Jesus Monteiro.'), to: { key: 'sobre', hash: '#fundador' } },
+        { label: L('Segurança', 'Security'), desc: L('Como protegemos a plataforma e os utilizadores.', 'How we protect the platform and its users.'), to: { key: 'seguranca' } },
+        { label: L('BANZA', 'BANZA'), desc: L('O protocolo aberto sobre o qual o Banzami é construído.', 'The open protocol Banzami is built on.'), to: { key: 'sobre', hash: '#banza' } },
         { label: L('Suporte', 'Support'), desc: L('Ajuda e estado da plataforma.', 'Help and platform status.'), to: { key: 'suporte' } },
         { label: L('Contacto', 'Contact'), desc: L('Fale connosco.', 'Get in touch.'), to: { key: 'suporte', hash: '#contacto' } },
       ],
     },
-  },
-  {
-    key: 'suporte',
-    label: L('Suporte', 'Support'),
-    to: { key: 'suporte' },
   },
 ];
 
@@ -180,4 +166,11 @@ export function navHref(link: NavLink, lang: Lang): string {
   if (link.external) return link.external;
   if (link.to) return route(link.to.key, lang, link.to.hash ?? '');
   return '#';
+}
+
+/** Whether a top-level nav item is the active one for the current page — by its
+ *  own key/target or by covering it in `group` (so Sobre stays active on the
+ *  Segurança/Suporte pages it now hosts). */
+export function isNavActive(item: NavItem, current: RouteKey): boolean {
+  return item.key === current || item.to.key === current || (item.group?.includes(current) ?? false);
 }

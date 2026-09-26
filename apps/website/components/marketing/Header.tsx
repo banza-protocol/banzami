@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { NAV, UI, ROUTES, route, navHref, type Lang, type RouteKey, type NavItem } from '@/lib/marketing/nav';
+import { NAV, UI, ROUTES, route, navHref, isNavActive, type Lang, type RouteKey, type NavItem } from '@/lib/marketing/nav';
 
 const APP_URL = 'https://app.banzami.com/';
 
@@ -133,7 +133,7 @@ export function Header({ lang, current }: { lang: Lang; current: RouteKey }) {
 
           <div className="bz-navlinks" style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '14.5px', fontWeight: 700 }}>
             {NAV.map((item) => {
-              const on = item.key === current || (item.to.key === current);
+              const on = isNavActive(item, current);
               return (
                 <div key={item.key} className="bz-navitem">
                   <a href={route(item.to.key, lang, item.to.hash ?? '')} {...(on ? { 'aria-current': 'page' as const } : {})} style={{ color: on ? '#B5101F' : '#3a2a2e', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
