@@ -309,6 +309,28 @@ type ApplicationStatus struct {
 	InformationRequest string       `json:"information_request,omitempty"`
 	Requirements       Requirements `json:"requirements"`
 	CreatedAt          time.Time    `json:"created_at"`
+	// Activated: once APPROVED, whether the merchant has completed activation (set
+	// their PIN via the emailed link). Derived from the authoritative fact
+	// merchant_app_credentials.activated_at — a boolean only, so the public status
+	// distinguishes APPROVED-awaiting-activation from ACTIVE without any PII.
+	Activated bool `json:"activated"`
+}
+
+// isBusinessActivated reports whether the Business App credential created at
+// approval has been activated. Authoritative fact: merchant_app_credentials
+// .activated_at (NULL at approval, set to now() on successful activation).
+func (s *PostgresMerchantApplicationAdminService) isBusinessActivated(ctx context.Context, merchantID, environment string) bool {
+	if merchantID == "" {
+		return false
+	}
+	var activated bool
+	if err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM merchant_app_credentials
+		   WHERE merchant_id = $1 AND environment = $2 AND activated_at IS NOT NULL)`,
+		merchantID, environment).Scan(&activated); err != nil {
+		return false
+	}
+	return activated
 }
 
 // PublicStatus reads an application's status and requirements by reference.
@@ -330,6 +352,12 @@ func (s *PostgresMerchantApplicationAdminService) PublicStatus(ctx context.Conte
 	}
 	if app.Status == "INFORMATION_REQUIRED" {
 		st.InformationRequest = app.InformationRequest
+	}
+	// Approval provisions a Business and emails an activation link; the applicant
+	// is not done until they activate. Reflect that so the status page stops
+	// telling an already-activated merchant to activate.
+	if app.Status == "APPROVED" {
+		st.Activated = s.isBusinessActivated(ctx, app.CreatedMerchantID, app.Environment)
 	}
 	return st, nil
 }

@@ -35,6 +35,9 @@ const T = {
       { t: 'Decisão', d: 'Receberá a decisão por e-mail.' },
       { t: 'Ativação', d: 'Ative o negócio com o link que lhe enviarmos.' },
     ],
+    activeBadge: 'Ativa',
+    activeBody: 'O seu negócio está ativo na Sandbox do Banzami Business.',
+    activatedDesc: 'Acesso ao Banzami Business ativado.',
     outro: 'Consultar outro código', suporte: 'Falar com o suporte',
     fasesLabel: 'FASES', fasesA: 'Da candidatura', fasesB: 'à ativação.',
     fasesLead: 'Cada candidatura passa por quatro fases. Enviamos um e-mail sempre que muda de fase.',
@@ -62,6 +65,9 @@ const T = {
       { t: 'Decision', d: 'You will receive the decision by email.' },
       { t: 'Activation', d: 'Activate the business with the link we send you.' },
     ],
+    activeBadge: 'Active',
+    activeBody: 'Your business is active in the Banzami Business Sandbox.',
+    activatedDesc: 'Access to Banzami Business activated.',
     outro: 'Check another code', suporte: 'Contact support',
     fasesLabel: 'STAGES', fasesA: 'From application', fasesB: 'to activation.',
     fasesLead: 'Every application goes through four stages. We email you whenever the stage changes.',
@@ -149,9 +155,12 @@ export function CandidaturaEstadoPage({ lang }: { lang: Lang }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const currentPhase = status ? phaseFor(status.status) : 1;
-  const stBody = status ? (lang === 'en' ? STATUS_LABEL[status.status].body_en : STATUS_COPY[status.status].body) : '';
-  const stTitle = status ? (lang === 'en' ? STATUS_LABEL[status.status].en : STATUS_LABEL[status.status].pt) : '';
+  // Approval and activation are different states: once approved AND activated the
+  // page must stop asking the merchant to activate and show the active business.
+  const isActive = !!status && status.status === 'APPROVED' && status.activated === true;
+  const currentPhase = status ? (isActive ? t.phases.length : phaseFor(status.status)) : 1;
+  const stBody = !status ? '' : isActive ? t.activeBody : (lang === 'en' ? STATUS_LABEL[status.status].body_en : STATUS_COPY[status.status].body);
+  const stTitle = !status ? '' : isActive ? t.activeBadge : (lang === 'en' ? STATUS_LABEL[status.status].en : STATUS_LABEL[status.status].pt);
   const dueFields = status ? status.requirements.currently_due : [];
 
   return (
@@ -209,6 +218,9 @@ export function CandidaturaEstadoPage({ lang }: { lang: Lang }) {
                   <div style={{ marginTop: '22px' }}>
                     {t.phases.map((ph, i) => {
                       const isDone = i < currentPhase, isCurrent = i === currentPhase;
+                      // The activation step, once completed, states it is done
+                      // instead of instructing the user to activate.
+                      const phaseDesc = isActive && i === t.phases.length - 1 ? t.activatedDesc : ph.d;
                       return (
                         <div key={i} style={{ position: 'relative', display: 'flex', gap: '14px', paddingBottom: '18px' }}>
                           <span style={{ flex: 'none', width: '30px', height: '30px', borderRadius: '50%', background: isDone ? '#1a1416' : isCurrent ? 'linear-gradient(150deg,#D8121F,#8E1620)' : '#fff', color: isDone || isCurrent ? '#fff' : '#9a8487', border: `1.5px solid ${isDone || isCurrent ? 'transparent' : '#EFDCDA'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'JetBrains Mono',monospace", fontSize: '11.5px', fontWeight: 600, boxShadow: isCurrent ? '0 0 0 5px rgba(216,18,31,.14)' : undefined }}>
@@ -219,7 +231,7 @@ export function CandidaturaEstadoPage({ lang }: { lang: Lang }) {
                               {ph.t}
                               {isCurrent && 'current' in ph && ph.current && <span style={{ marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: '#FFF1F0', fontSize: '11px', color: '#B5101F' }}>{ph.current}</span>}
                             </p>
-                            <p style={{ margin: '3px 0 0', fontSize: '13px', lineHeight: 1.45, fontWeight: 600, color: '#8a7a7e' }}>{ph.d}</p>
+                            <p style={{ margin: '3px 0 0', fontSize: '13px', lineHeight: 1.45, fontWeight: 600, color: '#8a7a7e' }}>{phaseDesc}</p>
                           </div>
                         </div>
                       );

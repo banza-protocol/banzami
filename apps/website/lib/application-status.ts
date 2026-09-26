@@ -30,6 +30,11 @@ export type ApplicationStatus = {
   requested_handle: string;
   information_request?: string;
   created_at: string;
+  /** Once APPROVED, whether the merchant completed activation (set their PIN via
+   *  the emailed link). Derived server-side from the Business credential's
+   *  activated_at; PII-free. Distinguishes "approved, awaiting activation" from
+   *  "active". */
+  activated?: boolean;
   requirements: {
     policy_version: string;
     currently_due: RequirementIssue[];
