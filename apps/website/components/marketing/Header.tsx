@@ -125,13 +125,16 @@ export function Header({ lang, current }: { lang: Lang; current: RouteKey }) {
 
   return (
     <>
-      <header ref={navRef} style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'calc(100% - 32px)', maxWidth: '1200px', borderRadius: '40px', transition: 'background .3s,box-shadow .3s,backdrop-filter .3s' }}>
-        <nav aria-label="Principal" style={{ padding: '11px 14px 11px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
-          <a href={route('home', lang)} aria-label={UI.homeAria[lang]} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 900, fontSize: '20px', letterSpacing: '-.02em', color: '#2a2024', textDecoration: 'none' }}>
+      <header ref={navRef} style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'calc(100% - 32px)', maxWidth: '1680px', borderRadius: '40px', transition: 'background .3s,box-shadow .3s,backdrop-filter .3s' }}>
+        {/* Three-zone layout: logo | flexible centred nav | actions. The 1fr
+            middle column distributes the nav through the central space so the
+            header reads as composed edge-to-edge, not clustered with two gaps. */}
+        <nav aria-label="Principal" style={{ padding: '12px 20px 12px 30px', display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '24px' }}>
+          <a href={route('home', lang)} aria-label={UI.homeAria[lang]} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 900, fontSize: '21px', letterSpacing: '-.02em', color: '#2a2024', textDecoration: 'none' }}>
             <LogoMark s={30} />Banzami
           </a>
 
-          <div className="bz-navlinks" style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '14.5px', fontWeight: 700 }}>
+          <div className="bz-navlinks" style={{ display: 'flex', alignItems: 'center', justifySelf: 'center', gap: 'clamp(16px,2.2vw,32px)', fontSize: 'clamp(15px,1.15vw,18px)', fontWeight: 600 }}>
             {NAV.map((item) => {
               const on = isNavActive(item, current);
               return (
@@ -169,7 +172,7 @@ export function Header({ lang, current }: { lang: Lang; current: RouteKey }) {
               </div>
             </div>
 
-            <a href="/developers/login" className="bz-navcta" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 22px', borderRadius: '30px', background: '#fff', color: '#B5101F', fontWeight: 800, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 12px 28px -12px rgba(122,16,22,.45),0 0 0 1px rgba(181,16,31,.1)' }}>
+            <a href="/developers/login" className="bz-navcta" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '13px 24px', borderRadius: '30px', background: '#fff', color: '#B5101F', fontWeight: 800, fontSize: '14.5px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 12px 28px -12px rgba(122,16,22,.45),0 0 0 1px rgba(181,16,31,.1)' }}>
               {UI.portalDevelopers[lang]}<Arrow c="#B5101F" s={15} />
             </a>
             <button type="button" onClick={() => setMenuOpen((v) => !v)} aria-label={UI.menu[lang]} aria-expanded={menuOpen} className="bz-burger" style={{ display: 'none', width: '44px', height: '44px', border: 'none', borderRadius: '14px', background: '#FFF1F0', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' }}>
