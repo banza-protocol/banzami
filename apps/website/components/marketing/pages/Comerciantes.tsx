@@ -76,7 +76,7 @@ const T = {
     lead: L('QR, links e ferramentas de cobrança para receber pagamentos em Kwanza no seu negócio.', 'QR, links and billing tools to receive Kwanza payments in your business.'),
     small: L('Disponível na Sandbox, com dinheiro fictício. As operações com dinheiro real permanecem indisponíveis.', 'Available in the Sandbox, with test money. Real-money operations remain unavailable.'),
     ctaMain: L('Registar o negócio', 'Register your business'),
-    ctaAlt: L('Ver como recebe', 'See how you get paid'),
+    ctaAlt: L('Estado da candidatura', 'Application status'),
     note: L('O seu negócio', 'Your business'), note2: L('também avança.', 'moves forward too.'),
     chips: [
       { icon: 'qr' as IconName, label: L('QR dinâmico', 'Dynamic QR') },
