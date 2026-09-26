@@ -34,6 +34,19 @@ const MISSAO_ITEMS: { icon: IconName; t: Loc; d: Loc }[] = [
   { icon: 'info', t: L('Honestidade sobre o estado', 'Honesty about our status'), d: L('Só afirmamos o que já existe. Hoje: Beta público em Sandbox.', 'We only claim what already exists. Today: public Beta in the Sandbox.') },
 ];
 
+// Derived from current Banzami product-truth (no canonical named set existed):
+// simplicity (QR/wallet), security-by-design (Segurança page), honesty about our
+// status (Mission + fail-closed), and openness (open BANZA protocol + API/SDK).
+// Institutional — HOW Banzami builds — kept free of overclaims (no absolute
+// security, no regulated/licensed language). Consistent with the "Simples. /
+// Seguro. / Angolano." brand triad.
+const PRINCIPIOS_ITEMS: { n: string; t: Loc; d: Loc }[] = [
+  { n: '01', t: L('Simplicidade', 'Simplicity'), d: L('Reduzimos a complexidade para que pagar, receber e integrar seja simples.', 'We cut complexity so paying, getting paid and integrating stays simple.') },
+  { n: '02', t: L('Segurança', 'Security'), d: L('A segurança faz parte da arquitetura, do produto e das operações desde o início.', 'Security is part of the architecture, the product and operations from the start.') },
+  { n: '03', t: L('Transparência', 'Transparency'), d: L('Mostramos claramente o que existe, o que está em teste e o que ainda não está disponível.', 'We show plainly what exists, what is in testing and what is not yet available.') },
+  { n: '04', t: L('Abertura', 'Openness'), d: L('Construímos interfaces abertas para ligar pessoas, negócios e aplicações.', 'We build open interfaces to connect people, businesses and applications.') },
+];
+
 const BANZA_PROTOCOL: Loc[] = [
   L('Como se identificam carteiras', 'How wallets are identified'),
   L('Como se descreve um pagamento', 'How a payment is described'),
@@ -140,12 +153,43 @@ export function SobrePage({ lang }: { lang: Lang }) {
         </Reveal>
       </section>
 
-      {/* ─────────── 02 · BANZA E BANZAMI (#banza) ─────────── */}
+      {/* ─────────── 02 · PRINCÍPIOS (#principios) ─────────── */}
+      <section id="principios" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', overflow: 'hidden' }}>
+        <Reveal><div style={CONTENT}>
+          <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: '.9fr 1.1fr', gap: '56px', alignItems: 'center' }}>
+            <div style={{ position: 'relative', minWidth: 0 }}>
+              <SectionLabel n="02" label={lang === 'en' ? 'PRINCIPLES' : 'PRINCÍPIOS'} />
+              <H2 a={lang === 'en' ? 'How we build' : 'Como construímos'} b={lang === 'en' ? 'Banzami.' : 'o Banzami.'} />
+              <Lead mw={440}>
+                {lang === 'en'
+                  ? 'Before features, we decide how we build — the choices that guide the product, the engineering and how we communicate.'
+                  : 'Antes das funcionalidades, decidimos como construímos — as escolhas que orientam o produto, a engenharia e a forma como comunicamos.'}
+              </Lead>
+            </div>
+            <div style={{ position: 'relative', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {PRINCIPIOS_ITEMS.map((it) => (
+                  <div key={it.n} style={{ position: 'relative', display: 'flex', gap: '14px', alignItems: 'center', padding: '13px 16px 13px 13px', borderRadius: '18px', background: '#fff', border: '1px solid #F3E3E1', boxShadow: '0 24px 48px -38px rgba(122,16,22,.5)' }}>
+                    <span aria-hidden="true" style={{ flex: 'none', width: '42px', height: '42px', borderRadius: '13px', background: '#FFF1F0', color: '#B5101F', border: '1px solid rgba(181,16,31,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'JetBrains Mono',monospace", fontSize: '13px', fontWeight: 600 }}>{it.n}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: '14.5px', fontWeight: 900, color: '#141014' }}>{it.t[lang]}</p>
+                      <p style={{ margin: '3px 0 0', fontSize: '13px', lineHeight: 1.45, fontWeight: 600, color: '#8a7a7e', textWrap: 'pretty' }}>{it.d[lang]}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ─────────── 03 · BANZA E BANZAMI (#banza) ─────────── */}
       <section id="banza" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', overflow: 'hidden' }}>
         <Reveal><div style={CONTENT}>
           <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,.9fr)', gap: '20px 56px', alignItems: 'end' }}>
             <div>
-              <SectionLabel n="02" label={lang === 'en' ? 'BANZA AND BANZAMI' : 'BANZA E BANZAMI'} />
+              <SectionLabel n="03" label={lang === 'en' ? 'BANZA AND BANZAMI' : 'BANZA E BANZAMI'} />
               <H2 a={lang === 'en' ? 'BANZA is the protocol.' : 'BANZA é o protocolo.'} b={lang === 'en' ? 'Banzami is how Angola pays.' : 'Banzami é como Angola paga.'} />
             </div>
             <p style={{ margin: '0 0 6px', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '480px', textWrap: 'pretty' }}>
@@ -191,12 +235,12 @@ export function SobrePage({ lang }: { lang: Lang }) {
         </Reveal>
       </section>
 
-      {/* ─────────── 03 · OS FUNDADORES (#fundador) ─────────── */}
+      {/* ─────────── 04 · OS FUNDADORES (#fundador) ─────────── */}
       <section id="fundador" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', margin: '28px 14px', borderRadius: '48px', background: '#fff', boxShadow: '0 40px 90px -70px rgba(122,16,22,.55)', overflow: 'clip' }}>
         <Reveal><div style={CONTENT}>
           <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,.85fr) minmax(0,1.15fr)', gap: '56px', alignItems: 'center' }}>
             <div style={{ minWidth: 0 }}>
-              <SectionLabel n="03" label={lang === 'en' ? 'THE FOUNDERS' : 'OS FUNDADORES'} panel />
+              <SectionLabel n="04" label={lang === 'en' ? 'THE FOUNDERS' : 'OS FUNDADORES'} panel />
               <H2 a={lang === 'en' ? 'Who is building' : 'Quem está a construir'} b={lang === 'en' ? 'Banzami.' : 'o Banzami.'} />
               <Lead mw={440}>
                 {lang === 'en'
@@ -234,11 +278,11 @@ export function SobrePage({ lang }: { lang: Lang }) {
         </Reveal>
       </section>
 
-      {/* ─────────── 04 · ONDE ESTAMOS ─────────── */}
+      {/* ─────────── 05 · ONDE ESTAMOS ─────────── */}
       <section style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', overflow: 'hidden' }}>
         <Reveal><div style={CONTENT}>
           <div>
-            <SectionLabel n="04" label={lang === 'en' ? 'WHERE WE ARE' : 'ONDE ESTAMOS'} />
+            <SectionLabel n="05" label={lang === 'en' ? 'WHERE WE ARE' : 'ONDE ESTAMOS'} />
             <H2 a={lang === 'en' ? 'Where we are,' : 'O estado atual,'} b={lang === 'en' ? 'plainly.' : 'sem rodeios.'} />
           </div>
           <Rotator mode="card" className="bz-g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '14px', marginTop: '44px' }}>
