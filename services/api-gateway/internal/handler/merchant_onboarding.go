@@ -91,6 +91,8 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		// No handle is held; an operator resolves the application by linking it
 		// to that Business, never by creating another.
 		ExistingBusiness bool `json:"existing_business"`
+		// Page language ("pt"/"en"), used only to localise the confirmation email.
+		Locale string `json:"locale"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body")
@@ -144,6 +146,7 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		TermsAccepted:       body.TermsAccepted,
 		TermsVersion:        body.TermsVersion,
 		ExistingBusiness:    body.ExistingBusiness,
+		Locale:              body.Locale,
 		// One key per form session: a double click or a retried request returns
 		// the application the first one created.
 		IdempotencyKey: r.Header.Get("Idempotency-Key"),

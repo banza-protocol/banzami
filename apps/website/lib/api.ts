@@ -321,6 +321,8 @@ export type ApplicationInput = {
   terms_version?: string;
   /** The requested @handle is already this applicant's Business Account. */
   existing_business?: boolean;
+  /** Page language ("pt"/"en") — only localises the confirmation email. */
+  locale?: string;
 };
 
 export type SubmitResult = {

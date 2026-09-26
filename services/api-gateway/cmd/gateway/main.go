@@ -22,6 +22,7 @@ import (
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
+	"github.com/banzami/banzami/services/api-gateway/internal/handler"
 	"github.com/banzami/banzami/services/api-gateway/internal/kybstorage"
 	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/observability"
@@ -92,6 +93,9 @@ func main() {
 	var businessPinResetSvc *service.BusinessPinResetService
 	var businessReceivePointSvc *service.BusinessReceivePointService
 	var merchantAppSvc service.MerchantApplicationService
+	// The concrete application service, kept so the confirmation-email notifier can
+	// be attached once the mailer is built (a few lines below its construction).
+	var merchantAppSvcConcrete *service.PostgresMerchantApplicationService
 	var betaTesterSvc service.BetaTesterService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
@@ -194,6 +198,7 @@ func main() {
 		// released when the application closes (handle hold lifecycle).
 		appSvc.StartHoldSweeper(ctx, time.Hour)
 		merchantAppSvc = appSvc
+		merchantAppSvcConcrete = appSvc
 		appAdmin := service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
 		// Approving a Developer Project's application binds that Project to the
 		// Business it provisions, through developer-api (the binding's owner).
@@ -286,6 +291,14 @@ func main() {
 		slog.Info("[contact] email sender configured", "recipient", cfg.ContactRecipient)
 	} else {
 		slog.Warn("[contact] email not configured — /v1/contact will answer 503")
+	}
+
+	// A merchant application confirmation receipt is sent (best-effort, never
+	// blocking or failing the application) when one is genuinely created.
+	if merchantAppSvcConcrete != nil {
+		merchantAppSvcConcrete.WithNotifier(
+			handler.NewApplicationMailNotifier(mailer, cfg.PublicSiteURL, cfg.ContactRecipient))
+		slog.Info("[merchant-application] confirmation receipt enabled", "site", cfg.PublicSiteURL, "mailer_enabled", mailer.Enabled())
 	}
 
 	deps := server.Dependencies{

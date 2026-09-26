@@ -91,6 +91,9 @@ type MerchantApplicationInput struct {
 	Origin            string
 	ProjectID         string
 	SubmittedByUserID string
+	// Locale is the applicant's page language ("pt" or "en"), used only to pick
+	// the confirmation email's language. Never persisted; defaults to PT.
+	Locale string
 }
 
 // Application origins (migration 0121).
@@ -119,12 +122,55 @@ type MerchantApplicationService interface {
 	Submit(ctx context.Context, in MerchantApplicationInput) (applicationID string, err error)
 }
 
+// ApplicationCreatedNotice is the fact that a merchant application was just
+// persisted — everything a confirmation receipt needs and nothing more. It
+// carries no PII beyond the business name + the applicant's own contact email,
+// which the receipt is sent to.
+type ApplicationCreatedNotice struct {
+	ApplicationID string
+	Email         string
+	BusinessName  string
+	Environment   string
+	Locale        string
+}
+
+// ApplicationNotifier is told when an application is genuinely created (never on
+// an idempotent replay). It is a consequence, not authority: the implementation
+// must not fail, block or roll back the application — it records/sends and, on
+// error, logs. See handler.ApplicationMailNotifier.
+type ApplicationNotifier interface {
+	ApplicationCreated(ctx context.Context, n ApplicationCreatedNotice)
+}
+
 type PostgresMerchantApplicationService struct {
-	pool *pgxpool.Pool
+	pool     *pgxpool.Pool
+	notifier ApplicationNotifier
 }
 
 func NewPostgresMerchantApplicationService(pool *pgxpool.Pool) *PostgresMerchantApplicationService {
 	return &PostgresMerchantApplicationService{pool: pool}
+}
+
+// WithNotifier attaches the post-creation notifier (nil-safe). Chainable.
+func (s *PostgresMerchantApplicationService) WithNotifier(n ApplicationNotifier) *PostgresMerchantApplicationService {
+	s.notifier = n
+	return s
+}
+
+// notifyCreated fires the post-creation notifier for a genuine creation only.
+// Called after the transaction commits, so the application is already the
+// authority; a notifier that errors must not affect Submit's result.
+func (s *PostgresMerchantApplicationService) notifyCreated(ctx context.Context, appID string, in MerchantApplicationInput, envName string) {
+	if s.notifier == nil {
+		return
+	}
+	s.notifier.ApplicationCreated(ctx, ApplicationCreatedNotice{
+		ApplicationID: appID,
+		Email:         in.Email,
+		BusinessName:  in.BusinessName,
+		Environment:   envName,
+		Locale:        in.Locale,
+	})
 }
 
 // classifyHandle maps a handle_registry row to (available, reason). An expired
@@ -281,6 +327,7 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		if err := tx.Commit(ctx); err != nil {
 			return "", err
 		}
+		s.notifyCreated(ctx, appID, in, envName)
 		return appID, nil
 	}
 
@@ -332,6 +379,7 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 	if err := tx.Commit(ctx); err != nil {
 		return "", err
 	}
+	s.notifyCreated(ctx, appID, in, envName)
 	return appID, nil
 }
 

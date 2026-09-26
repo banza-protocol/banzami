@@ -54,4 +54,15 @@ describe('the applicant status', () => {
     const form = readFileSync(join(__dirname, '../components/marketing/pages/Candidatura.tsx'), 'utf8');
     expect(form).toMatch(/route\('estado', lang\)\}\?ref=/);
   });
+
+  it('the confirmation screen keeps the reference AND says it was emailed', () => {
+    const form = readFileSync(join(__dirname, '../components/marketing/pages/Candidatura.tsx'), 'utf8');
+    // The reference stays on screen — the email is redundancy, not a replacement.
+    expect(form).toContain('{appRef}');
+    // …and the card tells the applicant the reference is also going by email
+    // (with the address masked, never shown in full).
+    expect(form).toContain('t.emailedPre');
+    expect(form).toContain('maskEmail(f.email)');
+    expect(form).not.toContain('Financial Live');
+  });
 });

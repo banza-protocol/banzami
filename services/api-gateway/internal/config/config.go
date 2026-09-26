@@ -67,6 +67,11 @@ type Config struct {
 	// contact@banzami.com.
 	ContactRecipient string
 
+	// PublicSiteURL is the marketing site origin used to build public links in
+	// transactional emails (e.g. the application-status link). Defaults to
+	// https://banzami.com; no trailing slash.
+	PublicSiteURL string
+
 	// WebhookEncryptionKey is a base64-encoded 32-byte key used to encrypt
 	// webhook signing secrets at rest (SEC-002). Empty → plaintext (dev only).
 	WebhookEncryptionKey string
@@ -190,6 +195,10 @@ func Load() (*Config, error) {
 	cfg.ContactRecipient = strings.TrimSpace(os.Getenv("CONTACT_RECIPIENT"))
 	if cfg.ContactRecipient == "" {
 		cfg.ContactRecipient = "contact@banzami.com"
+	}
+	cfg.PublicSiteURL = strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_SITE_URL")), "/")
+	if cfg.PublicSiteURL == "" {
+		cfg.PublicSiteURL = "https://banzami.com"
 	}
 
 	if v := os.Getenv("WEBHOOK_ENCRYPTION_KEY"); v != "" {

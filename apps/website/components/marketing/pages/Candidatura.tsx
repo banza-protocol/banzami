@@ -47,6 +47,7 @@ const T = {
     doneT: 'Candidatura enviada',
     donePre: 'Recebemos os dados de ', donePost: '. Guarde a referência para consultar o estado.',
     refLabel: 'Referência da candidatura',
+    emailedPre: 'Enviaremos também esta referência para ', emailedPost: '.',
     verEstado: 'Ver estado da candidatura', nova: 'Nova candidatura',
     aside1: 'O que vai precisar',
     aside1rows: [
@@ -91,6 +92,7 @@ const T = {
     doneT: 'Application sent',
     donePre: 'We have received the details for ', donePost: '. Keep the reference to check the status.',
     refLabel: 'Application reference',
+    emailedPre: 'We will also email this reference to ', emailedPost: '.',
     verEstado: 'Check application status', nova: 'New application',
     aside1: 'What you will need',
     aside1rows: [
@@ -177,6 +179,18 @@ function SumRow({ label, value }: { label: string; value: string }) {
 }
 
 const HANDLE_RE = /^[a-z0-9_]{3,30}$/;
+// Mask an address for the on-screen "we'll email you" line: keep the first
+// character and the domain, e.g. alex@exemplo.ao → a***@exemplo.ao. Purely
+// presentational — the full address is never rendered here.
+function maskEmail(e: string): string {
+  const at = e.indexOf('@');
+  if (at <= 0) return e;
+  const local = e.slice(0, at);
+  const domain = e.slice(at + 1);
+  const stars = '*'.repeat(Math.max(1, Math.min(3, local.length - 1)));
+  return `${local.slice(0, 1)}${stars}@${domain}`;
+}
+
 const initial = { nome_comercial: '', handle: '', categoria: '', municipio: '', descricao: '', email: '', termos: false, sandbox: false };
 
 export function CandidaturaPage({ lang }: { lang: Lang }) {
@@ -272,6 +286,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
         terms_accepted: true,
         // Only send a version once the Terms are actually published.
         terms_version: isTermsPublished() ? (TERMS.version ?? undefined) : undefined,
+        locale: lang,
       });
       if (res.ok && res.applicationId) {
         setAppRef(res.applicationId);
@@ -362,6 +377,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
                     <p style={{ margin: '8px 0 0', maxWidth: '440px', fontSize: '15px', lineHeight: 1.55, fontWeight: 600, color: '#6a5a5e' }}>{t.donePre}<strong style={{ color: '#141014' }}>{f.nome_comercial}</strong>{t.donePost}</p>
                     <p style={{ margin: '18px 0 0', fontSize: '11px', fontWeight: 900, letterSpacing: '.14em', color: '#9a8487' }}>{t.refLabel.toUpperCase()}</p>
                     <div style={{ marginTop: '6px', padding: '12px 20px', borderRadius: '16px', background: '#FFF1F0', border: '1px dashed rgba(181,16,31,.35)', fontFamily: "'JetBrains Mono',monospace", fontSize: '14px', fontWeight: 600, letterSpacing: '.02em', color: '#B5101F', overflowWrap: 'anywhere', maxWidth: '100%' }}>{appRef}</div>
+                    <p style={{ margin: '14px 0 0', maxWidth: '440px', fontSize: '13.5px', lineHeight: 1.5, fontWeight: 600, color: '#6a5a5e' }}>{t.emailedPre}<strong style={{ color: '#141014' }}>{maskEmail(f.email)}</strong>{t.emailedPost}</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginTop: '24px' }}>
                       <a href={`${route('estado', lang)}?ref=${encodeURIComponent(appRef)}`} className="bz-btnlift" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '13px 24px', borderRadius: '40px', background: 'linear-gradient(160deg,#C8101F,#9A1B22)', color: '#fff', fontWeight: 800, fontSize: '14.5px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 14px 28px -14px rgba(181,16,31,.6),inset 0 1px 0 rgba(255,255,255,.2)' }}>{t.verEstado}<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
                       <button type="button" onClick={reset} style={{ padding: '12px 20px', borderRadius: '40px', border: '1px solid #F3E3E1', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '14.5px', color: '#141014' }}>{t.nova}</button>
