@@ -568,7 +568,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}>
                     <th style={TH}></th>
                     <th style={TH}>Sandbox</th>
-                    <th style={TH}>Financial Live</th>
+                    <th style={TH}>Operações com dinheiro real</th>
                   </tr></thead>
                   <tbody>
                     {[
@@ -606,7 +606,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
                 p2p: 'transferência entre pessoas', payment: 'pagamento · QR · link',
                 ledger: 'Banzami Core · ledger de dupla entrada',
                 platform: 'Plataforma para developers: API · SDK · webhooks · tempo real',
-                footnote: 'Sandbox: dinheiro fictício e rail externo simulado · Financial Live: indisponível',
+                footnote: 'Sandbox: dinheiro fictício e rail externo simulado · Operações com dinheiro real: indisponíveis',
               }} />
               <P>
                 Os rails externos — bancos, EMIS, PSP — são <strong>fronteiras de interoperabilidade</strong>: são atravessados quando o valor entra ou sai da rede, ou quando
@@ -1832,7 +1832,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                       ['Reembolsos', 'Chave de projeto (refunds:write / :read)', 'Disponível em Sandbox'],
                       ['Transferências entre contas', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox'],
                       ['Liquidações', 'Chave de projeto (application_settlements:write)', 'Disponível em Sandbox'],
-                      ['Financial Live', '—', 'Indisponível (fail-closed)'],
+                      ['Operações com dinheiro real', '—', 'Indisponível (fail-closed)'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}><td style={TD_HEAD}>{cap}</td><td style={TD}>{cred}</td><td style={TD}>{st}</td></tr>
                     ))}
@@ -2043,7 +2043,7 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
-              <P style={{ fontSize: 13, color: MUT }}>Os artefactos não descrevem Financial Live, que não está disponível.</P>
+              <P style={{ fontSize: 13, color: MUT }}>Os artefactos não descrevem operações com dinheiro real, que não estão disponíveis.</P>
               <NextStepCards lang="pt" items={[
                 { href: '/docs/reference', title: 'Referência da API', desc: 'A mesma superfície, explicada.' },
                 { href: '/docs/changelog', title: 'Changelog', desc: 'O que mudou e quando.' },
@@ -2331,7 +2331,7 @@ export function PtGoingLive({ copy }: { copy: CopyFn }) {
     <>
 <Section id="going-live">
               <h1 style={H1_STYLE}>Do Sandbox ao Live</h1>
-              <PageLede>Financial Live não está disponível. O que o trabalho no Sandbox já garante e o que verificar antes de a integração entrar em uso.</PageLede>
+              <PageLede>As operações com dinheiro real não estão disponíveis. O que o trabalho no Sandbox já garante e o que verificar antes de a integração entrar em uso.</PageLede>
 
               <H2 id="estado-live">Estado atual</H2>
               <P>
@@ -2546,7 +2546,7 @@ export function PtChangelog({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
-              <P style={{ fontSize: 13, color: MUT }}>Alterações incompatíveis são marcadas como tal e indicam sempre a ação necessária. Não há versões de produção: Financial Live não está disponível.</P>
+              <P style={{ fontSize: 13, color: MUT }}>Alterações incompatíveis são marcadas como tal e indicam sempre a ação necessária. Não há versões de produção: as operações com dinheiro real não estão disponíveis.</P>
               <NextStepCards lang="pt" items={[
                 { href: '/docs/artifacts', title: 'Artefactos', desc: 'OpenAPI e manifests atualizados.' },
                 { href: '/docs/sdk', title: 'SDKs', desc: 'Versões publicadas.' },

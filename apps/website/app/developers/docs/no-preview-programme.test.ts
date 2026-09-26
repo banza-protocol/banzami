@@ -93,7 +93,7 @@ describe('what replaced it says the true thing', () => {
       expect(PT.includes(t), `PT security guide is missing: ${t}`).toBe(true);
     }
     // And it still refuses to overclaim in the direction that matters.
-    expect(PT).toMatch(/Financial Live não está disponível/i);
+    expect(PT).toMatch(/operações com dinheiro real não estão disponíveis/i);
   });
 
   it('support guidance never asks for a secret', () => {

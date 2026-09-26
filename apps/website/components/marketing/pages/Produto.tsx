@@ -292,7 +292,7 @@ function HeroProduto({ lang }: { lang: Lang }) {
           <HeroLead>{lang === 'en'
             ? <>Pay by QR, send to a <span style={mono}>@banza</span> and get paid in seconds. Every payment comes with a verifiable receipt.</>
             : <>Pague por QR, envie para um <span style={mono}>@banza</span> e receba em segundos. Cada pagamento tem um comprovativo verificável.</>}</HeroLead>
-          <Small mw={540}>{L('Beta público em Sandbox, com dinheiro fictício. O Financial Live permanece indisponível.', 'Public Beta in the Sandbox, with test money. Financial Live remains unavailable.')[lang]}</Small>
+          <Small mw={540}>{L('Beta público em Sandbox, com dinheiro fictício. As operações com dinheiro real permanecem indisponíveis.', 'Public Beta in the Sandbox, with test money. Real-money operations remain unavailable.')[lang]}</Small>
           <Row mt={26} gap={12}>
             <Btn href={APP_URL} kind="red" external>{L('Abrir Beta Web', 'Open Beta Web')[lang]}</Btn>
             <Btn href={route('produto', lang, '#pagar')} kind="ghost">{L('Ver como funciona', 'See how it works')[lang]}</Btn>
@@ -436,7 +436,7 @@ function EstadoSandbox({ lang }: { lang: Lang }) {
             title={L('Está a usar a Sandbox', 'You are using the Sandbox')[lang]}
             cta={<Btn href={APP_URL} kind="red" external>{L('Abrir Beta Web', 'Open Beta Web')[lang]}</Btn>}
           >
-            {L('No Beta público, todos os saldos e pagamentos usam dinheiro fictício. O Financial Live permanece indisponível, sujeito às aprovações aplicáveis.', 'In the public Beta, all balances and payments use test money. Financial Live remains unavailable, subject to the applicable approvals.')[lang]}
+            {L('No Beta público, todos os saldos e pagamentos usam dinheiro fictício. As operações com dinheiro real permanecem indisponíveis, sujeitas às aprovações aplicáveis.', 'In the public Beta, all balances and payments use test money. Real-money operations remain unavailable, subject to the applicable approvals.')[lang]}
           </SandboxNotice>
         </div>
       </Reveal>

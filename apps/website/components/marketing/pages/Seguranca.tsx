@@ -52,7 +52,7 @@ const GUARANTEES: { icon: IconName; tag: Loc; title: Loc; desc: Loc }[] = [
   {
     icon: 'shield',
     tag: L('FAIL-CLOSED', 'FAIL-CLOSED'),
-    title: L('Financial Live fail-closed', 'Financial Live fail-closed'),
+    title: L('Operações com dinheiro real fail-closed', 'Real-money operations fail-closed'),
     desc: L(
       'Sem aprovação explícita, os pedidos em produção são rejeitados.',
       'Without explicit approval, production requests are rejected.',
@@ -93,8 +93,8 @@ const T = {
     'Every movement is recorded in an immutable double-entry ledger, with receipts anyone can verify.',
   ),
   small: L(
-    'Sem promessas de licenças ou certificações que não temos. O Financial Live permanece indisponível.',
-    'No claims of licences or certifications we do not have. Financial Live remains unavailable.',
+    'Sem promessas de licenças ou certificações que não temos. As operações com dinheiro real permanecem indisponíveis.',
+    'No claims of licences or certifications we do not have. Real-money operations remain unavailable.',
   ),
   ctaReport: L('Reportar uma vulnerabilidade', 'Report a vulnerability'),
   ctaVerify: L('Verificar comprovativo', 'Verify a receipt'),
@@ -120,8 +120,8 @@ const T = {
   s2h2a: L('Se não está aprovado,', 'If it is not approved,'),
   s2h2b: L('não passa.', 'it does not go through.'),
   s2lead: L(
-    'O Financial Live está desligado por omissão. Enquanto as aprovações aplicáveis não existirem, qualquer pedido em produção é rejeitado. A Sandbox funciona isolada, com dinheiro fictício.',
-    'Financial Live is off by default. Until the applicable approvals exist, any production request is rejected. The Sandbox runs in isolation, with test money.',
+    'As operações com dinheiro real estão desligadas por omissão. Enquanto as aprovações aplicáveis não existirem, qualquer pedido em produção é rejeitado. A Sandbox funciona isolada, com dinheiro fictício.',
+    'Real-money operations are off by default. Until the applicable approvals exist, any production request is rejected. The Sandbox runs in isolation, with test money.',
   ),
   envTitle: L('Estado dos ambientes', 'Environment status'),
   sandboxDesc: L('Dinheiro fictício, chaves bz_test_.', 'Test money, bz_test_ keys.'),
@@ -142,8 +142,8 @@ const T = {
   // honesty
   honestTitle: L('O que não afirmamos', 'What we do not claim'),
   honestText: L(
-    'O Banzami não afirma licenças, certificações ou aprovações regulatórias que não tenha. O Financial Live permanece indisponível, sujeito às aprovações aplicáveis.',
-    'Banzami does not claim licences, certifications or regulatory approvals it does not have. Financial Live remains unavailable, subject to the applicable approvals.',
+    'O Banzami não afirma licenças, certificações ou aprovações regulatórias que não tenha. As operações com dinheiro real permanecem indisponíveis, sujeitas às aprovações aplicáveis.',
+    'Banzami does not claim licences, certifications or regulatory approvals it does not have. Real-money operations remain unavailable, subject to the applicable approvals.',
   ),
   aboutCta: L('Sobre o Banzami', 'About Banzami'),
 };
@@ -296,7 +296,7 @@ export function SegurancaPage({ lang }: { lang: Lang }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '18px 0', borderBottom: '1px solid #F5E8E6' }}>
                     <div>
-                      <p style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#141014' }}>Financial Live</p>
+                      <p style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#141014' }}>{L('Operações com dinheiro real', 'Real-money operations')[lang]}</p>
                       <p style={{ margin: '3px 0 0', fontSize: '13px', fontWeight: 600, color: '#8a7a7e' }}>{T.liveDesc[lang]}</p>
                     </div>
                     <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '20px', background: '#FFF1F0', color: '#B5101F', fontSize: '12.5px', fontWeight: 900 }}>

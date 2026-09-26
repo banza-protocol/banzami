@@ -2171,7 +2171,7 @@
   },
   {
    "k": "term",
-   "t": "Financial Live",
+   "t": "Operações com dinheiro real",
    "h": "/docs/glossary#glossario-producao",
    "d": "O ambiente de dinheiro real. Não está disponível: o Sandbox é o único ambiente.",
    "a": "live|production"
@@ -4489,7 +4489,7 @@
   },
   {
    "k": "term",
-   "t": "Financial Live",
+   "t": "Real-money operations",
    "h": "/docs/en/glossary#concepts",
    "d": "The real-money environment. It is not available; the Sandbox is the only environment."
   },

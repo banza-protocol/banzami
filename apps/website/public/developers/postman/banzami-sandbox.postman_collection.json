@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Banzami Sandbox API",
-    "description": "Banzami Sandbox API docs-2026-09-14, generated from docs/developer/openapi/banzami-sandbox.openapi.json by tools/docs/build-postman.mjs. Public Sandbox: fictitious value; Financial Live is not ready and refuses bz_live_ keys. Set apiKey to YOUR Sandbox secret key (the default is an obvious placeholder), and statusToken to a session’s realtime.token for the realtime route. The hosted payment page for a session is https://pay.banzami.com/pay/{slug}.",
+    "description": "Banzami Sandbox API docs-2026-09-14, generated from docs/developer/openapi/banzami-sandbox.openapi.json by tools/docs/build-postman.mjs. Public Sandbox: fictitious value; real-money operations are not ready and refuse bz_live_ keys. Set apiKey to YOUR Sandbox secret key (the default is an obvious placeholder), and statusToken to a session’s realtime.token for the realtime route. The hosted payment page for a session is https://pay.banzami.com/pay/{slug}.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {

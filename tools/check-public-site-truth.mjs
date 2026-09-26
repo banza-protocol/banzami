@@ -157,7 +157,7 @@ const liveAuthorized = manifest.split(/\n\s*- id: /).some((block) => /public_sta
 if ((liveAuthorized ? 'AVAILABLE' : 'NOT_READY') !== liveStatus) {
   findings.PUBLIC_SITE_LIVE_CLAIMS.push(`lib/public-truth.ts says live '${liveStatus}'; the assurance manifest ${liveAuthorized ? 'authorizes' : 'authorizes no'} live capability`);
 }
-if (liveStatus === 'NOT_READY' && !/indisponível/.test(liveSummary)) findings.PUBLIC_SITE_LIVE_CLAIMS.push('the Live summary does not say it is unavailable');
+if (liveStatus === 'NOT_READY' && !/indispon[ií]ve(l|is)/.test(liveSummary)) findings.PUBLIC_SITE_LIVE_CLAIMS.push('the Live summary does not say it is unavailable');
 if (liveStatus === 'NOT_READY' && !/aprovações regulatórias, contratuais e operacionais/.test(liveSummary)) findings.PUBLIC_SITE_LIVE_CLAIMS.push('the Live summary lost the approvals wording');
 if (appInStores !== 'false') findings.PUBLIC_SITE_LIVE_CLAIMS.push('lib/public-truth.ts says the app is in the stores; no store listing exists');
 if (sandboxStatus !== 'AVAILABLE' || !/sem aprovação/.test(sandboxSummary)) findings.PUBLIC_SITE_SANDBOX_APPROVAL_DRIFT.push('the Sandbox facts no longer say AVAILABLE and "sem aprovação"');
@@ -194,7 +194,7 @@ for (const founder of ['Jesus Rodrigues Monteiro', 'Fidel Rodrigues Monteiro']) 
 const layout = stripComments(read(`${WEB}/app/layout.tsx`));
 if (!/<PlatformBanner\s*\/>/.test(layout)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('app/layout.tsx no longer renders the Sandbox banner on every page');
 const banner = stripComments(read(`${WEB}/components/PlatformBanner.tsx`));
-if (!/SANDBOX/.test(banner) || !/Financial Live está indisponível/.test(banner)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('the Sandbox banner no longer says Financial Live is unavailable');
+if (!/SANDBOX/.test(banner) || !/opera[cç][õo]es com dinheiro real est[ãa]o indispon[ií]ve(l|is)/.test(banner)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('the Sandbox banner no longer says real-money operations are unavailable');
 const pages = read(`${WEB}/lib/public-pages.ts`);
 for (const m of pages.matchAll(/file:\s*'([^']+)'/g)) {
   if (!existsSync(join(ROOT, WEB, m[1]))) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push(`lib/public-pages.ts lists ${m[1]}, which does not exist`);
@@ -221,5 +221,5 @@ for (const [k, list] of Object.entries(findings)) {
 }
 console.log(`PUBLIC_SITE_FILES_SCANNED=${SURFACE.length}`);
 console.log(`PUBLIC_SITE_TRUTH=${failed ? 'FAIL' : 'PASS'}`);
-if (!failed) console.log('\n✓ banzami.com states the current truth: Sandbox available, Financial Live unavailable, v1, published SDKs only');
+if (!failed) console.log('\n✓ banzami.com states the current truth: Sandbox available, real-money operations unavailable, v1, published SDKs only');
 process.exit(failed ? 1 : 0);

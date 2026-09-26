@@ -4,7 +4,7 @@ Official TypeScript/JavaScript SDK for Banzami — wallet-native Kwanza payments
 built on the BANZA protocol.
 
 > **Status.** The Public Sandbox is available and fully self-service, with fictitious
-> money. Financial Live remains unavailable and subject to the applicable regulatory,
+> money. Real-money operations remain unavailable and subject to the applicable regulatory,
 > contractual and operational approvals.
 
 This README is a short tour. The canonical documentation — guides, the API
@@ -59,9 +59,9 @@ accident.
 | Environment | Status | Money | Secret key | Publishable key |
 |-------------|--------|-------|------------|-----------------|
 | **Sandbox** | Available, self-service | Fictitious — simulated confirmations, failures, refunds | `bz_test_sk_…` | `bz_test_pk_…` |
-| **Financial Live** | Unavailable | — | `bz_live_sk_…` (refused) | `bz_live_pk_…` (refused) |
+| **Real-money operations** | Unavailable | — | `bz_live_sk_…` (refused) | `bz_live_pk_…` (refused) |
 
-> Financial Live remains unavailable and subject to the applicable regulatory,
+> Real-money operations remain unavailable and subject to the applicable regulatory,
 > contractual and operational approvals. The API refuses `bz_live_…` keys today;
 > the SDK keeps the `live` environment so an integration does not change shape
 > when it opens.

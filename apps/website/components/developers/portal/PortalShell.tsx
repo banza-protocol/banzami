@@ -362,7 +362,7 @@ function TopBar() {
             reader would be left with a dead button and no reason. */}
         <Link
           href="/go-live"
-          title="Financial Live ainda não está disponível — saiba porquê"
+          title="As operações com dinheiro real ainda não estão disponíveis — saiba porquê"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -378,7 +378,7 @@ function TopBar() {
           }}
         >
           <IconBolt size={14} />
-          Financial Live indisponível
+          Operações com dinheiro real indisponíveis
         </Link>
         {/* No notification bell. It had no handler and a red unread dot that was
             always on, so it announced messages that did not exist and did

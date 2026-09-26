@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: '%s · Banzami',
   },
   description:
-    'Banzami: pagamentos nativos de carteira em Kwanza, por QR ou para um @banza, construídos sobre o protocolo aberto BANZA. Sandbox pública disponível; Financial Live indisponível.',
+    'Banzami: pagamentos nativos de carteira em Kwanza, por QR ou para um @banza, construídos sobre o protocolo aberto BANZA. Sandbox pública disponível; operações com dinheiro real indisponíveis.',
   applicationName: 'Banzami',
   authors: [{ name: 'Banzami' }],
   manifest: '/site.webmanifest',
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: 'Banzami',
     title: 'Banzami — Pagamentos em Kwanza, de carteira para carteira',
     description:
-      'Pagamentos nativos de carteira em Kwanza, por QR ou para um @banza, construídos sobre o protocolo aberto BANZA. Sandbox pública disponível; Financial Live indisponível.',
+      'Pagamentos nativos de carteira em Kwanza, por QR ou para um @banza, construídos sobre o protocolo aberto BANZA. Sandbox pública disponível; operações com dinheiro real indisponíveis.',
     url: 'https://banzami.com',
     images: [{ url: '/brand/banzami_icon.png', width: 1254, height: 1254, alt: 'Banzami' }],
   },

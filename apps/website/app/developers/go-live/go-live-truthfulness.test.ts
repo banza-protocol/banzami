@@ -27,7 +27,7 @@ describe('Go Live', () => {
   });
 
   it('states plainly that Live is unavailable', () => {
-    expect(CODE).toMatch(/ainda não está disponível/i);
+    expect(CODE).toMatch(/ainda não est(á|ão) disponíve(l|is)/i);
   });
 
   it('says nothing in the Console can enable it', () => {

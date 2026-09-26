@@ -28,7 +28,7 @@ export function PlatformBanner() {
 
   return (
     <div role="status" className="pointer-events-none fixed left-0 top-0 z-[60] h-[96px] w-[96px] overflow-hidden">
-      <span className="sr-only">Ambiente SANDBOX — dinheiro fictício. O Financial Live está indisponível.</span>
+      <span className="sr-only">Ambiente SANDBOX — dinheiro fictício. As operações com dinheiro real estão indisponíveis.</span>
       <div className="absolute left-[-54px] top-[20px] w-[178px] -rotate-45 border-y border-amber-200/80 bg-amber-50 py-[5px] text-center text-[11.5px] font-bold tracking-[0.06em] text-amber-900 shadow-[0_6px_14px_-6px_rgba(0,0,0,0.25)]">
         Sandbox
       </div>

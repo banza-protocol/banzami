@@ -6,7 +6,20 @@ changed and why. Content hash = sha256 of `apps/website/lib/legal-content.ts`
 
 ## Terms of Service + Privacy Policy
 
-### 2026-09-beta.2 — 2026-09-24 (current)
+### 2026-09-beta.3 — 2026-09-26 (current)
+- **Editorial / non-material change:** public terminology normalization. The
+  internal term **"Financial Live"** was removed from the published legal text and
+  replaced by **"operações com dinheiro real"** (PT) / **"real-money operations"**
+  (EN). §05 retitled *"Operações com dinheiro real indisponíveis" / "Real-money
+  operations unavailable"* (stable anchor `#financial-live` preserved). No change
+  to rights, obligations, scope, data processing or the truth stated: real-money
+  operations remain unavailable and out of scope; the Sandbox uses fictitious money.
+- Content hash: `47d42acd55ac4affa9a997561f7747e7e6cb5bed2fc7c6ff76396a0759ef922a`.
+- **Reacceptance:** not forced. The change is editorial (wording only, meaning
+  preserved); existing beta.2 acceptances remain valid and new applications record
+  beta.3.
+
+### 2026-09-beta.2 — 2026-09-24 (superseded)
 - **Material change:** complete legal-entity identification added to §01 of both
   documents — legal name **BANZAMI – Tecnologia e Serviços, Lda.**, **NIF
   5003208729**, registered seat **Rua Avenida 21 de Janeiro, Bairro Morro Bento,

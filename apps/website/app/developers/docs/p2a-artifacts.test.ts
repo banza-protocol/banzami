@@ -278,7 +278,7 @@ describe('P2A — docs integration (PT/EN)', () => {
     }
   });
   it('artifact wording stays Sandbox/Preview-scoped and non-Production', () => {
-    expect(PT).toContain('Os artefactos não descrevem Financial Live');
-    expect(EN).toContain('The artifacts do not describe Financial Live');
+    expect(PT).toContain('Os artefactos não descrevem operações com dinheiro real');
+    expect(EN).toContain('The artifacts do not describe real-money operations');
   });
 });

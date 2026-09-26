@@ -33,8 +33,8 @@ export const TD_MONO: React.CSSProperties = { ...TD, fontFamily: mono, fontSize:
 export const BANZAMI_URL = 'https://banzami.com';
 
 // -- Status vocabulary (fixed) --------------------------------------------------
-// No 'coming soon' and no 'Production in preparation': Financial Live is not
-// ready and requires institutional approval, and the documentation says so in
+// No 'coming soon' and no 'Production in preparation': real-money operations are
+// not ready and require institutional approval, and the documentation says so in
 // words where it matters (Do Sandbox ao Live) rather than as a promise badge.
 export type Tone = 'ok' | 'val';
 export const BADGES: Record<Tone, { label: string; bg: string; bd: string; fg: string; dot: string }> = {

@@ -64,7 +64,7 @@ describe('DX — the home page starts from tasks', () => {
     expect(HOME).toContain('<TaskCards');
     expect(HOME).toContain('<PathDiagram');
     for (const cta of ['Começar a construir', 'Start building', 'Referência da API', 'API reference']) expect(HOME).toContain(cta);
-    for (const status of ['Sandbox disponível', 'Financial Live indisponível', 'Sandbox available', 'Financial Live unavailable']) expect(HOME).toContain(status);
+    for (const status of ['Sandbox disponível', 'Operações com dinheiro real indisponíveis', 'Sandbox available', 'Real-money operations unavailable']) expect(HOME).toContain(status);
   });
 });
 

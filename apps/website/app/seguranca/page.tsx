@@ -5,7 +5,7 @@ import { SegurancaPage } from '@/components/marketing/pages/Seguranca';
 export const metadata: Metadata = {
   title: { absolute: 'Segurança — Banzami' },
   description:
-    'Ledger double-entry imutável, idempotência, TLS, comprovativos verificáveis e Financial Live fail-closed. Reporte vulnerabilidades para security@banzami.com.',
+    'Ledger double-entry imutável, idempotência, TLS, comprovativos verificáveis e operações com dinheiro real fechadas por omissão (fail-closed). Reporte vulnerabilidades para security@banzami.com.',
   alternates: {
     canonical: 'https://banzami.com/seguranca',
     languages: { en: 'https://banzami.com/en/seguranca' },

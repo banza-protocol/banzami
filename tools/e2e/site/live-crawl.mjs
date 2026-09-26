@@ -5,7 +5,7 @@
  * Renders the real deployed pages in Chromium, follows every same-site internal
  * link (nav, footer, cards, contextual, CTA), records status codes, checks
  * heading anchors that fragment links point at, and runs rendered-output truth
- * checks (Financial Live unavailable, no /v2, no rail-free, no stale persona,
+ * checks (real-money operations unavailable, no /v2, no rail-free, no stale persona,
  * KYC, v1). It is the FINAL crawl of the deployed site, not source.
  *
  *   node tools/e2e/site/live-crawl.mjs

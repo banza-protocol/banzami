@@ -50,10 +50,15 @@ describe('legal claims gate (no false regulatory/financial claims)', () => {
     });
   }
 
-  it('states Financial Live is unavailable / out of scope', () => {
-    expect(allText).toContain('financial live');
+  it('states real-money operations are unavailable / out of scope', () => {
+    // Public terminology: the internal term "Financial Live" must not appear in
+    // the published legal text; the concept is stated as real-money operations.
+    expect(allText).not.toContain('financial live');
     expect(
-      allText.includes('não está disponível') || allText.includes('not available') || allText.includes('unavailable'),
+      allText.includes('operações com dinheiro real') || allText.includes('real-money operations'),
+    ).toBe(true);
+    expect(
+      allText.includes('não estão disponíveis') || allText.includes('are not available') || allText.includes('unavailable'),
     ).toBe(true);
   });
 

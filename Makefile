@@ -676,6 +676,14 @@ check-wallet-native:
 check-public-site-truth:
 	node tools/check-public-site-truth.mjs
 	node tools/check-public-site-truth.selftest.mjs
+
+# PUBLIC-TERMINOLOGY-001 — the internal term "Financial Live" must not appear on
+# any public-facing surface; public copy says "operações com dinheiro real" /
+# "real-money operations". Internal identifiers (FINANCIAL_LIVE, …) are allowed.
+.PHONY: check-public-terminology
+check-public-terminology:
+	node tools/check-public-terminology.mjs
+	node tools/check-public-terminology.selftest.mjs
 	node tools/lib/sdk-readme-claims.selftest.mjs
 
 # DOCS-TRUTH-PREMIUM-001 — terminology/claim truth guard (stale product claims).
@@ -695,7 +703,7 @@ check-site-live:
 	node tools/e2e/site/live-evidence.mjs
 
 .PHONY: check-docs-prod
-check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth check-doc-truth check-wallet-native
+check-docs-prod: check-docs-drift check-docs-claims check-public-site-truth check-public-terminology check-doc-truth check-wallet-native
 	node tools/check-docs-prod-001-spec.mjs
 	node tools/check-docs-coverage.mjs
 	node tools/check-docs-claims-ledger.mjs

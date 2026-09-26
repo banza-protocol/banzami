@@ -7,7 +7,7 @@
 // is updated deliberately together with a version bump (reacceptance rule).
 //
 // Scope: PUBLIC BETA SANDBOX. Nothing here or in the content claims Banzami is a
-// licensed/regulated financial institution; Financial Live is out of scope.
+// licensed/regulated financial institution; real-money operations are out of scope.
 
 import {
   TERMS_VERSION,
@@ -48,7 +48,7 @@ export const TERMS: TermsMeta = {
   privacyVersion: PRIVACY_VERSION,
   effectiveDate: LEGAL_EFFECTIVE_DATE,
   publishedAt: LEGAL_EFFECTIVE_DATE,
-  documentHash: '05e2723a80a8b511c5296698a128d2b474aa41f494c6380709d2dc06ab730a79',
+  documentHash: '47d42acd55ac4affa9a997561f7747e7e6cb5bed2fc7c6ff76396a0759ef922a',
   legalEntity: OPERATOR_NAME,
   contactEmail: OPERATOR_CONTACT,
 };

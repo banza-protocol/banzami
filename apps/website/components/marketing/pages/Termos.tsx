@@ -23,8 +23,8 @@ const T = {
   tocLabel: L('Índice', 'Contents'),
   tocTitle: L('ÍNDICE', 'CONTENTS'),
   note: L(
-    `Versão ${TERMS_VERSION} · em vigor desde ${LEGAL_EFFECTIVE_DATE}. Aplica-se apenas à Beta Sandbox; o Financial Live não está disponível.`,
-    `Version ${TERMS_VERSION} · effective ${LEGAL_EFFECTIVE_DATE}. Applies to the Beta Sandbox only; Financial Live is not available.`,
+    `Versão ${TERMS_VERSION} · em vigor desde ${LEGAL_EFFECTIVE_DATE}. Aplica-se apenas à Beta Sandbox; as operações com dinheiro real não estão disponíveis.`,
+    `Version ${TERMS_VERSION} · effective ${LEGAL_EFFECTIVE_DATE}. Applies to the Beta Sandbox only; real-money operations are not available.`,
   ),
 };
 

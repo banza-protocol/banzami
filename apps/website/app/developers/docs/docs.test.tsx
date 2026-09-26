@@ -57,7 +57,7 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     expect(screen.getByRole('link', { name: 'Começar a construir' }).getAttribute('href')).toBe('/docs/get-started');
     expect(screen.getAllByRole('link', { name: 'Referência da API' }).some((a) => a.getAttribute('href') === '/docs/reference')).toBe(true);
     expect(screen.getByText('Sandbox disponível')).toBeTruthy();
-    expect(screen.getByText('Financial Live indisponível')).toBeTruthy();
+    expect(screen.getByText('Operações com dinheiro real indisponíveis')).toBeTruthy();
     for (const task of ['Aceitar um pagamento', 'Partilhar um link de pagamento', 'Mostrar um QR', 'Receber webhooks', 'Reembolsar um pagamento', 'Liquidar uma conta', 'Verificar um comprovativo', 'Construir como o DOA']) {
       expect(screen.getAllByText(task).length).toBeGreaterThan(0);
     }

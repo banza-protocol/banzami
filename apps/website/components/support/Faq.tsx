@@ -24,8 +24,8 @@ export const FAQ_CATEGORIES: Category[] = [
     items: [
       { q: 'O Banzami já está disponível?', a: `Para developers, sim: a ${PUBLIC_TRUTH.sandbox.name} está disponível, é self-service e usa dinheiro fictício. ${PUBLIC_TRUTH.live.summary}` },
       { q: 'Posso descarregar a App Banzami?', a: 'A App Banzami Web está disponível no browser, em app.banzami.com. No iPhone e no Android está em testes, para testers convidados (TestFlight e Google Play) — ainda não está na App Store nem no Google Play para o público. Pode registar o interesse em /testes.' },
-      { q: 'Preciso de verificar a identidade (KYC) para usar a Sandbox?', a: 'Não. A Sandbox pública não exige verificação de identidade de consumidor: crie a conta e teste com dinheiro fictício. A verificação exigida para dinheiro real faz parte das aprovações de que o Financial Live depende.' },
-      { q: 'O Banzami guarda o meu dinheiro?', a: 'Hoje não. Sem o Financial Live não há operação com dinheiro real: na Sandbox todos os saldos são fictícios.' },
+      { q: 'Preciso de verificar a identidade (KYC) para usar a Sandbox?', a: 'Não. A Sandbox pública não exige verificação de identidade de consumidor: crie a conta e teste com dinheiro fictício. A verificação exigida para dinheiro real faz parte das aprovações de que as operações com dinheiro real dependem.' },
+      { q: 'O Banzami guarda o meu dinheiro?', a: 'Hoje não. As operações com dinheiro real não estão disponíveis: na Sandbox todos os saldos são fictícios.' },
     ],
   },
   {

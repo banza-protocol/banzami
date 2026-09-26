@@ -21,7 +21,7 @@ import type { CopyFn } from './content-pt';
 // English concepts (translations of the canonical PT glossary — same 28 terms).
 const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
   { term: 'Sandbox', def: 'Test environment for validating Banzami integrations without moving real money.' },
-  { term: 'Financial Live', def: 'The real-money environment. It is not available; the Sandbox is the only environment.' },
+  { term: 'Real-money operations', def: 'The real-money environment. It is not available; the Sandbox is the only environment.' },
   { term: 'Ledger', def: 'Banzami’s accounting record: every debit and credit of every transaction, from which balances derive.' },
   { term: 'Idempotency', def: 'Guarantee that repeating the same request never creates a second transfer, payment or financial effect.' },
   { term: 'Webhook', def: 'Notification Banzami sends directly to your application server when an event happens.' },
@@ -583,7 +583,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}>
                     <th style={TH}></th>
                     <th style={TH}>Sandbox</th>
-                    <th style={TH}>Financial Live</th>
+                    <th style={TH}>Real-money operations</th>
                   </tr></thead>
                   <tbody>
                     {[
@@ -621,7 +621,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                 p2p: 'transfer between people', payment: 'payment · QR · link',
                 ledger: 'Banzami Core · double-entry ledger',
                 platform: 'Developer platform: API · SDK · webhooks · realtime',
-                footnote: 'Sandbox: fictitious money and a simulated external rail · Financial Live: unavailable',
+                footnote: 'Sandbox: fictitious money and a simulated external rail · Real-money operations: unavailable',
               }} />
               <P>
                 External rails — banks, EMIS, PSPs — are <strong>interoperability boundaries</strong>: they are crossed when value enters or leaves the network, or when
@@ -1846,7 +1846,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                       ['Refunds', 'Project key (refunds:write / :read)', 'Available in Sandbox'],
                       ['Transfers between accounts', 'Project key (transfers:write)', 'Available in Sandbox'],
                       ['Settlements', 'Project key (application_settlements:write)', 'Available in Sandbox'],
-                      ['Financial Live', '—', 'Unavailable (fail-closed)'],
+                      ['Real-money operations', '—', 'Unavailable (fail-closed)'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}><td style={TD_HEAD}>{cap}</td><td style={TD}>{cred}</td><td style={TD}>{st}</td></tr>
                     ))}
@@ -2057,7 +2057,7 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
-              <P style={{ fontSize: 13, color: MUT }}>The artifacts do not describe Financial Live, which is not available.</P>
+              <P style={{ fontSize: 13, color: MUT }}>The artifacts do not describe real-money operations, which are not available.</P>
               <NextStepCards lang="en" items={[
                 { href: '/docs/en/reference', title: 'API reference', desc: 'The same surface, explained.' },
                 { href: '/docs/en/changelog', title: 'Changelog', desc: 'What changed, and when.' },
@@ -2345,7 +2345,7 @@ export function EnGoingLive({ copy }: { copy: CopyFn }) {
     <>
 <Section id="going-live">
               <h1 style={H1_STYLE}>From Sandbox toward Live</h1>
-              <PageLede>Financial Live is not available. What your Sandbox work already establishes, and what to check before your integration goes into use.</PageLede>
+              <PageLede>Real-money operations are not available. What your Sandbox work already establishes, and what to check before your integration goes into use.</PageLede>
 
               <H2 id="live-status">Current status</H2>
               <P>
@@ -2560,7 +2560,7 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
-              <P style={{ fontSize: 13, color: MUT }}>Breaking changes are marked as such and always state the action required. There are no production releases: Financial Live is not available.</P>
+              <P style={{ fontSize: 13, color: MUT }}>Breaking changes are marked as such and always state the action required. There are no production releases: real-money operations are not available.</P>
               <NextStepCards lang="en" items={[
                 { href: '/docs/en/artifacts', title: 'Artifacts', desc: 'Updated OpenAPI and manifests.' },
                 { href: '/docs/en/sdk', title: 'SDKs', desc: 'Published versions.' },

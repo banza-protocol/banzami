@@ -132,7 +132,7 @@ const CASES = [
   },
   {
     name: 'status — the banner goes back to "ambiente de testes" only',
-    mutate: (d) => edit(d, `${W}/components/PlatformBanner.tsx`, (s) => s.replace('O Financial Live está indisponível.', 'Esta plataforma encontra-se em ambiente de testes.')),
+    mutate: (d) => edit(d, `${W}/components/PlatformBanner.tsx`, (s) => s.replace('As operações com dinheiro real estão indisponíveis.', 'Esta plataforma encontra-se em ambiente de testes.')),
     expect: fails('PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING'),
   },
   {

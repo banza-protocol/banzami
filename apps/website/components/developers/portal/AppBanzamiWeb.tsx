@@ -70,7 +70,7 @@ export function AppBanzamiWeb() {
               <IconArrowRight size={16} />
             </a>
             <p style={{ margin: '12px 0 0', fontSize: 12.5, fontWeight: 600, color: '#8a7a7e' }}>
-              Abre num novo separador. O saldo e os pagamentos são fictícios; o Financial Live está indisponível.
+              Abre num novo separador. O saldo e os pagamentos são fictícios; as operações com dinheiro real estão indisponíveis.
             </p>
           </div>
         </div>
@@ -104,7 +104,7 @@ export function AppBanzamiWeb() {
       {/* Truthful boundaries */}
       <div style={{ ...card, background: '#FBF9F9' }}>
         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#6a5a5e', lineHeight: 1.6 }}>
-          A App Banzami Web opera em <b>Sandbox</b>: o dinheiro é fictício e o Financial Live está indisponível.
+          A App Banzami Web opera em <b>Sandbox</b>: o dinheiro é fictício e as operações com dinheiro real estão indisponíveis.
           A sua conta de <b>developer</b> (workspace, projeto, chaves) e a conta de <b>consumidor</b> (@banza,
           carteira) são identidades separadas — abrir a App não o autentica como consumidor.
         </p>

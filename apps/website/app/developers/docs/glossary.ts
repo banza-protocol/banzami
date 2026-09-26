@@ -25,7 +25,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     id: 'producao',
-    term: 'Financial Live',
+    term: 'Operações com dinheiro real',
     def: 'O ambiente de dinheiro real. Não está disponível: o Sandbox é o único ambiente.',
   },
   {

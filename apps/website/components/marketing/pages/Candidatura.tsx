@@ -13,7 +13,7 @@ import { route, type Lang } from '@/lib/marketing/nav';
  * Comerciantes · Candidatura — Public Beta Sandbox business onboarding.
  * Data-minimized to the Sandbox policy (name, @negócio, category, email; optional
  * município/description) — no NIF, no legal representative, no documents (those
- * belong to Financial Live/KYB, which is unavailable). Submits for real to
+ * belong to real-money operations/KYB, which are unavailable). Submits for real to
  * POST /v1/merchant/applications and shows the server-issued reference
  * (application_id) — never a browser-fabricated code. Frozen visual system.
  */
@@ -53,7 +53,7 @@ const T = {
       { icon: 'store' as IconName, t: 'Dados do negócio', d: 'Nome, @negócio e categoria.' },
       { icon: 'mail' as IconName, t: 'Contacto', d: 'E-mail do negócio.' },
     ],
-    asideSandbox: 'Os negócios aprovados nesta fase recebem apenas dinheiro fictício. O Financial Live permanece indisponível.',
+    asideSandbox: 'Os negócios aprovados nesta fase recebem apenas dinheiro fictício. As operações com dinheiro real permanecem indisponíveis.',
     aside3t: 'Precisa de ajuda?', aside3p: 'A nossa equipa responde por e-mail.', aside3link: 'Falar com o suporte',
     termosPre: 'Li e aceito os ', termos: 'Termos de Serviço', termosMid: '. Consulte a ', privacidade: 'Política de Privacidade', termosPost: '.',
     sandboxLabel: 'Compreendo que, nesta fase Beta, o negócio opera apenas na Sandbox, com dinheiro fictício.',
@@ -97,7 +97,7 @@ const T = {
       { icon: 'store' as IconName, t: 'Business details', d: 'Name, @business and category.' },
       { icon: 'mail' as IconName, t: 'Contact', d: 'Business email.' },
     ],
-    asideSandbox: 'Businesses approved in this phase receive test money only. Financial Live remains unavailable.',
+    asideSandbox: 'Businesses approved in this phase receive test money only. Real-money operations remain unavailable.',
     aside3t: 'Need help?', aside3p: 'Our team replies by email.', aside3link: 'Contact support',
     termosPre: 'I have read and accept the ', termos: 'Terms of Service', termosMid: '. See the ', privacidade: 'Privacy Policy', termosPost: '.',
     sandboxLabel: 'I understand that, during this Beta, the business operates only in the Sandbox, with test money.',

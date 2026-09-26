@@ -65,7 +65,7 @@ export const navMenus: NavItem[] = [
     cta: 'Plataforma para developers',
     ctaHref: '/developers',
     visualCaption: 'api & sdk',
-    note: 'Sandbox pública disponível, com dinheiro fictício. Financial Live indisponível.',
+    note: 'Sandbox pública disponível, com dinheiro fictício. Operações com dinheiro real indisponíveis.',
     links: [
       { label: 'Plataforma para developers', href: '/developers', desc: 'O que pode construir.' },
       { label: 'Consola', href: DEVELOPERS_LOGIN_URL, desc: 'Workspaces, projetos e chaves.' },

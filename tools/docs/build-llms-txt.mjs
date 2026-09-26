@@ -42,7 +42,7 @@ push(
   `> ${DOCS_META[''].en[1]}`,
   '',
   `- API: ${ORIGIN.replace('developers', 'sandbox-api')}/v1 (Sandbox). Authentication: Authorization: Bearer bz_test_sk_… (project secret key, server-side only).`,
-  `- Financial Live: unavailable (fail-closed). bz_live_ keys are refused.`,
+  `- Real-money operations: unavailable (fail-closed). bz_live_ keys are refused.`,
   `- Amounts are integers in minor units: 100 = 1 Kz.`,
   `- Server SDK: @banzami/sdk (npm install @banzami/sdk), current version ${sdkVersion}. OpenAPI: ${ORIGIN}/developers/openapi/banzami-sandbox.openapi.json`,
   `- Portuguese pages: ${ORIGIN}/docs · English pages: ${ORIGIN}/docs/en`,

@@ -74,7 +74,7 @@ const FOUNDERS: { img: string; alt: string; name: string; role: Loc; bio: Loc; l
 
 const ESTADO_ITEMS: { icon: IconName; tag: Loc; t: Loc; d: Loc }[] = [
   { icon: 'sparkle', tag: L('DISPONÍVEL', 'AVAILABLE'), t: L('Beta público', 'Public Beta'), d: L('Sandbox disponível, com dinheiro fictício, na Beta Web e em testes no iPhone e Android.', 'Sandbox available, with test money, on Beta Web and in testing on iPhone and Android.') },
-  { icon: 'shield', tag: L('INDISPONÍVEL', 'UNAVAILABLE'), t: L('Financial Live', 'Financial Live'), d: L('Indisponível nesta fase, sujeito às aprovações aplicáveis.', 'Unavailable in this phase, subject to the applicable approvals.') },
+  { icon: 'shield', tag: L('INDISPONÍVEL', 'UNAVAILABLE'), t: L('Operações com dinheiro real', 'Real-money operations'), d: L('Indisponíveis nesta fase, sujeitas às aprovações aplicáveis.', 'Unavailable in this phase, subject to the applicable approvals.') },
   { icon: 'layers', tag: L('ABERTO', 'OPEN'), t: L('Protocolo BANZA', 'BANZA protocol'), d: L('Aberto. O Banzami é o operador de referência.', 'Open. Banzami is the reference operator.') },
 ];
 

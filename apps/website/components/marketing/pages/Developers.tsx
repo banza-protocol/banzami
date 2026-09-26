@@ -73,8 +73,8 @@ const T = {
     'APIs, SDK and webhooks to accept Kwanza payments in your application. Start today in the Sandbox.',
   ),
   heroSmall: L(
-    'Apenas Sandbox, com dinheiro fictício. O Financial Live permanece indisponível.',
-    'Sandbox only, with test money. Financial Live remains unavailable.',
+    'Apenas Sandbox, com dinheiro fictício. As operações com dinheiro real permanecem indisponíveis.',
+    'Sandbox only, with test money. Real-money operations remain unavailable.',
   ),
   portal: L('Portal Developers', 'Portal Developers'),
   docs: L('Documentação', 'Documentation'),
@@ -131,8 +131,8 @@ const T = {
   thInstall: L('INSTALAÇÃO', 'INSTALLATION'),
   noticeTitle: L('Apenas Sandbox nesta fase', 'Sandbox only in this phase'),
   noticeBody: L(
-    'As chaves disponíveis são de teste (bz_test_). O Financial Live permanece indisponível e os pedidos em produção são rejeitados.',
-    'Available keys are test keys (bz_test_). Financial Live remains unavailable and production requests are rejected.',
+    'As chaves disponíveis são de teste (bz_test_). As operações com dinheiro real permanecem indisponíveis e os pedidos em produção são rejeitados.',
+    'Available keys are test keys (bz_test_). Real-money operations remain unavailable and production requests are rejected.',
   ),
 
   // CTA

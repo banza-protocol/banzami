@@ -108,8 +108,8 @@ export const NAV: NavItem[] = [
       cta: { label: L('Plataforma para developers', 'Developer platform'), to: { key: 'developers' } },
       tile: L('api & sdk', 'api & sdk'),
       status: L(
-        'Sandbox pública disponível, com dinheiro fictício. Financial Live indisponível.',
-        'Public Sandbox available, with test money. Financial Live unavailable.',
+        'Sandbox pública disponível, com dinheiro fictício. Operações com dinheiro real indisponíveis.',
+        'Public Sandbox available, with test money. Real-money operations unavailable.',
       ),
       links: [
         { label: L('Plataforma para developers', 'Developer platform'), desc: L('O que pode construir.', 'What you can build.'), to: { key: 'developers' } },

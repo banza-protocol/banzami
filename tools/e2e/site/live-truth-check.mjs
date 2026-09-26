@@ -3,7 +3,7 @@
  * DOCS-TRUTH-PREMIUM-001 — rendered-truth check of the DEPLOYED public surfaces.
  *
  * Fetches the live rendered HTML of the canonical public pages and asserts the
- * product truth as SHIPPED (not as sourced): Financial Live unavailable, Sandbox
+ * product truth as SHIPPED (not as sourced): real-money operations unavailable, Sandbox
  * available, no /v2, no legacy /v1/business routes, no rail-free overclaim, no
  * stale persona, no "em desenvolvimento" native status. Complements the
  * source-level check-public-site-truth gate with a live-runtime assertion.
@@ -16,22 +16,25 @@ const PAGES = [
   'https://banzami.com/suporte', 'https://banzami.com/testes',
   'https://developers.banzami.com/docs', 'https://developers.banzami.com/docs/en',
 ];
-// A negation anywhere in the span means Financial Live is correctly stated as
-// NOT available: the fused prefixes (indisponível / unavailable) OR a separate
-// negation word (não / not / sem) before "disponível".
+// A negation anywhere in the span means real-money operations are correctly
+// stated as NOT available: the fused prefixes (indisponível / unavailable) OR a
+// separate negation word (não / not / sem) before "disponível".
 const NEG = /indispon|unavailable|n[ãa]o|not|sem/;
+// The real-money environment, by its public name (operações com dinheiro real /
+// real-money operations) or the legacy internal term (defensive, must be gone).
+const REALMONEY = /opera[cç][õo]es com dinheiro real|real-money operations|financial live/;
 
 async function checkPage(url) {
   let html;
   try { html = (await (await fetch(url)).text()).toLowerCase(); } catch (e) { return [`FETCH_FAILED:${String(e.message).slice(0, 40)}`]; }
   const bad = [];
 
-  // Financial Live must never be asserted AVAILABLE. Scan every
-  // "financial live … (disponível|available|…)" span; a span is a violation only
-  // if it contains NO negation token (indisponível / não … disponível / unavailable).
-  // Match the availability word only when NOT fused with in-/un-; then reject the
-  // span if it carries any negation (covers "não está disponível" too).
-  const re = /financial live[^.<]{0,60}?(?<!in)(?<!un)(dispon[ií]vel|available|enabled|operational|ao vivo|activ[oa])/g;
+  // Real-money operations must never be asserted AVAILABLE. Scan every
+  // "operações com dinheiro real … (disponíveis|available|…)" span; a span is a
+  // violation only if it contains NO negation token (indisponível / não … disponível
+  // / unavailable). Match the availability word only when NOT fused with in-/un-;
+  // then reject the span if it carries any negation (covers "não estão disponíveis").
+  const re = /(?:opera[cç][õo]es com dinheiro real|real-money operations|financial live)[^.<]{0,80}?(?<!in)(?<!un)(dispon[ií]ve(?:l|is)|available|enabled|operational|ao vivo|activ[oa])/g;
   let m;
   while ((m = re.exec(html))) { if (!NEG.test(m[0])) bad.push(`LIVE-AVAILABLE:"${m[0].slice(0, 60)}"`); }
 
@@ -43,7 +46,9 @@ async function checkPage(url) {
   if (/\/v1\/business\//.test(html)) bad.push('LEGACY-ROUTE');
   // Positive truths a public page about the product should carry.
   if (!/sandbox/.test(html)) bad.push('NO-SANDBOX-MENTION');
-  if (/financial live/.test(html) && !/indispon[ií]vel|unavailable|n[ãa]o\s+\w*\s*dispon/.test(html)) bad.push('LIVE-NOT-MARKED-UNAVAILABLE');
+  if (REALMONEY.test(html) && !/indispon[ií]ve|unavailable|n[ãa]o\s+(\w+\s+){0,2}dispon/.test(html)) bad.push('LIVE-NOT-MARKED-UNAVAILABLE');
+  // The internal term must not leak onto a public page.
+  if (/financial live/.test(html)) bad.push('LEGACY-FINANCIAL-LIVE-TERM');
   return bad;
 }
 

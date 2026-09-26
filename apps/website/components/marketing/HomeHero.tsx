@@ -15,8 +15,8 @@ const T = {
     'Send, receive and accept payments in Kz between people, businesses and apps — in the Banzami app or built into your product.',
   ),
   small: L(
-    'Sandbox pública disponível com dinheiro fictício. O Financial Live permanece indisponível, sujeito às aprovações aplicáveis.',
-    'Public Sandbox available with test money. Financial Live remains unavailable, subject to the applicable approvals.',
+    'A Sandbox pública está disponível com dinheiro fictício. As operações com dinheiro real ainda não estão disponíveis, sujeitas às aprovações aplicáveis.',
+    'The public Sandbox is available with test money. Real-money operations are not yet available, subject to the applicable approvals.',
   ),
   openBeta: L('Abrir Beta Web', 'Open Beta Web'),
   howWorks: L('Ver como funciona', 'See how it works'),

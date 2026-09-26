@@ -1,16 +1,16 @@
 # Banzami Developers
 
-> Accept kwanza payments with Banzami: quickstart, API v1, SDK, webhooks and a reference implementation. Sandbox available; Financial Live unavailable.
+> Accept kwanza payments with Banzami: quickstart, API v1, SDK, webhooks and a reference implementation. Sandbox available; real-money operations unavailable.
 
 - API: https://sandbox-api.banzami.com/v1 (Sandbox). Authentication: Authorization: Bearer bz_test_sk_… (project secret key, server-side only).
-- Financial Live: unavailable (fail-closed). bz_live_ keys are refused.
+- Real-money operations: unavailable (fail-closed). bz_live_ keys are refused.
 - Amounts are integers in minor units: 100 = 1 Kz.
 - Server SDK: @banzami/sdk (npm install @banzami/sdk), current version 0.14.1. OpenAPI: https://developers.banzami.com/developers/openapi/banzami-sandbox.openapi.json
 - Portuguese pages: https://developers.banzami.com/docs · English pages: https://developers.banzami.com/docs/en
 
 ## Get started
 
-- [Home](https://developers.banzami.com/docs/en): Accept kwanza payments with Banzami: quickstart, API v1, SDK, webhooks and a reference implementation. Sandbox available; Financial Live unavailable.
+- [Home](https://developers.banzami.com/docs/en): Accept kwanza payments with Banzami: quickstart, API v1, SDK, webhooks and a reference implementation. Sandbox available; real-money operations unavailable.
 - [Quickstart](https://developers.banzami.com/docs/en/get-started): Create and confirm your first Sandbox payment in twelve steps: account, project, Financial Setup, key, SDK, session and webhook.
 - [How Banzami works](https://developers.banzami.com/docs/en/concepts): The integration model, Sandbox and Live, amounts in minor units, idempotency and request_id.
 
@@ -39,7 +39,7 @@
 ## Learn
 
 - [Sandbox testing](https://developers.banzami.com/docs/en/testing): Test scenarios with how to trigger them, the expected response, the event and the Console check.
-- [From Sandbox toward Live](https://developers.banzami.com/docs/en/going-live): The status of Financial Live and the checklist for a ready integration.
+- [From Sandbox toward Live](https://developers.banzami.com/docs/en/going-live): The status of real-money operations and the checklist for a ready integration.
 - [Security](https://developers.banzami.com/docs/en/trust): Where to keep keys and webhook secrets, least-privilege scopes and credential rotation.
 - [Glossary](https://developers.banzami.com/docs/en/glossary): The terms used across the Banzami documentation.
 

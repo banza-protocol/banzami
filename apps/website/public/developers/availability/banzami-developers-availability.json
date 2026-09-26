@@ -1,5 +1,5 @@
 {
-  "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | served_pending_capability | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the Public Sandbox. Financial Live is not ready: it requires institutional approval and is fail-closed; this file makes no Live or external-provider availability claim.",
+  "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | served_pending_capability | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the Public Sandbox. Real-money operations are not ready: they require institutional approval and are fail-closed; this file makes no Live or external-provider availability claim.",
   "version": "docs-2026-09-14",
   "environment": "SANDBOX",
   "capabilities": {
@@ -101,7 +101,7 @@
     "production_live_rails": {
       "state": "not_available",
       "credential": null,
-      "note": "Financial Live is NOT READY and fail-closed: it requires institutional approval. No real money. No Live key issuance; bz_live_ keys are refused."
+      "note": "Real-money operations are NOT READY and fail-closed: they require institutional approval. No real money. No Live key issuance; bz_live_ keys are refused."
     },
     "pay_checkout_live_rails": {
       "state": "not_approved",

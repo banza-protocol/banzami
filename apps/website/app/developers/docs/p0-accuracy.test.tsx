@@ -133,7 +133,7 @@ describe('P0 — /docs content contracts (rendered)', () => {
   it('shows the Sandbox/Preview status section with the non-operational Console wording', () => {
     render(<PtConceptsPage />);
     expect(screen.getByRole('heading', { level: 2, name: 'Sandbox e Live' })).toBeTruthy();
-    expect(DOCS).toContain('Financial Live não está disponível');
+    expect(DOCS).toContain('operações com dinheiro real não estão disponíveis');
     expect(DOCS).toContain('Indisponível (fail-closed)');
     // The Console left preview entirely: no page renders illustrative data
     // (see illustrative-data.test.ts), and the Overview derives from the
@@ -162,9 +162,9 @@ describe('P0 — /docs content contracts (rendered)', () => {
   it('has the credential↔capability matrix, and it still refuses Production', () => {
     render(<PtReferencePage />);
     expect(screen.getByRole('heading', { name: 'Capacidades por credencial' })).toBeTruthy();
-    // Whatever the Sandbox evidence says, this row does not move: Financial LIVE
-    // is unavailable and fail-closed (DOCS-PROD-001 §31).
-    expect(DOCS).toContain("['Financial Live', '—', 'Indisponível (fail-closed)']");
+    // Whatever the Sandbox evidence says, this row does not move: real-money
+    // operations are unavailable and fail-closed (DOCS-PROD-001 §31).
+    expect(DOCS).toContain("['Operações com dinheiro real', '—', 'Indisponível (fail-closed)']");
     // An unreleased capability must never be presented as usable. The old test
     // demanded the literal "Pendente E2E" for it — a phrase §2 lists as stale.
     // What it has to be is absent from the "available" column, not tagged.

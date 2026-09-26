@@ -128,7 +128,7 @@ describe('Console identity — the words on screen', () => {
     // switch the product cannot perform.
     expect(SHELL).not.toContain('Switch to Live');
     expect(SHELL).not.toContain('Mudar para Live');
-    expect(SHELL).toContain('Live indisponível');
+    expect(SHELL).toContain('Operações com dinheiro real indisponíveis');
     // The role a person sees comes from the shared Portuguese vocabulary, not
     // from ROLE_LABELS, which is the English wire word the API sends.
     expect(MENU).toMatch(/roleLabel/);

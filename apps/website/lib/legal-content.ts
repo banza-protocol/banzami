@@ -3,8 +3,8 @@
 // through the frozen docPage layout, and lib/terms.ts pins the version + a
 // content hash computed over this module (see legal-content.test.ts).
 //
-// Scope: PUBLIC BETA SANDBOX only. No real money, no settlement, no Financial
-// Live. Nothing here claims Banzami is a licensed/regulated financial
+// Scope: PUBLIC BETA SANDBOX only. No real money, no settlement, no real-money
+// operations. Nothing here claims Banzami is a licensed/regulated financial
 // institution. Sources: docs/legal/BETA-LEGAL-SOURCES.md. Data reality:
 // docs/legal/BETA-DATA-MAP.md + docs/legal/SUBPROCESSORS.md.
 
@@ -17,11 +17,15 @@ export type LegalSection = { id: string; n: string; title: Loc; body: Block[] };
 //   2026-09-beta.2 — complete legal-entity identification (NIF + registered
 //                    seat) woven into §01 of both documents. See
 //                    docs/legal/LEGAL-CHANGELOG.md.
+//   2026-09-beta.3 — editorial terminology normalization: the public term
+//                    "Financial Live" replaced by "operações com dinheiro real"
+//                    / "real-money operations". Meaning preserved (real money
+//                    remains unavailable); reacceptance not forced.
 /** Immutable once published. Bump on any material change (see reacceptance). */
-export const TERMS_VERSION = '2026-09-beta.2';
-export const PRIVACY_VERSION = '2026-09-beta.2';
+export const TERMS_VERSION = '2026-09-beta.3';
+export const PRIVACY_VERSION = '2026-09-beta.3';
 /** ISO date the Beta legal documents take effect / were published. */
-export const LEGAL_EFFECTIVE_DATE = '2026-09-24';
+export const LEGAL_EFFECTIVE_DATE = '2026-09-26';
 
 /** Operator identity — from the AGT taxpayer registration (NIF 5003208729) and
  *  the company statutes (sociedade por quotas). Registered seat and NIF are the
@@ -107,15 +111,15 @@ export const TERMS_SECTIONS: LegalSection[] = [
     ],
   },
   {
-    id: 'financial-live', n: '05', title: { pt: 'Financial Live indisponível', en: 'Financial Live unavailable' },
+    id: 'financial-live', n: '05', title: { pt: 'Operações com dinheiro real indisponíveis', en: 'Real-money operations unavailable' },
     body: [
       p(
-        'O Financial Live — a movimentação de dinheiro real — não está disponível e está fora do âmbito destes Termos.',
-        'Financial Live — the movement of real money — is not available and is out of scope of these Terms.',
+        'As operações com dinheiro real — a movimentação de dinheiro real — não estão disponíveis e estão fora do âmbito destes Termos.',
+        'Real-money operations — the movement of real money — are not available and are out of scope of these Terms.',
       ),
       p(
-        'Não realizamos liquidação, transferências financeiras reais nem levantamentos. Caso o Financial Live venha a ser lançado, terá termos e condições próprios.',
-        'We do not perform settlement, real financial transfers or withdrawals. Should Financial Live ever launch, it will have its own terms and conditions.',
+        'Não realizamos liquidação, transferências financeiras reais nem levantamentos. Caso as operações com dinheiro real venham a ser lançadas, terão termos e condições próprios.',
+        'We do not perform settlement, real financial transfers or withdrawals. Should real-money operations ever launch, they will have their own terms and conditions.',
       ),
     ],
   },
@@ -167,8 +171,8 @@ export const TERMS_SECTIONS: LegalSection[] = [
         'A business can apply to access Banzami Business in the Sandbox to try QR charges, links and billing tools, with test money. Approving a Beta application grants Sandbox access and is not an approval for real financial services.',
       ),
       p(
-        'Presta informações verdadeiras na candidatura. Recolhemos apenas os dados necessários ao acesso Sandbox (ver Política de Privacidade); a verificação completa de identidade de empresa (KYB) só é exigida para o Financial Live, que não está disponível.',
-        'You must provide truthful information in the application. We collect only the data needed for Sandbox access (see the Privacy Policy); full business identity verification (KYB) is only required for Financial Live, which is not available.',
+        'Presta informações verdadeiras na candidatura. Recolhemos apenas os dados necessários ao acesso Sandbox (ver Política de Privacidade); a verificação completa de identidade de empresa (KYB) só é exigida para as operações com dinheiro real, que não estão disponíveis.',
+        'You must provide truthful information in the application. We collect only the data needed for Sandbox access (see the Privacy Policy); full business identity verification (KYB) is only required for real-money operations, which are not available.',
       ),
     ],
   },
@@ -313,8 +317,8 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'ambito', n: '02', title: { pt: 'Âmbito', en: 'Scope' },
     body: [
       p(
-        'Esta Política descreve o tratamento de dados no âmbito da Beta pública em ambiente Sandbox. Não há movimentação de dinheiro real; o Financial Live não está disponível.',
-        'This Policy describes data processing within the public Beta in the Sandbox environment. There is no movement of real money; Financial Live is not available.',
+        'Esta Política descreve o tratamento de dados no âmbito da Beta pública em ambiente Sandbox. Não há movimentação de dinheiro real; as operações com dinheiro real não estão disponíveis.',
+        'This Policy describes data processing within the public Beta in the Sandbox environment. There is no movement of real money; real-money operations are not available.',
       ),
     ],
   },
@@ -349,8 +353,8 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
         'For a Business application in the Sandbox we collect only what is needed for test access: business name, requested @business handle, category and contact email (and, where useful, municipality and description). We do not collect tax ID, identity documents, commercial certificates or tax documents for Sandbox access.',
       ),
       p(
-        'A verificação completa de identidade de empresa (KYB), incluindo documentos, só será exigida para o Financial Live, que não está disponível.',
-        'Full business identity verification (KYB), including documents, will only be required for Financial Live, which is not available.',
+        'A verificação completa de identidade de empresa (KYB), incluindo documentos, só será exigida para as operações com dinheiro real, que não estão disponíveis.',
+        'Full business identity verification (KYB), including documents, will only be required for real-money operations, which are not available.',
       ),
     ],
   },
@@ -424,8 +428,8 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'subprocessadores', n: '13', title: { pt: 'Subcontratantes', en: 'Subprocessors' },
     body: [
       p(
-        'Recorremos a subcontratantes para prestar o serviço: alojamento e base de dados (IONOS), CDN/DNS/TLS e proteção de tráfego (Cloudflare), envio de emails transacionais (Resend), notificações push (Google Firebase) e, quando aplicável ao Financial Live, armazenamento de documentos (Cloudflare R2). Estes tratam dados por nossa conta e segundo as nossas instruções.',
-        'We use subprocessors to provide the service: hosting and database (IONOS), CDN/DNS/TLS and traffic protection (Cloudflare), transactional email (Resend), push notifications (Google Firebase) and, where applicable to Financial Live, document storage (Cloudflare R2). They process data on our behalf and under our instructions.',
+        'Recorremos a subcontratantes para prestar o serviço: alojamento e base de dados (IONOS), CDN/DNS/TLS e proteção de tráfego (Cloudflare), envio de emails transacionais (Resend), notificações push (Google Firebase) e, quando aplicável às operações com dinheiro real, armazenamento de documentos (Cloudflare R2). Estes tratam dados por nossa conta e segundo as nossas instruções.',
+        'We use subprocessors to provide the service: hosting and database (IONOS), CDN/DNS/TLS and traffic protection (Cloudflare), transactional email (Resend), push notifications (Google Firebase) and, where applicable to real-money operations, document storage (Cloudflare R2). They process data on our behalf and under our instructions.',
       ),
     ],
   },

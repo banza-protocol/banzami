@@ -1,7 +1,7 @@
 // The facts every public Banzami page states about what is available today.
 //
 // Pages render these instead of writing their own sentence about the Sandbox,
-// Financial Live, the app or the API version, so a change in the product is one
+// real-money operations, the app or the API version, so a change in the product is one
 // edit here — and tools/check-public-site-truth.mjs fails the build when this
 // file disagrees with the runtime, or when a page states the same fact in its
 // own words and gets it wrong (PUBLIC-TRUTH-001).
@@ -17,14 +17,14 @@ export const PUBLIC_TRUTH = {
   },
   live: {
     status: 'NOT_READY' as const,
-    name: 'Financial Live',
+    name: 'Operações com dinheiro real',
     state: 'Indisponível',
     summary:
-      'O Financial Live permanece indisponível e sujeito às aprovações regulatórias, contratuais e operacionais aplicáveis.',
+      'As operações com dinheiro real permanecem indisponíveis e sujeitas às aprovações regulatórias, contratuais e operacionais aplicáveis.',
     // Concise variant for dense surfaces (e.g. the homepage hero) — same truth,
-    // fewer words. Still says Live is unavailable and gates on approvals.
+    // fewer words. Still says real-money operations are unavailable and gates on approvals.
     summaryShort:
-      'O Financial Live permanece indisponível, sujeito às aprovações aplicáveis.',
+      'As operações com dinheiro real permanecem indisponíveis, sujeitas às aprovações aplicáveis.',
   },
   /** The Banzami app is not in the App Store or Google Play. */
   appInStores: false,

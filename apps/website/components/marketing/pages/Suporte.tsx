@@ -87,8 +87,8 @@ function Faq({ lang }: { lang: Lang }) {
     {
       q: L('O dinheiro na Sandbox é real?', 'Is the money in the Sandbox real?'),
       a: lang === 'en'
-        ? 'No. All balances and payments are test money with no financial value. Financial Live remains unavailable in this phase.'
-        : 'Não. Todos os saldos e pagamentos são fictícios e não têm valor financeiro. O Financial Live permanece indisponível nesta fase.',
+        ? 'No. All balances and payments are test money with no financial value. Real-money operations remain unavailable in this phase.'
+        : 'Não. Todos os saldos e pagamentos são fictícios e não têm valor financeiro. As operações com dinheiro real permanecem indisponíveis nesta fase.',
     },
     {
       q: L('Como posso testar?', 'How can I test?'),

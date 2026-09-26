@@ -15,9 +15,9 @@ import { EnvironmentCards } from '@/components/developers/portal/EnvironmentCard
 // developer reading it would have believed their Live application was three
 // fifths of the way through a queue.
 //
-// Financial Live is not available on the Banzami platform. Not "coming soon for
-// you" — not built, not enabled, and not reachable by anything in this Console.
-// Saying that once, plainly, is the whole page. When there is a real Live
+// Real-money operations are not available on the Banzami platform. Not "coming
+// soon for you" — not built, not enabled, and not reachable by anything in this
+// Console. Saying that once, plainly, is the whole page. When there is a real Live
 // onboarding flow with real state behind it, this becomes that flow; until
 // then, an honest closed door beats a progress bar over an empty queue.
 
@@ -31,7 +31,7 @@ export default function GoLivePage() {
           AMBIENTE DE PRODUÇÃO
         </p>
         <h1 style={{ margin: '8px 0 0', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em' }}>
-          Financial Live ainda não está disponível
+          As operações com dinheiro real ainda não estão disponíveis
         </h1>
         <p style={{ margin: '14px 0 26px', fontSize: 15, lineHeight: 1.6, color: '#7a6a6e', fontWeight: 600 }}>
           Uma plataforma, dois ambientes financeiros. A Sandbox está disponível e é self-service. O
