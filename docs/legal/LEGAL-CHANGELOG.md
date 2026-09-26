@@ -6,7 +6,25 @@ changed and why. Content hash = sha256 of `apps/website/lib/legal-content.ts`
 
 ## Terms of Service + Privacy Policy
 
-### 2026-09-beta.3 — 2026-09-26 (current)
+### 2026-09-beta.4 — 2026-09-26 (current)
+- **Material (factual parity):** the Sandbox Business application was restored to
+  the **full onboarding flow** — business details, **representative details**,
+  **NIF**, and a **documents step** — so the Sandbox rehearses the same journey the
+  real-money product will use. Terms §10 and Privacy §05 now state that the Sandbox
+  records the representative details + NIF the applicant enters and that the
+  documents step uses **test document fixtures** (no real file uploads). The
+  guidance remains: use test data only; do not enter real personal/third-party data
+  or upload real documents. No real KYB verification, no real-money capability.
+- Content hash: `e01a1a6f5132b0ad4bf3d153a3cb5351c13c15c2b489599ccab2cda67a1b1dc4`.
+- **Counsel sign-off:** PENDING (BLOCKER-2). This version was drafted for factual
+  accuracy of what the restored flow collects; a legal review of the expanded
+  Sandbox data collection (representative identity + NIF as test fields) is a
+  required FOLLOW_UP before any real-data collection or real-money enablement.
+- **Reacceptance:** not forced. The Sandbox remains test-only (fictitious money,
+  synthetic data, fixture documents); existing acceptances remain valid and new
+  applications record beta.4.
+
+### 2026-09-beta.3 — 2026-09-26 (superseded)
 - **Editorial / non-material change:** public terminology normalization. The
   internal term **"Financial Live"** was removed from the published legal text and
   replaced by **"operações com dinheiro real"** (PT) / **"real-money operations"**

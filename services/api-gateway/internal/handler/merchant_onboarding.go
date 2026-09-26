@@ -58,6 +58,22 @@ func (h *MerchantOnboardingHandler) CheckHandle(w http.ResponseWriter, r *http.R
 	writeJSON(w, http.StatusOK, out)
 }
 
+// canonicalSandboxDocs keeps only the two known KYB document types, de-duplicated,
+// so a Sandbox rehearsal can log exactly which fixtures were attached and nothing
+// arbitrary. These are the same identifiers the LIVE policy requires (flow parity),
+// recorded here as synthetic evidence only.
+func canonicalSandboxDocs(in []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, 2)
+	for _, d := range in {
+		if (d == "BUSINESS_REGISTRATION" || d == "REPRESENTATIVE_ID") && !seen[d] {
+			seen[d] = true
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
 // POST /v1/merchant/applications   {business fields}
 func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *http.Request) {
 	if h.apps == nil {
@@ -93,6 +109,10 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		ExistingBusiness bool `json:"existing_business"`
 		// Page language ("pt"/"en"), used only to localise the confirmation email.
 		Locale string `json:"locale"`
+		// SANDBOX only: canonical KYB document types the applicant attached as TEST
+		// fixtures (BUSINESS_REGISTRATION / REPRESENTATIVE_ID). Never real uploads;
+		// recorded as synthetic evidence, kept out of the real LIVE KYB pipeline.
+		SandboxDocuments []string `json:"sandbox_documents"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body")
@@ -220,6 +240,18 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not submit application")
 	default:
 		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", obs.MaskID(appID))
+
+		// SANDBOX flow parity: the applicant rehearsed the two KYB document slots
+		// with canonical TEST fixtures (never real uploads). Record them as
+		// synthetic evidence only — they are NOT written to the LIVE KYB document
+		// table, so a Sandbox application can never be mistaken for a KYB-approved
+		// merchant. LIVE onboarding still requires real, reviewed documents.
+		if env == "SANDBOX" {
+			if syn := canonicalSandboxDocs(body.SandboxDocuments); len(syn) > 0 {
+				slog.InfoContext(r.Context(), "merchant.application.sandbox_documents",
+					"application_id", obs.MaskID(appID), "documents", strings.Join(syn, ","), "kind", "synthetic_fixture")
+			}
+		}
 
 		// Every application is reviewed by an operator — in the Sandbox too. It
 		// used to be approved here, on submit, before a single document had been

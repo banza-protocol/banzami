@@ -323,6 +323,10 @@ export type ApplicationInput = {
   existing_business?: boolean;
   /** Page language ("pt"/"en") — only localises the confirmation email. */
   locale?: string;
+  /** SANDBOX only: the canonical KYB document types attached as TEST fixtures
+   *  (BUSINESS_REGISTRATION / REPRESENTATIVE_ID). Never real uploads; recorded as
+   *  synthetic, kept out of the real LIVE KYB pipeline. */
+  sandbox_documents?: string[];
 };
 
 export type SubmitResult = {

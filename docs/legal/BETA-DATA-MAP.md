@@ -36,8 +36,32 @@ Legend — LEGAL_BASIS: `contract` (execução de contrato / medidas pré-contra
 - **PIN**: metadata only; the PIN itself is hashed/derived, never stored plain,
   never logged, never in analytics (verify in the activation/credential code).
 
+## Sandbox full-flow rehearsal — synthetic KYB-like data (beta.4)
+
+The Sandbox Business application (candidatura) rehearses the full onboarding
+journey so it matches the future real-money flow: **business → representative →
+documents → confirm**. This is **flow parity, not regulatory parity**.
+
+| Field / artifact | Nature in Sandbox | Notes |
+|---|---|---|
+| Representative name, role, email, phone | **Test data** the applicant enters | Guidance is explicit: use test data only. A real value entered anyway is processed under the same Sandbox terms; not verified, not a KYB decision. |
+| NIF (tax ID) | **Test data** the applicant enters | A form field, never a real registry lookup or verification. |
+| Business registration document | **Canonical TEST fixture** (attached client-side) | Fixtures only — **no arbitrary/real file upload** in Sandbox; not stored in the real LIVE KYB document table (`merchant_application_documents`); recorded as synthetic evidence (structured log) only. |
+| Representative ID document | **Canonical TEST fixture** (attached client-side) | Same as above. |
+
+Separation from future **real KYB**: real business/representative identity, real
+documents, real verification and any regulatory adjudication belong to the
+real-money flow (LIVE policy, `business_requirements.go`), which is unavailable.
+A Sandbox application is Sandbox-scoped and cannot become a real-money/KYB-approved
+merchant by a flag change. Privacy §05 / Terms §10 (beta.4) state this; **counsel
+sign-off on the expanded Sandbox collection is a pending FOLLOW_UP (BLOCKER-2)**.
+
 ## Open items for counsel
 
+- **Sandbox full-flow collection (beta.4):** review the expanded Sandbox
+  candidatura (representative identity + NIF as test fields; document fixtures) —
+  confirm the "test data only" framing is a sufficient basis, and whether any
+  inadvertently-real values entered by users need a specific handling/retention rule.
 - Final legal-basis wording per Lei n.º 22/11 for each row.
 - Retention periods (concrete durations) — currently "Beta window / while
   active"; counsel + ops to set concrete periods before Financial Live.

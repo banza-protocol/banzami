@@ -148,13 +148,20 @@ describe('KYB documents — NIF is a field, not a document', () => {
     expect(REQUIRED_KYB_DOCUMENTS as string[]).not.toContain('BANK_PROOF');
   });
 
-  it('the Sandbox application form collects no NIF and no documents (data minimization)', () => {
-    // Public Beta Sandbox onboarding is minimal (name, @negócio, category, email);
-    // NIF and KYB documents belong to Financial Live, which is unavailable. This
-    // must match the Privacy Policy and the backend Sandbox policy.
+  it('the Sandbox form rehearses the full flow with TEST data + fixture documents', () => {
+    // The Sandbox now mirrors the future real-money journey (business →
+    // representative + NIF → documents → confirm) using synthetic data and the two
+    // canonical document types as TEST fixtures — NOT real uploads. This must match
+    // the Privacy Policy (§05, beta.4) and the backend Sandbox behaviour.
     const src = readFileSync(join(__dirname, '../components/marketing/pages/Candidatura.tsx'), 'utf8');
-    expect(src).not.toMatch(/name="nif"/);
+    // NIF + representative are now fields; the two canonical KYB doc types appear.
+    expect(src).toMatch(/name="nif"/);
+    expect(src).toMatch(/name="rep_nome"/);
+    expect(src).toContain('BUSINESS_REGISTRATION');
+    expect(src).toContain('REPRESENTATIVE_ID');
+    // Fixtures only: no arbitrary file upload in the Sandbox.
     expect(src).not.toContain('uploadKybDocument');
-    expect(src).not.toContain('BUSINESS_REGISTRATION');
+    expect(src).not.toMatch(/type="file"/);
+    expect(src).not.toContain('Financial Live');
   });
 });

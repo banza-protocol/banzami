@@ -11,26 +11,40 @@ import { route, type Lang } from '@/lib/marketing/nav';
 
 /**
  * Comerciantes · Candidatura — Public Beta Sandbox business onboarding.
- * Data-minimized to the Sandbox policy (name, @negócio, category, email; optional
- * município/description) — no NIF, no legal representative, no documents (those
- * belong to real-money operations/KYB, which are unavailable). Submits for real to
- * POST /v1/merchant/applications and shows the server-issued reference
- * (application_id) — never a browser-fabricated code. Frozen visual system.
+ *
+ * The Sandbox rehearses the SAME journey the real-money product will use later —
+ * business → responsible person → documents → confirm — so applicants experience
+ * the full flow. It is FLOW parity, not REGULATORY parity: the Sandbox uses
+ * synthetic/test data and canonical TEST document fixtures only (no arbitrary file
+ * uploads, no real KYB, no real-money capability). The two document slots mirror
+ * the LIVE KYB types (Registo Comercial + documento de identidade do
+ * representante) but are attached as fixtures, kept separate from the real LIVE
+ * KYB pipeline. Submits for real to POST /v1/merchant/applications and shows the
+ * server-issued reference; the strict LIVE/KYB policy is unchanged. Frozen visual
+ * system.
  */
 
 const CONTENT: CSSProperties = { position: 'relative', maxWidth: '1140px', margin: '0 auto' };
 type Errs = Record<string, string>;
+
+// The two canonical KYB document types, mirrored in the Sandbox as fixtures. Same
+// identifiers the LIVE policy (business_requirements.go) requires — flow parity —
+// but attached as synthetic test fixtures, never real uploads.
+const SANDBOX_DOCS = [
+  { id: 'BUSINESS_REGISTRATION', field: 'doc_registo' as const },
+  { id: 'REPRESENTATIVE_ID', field: 'doc_id' as const },
+];
 
 // ── copy ──────────────────────────────────────────────────────────────────
 const T = {
   pt: {
     badge: 'Versão Beta · Sandbox',
     h1a: 'Registar o', h1b: 'negócio.',
-    lead: 'Candidatura ao Banzami Business em Sandbox. Dados mínimos, cerca de dois minutos.',
+    lead: 'Simule o processo completo de candidatura ao Banzami Business na Sandbox, com dados e documentos de teste.',
     smallPre: 'Já enviou? ', smallLink: 'Consulte o estado da candidatura', smallPost: '.',
-    steps: ['Negócio', 'Confirmar'],
-    of: (n: number) => `PASSO ${n} DE 2`,
-    s1t: 'Dados do negócio', s1s: 'O essencial para criar o acesso Sandbox. Sem NIF nem documentos nesta fase.',
+    steps: ['Negócio', 'Responsável', 'Documentos', 'Confirmar'],
+    of: (n: number) => `PASSO ${n} DE 4`,
+    s1t: 'Dados do negócio', s1s: 'O essencial do negócio. Na Sandbox, utilize apenas dados de teste.',
     l_nome_comercial: 'Nome comercial', ph_nome_comercial: 'Cantina do Alex',
     l_handle: '@negócio', ph_handle: 'cantinadoalex', hint_handle: '3 a 30 letras minúsculas, dígitos ou _. É como recebe pagamentos.',
     l_categoria: 'Categoria', l_municipio: 'Município (opcional)', ph_municipio: 'Talatona',
@@ -40,8 +54,24 @@ const T = {
     categorias: ['Restauração', 'Comércio a retalho', 'Mercearia e alimentação', 'Serviços', 'Transporte', 'Educação', 'Saúde e beleza', 'Eventos', 'Outro'],
     continuar: 'Continuar',
     voltar: 'Voltar',
+    // step 2 — responsável
+    s2t: 'Responsável', s2s: 'Quem representa o negócio. Na Sandbox, utilize apenas dados de teste.',
+    l_rep_nome: 'Nome do representante', ph_rep_nome: 'Alex Kiala',
+    l_rep_papel: 'Cargo', ph_rep_papel: 'Sócio-gerente',
+    l_rep_email: 'E-mail do representante', ph_rep_email: 'alex@exemplo.ao',
+    l_rep_telefone: 'Telefone (opcional)', ph_rep_telefone: '+244 …',
+    l_nif: 'NIF', ph_nif: '500…', hint_nif: 'Número de identificação fiscal do negócio.',
+    // step 3 — documentos
+    s3t: 'Documentos', s3s: 'Anexe os dois documentos necessários para simular a candidatura.',
+    docWarn: 'Sandbox — utilize apenas documentos de teste. Não envie documentos pessoais ou empresariais reais.',
+    doc1_t: 'Registo Comercial', doc1_d: 'Documento de registo do negócio.',
+    doc2_t: 'Documento de identidade do representante', doc2_d: 'Identificação do representante do negócio.',
+    docUseTest: 'Usar documento de teste', docLoaded: 'Documento de teste carregado',
+    // step 4 — confirmar
     s4t: 'Confirmar', s4s: 'Reveja os dados antes de enviar.',
-    sum: { negocio: 'Negócio', handle: '@negócio', categoria: 'Categoria', email: 'E-mail' },
+    sum: { negocio: 'Negócio', handle: '@negócio', categoria: 'Categoria', email: 'E-mail', rep: 'Representante', nif: 'NIF', docs: 'Documentos' },
+    docsValue: 'Registo Comercial + Documento de identidade (teste)',
+    confirmNote: 'Esta candidatura destina-se apenas à Sandbox e utiliza dados de teste.',
     enviar: 'Enviar candidatura',
     enviando: 'A enviar…',
     doneT: 'Candidatura enviada',
@@ -52,30 +82,34 @@ const T = {
     aside1: 'O que vai precisar',
     aside1rows: [
       { icon: 'store' as IconName, t: 'Dados do negócio', d: 'Nome, @negócio e categoria.' },
+      { icon: 'user' as IconName, t: 'Responsável', d: 'Dados do representante.' },
+      { icon: 'doc' as IconName, t: 'Documentos', d: 'Dois documentos de teste.' },
       { icon: 'mail' as IconName, t: 'Contacto', d: 'E-mail do negócio.' },
     ],
-    asideSandbox: 'Os negócios aprovados nesta fase recebem apenas dinheiro fictício. As operações com dinheiro real permanecem indisponíveis.',
+    asideSandbox: 'Esta candidatura simula o fluxo completo com dados e documentos de teste. As operações com dinheiro real permanecem indisponíveis.',
     aside3t: 'Precisa de ajuda?', aside3p: 'A nossa equipa responde por e-mail.', aside3link: 'Falar com o suporte',
     termosPre: 'Li e aceito os ', termos: 'Termos de Serviço', termosMid: '. Consulte a ', privacidade: 'Política de Privacidade', termosPost: '.',
     sandboxLabel: 'Compreendo que, nesta fase Beta, o negócio opera apenas na Sandbox, com dinheiro fictício.',
     v_default: 'Campo obrigatório.',
     v_email: 'Introduza um e-mail válido.',
     v_handle: 'O @negócio deve ter 3 a 30 letras minúsculas, dígitos ou _.',
+    v_nif: 'Introduza um NIF (dados de teste na Sandbox).',
+    v_doc: 'Anexe o documento de teste para continuar.',
     v_termos: 'É necessário aceitar os Termos.',
     v_sandbox: 'Confirme que compreende a fase Sandbox.',
     v_handle_taken: 'Este @negócio já está em uso. Escolha outro.',
     v_submit: 'Não foi possível enviar a candidatura. Tente novamente.',
     sbxFill: 'Usar dados de teste',
-    sbxToast: 'Secção preenchida com dados sandbox.',
+    sbxToast: 'Preenchido com dados sandbox.',
   },
   en: {
     badge: 'Beta · Sandbox',
     h1a: 'Register the', h1b: 'business.',
-    lead: 'Apply to Banzami Business in the Sandbox. Minimal data, about two minutes.',
+    lead: 'Rehearse the full Banzami Business application in the Sandbox, with test data and test documents.',
     smallPre: 'Already applied? ', smallLink: 'Check the application status', smallPost: '.',
-    steps: ['Business', 'Confirm'],
-    of: (n: number) => `STEP ${n} OF 2`,
-    s1t: 'Business details', s1s: 'The essentials to create Sandbox access. No tax ID or documents at this stage.',
+    steps: ['Business', 'Representative', 'Documents', 'Confirm'],
+    of: (n: number) => `STEP ${n} OF 4`,
+    s1t: 'Business details', s1s: 'The business essentials. In the Sandbox, use test data only.',
     l_nome_comercial: 'Business name', ph_nome_comercial: 'Alex’s Canteen',
     l_handle: '@business', ph_handle: 'alexcanteen', hint_handle: '3 to 30 lowercase letters, digits or _. This is how you get paid.',
     l_categoria: 'Category', l_municipio: 'Municipality (optional)', ph_municipio: 'Talatona',
@@ -85,8 +119,21 @@ const T = {
     categorias: ['Food and drink', 'Retail', 'Grocery', 'Services', 'Transport', 'Education', 'Health and beauty', 'Events', 'Other'],
     continuar: 'Continue',
     voltar: 'Back',
+    s2t: 'Representative', s2s: 'Who represents the business. In the Sandbox, use test data only.',
+    l_rep_nome: 'Representative name', ph_rep_nome: 'Alex Kiala',
+    l_rep_papel: 'Role', ph_rep_papel: 'Managing partner',
+    l_rep_email: 'Representative email', ph_rep_email: 'alex@example.ao',
+    l_rep_telefone: 'Phone (optional)', ph_rep_telefone: '+244 …',
+    l_nif: 'Tax ID (NIF)', ph_nif: '500…', hint_nif: 'The business tax identification number.',
+    s3t: 'Documents', s3s: 'Attach the two documents required to simulate the application.',
+    docWarn: 'Sandbox — use test documents only. Do not upload real personal or company documents.',
+    doc1_t: 'Business registration', doc1_d: 'The business registration document.',
+    doc2_t: 'Representative ID document', doc2_d: 'Identification of the business representative.',
+    docUseTest: 'Use test document', docLoaded: 'Test document loaded',
     s4t: 'Confirm', s4s: 'Review the details before sending.',
-    sum: { negocio: 'Business', handle: '@business', categoria: 'Category', email: 'Email' },
+    sum: { negocio: 'Business', handle: '@business', categoria: 'Category', email: 'Email', rep: 'Representative', nif: 'Tax ID', docs: 'Documents' },
+    docsValue: 'Business registration + ID document (test)',
+    confirmNote: 'This application is for the Sandbox only and uses test data.',
     enviar: 'Send application',
     enviando: 'Sending…',
     doneT: 'Application sent',
@@ -97,21 +144,25 @@ const T = {
     aside1: 'What you will need',
     aside1rows: [
       { icon: 'store' as IconName, t: 'Business details', d: 'Name, @business and category.' },
+      { icon: 'user' as IconName, t: 'Representative', d: 'The representative’s details.' },
+      { icon: 'doc' as IconName, t: 'Documents', d: 'Two test documents.' },
       { icon: 'mail' as IconName, t: 'Contact', d: 'Business email.' },
     ],
-    asideSandbox: 'Businesses approved in this phase receive test money only. Real-money operations remain unavailable.',
+    asideSandbox: 'This application rehearses the full flow with test data and test documents. Real-money operations remain unavailable.',
     aside3t: 'Need help?', aside3p: 'Our team replies by email.', aside3link: 'Contact support',
     termosPre: 'I have read and accept the ', termos: 'Terms of Service', termosMid: '. See the ', privacidade: 'Privacy Policy', termosPost: '.',
     sandboxLabel: 'I understand that, during this Beta, the business operates only in the Sandbox, with test money.',
     v_default: 'Required field.',
     v_email: 'Enter a valid email.',
     v_handle: 'The @business must be 3 to 30 lowercase letters, digits or _.',
+    v_nif: 'Enter a tax ID (test data in the Sandbox).',
+    v_doc: 'Attach the test document to continue.',
     v_termos: 'You must accept the Terms.',
     v_sandbox: 'Confirm you understand the Sandbox phase.',
     v_handle_taken: 'This @business is already taken. Choose another.',
     v_submit: 'Could not send the application. Please try again.',
     sbxFill: 'Use test data',
-    sbxToast: 'Section filled with sandbox data.',
+    sbxToast: 'Filled with sandbox data.',
   },
 } as const;
 
@@ -178,7 +229,34 @@ function SumRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+// One document slot — Sandbox fixtures only: a single "use test document" action,
+// then a clear loaded state. No arbitrary file upload (no real documents in the
+// Sandbox); the manual upload path belongs to the future real-money/KYB flow.
+function DocCard({ name, title, desc, useLabel, loadedLabel, attached, error, onAttach }: {
+  name: string; title: string; desc: string; useLabel: string; loadedLabel: string;
+  attached: boolean; error?: string; onAttach: () => void;
+}) {
+  return (
+    <div data-name={name} style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '16px 18px', borderRadius: '18px', border: `1.5px solid ${attached ? '#BFE3CE' : error ? '#E7B8BC' : '#EFDCDA'}`, background: attached ? '#F3FAF5' : '#fff' }}>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
+        <span style={{ flex: 'none', width: '40px', height: '40px', borderRadius: '12px', background: attached ? '#E4F5EB' : '#FFF1F0', color: attached ? '#1F8A5B' : '#B5101F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={attached ? 'check' : 'doc'} color="currentColor" size={18} /></span>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: '#141014' }}>{title}</p>
+          <p style={{ margin: '2px 0 0', fontSize: '12.5px', fontWeight: 600, color: '#8a7a7e', overflowWrap: 'anywhere' }}>{attached ? loadedLabel : desc}</p>
+          {error && !attached && <p role="alert" style={{ margin: '4px 0 0', fontSize: '12px', fontWeight: 700, color: '#C4303C' }}>{error}</p>}
+        </div>
+      </div>
+      {!attached && (
+        <button type="button" name={name} onClick={onAttach} className="bz-btnlift" style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 14px', borderRadius: '12px', border: '1.5px solid #EFDCDA', background: '#fff', color: '#141014', fontSize: '13px', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          {SbxSpark}{useLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 const HANDLE_RE = /^[a-z0-9_]{3,30}$/;
+const NIF_RE = /^[0-9A-Za-z]{5,20}$/;
 // Mask an address for the on-screen "we'll email you" line: keep the first
 // character and the domain, e.g. alex@exemplo.ao → a***@exemplo.ao. Purely
 // presentational — the full address is never rendered here.
@@ -191,13 +269,19 @@ function maskEmail(e: string): string {
   return `${local.slice(0, 1)}${stars}@${domain}`;
 }
 
-const initial = { nome_comercial: '', handle: '', categoria: '', municipio: '', descricao: '', email: '', termos: false, sandbox: false };
+const initial = {
+  nome_comercial: '', handle: '', categoria: '', municipio: '', descricao: '', email: '',
+  rep_nome: '', rep_papel: '', rep_email: '', rep_telefone: '', nif: '',
+  doc_registo: false, doc_id: false,
+  termos: false, sandbox: false,
+};
+type FormState = typeof initial;
 
 export function CandidaturaPage({ lang }: { lang: Lang }) {
   const t = T[lang];
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
-  const [f, setF] = useState<typeof initial>({ ...initial });
+  const [f, setF] = useState<FormState>({ ...initial });
   const [err, setErr] = useState<Errs>({});
   const [appRef, setAppRef] = useState('');
   const [sending, setSending] = useState(false);
@@ -219,13 +303,13 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const fillMany = (obj: Partial<typeof initial>) => {
+  const fillMany = (obj: Partial<FormState>) => {
     setF((s) => ({ ...s, ...obj }));
     setErr((e) => { const n = { ...e }; Object.keys(obj).forEach((k) => delete n[k]); return n; });
     setToast({ id: Date.now(), msg: t.sbxToast });
   };
   const seed = () => Math.floor(1000 + Math.random() * 9000);
-  const fillStep1 = () => fillMany({
+  const step1Data = (): Partial<FormState> => ({
     nome_comercial: lang === 'en' ? 'Kilamba Canteen' : 'Cantina do Kilamba',
     handle: `cantina_teste_${seed()}`,
     categoria: t.categorias[0],
@@ -233,15 +317,39 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     descricao: lang === 'en' ? 'Meals and drinks to go' : 'Refeições e bebidas para levar',
     email: `negocio.teste${seed()}@exemplo.co.ao`,
   });
-  const fillStep2 = () => fillMany({ termos: true, sandbox: true });
+  const step2Data = (): Partial<FormState> => ({
+    rep_nome: lang === 'en' ? 'Alex Test' : 'Alex de Teste',
+    rep_papel: lang === 'en' ? 'Managing partner' : 'Sócio-gerente',
+    rep_email: `representante.teste${seed()}@exemplo.co.ao`,
+    rep_telefone: '+244 900 000 000',
+    // A clearly-synthetic tax ID — never the operator's real NIF.
+    nif: `5000${seed()}00`,
+  });
+  const step3Data = (): Partial<FormState> => ({ doc_registo: true, doc_id: true });
+  const fillStep1 = () => fillMany(step1Data());
+  const fillStep2 = () => fillMany(step2Data());
+  const fillStep3 = () => fillMany(step3Data());
+  // One click from Step 1 populates the ENTIRE wizard (fields + both fixtures +
+  // acknowledgements) so the whole Sandbox flow is valid without inventing data.
+  const fillAll = () => fillMany({ ...step1Data(), ...step2Data(), ...step3Data(), termos: true, sandbox: true });
 
   const rules: Record<string, { re?: RegExp; bad?: string; msg?: string }> = {
     email: { re: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, bad: t.v_email },
     handle: { re: HANDLE_RE, bad: t.v_handle },
+    rep_email: { re: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, bad: t.v_email },
+    nif: { re: NIF_RE, bad: t.v_nif },
+    doc_registo: { msg: t.v_doc },
+    doc_id: { msg: t.v_doc },
     termos: { msg: t.v_termos },
     sandbox: { msg: t.v_sandbox },
   };
-  const stepFields: Record<number, string[]> = { 1: ['nome_comercial', 'handle', 'categoria', 'email'], 2: ['termos', 'sandbox'] };
+  const stepFields: Record<number, string[]> = {
+    1: ['nome_comercial', 'handle', 'categoria', 'email'],
+    2: ['rep_nome', 'rep_papel', 'rep_email', 'nif'],
+    3: ['doc_registo', 'doc_id'],
+    4: ['termos', 'sandbox'],
+  };
+  const LAST = 4;
 
   const set = (name: string, v: string | boolean) => {
     // The @handle is always lowercase; normalise as the user types.
@@ -266,7 +374,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     return !Object.keys(e).length;
   };
 
-  const next = () => { if (validate(stepFields[step] || [])) setStep((s) => Math.min(2, s + 1)); };
+  const next = () => { if (validate(stepFields[step] || [])) setStep((s) => Math.min(LAST, s + 1)); };
   const back = () => { setStep((s) => Math.max(1, s - 1)); setErr({}); };
 
   const submit = async (e?: React.FormEvent) => {
@@ -283,6 +391,14 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
         email: f.email.trim(),
         municipality: f.municipio.trim() || undefined,
         business_activity: f.descricao.trim() || undefined,
+        nif: f.nif.trim() || undefined,
+        legal_representative: f.rep_nome.trim() || undefined,
+        representative_role: f.rep_papel.trim() || undefined,
+        representative_email: f.rep_email.trim() || undefined,
+        representative_phone: f.rep_telefone.trim() || undefined,
+        // The attached synthetic fixtures — recorded as Sandbox test documents,
+        // kept separate from the real LIVE KYB pipeline.
+        sandbox_documents: SANDBOX_DOCS.filter((d) => f[d.field]).map((d) => d.id),
         terms_accepted: true,
         // Only send a version once the Terms are actually published.
         terms_version: isTermsPublished() ? (TERMS.version ?? undefined) : undefined,
@@ -294,10 +410,9 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
         return;
       }
       // Map server refusals to a field where possible; otherwise a banner.
-      if (res.code === 'INVALID_HANDLE') setErr((prev) => ({ ...prev, handle: t.v_handle }));
-      else if (res.code && /HANDLE|TAKEN|RESERVED/i.test(res.code)) setErr((prev) => ({ ...prev, handle: t.v_handle_taken }));
+      if (res.code === 'INVALID_HANDLE') { setErr((prev) => ({ ...prev, handle: t.v_handle })); setStep(1); }
+      else if (res.code && /HANDLE|TAKEN|RESERVED/i.test(res.code)) { setErr((prev) => ({ ...prev, handle: t.v_handle_taken })); setStep(1); }
       else setErr((prev) => ({ ...prev, submit: res.error || t.v_submit }));
-      if (res.code === 'INVALID_HANDLE' || (res.code && /HANDLE|TAKEN|RESERVED/i.test(res.code))) setStep(1);
     } catch {
       setErr((prev) => ({ ...prev, submit: t.v_submit }));
     } finally {
@@ -339,7 +454,7 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
 
                 {!done && step === 1 && (
                   <>
-                    <StepHead kicker={t.of(1)} title={t.s1t} sub={t.s1s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep1} /> : undefined} />
+                    <StepHead kicker={t.of(1)} title={t.s1t} sub={t.s1s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillAll} /> : undefined} />
                     <FGrid>
                       <Field name="nome_comercial" label={t.l_nome_comercial} placeholder={t.ph_nome_comercial} autoComplete="organization" value={f.nome_comercial} error={err.nome_comercial} onChange={(v) => set('nome_comercial', v)} />
                       <Field name="handle" label={t.l_handle} placeholder={t.ph_handle} hint={t.hint_handle} mono value={f.handle} error={err.handle} onChange={(v) => set('handle', v)} />
@@ -354,13 +469,46 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
 
                 {!done && step === 2 && (
                   <>
-                    <StepHead kicker={t.of(2)} title={t.s4t} sub={t.s4s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep2} /> : undefined} />
+                    <StepHead kicker={t.of(2)} title={t.s2t} sub={t.s2s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep2} /> : undefined} />
+                    <FGrid>
+                      <Field name="rep_nome" label={t.l_rep_nome} placeholder={t.ph_rep_nome} autoComplete="name" value={f.rep_nome} error={err.rep_nome} onChange={(v) => set('rep_nome', v)} />
+                      <Field name="rep_papel" label={t.l_rep_papel} placeholder={t.ph_rep_papel} value={f.rep_papel} error={err.rep_papel} onChange={(v) => set('rep_papel', v)} />
+                      <Field name="rep_email" label={t.l_rep_email} type="email" placeholder={t.ph_rep_email} autoComplete="email" value={f.rep_email} error={err.rep_email} onChange={(v) => set('rep_email', v)} />
+                      <Field name="rep_telefone" label={t.l_rep_telefone} type="tel" placeholder={t.ph_rep_telefone} required={false} autoComplete="tel" value={f.rep_telefone} error={err.rep_telefone} onChange={(v) => set('rep_telefone', v)} />
+                      <Field name="nif" label={t.l_nif} placeholder={t.ph_nif} hint={t.hint_nif} mono value={f.nif} error={err.nif} onChange={(v) => set('nif', v)} />
+                    </FGrid>
+                    <StepFooter><BackBtn onClick={back}>{t.voltar}</BackBtn><SubmitBtn type="button" onClick={next}>{t.continuar}</SubmitBtn></StepFooter>
+                  </>
+                )}
+
+                {!done && step === 3 && (
+                  <>
+                    <StepHead kicker={t.of(3)} title={t.s3t} sub={t.s3s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep3} /> : undefined} />
+                    <div style={{ display: 'flex', gap: '9px', alignItems: 'flex-start', padding: '12px 16px', borderRadius: '14px', background: '#FCEFC4', border: '1px solid #E9C66A', marginBottom: '16px' }}>
+                      <span style={{ flex: 'none', color: '#7A4A06', marginTop: '1px' }}><Icon name="info" color="currentColor" size={16} /></span>
+                      <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.5, fontWeight: 700, color: '#7A4A06' }}>{t.docWarn}</p>
+                    </div>
+                    <FGrid>
+                      <DocCard name="doc_registo" title={t.doc1_t} desc={t.doc1_d} useLabel={t.docUseTest} loadedLabel={t.docLoaded} attached={f.doc_registo} error={err.doc_registo} onAttach={() => set('doc_registo', true)} />
+                      <DocCard name="doc_id" title={t.doc2_t} desc={t.doc2_d} useLabel={t.docUseTest} loadedLabel={t.docLoaded} attached={f.doc_id} error={err.doc_id} onAttach={() => set('doc_id', true)} />
+                    </FGrid>
+                    <StepFooter><BackBtn onClick={back}>{t.voltar}</BackBtn><SubmitBtn type="button" onClick={next}>{t.continuar}</SubmitBtn></StepFooter>
+                  </>
+                )}
+
+                {!done && step === 4 && (
+                  <>
+                    <StepHead kicker={t.of(4)} title={t.s4t} sub={t.s4s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillAll} /> : undefined} />
                     <div style={{ padding: '4px 18px', borderRadius: '18px', background: '#FFFBFA', border: '1px solid #F5E8E6', marginBottom: '18px' }}>
                       <SumRow label={t.sum.negocio} value={f.nome_comercial} />
                       <SumRow label={t.sum.handle} value={f.handle ? '@' + f.handle : ''} />
                       <SumRow label={t.sum.categoria} value={f.categoria} />
                       <SumRow label={t.sum.email} value={f.email} />
+                      <SumRow label={t.sum.rep} value={[f.rep_nome, f.rep_papel].filter(Boolean).join(' · ')} />
+                      <SumRow label={t.sum.nif} value={f.nif} />
+                      <SumRow label={t.sum.docs} value={f.doc_registo && f.doc_id ? t.docsValue : ''} />
                     </div>
+                    <p style={{ margin: '0 0 16px', fontSize: '12.5px', lineHeight: 1.5, fontWeight: 700, color: '#7A4A06' }}>{t.confirmNote}</p>
                     <FGrid>
                       <Check name="termos" checked={f.termos} error={err.termos} onChange={(v) => set('termos', v)} label={<>{t.termosPre}<a href={route('termos', lang)} target="_blank" rel="noopener noreferrer">{t.termos}</a>{t.termosMid}<a href={route('privacidade', lang)} target="_blank" rel="noopener noreferrer">{t.privacidade}</a>{t.termosPost}</>} />
                       <Check name="sandbox" checked={f.sandbox} error={err.sandbox} onChange={(v) => set('sandbox', v)} label={t.sandboxLabel} />
