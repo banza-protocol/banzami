@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../config.dart';
 import '../services/merchant_session_service.dart';
 
 /// Max KYB document size accepted by the app (matches the operator default).
@@ -301,19 +302,27 @@ class _KybScreenState extends State<KybScreen> {
           return const _OverallView('Documentos expirados', 'Atualize os documentos expirados.',
               BanzamiColors.warning, Icons.event_busy_outlined);
         }
-        final c = _compliance;
-        if (c != null && c.canWithdraw) {
-          return const _OverallView('Aprovado',
-              'O seu negócio está verificado. Levantamentos disponíveis.',
-              BanzamiColors.success, Icons.verified_rounded);
+        // Withdrawal availability is a separate real-money capability. In the
+        // Sandbox it is intentionally unavailable (AppConfig.withdrawalsEnabled),
+        // so KYB approval confirms verification WITHOUT claiming withdrawals are
+        // available — the dashboard's "Levantamentos" card is the one authority
+        // on that state. The withdrawal-specific messaging returns only when
+        // real-money operations are enabled.
+        if (AppConfig.withdrawalsEnabled) {
+          final c = _compliance;
+          if (c != null && c.canWithdraw) {
+            return const _OverallView('Aprovado',
+                'O seu negócio está verificado. Levantamentos disponíveis.',
+                BanzamiColors.success, Icons.verified_rounded);
+          }
+          if (c != null) {
+            return const _OverallView('Verificação AML em curso',
+                'Documentos aprovados. Os levantamentos ficam disponíveis quando '
+                'a verificação AML estiver concluída.',
+                BanzamiColors.warning, Icons.hourglass_top_rounded);
+          }
         }
-        if (c != null) {
-          return const _OverallView('Verificação AML em curso',
-              'Documentos aprovados. Os levantamentos ficam disponíveis quando '
-              'a verificação AML estiver concluída.',
-              BanzamiColors.warning, Icons.hourglass_top_rounded);
-        }
-        return const _OverallView('Aprovado', 'Os documentos do negócio estão aprovados.',
+        return const _OverallView('Aprovado', 'O seu negócio está verificado.',
             BanzamiColors.success, Icons.verified_rounded);
       case 'REJECTED':
         return const _OverallView('Rejeitado', 'A verificação foi recusada. Reenvie os documentos.',

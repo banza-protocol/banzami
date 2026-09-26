@@ -494,7 +494,22 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
       itemCount: _links.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
         if (i == _links.length) {
-          if (!_loading) _load();
+          // A follow-on page that failed waits for a tap — never re-requested on
+          // every frame (an endless spinner + unbounded retry masking the error).
+          if (_error != null) {
+            return Padding(
+              padding: const EdgeInsets.all(BanzamiSpacing.lg),
+              child:   Center(child: BanzamiGhostButton(
+                label:     'Tentar novamente',
+                onPressed: _load,
+              )),
+            );
+          }
+          if (!_loading) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _load();
+            });
+          }
           return const Padding(
             padding: EdgeInsets.all(BanzamiSpacing.xl),
             child:   Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
@@ -674,7 +689,16 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
       return const Center(child: CircularProgressIndicator());
     }
     if (_items.isEmpty && _error != null) {
-      return _emptyState(icon: Icons.error_outline, label: _error!);
+      // A real fetch failure is an ERROR, not an empty "nothing here yet" state:
+      // red error treatment + retry, matching the Transacções and Cobranças tabs.
+      // Never dress a backend failure as a reassuring empty state.
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
+        const SizedBox(height: BanzamiSpacing.md),
+        Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+        const SizedBox(height: BanzamiSpacing.lg),
+        BanzamiGhostButton(label: 'Tentar novamente', onPressed: _load),
+      ]));
     }
     if (_items.isEmpty) {
       return _emptyState(icon: Icons.receipt_long_outlined, label: 'Sem pagamentos recebidos');
@@ -687,7 +711,23 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
         separatorBuilder: (_, __) => const SizedBox(height: BanzamiSpacing.sm),
         itemBuilder: (context, i) {
           if (i >= _items.length) {
-            _load();
+            // A follow-on page that failed waits for a tap — it is never
+            // re-requested every frame (which would be an endless spinner +
+            // unbounded retry loop masking the error).
+            if (_error != null) {
+              return Padding(
+                padding: const EdgeInsets.all(BanzamiSpacing.md),
+                child:   Center(child: BanzamiGhostButton(
+                  label:     'Tentar novamente',
+                  onPressed: _load,
+                )),
+              );
+            }
+            if (!_loading) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _load();
+              });
+            }
             return const Padding(
               padding: EdgeInsets.all(BanzamiSpacing.md),
               child: Center(child: CircularProgressIndicator()),

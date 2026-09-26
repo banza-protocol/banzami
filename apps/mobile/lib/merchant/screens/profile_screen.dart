@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/banzami_premium_dialog.dart';
+import '../config.dart';
 import '../services/merchant_reauth.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_status_badge.dart';
@@ -141,17 +142,23 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
               ),
             ),
 
-            const SizedBox(height: BanzamiSpacing.sm),
-
-            _ActionTile(
-              icon:     Icons.account_balance_outlined,
-              label:    'Pedir levantamento',
-              sublabel: 'Transferir saldo para conta bancária',
-              color:    BanzamiColors.primary,
-              onTap:    () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PayoutScreen()),
+            // Withdrawals (payouts) are a real-money cash-out and are
+            // intentionally unavailable in the Sandbox (AppConfig.withdrawalsEnabled).
+            // Don't offer a shortcut that only leads to the unavailable screen —
+            // the dashboard's "Levantamentos" card is the one authority that
+            // explains the state. The shortcut returns when real-money ships.
+            if (AppConfig.withdrawalsEnabled) ...[
+              const SizedBox(height: BanzamiSpacing.sm),
+              _ActionTile(
+                icon:     Icons.account_balance_outlined,
+                label:    'Pedir levantamento',
+                sublabel: 'Transferir saldo para conta bancária',
+                color:    BanzamiColors.primary,
+                onTap:    () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PayoutScreen()),
+                ),
               ),
-            ),
+            ],
 
             // Programadores — a Developer Project connects to this Business
             // only with a consent code issued here.
