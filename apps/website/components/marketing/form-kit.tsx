@@ -86,6 +86,38 @@ export function OptBtns({ name, label, options, value, onChange }: { name: strin
   );
 }
 
+// Multi-select cards: each option is an independent checkbox, not a radio. The
+// caller owns a Set of selected ids; a tap toggles only that option, so any
+// combination (one, the other, or both) is expressible. Same card visual as
+// OptBtns (border + tint when selected); the whole card is the touch target.
+export function MultiOptBtns({ name, label, options, selected, error, onToggle }: {
+  name: string;
+  label: string;
+  options: { id: string; title: string; desc?: string; icon?: IconName }[];
+  selected: ReadonlySet<string>;
+  error?: string;
+  onToggle: (id: string) => void;
+}) {
+  const errId = error ? `${name}-err` : undefined;
+  return (
+    <div role="group" aria-label={label} aria-describedby={errId} style={{ display: 'flex', flexDirection: 'column', gap: '7px', gridColumn: '1 / -1' }}>
+      <span style={{ fontSize: '13px', fontWeight: 800, color: '#2a2024' }}>{label}</span>
+      <div className="bz-g2s" style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length},minmax(0,1fr))`, gap: '10px' }}>
+        {options.map((o) => {
+          const on = selected.has(o.id);
+          return (
+            <button key={o.id} type="button" role="checkbox" aria-checked={on} aria-label={o.title} onClick={() => onToggle(o.id)} style={{ display: 'flex', gap: '12px', alignItems: 'center', textAlign: 'left', padding: '14px', borderRadius: '16px', cursor: 'pointer', fontFamily: 'inherit', border: `1.5px solid ${on ? '#D8121F' : '#EFDCDA'}`, background: on ? '#FFF6F5' : '#fff', transition: 'border-color .2s, background .2s' }}>
+              {o.icon && <IconBox name={o.icon} s={36} />}
+              <span><span style={{ display: 'block', fontSize: '14px', fontWeight: 900, color: '#141014' }}>{o.title}</span>{o.desc && <span style={{ display: 'block', marginTop: '2px', fontSize: '12px', fontWeight: 600, color: '#8a7a7e' }}>{o.desc}</span>}</span>
+            </button>
+          );
+        })}
+      </div>
+      {error && <p id={errId} role="alert" style={{ margin: 0, fontSize: '12.5px', fontWeight: 700, color: '#C8101F' }}>{error}</p>}
+    </div>
+  );
+}
+
 export function FGrid({ cols = 2, children }: { cols?: number; children: ReactNode }) {
   return <div className="bz-fgrid" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols},minmax(0,1fr))`, gap: '16px 18px' }}>{children}</div>;
 }

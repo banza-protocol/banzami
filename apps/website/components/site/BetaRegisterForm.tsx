@@ -211,7 +211,7 @@ export function BetaRegisterForm({
       setDone(true);
       onSuccess?.();
     } else {
-      setErr(res.message === 'default' ? t.errDefault : res.message);
+      setErr(t.errDefault);
     }
   }
 

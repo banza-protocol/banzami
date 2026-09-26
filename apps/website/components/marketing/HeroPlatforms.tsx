@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Field, OptBtns, Check, SubmitBtn, SuccessMark } from './form-kit';
-import { submitBetaRegistration, type BetaPlatform, type BetaApp } from '@/lib/beta';
+import { Field, MultiOptBtns, Check, SubmitBtn, SuccessMark } from './form-kit';
+import { submitBetaRegistration, splitFullName, type BetaPlatform, type BetaApp } from '@/lib/beta';
 import { route, type Lang, type Loc } from '@/lib/marketing/nav';
 
 const APP_URL = 'https://app.banzami.com/';
@@ -15,18 +15,20 @@ const T = {
   title: L('Inscrição de tester', 'Tester sign-up'),
   subIOS: L('iPhone · TestFlight', 'iPhone · TestFlight'),
   subAndroid: L('Android · Google Play', 'Android · Google Play'),
-  name: L('Nome', 'Name'), namePh: L('O seu nome', 'Your name'),
+  name: L('Nome completo', 'Full name'), namePh: L('O seu nome completo', 'Your full name'),
   email: L('E-mail', 'Email'),
-  appLabel: L('App que quer testar', 'App you want to test'),
+  appLabel: L('Apps que quer testar', 'Apps you want to test'),
   appBanzami: L('App Banzami', 'App Banzami'), appBanzamiDesc: L('Pagar e receber', 'Pay and get paid'),
   appBusiness: L('Banzami Business', 'Banzami Business'), appBusinessDesc: L('Para negócios', 'For business'),
   consent: L('Aceito receber o convite e comunicações do Programa Beta por e-mail.', 'I agree to receive the Beta Programme invite and communications by email.'),
   privacy: L('Privacidade', 'Privacy'),
   send: L('Enviar inscrição', 'Send sign-up'), sending: L('A enviar…', 'Sending…'),
-  reqField: L('Campo obrigatório.', 'Required field.'),
-  badEmail: L('Introduza um e-mail válido.', 'Enter a valid email.'),
-  mustConsent: L('É necessário aceitar para continuar.', 'You must accept to continue.'),
-  fail: L('Não foi possível enviar. Tente novamente.', 'We could not send it. Please try again.'),
+  badName: L('Introduza o seu nome completo, incluindo nome e apelido.', 'Enter your full name, including first and last name.'),
+  badEmail: L('Introduza um endereço de e-mail válido.', 'Enter a valid email address.'),
+  needApp: L('Selecione pelo menos uma app que pretende testar.', 'Select at least one app you want to test.'),
+  mustConsent: L('Confirme que aceita receber o convite e as comunicações do Programa Beta.', 'Confirm that you accept receiving the Beta Programme invite and communications.'),
+  fail: L('Não foi possível enviar a inscrição. Tente novamente dentro de alguns instantes.', 'We could not send your sign-up. Please try again in a few moments.'),
+  rateLimit: L('Foram feitas várias tentativas. Tente novamente mais tarde.', 'Too many attempts. Please try again later.'),
   okTitle: L('Inscrição recebida', 'You are in'),
   okSub: L('Entramos em contacto por e-mail quando a sua vaga abrir.', 'We will email you when your spot opens.'),
   close: L('Fechar', 'Close'),
@@ -54,13 +56,23 @@ const ANDROID = <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><pat
 export function HeroPlatforms({ lang }: { lang: Lang }) {
   const [platform, setPlatform] = useState<BetaPlatform | null>(null); // null = closed
   const [f, setF] = useState({ nome: '', email: '', consent: false });
-  const [appSel, setAppSel] = useState<string>(T.appBanzami[lang]); // App Banzami by default
+  // Independent selections — one, the other, or both. App Banzami on by default.
+  const [apps, setApps] = useState<Set<BetaApp>>(() => new Set<BetaApp>(['APP_BANZAMI']));
   const [err, setErr] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
   const [sendErr, setSendErr] = useState('');
   const [done, setDone] = useState(false);
 
-  const open = (p: BetaPlatform) => { setPlatform(p); setF({ nome: '', email: '', consent: false }); setAppSel(T.appBanzami[lang]); setErr({}); setSendErr(''); setDone(false); };
+  const toggleApp = (id: string) => {
+    setApps((prev) => {
+      const next = new Set(prev);
+      if (next.has(id as BetaApp)) next.delete(id as BetaApp); else next.add(id as BetaApp);
+      return next;
+    });
+    setErr((e) => ({ ...e, apps: '' }));
+  };
+
+  const open = (p: BetaPlatform) => { setPlatform(p); setF({ nome: '', email: '', consent: false }); setApps(new Set<BetaApp>(['APP_BANZAMI'])); setErr({}); setSendErr(''); setDone(false); };
   const close = () => setPlatform(null);
 
   useEffect(() => {
@@ -73,18 +85,25 @@ export function HeroPlatforms({ lang }: { lang: Lang }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Local validation first — a fixable field error never spends a backend
+    // request (rate-limit economy) and is explained specifically, inline.
     const next: Record<string, string> = {};
-    if (!f.nome.trim()) next.nome = T.reqField[lang];
-    if (!f.email.trim()) next.email = T.reqField[lang]; else if (!EMAIL_RE.test(f.email.trim())) next.email = T.badEmail[lang];
+    const nameParts = splitFullName(f.nome);
+    if (!nameParts) next.nome = T.badName[lang];
+    if (!f.email.trim() || !EMAIL_RE.test(f.email.trim())) next.email = T.badEmail[lang];
+    if (apps.size === 0) next.apps = T.needApp[lang];
     if (!f.consent) next.consent = T.mustConsent[lang];
     setErr(next);
-    if (Object.keys(next).length || !platform) return;
-    setSending(true); setSendErr('');
-    const parts = f.nome.trim().split(/\s+/);
-    const app: BetaApp = appSel === T.appBusiness[lang] ? 'APP_MERCHANT' : 'APP_BANZAMI';
-    const res = await submitBetaRegistration({ first_name: parts[0], last_name: parts.slice(1).join(' '), email: f.email.trim(), platform, apps: [app], source: 'home-hero' });
+    setSendErr('');
+    if (Object.keys(next).length || !platform || !nameParts) return;
+    setSending(true);
+    const res = await submitBetaRegistration({ first_name: nameParts.first, last_name: nameParts.last, email: f.email.trim(), platform, apps: [...apps], source: 'home-hero' });
     setSending(false);
-    if (res.ok) setDone(true); else setSendErr(T.fail[lang]);
+    if (res.ok) { setDone(true); return; }
+    // Map the backend reason to a specific message where one exists; otherwise a
+    // generic try-again. INVALID_EMAIL binds to the field; the rest are general.
+    if (res.code === 'INVALID_EMAIL') setErr((prev) => ({ ...prev, email: T.badEmail[lang] }));
+    else setSendErr(res.code === 'RATE_LIMIT' ? T.rateLimit[lang] : T.fail[lang]);
   };
 
   return (
@@ -108,7 +127,7 @@ export function HeroPlatforms({ lang }: { lang: Lang }) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '16px 18px' }} className="bz-fgrid">
                   <Field name="nome" label={T.name[lang]} placeholder={T.namePh[lang]} autoComplete="name" value={f.nome} error={err.nome} onChange={(v) => { setF((s) => ({ ...s, nome: v })); setErr((e) => ({ ...e, nome: '' })); }} />
                   <Field name="email" label={T.email[lang]} type="email" placeholder="nome@exemplo.ao" autoComplete="email" value={f.email} error={err.email} onChange={(v) => { setF((s) => ({ ...s, email: v })); setErr((e) => ({ ...e, email: '' })); }} />
-                  <OptBtns name="app" label={T.appLabel[lang]} value={appSel} onChange={setAppSel} options={[{ value: T.appBanzami[lang], desc: T.appBanzamiDesc[lang], icon: 'phone' }, { value: T.appBusiness[lang], desc: T.appBusinessDesc[lang], icon: 'store' }]} />
+                  <MultiOptBtns name="apps" label={T.appLabel[lang]} selected={apps} error={err.apps} onToggle={toggleApp} options={[{ id: 'APP_BANZAMI', title: T.appBanzami[lang], desc: T.appBanzamiDesc[lang], icon: 'phone' }, { id: 'APP_MERCHANT', title: T.appBusiness[lang], desc: T.appBusinessDesc[lang], icon: 'store' }]} />
                   <Check name="consent" checked={f.consent} error={err.consent} onChange={(v) => { setF((s) => ({ ...s, consent: v })); setErr((e) => ({ ...e, consent: '' })); }} label={<>{T.consent[lang]} <a href={route('privacidade', lang)} style={{ color: '#B5101F', fontWeight: 800 }}>{T.privacy[lang]}</a>.</>} />
                 </div>
                 {sendErr && <p role="alert" style={{ margin: '16px 0 0', fontSize: '12.5px', fontWeight: 700, color: '#C8101F' }}>{sendErr}</p>}

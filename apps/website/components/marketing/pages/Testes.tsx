@@ -12,13 +12,14 @@
 
 import { useState } from 'react';
 import { Badge, SectionLabel, H1, H2, Btn, Icon, type IconName } from '../kit';
-import { Field, OptBtns, Check, FGrid, SubmitBtn, SuccessMark } from '../form-kit';
+import { Field, MultiOptBtns, Check, FGrid, SubmitBtn, SuccessMark } from '../form-kit';
 import { Rotator } from '../Rotator';
 import { Reveal } from '@/components/Reveal';
 import { LiveClock } from '@/components/site/LiveClock';
 import { route, APP_URL, type Lang, type Loc } from '@/lib/marketing/nav';
 import {
   submitBetaRegistration,
+  splitFullName,
   type BetaApp,
   type BetaPlatform,
 } from '@/lib/beta';
@@ -68,11 +69,11 @@ const T = {
   // form
   formTitle: L('Inscrição de tester', 'Tester sign-up'),
   formSub: L('Leva menos de um minuto.', 'Takes less than a minute.'),
-  fNome: L('Nome', 'Name'),
-  fNomePh: L('O seu nome', 'Your name'),
+  fNome: L('Nome completo', 'Full name'),
+  fNomePh: L('O seu nome completo', 'Your full name'),
   fEmail: L('E-mail', 'Email'),
   fEmailPh: L('nome@exemplo.ao', 'name@example.com'),
-  fApp: L('App que quer testar', 'App you want to test'),
+  fApp: L('Apps que quer testar', 'Apps you want to test'),
   appBanzami: L('App Banzami', 'Banzami app'),
   appBanzamiDesc: L('Pagar e receber', 'Pay and receive'),
   appBusiness: L('Banzami Business', 'Banzami Business'),
@@ -86,9 +87,15 @@ const T = {
   successTitle: L('Inscrição recebida', 'You are in!'),
   successBody: L('Enviamos o convite por e-mail quando abrir a próxima etapa.', 'We will email your invite when the next stage opens.'),
   sendAnother: L('Enviar outro', 'Send another'),
-  // validation (dossier engine defaults)
+  // validation
   errRequired: L('Campo obrigatório.', 'Required field.'),
-  errInvalid: L('Valor inválido.', 'Invalid value.'),
+  errBadName: L('Introduza o seu nome completo, incluindo nome e apelido.', 'Enter your full name, including first and last name.'),
+  errBadEmail: L('Introduza um endereço de e-mail válido.', 'Enter a valid email address.'),
+  errNeedApp: L('Selecione pelo menos uma app que pretende testar.', 'Select at least one app you want to test.'),
+  errConsent: L('Confirme que aceita receber o convite e as comunicações do Programa Beta.', 'Confirm that you accept receiving the Beta Programme invite and communications.'),
+  errSend: L('Não foi possível enviar a inscrição. Tente novamente dentro de alguns instantes.', 'We could not send your sign-up. Please try again in a few moments.'),
+  errRate: L('Foram feitas várias tentativas. Tente novamente mais tarde.', 'Too many attempts. Please try again later.'),
+  sending: L('A enviar…', 'Sending…'),
 } as const;
 
 // The three channel cards (01).
@@ -113,13 +120,6 @@ function looksLikeEmail(e: string): boolean {
   if (t.length < 5 || t.length > 254 || /\s/.test(t)) return false;
   const at = t.indexOf('@');
   return at > 0 && at === t.lastIndexOf('@') && at < t.length - 1 && t.slice(at + 1).includes('.');
-}
-
-// Map the dossier's app label to the beta app id (both language labels).
-function appId(app: string): BetaApp | null {
-  if (app === 'App Banzami' || app === 'Banzami app') return 'APP_BANZAMI';
-  if (app === 'Banzami Business') return 'APP_MERCHANT';
-  return null;
 }
 
 // Map the plataforma choice to the beta endpoint's platform enum. The endpoint
@@ -158,27 +158,42 @@ export function TestesPage({ lang }: { lang: Lang }) {
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
-  const [app, setApp] = useState('');
+  // Independent app selections — one, the other, or both. App Banzami on by default.
+  const [apps, setApps] = useState<Set<BetaApp>>(() => new Set<BetaApp>(['APP_BANZAMI']));
   const [plataforma, setPlataforma] = useState('');
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState('');
   const [done, setDone] = useState(false);
+
+  const toggleApp = (id: string) => {
+    setApps((prev) => {
+      const next = new Set(prev);
+      if (next.has(id as BetaApp)) next.delete(id as BetaApp); else next.add(id as BetaApp);
+      return next;
+    });
+    setErrors((e) => ({ ...e, apps: '' }));
+  };
 
   const platFocus = (e: React.FocusEvent<HTMLSelectElement>) => { e.currentTarget.style.borderColor = '#D8121F'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(216,18,31,.12)'; };
   const platBlur = (e: React.FocusEvent<HTMLSelectElement>) => { e.currentTarget.style.borderColor = '#EFDCDA'; e.currentTarget.style.boxShadow = 'none'; };
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Client validation, messages in the page language, focus first invalid.
+    // Client validation first — a fixable field error is explained specifically
+    // and never spends a backend request (rate-limit economy). Focus first invalid.
     const err: Record<string, string> = {};
-    if (!nome.trim()) err.nome = T.errRequired[lang];
-    if (!email.trim()) err.email = T.errRequired[lang];
-    else if (!looksLikeEmail(email)) err.email = T.errInvalid[lang];
+    const nameParts = splitFullName(nome);
+    if (!nameParts) err.nome = T.errBadName[lang];
+    if (!email.trim() || !looksLikeEmail(email)) err.email = T.errBadEmail[lang];
+    if (apps.size === 0) err.apps = T.errNeedApp[lang];
     if (!plataforma) err.plataforma = T.errRequired[lang];
-    if (!consent) err.consent = T.errRequired[lang];
+    if (!consent) err.consent = T.errConsent[lang];
     setErrors(err);
-    if (Object.keys(err).length) {
-      const first = ['nome', 'email', 'plataforma', 'consent'].find((k) => err[k]);
+    setSendErr('');
+    if (Object.keys(err).length || !nameParts) {
+      const first = ['nome', 'email', 'apps', 'plataforma', 'consent'].find((k) => err[k]);
       const el = first === 'consent'
         ? document.querySelector<HTMLInputElement>('input[name="consent"]')
         : document.getElementById('f_' + first) as HTMLElement | null;
@@ -186,27 +201,27 @@ export function TestesPage({ lang }: { lang: Lang }) {
       return;
     }
 
-    // A clear endpoint exists (the beta-tester capture): use it. The dossier
-    // form carries a single name, an optional app and a "Beta Web" platform, so
-    // we map conservatively (see appId/platformId).
-    const parts = nome.trim().split(/\s+/);
-    const chosen = appId(app);
-    await submitBetaRegistration({
-      first_name: parts[0],
-      last_name: parts.slice(1).join(' ') || parts[0],
+    setSending(true);
+    const res = await submitBetaRegistration({
+      first_name: nameParts.first,
+      last_name: nameParts.last,
       email: email.trim(),
       platform: platformId(plataforma),
-      apps: chosen ? [chosen] : ['APP_BANZAMI'],
+      apps: [...apps],
       source: 'testes',
     });
-    // A non-enumerating capture answers success either way; the dossier always
-    // shows the confirmation screen.
-    setDone(true);
+    setSending(false);
+    // Only a real success shows the confirmation. A failure keeps the form (data
+    // intact) and explains itself: a specific field where the reason maps to one,
+    // otherwise a generic try-again.
+    if (res.ok) { setDone(true); return; }
+    if (res.code === 'INVALID_EMAIL') setErrors((prev) => ({ ...prev, email: T.errBadEmail[lang] }));
+    else setSendErr(res.code === 'RATE_LIMIT' ? T.errRate[lang] : T.errSend[lang]);
   }
 
   function reset() {
-    setNome(''); setEmail(''); setApp(''); setPlataforma(''); setConsent(false);
-    setErrors({}); setDone(false);
+    setNome(''); setEmail(''); setApps(new Set<BetaApp>(['APP_BANZAMI'])); setPlataforma(''); setConsent(false);
+    setErrors({}); setSendErr(''); setDone(false);
   }
 
   return (
@@ -390,14 +405,15 @@ export function TestesPage({ lang }: { lang: Lang }) {
                       <FGrid cols={2}>
                         <Field name="nome" label={T.fNome[lang]} placeholder={T.fNomePh[lang]} autoComplete="name" value={nome} error={errors.nome} onChange={setNome} />
                         <Field name="email" label={T.fEmail[lang]} type="email" placeholder={T.fEmailPh[lang]} autoComplete="email" value={email} error={errors.email} onChange={setEmail} />
-                        <OptBtns
-                          name="app"
+                        <MultiOptBtns
+                          name="apps"
                           label={T.fApp[lang]}
-                          value={app}
-                          onChange={setApp}
+                          selected={apps}
+                          error={errors.apps}
+                          onToggle={toggleApp}
                           options={[
-                            { value: T.appBanzami[lang], desc: T.appBanzamiDesc[lang], icon: 'phone' },
-                            { value: T.appBusiness[lang], desc: T.appBusinessDesc[lang], icon: 'store' },
+                            { id: 'APP_BANZAMI', title: T.appBanzami[lang], desc: T.appBanzamiDesc[lang], icon: 'phone' },
+                            { id: 'APP_MERCHANT', title: T.appBusiness[lang], desc: T.appBusinessDesc[lang], icon: 'store' },
                           ]}
                         />
                         {/* plataforma — bespoke select so the placeholder is language-exact */}
@@ -424,8 +440,9 @@ export function TestesPage({ lang }: { lang: Lang }) {
                           label={<>{T.consentText[lang]}<a href={route('privacidade', lang)} target="_blank" rel="noopener noreferrer">{T.consentPrivacy[lang]}</a>.</>}
                         />
                       </FGrid>
+                      {sendErr && <p role="alert" style={{ margin: '16px 0 0', fontSize: '12.5px', fontWeight: 700, color: '#C8101F' }}>{sendErr}</p>}
                       <div style={{ marginTop: '22px' }}>
-                        <SubmitBtn>{T.submit[lang]}</SubmitBtn>
+                        <SubmitBtn>{sending ? T.sending[lang] : T.submit[lang]}</SubmitBtn>
                       </div>
                     </form>
                   ) : (

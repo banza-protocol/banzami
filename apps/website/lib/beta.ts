@@ -72,9 +72,24 @@ export type BetaRegistration = {
 
 export type BetaSubmitResult =
   | { ok: true }
-  // A friendly, non-enumerating failure: the message never says whether the
-  // email already exists.
-  | { ok: false; message: string };
+  // A failure carrying the backend reason code so the form can map it to a
+  // specific message; 'default' means network/timeout/5xx (a generic try-again),
+  // 'RATE_LIMIT' the per-IP daily cap. Never enumerates whether the email exists.
+  | { ok: false; code: string };
+
+/**
+ * Split a typed full name into first + last, requiring at least two non-empty
+ * segments (a given name and a family name). Whitespace is trimmed and collapsed.
+ * Accepts accents, hyphens and apostrophes — no anglo-centric regex. Returns null
+ * when the name is a single word or empty, which the form reports specifically.
+ */
+export function splitFullName(raw: string): { first: string; last: string } | null {
+  const norm = raw.trim().replace(/\s+/g, ' ');
+  if (!norm) return null;
+  const parts = norm.split(' ').filter((p) => p.length > 0);
+  if (parts.length < 2) return null;
+  return { first: parts[0], last: parts.slice(1).join(' ') };
+}
 
 /**
  * Record a beta registration. The gateway answers 200 for both a new and an
@@ -89,12 +104,13 @@ export async function submitBetaRegistration(input: BetaRegistration): Promise<B
       body: JSON.stringify({ website: '', ...input }),
     });
     if (res.ok) return { ok: true };
-    const j = await res.json().catch(() => ({}) as { message?: string });
-    if (res.status >= 400 && res.status < 500 && j.message) {
-      return { ok: false, message: j.message };
+    if (res.status === 429) return { ok: false, code: 'RATE_LIMIT' };
+    const j = await res.json().catch(() => ({}) as { code?: string });
+    if (res.status >= 400 && res.status < 500 && typeof j.code === 'string' && j.code) {
+      return { ok: false, code: j.code };
     }
-    return { ok: false, message: 'default' };
+    return { ok: false, code: 'default' };
   } catch {
-    return { ok: false, message: 'default' };
+    return { ok: false, code: 'default' };
   }
 }
