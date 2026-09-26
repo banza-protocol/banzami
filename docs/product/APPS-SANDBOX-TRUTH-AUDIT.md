@@ -5,7 +5,8 @@
 > real failure dressed as an empty state. No real-money capability is enabled by
 > this work — it only makes current availability truthful.
 
-**Status: `CONSUMER_AUDIT = COMPLETE` · `BUSINESS_AUDIT = COMPLETE` (2026-09-26).**
+**Status: `CONSUMER_AUDIT = COMPLETE` · `BUSINESS_AUDIT = COMPLETE` ·
+`OPEN_PRODUCT_TRUTH_ITEMS = 0` · `REAL_MONEY_OPERATIONS = DISABLED` (2026-09-26).**
 Every current user-facing surface of both apps was reviewed in source. The
 [feature matrix](SANDBOX-FEATURE-MATRIX.md) holds the per-screen state tables, the
 metric contract, cash-in/out classification, and external dependencies. This report
@@ -42,6 +43,7 @@ KPI/stats/volume widgets.
 | 7 | Consumer · Home notification bell | Button-styled bell with a null handler (dead CTA) | No Home notification action wired | Bell rendered only when `onNotifications` is wired; hidden (not inert) otherwise |
 | 8 | Business · History "Recebidos" initial error | Backend failure drawn as a neutral empty state ("…aparecerão aqui") with no retry | ERROR (real fetch failure) | Red error treatment + "Tentar novamente", matching the sibling tabs |
 | 9 | Business · History pagination (Cobranças + Recebidos) | A failed follow-on page re-requested every frame → endless spinner + unbounded retry (error masked as loading) | ERROR on that page | Failed page waits for a tap ("Tentar novamente"); next page auto-loads only via a post-frame callback when there is no error and no load in flight (the Transacções pattern) |
+| 10 | Consumer · Notificações | Interactive per-type toggles (incl. "Multicaixa Express") that reset on reopen and control nothing — implied a persistent setting that does not exist | No per-type preference store; push follows the device permission + server topic | Informational screen (no switches): what Banzami notifies about + "gerir no dispositivo". Nothing to reset; no false persistence |
 
 ## Principles applied
 
@@ -68,23 +70,20 @@ KPI/stats/volume widgets.
   updated `activity_item_label_test.dart`).
 - App: product-truth suites pass — `merchant/product_truth_test.dart` (withdrawal
   single-authority + history error/pagination), `consumer/product_truth_consumer_test.dart`
-  (Multicaixa cash-in truth + Home CTA wiring), `merchant/dashboard_widgets_test.dart`.
-- **Pre-existing, unrelated failures (not caused by this pass — confirmed identical
-  on the clean committed HEAD, `+10 -15`):** `merchant/header_golden_test.dart` (4,
-  env-mismatched macOS goldens), `payout_screen_test.dart` (3 — the withdrawal *form*
-  no longer renders in test builds because the deep-link guard shipped in the prior
-  pass makes the screen render the unavailable state; the test still asserts the old
-  form and needs updating), `receipt_canonical_test.dart` (7) and
-  `receive_auto_dismiss_test.dart` (1) — pre-existing on macOS. See follow-ups.
+  (Multicaixa cash-in truth + Home CTA wiring + notification-preference truth),
+  `merchant/dashboard_widgets_test.dart`, and `merchant/payout_screen_test.dart`
+  (rewritten to the `UNAVAILABLE_SANDBOX` contract — renders the unavailable state,
+  no submit CTA, no payout API probe, deep-link safe).
+- **Closure pass (2026-09-26):** the two previously-open items are now closed —
+  `payout_screen_test.dart` asserts the current unavailable contract (green because
+  the contract changed, not by weakening assertions), and the Consumer Notifications
+  screen no longer presents fake persistent toggles.
+- **Pre-existing, unrelated NON-product-truth failures** (confirmed identical on the
+  clean committed HEAD; not caused by this work, not product-truth items):
+  `merchant/header_golden_test.dart` (env-mismatched macOS goldens),
+  `receipt_canonical_test.dart` and `receive_auto_dismiss_test.dart` (macOS
+  golden/timing). Tracked separately (BETA-SANDBOX rebuild test fails).
 
-## Follow-ups (documented; out of this pass's money-truth scope)
+## Open product-truth items
 
-- **`payout_screen_test.dart`** asserts the old withdrawal form, which is
-  intentionally unreachable in Sandbox builds — update it to assert the unavailable
-  guard (pre-existing since the prior pass; not a regression here).
-- **Consumer Notifications toggles are local-only** — not persisted to any service,
-  so they reset on reopen. Unimplemented-preference gap, not a money-truth defect
-  (payment push is driven by FCM topic subscription). Persist them or present them as
-  read-only until wired.
-- The other pre-existing macOS golden/timing failures are tracked separately
-  (BETA-SANDBOX rebuild test fails).
+**None.** `OPEN_PRODUCT_TRUTH_ITEMS = 0`. Real-money operations remain disabled.

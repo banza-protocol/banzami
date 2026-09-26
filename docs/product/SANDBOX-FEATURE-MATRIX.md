@@ -36,7 +36,7 @@ indeterminate.
 | Payment received | Settlement confirmation | AVAILABLE_TEST_ONLY | none | "O valor já entrou na sua carteira." (only after settlement) |
 | Receipt | Comprovativo detail | AVAILABLE / LOADING / ERROR | none | "SANDBOX • Dinheiro de teste" badge; distinct loading vs retriable error |
 | Perfil | Profile / logout / remove | AVAILABLE | none | KYC row hidden in Sandbox (requiresIdentityVerification) |
-| Notificações | Preferences | AVAILABLE | none | "Multicaixa Express" toggle hidden in Sandbox; other toggles local-only (see follow-up) |
+| Notificações | Notification info | AVAILABLE | device permission | Informational only (no fake toggles): what Banzami notifies about + "gerir no dispositivo". Push follows the device permission + server topic |
 | Ajuda / Segurança | Support / security | AVAILABLE | none | honest "… em breve" for not-yet-shipped items |
 | KYC | Identity verification | UNAVAILABLE_SANDBOX (Live-only) | KYC provider | entry hidden in Sandbox; flow preserved for Live |
 
@@ -118,14 +118,13 @@ per app — no scattered `if (sandbox)` probes:
   KYB withdrawal-availability copy, and the payout screen guard.
 - **Consumer real-rail claims / KYC:** `AppConfig.isSandbox` /
   `AppConfig.requiresIdentityVerification` (consumer `config.dart`). Governs the
-  onboarding Multicaixa bullet, the Multicaixa notification toggle, and the KYC entry.
+  onboarding Multicaixa bullet and the KYC entry.
 
-## Known follow-up (documented, not a money-truth defect)
+## Open product-truth items
 
-- **Consumer Notifications toggles are local-only** (`notifications_screen.dart`):
-  the received/sent/promos/security switches hold `setState` state that is not
-  persisted or sent to any service, so they reset on reopen. This is an
-  unimplemented-preference gap, not a misrepresented Sandbox money capability. The
-  actual payment push behaviour is driven by FCM topic subscription, not these
-  toggles. Flagged for a follow-up that either persists them or presents them as
-  read-only until wired.
+**None** — `OPEN_PRODUCT_TRUTH_ITEMS = 0`.
+
+The Consumer Notifications screen no longer presents fake persistent toggles: it
+is informational (what Banzami notifies about + "gerir no dispositivo"), so no
+control implies a saved preference that does not exist and nothing resets on
+reopen. Push delivery follows the device permission and the server-named topic.
