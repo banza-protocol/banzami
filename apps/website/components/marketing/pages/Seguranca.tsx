@@ -76,11 +76,15 @@ const INCLUDE: Loc[] = [
   L('Impacto estimado', 'Estimated impact'),
   L('Como o contactar', 'How to contact you'),
 ];
+// Behavioural guidance for responsible testing — scope, environment, limits,
+// availability, disclosure — phrased so it never implies that Banzami currently
+// exposes other users' data.
 const ASK: Loc[] = [
-  L('Não aceda a dados de terceiros', 'Do not access third-party data'),
-  L('Não degrade o serviço', 'Do not degrade the service'),
-  L('Use apenas a Sandbox', 'Use only the Sandbox'),
-  L('Aguarde a correção antes de divulgar', 'Wait for the fix before disclosing'),
+  L('Teste apenas com as suas próprias contas e dados de teste', 'Test only with your own accounts and test data'),
+  L('Utilize exclusivamente a Sandbox', 'Use the Sandbox only'),
+  L('Não tente contornar controlos de acesso ou permissões', 'Do not attempt to bypass access controls or permissions'),
+  L('Não degrade nem interrompa o serviço', 'Do not degrade or disrupt the service'),
+  L('Aguarde a correção antes de divulgar publicamente', 'Wait for a fix before public disclosure'),
 ];
 
 const T = {
