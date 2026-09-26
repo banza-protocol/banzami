@@ -6,7 +6,19 @@ changed and why. Content hash = sha256 of `apps/website/lib/legal-content.ts`
 
 ## Terms of Service + Privacy Policy
 
-### 2026-09-beta.4 — 2026-09-26 (current)
+### 2026-09-beta.5 — 2026-09-26 (current)
+- **Editorial precision:** separates the technical guarantee from the usage rule
+  in Terms §10 and Privacy §05. Documents are stated as **exclusively synthetic
+  test documents provided by Banzami** (a guarantee — fixtures only, no real
+  uploads). The NIF/representative **text fields are editable**, so the copy now
+  says users **must use fictitious data** (an instruction), rather than claiming
+  the Sandbox "uses only synthetic data" for those fields. No meaning removed;
+  the statement is now literally accurate to the implementation.
+- Content hash: `390a627ac446d1758b686e15196de81b67813775a77b802fc375fb8afd63e08a`.
+- **Counsel sign-off:** still PENDING (BLOCKER-2).
+- **Reacceptance:** not forced.
+
+### 2026-09-beta.4 — 2026-09-26 (superseded)
 - **Material (factual parity):** the Sandbox Business application was restored to
   the **full onboarding flow** — business details, **representative details**,
   **NIF**, and a **documents step** — so the Sandbox rehearses the same journey the

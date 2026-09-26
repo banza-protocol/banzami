@@ -28,9 +28,15 @@ export type LegalSection = { id: string; n: string; title: Loc; body: Block[] };
 //                    real KYB verification and no real-money capability; document
 //                    fixtures are not real uploads. Counsel sign-off pending
 //                    (BLOCKER-2). Reacceptance not forced.
+//   2026-09-beta.5 — editorial precision: distinguish the technical guarantee
+//                    (documents are exclusively synthetic fixtures provided by
+//                    Banzami) from the usage rule (the editable NIF/representative
+//                    fields must be filled with fictitious data — an instruction,
+//                    not a guarantee). No absolute "Sandbox uses only synthetic
+//                    data" claim for the text fields. Reacceptance not forced.
 /** Immutable once published. Bump on any material change (see reacceptance). */
-export const TERMS_VERSION = '2026-09-beta.4';
-export const PRIVACY_VERSION = '2026-09-beta.4';
+export const TERMS_VERSION = '2026-09-beta.5';
+export const PRIVACY_VERSION = '2026-09-beta.5';
 /** ISO date the Beta legal documents take effect / were published. */
 export const LEGAL_EFFECTIVE_DATE = '2026-09-26';
 
@@ -178,8 +184,8 @@ export const TERMS_SECTIONS: LegalSection[] = [
         'A business can apply to access Banzami Business in the Sandbox to try QR charges, links and billing tools, with test money. Approving a Beta application grants Sandbox access and is not an approval for real financial services.',
       ),
       p(
-        'A candidatura Sandbox simula o processo completo — dados do negócio, do representante e documentos — com dados de teste e documentos de teste. Utilize apenas dados de teste e não envie documentos pessoais ou empresariais reais (ver Política de Privacidade). A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
-        'The Sandbox application rehearses the full process — business details, representative and documents — with test data and test documents. Use test data only and do not upload real personal or company documents (see the Privacy Policy). Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
+        'A candidatura Sandbox simula o processo completo — dados do negócio, do representante e documentos. Deve utilizar apenas dados fictícios: não introduza NIF, nome, contactos ou documentos reais (ver Política de Privacidade). Os documentos do fluxo são exclusivamente documentos sintéticos de teste fornecidos pelo Banzami; não são carregados ficheiros reais. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
+        'The Sandbox application rehearses the full process — business details, representative and documents. You must use fictitious data only: do not enter real tax IDs, names, contacts or documents (see the Privacy Policy). The documents in the flow are exclusively synthetic test documents provided by Banzami; no real files are uploaded. Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
       ),
     ],
   },
@@ -356,12 +362,12 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'dados-negocio', n: '05', title: { pt: 'Dados de negócios (candidaturas)', en: 'Business data (applications)' },
     body: [
       p(
-        'A candidatura Business em Sandbox simula o processo completo e regista o que introduzir nos campos: nome do negócio, @negócio pretendido, categoria, email de contacto e, nesta simulação, os dados do representante (nome, cargo, contactos) e o NIF que indicar (além de município e descrição, quando úteis). Peça-se que utilize apenas dados de teste e não introduza dados pessoais reais nem de terceiros.',
-        'The Business application in the Sandbox rehearses the full process and records what you enter: business name, requested @business handle, category, contact email and, in this rehearsal, the representative details (name, role, contacts) and the tax ID (NIF) you provide (plus municipality and description, where useful). Please use test data only and do not enter real personal or third-party data.',
+        'A candidatura Business em Sandbox simula o processo completo e regista o que introduzir nos campos: nome do negócio, @negócio pretendido, categoria, email de contacto e, nesta simulação, os dados do representante (nome, cargo, contactos) e o NIF que indicar (além de município e descrição, quando úteis). Estes campos são editáveis: pede-se que utilize apenas dados fictícios e que não introduza dados pessoais reais nem de terceiros.',
+        'The Business application in the Sandbox rehearses the full process and records what you enter: business name, requested @business handle, category, contact email and, in this rehearsal, the representative details (name, role, contacts) and the tax ID (NIF) you provide (plus municipality and description, where useful). These fields are editable: please use fictitious data only and do not enter real personal or third-party data.',
       ),
       p(
-        'O passo de documentos utiliza documentos de teste (fixtures): não são carregados ficheiros reais no acesso Sandbox. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
-        'The documents step uses test document fixtures: no real files are uploaded for Sandbox access. Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
+        'O passo de documentos utiliza exclusivamente documentos sintéticos de teste fornecidos pelo Banzami; não são carregados ficheiros reais no acesso Sandbox. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
+        'The documents step uses exclusively synthetic test documents provided by Banzami; no real files are uploaded for Sandbox access. Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
       ),
     ],
   },
