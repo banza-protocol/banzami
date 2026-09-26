@@ -153,6 +153,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             ? BanzamiEnvironment.sandbox
             : BanzamiEnvironment.production,
         onReceive:     () => setState(() => _tab = 2),
+        // "Ver tudo" on the recent-activity header opens the full history tab.
+        onSeeAllActivity: () => setState(() => _tab = 1),
       ),
       const HistoryScreen(),
       ReceiveHubScreen(

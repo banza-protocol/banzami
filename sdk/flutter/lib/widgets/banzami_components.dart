@@ -403,7 +403,10 @@ class BanzamiSectionTitle extends StatelessWidget {
               ),
             ),
           ),
-          if (action != null)
+          // Render the action only when it actually does something. A label
+          // styled as a tappable link with no handler is a dead CTA — never show
+          // one; the affordance appears exactly when [onAction] is wired.
+          if (action != null && onAction != null)
             GestureDetector(
               onTap: onAction,
               child: Text(

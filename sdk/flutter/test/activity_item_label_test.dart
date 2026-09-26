@@ -109,10 +109,18 @@ void main() {
       expect(bare.avatarInitial, 'A', reason: 'never "@"');
     });
 
-    test('funding with no counterparty falls back to Multicaixa', () {
+    test('funding with no counterparty falls back to a neutral category, never a fabricated rail', () {
+      // The Sandbox core always labels a top-up "Carregamento de teste"; if a
+      // funding row ever arrives without a name, the fallback must be the neutral
+      // category — never "Multicaixa" (a real cash-in rail that would misrepresent
+      // a Sandbox test grant as a bank/Multicaixa deposit).
       expect(
         _item(itemType: 'WALLET_FUNDED', direction: 'INCOMING').displayTitle,
-        'Multicaixa',
+        'Carregamento',
+      );
+      expect(
+        _item(itemType: 'WALLET_REVERSED', direction: 'OUTGOING').displayTitle,
+        'Estorno',
       );
     });
 

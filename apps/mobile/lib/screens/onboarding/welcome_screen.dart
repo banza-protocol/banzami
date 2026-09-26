@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../branding_assets.dart';
+import '../../config.dart';
 import 'create_account_screen.dart';
 import 'login_screen.dart';
 
@@ -94,7 +95,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     ...[
                       (Icons.qr_code_scanner_rounded, 'Pague por QR em qualquer loja'),
                       (Icons.send_rounded,            'Envie para qualquer @banza'),
-                      (Icons.account_balance_rounded, 'Multicaixa Express integrado'),
+                      // In the Sandbox there is no Multicaixa cash-in (test money
+                      // only), so the onboarding must not promise "Multicaixa
+                      // Express integrado". The real-rail bullet returns in Live.
+                      if (AppConfig.isSandbox)
+                        (Icons.science_rounded,         'Dinheiro de teste para experimentar')
+                      else
+                        (Icons.account_balance_rounded, 'Multicaixa Express integrado'),
                     ].map((item) => Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Row(children: [

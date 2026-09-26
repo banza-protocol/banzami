@@ -93,7 +93,11 @@ class ActivityItem {
     if (at != null) return at;
     final name = _name;
     if (name != null) return name;
-    if (isFunding) return 'Multicaixa';
+    // A funding row carries its own truthful name from the server ("Carregamento
+    // de teste" in the Sandbox). With no name, fall back to the neutral category
+    // ("Carregamento" / "Estorno") — never a fabricated cash-in rail such as
+    // "Multicaixa", which would misrepresent a Sandbox test grant as a real
+    // deposit. A real rail in Live carries its own display name from the server.
     return typeLabel;
   }
 

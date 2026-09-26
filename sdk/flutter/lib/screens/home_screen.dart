@@ -28,6 +28,11 @@ class BanzamiHomeScreen extends StatefulWidget {
   /// When provided the host app handles routing (e.g. switching a bottom-nav
   /// tab) instead of pushing the standalone BanzamiReceiveScreen.
   final VoidCallback? onReceive;
+
+  /// Called when the user taps "Ver tudo" on the recent-activity header.
+  /// When null the "Ver tudo" affordance is hidden (never a dead link) — the
+  /// host wires it to open the full history (e.g. switch to the Histórico tab).
+  final VoidCallback? onSeeAllActivity;
   final BanzamiEnvironment environment;
 
   /// Optional external signal (a [Listenable], e.g. the host app's payment
@@ -46,6 +51,7 @@ class BanzamiHomeScreen extends StatefulWidget {
     this.logoAssetPath,
     this.onNotifications,
     this.onReceive,
+    this.onSeeAllActivity,
     this.environment = BanzamiEnvironment.production,
     this.refreshSignal,
   });
@@ -323,10 +329,11 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                   ),
 
                 // ── Section header ────────────────────────────────────────
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: BanzamiSectionTitle(
                     title: 'Actividade recente',
-                    action: 'Ver tudo',
+                    action: widget.onSeeAllActivity != null ? 'Ver tudo' : null,
+                    onAction: widget.onSeeAllActivity,
                   ),
                 ),
 
@@ -453,28 +460,31 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          // Notifications
-          Semantics(
-            button: true,
-            label: 'Notificações',
-            child: GestureDetector(
-            onTap: onNotifications,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: BanzamiColors.white,
-                shape: BoxShape.circle,
-                boxShadow: BanzamiShadows.card,
-              ),
-              child: const Icon(
-                Icons.notifications_none_rounded,
-                color: BanzamiColors.gray600,
-                size: 20,
+          // Notifications — shown only when the host wires an action. A bell
+          // styled as a button that does nothing is a dead CTA, so it is hidden
+          // when [onNotifications] is null rather than rendered inert.
+          if (onNotifications != null)
+            Semantics(
+              button: true,
+              label: 'Notificações',
+              child: GestureDetector(
+                onTap: onNotifications,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: BanzamiColors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: BanzamiShadows.card,
+                  ),
+                  child: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: BanzamiColors.gray600,
+                    size: 20,
+                  ),
+                ),
               ),
             ),
-          ),
-          ),
         ],
       ),
     );

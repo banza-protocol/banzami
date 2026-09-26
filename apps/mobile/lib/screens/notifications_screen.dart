@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../config.dart';
+
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -53,12 +55,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               value:     _sent,
               onChanged: (v) => setState(() => _sent = v),
             ),
-            const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
-            _ToggleRow(
-              label:     'Multicaixa Express',
-              value:     _multicaixa,
-              onChanged: (v) => setState(() => _multicaixa = v),
-            ),
+            // Multicaixa Express cash-in does not exist in the Sandbox (funding
+            // is a test grant only), so don't offer a notification channel for a
+            // rail the user cannot use. The row returns with real-money operations.
+            if (!AppConfig.isSandbox) ...[
+              const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
+              _ToggleRow(
+                label:     'Multicaixa Express',
+                value:     _multicaixa,
+                onChanged: (v) => setState(() => _multicaixa = v),
+              ),
+            ],
           ]),
 
           const SizedBox(height: BanzamiSpacing.xl),
