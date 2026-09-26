@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../config.dart';
-
-class NotificationsScreen extends StatefulWidget {
+/// Notifications — an honest, informational view.
+///
+/// The app has no per-type notification preference store: there is no backend for
+/// it and no local persistence, and push delivery is driven by the device's
+/// system permission and the server-named topic, not by in-app switches. Showing
+/// interactive toggles would imply a persistent setting that does not exist (they
+/// reset on reopen and control nothing), so this screen instead describes what
+/// Banzami notifies about and points to the device settings for control — no fake
+/// switches, nothing that silently resets.
+class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
-
-  @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
-}
-
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  bool _received  = true;
-  bool _sent      = true;
-  bool _multicaixa = true;
-  bool _promos    = false;
-  bool _security  = true;
 
   @override
   Widget build(BuildContext context) {
@@ -33,73 +29,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                  BanzamiSpacing.xl,
-                  0,
-                  BanzamiSpacing.xl,
-                  BanzamiSpacing.lg,
-                ),
-                children: [
-
-          // ── Transacções ──────────────────────────────────────────────────
-          const _SectionLabel('Transacções'),
-          const SizedBox(height: BanzamiSpacing.sm),
-          _Card(children: [
-            _ToggleRow(
-              label:     'Transações recebidas',
-              value:     _received,
-              onChanged: (v) => setState(() => _received = v),
-            ),
-            const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
-            _ToggleRow(
-              label:     'Transações enviadas',
-              value:     _sent,
-              onChanged: (v) => setState(() => _sent = v),
-            ),
-            // Multicaixa Express cash-in does not exist in the Sandbox (funding
-            // is a test grant only), so don't offer a notification channel for a
-            // rail the user cannot use. The row returns with real-money operations.
-            if (!AppConfig.isSandbox) ...[
-              const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
-              _ToggleRow(
-                label:     'Multicaixa Express',
-                value:     _multicaixa,
-                onChanged: (v) => setState(() => _multicaixa = v),
-              ),
-            ],
-          ]),
-
-          const SizedBox(height: BanzamiSpacing.xl),
-
-          // ── Outras ───────────────────────────────────────────────────────
-          const _SectionLabel('Outras'),
-          const SizedBox(height: BanzamiSpacing.sm),
-          _Card(children: [
-            _ToggleRow(
-              label:     'Promoções e novidades',
-              value:     _promos,
-              onChanged: (v) => setState(() => _promos = v),
-            ),
-            const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
-            _ToggleRow(
-              label:     'Alertas de segurança',
-              value:     _security,
-              onChanged: (v) => setState(() => _security = v),
-            ),
-          ]),
-
-          const SizedBox(height: BanzamiSpacing.xl),
-
-          // Footer note
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xs),
-            child: Text(
-              'Receba notificações importantes sobre a sua conta e transações.',
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          const SizedBox(height: BanzamiSpacing.xxl),
+                  BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.lg),
+                children: const [
+                  _InfoCard(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Notificações do Banzami',
+                    body:
+                        'O Banzami envia notificações sobre a sua conta e as suas '
+                        'transações — por exemplo, quando recebe um pagamento.',
+                  ),
+                  SizedBox(height: BanzamiSpacing.md),
+                  _InfoCard(
+                    icon: Icons.settings_outlined,
+                    title: 'Gerir no dispositivo',
+                    body:
+                        'A ativação das notificações é gerida nas definições do '
+                        'sistema do seu dispositivo.',
+                  ),
                 ],
               ),
             ),
@@ -110,79 +56,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: BanzamiSpacing.xs),
-      child: Text(
-        label.toUpperCase(),
-        style: BanzamiTextStyles.label.copyWith(
-          color:         BanzamiColors.gray400,
-          letterSpacing: 0.6,
-          fontSize:      11,
-        ),
-      ),
-    );
-  }
-}
-
-class _Card extends StatelessWidget {
-  final List<Widget> children;
-  const _Card({required this.children});
+class _InfoCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  const _InfoCard({required this.icon, required this.title, required this.body});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzamiColors.white,
+        color: BanzamiColors.white,
         borderRadius: BanzamiRadius.xlAll,
-        boxShadow:    BanzamiShadows.card,
+        boxShadow: BanzamiShadows.card,
       ),
-      clipBehavior: Clip.hardEdge,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
-class _ToggleRow extends StatelessWidget {
-  final String              label;
-  final bool                value;
-  final void Function(bool) onChanged;
-
-  const _ToggleRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.lg,
-        vertical:   BanzamiSpacing.md,
-      ),
+        horizontal: BanzamiSpacing.lg, vertical: BanzamiSpacing.md),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: BanzamiColors.primary.withValues(alpha: 0.08),
+              borderRadius: BanzamiRadius.mdAll,
             ),
+            child: Icon(icon, color: BanzamiColors.primary, size: 18),
           ),
-          Switch(
-            value:           value,
-            onChanged:       onChanged,
-            activeTrackColor: BanzamiColors.primary,
-            inactiveThumbColor: BanzamiColors.white,
+          const SizedBox(width: BanzamiSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(body,
+                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray600)),
+              ],
+            ),
           ),
         ],
       ),
