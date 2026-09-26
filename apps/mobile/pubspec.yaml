@@ -18,6 +18,10 @@ dependencies:
   # HTTP client (pinned TLS)
   http: ^1.2.0
 
+  # Open external links on native (welcome → website candidatura). Already a
+  # transitive dep via banzami_flutter; pinned here to match (^6.3.0).
+  url_launcher: ^6.3.0
+
   # Session & security
   flutter_secure_storage: ^9.2.2
   local_auth: ^2.3.0

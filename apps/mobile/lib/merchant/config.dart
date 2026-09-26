@@ -14,6 +14,18 @@ abstract final class AppConfig {
     defaultValue: 'https://pay.banzami.com',
   );
 
+  /// The public marketing site. The canonical Business Sandbox application form
+  /// (candidatura) is served there — it is NOT reimplemented in the app. The
+  /// welcome screen's "Criar conta Business" opens `$siteBaseUrl/candidatura`.
+  static const String siteBaseUrl = String.fromEnvironment(
+    'SITE_BASE_URL',
+    defaultValue: 'https://banzami.com',
+  );
+
+  /// The canonical Business Sandbox application (candidatura) URL. Data-minimized
+  /// Sandbox onboarding — never LIVE/KYB, never real-money operations.
+  static String get businessApplicationUrl => '$siteBaseUrl/candidatura';
+
   /// "Cobrança dividida" (split charge) — **enabled by default**.
   ///
   /// Backed by BANZA Collections (BANZA ADR-016, *Accepted*): a real protocol
