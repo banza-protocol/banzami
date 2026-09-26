@@ -65,12 +65,14 @@ describe('Sandbox Business application — full rehearsal flow', () => {
     expect(screen.getByText('Registo Comercial')).toBeTruthy();
   });
 
-  it('renders the four steps and the Sandbox test-document warning', async () => {
+  it('renders the four steps and Sandbox test-data warnings on the sensitive steps', async () => {
     const user = userEvent.setup();
     render(<CandidaturaPage lang="pt" />);
     await user.click(await testDataBtn());
-    await user.click(cont());
-    await user.click(cont());
+    await user.click(cont()); // → Responsável
+    // The representative/NIF step warns to use fictitious data only.
+    expect(screen.getByText(/Não introduza NIF, nomes, contactos ou documentos reais/i)).toBeTruthy();
+    await user.click(cont()); // → Documentos
     expect(screen.getByText(/utilize apenas documentos de teste/i)).toBeTruthy();
     // Step labels in the stepper.
     for (const s of ['Negócio', 'Responsável', 'Documentos', 'Confirmar']) {

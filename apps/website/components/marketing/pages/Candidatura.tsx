@@ -56,6 +56,7 @@ const T = {
     voltar: 'Voltar',
     // step 2 — responsável
     s2t: 'Responsável', s2s: 'Quem representa o negócio. Na Sandbox, utilize apenas dados de teste.',
+    repWarn: 'Utilize apenas dados fictícios nesta Sandbox. Não introduza NIF, nomes, contactos ou documentos reais.',
     l_rep_nome: 'Nome do representante', ph_rep_nome: 'Alex Kiala',
     l_rep_papel: 'Cargo', ph_rep_papel: 'Sócio-gerente',
     l_rep_email: 'E-mail do representante', ph_rep_email: 'alex@exemplo.ao',
@@ -120,6 +121,7 @@ const T = {
     continuar: 'Continue',
     voltar: 'Back',
     s2t: 'Representative', s2s: 'Who represents the business. In the Sandbox, use test data only.',
+    repWarn: 'Use only fictitious data in this Sandbox. Do not enter real tax IDs, names, contacts or documents.',
     l_rep_nome: 'Representative name', ph_rep_nome: 'Alex Kiala',
     l_rep_papel: 'Role', ph_rep_papel: 'Managing partner',
     l_rep_email: 'Representative email', ph_rep_email: 'alex@example.ao',
@@ -470,6 +472,12 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
                 {!done && step === 2 && (
                   <>
                     <StepHead kicker={t.of(2)} title={t.s2t} sub={t.s2s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillStep2} /> : undefined} />
+                    {isSandbox && (
+                      <div style={{ display: 'flex', gap: '9px', alignItems: 'flex-start', padding: '12px 16px', borderRadius: '14px', background: '#FCEFC4', border: '1px solid #E9C66A', marginBottom: '16px' }}>
+                        <span style={{ flex: 'none', color: '#7A4A06', marginTop: '1px' }}><Icon name="info" color="currentColor" size={16} /></span>
+                        <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.5, fontWeight: 700, color: '#7A4A06' }}>{t.repWarn}</p>
+                      </div>
+                    )}
                     <FGrid>
                       <Field name="rep_nome" label={t.l_rep_nome} placeholder={t.ph_rep_nome} autoComplete="name" value={f.rep_nome} error={err.rep_nome} onChange={(v) => set('rep_nome', v)} />
                       <Field name="rep_papel" label={t.l_rep_papel} placeholder={t.ph_rep_papel} value={f.rep_papel} error={err.rep_papel} onChange={(v) => set('rep_papel', v)} />
