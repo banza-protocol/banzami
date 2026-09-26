@@ -125,7 +125,7 @@ export function Header({ lang, current }: { lang: Lang; current: RouteKey }) {
 
   return (
     <>
-      <header ref={navRef} style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'calc(100% - 32px)', maxWidth: '1680px', borderRadius: '40px', transition: 'background .3s,box-shadow .3s,backdrop-filter .3s' }}>
+      <header ref={navRef} style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 60, width: 'calc(100% - 32px)', maxWidth: '1200px', borderRadius: '40px', transition: 'background .3s,box-shadow .3s,backdrop-filter .3s' }}>
         {/* Three-zone layout: logo | flexible centred nav | actions. The 1fr
             middle column distributes the nav through the central space so the
             header reads as composed edge-to-edge, not clustered with two gaps. */}
