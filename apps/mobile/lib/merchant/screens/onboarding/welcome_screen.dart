@@ -183,14 +183,17 @@ class _MerchantWelcomeScreenState extends State<MerchantWelcomeScreen>
                               foregroundColor: BanzamiColors.primary,
                               onPressed: _openCreateBusiness,
                             ),
-                            const SizedBox(height: BanzamiSpacing.xs),
-                            SizedBox(
-                              width: double.infinity,
-                              child: BanzamiGhostButton(
-                                label: 'Conectar conta existente',
-                                color: BanzamiColors.white,
-                                onPressed: _connectExisting,
-                              ),
+                            const SizedBox(height: BanzamiSpacing.md),
+                            // Same secondary treatment as the consumer welcome
+                            // ("Já tenho conta"): an outlined button with a white
+                            // border + white label on the red hero — one shared
+                            // button style across both apps.
+                            BanzamiSecondaryButton(
+                              label: 'Conectar conta existente',
+                              borderColor:
+                                  BanzamiColors.white.withValues(alpha: 0.5),
+                              foregroundColor: BanzamiColors.white,
+                              onPressed: _connectExisting,
                             ),
                             const SizedBox(height: BanzamiSpacing.lg),
                           ],

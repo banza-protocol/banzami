@@ -23,8 +23,9 @@ abstract final class AppConfig {
   );
 
   /// The canonical Business Sandbox application (candidatura) URL. Data-minimized
-  /// Sandbox onboarding — never LIVE/KYB, never real-money operations.
-  static String get businessApplicationUrl => '$siteBaseUrl/candidatura';
+  /// Sandbox onboarding — never LIVE/KYB, never real-money operations. The route
+  /// lives under /comerciantes on the marketing site (lib/marketing/nav.ts).
+  static String get businessApplicationUrl => '$siteBaseUrl/comerciantes/candidatura';
 
   /// "Cobrança dividida" (split charge) — **enabled by default**.
   ///

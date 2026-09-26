@@ -107,7 +107,7 @@ void main() {
         (t) async {
       await pumpWelcome(t);
       await activate(t, 'Criar conta Business');
-      expect(launched, contains('https://banzami.com/candidatura'));
+      expect(launched, contains('https://banzami.com/comerciantes/candidatura'));
       expect(launched.single, AppConfig.businessApplicationUrl);
     });
 
@@ -135,7 +135,7 @@ void main() {
     testWidgets('create still launches the canonical URL at 1.50x', (t) async {
       await pumpWelcome(t, textScale: 1.5);
       await activate(t, 'Criar conta Business');
-      expect(launched, contains('https://banzami.com/candidatura'));
+      expect(launched, contains('https://banzami.com/comerciantes/candidatura'));
     });
   });
 
