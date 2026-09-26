@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/banzami_premium_dialog.dart';
+import '../config.dart';
 import '../services/merchant_session_service.dart';
 
 /// Ecrã para o comerciante pedir um levantamento para a sua conta bancária.
@@ -131,6 +132,48 @@ class _PayoutScreenState extends State<PayoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Deep-link / stale-navigation safety: withdrawals are unavailable in the
+    // Sandbox, so the screen renders a deterministic unavailable state instead of
+    // a form that cannot succeed. Never a dead submit button.
+    if (!AppConfig.withdrawalsEnabled) {
+      return BanzamiScaffold(
+        backgroundColor: BanzamiColors.white,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppScreenHeader(
+                title:  'Levantamentos',
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(BanzamiSpacing.xl),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.account_balance_rounded, color: BanzamiColors.gray400, size: 40),
+                      const SizedBox(height: BanzamiSpacing.md),
+                      Text(
+                        'Os levantamentos ainda não estão disponíveis na Sandbox.',
+                        textAlign: TextAlign.center,
+                        style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: BanzamiSpacing.sm),
+                      Text(
+                        'Ficam disponíveis com as operações com dinheiro real.',
+                        textAlign: TextAlign.center,
+                        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     // No way back while the withdrawal is in flight: leaving would lose its
     // answer, and the only safe next step is the same request again.
     return PopScope(

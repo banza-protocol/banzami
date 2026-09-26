@@ -35,9 +35,10 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('KPI grid masks unavailable figures with "—" (no invented numbers)', (t) async {
+  testWidgets('KPI grid shows explicit "Sem dados" (never a dash, never invented numbers)', (t) async {
     await t.pumpWidget(_wrap(MerchantKpiGrid(stats: _stats(avg: null, success: null), currency: 'AOA')));
-    expect(find.text('—'), findsNWidgets(2)); // ticket + success rate
+    expect(find.text('Sem dados'), findsNWidgets(2)); // ticket médio + taxa de sucesso
+    expect(find.text('—'), findsNothing);
   });
 
   testWidgets('KPI grid does not overflow at a narrow width', (t) async {

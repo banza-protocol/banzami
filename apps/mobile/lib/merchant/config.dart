@@ -27,6 +27,18 @@ abstract final class AppConfig {
   /// lives under /comerciantes on the marketing site (lib/marketing/nav.ts).
   static String get businessApplicationUrl => '$siteBaseUrl/comerciantes/candidatura';
 
+  /// Withdrawals (levantamentos / cash-out) — **disabled by default**.
+  ///
+  /// A withdrawal moves real money OUT of the network to a bank, which needs a
+  /// real-money rail. That is unavailable in the public Beta Sandbox, so the app
+  /// presents withdrawals as intentionally unavailable (not as an error), from
+  /// this deterministic policy — no availability probe, no dead CTA. Flip to true
+  /// (via --dart-define=WITHDRAWALS_ENABLED=true) when real-money operations ship.
+  static const bool withdrawalsEnabled = bool.fromEnvironment(
+    'WITHDRAWALS_ENABLED',
+    defaultValue: false,
+  );
+
   /// "Cobrança dividida" (split charge) — **enabled by default**.
   ///
   /// Backed by BANZA Collections (BANZA ADR-016, *Accepted*): a real protocol

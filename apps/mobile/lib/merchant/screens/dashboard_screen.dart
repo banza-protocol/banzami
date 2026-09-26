@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../config.dart';
 import '../models/merchant_payment_entry.dart';
 import '../services/merchant_refresh_bus.dart';
 import '../services/merchant_session_service.dart';
@@ -106,11 +107,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) setState(() => _compliance = c);
     }).catchError((_) { /* the card says it could not confirm */ });
 
-    final payoutsFuture = client.listPayouts(limit: 3).then((p) {
-      if (mounted) setState(() { _payouts = p; _payoutsFailed = false; });
-    }).catchError((_) {
-      if (mounted) setState(() => _payoutsFailed = true);
-    });
+    // Withdrawals are unavailable in the Sandbox (deterministic policy): don't
+    // probe the payouts endpoint just to render an unavailable card — it would be
+    // a needless call and a misleading "could not load" on failure.
+    final Future<void> payoutsFuture = AppConfig.withdrawalsEnabled
+        ? client.listPayouts(limit: 3).then((p) {
+            if (mounted) setState(() { _payouts = p; _payoutsFailed = false; });
+          }).catchError((_) {
+            if (mounted) setState(() => _payoutsFailed = true);
+          })
+        : Future<void>.value();
 
     await Future.wait([
       balanceFuture, statsFuture, kybFuture, complianceFuture, payoutsFuture,
@@ -243,6 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onCharge: () => _open(const ChargeScreen()),
                 onQr: () => widget.onSwitchTab?.call(2),
                 onPayout: () => _open(const PayoutScreen()),
+                showPayout: AppConfig.withdrawalsEnabled,
               ),
               const SizedBox(height: BanzamiSpacing.xl),
 
@@ -254,9 +261,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: BanzamiSpacing.lg),
               ],
 
-              // Withdrawals — gated on what the payout endpoint enforces.
+              // Withdrawals — unavailable in the Sandbox by product policy;
+              // otherwise gated on what the payout endpoint enforces (KYB/AML).
               _PayoutsCard(
-                gate: withdrawGate(compliance: _compliance, kybVerified: verified),
+                gate: AppConfig.withdrawalsEnabled
+                    ? withdrawGate(compliance: _compliance, kybVerified: verified)
+                    : WithdrawGate.unavailableSandbox,
                 payouts: _payouts,
                 failed: _payoutsFailed,
                 onVerify: () => _open(const KybScreen()),
@@ -531,11 +541,16 @@ class _QuickActions extends StatelessWidget {
   final VoidCallback onCharge;
   final VoidCallback onQr;
   final VoidCallback onPayout;
+  // Withdrawals are unavailable in the Sandbox — the "Levantar" quick action is
+  // omitted rather than shown as a dead button; the Levantamentos card below says
+  // so explicitly.
+  final bool showPayout;
 
   const _QuickActions({
     required this.onCharge,
     required this.onQr,
     required this.onPayout,
+    required this.showPayout,
   });
 
   @override
@@ -557,13 +572,15 @@ class _QuickActions extends StatelessWidget {
         onTap:  onQr,
         accent: true,
       ),
-      const SizedBox(width: BanzamiSpacing.md),
-      BanzamiActionTile(
-        icon:   Icons.account_balance_rounded,
-        label:  'Levantar',
-        onTap:  onPayout,
-        accent: true,
-      ),
+      if (showPayout) ...[
+        const SizedBox(width: BanzamiSpacing.md),
+        BanzamiActionTile(
+          icon:   Icons.account_balance_rounded,
+          label:  'Levantar',
+          onTap:  onPayout,
+          accent: true,
+        ),
+      ],
     ]);
   }
 }
@@ -574,7 +591,10 @@ class _QuickActions extends StatelessWidget {
 
 /// Whether the Business may ask for a withdrawal, as the gateway decides it:
 /// KYB AND AML approved (services/api-gateway compliance CanProcess).
-enum WithdrawGate { ready, kybPending, amlPending, unknown }
+/// `unavailableSandbox` is a deterministic product state (not a gateway check):
+/// withdrawals move real money out and are intentionally unavailable in the Beta
+/// Sandbox — presented as unavailable, never as an error.
+enum WithdrawGate { ready, kybPending, amlPending, unknown, unavailableSandbox }
 
 WithdrawGate withdrawGate({
   required MerchantComplianceStatus? compliance,
@@ -605,6 +625,7 @@ class _PayoutsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unavailable = gate == WithdrawGate.unavailableSandbox;
     final note = switch (gate) {
       WithdrawGate.ready => null,
       WithdrawGate.kybPending =>
@@ -614,8 +635,13 @@ class _PayoutsCard extends StatelessWidget {
             'verificação AML estiver concluída.',
       WithdrawGate.unknown =>
         'Não foi possível confirmar agora se os levantamentos estão disponíveis.',
+      WithdrawGate.unavailableSandbox =>
+        'Ficam disponíveis com as operações com dinheiro real.',
     };
-    final (label, action) = switch (gate) {
+    // Unavailable is not an action: a disabled CTA (onPressed: null), never a
+    // button that navigates into a flow that cannot succeed.
+    final (String label, VoidCallback? action) = switch (gate) {
+      WithdrawGate.unavailableSandbox => ('Indisponível na Sandbox', null),
       WithdrawGate.kybPending => ('Verificar negócio', onVerify),
       WithdrawGate.amlPending => ('Ver verificação', onVerify),
       _ => ('Pedir levantamento', onPayout),
@@ -636,7 +662,12 @@ class _PayoutsCard extends StatelessWidget {
           Text('Levantamentos', style: BanzamiTextStyles.headingSm),
         ]),
         const SizedBox(height: BanzamiSpacing.sm),
-        if (payouts != null && payouts!.isNotEmpty)
+        if (unavailable)
+          Text(
+            'Os levantamentos ainda não estão disponíveis na Sandbox.',
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+          )
+        else if (payouts != null && payouts!.isNotEmpty)
           ...payouts!.map((p) => PayoutRow(payout: p))
         else
           Text(

@@ -3,22 +3,26 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 import 'merchant_dashboard_stats.dart';
 
-/// Placeholder shown when a KPI cannot be computed from the available data.
-const String kKpiUnavailable = '—';
+/// Shown when a KPI has no qualifying data yet (a new Business with no completed
+/// payments). Explicit "no data" — never an ambiguous dash, never a fake zero.
+const String kKpiNoData = 'Sem dados';
 
-/// One KPI tile: icon + label + value. Values are pre-formatted strings; when a
-/// figure is unavailable the caller passes [kKpiUnavailable] ("—") — the tile
-/// never fabricates a number.
+/// One KPI tile: icon + label + value. Values are pre-formatted strings. A real
+/// figure renders bold; a NO_DATA state ([muted] = true) renders in a lighter,
+/// smaller style so it reads as "no data yet", not as a value — the tile never
+/// fabricates a number.
 class MerchantKpiCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool muted;
 
   const MerchantKpiCard({
     super.key,
     required this.icon,
     required this.label,
     required this.value,
+    this.muted = false,
   });
 
   @override
@@ -56,9 +60,12 @@ class MerchantKpiCard extends StatelessWidget {
           const SizedBox(height: BanzamiSpacing.sm),
           Text(
             value,
-            style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+            style: muted
+                ? BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400, fontWeight: FontWeight.w600)
+                : BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            semanticsLabel: muted ? '$label — sem dados ainda' : null,
           ),
         ],
       ),
@@ -67,7 +74,8 @@ class MerchantKpiCard extends StatelessWidget {
 }
 
 /// The 6-KPI business grid (2 columns). Today/month volume + counts are always
-/// real; average ticket and success rate render "—" when not computable.
+/// real; average ticket and success rate render an explicit "Sem dados" state
+/// when there is no qualifying data yet — never a dash or a fabricated zero.
 class MerchantKpiGrid extends StatelessWidget {
   final MerchantDashboardStats stats;
   final String currency;
@@ -106,14 +114,16 @@ class MerchantKpiGrid extends StatelessWidget {
         label: 'Ticket médio',
         value: stats.avgTicketMinor != null
             ? formatMinor(stats.avgTicketMinor!, currency)
-            : kKpiUnavailable,
+            : kKpiNoData,
+        muted: stats.avgTicketMinor == null,
       ),
       MerchantKpiCard(
         icon: Icons.verified_rounded,
         label: 'Taxa de sucesso',
         value: stats.successRate != null
             ? '${(stats.successRate! * 100).round()}%'
-            : kKpiUnavailable,
+            : kKpiNoData,
+        muted: stats.successRate == null,
       ),
     ];
 
