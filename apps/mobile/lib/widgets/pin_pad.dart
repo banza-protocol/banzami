@@ -147,6 +147,7 @@ class _PinPadInnerState extends State<_PinPadInner> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         PinDots(filled: _pin.length, error: widget.error),
         const SizedBox(height: 40),
@@ -155,67 +156,66 @@ class _PinPadInnerState extends State<_PinPadInner> {
     );
   }
 
+  // Responsive 3-column keypad. Keys scale with the available width (three equal
+  // Expanded columns), so a row can NEVER overflow on a narrow device, while
+  // staying compact and centred on wide ones. No fixed key or row widths.
   Widget _buildGrid() {
-    const digits = [
+    const rows = [
       ['1', '2', '3'],
       ['4', '5', '6'],
       ['7', '8', '9'],
     ];
-    return Column(
-      children: [
-        ...digits.map((row) => _buildRow(row)),
-        _buildBottomRow(),
-      ],
-    );
-  }
-
-  Widget _buildRow(List<String> keys) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: keys
-            .map((k) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: _DigitKey(
-                    label: k,
-                    onTap: () => _add(k),
-                    disabled: widget.disabled,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final maxW = c.maxWidth.isFinite ? c.maxWidth : 300.0;
+            // Diameter ≈ a third of the width minus a gap, capped at the design
+            // size (80) and floored for a comfortable touch target (≥ 48dp).
+            final d = (maxW / 3 - 10).clamp(56.0, 80.0);
+            Widget cell(Widget child) => Expanded(child: Center(child: child));
+            Widget digitRow(List<String> keys) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      for (final k in keys)
+                        cell(_DigitKey(
+                          size: d,
+                          label: k,
+                          onTap: () => _add(k),
+                          disabled: widget.disabled,
+                        )),
+                    ],
                   ),
-                ))
-            .toList(),
-      ),
-    );
-  }
-
-  Widget _buildBottomRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(width: 100),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: _DigitKey(
-                label: '0', onTap: () => _add('0'), disabled: widget.disabled),
-          ),
-          SizedBox(
-            width: 100,
-            height: 80,
-            child: Center(
-              child: IconButton(
-                onPressed: widget.disabled ? null : _delete,
-                tooltip: 'Apagar',
-                icon: const Icon(
-                  Icons.backspace_outlined,
-                  size: 22,
-                  color: BanzamiColors.gray600,
+                );
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final r in rows) digitRow(r),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      const Expanded(child: SizedBox.shrink()),
+                      cell(_DigitKey(
+                        size: d,
+                        label: '0',
+                        onTap: () => _add('0'),
+                        disabled: widget.disabled,
+                      )),
+                      cell(_BackspaceKey(
+                        size: d,
+                        onTap: _delete,
+                        disabled: widget.disabled,
+                      )),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-        ],
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -229,18 +229,20 @@ class _DigitKey extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool disabled;
+  final double size;
 
   const _DigitKey({
     required this.label,
     required this.onTap,
+    this.size = 80,
     this.disabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 80,
-      height: 80,
+      width: size,
+      height: size,
       child: Container(
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
@@ -271,14 +273,58 @@ class _DigitKey extends StatelessWidget {
               child: Center(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 26,
+                    fontSize: size * 0.325, // 80 → 26, scales with the key
                     fontWeight: FontWeight.w400,
                     color: BanzamiColors.black,
                     height: 1,
                   ),
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Backspace key — a borderless circular tap target (no filled circle, matching
+// the original), sized to match the digit keys so the bottom row stays aligned.
+class _BackspaceKey extends StatelessWidget {
+  final double size;
+  final VoidCallback onTap;
+  final bool disabled;
+
+  const _BackspaceKey({
+    required this.size,
+    required this.onTap,
+    this.disabled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: Semantics(
+          button: true,
+          label: 'Apagar',
+          excludeSemantics: true,
+          child: InkWell(
+            onTap: disabled ? null : onTap,
+            splashColor: const Color(0x14990011),
+            highlightColor: const Color(0x0A990011),
+            child: Center(
+              child: Icon(
+                Icons.backspace_outlined,
+                size: size * 0.275, // 80 → 22
+                color: BanzamiColors.gray600,
               ),
             ),
           ),
