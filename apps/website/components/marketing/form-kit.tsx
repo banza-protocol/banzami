@@ -21,9 +21,9 @@ function ErrP({ msg }: { msg?: string }) {
   );
 }
 
-export function Field({ name, label, type = 'text', placeholder = '', required = true, options, selectPlaceholder = 'Selecione…', span2, hint, mono, autoComplete, value, error, onChange }: {
+export function Field({ name, label, type = 'text', placeholder = '', required = true, options, selectPlaceholder = 'Selecione…', span2, hint, statusNode, mono, autoComplete, value, error, onChange }: {
   name: string; label: string; type?: string; placeholder?: string; required?: boolean; options?: string[]; selectPlaceholder?: string; span2?: boolean;
-  hint?: string; mono?: boolean; autoComplete?: string; value: string; error?: string;
+  hint?: string; statusNode?: ReactNode; mono?: boolean; autoComplete?: string; value: string; error?: string;
   onChange: (v: string) => void;
 }) {
   const id = 'f_' + name;
@@ -50,6 +50,7 @@ export function Field({ name, label, type = 'text', placeholder = '', required =
       <label htmlFor={id} style={{ fontSize: '13px', fontWeight: 800, color: '#2a2024' }}>{label}{required && <span aria-hidden="true" style={{ color: '#B5101F' }}> *</span>}</label>
       {ctl}
       {hint && <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#9a8487' }}>{hint}</p>}
+      {statusNode}
       <ErrP msg={error} />
     </div>
   );

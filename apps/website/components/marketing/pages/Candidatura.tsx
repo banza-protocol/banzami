@@ -5,7 +5,7 @@ import type { CSSProperties } from 'react';
 import { Badge, H1, HeroLead, Small, Icon, type IconName } from '../kit';
 import { Field, Check, FGrid, SubmitBtn, BackBtn, SuccessMark } from '../form-kit';
 import { Reveal } from '@/components/Reveal';
-import { getPlatformMode, submitApplication } from '@/lib/api';
+import { getPlatformMode, submitApplication, checkHandle } from '@/lib/api';
 import { TERMS, isTermsPublished } from '@/lib/terms';
 import { route, type Lang } from '@/lib/marketing/nav';
 
@@ -99,6 +99,8 @@ const T = {
     v_termos: 'É necessário aceitar os Termos.',
     v_sandbox: 'Confirme que compreende a fase Sandbox.',
     v_handle_taken: 'Este @negócio já está em uso. Escolha outro.',
+    v_handle_checking: 'A verificar disponibilidade…',
+    v_handle_available: 'Este @negócio está disponível.',
     v_submit: 'Não foi possível enviar a candidatura. Tente novamente.',
     sbxFill: 'Usar dados de teste',
     sbxToast: 'Preenchido com dados sandbox.',
@@ -162,6 +164,8 @@ const T = {
     v_termos: 'You must accept the Terms.',
     v_sandbox: 'Confirm you understand the Sandbox phase.',
     v_handle_taken: 'This @business is already taken. Choose another.',
+    v_handle_checking: 'Checking availability…',
+    v_handle_available: 'This @business is available.',
     v_submit: 'Could not send the application. Please try again.',
     sbxFill: 'Use test data',
     sbxToast: 'Filled with sandbox data.',
@@ -289,6 +293,39 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
   const [sending, setSending] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
+  // Live @business availability — checked (debounced) as the user types, so a
+  // taken handle is shown immediately instead of only after submitting. The whole
+  // reference is never guessed; the authoritative check stays on the server (the
+  // submit re-checks and reserves atomically).
+  const [hStatus, setHStatus] = useState<{ s: 'idle' | 'checking' | 'ok' | 'bad'; msg?: string }>({ s: 'idle' });
+  const handleReqId = useRef(0);
+  useEffect(() => {
+    const h = f.handle.trim();
+    // Only query a well-formed handle; the format error is handled by validate().
+    if (!h || !HANDLE_RE.test(h)) { setHStatus({ s: 'idle' }); return; }
+    setHStatus({ s: 'checking' });
+    const reqId = ++handleReqId.current;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkHandle(h);
+        if (reqId !== handleReqId.current) return; // a newer keystroke superseded this
+        if (res.available) {
+          setHStatus({ s: 'ok' });
+          setErr((e) => (e.handle ? { ...e, handle: '' } : e));
+        } else {
+          const msg = res.reason === 'INVALID' ? t.v_handle : t.v_handle_taken;
+          setHStatus({ s: 'bad', msg });
+          setErr((e) => ({ ...e, handle: msg }));
+        }
+      } catch {
+        if (reqId !== handleReqId.current) return;
+        // A network hiccup must not block the user; the submit still re-checks.
+        setHStatus({ s: 'idle' });
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [f.handle, t]);
+
   // SANDBOX-only autofill (ADR-025): follows the live Platform Mode, fails closed
   // to SANDBOX, never shown in LIVE.
   const [isSandbox, setIsSandbox] = useState(false);
@@ -376,7 +413,16 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     return !Object.keys(e).length;
   };
 
-  const next = () => { if (validate(stepFields[step] || [])) setStep((s) => Math.min(LAST, s + 1)); };
+  const next = () => {
+    if (!validate(stepFields[step] || [])) return;
+    // Don't advance past a @business the live check already found unavailable
+    // (validate() only checks the format, so re-apply the availability error).
+    if (step === 1 && hStatus.s === 'bad') {
+      setErr((e) => ({ ...e, handle: hStatus.msg || t.v_handle_taken }));
+      return;
+    }
+    setStep((s) => Math.min(LAST, s + 1));
+  };
   const back = () => { setStep((s) => Math.max(1, s - 1)); setErr({}); };
 
   const submit = async (e?: React.FormEvent) => {
@@ -459,7 +505,15 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
                     <StepHead kicker={t.of(1)} title={t.s1t} sub={t.s1s} action={isSandbox ? <SbxFill label={t.sbxFill} onClick={fillAll} /> : undefined} />
                     <FGrid>
                       <Field name="nome_comercial" label={t.l_nome_comercial} placeholder={t.ph_nome_comercial} autoComplete="organization" value={f.nome_comercial} error={err.nome_comercial} onChange={(v) => set('nome_comercial', v)} />
-                      <Field name="handle" label={t.l_handle} placeholder={t.ph_handle} hint={t.hint_handle} mono value={f.handle} error={err.handle} onChange={(v) => set('handle', v)} />
+                      <Field name="handle" label={t.l_handle} placeholder={t.ph_handle} hint={t.hint_handle} mono value={f.handle} error={err.handle} onChange={(v) => set('handle', v)}
+                        statusNode={
+                          hStatus.s === 'checking'
+                            ? <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#9a8487' }}>{t.v_handle_checking}</p>
+                            : hStatus.s === 'ok'
+                            ? <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#1A7F37' }}>✓ {t.v_handle_available}</p>
+                            : undefined
+                        }
+                      />
                       <Field name="categoria" label={t.l_categoria} options={t.categorias as unknown as string[]} selectPlaceholder={t.selectPh} value={f.categoria} error={err.categoria} onChange={(v) => set('categoria', v)} />
                       <Field name="email" label={t.l_email} type="email" placeholder={t.ph_email} autoComplete="email" value={f.email} error={err.email} onChange={(v) => set('email', v)} />
                       <Field name="municipio" label={t.l_municipio} placeholder={t.ph_municipio} required={false} value={f.municipio} error={err.municipio} onChange={(v) => set('municipio', v)} />
