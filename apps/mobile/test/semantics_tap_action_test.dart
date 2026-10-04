@@ -1,6 +1,6 @@
 import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A button that SAYS it is a button must carry the action it claims.
@@ -32,9 +32,13 @@ void main() {
     await tester.pumpAndSettle();
     final handle = tester.ensureSemantics();
     final node = tester.getSemantics(find.bySemanticsLabel(label));
-    // The action a screen reader (and the Flutter Web overlay) invokes.
-    tester.binding.pipelineOwner.semanticsOwner!
-        .performAction(node.id, SemanticsAction.tap);
+    // The action a screen reader (and the Flutter Web overlay) invokes. Reach the
+    // view's semantics owner via the root pipeline owner (the per-binding
+    // pipelineOwner getter is deprecated for multi-view support).
+    SemanticsOwner? owner;
+    RendererBinding.instance.rootPipelineOwner
+        .visitChildren((p) => owner ??= p.semanticsOwner);
+    owner!.performAction(node.id, SemanticsAction.tap);
     await tester.pumpAndSettle();
     handle.dispose();
   }

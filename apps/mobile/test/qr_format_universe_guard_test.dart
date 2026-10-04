@@ -50,8 +50,12 @@ void main() {
       for (final root in [_appLib, _sdkLib]) {
         for (final f in _dartFiles(root)) {
           final src = f.readAsStringSync();
-          for (final m in RegExp(r'class\s+(\w*QrScheme)\b').allMatches(src)) schemes.add(m.group(1)!);
-          for (final m in RegExp(r'class\s+(\w*QrParser)\b').allMatches(src)) parsers.add(m.group(1)!);
+          for (final m in RegExp(r'class\s+(\w*QrScheme)\b').allMatches(src)) {
+            schemes.add(m.group(1)!);
+          }
+          for (final m in RegExp(r'class\s+(\w*QrParser)\b').allMatches(src)) {
+            parsers.add(m.group(1)!);
+          }
         }
       }
       expect(schemes.toSet(), {'BanzamiQrScheme'}, reason: 'schemes: $schemes');

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -86,8 +86,12 @@ void main() {
   Future<void> activate(WidgetTester t, String label) async {
     final handle = t.ensureSemantics();
     final node = t.getSemantics(find.bySemanticsLabel(label));
-    t.binding.pipelineOwner.semanticsOwner!
-        .performAction(node.id, SemanticsAction.tap);
+    // Reach the view's semantics owner via the root pipeline owner (the
+    // per-binding pipelineOwner getter is deprecated for multi-view support).
+    SemanticsOwner? owner;
+    RendererBinding.instance.rootPipelineOwner
+        .visitChildren((p) => owner ??= p.semanticsOwner);
+    owner!.performAction(node.id, SemanticsAction.tap);
     await t.pumpAndSettle();
     handle.dispose();
   }

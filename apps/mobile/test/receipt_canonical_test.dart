@@ -83,17 +83,24 @@ void main() {
     expect(find.text('Vaquinha · Jornada economica fresca'), findsOneWidget);
     expect(find.text('Nota'), findsNothing);
     expect(find.text('Operação'), findsOneWidget);
-    expect(find.text('Pagamento · Link de pagamento'), findsOneWidget);
+    // The in-app detail row shows the compact operation; the full
+    // "Pagamento · Link de pagamento" is kept for copy/share (see below).
+    expect(find.text('Pagamento Link'), findsOneWidget);
     expect(find.text('Saldo Banzami'), findsOneWidget);
     expect(find.textContaining('@banza'), findsNothing);
   });
 
   testWidgets('the reference is the proof’s; the transaction id never is', (tester) async {
     await _pump(tester, receipt: _receipt());
-    expect(find.text('BZM-Q7RT-CFAF-…-FB0T'), findsOneWidget);
+    // The on-screen reference is trimmed to its first three blocks (the whole
+    // reference is still copied — see the next test); the internal transaction id
+    // is never shown.
+    expect(find.text('BZM-Q7RT-CFAF-...'), findsOneWidget);
     expect(find.textContaining('0056EAD5'), findsNothing);
     expect(find.textContaining('0056ead5'), findsNothing);
-    expect(find.textContaining('Comprovativo Banzami  •  BZM-Q7RT-CFAF-…-FB0T'), findsOneWidget);
+    // The footer states sandbox validity, not a raw reference/id.
+    expect(find.textContaining('Comprovativo sandbox'), findsOneWidget);
+    expect(find.textContaining('0056'), findsNothing);
   });
 
   testWidgets('copying the reference copies it whole', (tester) async {
@@ -103,7 +110,7 @@ void main() {
       return null;
     });
     await _pump(tester, receipt: _receipt());
-    await tester.tap(find.text('BZM-Q7RT-CFAF-…-FB0T'));
+    await tester.tap(find.text('BZM-Q7RT-CFAF-...'));
     await tester.pump();
     expect(copied, _ref);
     await tester.pump(const Duration(seconds: 3));
@@ -127,7 +134,7 @@ void main() {
       'Para: @doa',
       'Referência do comerciante: DOA-55791091',
       'Finalidade: Vaquinha · Jornada economica fresca',
-      'Data: 10 de setembro de 2026, 20:13 (WAT)',
+      'Data: 10/09/2026, 20:13',
       'Comprovativo: $_ref',
       'Verificar: https://banzami.com/r/$_ref',
     ]) {
@@ -139,9 +146,11 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('the time is the official clock, labelled (19:13 UTC = 20:13 WAT)', (tester) async {
+  testWidgets('the time is the official clock, compact (19:13 UTC = 20:13 WAT)', (tester) async {
     await _pump(tester, receipt: _receipt());
-    expect(find.text('10 de setembro de 2026, 20:13 (WAT)'), findsOneWidget);
+    // The in-app detail row shows the official WAT instant in the compact numeric
+    // form; the long "(WAT)"-labelled form stays on the PDF.
+    expect(find.text('10/09/2026, 20:13'), findsOneWidget);
     // The live clock is labelled as the screen's, not the payment's.
     expect(find.textContaining('Ecrã em direto'), findsOneWidget);
   });
@@ -154,7 +163,7 @@ void main() {
     });
     expect(calls, 1);
     expect(find.text('para @doa'), findsOneWidget);
-    expect(find.text('BZM-Q7RT-CFAF-…-FB0T'), findsOneWidget);
+    expect(find.text('BZM-Q7RT-CFAF-...'), findsOneWidget);
   });
 
   testWidgets('if the receipt cannot be had, no reference is invented', (tester) async {
@@ -228,7 +237,7 @@ void main() {
             'environment': 'SANDBOX',
           }));
       expect(find.text('Transferência recebida'), findsOneWidget);
-      expect(find.text('10 de setembro de 2026, 20:13 (WAT)'), findsOneWidget);
+      expect(find.text('10/09/2026, 20:13'), findsOneWidget);
     });
   });
 }
