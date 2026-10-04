@@ -177,10 +177,15 @@ class _ReceivePointCard extends StatelessWidget {
         boxShadow: BanzamiShadows.card,
       ),
       child: Column(children: [
-        BanzamiQrDisplay(
-          payload: point.payUrl,
-          size: 256,
-          embeddedImage: AssetImage(BrandingAssets.businessLogo),
+        // Scale the 256px QR down to fit narrow phones (card + screen paddings
+        // leave < 256px below ~400dp); never upscales, so it stays crisp.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: BanzamiQrDisplay(
+            payload: point.payUrl,
+            size: 256,
+            embeddedImage: AssetImage(BrandingAssets.businessLogo),
+          ),
         ),
         const SizedBox(height: BanzamiSpacing.lg),
         if (merchantName != null)

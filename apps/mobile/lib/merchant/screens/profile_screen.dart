@@ -321,6 +321,10 @@ class _MerchantProfileHeader extends StatelessWidget {
                   children: [
                     Text(
                       session.merchantName,
+                      // One line, ellipsised: a long business name must never
+                      // break character-by-character into a tall sliver.
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: BanzamiTextStyles.headingSm.copyWith(
                         color:      BanzamiColors.white,
                         fontWeight: FontWeight.w700,
@@ -335,19 +339,26 @@ class _MerchantProfileHeader extends StatelessWidget {
                         color:      BanzamiColors.white.withValues(alpha: 0.85),
                         fontWeight: session.banzaAddress != null ? FontWeight.w700 : FontWeight.w400,
                       ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              if (session.verified) ...[
-                const SizedBox(width: BanzamiSpacing.md),
-                const _VerifiedBadge(),
-              ],
             ],
           ),
           if (session.verified) ...[
+            // The verified badge sits on its own line so it never competes with
+            // the name for width (which forced the name to wrap one character at
+            // a time on narrow phones).
             const SizedBox(height: BanzamiSpacing.md),
+            const Align(
+              alignment: Alignment.centerLeft,
+              // scaleDown caps the pill to the card width on very narrow phones
+              // (it never upscales), so the badge never overflows by a few pixels.
+              child: FittedBox(fit: BoxFit.scaleDown, child: _VerifiedBadge()),
+            ),
+            const SizedBox(height: BanzamiSpacing.sm),
             Row(children: [
               Icon(
                 Icons.shield_outlined,
@@ -359,10 +370,14 @@ class _MerchantProfileHeader extends StatelessWidget {
               // business's KYB — the server's merchant.verified / KYB status.
               // Not the account class (merchant, application, platform), not
               // settlement readiness, not the session.
-              Text(
-                'Verificação KYB aprovada pelo Banzami',
-                style: BanzamiTextStyles.bodySm.copyWith(
-                  color: BanzamiColors.white.withValues(alpha: 0.35),
+              Expanded(
+                child: Text(
+                  'Verificação KYB aprovada pelo Banzami',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: BanzamiTextStyles.bodySm.copyWith(
+                    color: BanzamiColors.white.withValues(alpha: 0.35),
+                  ),
                 ),
               ),
             ]),
@@ -488,7 +503,7 @@ class _PaymentAddressCard extends StatelessWidget {
           const Row(children: [
             _IconBox(icon: Icons.alternate_email_rounded),
             SizedBox(width: BanzamiSpacing.md),
-            Text('Endereço @banza', style: BanzamiTextStyles.headingSm),
+            Expanded(child: Text('Endereço @banza', style: BanzamiTextStyles.headingSm)),
           ]),
 
           const SizedBox(height: BanzamiSpacing.sm),

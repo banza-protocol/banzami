@@ -428,11 +428,13 @@ class _ChargeScreenState extends State<ChargeScreen> {
             style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
           ),
         const SizedBox(height: 2),
-        Row(mainAxisSize: MainAxisSize.min, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Icon(Icons.check_circle_rounded, size: 14, color: BanzamiColors.success),
           const SizedBox(width: 4),
-          Text('A soma das partes é sempre igual ao valor total.',
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+          Expanded(
+            child: Text('A soma das partes é sempre igual ao valor total.',
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+          ),
         ]),
       ],
 
