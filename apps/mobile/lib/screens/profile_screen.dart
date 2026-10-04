@@ -26,7 +26,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final svc     = context.watch<SessionService>();
-    final session = svc.session!;
+    // During logout the session is cleared and listeners rebuild before the route
+    // is replaced by Welcome — render nothing instead of force-unwrapping a null
+    // session (which crashed the build with "Null check operator used on a null
+    // value" and flashed the red error screen on logout).
+    final session = svc.session;
+    if (session == null) return const SizedBox.shrink();
 
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,

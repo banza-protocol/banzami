@@ -18,7 +18,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
   @override
   Widget build(BuildContext context) {
     final svc     = context.watch<SessionService>();
-    final session = svc.session!;
+    // During logout the session is cleared and listeners rebuild before the route
+    // changes — render nothing rather than force-unwrap a null session (which
+    // would crash the build with "Null check operator used on a null value").
+    final session = svc.session;
+    if (session == null) return const SizedBox.shrink();
 
     _canUseBio ??= svc.canUseBiometrics();
 
