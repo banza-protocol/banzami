@@ -115,9 +115,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: Icon(item.$1, color: BanzamiColors.white.withValues(alpha: 0.9), size: 16),
                         ),
                         const SizedBox(width: 12),
-                        Text(item.$2, style: BanzamiTextStyles.bodyMd.copyWith(
-                          color: BanzamiColors.white.withValues(alpha: 0.85),
-                        )),
+                        // Flexible so the bullet wraps instead of overflowing the
+                        // Row on narrow devices (and under font scaling).
+                        Expanded(
+                          child: Text(item.$2, style: BanzamiTextStyles.bodyMd.copyWith(
+                            color: BanzamiColors.white.withValues(alpha: 0.85),
+                          )),
+                        ),
                       ]),
                     )),
 

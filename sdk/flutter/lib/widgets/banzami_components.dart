@@ -274,12 +274,17 @@ class _BanzamiPrimaryButtonState extends State<BanzamiPrimaryButton>
                       Icon(widget.icon, color: fg, size: 18),
                       const SizedBox(width: BanzamiSpacing.sm),
                     ],
-                    Text(
-                      widget.label,
-                      style: BanzamiTextStyles.headingSm.copyWith(
-                        color: fg,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                    Flexible(
+                      child: Text(
+                        widget.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: BanzamiTextStyles.headingSm.copyWith(
+                          color: fg,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ],

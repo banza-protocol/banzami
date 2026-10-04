@@ -464,13 +464,17 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                 ),
                 child: Row(
                   children: [
-                    Text(
-                      // Person-to-person money in: transferências, not
-                      // "pagamentos" (a payment is to a Business).
-                      'Transferências recebidas',
-                      style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+                    Expanded(
+                      child: Text(
+                        // Person-to-person money in: transferências, not
+                        // "pagamentos" (a payment is to a Business).
+                        'Transferências recebidas',
+                        style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: BanzamiSpacing.sm),
                     if (widget.onViewAll != null)
                       GestureDetector(
                         onTap: widget.onViewAll,

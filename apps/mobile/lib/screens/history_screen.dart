@@ -330,18 +330,23 @@ class _HistoryFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: _chips.map((pair) {
-        final (filter, label) = pair;
-        return Padding(
-          padding: const EdgeInsets.only(right: BanzamiSpacing.sm),
-          child: _FilterChip(
-            label: label,
-            selected: selected == filter,
-            onTap: () => onSelect(filter),
-          ),
-        );
-      }).toList(),
+    // Horizontally scrollable so the filter pills never overflow on narrow
+    // devices or under font scaling; they stay left-aligned and compact.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _chips.map((pair) {
+          final (filter, label) = pair;
+          return Padding(
+            padding: const EdgeInsets.only(right: BanzamiSpacing.sm),
+            child: _FilterChip(
+              label: label,
+              selected: selected == filter,
+              onTap: () => onSelect(filter),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }

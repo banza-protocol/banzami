@@ -615,10 +615,13 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                 logoWidget,
                 const SizedBox(width: 6),
               ],
-              Text(
-                'Pague instantaneamente com Banzami',
-                style: BanzamiTextStyles.bodySm
-                    .copyWith(color: BanzamiColors.gray400),
+              Flexible(
+                child: Text(
+                  'Pague instantaneamente com Banzami',
+                  textAlign: TextAlign.center,
+                  style: BanzamiTextStyles.bodySm
+                      .copyWith(color: BanzamiColors.gray400),
+                ),
               ),
             ],
           ),
