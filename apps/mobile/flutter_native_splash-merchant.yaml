@@ -8,4 +8,7 @@ flutter_native_splash:
   web: false
   android_12:
     color: "#B5101F"
-    image: assets/business/business_splash_native.png
+    # High-resolution rounded source (1152px) so the Android 12+ splash icon stays
+    # sharp and polished (matches the consumer fix); the 400px source was upscaled
+    # and blurry on high-density devices.
+    image: assets/business/business_splash_android12.png
