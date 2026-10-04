@@ -88,7 +88,10 @@ flutter_native_splash:
   web: false
   android_12:
     color: "#B5101F"
-    image: assets/banzami/splash_native.png
+    # High-resolution source (1152px) so the Android 12+ splash icon stays sharp
+    # — the OS scales this drawable into its splash circle, and the previous 400px
+    # source was upscaled and blurry on high-density devices (e.g. Redmi A5).
+    image: assets/banzami/splash_android12.png
 
 flutter:
   uses-material-design: true
