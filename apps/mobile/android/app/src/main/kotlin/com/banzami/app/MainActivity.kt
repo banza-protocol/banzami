@@ -1,4 +1,4 @@
-package com.banzami.consumer
+package com.banzami.app
 
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
