@@ -26,6 +26,10 @@ pub trait IdentityRepository: Send + Sync {
         id: ConsumerId,
         badge: Option<VerificationBadge>,
     ) -> Result<ConsumerIdentity, IdentityError>;
+    /// Associate a verified recovery email with an ACTIVE consumer (legacy
+    /// enrolment). Fails with EmailTaken on the unique index, NotFound when the
+    /// consumer does not exist or is not ACTIVE.
+    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,6 +77,13 @@ impl IdentityRepository for PostgresIdentityRepository {
         // two of them real people, were missing from the registry).
         let mut tx = self.pool.begin().await.map_err(IdentityError::Database)?;
         let taken = |e: sqlx::Error, handle: &str| match e {
+            // The email unique index fires on a duplicate verified email; keep it
+            // distinct from a handle clash so the API returns EMAIL_TAKEN.
+            sqlx::Error::Database(ref db_err)
+                if db_err.constraint() == Some("consumers_email_idx") =>
+            {
+                IdentityError::EmailTaken
+            }
             sqlx::Error::Database(ref db_err)
                 if db_err.constraint() == Some("consumers_handle_key")
                     || db_err.code().as_deref() == Some("23505") =>
@@ -83,13 +94,15 @@ impl IdentityRepository for PostgresIdentityRepository {
         };
         sqlx::query(
             "INSERT INTO consumers
-             (id, handle, display_name, status, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6)",
+             (id, handle, display_name, status, email, email_verified_at, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         )
         .bind(identity.id.as_uuid())
         .bind(&identity.handle)
         .bind(&identity.display_name)
         .bind(identity.status.as_str())
+        .bind(&identity.email)
+        .bind(identity.email_verified_at)
         .bind(identity.created_at)
         .bind(identity.updated_at)
         .execute(&mut *tx)
@@ -172,6 +185,31 @@ impl IdentityRepository for PostgresIdentityRepository {
         self.get(id).await
     }
 
+    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError> {
+        let now = Utc::now();
+        let res = sqlx::query(
+            "UPDATE consumers SET email = lower($1), email_verified_at = $2, updated_at = $2
+               WHERE id = $3 AND status = 'ACTIVE'",
+        )
+        .bind(email)
+        .bind(now)
+        .bind(id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::Database(ref db_err)
+                if db_err.constraint() == Some("consumers_email_idx") =>
+            {
+                IdentityError::EmailTaken
+            }
+            other => IdentityError::Database(other),
+        })?;
+        if res.rows_affected() == 0 {
+            return Err(IdentityError::NotFound(id));
+        }
+        self.get(id).await
+    }
+
     async fn set_badge(
         &self,
         id: ConsumerId,
@@ -212,5 +250,9 @@ fn identity_from_row(row: IdentityRow) -> Result<ConsumerIdentity, IdentityError
         suspension_notes: row.suspension_notes,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        // Reads do not carry the email (it is not in SELECT); the recovery
+        // service reads consumers.email directly when it needs it.
+        email: None,
+        email_verified_at: None,
     })
 }

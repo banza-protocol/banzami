@@ -307,6 +307,10 @@ async fn main() {
             post(routes::merchants::suspend_merchant),
         )
         .route(
+            "/internal/v1/merchants/:id/delete",
+            post(routes::account_deletion::delete_business),
+        )
+        .route(
             "/internal/v1/merchants/:id/api-keys",
             post(routes::merchants::create_api_key),
         )
@@ -683,6 +687,14 @@ async fn main() {
         .route(
             "/internal/v1/consumers/:id/close",
             post(routes::consumers::close),
+        )
+        .route(
+            "/internal/v1/consumers/:id/email",
+            post(routes::consumers::set_email),
+        )
+        .route(
+            "/internal/v1/consumers/:id/delete",
+            post(routes::account_deletion::delete_consumer),
         )
         .route(
             "/internal/v1/consumers/handle/:handle",

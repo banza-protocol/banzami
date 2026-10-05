@@ -24,6 +24,9 @@ pub enum IdentityError {
     #[error("handle '{0}' is already taken")]
     HandleTaken(String),
 
+    #[error("email is already in use by another account")]
+    EmailTaken,
+
     #[error("consumer {0} is suspended — handle cannot be resolved")]
     SuspendedIdentity(ConsumerId),
 

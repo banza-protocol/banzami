@@ -17,6 +17,7 @@ async fn valid_handle_registers(pool: PgPool) {
         .create(CreateConsumerRequest {
             handle: "ana_silva".into(),
             display_name: Some("Ana Silva".into()),
+            email: None,
         })
         .await
         .unwrap();
@@ -33,6 +34,7 @@ async fn duplicate_handle_rejected(pool: PgPool) {
     eng.create(CreateConsumerRequest {
         handle: "carlos".into(),
         display_name: Some("Test Consumer".into()),
+        email: None,
     })
     .await
     .unwrap();
@@ -41,6 +43,7 @@ async fn duplicate_handle_rejected(pool: PgPool) {
         .create(CreateConsumerRequest {
             handle: "carlos".into(),
             display_name: Some("Test Consumer".into()),
+            email: None,
         })
         .await
         .unwrap_err();
@@ -56,6 +59,7 @@ async fn normalization_collision_rejected(pool: PgPool) {
     eng.create(CreateConsumerRequest {
         handle: "@Carlos".into(),
         display_name: Some("Test Consumer".into()),
+        email: None,
     })
     .await
     .unwrap();
@@ -65,6 +69,7 @@ async fn normalization_collision_rejected(pool: PgPool) {
         .create(CreateConsumerRequest {
             handle: "@CARLOS".into(),
             display_name: Some("Test Consumer".into()),
+            email: None,
         })
         .await
         .unwrap_err();
@@ -82,6 +87,7 @@ async fn reserved_handle_rejected(pool: PgPool) {
             .create(CreateConsumerRequest {
                 handle: reserved.to_string(),
                 display_name: Some("Test Consumer".into()),
+                email: None,
             })
             .await
             .unwrap_err();
@@ -115,6 +121,7 @@ async fn invalid_syntax_rejected(pool: PgPool) {
             .create(CreateConsumerRequest {
                 handle: handle.to_string(),
                 display_name: Some("Test Consumer".into()),
+                email: None,
             })
             .await
             .unwrap_err();
@@ -134,6 +141,7 @@ async fn handle_resolves_for_active_consumer(pool: PgPool) {
         .create(CreateConsumerRequest {
             handle: "@Maria".into(),
             display_name: Some("Maria Neto".into()),
+            email: None,
         })
         .await
         .unwrap();
@@ -154,6 +162,7 @@ async fn suspended_consumer_not_resolved(pool: PgPool) {
         .create(CreateConsumerRequest {
             handle: "rui".into(),
             display_name: Some("Test Consumer".into()),
+            email: None,
         })
         .await
         .unwrap();
@@ -178,6 +187,7 @@ async fn closed_consumer_not_resolved(pool: PgPool) {
         .create(CreateConsumerRequest {
             handle: "pedro".into(),
             display_name: Some("Test Consumer".into()),
+            email: None,
         })
         .await
         .unwrap();
@@ -219,6 +229,7 @@ async fn concurrent_registration_creates_one_owner(pool: PgPool) {
             eng.create(CreateConsumerRequest {
                 handle: "disputed".into(),
                 display_name: Some("Test Consumer".into()),
+                email: None,
             })
             .await
         });
@@ -249,6 +260,7 @@ async fn created_consumer_is_in_the_handle_registry(pool: PgPool) {
         .create(CreateConsumerRequest {
             handle: "registo_ok".into(),
             display_name: Some("Test Consumer".into()),
+            email: None,
         })
         .await
         .unwrap();
@@ -285,6 +297,7 @@ async fn a_name_a_business_holds_is_refused_and_nothing_is_written(pool: PgPool)
         .create(CreateConsumerRequest {
             handle: "loja_x".into(),
             display_name: Some("Test Consumer".into()),
+            email: None,
         })
         .await
         .unwrap_err();
