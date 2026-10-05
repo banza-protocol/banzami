@@ -14,11 +14,17 @@ enum _Step { enter, confirm }
 class SetupPinScreen extends StatefulWidget {
   final String  handle;
   final String  displayName;
+  /// Verified recovery email + the opaque token proving its OTP verification.
+  /// Both null on the legacy (no-recovery) path.
+  final String? email;
+  final String? emailVerificationToken;
 
   const SetupPinScreen({
     super.key,
     required this.handle,
     required this.displayName,
+    this.email,
+    this.emailVerificationToken,
   });
 
   @override
@@ -70,9 +76,11 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
 
     try {
       final reg = await client.register(
-        handle:      widget.handle,
-        displayName: widget.displayName,
-        pin:         _currentPin,
+        handle:                 widget.handle,
+        displayName:            widget.displayName,
+        pin:                    _currentPin,
+        email:                  widget.email,
+        emailVerificationToken: widget.emailVerificationToken,
       );
 
       await svc.createSession(
@@ -100,6 +108,10 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
         _apiError   = banzamiErrorMessage(e, codes: const {
           'HANDLE_TAKEN':
               'Este @banza já está em uso. Volte atrás e escolha outro.',
+          'EMAIL_TAKEN':
+              'Este email já está associado a uma conta. Use outro.',
+          'EMAIL_NOT_VERIFIED':
+              'A verificação do email expirou. Volte atrás e verifique novamente.',
         });
         _saving     = false;
         _step       = _Step.enter;

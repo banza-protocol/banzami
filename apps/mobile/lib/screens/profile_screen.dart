@@ -7,6 +7,7 @@ import '../config.dart';
 
 import '../services/session_service.dart';
 import '../widgets/banzami_premium_dialog.dart';
+import '../widgets/reauth_pin_dialog.dart';
 import 'help_screen.dart';
 import 'kyc_screen.dart';
 import 'notifications_screen.dart';
@@ -139,10 +140,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
               _RowChevron(
-                icon:  Icons.delete_outline_rounded,
-                label: 'Remover conta',
-                sub:   'Apaga todos os dados guardados',
+                icon:  Icons.phonelink_erase_rounded,
+                label: 'Remover deste dispositivo',
+                sub:   'Apaga os dados guardados neste telemóvel. A conta mantém-se.',
                 onTap: () => _confirmClearAccount(svc),
+                color: BanzamiColors.gray400,
+              ),
+              const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
+              _RowChevron(
+                icon:  Icons.delete_forever_rounded,
+                label: 'Suprimir conta',
+                sub:   'Encerra a conta de forma definitiva',
+                onTap: () => _confirmDeleteAccount(svc),
                 color: BanzamiColors.error,
               ),
             ]),
@@ -228,15 +237,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Remover deste dispositivo — a LOCAL wipe only (an alias for logout). It does
+  /// not delete the account: the person can sign in again. Distinct, and
+  /// deliberately differently named, from "Suprimir conta" below.
   Future<void> _confirmClearAccount(SessionService svc) async {
     final confirm = await showBanzamiDialog(
       context:      context,
-      icon:         Icons.delete_forever_rounded,
-      title:        'Remover conta?',
-      description:  'Todos os dados guardados neste dispositivo serão apagados.\nTerá de iniciar sessão novamente.',
+      icon:         Icons.phonelink_erase_rounded,
+      title:        'Remover deste dispositivo?',
+      description:  'Apaga os dados guardados neste telemóvel. A sua conta mantém-se e pode iniciar sessão novamente.',
       cancelLabel:  'Cancelar',
       confirmLabel: 'Remover',
-      variant:      BanzamiDialogVariant.danger,
+      variant:      BanzamiDialogVariant.warning,
     );
     if (confirm == true) {
       await svc.clearAccount();
@@ -246,6 +258,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
           (_) => false,
         );
       }
+    }
+  }
+
+  /// Suprimir conta — the real, permanent account deletion. It explains the
+  /// consequences, requires a fresh PIN re-auth, then calls the server deletion.
+  /// On success the local session is torn down (clearAccount) like a logout.
+  Future<void> _confirmDeleteAccount(SessionService svc) async {
+    final confirm = await showBanzamiDialog(
+      context:      context,
+      icon:         Icons.delete_forever_rounded,
+      title:        'Suprimir conta?',
+      description:
+          'Esta ação é definitiva. A conta é encerrada, o início de sessão deixa de funcionar e o seu @banza é retirado. '
+          'Na Beta Sandbox o saldo é fictício e é retirado no encerramento. '
+          'Alguns registos financeiros e de auditoria são conservados por obrigação legal.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Continuar',
+      variant:      BanzamiDialogVariant.danger,
+    );
+    if (confirm != true || !mounted) return;
+
+    final pin = await showReauthPinDialog(
+      context:     context,
+      title:       'Confirme com o PIN',
+      description: 'Introduza o seu PIN para suprimir a conta.',
+      confirmLabel: 'Suprimir',
+    );
+    if (pin == null || pin.isEmpty || !mounted) return;
+
+    try {
+      await context.read<ConsumerPublicClient>().deleteAccount(pin: pin);
+    } on BanzamiApiException catch (e) {
+      if (!mounted) return;
+      if (e.statusCode == 403) {
+        BanzamiToast.showWarning(context, 'PIN incorreto. Tente novamente.');
+      } else {
+        BanzamiToast.showWarning(context,
+            'Não foi possível suprimir a conta. Tente novamente.');
+      }
+      return;
+    } catch (_) {
+      if (mounted) {
+        BanzamiToast.showWarning(context,
+            'Não foi possível suprimir a conta. Tente novamente.');
+      }
+      return;
+    }
+
+    // Deleted server-side: tear down the local session exactly as logout does
+    // (clears the stored session and unregisters push), then return to Welcome.
+    await svc.clearAccount();
+    if (mounted) {
+      BanzamiToast.showSuccess(context, 'Conta suprimida.');
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+        (_) => false,
+      );
     }
   }
 }

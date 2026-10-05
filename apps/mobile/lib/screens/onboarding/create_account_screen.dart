@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../branding_assets.dart';
-import 'setup_pin_screen.dart';
+import 'email_verify_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -15,15 +15,19 @@ class CreateAccountScreen extends StatefulWidget {
 class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _handleCtrl = TextEditingController();
   final _nameCtrl   = TextEditingController();
+  final _emailCtrl  = TextEditingController();
   final _formKey    = GlobalKey<FormState>();
 
   bool    _checking    = false;
   String? _handleError;
 
+  static final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
   @override
   void dispose() {
     _handleCtrl.dispose();
     _nameCtrl.dispose();
+    _emailCtrl.dispose();
     super.dispose();
   }
 
@@ -36,10 +40,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     // guarantees it is non-empty here. It is a user-declared name, NOT identity
     // verification — Sandbox performs no KYC.
     final name   = _nameCtrl.text.trim();
+    final email  = _emailCtrl.text.trim().toLowerCase();
 
+    final client = context.read<ConsumerPublicClient>();
     setState(() => _checking = true);
     try {
-      final taken = await context.read<ConsumerPublicClient>().handleExists(handle);
+      final taken = await client.handleExists(handle);
       if (!mounted) return;
       if (taken) {
         setState(() { _handleError = 'Este @banza já está em uso.'; _checking = false; });
@@ -47,15 +53,38 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         return;
       }
     } catch (_) {
-      // Network error — let SetupPinScreen handle it at registration time
+      // Network error — let the next step surface it at registration time.
     }
-
     if (!mounted) return;
-    setState(() => _checking = false);
 
-    Navigator.of(context).push(BanzamiPageRoute(
-      page: SetupPinScreen(handle: handle, displayName: name),
-    ));
+    // A verified email is mandatory for every new account — there is NO no-email
+    // path. Send the code and go to the verification step. If the email
+    // subsystem is unavailable (503), signup fails closed: no account is created
+    // and the person is asked to try again later.
+    try {
+      await client.requestEmailOtp(email: email);
+      if (!mounted) return;
+      setState(() => _checking = false);
+      Navigator.of(context).push(BanzamiPageRoute(
+        page: EmailVerifyScreen(handle: handle, displayName: name, email: email),
+      ));
+      return;
+    } on BanzamiApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _checking = false);
+      final msg = switch (e.statusCode) {
+        503 => 'A criação de conta está temporariamente indisponível. Tente novamente mais tarde.',
+        400 => 'Email inválido.',
+        _ => 'Não foi possível enviar o código. Tente novamente.',
+      };
+      BanzamiToast.showWarning(context, msg);
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _checking = false);
+      BanzamiToast.showWarning(context, 'Não foi possível enviar o código. Tente novamente.');
+      return;
+    }
   }
 
   @override
@@ -163,6 +192,43 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                             if (val.runes.length > 120) return 'O nome é demasiado longo.';
                             if (RegExp(r'[\u0000-\u001F\u007F]').hasMatch(val)) {
                               return 'O nome contém caracteres inválidos.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // ── Email (verified recovery attribute) ──────────────────
+                      const Text('Email', style: BanzamiTextStyles.headingMd),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Confirmamos o seu email por código. Serve para recuperar a conta se esquecer o PIN.',
+                        style: BanzamiTextStyles.bodyMd.copyWith(
+                          color:  BanzamiColors.gray400,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Semantics(
+                        textField: true,
+                        label: 'Email',
+                        child: TextFormField(
+                          controller:      _emailCtrl,
+                          decoration:      _fieldDecoration(hint: 'ana@exemplo.ao'),
+                          style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
+                          cursorColor:     BanzamiColors.primary,
+                          keyboardType:    TextInputType.emailAddress,
+                          textInputAction: TextInputAction.done,
+                          autocorrect:     false,
+                          autofillHints:   const [AutofillHints.email],
+                          onFieldSubmitted: (_) => _continue(),
+                          validator: (v) {
+                            final val = (v ?? '').trim();
+                            if (val.isEmpty) return 'O email é obrigatório.';
+                            if (val.length > 254 || !_emailRe.hasMatch(val)) {
+                              return 'Introduza um email válido.';
                             }
                             return null;
                           },

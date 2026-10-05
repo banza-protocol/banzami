@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
@@ -61,11 +63,39 @@ class PinDots extends StatelessWidget {
 // PIN pad — numeric keyboard
 // ---------------------------------------------------------------------------
 
+/// Permutes the digits 0-9 into the keypad layout order. Injectable so tests can
+/// assert a reshuffle happened (deterministically) without probabilistic checks.
+typedef PinShuffle = List<int> Function(List<int> digits);
+
+/// A cryptographically-secure permutation of the ten digits. The order is purely
+/// local UI state: never persisted, sent to the backend, logged, or put in
+/// analytics/crash reports.
+List<int> securePinShuffle(List<int> digits) {
+  final rng = Random.secure();
+  final out = List<int>.of(digits);
+  for (var i = out.length - 1; i > 0; i--) {
+    final j = rng.nextInt(i + 1);
+    final t = out[i];
+    out[i] = out[j];
+    out[j] = t;
+  }
+  return out;
+}
+
 class PinPad extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final VoidCallback? onComplete;
   final bool disabled;
   final bool error;
+
+  /// Randomized numeric keypad (Banzami canonical default): the digits are
+  /// shuffled when PIN entry begins and again after every failed attempt, to
+  /// resist shoulder-surfing and tap-pattern inference. Set false only for a
+  /// non-PIN context (there are none today).
+  final bool randomized;
+
+  /// Test seam: a deterministic shuffle. Defaults to [securePinShuffle].
+  final PinShuffle? shuffle;
 
   final _controller = _PinController();
 
@@ -75,6 +105,8 @@ class PinPad extends StatelessWidget {
     this.onComplete,
     this.disabled = false,
     this.error = false,
+    this.randomized = true,
+    this.shuffle,
   });
 
   void clear() => _controller.clear();
@@ -87,6 +119,8 @@ class PinPad extends StatelessWidget {
       onComplete: onComplete,
       disabled: disabled,
       error: error,
+      randomized: randomized,
+      shuffle: shuffle ?? securePinShuffle,
     );
   }
 }
@@ -102,6 +136,8 @@ class _PinPadInner extends StatefulWidget {
   final VoidCallback? onComplete;
   final bool disabled;
   final bool error;
+  final bool randomized;
+  final PinShuffle shuffle;
 
   const _PinPadInner({
     required this.controller,
@@ -109,6 +145,8 @@ class _PinPadInner extends StatefulWidget {
     this.onComplete,
     this.disabled = false,
     this.error = false,
+    this.randomized = true,
+    required this.shuffle,
   });
 
   @override
@@ -117,15 +155,41 @@ class _PinPadInner extends StatefulWidget {
 
 class _PinPadInnerState extends State<_PinPadInner> {
   String _pin = '';
+  // The keypad layout order (a permutation of 0-9) for the CURRENT attempt.
+  // Fixed order 0..9 when randomization is off.
+  List<int> _order = const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   @override
   void initState() {
     super.initState();
     widget.controller._state = this;
+    _reshuffle(); // a fresh layout when PIN entry begins
+  }
+
+  @override
+  void didUpdateWidget(_PinPadInner old) {
+    super.didUpdateWidget(old);
+    // A failed attempt (error going false→true) clears the dots and reshuffles.
+    if (!old.error && widget.error) {
+      clear();
+    }
+  }
+
+  // Reshuffle the keypad. The order lives only in this widget's state; it is
+  // never persisted, sent to the backend, logged, or analysed.
+  void _reshuffle() {
+    if (!widget.randomized) {
+      _order = const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      return;
+    }
+    _order = widget.shuffle(<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   }
 
   void clear() {
-    setState(() => _pin = '');
+    setState(() {
+      _pin = '';
+      _reshuffle(); // new permutation for the next attempt
+    });
     widget.onChanged('');
   }
 
@@ -160,11 +224,15 @@ class _PinPadInnerState extends State<_PinPadInner> {
   // Expanded columns), so a row can NEVER overflow on a narrow device, while
   // staying compact and centred on wide ones. No fixed key or row widths.
   Widget _buildGrid() {
-    const rows = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
+    // The current (possibly shuffled) order: first nine fill the 3x3 grid, the
+    // tenth sits in the bottom-middle (with backspace bottom-right).
+    final d0 = _order.map((n) => n.toString()).toList();
+    final rows = [
+      [d0[0], d0[1], d0[2]],
+      [d0[3], d0[4], d0[5]],
+      [d0[6], d0[7], d0[8]],
     ];
+    final bottomDigit = d0[9];
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 320),
@@ -200,8 +268,8 @@ class _PinPadInnerState extends State<_PinPadInner> {
                       const Expanded(child: SizedBox.shrink()),
                       cell(_DigitKey(
                         size: d,
-                        label: '0',
-                        onTap: () => _add('0'),
+                        label: bottomDigit,
+                        onTap: () => _add(bottomDigit),
                         disabled: widget.disabled,
                       )),
                       cell(_BackspaceKey(
