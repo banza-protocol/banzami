@@ -339,10 +339,14 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'dados-conta', n: '03', title: { pt: 'Dados de identidade e conta', en: 'Identity and account data' },
     body: [
       ul([
-        ['Email, nome e telefone associados à conta.', 'Email, name and phone associated with the account.'],
-        ['O seu @banza (identificador da carteira).', 'Your @banza (wallet identifier).'],
+        ['Email associado à conta (verificado por código e usado para gestão e recuperação da conta, por exemplo redefinir o PIN), nome e, quando aplicável, telefone.', 'Email associated with the account (verified by code and used for account management and recovery, for example resetting the PIN), name and, where applicable, phone.'],
+        ['O seu @banza (identificador da carteira). O login é sempre @banza + PIN; o email e o telefone nunca substituem o @banza nem servem de método de login.', 'Your @banza (wallet identifier). Login is always @banza + PIN; email and phone never replace the @banza and are not a login method.'],
         ['Metadados de sessão e de autenticação (incluindo metadados de PIN/MFA, nunca o próprio PIN).', 'Session and authentication metadata (including PIN/MFA metadata, never the PIN itself).'],
       ]),
+      p(
+        'Na Beta Sandbox, o fator de recuperação da conta é o email verificado. Quando a Banzami vier a operar com dinheiro real, a recuperação passará a exigir um número de telemóvel verificado por SMS (apenas Angola, +244); essa recuperação por SMS ainda não está em funcionamento.',
+        'In the Beta Sandbox, the account recovery factor is the verified email. When Banzami later operates with real money, recovery will require a mobile phone verified by SMS (Angola only, +244); that SMS recovery is not yet operational.',
+      ),
     ],
   },
   {
@@ -459,8 +463,42 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'conservacao', n: '15', title: { pt: 'Conservação e eliminação', en: 'Retention and deletion' },
     body: [
       p(
-        'Conservamos os dados enquanto forem necessários para as finalidades descritas e durante a fase Beta. Os dados de Sandbox podem ser reiniciados ou removidos como parte dos testes. Pode pedir a eliminação da sua conta e dos seus dados através de ' + OPERATOR_CONTACT + ', sem prejuízo de conservação exigida por lei (por exemplo, registos de segurança).',
-        'We keep data for as long as it is needed for the purposes described and during the Beta phase. Sandbox data may be reset or removed as part of testing. You can request deletion of your account and data via ' + OPERATOR_CONTACT + ', without prejudice to retention required by law (for example, security logs).',
+        'Conservamos os dados enquanto forem necessários para as finalidades descritas e durante a fase Beta. Os dados de Sandbox podem ser reiniciados ou removidos como parte dos testes.',
+        'We keep data for as long as it is needed for the purposes described and during the Beta phase. Sandbox data may be reset or removed as part of testing.',
+      ),
+      p(
+        'Pode suprimir a sua conta de duas formas: na app, em Definições, com a opção «Suprimir conta» (ou «Suprimir conta Business»), confirmada com o seu PIN; ou, se já não tiver a app, através do formulário em banzami.com/supressao-de-conta, que pede o seu @banza e um e-mail de contacto e envia um código de confirmação. Nunca pedimos o PIN por e-mail. Um pedido feito pela web é verificado pela equipa, que confirma a titularidade da conta antes de o executar.',
+        'You can delete your account in two ways: in the app, in Settings, with the "Delete account" option (or "Delete Business account"), confirmed with your PIN; or, if you no longer have the app, through the form at banzami.com/supressao-de-conta, which asks for your @banza and a contact email and sends a confirmation code. We never ask for the PIN by email. A request made on the web is reviewed by the team, which verifies account ownership before executing it.',
+      ),
+      p(
+        'Ao suprimir a conta, eliminamos ou anonimizamos os dados pessoais que podemos remover (nome de apresentação e outros dados de perfil, registos de dispositivos), revogamos as credenciais e sessões, e retiramos o seu @banza para que não seja reutilizado.',
+        'When you delete the account, we remove or anonymise the personal data we are allowed to delete (display name and other profile data, device records), revoke credentials and sessions, and retire your @banza so it cannot be reused.',
+      ),
+      p(
+        'Determinados registos não são eliminados com a conta, por imposição legal e de integridade do sistema de pagamentos, e deixam de estar ligados a uma conta utilizável:',
+        'Certain records are not deleted with the account, by legal requirement and for payment system integrity, and are no longer tied to a usable account:',
+      ),
+      ul([
+        [
+          'Registo financeiro (livro-razão, transferências, pagamentos, liquidações, reembolsos), imutável por conceção e necessário para reconciliação e prestação de contas.',
+          'Financial records (ledger, transfers, payments, settlements, refunds), immutable by design and needed for reconciliation and accountability.',
+        ],
+        [
+          'Registos de auditoria e comprovativos de transação, que provam o que aconteceu.',
+          'Audit records and transaction proofs, which prove what happened.',
+        ],
+        [
+          'Dados de conformidade (KYC e KYB), quando existam, pelo período de retenção aplicável.',
+          'Compliance data (KYC and KYB), where it exists, for the applicable retention period.',
+        ],
+        [
+          'Sinais de risco, fraude e segurança, mantidos como referência sem o identificar diretamente.',
+          'Risk, fraud and security signals, kept as a reference without directly identifying you.',
+        ],
+      ]),
+      p(
+        'Os prazos de conservação seguem o critério legal aplicável a cada categoria; quando a lei não fixa um prazo, conservamos apenas o tempo necessário à finalidade. Para qualquer questão, contacte ' + OPERATOR_CONTACT + '.',
+        'Retention periods follow the legal criterion applicable to each category; where the law sets no period, we keep data only as long as the purpose requires. For any question, contact ' + OPERATOR_CONTACT + '.',
       ),
     ],
   },
@@ -479,6 +517,10 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       p(
         'Nos termos da Lei n.º 22/11, de 17 de junho (Lei da Protecção de Dados Pessoais), tem direito de acesso, informação, retificação, cancelamento (eliminação) e oposição relativamente aos seus dados pessoais.',
         'Under Law no. 22/11 of 17 June (Personal Data Protection Law), you have the rights of access, information, rectification, cancellation (deletion) and objection regarding your personal data.',
+      ),
+      p(
+        'O direito de cancelamento (eliminação) exerce-se diretamente pela supressão de conta descrita na secção 15, na app ou em banzami.com/supressao-de-conta. Os restantes direitos exercem-se pelos contactos indicados abaixo.',
+        'The right of cancellation (deletion) is exercised directly through the account deletion described in section 15, in the app or at banzami.com/supressao-de-conta. The remaining rights are exercised through the contacts given below.',
       ),
     ],
   },

@@ -103,6 +103,7 @@ const T = {
   legalStatus: L('Sandbox com dinheiro fictício · Operações com dinheiro real ainda indisponíveis', 'Sandbox with test money · Real-money operations not yet available'),
   privacy: L('Privacidade', 'Privacy'),
   terms: L('Termos', 'Terms'),
+  deletion: L('Supressão de conta', 'Account deletion'),
   built: L('Construído sobre o BANZA.', 'Built on BANZA.'),
 };
 
@@ -162,6 +163,7 @@ export function Footer({ lang }: { lang: Lang }) {
         <span style={{ display: 'flex', gap: '18px', fontSize: '12.5px', fontWeight: 700, color: '#9a8a8e' }}>
           <a href={route('privacidade', lang)} style={{ color: '#9a8a8e', textDecoration: 'none' }}>{T.privacy[lang]}</a>
           <a href={route('termos', lang)} style={{ color: '#9a8a8e', textDecoration: 'none' }}>{T.terms[lang]}</a>
+          <a href={route('supressao', lang)} style={{ color: '#9a8a8e', textDecoration: 'none' }}>{T.deletion[lang]}</a>
           <span>© 2026 Banzami</span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 900, color: '#141014' }}>{T.built[lang]}<BrandGlyph s={30} /></span>

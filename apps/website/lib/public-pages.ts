@@ -15,5 +15,6 @@ export const MARKETING_PAGES: { path: string; file: string }[] = [
   { path: '/testes', file: 'app/testes/page.tsx' },
   { path: '/termos', file: 'app/termos/page.tsx' },
   { path: '/privacidade', file: 'app/privacidade/page.tsx' },
+  { path: '/supressao-de-conta', file: 'app/supressao-de-conta/page.tsx' },
   { path: '/verificar', file: 'app/verificar/page.tsx' },
 ];
