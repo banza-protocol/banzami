@@ -445,6 +445,53 @@ Users must NEVER be asked for card numbers, CVV codes, expiry dates, or billing 
 
 ---
 
+## 2.8 Consumer Identity, Login and Recovery — Canonical Rule (binding)
+
+This rule is binding to prevent regressions. The Consumer login method NEVER
+changes, in any environment.
+
+```
+IDENTITY:        @banza  (the handle; never replaced by email or phone)
+AUTHENTICATION:  @banza + PIN  (login is always this; nothing else)
+RECOVERY FACTOR: depends on the environment (below)
+```
+
+- Email and phone are **recovery/security metadata, never a login identifier**.
+  There is NO `email + PIN` and NO `phone + PIN` login, and no email-login or
+  phone-login endpoint. "Esqueci o PIN" identifies the account by **@banza**; the
+  backend resolves the verified contact internally.
+- **SANDBOX** (test money): a verified **email** (OTP via Resend) is the recovery
+  factor. Email is mandatory + verified on new-account creation; a new account is
+  never ACTIVE without a verified email; signup is fail-closed if the email/OTP
+  subsystem is unavailable (never a no-email fallback). `1 verified email = 1
+  live Consumer`.
+- **LIVE** (real money): a verified **mobile phone** (OTP via SMS) is the
+  mandatory recovery factor. **Email alone can NEVER recover a LIVE account.**
+  LIVE recovery is **fail-closed**: no SMS provider or no verified phone ⇒ NO
+  automatic recovery (never an email fallback). LIVE phone numbers are **Angola
+  only (+244)**. SMS is not operational yet — this is architecture-ready
+  (`services/public-api/internal/service/recovery_policy.go` centralises the
+  factor/channel decision; do not scatter `if sandbox/if live` across handlers).
+- **Recovery NEVER changes consumer lifecycle status.** Forgot-PIN / PIN reset /
+  unblocking `PIN_RECOVERY_REQUIRED` must re-assert `status = ACTIVE` at the
+  moment of the change and refuse (fail-closed) for SUSPENDED/CLOSED/retired.
+  Recovery never reactivates an identity.
+- **Account deletion is terminal** and cannot be circumvented by recovery: a
+  CLOSED consumer can never log in, recover a PIN, reset a PIN, be reactivated by
+  `PIN_RECOVERY_REQUIRED`, or be reopened by email/phone verification.
+- **PIN brute-force escalation is on the credential, not the lifecycle**: 3 wrong
+  PINs → a short credential lock; a further 3 → `PIN_RECOVERY_REQUIRED` (PIN login
+  disabled until recovery; time does not clear it); `consumers.status` stays
+  ACTIVE. A persistent per-source throttle stops one source from forcing mass
+  locks via known public @banza. All of this state is persistent (PostgreSQL),
+  surviving restarts and spanning instances.
+
+Enforced in code across `core/identity` (handle + status truth, email on
+`consumers`), `services/public-api` (credential, OTP/grant, recovery policy,
+source throttle) and the Flutter consumer app. **FAIL CLOSED everywhere.**
+
+---
+
 # 3. Official Technology Stack
 
 | Layer | Technology | Responsibilities |
