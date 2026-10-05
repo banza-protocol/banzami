@@ -51,7 +51,7 @@ The wallet-native payment network and Developer Platform — the **reference ope
 built on the BANZA protocol** (BANZA is the protocol; Banzami is the operator/product).
 It provides wallets, QR payments, `@banza` identity, App Banzami for consumers,
 Banzami Business for merchants, and the Banzami SDKs for developers. Grammatical
-gender is masculine: *o Banzami*. Defined in ADR-016 / ADR-025.
+gender is feminine: *a Banzami*. Defined in ADR-016 / ADR-025.
 
 **Not:** Banzami is not the protocol. BANZA is the protocol; Banzami is built on it.
 See [BANZA](#banza).

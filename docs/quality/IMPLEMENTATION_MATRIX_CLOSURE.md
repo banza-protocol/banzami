@@ -103,7 +103,7 @@ All eleven Cloudflare-proxied hosts — `banzami.com`, `www`, `developers`,
 `developer-api`, `api`, `sandbox-api`, `sandbox-operator`, `sandbox-webhook`,
 `pay`, `checkout`, `admin` — proved by handshake and confirmed independently with
 curl (TLS ≤1.1 → connect error; 1.2 → real 200/404). The mail hostnames are
-unproxied, serve no Banzami product, and the zone setting cannot reach them; they
+unproxied, serve na Banzami product, and the zone setting cannot reach them; they
 are named out of scope rather than silently omitted.
 
 The criterion wording is corrected to what the product actually enforces.

@@ -32,13 +32,13 @@ export const COVERAGE = {
     section: 7, heading: 'PROJECT',
     items: [
       { spec: 'purpose', pt: /A unidade de integração: uma aplicação/, en: /The unit of integration: one application/ },
-      { spec: 'stable Project ID', pt: /Project ID — não muda/, en: /Project ID — does not change/ },
+      { spec: 'stable Project ID', pt: /Project ID: não muda/, en: /Project ID: does not change/ },
       { spec: 'environment', pt: /environment: SANDBOX|"environment": "SANDBOX"/, en: /environment: SANDBOX|"environment": "SANDBOX"/ },
       { spec: 'rename', pt: /não muda quando altera o nome/, en: /does not change when you rename the project/ },
       // SANDBOX-DELETE-001: any Sandbox Project is deleted, history or not, and
       // what deletion keeps and closes is stated; archiving is optional.
-      { spec: 'delete empty Project', pt: /Eliminar — disponível para Owners e Admins, mesmo depois de pagamentos[\s\S]{0,1600}o histórico do ledger não é reescrito/, en: /Delete — available to Owners and Admins, even after test payments[\s\S]{0,1600}ledger history is not rewritten/ },
-      { spec: 'archive financial/historical Project', pt: /Arquivar — opcional\. Revoga as chaves ativas/, en: /Archive — optional\. Revokes active keys/ },
+      { spec: 'delete empty Project', pt: /Eliminar: disponível para Owners e Admins, mesmo depois de pagamentos[\s\S]{0,1600}o histórico do ledger não é reescrito/, en: /Delete: available to Owners and Admins, even after test payments[\s\S]{0,1600}ledger history is not rewritten/ },
+      { spec: 'archive financial/historical Project', pt: /Arquivar: opcional\. Revoga as chaves ativas/, en: /Archive: optional\. Revokes active keys/ },
     ],
   },
   DOCS_FINANCIAL_SETUP_COMPLETE: {
@@ -51,18 +51,18 @@ export const COVERAGE = {
       // case with no review, and "truthfully" now means saying nobody reviews it.
       { spec: 'A. new Business application', pt: /Negócio de teste[\s\S]{0,400}Escolhe o tipo de uso/, en: /Test Business[\s\S]{0,400}Choose the use case/ },
       { spec: 'B. connect existing Business with single-use consent code', pt: /código de consentimento[\s\S]{0,400}utilização única/, en: /consent code[\s\S]{0,400}works once/ },
-      { spec: 'Explain operator\nreview truthfully', pt: /Ninguém espera: o Banzami cria o negócio/, en: /Nobody waits: Banzami creates the Business/ },
-      { spec: 'No auto-KYB fiction', pt: /É uma entidade de teste — não é verificada/, en: /It is a test entity — not verified/ },
+      { spec: 'Explain operator\nreview truthfully', pt: /Ninguém espera: a Banzami cria o negócio/, en: /Nobody waits: Banzami creates the Business/ },
+      { spec: 'No auto-KYB fiction', pt: /É uma entidade de teste: não é verificada/, en: /It is a test entity: not verified/ },
     ],
   },
   DOCS_API_KEYS_COMPLETE: {
     section: 7, heading: 'API KEYS',
     items: [
-      { spec: 'name', pt: /Nome — identifica a chave/, en: /Name — identifies the key/ },
-      { spec: 'scopes', pt: /Scopes — definidos na criação e imutáveis/, en: /Scopes — set at creation and immutable/ },
-      { spec: 'reveal once', pt: /Segredo — (começa por bz_test_sk_ e é )?mostrado uma única vez/, en: /Secret — (starts with bz_test_sk_ and is )?shown once/ },
-      { spec: 'rotation', pt: /Rodar — cria a chave sucessora e revoga a anterior/, en: /Rotate — creates the successor and revokes the previous key/ },
-      { spec: 'revocation', pt: /Revogar — imediato/, en: /Revoke — immediate/ },
+      { spec: 'name', pt: /Nome: identifica a chave/, en: /Name: identifies the key/ },
+      { spec: 'scopes', pt: /Scopes: definidos na criação e imutáveis/, en: /Scopes: set at creation and immutable/ },
+      { spec: 'reveal once', pt: /Segredo: (começa por bz_test_sk_ e é )?mostrado uma única vez/, en: /Secret: (starts with bz_test_sk_ and is )?shown once/ },
+      { spec: 'rotation', pt: /Rodar: cria a chave sucessora e revoga a anterior/, en: /Rotate: creates the successor and revokes the previous key/ },
+      { spec: 'revocation', pt: /Revogar: imediato/, en: /Revoke: immediate/ },
       { spec: 'last use', pt: /Última utilização/, en: /Last used/ },
       { spec: 'server-side-only storage', pt: /Mantenha a chave secreta no servidor/, en: /Keep the secret key on your server/ },
       { spec: 'Sandbox key semantics', pt: /bz_test_sk_/, en: /bz_test_sk_/ },
@@ -88,12 +88,12 @@ export const COVERAGE = {
     includes: ['DOCS_WORKSPACE_COMPLETE', 'DOCS_PROJECT_COMPLETE', 'DOCS_FINANCIAL_SETUP_COMPLETE', 'DOCS_API_KEYS_COMPLETE', 'DOCS_WEBHOOKS_COMPLETE'],
     items: [
       { spec: 'personal account', pt: /A conta pessoal fica em/, en: /Your personal account is at/ },
-      { spec: 'profile', pt: /Perfil — o nome/, en: /Profile — the name/ },
-      { spec: 'security', pt: /Segurança — descreve o modelo de autenticação/, en: /Security — describes how sign-in works/ },
-      { spec: 'sessions', pt: /Sessões — as sessões abertas/, en: /Sessions — open sessions/ },
+      { spec: 'profile', pt: /Perfil: o nome/, en: /Profile: the name/ },
+      { spec: 'security', pt: /Segurança: descreve o modelo de autenticação/, en: /Security: describes how sign-in works/ },
+      { spec: 'sessions', pt: /Sessões: as sessões abertas/, en: /Sessions: open sessions/ },
       { spec: 'preferences if they truly exist', pt: /Não há palavra-passe nem MFA para configurar/, en: /There is no password or MFA to configure/ },
-      { spec: 'logout', pt: /Sair — pede confirmação/, en: /Sign out — asks for confirmation/ },
-      { spec: 'developer integration/API activity', pt: /Registos — cada pedido feito com as chaves do projeto/, en: /Logs — every request made with the project’s keys/ },
+      { spec: 'logout', pt: /Sair: pede confirmação/, en: /Sign out: asks for confirmation/ },
+      { spec: 'developer integration/API activity', pt: /Registos: cada pedido feito com as chaves do projeto/, en: /Logs: every request made with the project’s keys/ },
     ],
   },
   DOCS_PAYMENT_SESSIONS_COMPLETE: {
@@ -116,7 +116,7 @@ export const COVERAGE = {
     items: [
       { spec: 'what developer creates', pt: /DYNAMIC_QR/, en: /DYNAMIC_QR/ },
       { spec: 'what payer scans', pt: /QR que codifica o mesmo endereço|O QR codifica o mesmo endereço/, en: /QR code that encodes the same address|The QR code encodes the same address/ },
-      { spec: 'what happens next', pt: /O doador paga numa página do Banzami/, en: /The donor pays on a Banzami page/ },
+      { spec: 'what happens next', pt: /O doador paga numa página da Banzami/, en: /The donor pays on a Banzami page/ },
       { spec: 'how result is observed', pt: /a confirmação chega pelo webhook, ou lendo a sessão no servidor/, en: /the confirmation arrives by webhook, or by reading the session on the server/ },
     ],
   },
@@ -141,7 +141,7 @@ export const COVERAGE = {
       { spec: 'source account', pt: /sourceAccountId/, en: /sourceAccountId/ },
       { spec: 'beneficiary', pt: /beneficiaryBanzaName/, en: /beneficiaryBanzaName/ },
       { spec: 'fee destination', pt: /feeDestinationBanzaName/, en: /feeDestinationBanzaName/ },
-      { spec: 'operator-governed pricing', pt: /perfil de preço atribuído pelo Banzami ao seu Business/, en: /pricing profile Banzami assigned to your Business/ },
+      { spec: 'operator-governed pricing', pt: /perfil de preço atribuído pela Banzami ao seu Business/, en: /pricing profile Banzami assigned to your Business/ },
       { spec: 'developer cannot choose pricing rate', pt: /um campo de preço no pedido responde 400 PRICING_FIELD_NOT_ACCEPTED/, en: /a pricing field in the request returns 400 PRICING_FIELD_NOT_ACCEPTED/ },
       { spec: '-100000 + 2000 + 98000 = 0', pt: /-100000 \+ 2000 \+ 98000 = 0/, en: /-100000 \+ 2000 \+ 98000 = 0/ },
     ],

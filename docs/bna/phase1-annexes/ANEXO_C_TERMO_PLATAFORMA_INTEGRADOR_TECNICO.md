@@ -2,7 +2,7 @@
 
 Versão: 1.0 · Data: __ / __ / 20__
 
-> **Enquadramento institucional.** O Banzami é o operador de referência da rede BANZA,
+> **Enquadramento institucional.** A Banzami é o operador de referência da rede BANZA,
 > sociedade comercial independente e **não autorizada** até aprovação ou não-objecção
 > do BNA. Este documento respeita a um **piloto proposto (Fase 1)**, de coorte fechada.
 > A Fase 0 foi evidência funcional interna, em Sandbox técnico, com dados sintéticos.
@@ -12,7 +12,7 @@ Versão: 1.0 · Data: __ / __ / 20__
 > emite comprovativos financeiros**. A plataforma apenas: (i) cria pedidos de
 > pagamento; (ii) recebe o estado técnico das operações; (iii) recebe eventos/*webhooks*;
 > (iv) consulta o estado do pagamento/comprovativo; e (v) reconcilia contra o estado
-> autoritativo do Banzami. Toda a detenção de fundos, cálculo de saldos e emissão de
+> autoritativo da Banzami. Toda a detenção de fundos, cálculo de saldos e emissão de
 > comprovativos é exclusiva do operador Banzami e do registo contabilístico do protocolo.
 
 ## 1. Objectivo (Finalidade)
@@ -56,7 +56,7 @@ eventos; manter o estado autoritativo dos pagamentos e comprovativos.
 2. Vinculação do projecto ao beneficiário (comerciante) no operador.
 3. Criação de pedidos de pagamento pela plataforma via API (formato SDK).
 4. Recepção de eventos/*webhooks* assinados e consulta de estado.
-5. Reconciliação do que a plataforma criou vs. o que o Banzami liquidou (Anexo G).
+5. Reconciliação do que a plataforma criou vs. o que a Banzami liquidou (Anexo G).
 
 ## 6. Controlos de Risco
 

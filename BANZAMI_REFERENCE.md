@@ -36,7 +36,7 @@ Anything outside this scope is defined in:
 
 ## Índice
 
-1. O que é o Banzami
+1. O que é a Banzami
 2. Banzami Wallet — Para Consumidores
 3. Banzami Business — Para Comerciantes
 4. Banzami para Programadores
@@ -48,13 +48,13 @@ Anything outside this scope is defined in:
 
 ---
 
-## 1. O que é o Banzami
+## 1. O que é a Banzami
 
-O Banzami é a implementação de referência do protocolo BANZA. É o primeiro operador construído sobre o BANZA — mas não o proprietário do protocolo. (O Banzami **não** é um operador certificado BANZA: a certificação é do protocolo e ainda não foi emitida; ver [README](README.md#banza-protocol-conformance).)
+A Banzami é a implementação de referência do protocolo BANZA. É o primeiro operador construído sobre o BANZA — mas não o proprietário do protocolo. (A Banzami **não** é um operador certificado BANZA: a certificação é do protocolo e ainda não foi emitida; ver [README](README.md#banza-protocol-conformance).)
 
 A relação é exactamente a que existe entre o Pix e o Nubank. O Nubank é o maior utilizador do Pix no Brasil — um produto extraordinário construído sobre o protocolo. Mas o Pix não pertence ao Nubank. Se o Nubank desaparecesse, o Pix continuaria.
 
-O Banzami é isso para o BANZA.
+A Banzami é isso para o BANZA.
 
 ### Papel no Ecossistema
 
@@ -68,20 +68,20 @@ BANZA (protocolo aberto)
     └── Banzami Pay Links
 ```
 
-O Banzami:
+A Banzami:
 - Implementa os invariantes do protocolo como produtos
 - Demonstra o protocolo no Sandbox Público (valor fictício); a operação comercial em Angola com utilizadores reais depende do Financial Live, ainda indisponível
 - Demonstra como qualquer aplicação angolana pode integrar pagamentos BANZA via SDK
 - É um operador entre futuros muitos — não o dono do protocolo
 
-O Banzami NÃO é:
+A Banzami NÃO é:
 - O protocolo BANZA
 - A infraestrutura BANZA
 - O ecossistema BANZA (o ecossistema é BANZA's)
 - Um banco
 - Um processador de cartões
 
-### O que o Banzami oferece
+### O que a Banzami oferece
 
 | Produto | Para quem | O que oferece |
 |---|---|---|
@@ -92,7 +92,7 @@ O Banzami NÃO é:
 
 ### As Quatro Implementações dos Princípios do Protocolo
 
-O protocolo BANZA define quatro princípios que qualquer operador certificado deve implementar. O Banzami implementa-os assim:
+O protocolo BANZA define quatro princípios que qualquer operador certificado deve implementar. A Banzami implementa-os assim:
 
 | Princípio do Protocolo | Implementação Banzami |
 |---|---|
@@ -144,7 +144,7 @@ Cada pessoa na rede Banzami tem um **@banza** — um identificador único e leg�
 @escola.benguela     ← instituição
 ```
 
-O @banza substitui números de conta bancária, IBANs e códigos de referência. O protocolo BANZA define as regras do handle @banza (unicidade, formato, namespaces reservados) — ver [BANZA_REFERENCE.md §3](../banza/docs/reference/en/BANZA_REFERENCE.md). O Banzami implementa estas regras na Banzami Wallet.
+O @banza substitui números de conta bancária, IBANs e códigos de referência. O protocolo BANZA define as regras do handle @banza (unicidade, formato, namespaces reservados) — ver [BANZA_REFERENCE.md §3](../banza/docs/reference/en/BANZA_REFERENCE.md). A Banzami implementa estas regras na Banzami Wallet.
 
 ### Saldo da Carteira
 
@@ -161,7 +161,7 @@ O saldo **disponível** pode ser gasto ou transferido imediatamente. O saldo **r
 
 ### Como o Dinheiro Entra na Carteira
 
-O Banzami é uma rede de pagamentos de circuito fechado. Para que o dinheiro entre, atravessa um canal financeiro externo validado:
+A Banzami é uma rede de pagamentos de circuito fechado. Para que o dinheiro entre, atravessa um canal financeiro externo validado:
 
 ```
 [Conta Bancária do Utilizador]
@@ -170,7 +170,7 @@ O Banzami é uma rede de pagamentos de circuito fechado. Para que o dinheiro ent
 [EMIS / Banco / Multicaixa Express]
            | confirmação de liquidação
            v
-[Bridge de Adquirência do Banzami]
+[Bridge de Adquirência da Banzami]
            | validação HMAC, idempotência, reconciliação
            v
 [Ledger do Banzami Core]
@@ -187,7 +187,7 @@ Depois de entrar, o valor move-se dentro da rede — P2P, pagamentos a negócios
 
 ```
 Chega a uma cantina. Um código QR está no balcão.
-Abre o Banzami. Toca em "Pagar."
+Abre a Banzami. Toca em "Pagar."
 Faz o scan.
 
 A app mostra: "Pagar a @cantina.luanda"
@@ -219,7 +219,7 @@ O telemóvel da dona acende-se. Feito.
 
 ### Onboarding
 
-Um comerciante regista-se no Banzami, fornece informações básicas do negócio e recebe uma carteira de comerciante e um @banza em minutos. Um código QR estático está pronto para download imediatamente.
+Um comerciante regista-se na Banzami, fornece informações básicas do negócio e recebe uma carteira de comerciante e um @banza em minutos. Um código QR estático está pronto para download imediatamente.
 
 Sem terminal POS. Sem acordo de cartão. Sem volume mínimo. O tempo entre "quero aceitar pagamentos digitais" e "estou a aceitar pagamentos digitais" é medido em minutos, não semanas.
 
@@ -259,7 +259,7 @@ Optimizada para operação diária no terreno. Para cantinas, táxis, bancas de 
 | **QR Estático** | Balcão, cantina, serviço com preço fixo | O consumidor introduz o montante |
 | **QR Dinâmico** | Cada transacção com montante específico | Codificado no QR — o consumidor só confirma |
 
-A liquidação T+0 é um invariante do protocolo BANZA — qualquer operador certificado deve implementá-la. O Banzami implementa-a: o montante líquido é creditado na carteira do comerciante imediatamente após a confirmação do pagamento. Ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md) para a definição normativa.
+A liquidação T+0 é um invariante do protocolo BANZA — qualquer operador certificado deve implementá-la. A Banzami implementa-a: o montante líquido é creditado na carteira do comerciante imediatamente após a confirmação do pagamento. Ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md) para a definição normativa.
 
 ### Payment Links
 
@@ -283,7 +283,7 @@ Cada comerciante tem um perfil público permanente em `pay.banzami.com/profiles/
 
 ### Arquitectura SDK-First
 
-O Banzami é construído para programadores. O caminho de integração recomendado é sempre através de um SDK oficial — nunca chamadas HTTP directas, nunca clientes artesanais.
+A Banzami é construída para programadores. O caminho de integração recomendado é sempre através de um SDK oficial — nunca chamadas HTTP directas, nunca clientes artesanais.
 
 Os SDKs oficiais fornecem:
 - **Superfícies de API tipadas** — sem adivinhação sobre formas de pedido ou resposta
@@ -400,7 +400,7 @@ const payment = await client.transactions.create({
 
 ## 5. Arquitectura Técnica de Referência
 
-Esta secção descreve a arquitectura técnica do Banzami — a implementação de referência. Não é o único modo válido de implementar o protocolo BANZA. É o modo que o Banzami escolheu. Outros operadores podem usar stacks diferentes, desde que passem o conformance suite.
+Esta secção descreve a arquitectura técnica da Banzami — a implementação de referência. Não é o único modo válido de implementar o protocolo BANZA. É o modo que a Banzami escolheu. Outros operadores podem usar stacks diferentes, desde que passem o conformance suite.
 
 As regras do protocolo que esta arquitectura implementa estão definidas em [BANZA_REFERENCE.md](../banza/docs/reference/en/BANZA_REFERENCE.md).
 
@@ -481,9 +481,9 @@ O ambiente sandbox nunca tem acesso a carris EMIS reais, credenciais de produç�
 
 ## 7. Missão e Posicionamento
 
-### O que o Banzami é
+### O que a Banzami é
 
-**Posicionamento correcto do Banzami:**
+**Posicionamento correcto da Banzami:**
 
 - Angola's instant payment network (reference operator)
 - QR-native payment experience built on BANZA
@@ -496,26 +496,26 @@ O ambiente sandbox nunca tem acesso a carris EMIS reais, credenciais de produç�
 - "Banzami infraestrutura" — Não. A infraestrutura é BANZA.
 - "Banzami ecosystem" — Não. O ecossistema é BANZA.
 
-### O que o Banzami resolve
+### O que a Banzami resolve
 
-**Dependência de dinheiro físico** — o digital era mais complicado que as notas. O Banzami torna o digital mais rápido.
+**Dependência de dinheiro físico** — o digital era mais complicado que as notas. A Banzami torna o digital mais rápido.
 
-**Comprovativos por WhatsApp** — screenshots de transferências como prova. O Banzami elimina isto: quando um cliente faz o scan e paga, o comerciante recebe uma notificação criptograficamente confirmada. Sem screenshots.
+**Comprovativos por WhatsApp** — screenshots de transferências como prova. A Banzami elimina isto: quando um cliente faz o scan e paga, o comerciante recebe uma notificação criptograficamente confirmada. Sem screenshots.
 
-**Ausência de SDK angolano** — programadores não tinham API de pagamentos nativa. O Banzami é a primeira infraestrutura construída especificamente para programadores angolanos.
+**Ausência de SDK angolano** — programadores não tinham API de pagamentos nativa. A Banzami é a primeira infraestrutura construída especificamente para programadores angolanos.
 
 **Exclusão de pequenos negócios** — TPA é caro e burocrático. Um QR impresso chega.
 
 ### Angola Primeiro
 
-O Banzami foca-se PRIMEIRO em Angola:
+A Banzami foca-se PRIMEIRO em Angola:
 - Angolanos consumidores
 - Angolanos comerciantes
 - O comércio angolano
 - O Kwanza
 - As realidades de pagamento angolanas
 
-O modelo está provado: o Pix no Brasil, o UPI na Índia. Angola tem as mesmas pré-condições. O Banza é a infraestrutura. O Banzami é como Angola a acede.
+O modelo está provado: o Pix no Brasil, o UPI na Índia. Angola tem as mesmas pré-condições. O Banza é a infraestrutura. A Banzami é como Angola a acede.
 
 ---
 
@@ -561,7 +561,7 @@ O comércio de Angola merece infraestrutura que corresponda à sua energia. Não
 - Um consumidor fotografa transferências e envia via WhatsApp para provar compras
 - Um programador angolano não tem SDK de pagamentos construído para o seu mercado
 
-**Com o Banzami:**
+**Com a Banzami:**
 - Um comerciante imprime um QR e aceita pagamentos instantâneos de qualquer smartphone
 - Um consumidor faz o scan, confirma e paga em menos de 3 segundos — com recibo criptográfico
 - Um programador integra o SDK e lança funcionalidade de pagamento em horas
@@ -580,7 +580,7 @@ Para Angola.
 
 ---
 
-*Banzami é construído sobre o protocolo BANZA.*  
+*Banzami é construída sobre o protocolo BANZA.*  
 *BANZA é o protocolo. Banzami é como Angola paga.*  
 *Banzami é o operador de referência da rede BANZA.*
 

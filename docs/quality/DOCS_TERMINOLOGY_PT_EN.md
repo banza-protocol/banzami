@@ -17,7 +17,7 @@ is used in the documentation.
 
 | PT | EN | Rule |
 |---|---|---|
-| Banzami (masculino: *o* Banzami, *do* Banzami) | Banzami | Operator and product name. Never "a Banzami". |
+| Banzami (feminino: *a* Banzami, *da* Banzami) | Banzami | Operator and product name. Never "o Banzami". |
 | BANZA | BANZA | The protocol only. Not the product, not the SDK. |
 | Consola | Console | The developer console. PT never "Console" in prose. |
 | conta (de pessoa) | account | The sign-in identity. |
@@ -28,7 +28,7 @@ is used in the documentation.
 | conta (wallet account) | account | A segregated account inside a Business. PT prose says *conta*; "(wallet account)" appears once, in the glossary. |
 | @banza | @banza handle | Banzami's word for a handle. Not the protocol. |
 | implementação de referência | reference implementation | DOA. |
-| cliente privilegiado do Banzami | privileged Banzami tenant | Used once, to say DOA is *not* one. PT never "tenant" or "inquilino". |
+| cliente privilegiado da Banzami | privileged Banzami tenant | Used once, to say DOA is *not* one. PT never "tenant" or "inquilino". |
 
 ## Environments
 

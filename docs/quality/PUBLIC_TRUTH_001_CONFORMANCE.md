@@ -29,7 +29,7 @@ surfaces disagreed, the one lower in that order was changed.
 | banzami.com (all pages) | Financial Live unavailable, subject to regulatory, contractual and operational approvals | assurance manifest (no public `live: true`); gateway refuses `bz_live_` | same wording on banner, footer, home, FAQ, Suporte, Developers, Comerciantes, Produto, Console, SDK README | PASS |
 | Home | App in App Store / Google Play | none | removed; "A app Banzami ainda não está disponível na App Store nem no Google Play" | PASS |
 | Home | Adoption counters (0/0/4/0) | none | replaced by environment status strip | PASS |
-| Home | "COMERCIANTES & EMPRESAS" | `lib/entities.ts` (companies only) | "EMPRESAS E APLICAÇÕES LIGADAS AO BANZAMI" | PASS |
+| Home | "COMERCIANTES & EMPRESAS" | `lib/entities.ts` (companies only) | "EMPRESAS E APLICAÇÕES LIGADAS À BANZAMI" | PASS |
 | Home / HowItWorks | speed ("em segundos", "menos de 10 segundos"), "o dinheiro move-se" | none | "Ler, confirmar, pago."; ledger sentence without real-money implication | PASS |
 | banzami.com/developers | Second API reference | docs are canonical | landing page: capabilities, platform, environments, SVG diagram, published packages, DOA reference; every detail links to developers.banzami.com/docs. `PUBLIC_WEBSITE_SECOND_API_REFERENCE=0` | PASS |
 | Developers / FAQ / Produto | SDK list | `published-packages.ts` + registry evidence | `@banzami/sdk` (npm), `banzami_client` (pub.dev) only; Python/PHP/Go/iOS/Android gone | PASS |

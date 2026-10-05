@@ -11,20 +11,20 @@
 
 ## Síntese executiva
 
-O mercado angolano já dispõe de pagamentos digitais, wallets, QR e gateways. A oportunidade do Banzami não é repetir essas ofertas. É ligar **aceitação por telefone**, pagamentos **wallet-to-wallet**, confirmação simultânea, comprovativos verificáveis e uma plataforma de integração para aplicações numa única experiência.
+O mercado angolano já dispõe de pagamentos digitais, wallets, QR e gateways. A oportunidade da Banzami não é repetir essas ofertas. É ligar **aceitação por telefone**, pagamentos **wallet-to-wallet**, confirmação simultânea, comprovativos verificáveis e uma plataforma de integração para aplicações numa única experiência.
 
-O Banzami é desenhado para que consumidores, comerciantes e plataformas utilizem a mesma infraestrutura de pagamento, sem TPA físico, sem screenshots como prova e sem cada aplicação ter de construir a sua própria lógica financeira.
+A Banzami é desenhada para que consumidores, comerciantes e plataformas utilizem a mesma infraestrutura de pagamento, sem TPA físico, sem screenshots como prova e sem cada aplicação ter de construir a sua própria lógica financeira.
 
-> ## O Banzami não vende apenas QR.  
-> ## O Banzami vende certeza de pagamento.
+> ## A Banzami não vende apenas QR.  
+> ## A Banzami vende certeza de pagamento.
 
 ### A proposta em uma frase
 
-> **O Banzami transforma cada pagamento em Kwanza numa confirmação instantânea, verificável e integrável por QR, `@banza`, links e APIs.**
+> **A Banzami transforma cada pagamento em Kwanza numa confirmação instantânea, verificável e integrável por QR, `@banza`, links e APIs.**
 
 ### Nota de rigor
 
-Este documento descreve o **posicionamento alvo** e a proposta de valor do Banzami. Não constitui uma declaração de produção comercial, certificação BANZA, licenciamento, money-in/money-out ativo, KYC/KYB operacional ou disponibilidade de rails reais. Enquanto essas condições não estiverem formalmente ativas, a comunicação pública deve usar linguagem de construção, sandbox, capacidade em desenvolvimento e visão de produto.
+Este documento descreve o **posicionamento alvo** e a proposta de valor da Banzami. Não constitui uma declaração de produção comercial, certificação BANZA, licenciamento, money-in/money-out ativo, KYC/KYB operacional ou disponibilidade de rails reais. Enquanto essas condições não estiverem formalmente ativas, a comunicação pública deve usar linguagem de construção, sandbox, capacidade em desenvolvimento e visão de produto.
 
 ---
 
@@ -32,14 +32,14 @@ Este documento descreve o **posicionamento alvo** e a proposta de valor do Banza
 
 ## O mercado já tem pagamentos digitais. O problema é a fragmentação da experiência.
 
-A EMIS/MULTICAIXA Express, PayPay, operadores de mobile money e gateways como a AppyPay mostram que Angola já possui meios digitais para pagar, receber e integrar cobranças. O espaço estratégico do Banzami está em converter estes comportamentos numa experiência **QR-first**, **wallet-native** e **programável**, com confiança operacional no momento da venda.
+A EMIS/MULTICAIXA Express, PayPay, operadores de mobile money e gateways como a AppyPay mostram que Angola já possui meios digitais para pagar, receber e integrar cobranças. O espaço estratégico da Banzami está em converter estes comportamentos numa experiência **QR-first**, **wallet-native** e **programável**, com confiança operacional no momento da venda.
 
-| Sinal de mercado | O que demonstra | Implicação para o Banzami |
+| Sinal de mercado | O que demonstra | Implicação para a Banzami |
 |---|---|---|
 | QR já tem adoção | A EMIS informou que os pagamentos por QR ultrapassaram um milhão de transações em 2024.[^1] | Não dizer que QR “não existe”; competir por uma experiência mais clara, verificável e orientada ao telefone. |
 | Wallets e QR comerciais existem | PayPay promove pagamentos por QR e comprovativos de transações.[^2][^3] | Não vender apenas “wallet + QR”; diferenciar por prova verificável, infraestrutura para apps e desenho de rede. |
 | Gateways já agregam métodos | AppyPay disponibiliza API para Multicaixa Express, referências, débito direto e Unitel Money.[^4] | Não ser apenas outro gateway; oferecer pagamentos wallet-to-wallet e uma camada de produto comum. |
-| Aceitação por telefone é uma expectativa do mercado | AppyPay comunica a possibilidade de transformar o smartphone num “TPA virtual”.[^5] | A vantagem do Banzami é a arquitetura integrada: QR + wallet + confirmação + prova + SDK, não a mera ausência de hardware. |
+| Aceitação por telefone é uma expectativa do mercado | AppyPay comunica a possibilidade de transformar o smartphone num “TPA virtual”.[^5] | A vantagem da Banzami é a arquitetura integrada: QR + wallet + confirmação + prova + SDK, não a mera ausência de hardware. |
 
 ## Leitura estratégica
 
@@ -56,7 +56,7 @@ A oportunidade não é provar que o QR pode funcionar. É fazer com que pagar po
 
 ## Do QR como funcionalidade ao QR como prova de pagamento
 
-Um QR pode apenas iniciar um pagamento. O Banzami pretende transformar esse momento numa confirmação completa: pagamento executado, comerciante informado, consumidor confirmado e comprovativo consultável sem depender de uma imagem enviada por WhatsApp.
+Um QR pode apenas iniciar um pagamento. A Banzami pretende transformar esse momento numa confirmação completa: pagamento executado, comerciante informado, consumidor confirmado e comprovativo consultável sem depender de uma imagem enviada por WhatsApp.
 
 ```text
 1. Mostrar QR  →  2. Scan  →  3. Confirmar  →  4. Pago  →  5. Verificar
@@ -127,9 +127,9 @@ A página de verificação deve apresentar apenas informação necessária e con
 
 ---
 
-# 3. Onde o Banzami entra no ecossistema angolano
+# 3. Onde a Banzami entra no ecossistema angolano
 
-A comparação abaixo não pretende desvalorizar os operadores existentes. Cada categoria resolve necessidades relevantes. O Banzami deve posicionar-se como uma camada complementar e diferenciada: UX de pagamentos por telefone, confiança verificável e infraestrutura programável sobre rails aprovados.
+A comparação abaixo não pretende desvalorizar os operadores existentes. Cada categoria resolve necessidades relevantes. A Banzami deve posicionar-se como uma camada complementar e diferenciada: UX de pagamentos por telefone, confiança verificável e infraestrutura programável sobre rails aprovados.
 
 | Categoria / exemplo | Força atual | Limite estratégico | Espaço Banzami | Posicionamento recomendado |
 |---|---|---|---|---|
@@ -140,7 +140,7 @@ A comparação abaixo não pretende desvalorizar os operadores existentes. Cada 
 
 ## A distinção essencial
 
-> **O Banzami não deve ser apresentado como “um QR melhor”.**
+> **A Banzami não deve ser apresentado como “um QR melhor”.**
 
 Deve ser apresentado como a rede de pagamentos onde:
 
@@ -164,7 +164,7 @@ Deve ser apresentado como a rede de pagamentos onde:
 
 ## A ambição não é apenas uma aplicação
 
-A ambição do Banzami é maior do que criar uma carteira. É demonstrar como uma infraestrutura financeira moderna pode servir produtos diferentes sem que cada produto tenha de construir pagamentos do zero.
+A ambição da Banzami é maior do que criar uma carteira. É demonstrar como uma infraestrutura financeira moderna pode servir produtos diferentes sem que cada produto tenha de construir pagamentos do zero.
 
 | Camada | Responsabilidade |
 |---|---|
@@ -174,15 +174,15 @@ A ambição do Banzami é maior do que criar uma carteira. É demonstrar como um
 
 ## Porque nativo de carteira
 
-O Banzami é desenhado como uma rede financeira nativa de carteira e de ledger, desacoplada dos rails externos (ADR-061). A escolha tem cinco razões, e nenhuma dispensa uma obrigação regulatória:
+A Banzami é desenhada como uma rede financeira nativa de carteira e de ledger, desacoplada dos rails externos (ADR-061). A escolha tem cinco razões, e nenhuma dispensa uma obrigação regulatória:
 
-1. **Nem cada movimento precisa de um rail externo.** Quando o valor já está na rede, uma transferência entre pessoas ou um pagamento a um negócio executa-se no Core e no ledger do Banzami.
-2. **Uma falha de rail não é uma falha do Banzami.** Um rail externo em baixo afeta as operações que o atravessam — entrada e saída de valor, pagamento pelo rail externo — e não as que acontecem dentro da rede.
+1. **Nem cada movimento precisa de um rail externo.** Quando o valor já está na rede, uma transferência entre pessoas ou um pagamento a um negócio executa-se no Core e no ledger da Banzami.
+2. **Uma falha de rail não é uma falha da Banzami.** Um rail externo em baixo afeta as operações que o atravessam — entrada e saída de valor, pagamento pelo rail externo — e não as que acontecem dentro da rede.
 3. **P2P e pagamento a comerciante nativos.** São movimentos de primeira classe entre carteiras, não pedidos a um switch externo disfarçados.
 4. **Finanças programáveis.** Aplicações raciocinam sobre contas de carteira, pagamentos, reembolsos, liquidações, comprovativos, webhooks e tempo real — sobre uma única verdade financeira.
-5. **Interoperabilidade nas fronteiras.** Bancos, EMIS e PSP continuam essenciais para a entrada e saída de valor e para a liquidação externa; o Banzami liga-se a eles, não os substitui.
+5. **Interoperabilidade nas fronteiras.** Bancos, EMIS e PSP continuam essenciais para a entrada e saída de valor e para a liquidação externa; a Banzami liga-se a eles, não os substitui.
 
-Quanto mais valor económico estiver representado dentro do Banzami, mais importantes se tornam a salvaguarda, o resgate e a reconciliação — por isso este modelo exige conformidade regulatória, não a dispensa. As questões em aberto estão em `docs/regulatory/FUTURE_FINANCIAL_LIVE_OPERATING_MODEL.md`.
+Quanto mais valor económico estiver representado dentro da Banzami, mais importantes se tornam a salvaguarda, o resgate e a reconciliação — por isso este modelo exige conformidade regulatória, não a dispensa. As questões em aberto estão em `docs/regulatory/FUTURE_FINANCIAL_LIVE_OPERATING_MODEL.md`.
 
 ---
 
@@ -217,7 +217,7 @@ Por isso:
 
 Toda a comunicação deve separar **visão** de **estado atual**.
 
-Enquanto os rails reais, KYC/KYB, requisitos regulatórios e operação comercial não estiverem formalmente ativos, o Banzami deve usar linguagem de:
+Enquanto os rails reais, KYC/KYB, requisitos regulatórios e operação comercial não estiverem formalmente ativos, a Banzami deve usar linguagem de:
 
 - construção;
 - sandbox;
@@ -253,14 +253,14 @@ Nunca deve afirmar, sem evidência atual e autorização aplicável:
 
 # 9. Base interna e precedência
 
-Este documento deve ser interpretado em conjunto com a documentação institucional e técnica do Banzami e do BANZA.
+Este documento deve ser interpretado em conjunto com a documentação institucional e técnica da Banzami e do BANZA.
 
 Em caso de conflito, a seguinte ordem prevalece:
 
 1. legislação, regulação, licenças aplicáveis e requisitos de parceiros financeiros;
 2. contratos, invariantes e governação do protocolo BANZA;
-3. documentação de referência e claims permitidas do Banzami;
-4. decisões de arquitetura e operações do Banzami;
+3. documentação de referência e claims permitidas da Banzami;
+4. decisões de arquitetura e operações da Banzami;
 5. este documento de posicionamento competitivo.
 
 Este é um documento de estratégia e comunicação. Não altera contratos BANZA, regras financeiras, decisões de arquitetura, estados de certificação ou obrigações regulatórias.

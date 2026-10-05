@@ -7,7 +7,7 @@
 **Contacto:** `contact@banzami.com`
 
 > Este ficheiro **não é o website**. É o documento de referência que será entregue
-> ao Claude Design para construir o site oficial do Banzami em português. Todo o
+> ao Claude Design para construir o site oficial da Banzami em português. Todo o
 > conteúdo aqui é verdadeiro, controlado e coerente com o estado real do projeto.
 > As secções 24, 25 e 26 (claims permitidas, claims proibidas e informação
 > sensível) são **vinculativas** e prevalecem sobre qualquer texto criativo.
@@ -19,7 +19,7 @@
 1. Identidade oficial
 2. Definição simples
 3. Posicionamento estratégico
-4. Problema que o Banzami resolve
+4. Problema que a Banzami resolve
 5. Solução Banzami
 6. Produtos principais
 7. Público-alvo
@@ -60,11 +60,11 @@
 | Construído sobre | O protocolo aberto **BANZA** (`github.com/banza-protocol/banza`) |
 
 **Relação com o BANZA**
-O Banzami é o **primeiro operador** construído sobre o protocolo aberto BANZA. O
+A Banzami é o **primeiro operador** construído sobre o protocolo aberto BANZA. O
 Banzami **não é** o BANZA. O BANZA é o protocolo (regras financeiras, invariantes,
-contratos, framework de certificação). O Banzami é o produto/operador que
+contratos, framework de certificação). A Banzami é o produto/operador que
 implementa esse protocolo como uma rede de pagamentos para Angola. O protocolo
-existe independentemente do Banzami.
+existe independentemente da Banzami.
 
 **Relação com o BanzAI**
 O **BanzAI** é o sistema de conhecimento do protocolo — explica e ajuda a entender
@@ -72,13 +72,13 @@ o BANZA. O BanzAI **não opera pagamentos** e **não certifica operadores sozinh
 É um sistema adjacente, não faz parte do operador Banzami.
 
 **Frase curta da marca**
-> O Banzami é como Angola paga.
+> A Banzami é como Angola paga.
 
 **Frase longa da marca**
-> O Banzami é a rede de pagamentos wallet-native de Angola — onde cada conta é uma
+> A Banzami é a rede de pagamentos wallet-native de Angola — onde cada conta é uma
 > carteira em Kwanza, cada pagamento é uma transferência instantânea e o dinheiro
 > liquida em segundos, sem dinheiro físico, sem cartões, sem terminais e sem
-> comprovativos por WhatsApp. Construído sobre o protocolo aberto BANZA.
+> comprovativos por WhatsApp. Construída sobre o protocolo aberto BANZA.
 
 **Slogans possíveis**
 - "O dinheiro move-se à velocidade da internet."
@@ -91,16 +91,18 @@ Claro, moderno, confiante e honesto. Ambicioso sem ser fantasioso. Técnico quan
 necessário, simples por defeito. Nunca exagera o estado do projeto. Nunca promete
 o que ainda não existe. Orgulhosamente angolano, sem clichés.
 
-**Regra gramatical (vinculativa):** "Banzami" e "Banza" são **masculinos** em
-português. Escreve-se *o* Banzami, *do* Banzami, *o* Banza, *do* Banza —
-nunca *a* Banzami nem *da* Banzami.
+**Regra gramatical (vinculativa):** "Banzami" é **feminina** em português
+(a empresa/marca/plataforma): escreve-se *a* Banzami, *da* Banzami, *na* Banzami,
+nunca *o* Banzami nem *do* Banzami. "Banza" (o protocolo) mantém-se **masculino**:
+*o* Banza, *do* Banza. A regra não altera um substantivo masculino explícito antes
+da marca (*o ecossistema Banzami*, *o Banzami Core*).
 
 ---
 
 ## 2. Definição simples
 
 **O que é**
-O Banzami é uma rede de pagamentos digitais para Angola. Cada pessoa e cada
+A Banzami é uma rede de pagamentos digitais para Angola. Cada pessoa e cada
 negócio tem uma carteira em Kwanza, identificada por um nome legível — o `@banza`.
 Pagar é tão simples como fazer scan de um QR ou enviar dinheiro para um `@banza`.
 
@@ -131,7 +133,7 @@ programadores, investidores, parceiros bancários/regulatórios e pela equipa in
 
 ## 3. Posicionamento estratégico
 
-O Banzami é **infraestrutura de pagamento**, não apenas um produto isolado:
+A Banzami é **infraestrutura de pagamento**, não apenas um produto isolado:
 
 - **Não é apenas uma app de carteira** — a carteira é um dos produtos sobre a rede.
 - **Não é apenas QR** — o QR é uma das formas de iniciar um pagamento.
@@ -139,7 +141,7 @@ O Banzami é **infraestrutura de pagamento**, não apenas um produto isolado:
 - **É uma rede wallet-native** — cada conta é uma carteira, cada pagamento é uma transferência entre carteiras.
 - **Pagamentos instantâneos em Kwanza** — o dinheiro liquida em segundos dentro da rede.
 
-O Banzami posiciona-se como alternativa a: dinheiro físico, comprovativos
+A Banzami posiciona-se como alternativa a: dinheiro físico, comprovativos
 manuais, TPA/POS físicos e processos de confirmação lentos.
 
 **Comparações de referência (modelo, não claim de equivalência):**
@@ -158,10 +160,10 @@ ilegal ou não comprovado.
 
 ---
 
-## 4. Problema que o Banzami resolve
+## 4. Problema que a Banzami resolve
 
 Pagar em Angola hoje é lento, manual e assente na confiança numa fotografia de um
-comprovativo. O Banzami ataca diretamente:
+comprovativo. A Banzami ataca diretamente:
 
 - **Pagamentos manuais** — transferências que exigem passos e confirmações repetidas.
 - **Dependência de dinheiro físico** — com todo o custo e risco que acarreta.
@@ -182,7 +184,7 @@ SCAN  →  CONFIRMAR  →  PAGO INSTANTANEAMENTE
 
 ## 5. Solução Banzami
 
-O Banzami reúne, numa única rede, tudo o que é preciso para pagar e receber em
+A Banzami reúne, numa única rede, tudo o que é preciso para pagar e receber em
 Kwanza:
 
 - **Carteira Kwanza** — cada conta é uma carteira; saldo disponível, reservado e total sempre exatos.
@@ -196,7 +198,7 @@ Kwanza:
 - **Dashboard para comerciantes** — saldo, transações, análises, reembolsos e levantamentos.
 - **Rede comum** — consumidores, comerciantes, plataformas e apps no mesmo sistema.
 
-> **`@banza` é terminologia de produto do Banzami** — é simplesmente a palavra que o
+> **`@banza` é terminologia de produto da Banzami** — é simplesmente a palavra que o
 > Banzami usa para "handle"/nome de utilizador. **Não é o protocolo BANZA.**
 
 ---
@@ -266,7 +268,7 @@ Kwanza:
 
 ## 7. Público-alvo
 
-| Segmento | O que procura no Banzami |
+| Segmento | O que procura na Banzami |
 |---|---|
 | **Consumidores** | Carteira simples, pagar por QR, enviar/receber por `@banza`, menos dinheiro físico |
 | **Pequenos comerciantes** | Aceitar pagamentos sem terminal, confirmação instantânea, onboarding em minutos |
@@ -304,7 +306,7 @@ Carteira do Consumidor  ──transferência no ledger──▶  Carteira do Com
 
 ## 9. Arquitectura técnica
 
-O Banzami é construído com fronteiras de linguagem estritas e correção financeira
+A Banzami é construída com fronteiras de linguagem estritas e correção financeira
 no centro.
 
 | Camada | Tecnologia | Responsabilidade |
@@ -400,7 +402,7 @@ Conteúdos:
 
 ## 13. Impacto nacional
 
-O Banzami existe para tornar o pagamento digital em Kwanza a norma em Angola.
+A Banzami existe para tornar o pagamento digital em Kwanza a norma em Angola.
 
 | Alavanca | Efeito |
 |---|---|
@@ -432,14 +434,14 @@ BanzAI   = sistema de conhecimento do protocolo (explica/ajuda a entender)
 - **O BanzAI não certifica operadores sozinho.**
 
 Regras vinculativas:
-- Nunca apresentar o BANZA como propriedade do Banzami.
+- Nunca apresentar o BANZA como propriedade da Banzami.
 - Nunca apresentar o BanzAI como operador de pagamentos.
-- O `@banza` é terminologia de produto do Banzami (a palavra para "handle"), **não** é o protocolo BANZA.
+- O `@banza` é terminologia de produto da Banzami (a palavra para "handle"), **não** é o protocolo BANZA.
 
 Frases canónicas de posicionamento:
-> "O Banzami é construído sobre o protocolo BANZA."
+> "A Banzami é construída sobre o protocolo BANZA."
 > "BANZA é o protocolo. Banzami é como Angola paga."
-> "O Banzami é o operador de referência da rede BANZA."
+> "A Banzami é o operador de referência da rede BANZA."
 
 ---
 
@@ -447,7 +449,7 @@ Frases canónicas de posicionamento:
 
 Estado verdadeiro, a apresentar com transparência:
 
-- O Banzami está em **desenvolvimento ativo**.
+- A Banzami está em **desenvolvimento ativo**.
 - **Não está launch-ready.**
 - **Não é um operador certificado.**
 - **L0** tem **evidência validada em dry-run** (5/5).
@@ -477,7 +479,7 @@ de licenciamento**. Enquanto não forem resolvidos, o estado de lançamento mant
 
 ## 16. Validation Studio
 
-**O que é:** a sala de controlo de prontidão do Banzami. Acompanha cada domínio de
+**O que é:** a sala de controlo de prontidão da Banzami. Acompanha cada domínio de
 implementação, cada bloqueador de lançamento, cada dependência externa, cada item
 de roadmap e cada peça de evidência de validação.
 
@@ -512,7 +514,7 @@ O que cada figura significa:
 - **Baseline** — capacidade já alcançada mostrada como contexto (ex.: baseline L0).
 
 **Importância no projeto:** o Validation Studio pode ser apresentado no site como
-**cultura de transparência** — uma prova de que o Banzami separa o que está feito do
+**cultura de transparência** — uma prova de que a Banzami separa o que está feito do
 que está validado e do que falta. **Não** expor no site detalhes internos sensíveis
 (IDs de itens, evidências internas, caminhos de ficheiros, fingerprints).
 
@@ -520,7 +522,7 @@ que está validado e do que falta. **Não** expor no site detalhes internos sens
 
 ## 17. BANZA conformance
 
-O Banzami corre a **suite oficial de conformance do BANZA** contra o seu sandbox,
+A Banzami corre a **suite oficial de conformance do BANZA** contra o seu sandbox,
 como **operador candidato**.
 
 - **L0 dry-run:** evidência validada, **5/5** (Health + Operator manifest).
@@ -530,9 +532,9 @@ como **operador candidato**.
 - **Certificado de produção ausente** — `/.well-known/banza/certificate.json` está
   intencionalmente ausente (404).
 - **`certificate.json` ausente.**
-- **O Banzami não é certificado** e não consta de nenhum registo de operadores de produção.
+- **A Banzami não é certificado** e não consta de nenhum registo de operadores de produção.
 
-Níveis (definidos pelo BANZA, não pelo Banzami):
+Níveis (definidos pelo BANZA, não pela Banzami):
 
 | Nível | Significado | Estado Banzami |
 |---|---|---|
@@ -543,7 +545,7 @@ Níveis (definidos pelo BANZA, não pelo Banzami):
 | **L4** | Interoperabilidade externa | **FUTURE** |
 
 Regra vinculativa: PASS é **evidência de conformidade**, nunca certificação. A
-framework de certificação é propriedade do **BANZA**, não do Banzami.
+framework de certificação é propriedade do **BANZA**, não da Banzami.
 
 ---
 
@@ -569,7 +571,7 @@ regulatórias, KYC/KYB, AML-CFT, bancárias ou de licenciamento.
 
 ## 19. Cores oficiais e identidade visual
 
-A paleta oficial do Banzami é extraída dos assets existentes (diagramas SVG em
+A paleta oficial da Banzami é extraída dos assets existentes (diagramas SVG em
 `docs/diagrams/` e `colors.xml` da app móvel). É uma **paleta de vermelhos**
 coerente em todo o projeto.
 
@@ -615,7 +617,7 @@ Mapa do site proposto (cada página com objetivo, público, secções, mensagens
 
 | Página | Objetivo | Público | CTA principal |
 |---|---|---|---|
-| **Home** | Apresentar o Banzami e converter interesse | Todos | "Falar connosco" / "Entrar na waitlist" |
+| **Home** | Apresentar a Banzami e converter interesse | Todos | "Falar connosco" / "Entrar na waitlist" |
 | **Produto** | Explicar a rede e os produtos | Consumidores, comerciantes | "Ver como funciona" |
 | **Para Comerciantes** | Mostrar valor para negócios | Pequenos comerciantes | "Quero aceitar pagamentos" |
 | **Para Programadores** | API, SDKs, sandbox | Programadores | "Ver a documentação / sandbox" |
@@ -691,7 +693,7 @@ Blocos sugeridos, cada um com título, subtítulo, texto curto, CTA e ideia visu
 
 12. **Footer**
     - Links de páginas, `contact@banzami.com`, ecossistema (BANZA/BanzAI), legal.
-    - Nota: "Construído sobre o protocolo aberto BANZA."
+    - Nota: "Construída sobre o protocolo aberto BANZA."
 
 ---
 
@@ -713,7 +715,7 @@ Blocos sugeridos, cada um com título, subtítulo, texto curto, CTA e ideia visu
 - "Quero aceitar pagamentos"
 
 **Secções principais (texto curto)**
-- Problema: "Pagar ainda depende de dinheiro físico e de screenshots de comprovativos. O Banzami substitui tudo por um gesto: scan, confirmar, pago."
+- Problema: "Pagar ainda depende de dinheiro físico e de screenshots de comprovativos. A Banzami substitui tudo por um gesto: scan, confirmar, pago."
 - Solução: "Uma carteira Kwanza com um `@banza`. Paga por QR, envia para um `@banza`, recebe em segundos."
 - Programadores: "Uma API e SDKs oficiais para aceitar Kwanza nativamente — do install ao primeiro pagamento em minutos, em sandbox."
 - Comerciantes: "Aceita pagamentos sem terminal. Imprime um QR, partilha um link, recebe em segundos."
@@ -726,11 +728,11 @@ Blocos sugeridos, cada um com título, subtítulo, texto curto, CTA e ideia visu
 - "Sandbox — testa sem risco, com dinheiro virtual."
 
 **Rodapé**
-> O Banzami é construído sobre o protocolo aberto BANZA. BANZA é o protocolo;
+> A Banzami é construída sobre o protocolo aberto BANZA. BANZA é o protocolo;
 > Banzami é como Angola paga. `contact@banzami.com`
 
 **Meta description (SEO)**
-> O Banzami é a rede de pagamentos wallet-native de Angola — carteira em Kwanza,
+> A Banzami é a rede de pagamentos wallet-native de Angola — carteira em Kwanza,
 > QR, links de pagamento e transferências instantâneas por `@banza`. Construído
 > sobre o protocolo aberto BANZA.
 
@@ -747,35 +749,35 @@ Blocos sugeridos, cada um com título, subtítulo, texto curto, CTA e ideia visu
 
 ## 23. FAQ
 
-**O que é o Banzami?**
+**O que é a Banzami?**
 É a rede de pagamentos wallet-native de Angola: cada conta é uma carteira em
 Kwanza e cada pagamento é uma transferência instantânea, por QR ou `@banza`.
-Construído sobre o protocolo aberto BANZA.
+Construída sobre o protocolo aberto BANZA.
 
-**O Banzami é um banco?**
-Não. O Banzami não é um banco nem um processador de cartões. É uma rede de
+**A Banzami é um banco?**
+Não. A Banzami não é um banco nem um processador de cartões. É uma rede de
 pagamentos que move Kwanza entre carteiras.
 
-**O Banzami já está disponível?**
+**A Banzami já está disponível?**
 Está em desenvolvimento ativo e **ainda não está launch-ready**. O núcleo
 financeiro está implementado e validado; funcionalidades como funding e
 levantamentos em Kwanza real dependem de rails externos ainda por ativar.
 
 **O que é um `@banza`?**
-É o teu nome de utilizador no Banzami — um identificador legível que substitui
+É o teu nome de utilizador na Banzami — um identificador legível que substitui
 IBANs e números de conta. Pagas a `@maria`, não a um IBAN. É terminologia do
 Banzami, **não** é o protocolo BANZA.
 
-**O Banzami é o BANZA?**
+**A Banzami é o BANZA?**
 Não. BANZA é o protocolo aberto; Banzami é o operador/produto construído sobre
-ele. O protocolo existe independentemente do Banzami.
+ele. O protocolo existe independentemente da Banzami.
 
-**O Banzami é certificado?**
-Não. O Banzami **não é um operador certificado**. Tem evidência de conformance L0
+**A Banzami é certificado?**
+Não. A Banzami **não é um operador certificado**. Tem evidência de conformance L0
 em dry-run, mas PASS significa evidência, não certificação.
 
 **O que significa "L0 validado"?**
-Significa que o Banzami passou a suite de conformance de nível 0 (sandbox) em
+Significa que a Banzami passou a suite de conformance de nível 0 (sandbox) em
 modo dry-run, com evidência arquivada. Não é uma certificação de produção.
 
 **O que falta para o lançamento?**
@@ -800,14 +802,14 @@ Por `contact@banzami.com`.
 
 Frases verdadeiras que **podem** ser usadas no site:
 
-- "O Banzami é uma rede de pagamentos wallet-native para Angola."
-- "O Banzami está alinhado com o protocolo BANZA."
-- "O Banzami está construído sobre o protocolo aberto BANZA."
-- "O Banzami possui evidência L0 validada em dry-run."
-- "O Banzami está em desenvolvimento ativo."
-- "O Banzami ainda não está launch-ready."
+- "A Banzami é uma rede de pagamentos wallet-native para Angola."
+- "A Banzami está alinhado com o protocolo BANZA."
+- "A Banzami está construída sobre o protocolo aberto BANZA."
+- "A Banzami possui evidência L0 validada em dry-run."
+- "A Banzami está em desenvolvimento ativo."
+- "A Banzami ainda não está launch-ready."
 - "PASS significa evidência, não certificação."
-- "O Banzami é o operador de referência da rede BANZA."
+- "A Banzami é o operador de referência da rede BANZA."
 - "Cada conta é uma carteira em Kwanza."
 - "Pagamentos instantâneos dentro da rede, de carteira para carteira."
 - "Sem dinheiro físico, sem cartões, sem terminais, sem comprovativos por WhatsApp."
@@ -818,18 +820,18 @@ Frases verdadeiras que **podem** ser usadas no site:
 
 Frases que **nunca** podem aparecer no site (falsas ou enganosas):
 
-- "O Banzami é certificado."
-- "O Banzami é operador certificado BANZA."
-- "O Banzami está launch-ready."
-- "O Banzami está production-ready."
+- "A Banzami é certificado."
+- "A Banzami é operador certificado BANZA."
+- "A Banzami está launch-ready."
+- "A Banzami está production-ready."
 - "L1 validado." / "L2 validado." / "L3 validado." / "L4 validado."
 - "L3 federation ready."
 - "M2/M3 completo."
 - "Certificado de produção emitido."
-- "BANZA certificou o Banzami."
+- "BANZA certificou a Banzami."
 - "PASS = certificação."
-- "O Banzami é um banco."
-- "O Banzami é o protocolo BANZA."
+- "A Banzami é um banco."
+- "A Banzami é o protocolo BANZA."
 - "A produção já está ativa."
 - "Já temos autorização/licença regulatória." (a menos que e até que seja verdade)
 
@@ -854,13 +856,13 @@ Não publicar:
 ## Brief para Claude Design
 
 **Objetivo visual**
-Construir o website oficial do Banzami: moderno, simples, robusto, altamente
+Construir o website oficial da Banzami: moderno, simples, robusto, altamente
 polido e dinâmico. Deve transmitir uma startup de pagamentos de referência para
 Angola e para a África lusófona — confiável, financeira, tecnológica e ambiciosa
 sem parecer fantasiosa.
 
 **Identidade**
-- Marca: Banzami (masculino: *o* Banzami).
+- Marca: Banzami (feminino: *a* Banzami).
 - Paleta de vermelhos: `#B5101F` (primária), `#D7242E`, `#E8434B`, `#9A1B22`, `#FBD2D0`, com neutros brancos/cinza.
 - Tipografia limpa e geométrica; muito espaço em branco; sensação premium.
 - Ilustrações **SVG** coerentes com `docs/diagrams/`.
@@ -871,7 +873,7 @@ Sobre, Contacto, Legal.
 
 **Conteúdo**
 Usar os textos prontos da secção 22 e a homepage da secção 21. Toda a cópia em
-**português**. Respeitar a regra gramatical masculina.
+**português**. Respeitar a regra gramatical feminina da marca.
 
 **Tom**
 Claro, confiante, honesto, ambicioso e responsável. Nunca exagerar o estado real.
@@ -884,9 +886,9 @@ efeitos gratuitos que prejudiquem a clareza.
 **Restrições (vinculativas)**
 - Respeitar as **claims permitidas** (secção 24) e **proibidas** (secção 25).
 - Não publicar **informação sensível** (secção 26).
-- Não apresentar o BANZA como propriedade do Banzami.
+- Não apresentar o BANZA como propriedade da Banzami.
 - Não apresentar o BanzAI como operador de pagamentos.
-- Não dizer que o Banzami é certificado, launch-ready, production-ready ou banco.
+- Não dizer que a Banzami é certificado, launch-ready, production-ready ou banco.
 - Não dizer que L1/L2/L3/L4 estão validados nem que M2/M3 estão completos.
 - "PASS = evidência, não certificação" sempre que se mencionar conformance.
 
@@ -902,19 +904,19 @@ efeitos gratuitos que prejudiquem a clareza.
 
 - Português apenas.
 - Sem marketing enganoso.
-- O Banzami **não** é certificado.
-- O Banzami **não** está launch-ready nem production-ready.
-- O Banzami **não** é um banco.
+- A Banzami **não** é certificado.
+- A Banzami **não** está launch-ready nem production-ready.
+- A Banzami **não** é um banco.
 - A produção **não** está ativa.
 - L1/L2/L3/L4 **não** estão validados.
 - M2/M3 **não** estão completos.
-- BANZA **não** é propriedade do Banzami.
+- BANZA **não** é propriedade da Banzami.
 - BanzAI **não** opera pagamentos.
 
 ---
 
-*O Banzami é construído sobre o protocolo aberto BANZA.*
+*A Banzami é construída sobre o protocolo aberto BANZA.*
 *BANZA é o protocolo. Banzami é como Angola paga.*
-*O Banzami é o operador de referência da rede BANZA.*
+*A Banzami é o operador de referência da rede BANZA.*
 </content>
 </invoke>

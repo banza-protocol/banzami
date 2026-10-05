@@ -22,7 +22,7 @@
 
 ## Nota de Propriedade
 
-Esta secção descreve a arquitectura técnica do **Banzami** — a implementação de referência. Não é o único modo válido de implementar o protocolo BANZA. É o modo que o Banzami escolheu. Outros operadores podem usar stacks diferentes, desde que passem o conformance suite.
+Esta secção descreve a arquitectura técnica do **Banzami** — a implementação de referência. Não é o único modo válido de implementar o protocolo BANZA. É o modo que a Banzami escolheu. Outros operadores podem usar stacks diferentes, desde que passem o conformance suite.
 
 As regras do protocolo que esta arquitectura implementa estão definidas em [BANZA_ARCHITECTURE.md](../banza/docs/reference/en/BANZA_REFERENCE.md) e [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md).
 
@@ -275,7 +275,7 @@ plugins/*         → api-gateway
 
 ## Implementação de Invariantes
 
-O Banzami implementa os invariantes financeiros do protocolo BANZA (ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md)) através do Rust core-api. Os invariantes são impostos no nível do kernel — não no nível da API ou da UI.
+A Banzami implementa os invariantes financeiros do protocolo BANZA (ver [BANZA_REFERENCE.md §7](../banza/docs/reference/en/BANZA_REFERENCE.md)) através do Rust core-api. Os invariantes são impostos no nível do kernel — não no nível da API ou da UI.
 
 Nenhum código Go ou TypeScript pode violar os invariantes financeiros: só o Rust core-api escreve nas tabelas financeiras, e o Rust impõe os invariantes em tempo de compilação e em tempo de execução.
 

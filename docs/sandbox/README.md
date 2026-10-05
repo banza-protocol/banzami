@@ -3,7 +3,7 @@
 ## Overview
 
 The **Public Sandbox** is Banzami's self-service developer environment. It is
-**available now**, self-service (no Banzami-operator approval for normal developer
+**available now**, self-service (na Banzami-operator approval for normal developer
 onboarding), and uses **fictitious value** — no real Kwanza moves. It models the
 same wallet-native, ledger-native architecture as Financial Live.
 

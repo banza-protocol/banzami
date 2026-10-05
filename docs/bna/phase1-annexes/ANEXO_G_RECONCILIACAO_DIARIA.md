@@ -2,7 +2,7 @@
 
 Versão: 1.0 · Data: __ / __ / 20__
 
-> **Enquadramento institucional.** O Banzami é o operador de referência da rede BANZA,
+> **Enquadramento institucional.** A Banzami é o operador de referência da rede BANZA,
 > sociedade comercial independente e **não autorizada** até aprovação ou não-objecção
 > do BNA. Este documento respeita a um **piloto proposto (Fase 1)**, de coorte fechada.
 > Na Fase 0, a reconciliação foi computada a partir de resultados sintéticos reais dos

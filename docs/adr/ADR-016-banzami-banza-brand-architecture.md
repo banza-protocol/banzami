@@ -17,13 +17,13 @@ O ecossistema Banzami cresceu do conceito inicial — uma única plataforma refe
 
 - Documentação inconsistente: "rede Banzami", "carteira Banzami", "SDK Banzami", "Banzami Business" mistura o nome da organização com funcionalidades do produto.
 - Posicionamento confuso: quando um consumidor diz "Pago com Banzami", está a referir-se à organização ou ao produto?
-- Escalabilidade da marca: à medida que o Banzami lança futuros produtos e serviços de infraestrutura, um nome de produto igual ao da organização torna impossível distingui-los.
+- Escalabilidade da marca: à medida que a Banzami lança futuros produtos e serviços de infraestrutura, um nome de produto igual ao da organização torna impossível distingui-los.
 
 ---
 
 ## Decisão
 
-O Banzami adopta uma arquitectura de marca de dois níveis com papéis semanticamente distintos:
+A Banzami adopta uma arquitectura de marca de dois níveis com papéis semanticamente distintos:
 
 ### Banzami — Organização / Ecossistema / Infraestrutura
 
@@ -39,7 +39,7 @@ O Banzami adopta uma arquitectura de marca de dois níveis com papéis semantica
 
 ### Banza — Produto Principal de Pagamento
 
-**Banza** é o produto principal de pagamento construído pelo Banzami. Refere-se a:
+**Banza** é o produto principal de pagamento construído pela Banzami. Refere-se a:
 
 - A rede de pagamentos instantâneos QR-native em Kwanza
 - A experiência de pagamento que consumidores e comerciantes usam diariamente
@@ -107,20 +107,20 @@ Banzami (organização / ecossistema)
 
 ### Usar "Banzami" quando o contexto é:
 
-- A organização como entidade ("o Banzami constrói...", "parceiros do Banzami")
-- A missão institucional ("a visão do Banzami")
-- Infraestrutura técnica a nível de plataforma ("infraestrutura do Banzami")
+- A organização como entidade ("a Banzami constrói...", "parceiros da Banzami")
+- A missão institucional ("a visão da Banzami")
+- Infraestrutura técnica a nível de plataforma ("infraestrutura da Banzami")
 - Documentação fonte-de-verdade ("BANZA_REFERENCE.md")
-- Relações com bancos e reguladores ("o Banzami ganha acesso a...")
+- Relações com bancos e reguladores ("a Banzami ganha acesso a...")
 - O ecossistema no seu conjunto ("ecossistema Banzami", "o Ecossistema Banzami")
 - Futuros produtos não-Banza da organização
 - Nomes de domínio de infraestrutura (pay.banzami.com, api.banzami.com)
 
 **Exemplos correctos:**
 - "Banzami é a organização que constrói..."
-- "A visão do Banzami é completar a camada de pagamentos de Angola."
+- "A visão da Banzami é completar a camada de pagamentos de Angola."
 - "Banzami ganha acesso à infraestrutura regulada."
-- "A arquitectura técnica do Banzami é um monólito modular."
+- "A arquitectura técnica da Banzami é um monólito modular."
 
 ### Usar "@banza" para a identidade de pagamento
 
@@ -197,7 +197,7 @@ Rejeitado porque a organização precisa de um nome distinto para contextos inst
 
 - Clareza de posicionamento: consumidores falam de "Banza", investidores e parceiros falam de "Banzami".
 - Copy de marketing mais fluido: "Paga com Banza" é mais simples e natural.
-- Escalabilidade: o Banzami pode lançar futuros produtos sem confusão de nomes.
+- Escalabilidade: a Banzami pode lançar futuros produtos sem confusão de nomes.
 - Consistência com modelos de referência: Visa (org) / Visa Checkout (produto), EMIS (org) / Multicaixa Express (produto).
 
 ### Negativas / Riscos

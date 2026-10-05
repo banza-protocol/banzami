@@ -233,7 +233,7 @@ When `IS_SANDBOX = true`, the `BanzamiPanel` shows a visual badge:
 
 ```
 ┌─────────────────────────────────┐
-│ Paga com o Banzami    [SANDBOX] │  ← amber badge
+│ Paga com a Banzami    [SANDBOX] │  ← amber badge
 │                                  │
 │ [QR code]                        │
 │ ...                              │

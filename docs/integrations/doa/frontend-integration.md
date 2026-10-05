@@ -115,7 +115,7 @@ The `qrcode` library is ~50 kB. Dynamic import defers this load until the donor 
 
 ```
 ┌──────────────────────────────────────────┐
-│ Paga com o Banzami            [SANDBOX]  │  ← header row
+│ Paga com a Banzami            [SANDBOX]  │  ← header row
 │                                           │
 │  1 ● Abre a app Banzami                  │
 │  2 ● Toca em Pagar e usa o QR code       │  ← step instructions

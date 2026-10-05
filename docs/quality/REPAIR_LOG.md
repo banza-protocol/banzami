@@ -2488,7 +2488,7 @@ through `tail`, whose status replaces the pipeline's — a failing end-to-end
 harness ended a deploy with "OK".
 
 A related defect in the same family: the first host-inventory check ran against
-the docker daemon on a laptop, found no Banzami containers, and reported the
+the docker daemon on a laptop, found na Banzami containers, and reported the
 Sandbox clean. "I looked and saw nothing" is not "there is nothing".
 
 `tools/ops/lib/remote.sh` is now the single way to run a proof remotely. It
@@ -3643,7 +3643,7 @@ keyset position inside the consumer's own history; a foreign or malformed cursor
 
 `POST /v1/disputes` required a `consumer_id`; core stored it, made it filterable and sent
 it in `dispute.*` webhooks as fact. Disputes are opened on acquiring transactions, which
-have no Banzami consumer, and restitution already follows the typed source. Migration
+have na Banzami consumer, and restitution already follows the typed source. Migration
 0135 lets the column be NULL; core stores none; the gateway neither requires nor forwards
 it; the TS/Python SDKs type it nullable and stop sending it (PHP too); BANZADMIN's
 disputes page renders a dispute with no consumer (it crashed on null — found while
@@ -3927,7 +3927,7 @@ the notification that announced it. A row backed by a transfer opens the receipt
 from the server; a top-up, refund or restitution row is plainly not tappable.
 
 The payer surface emitted `banzami://` whatever stack it served. The app refuses a link of
-the other environment, so "Abrir no Banzami" did nothing on the Sandbox — and on a Live
+the other environment, so "Abrir na Banzami" did nothing on the Sandbox — and on a Live
 build a Sandbox page's button would have opened a real-money payment prefilled from test
 data. Every app link now takes its scheme from the deployment's environment, an unknown
 environment offers no app button, and iOS and the consumer Android manifest register
@@ -4308,7 +4308,7 @@ the owner confirmed the row on their own device after deploy.
 - **Found:** 2026-09-12 (§24 acceptance)
 - **Status:** OPEN — reported to DOA, not this operator's code
 
-The owner-facing campaign page states: "Quando a campanha fechar, o Banzami
+The owner-facing campaign page states: "Quando a campanha fechar, a Banzami
 liquida automaticamente: a taxa do Doa vai para o Doa e o restante para o teu
 destino Banzami."
 
@@ -4318,7 +4318,7 @@ sub-lifecycle "is driven by ADMIN actions". Closing the campaign moved it to
 `closed` and stopped; the 100 000 sat in the campaign's segregated account until
 an operator settled it from admin.doadoa.app.
 
-The admin surface is accurate — "O Doa só solicita e regista", "O Banzami define
+The admin surface is accurate — "O Doa só solicita e regista", "A Banzami define
 a taxa: 2%". It is the owner-facing promise that is false, and it is the one a
 campaign owner reads while waiting for their money.
 

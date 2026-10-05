@@ -49,9 +49,9 @@ Security behaviour:
 ### TestFlight — What to Test
 
 ```
-Bem-vindo ao beta do Banzami!
+Bem-vindo ao beta da Banzami!
 
-O Banzami é a forma como Angola paga — carteira Kwanza, QR nativo, transferências
+A Banzami é a forma como Angola paga — carteira Kwanza, QR nativo, transferências
 P2P e identidade financeira @banza, construído sobre o protocolo BANZA.
 
 O que testar:
@@ -123,9 +123,9 @@ Important:
 ### TestFlight — What to Test
 
 ```
-Bem-vindo ao beta do Banzami Business!
+Bem-vindo ao beta da Banzami Business!
 
-O Banzami Business é a camada comerciante da rede de pagamentos instantâneos de
+A Banzami Business é a camada comerciante da rede de pagamentos instantâneos de
 Angola — QR nativo, liquidação instantânea, sem terminal de cartão, sem espera,
 construído sobre o protocolo BANZA.
 
@@ -269,15 +269,15 @@ Use these for the App Store listing pages. Mirrors new infrastructure positionin
 ### Banzami (Consumer) — App Store Description
 
 ```
-O Banzami é a tua carteira de pagamentos instantâneos em Kwanza.
+A Banzami é a tua carteira de pagamentos instantâneos em Kwanza.
 
-Com o Banzami podes:
+Com a Banzami podes:
 • Pagar em qualquer comerciante com QR — sem cash, sem espera
 • Receber e enviar dinheiro para qualquer @banza em segundos
 • Consultar o teu saldo e histórico em tempo real
 • Pagar links de pagamento partilhados no WhatsApp
 
-O Banzami é a forma como Angola paga: QR-native, wallet-native, construído para o
+A Banzami é a forma como Angola paga: QR-native, wallet-native, construído para o
 Kwanza sobre o protocolo BANZA.
 
 Sem cartão. Sem IBAN. Sem confirmação manual.
@@ -287,9 +287,9 @@ Apenas @banza — e o dinheiro move-se.
 ### Banzami Business (Merchant) — App Store Description
 
 ```
-O Banzami Business é o ponto de venda da nova economia angolana.
+A Banzami Business é o ponto de venda da nova economia angolana.
 
-Com o Banzami Business podes:
+Com a Banzami Business podes:
 • Receber pagamentos instantâneos via QR — imprime e aceita de imediato
 • Criar e partilhar links de pagamento por WhatsApp ou SMS
 • Ver cada pagamento em tempo real, sem esperar por confirmação
@@ -298,7 +298,7 @@ Com o Banzami Business podes:
 Sem terminal de cartão. Sem taxas de POS. Sem espera.
 Apenas QR + liquidação instantânea em Kwanza.
 
-O Banzami Business é o operador de referência da rede de pagamentos de Angola,
+A Banzami Business é o operador de referência da rede de pagamentos de Angola,
 construído sobre o protocolo BANZA.
 ```
 

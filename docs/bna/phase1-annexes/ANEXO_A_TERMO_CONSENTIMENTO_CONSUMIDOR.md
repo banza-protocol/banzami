@@ -2,7 +2,7 @@
 
 Versão: 1.0 · Data: __ / __ / 20__
 
-> **Enquadramento institucional.** O Banzami é o operador de referência construído
+> **Enquadramento institucional.** A Banzami é o operador de referência construído
 > sobre o protocolo aberto BANZA. É uma sociedade comercial independente e **não é
 > uma entidade autorizada** para a prestação de serviços de pagamento até obtenção
 > de aprovação ou não-objecção formal do Banco Nacional de Angola (BNA). O presente

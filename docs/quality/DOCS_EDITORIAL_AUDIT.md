@@ -38,7 +38,7 @@ in the copy, not excused.
 - **DOA.** Rewritten as a reference story. The intro states the rule once: DOA
   is a reference implementation, not a privileged Banzami tenant, and uses the
   same public API, SDK, authorisation model, contracts, webhooks and settlement
-  as any integration. PT says *cliente privilegiado do Banzami*; "tenant" is not
+  as any integration. PT says *cliente privilegiado da Banzami*; "tenant" is not
   used in Portuguese.
 - **Internal assurance language removed** from public prose (gates, mutation,
   evidence, binding, root wallet, ADR and repair-log numbers).

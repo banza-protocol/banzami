@@ -192,7 +192,7 @@ Step 3: Method picker → selects Banzami
 
 BanzamiPanel renders:
   ┌─────────────────────────────┐
-  │ Paga com o Banzami    SANDBOX│ ← sandbox badge (if test key)
+  │ Paga com a Banzami    SANDBOX│ ← sandbox badge (if test key)
   │                              │
   │ 1 ● Abre a app Banzami      │
   │ 2 ● Toca em Pagar e usa QR  │

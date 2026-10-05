@@ -136,7 +136,7 @@ The session becomes `PAID`, `payment_session.paid` is sent and the realtime
 stream turns; a repeat with the same `Idempotency-Key` answers `202` until then
 and the real result afterwards. A refusal at completion (the payer's balance
 spent meanwhile, the session paid another way) is that result. Added after the
-2026-09-14 competitive review found no Banzami scenario for an outcome that
+2026-09-14 competitive review found na Banzami scenario for an outcome that
 settles after the response.
 
 ### 6. Fictitious value has per-Project quotas

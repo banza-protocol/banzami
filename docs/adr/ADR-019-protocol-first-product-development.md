@@ -26,7 +26,7 @@ against the rule: the merchant **"Cobrança dividida" (split charge)** shipped o
 
 ## Decision
 
-1. **Banzami adopts BANZA ADR-005.** No Banzami app, SDK, or operator service may
+1. **Banzami adopts BANZA ADR-005.** Na Banzami app, SDK, or operator service may
    introduce a new financial/protocolar concept without a corresponding BANZA
    ADR/RFC. Banzami implements concepts the protocol defines; it owns UX,
    operator policy (KYC/AML tiers, fees within `INV-STL-001`, onboarding,

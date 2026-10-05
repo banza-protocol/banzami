@@ -2,7 +2,7 @@
 
 Versão: 1.0 · Data: __ / __ / 20__
 
-> **Enquadramento.** O Banzami é o operador de referência da rede BANZA, sociedade
+> **Enquadramento.** A Banzami é o operador de referência da rede BANZA, sociedade
 > comercial independente e **não autorizada** para prestação de serviços de pagamento
 > até aprovação ou não-objecção do Banco Nacional de Angola (BNA). Este pacote é
 > **preparatório e interno** e respeita a um **piloto proposto (Fase 1)**, de coorte
@@ -53,4 +53,4 @@ Documentação interna de infra-estrutura complementar (sanitizada): ver
   pagamento, *checkout* online, API/SDK, plataforma/integrador e *webhooks*.
 - As plataformas/integradores **não detêm fundos, não calculam saldos e não emitem
   comprovativos financeiros**.
-- O Banzami permanece **não autorizado** até aprovação/não-objecção do BNA.
+- A Banzami permanece **não autorizado** até aprovação/não-objecção do BNA.

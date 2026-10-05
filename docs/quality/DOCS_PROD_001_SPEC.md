@@ -1246,7 +1246,7 @@ BANZAMI DEVELOPERS DOCUMENTATION READY FOR PUBLIC RELEASE
 — DOA canonical reference implementation
 — examples tested against current contracts
 
-DOA: CANONICAL REFERENCE IMPLEMENTATION — no Banzami tenant special-casing
+DOA: CANONICAL REFERENCE IMPLEMENTATION — na Banzami tenant special-casing
 
 Financial LIVE: NOT READY / FAIL-CLOSED
 
