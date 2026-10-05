@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Field, MultiOptBtns, Check, SubmitBtn, SuccessMark } from './form-kit';
-import { submitBetaRegistration, splitFullName, type BetaPlatform, type BetaApp } from '@/lib/beta';
+import { submitBetaRegistration, splitFullName, ANDROID_TESTING_AVAILABLE, type BetaPlatform, type BetaApp } from '@/lib/beta';
 import { route, type Lang, type Loc } from '@/lib/marketing/nav';
 
 const APP_URL = 'https://app.banzami.com/';
@@ -32,9 +32,25 @@ const T = {
   okTitle: L('Inscrição recebida', 'You are in'),
   okSub: L('Entramos em contacto por e-mail quando a sua vaga abrir.', 'We will email you when your spot opens.'),
   close: L('Fechar', 'Close'),
+  // Android temporarily unavailable (ANDROID_TESTING_AVAILABLE=false).
+  soon: L('Em breve', 'Coming soon'),
+  naTitle: L('Android temporariamente indisponível', 'Android temporarily unavailable'),
+  naP1: L(
+    'Estamos a concluir a disponibilização do Banzami para Android.',
+    'We are finishing getting Banzami ready for Android.',
+  ),
+  naP2: L(
+    'A versão Android estará disponível em breve para testes em ambiente Sandbox.',
+    'The Android version will be available soon for testing in the Sandbox.',
+  ),
+  naP3: L(
+    'Podes continuar a experimentar o Banzami através da Beta Web ou regressar mais tarde para participar nos testes Android.',
+    'You can keep trying Banzami through the Beta Web, or come back later to join the Android tests.',
+  ),
+  naPrimary: L('Experimentar Beta Web', 'Try the Beta Web'),
 };
 
-function Tile({ onClick, href, icon, title, sub }: { onClick?: () => void; href?: string; icon: React.ReactNode; title: string; sub: string }) {
+function Tile({ onClick, href, icon, title, sub, badge }: { onClick?: () => void; href?: string; icon: React.ReactNode; title: string; sub: string; badge?: string }) {
   const inner = (
     <>
       <span style={{ display: 'flex' }}>{icon}</span>
@@ -42,6 +58,9 @@ function Tile({ onClick, href, icon, title, sub }: { onClick?: () => void; href?
         <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{title}</span>
         <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'rgba(255,255,255,.55)' }}>{sub}</span>
       </span>
+      {badge && (
+        <span style={{ marginLeft: 'auto', fontSize: '9.5px', fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', padding: '3px 7px', borderRadius: '999px', background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.14)', color: 'rgba(255,255,255,.82)', whiteSpace: 'nowrap' }}>{badge}</span>
+      )}
     </>
   );
   const st: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '11px', padding: '12px 16px', borderRadius: '14px', background: 'linear-gradient(160deg,#241c1e,#120e0f)', border: '1px solid rgba(255,255,255,.06)', textDecoration: 'none', boxShadow: '0 16px 30px -18px rgba(20,16,20,.7)', cursor: 'pointer', fontFamily: 'inherit' };
@@ -62,6 +81,51 @@ export function HeroPlatforms({ lang }: { lang: Lang }) {
   const [sending, setSending] = useState(false);
   const [sendErr, setSendErr] = useState('');
   const [done, setDone] = useState(false);
+
+  // Android temporarily-unavailable notice (shown instead of the sign-up when
+  // ANDROID_TESTING_AVAILABLE is false). A real dialog: focus moves in on open,
+  // Escape and the backdrop close it, focus is kept inside and returned on close.
+  const [androidNotice, setAndroidNotice] = useState(false);
+  const noticeRef = useRef<HTMLDivElement>(null);
+  const noticeOpener = useRef<HTMLElement | null>(null);
+  const noticeTitleId = useId();
+  const closeNotice = () => setAndroidNotice(false);
+
+  useEffect(() => {
+    if (!androidNotice) return;
+    const panel = noticeRef.current;
+    if (!panel) return;
+    noticeOpener.current = (document.activeElement as HTMLElement) ?? null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusFirst = () => {
+      const f = panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      (f[0] ?? panel).focus();
+    };
+    focusFirst();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setAndroidNotice(false); } };
+    const onFocusIn = (e: FocusEvent) => { if (!panel.contains(e.target as Node)) focusFirst(); };
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('focusin', onFocusIn);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('focusin', onFocusIn);
+      noticeOpener.current?.focus?.();
+    };
+  }, [androidNotice]);
+
+  // Tab wrap inside the notice (the focusin guard above is the backstop).
+  const onNoticeKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const panel = noticeRef.current;
+    if (!panel) return;
+    const f = Array.from(panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (f.length === 0) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
 
   const toggleApp = (id: string) => {
     setApps((prev) => {
@@ -111,7 +175,7 @@ export function HeroPlatforms({ lang }: { lang: Lang }) {
       <div className="bz-plat" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginTop: '14px', maxWidth: '590px' }}>
         <Tile href={APP_URL} icon={GLOBE} title={T.betaWeb[lang]} sub={T.inBrowser[lang]} />
         <Tile onClick={() => open('IOS')} icon={APPLE} title="iPhone" sub={T.channelIOS[lang]} />
-        <Tile onClick={() => open('ANDROID')} icon={ANDROID} title="Android" sub={T.channelAndroid[lang]} />
+        <Tile onClick={() => (ANDROID_TESTING_AVAILABLE ? open('ANDROID') : setAndroidNotice(true))} icon={ANDROID} title="Android" sub={T.channelAndroid[lang]} badge={ANDROID_TESTING_AVAILABLE ? undefined : T.soon[lang]} />
       </div>
 
       {platform && (
@@ -141,6 +205,26 @@ export function HeroPlatforms({ lang }: { lang: Lang }) {
                 <button type="button" onClick={close} style={{ marginTop: '22px', padding: '12px 22px', borderRadius: '40px', border: '1px solid #F3E3E1', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '14.5px', color: '#141014' }}>{T.close[lang]}</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {androidNotice && (
+        <div role="dialog" aria-modal="true" aria-labelledby={noticeTitleId} onMouseDown={(e) => { if (e.target === e.currentTarget) closeNotice(); }} style={{ position: 'fixed', inset: 0, zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(60,20,22,.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
+          <div ref={noticeRef} tabIndex={-1} onKeyDown={onNoticeKeyDown} style={{ position: 'relative', width: '100%', maxWidth: '460px', maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: '26px', padding: 'clamp(22px,3vw,32px)', boxShadow: '0 40px 90px -30px rgba(0,0,0,.5)', color: '#2a2024', outline: 'none' }}>
+            <button type="button" aria-label={T.close[lang]} onClick={closeNotice} style={{ position: 'absolute', top: '16px', right: '16px', width: '36px', height: '36px', borderRadius: '12px', border: '1px solid #F3E3E1', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#141014" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+            <h2 id={noticeTitleId} style={{ margin: 0, paddingRight: '40px', fontSize: '22px', fontWeight: 900, letterSpacing: '-.02em', color: '#141014' }}>{T.naTitle[lang]}</h2>
+            <div style={{ display: 'grid', gap: '12px', margin: '14px 0 0' }}>
+              <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.55, fontWeight: 600, color: '#4a3a3e' }}>{T.naP1[lang]}</p>
+              <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.55, fontWeight: 600, color: '#4a3a3e' }}>{T.naP2[lang]}</p>
+              <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.55, fontWeight: 600, color: '#6a5a5e' }}>{T.naP3[lang]}</p>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '24px' }}>
+              <a href={APP_URL} target="_blank" rel="noopener noreferrer" onClick={closeNotice} className="bz-btnlift" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '13px 22px', borderRadius: '14px', background: 'linear-gradient(160deg,#C8101F,#9A1B22)', color: '#fff', fontWeight: 800, fontSize: '14.5px', textDecoration: 'none', boxShadow: '0 16px 30px -16px rgba(181,16,31,.6),inset 0 1px 0 rgba(255,255,255,.2)' }}>{T.naPrimary[lang]}</a>
+              <button type="button" onClick={closeNotice} style={{ padding: '13px 20px', borderRadius: '14px', border: '1px solid #F3E3E1', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '14.5px', color: '#141014' }}>{T.close[lang]}</button>
+            </div>
           </div>
         </div>
       )}

@@ -46,6 +46,15 @@ export const BETA_APPS: {
   },
 ];
 
+// Android tester distribution availability (single, central switch).
+//
+// While false, the public pages do NOT open the Android tester sign-up: the
+// Android platform card shows an "Em breve" badge and, when clicked, opens a
+// short "temporarily unavailable" notice that points to the Beta Web. iOS and
+// the Beta Web are unaffected. Flip this to true to restore the normal Android
+// sign-up flow with no other change to the UI or components.
+export const ANDROID_TESTING_AVAILABLE = false;
+
 // The channel a platform is tested through, named correctly: TestFlight is
 // Apple's, and Android is NOT "TestFlight" — it is Google Play testing.
 export const PLATFORM_CHANNEL = {

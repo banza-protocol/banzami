@@ -4,15 +4,25 @@ import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Control the network only; splitFullName, types and app list stay real.
-const { submitBetaRegistration } = vi.hoisted(() => ({ submitBetaRegistration: vi.fn() }));
+// betaFlags lets a test flip ANDROID_TESTING_AVAILABLE (read live via a getter).
+const { submitBetaRegistration, betaFlags } = vi.hoisted(() => ({
+  submitBetaRegistration: vi.fn(),
+  betaFlags: { android: false },
+}));
 vi.mock('@/lib/beta', async (orig) => ({
   ...(await orig<typeof import('@/lib/beta')>()),
   submitBetaRegistration,
+  get ANDROID_TESTING_AVAILABLE() {
+    return betaFlags.android;
+  },
 }));
 
 import { HeroPlatforms } from './HeroPlatforms';
 
-beforeEach(() => submitBetaRegistration.mockReset());
+beforeEach(() => {
+  submitBetaRegistration.mockReset();
+  betaFlags.android = false; // default: Android distribution not yet available
+});
 afterEach(cleanup);
 
 async function openModal(user: ReturnType<typeof userEvent.setup>) {
@@ -181,5 +191,64 @@ describe('Tester sign-up — multi-select accessibility', () => {
     const group = screen.getByRole('group', { name: /Apps que quer testar/ });
     expect(within(group).getAllByRole('checkbox')).toHaveLength(2);
     expect(within(group).queryAllByRole('radio')).toHaveLength(0);
+  });
+});
+
+describe('Android distribution flag (ANDROID_TESTING_AVAILABLE)', () => {
+  const androidBtn = () => screen.getByRole('button', { name: /Android/ });
+  const noticeHeading = () => screen.queryByRole('heading', { name: 'Android temporariamente indisponível' });
+
+  it('false: clicking Android opens the unavailability notice, not the sign-up form', async () => {
+    const user = userEvent.setup();
+    render(<HeroPlatforms lang="pt" />);
+    await user.click(androidBtn());
+    expect(noticeHeading()).toBeTruthy();
+    // The tester sign-up form never appears.
+    expect(screen.queryByText('Inscrição de tester')).toBeNull();
+    expect(screen.queryByLabelText(/Nome completo/)).toBeNull();
+    expect(submitBetaRegistration).not.toHaveBeenCalled();
+  });
+
+  it('false: the Android card shows an "Em breve" badge', () => {
+    render(<HeroPlatforms lang="pt" />);
+    expect(within(androidBtn()).getByText('Em breve')).toBeTruthy();
+  });
+
+  it('false: the notice primary action links to the existing Beta Web URL', async () => {
+    const user = userEvent.setup();
+    render(<HeroPlatforms lang="pt" />);
+    await user.click(androidBtn());
+    const link = screen.getByRole('link', { name: 'Experimentar Beta Web' });
+    expect(link.getAttribute('href')).toBe('https://app.banzami.com/');
+  });
+
+  it('false: closing the notice works', async () => {
+    const user = userEvent.setup();
+    render(<HeroPlatforms lang="pt" />);
+    await user.click(androidBtn());
+    expect(noticeHeading()).toBeTruthy();
+    // Two controls are named "Fechar" (the X and the secondary button); the last is the button.
+    const closers = screen.getAllByRole('button', { name: 'Fechar' });
+    await user.click(closers[closers.length - 1]);
+    expect(noticeHeading()).toBeNull();
+  });
+
+  it('false: the iPhone sign-up flow is unaffected', async () => {
+    const user = userEvent.setup();
+    render(<HeroPlatforms lang="pt" />);
+    await user.click(screen.getByRole('button', { name: /iPhone/ }));
+    expect(screen.getByText('Inscrição de tester')).toBeTruthy();
+    expect(noticeHeading()).toBeNull();
+  });
+
+  it('true: Android restores the original sign-up form, with no notice and no badge', async () => {
+    betaFlags.android = true;
+    const user = userEvent.setup();
+    render(<HeroPlatforms lang="pt" />);
+    expect(within(androidBtn()).queryByText('Em breve')).toBeNull();
+    await user.click(androidBtn());
+    expect(screen.getByText('Inscrição de tester')).toBeTruthy();
+    expect(screen.getByText('Android · Google Play')).toBeTruthy(); // modal subtitle (Android)
+    expect(noticeHeading()).toBeNull();
   });
 });
