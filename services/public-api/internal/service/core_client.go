@@ -28,6 +28,7 @@ var ErrNotFound = errors.New("resource not found")
 var (
 	ErrConsumerNotFound             = errors.New("consumer not found")
 	ErrHandleTaken                  = errors.New("handle already taken")
+	ErrEmailTaken                   = errors.New("email already in use")
 	ErrConsumerWalletNotFound       = errors.New("consumer wallet not found")
 	ErrTransferNotFound             = errors.New("transfer not found")
 	ErrTransferSelfTransfer         = errors.New("cannot transfer to yourself")
@@ -181,10 +182,20 @@ type PaymentLink struct {
 // Consumer operations
 // ---------------------------------------------------------------------------
 
-func (c *CorePublicClient) CreateConsumer(ctx context.Context, handle string, displayName *string) (*ConsumerRecord, error) {
+func (c *CorePublicClient) CreateConsumer(ctx context.Context, handle string, displayName *string, email string) (*ConsumerRecord, error) {
 	body := map[string]any{"handle": handle, "display_name": displayName}
+	if email != "" {
+		body["email"] = email
+	}
 	var out ConsumerRecord
 	if err := c.post(ctx, "/internal/v1/consumers", body, &out); err != nil {
+		msg := err.Error()
+		switch {
+		case contains(msg, "EMAIL_TAKEN"):
+			return nil, ErrEmailTaken
+		case contains(msg, "HANDLE_TAKEN"):
+			return nil, ErrHandleTaken
+		}
 		return nil, err
 	}
 	return &out, nil
@@ -199,6 +210,21 @@ func (c *CorePublicClient) GetConsumer(ctx context.Context, id string) (*Consume
 		return nil, err
 	}
 	return &out, nil
+}
+
+// DeleteConsumer executes the ledger-safe account deletion in core: sweep the
+// fictitious Sandbox balance to transit, close the consumer (tombstone), scrub
+// the declared name, retire the @banza handle and remove device signals. It is
+// idempotent in core (a replay returns the first result). The id comes from the
+// authenticated session, never from the client.
+func (c *CorePublicClient) DeleteConsumer(ctx context.Context, id string) error {
+	if err := c.post(ctx, "/internal/v1/consumers/"+url.PathEscape(id)+"/delete", nil, nil); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return ErrConsumerNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 func (c *CorePublicClient) GetConsumerByHandle(ctx context.Context, handle string) (*ConsumerRecord, error) {
@@ -249,6 +275,26 @@ func (c *CorePublicClient) SearchConsumers(ctx context.Context, q string, limit 
 // ---------------------------------------------------------------------------
 // Consumer wallet operations
 // ---------------------------------------------------------------------------
+
+// SetConsumerEmail associates a verified recovery email with an ACTIVE consumer
+// (legacy enrolment). public-api calls this only after an authenticated OTP
+// verification. EMAIL_TAKEN → ErrEmailTaken; an unknown/non-active consumer →
+// ErrConsumerNotFound.
+func (c *CorePublicClient) SetConsumerEmail(ctx context.Context, consumerID, email string) error {
+	err := c.post(ctx, "/internal/v1/consumers/"+url.PathEscape(consumerID)+"/email",
+		map[string]string{"email": email}, nil)
+	if err != nil {
+		msg := err.Error()
+		switch {
+		case contains(msg, "EMAIL_TAKEN"):
+			return ErrEmailTaken
+		case contains(msg, "404"):
+			return ErrConsumerNotFound
+		}
+		return err
+	}
+	return nil
+}
 
 func (c *CorePublicClient) GetOrCreateWallet(ctx context.Context, consumerID, currency string) (*ConsumerWalletRecord, error) {
 	body := map[string]string{"consumer_id": consumerID, "currency": currency}

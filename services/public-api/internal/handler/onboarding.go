@@ -195,10 +195,10 @@ func validateHandle(handle string) string {
 	return ""
 }
 
-// validatePin checks that the PIN is 4–6 digits only.
+// validatePin checks the canonical Banzami PIN: EXACTLY 6 numeric digits.
 func validatePin(pin string) string {
-	if len(pin) < 4 || len(pin) > 6 {
-		return "PIN must be 4–6 digits"
+	if len(pin) != 6 {
+		return "PIN must be exactly 6 digits"
 	}
 	for _, r := range pin {
 		if !unicode.IsDigit(r) {
