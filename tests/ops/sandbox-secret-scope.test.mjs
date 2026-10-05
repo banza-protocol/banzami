@@ -98,8 +98,15 @@ test('no service reads a credential the deploy does not give it', () => {
 
 test('the consumer surface holds no Console, pepper or proof credential', () => {
   // The A6-09 finding, stated as the property it broke.
+  //
+  // OTP_PEPPER is intentionally NOT forbidden any more: the account-identity-
+  // security suite makes verified-email signup and PIN recovery a public-api
+  // capability, so public-api now legitimately hashes consumer OTPs with the
+  // shared otp_pepper (the same way developer-api hashes Console OTPs). The
+  // Console session secret, the API-key pepper, the proof signing key and the
+  // operator JWT remain forbidden on the consumer surface.
   const publicApi = new Set(MAP['public-api-staging'].map((p) => p.env));
-  for (const forbidden of ['SESSION_SECRET', 'API_KEY_PEPPER', 'BZM_PROOF_SIGNING_KEY', 'ADMIN_JWT_SECRET', 'OTP_PEPPER']) {
+  for (const forbidden of ['SESSION_SECRET', 'API_KEY_PEPPER', 'BZM_PROOF_SIGNING_KEY', 'ADMIN_JWT_SECRET']) {
     assert.ok(!publicApi.has(forbidden), `public-api is given ${forbidden}`);
   }
   const core = new Set(MAP['core-api-staging'].map((p) => p.env));
