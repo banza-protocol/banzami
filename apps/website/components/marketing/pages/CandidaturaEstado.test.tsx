@@ -45,9 +45,9 @@ describe('Application status — approval vs activation', () => {
     render(<CandidaturaEstadoPage lang="pt" />);
     await lookup(user);
     expect(await screen.findByText('Ativa')).toBeTruthy();
-    expect(screen.getByText('O seu negócio está ativo na Sandbox do Banzami Business.')).toBeTruthy();
+    expect(screen.getByText('O seu negócio está ativo na Sandbox da Banzami Business.')).toBeTruthy();
     // Activation step is now complete — the "activate" instruction is gone.
-    expect(screen.getByText('Acesso ao Banzami Business ativado.')).toBeTruthy();
+    expect(screen.getByText('Acesso à Banzami Business ativado.')).toBeTruthy();
     expect(screen.queryByText('Ative o negócio com o link que lhe enviarmos.')).toBeNull();
     expect(screen.queryByText('Aprovada')).toBeNull();
   });

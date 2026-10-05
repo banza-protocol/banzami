@@ -372,7 +372,7 @@ class _MerchantProfileHeader extends StatelessWidget {
               // settlement readiness, not the session.
               Expanded(
                 child: Text(
-                  'Verificação KYB aprovada pelo Banzami',
+                  'Verificação KYB aprovada pela Banzami',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: BanzamiTextStyles.bodySm.copyWith(

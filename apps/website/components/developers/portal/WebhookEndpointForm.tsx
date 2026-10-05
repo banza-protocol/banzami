@@ -87,7 +87,7 @@ export function WebhookEndpointForm({ onCreated }: { onCreated: (ep: NewWebhookE
     <Card style={{ padding: 22, marginBottom: 16 }}>
       <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 900 }}>Novo endpoint</h3>
       <p style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.55, color: '#8a7a7e', fontWeight: 600 }}>
-        O endereço tem de ser público e <strong>https</strong>. O Banzami assina cada entrega; verifique
+        O endereço tem de ser público e <strong>https</strong>. A Banzami assina cada entrega; verifique
         a assinatura com o segredo que aparece a seguir. É mostrado uma única vez.
       </p>
       {/* There is no route that changes either of these after the fact — the API

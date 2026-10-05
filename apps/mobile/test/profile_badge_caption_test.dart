@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('a Banzami badge says who vouched, never that an identity check passed', () {
-    expect(verificationBadgeCaption(VerificationBadgeType.consumer), 'Verificado pelo Banzami');
+    expect(verificationBadgeCaption(VerificationBadgeType.consumer), 'Verificado pela Banzami');
     expect(verificationBadgeCaption(VerificationBadgeType.merchant),
-        'Comerciante verificado pelo Banzami');
+        'Comerciante verificado pela Banzami');
     for (final t in VerificationBadgeType.values) {
       expect(verificationBadgeCaption(t), isNot(contains('Identidade')));
     }

@@ -55,7 +55,7 @@ export function verdict(p: ProofResult): { tone: 'green' | 'yellow' | 'red'; tit
     };
   }
   switch (p.status) {
-    case 'CONFIRMED': return { tone: 'green', title: confirmedTitle(p.operation_kind), sub: 'Esta transação existe no sistema oficial do Banzami.' };
+    case 'CONFIRMED': return { tone: 'green', title: confirmedTitle(p.operation_kind), sub: 'Esta transação existe no sistema oficial da Banzami.' };
     case 'PENDING': return { tone: 'yellow', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência pendente' : 'Pagamento pendente', sub: 'A transação existe mas ainda não foi confirmada.' };
     case 'REVERSED': return { tone: 'red', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência revertida' : 'Pagamento revertido', sub: 'Esta transação foi revertida. Não representa um pagamento válido.' };
     default: return { tone: 'red', title: 'Comprovativo inválido', sub: `Estado: ${statusPT(p.status)}. Não representa um pagamento confirmado.` };
@@ -108,7 +108,7 @@ export function ProofView({ p, reference }: { p: ProofResult; reference: string 
             </div>
           )}
           <div style={{ fontSize: 12, fontWeight: 700, color: '#746469' }}>
-            Registado no sistema oficial do Banzami · Verificado agora · {nowWAT()}
+            Registado no sistema oficial da Banzami · Verificado agora · {nowWAT()}
           </div>
         </div>
       )}

@@ -133,10 +133,10 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
       if (!mounted) return;
       switch (e.failure) {
         case ReauthFailure.offline:
-          _notice = 'Sem ligação ao Banzami. Não foi possível entrar — tente novamente.';
+          _notice = 'Sem ligação à Banzami. Não foi possível entrar — tente novamente.';
         case ReauthFailure.unavailable:
           // An outage is not a refusal: nothing on this device is cleared.
-          _notice = 'O Banzami está temporariamente indisponível. Não foi possível entrar — tente novamente.';
+          _notice = 'A Banzami está temporariamente indisponível. Não foi possível entrar — tente novamente.';
         case ReauthFailure.locked:
           _notice = 'Conta temporariamente bloqueada. Tente novamente mais tarde.';
         case ReauthFailure.refused:

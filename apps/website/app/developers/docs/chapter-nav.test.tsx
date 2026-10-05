@@ -29,7 +29,7 @@ const navOf = (name: RegExp) => screen.getByRole('navigation', { name });
 describe('Chapter navigation — PT', () => {
   it('order matches the canonical AREAS_PT sequence', () => {
     expect(AREAS_PT.map((a) => a.label)).toEqual([
-      'Início', 'Quickstart', 'Como o Banzami funciona', 'Aceitar pagamentos', 'Webhooks', 'Reembolsos', 'Liquidações', 'Comprovativos',
+      'Início', 'Quickstart', 'Como a Banzami funciona', 'Aceitar pagamentos', 'Webhooks', 'Reembolsos', 'Liquidações', 'Comprovativos',
       'Contas e transferências', 'Construir como o DOA', 'A Consola', 'Referência da API', 'Eventos', 'Erros', 'SDKs', 'Artefactos',
       'Testar no Sandbox', 'Do Sandbox ao Live', 'Segurança', 'Glossário', 'Resolução de problemas', 'Suporte', 'Changelog',
     ]);

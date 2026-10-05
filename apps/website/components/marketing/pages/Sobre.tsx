@@ -63,9 +63,9 @@ const FOUNDERS: { img: string; alt: string; name: string; role: Loc; bio: Loc; l
     img: '/assets/founder-fidel-v4.png',
     alt: 'Fidel Monteiro',
     name: 'Fidel Monteiro',
-    role: L('Cofundador do Banzami', 'Co-founder of Banzami'),
+    role: L('Cofundador da Banzami', 'Co-founder of Banzami'),
     bio: L(
-      'Engenheiro de desenvolvimento em IA e software, com mais de 7 anos de experiência em IA e MLOps, arquitetura de software, visão computacional e sistemas embebidos, na STMicroelectronics, Hyperion Seven, SuperGrid Institute e Akkodis. Criou o Banzami e o protocolo aberto BANZA.',
+      'Engenheiro de desenvolvimento em IA e software, com mais de 7 anos de experiência em IA e MLOps, arquitetura de software, visão computacional e sistemas embebidos, na STMicroelectronics, Hyperion Seven, SuperGrid Institute e Akkodis. Criou a Banzami e o protocolo aberto BANZA.',
       'AI and software development engineer with 7+ years of experience in AI and MLOps, software architecture, computer vision and embedded systems, at STMicroelectronics, Hyperion Seven, SuperGrid Institute and Akkodis. He created Banzami and the open BANZA protocol.',
     ),
     linkHref: 'https://www.fidelmonteiro.com',
@@ -75,7 +75,7 @@ const FOUNDERS: { img: string; alt: string; name: string; role: Loc; bio: Loc; l
     img: '/assets/founder-jesus-cut.png',
     alt: 'Jesus Monteiro',
     name: 'Jesus Monteiro',
-    role: L('Cofundador do Banzami', 'Co-founder of Banzami'),
+    role: L('Cofundador da Banzami', 'Co-founder of Banzami'),
     bio: L(
       'Engenheiro e investigador em energia eólica. Doutorado em Engenharia Mecânica pela FEUP (Universidade do Porto), com mestrado em Engenharia Eletromecânica pela Universidade da Beira Interior. Engenheiro de projeto na ENERCON, especialista em escoamento atmosférico, CFD/RANS e avaliação de recurso eólico.',
       'Wind energy engineer and researcher. PhD in Mechanical Engineering from FEUP (University of Porto), with an MSc in Electromechanical Engineering from the University of Beira Interior. Site project engineer at ENERCON, specialising in atmospheric flow, CFD/RANS and wind resource assessment.',
@@ -88,7 +88,7 @@ const FOUNDERS: { img: string; alt: string; name: string; role: Loc; bio: Loc; l
 const ESTADO_ITEMS: { icon: IconName; tag: Loc; t: Loc; d: Loc }[] = [
   { icon: 'sparkle', tag: L('DISPONÍVEL', 'AVAILABLE'), t: L('Beta público', 'Public Beta'), d: L('Sandbox disponível, com dinheiro fictício, na Beta Web e em testes no iPhone e Android.', 'Sandbox available, with test money, on Beta Web and in testing on iPhone and Android.') },
   { icon: 'shield', tag: L('INDISPONÍVEL', 'UNAVAILABLE'), t: L('Operações com dinheiro real', 'Real-money operations'), d: L('Indisponíveis nesta fase, sujeitas às aprovações aplicáveis.', 'Unavailable in this phase, subject to the applicable approvals.') },
-  { icon: 'layers', tag: L('ABERTO', 'OPEN'), t: L('Protocolo BANZA', 'BANZA protocol'), d: L('Aberto. O Banzami é o operador de referência.', 'Open. Banzami is the reference operator.') },
+  { icon: 'layers', tag: L('ABERTO', 'OPEN'), t: L('Protocolo BANZA', 'BANZA protocol'), d: L('Aberto. A Banzami é o operador de referência.', 'Open. Banzami is the reference operator.') },
 ];
 
 const barBg: CSSProperties = { position: 'absolute', left: '16px', right: '16px', bottom: 0, height: '2px', borderRadius: '2px', background: 'rgba(181,16,31,.08)', overflow: 'hidden', opacity: 0, transition: 'opacity .6s' };
@@ -106,7 +106,7 @@ export function SobrePage({ lang }: { lang: Lang }) {
 
         <div style={CONTENT}>
           <Reveal>
-            <Badge>{lang === 'en' ? 'About Banzami' : 'Sobre o Banzami'}</Badge>
+            <Badge>{lang === 'en' ? 'About Banzami' : 'Sobre a Banzami'}</Badge>
             <H1
               a={lang === 'en' ? 'Modernising payments' : 'Modernizar os pagamentos'}
               b={lang === 'en' ? 'in Angola.' : 'em Angola.'}
@@ -115,7 +115,7 @@ export function SobrePage({ lang }: { lang: Lang }) {
             <HeroLead mw={600}>
               {lang === 'en'
                 ? 'Banzami is the startup building a wallet-native payment network for Angola, on the open BANZA protocol.'
-                : 'O Banzami é a startup que está a construir uma rede de pagamentos nativa de carteira para Angola, sobre o protocolo aberto BANZA.'}
+                : 'A Banzami é a startup que está a construir uma rede de pagamentos nativa de carteira para Angola, sobre o protocolo aberto BANZA.'}
             </HeroLead>
           </Reveal>
         </div>
@@ -159,7 +159,7 @@ export function SobrePage({ lang }: { lang: Lang }) {
           <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: '.9fr 1.1fr', gap: '56px', alignItems: 'center' }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
               <SectionLabel n="02" label={lang === 'en' ? 'PRINCIPLES' : 'PRINCÍPIOS'} />
-              <H2 a={lang === 'en' ? 'How we build' : 'Como construímos'} b={lang === 'en' ? 'Banzami.' : 'o Banzami.'} />
+              <H2 a={lang === 'en' ? 'How we build' : 'Como construímos'} b={lang === 'en' ? 'Banzami.' : 'a Banzami.'} />
               <Lead mw={440}>
                 {lang === 'en'
                   ? 'Before features, we decide how we build: the choices that guide the product, the engineering and how we communicate.'
@@ -195,7 +195,7 @@ export function SobrePage({ lang }: { lang: Lang }) {
             <p style={{ margin: '0 0 6px', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '480px', textWrap: 'pretty' }}>
               {lang === 'en'
                 ? 'We separate the rules from the operator. The protocol is open; Banzami is the reference operator that makes it work.'
-                : 'Separamos as regras do operador. O protocolo é aberto; o Banzami é o operador de referência que o põe a funcionar.'}
+                : 'Separamos as regras do operador. O protocolo é aberto; a Banzami é o operador de referência que o põe a funcionar.'}
             </p>
           </div>
           <div className="bz-g2s" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginTop: '44px' }}>
@@ -228,7 +228,7 @@ export function SobrePage({ lang }: { lang: Lang }) {
               <strong style={{ color: '#141014' }}>@banza</strong>
               {lang === 'en'
                 ? ' is the username on Banzami, used to send and receive between people. It is not the protocol.'
-                : ' é o nome de utilizador no Banzami, usado para enviar e receber entre pessoas. Não é o protocolo.'}
+                : ' é o nome de utilizador na Banzami, usado para enviar e receber entre pessoas. Não é o protocolo.'}
             </p>
           </div>
           </div>
@@ -241,11 +241,11 @@ export function SobrePage({ lang }: { lang: Lang }) {
           <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,.85fr) minmax(0,1.15fr)', gap: '56px', alignItems: 'center' }}>
             <div style={{ minWidth: 0 }}>
               <SectionLabel n="04" label={lang === 'en' ? 'THE FOUNDERS' : 'OS FUNDADORES'} panel />
-              <H2 a={lang === 'en' ? 'Who is building' : 'Quem está a construir'} b={lang === 'en' ? 'Banzami.' : 'o Banzami.'} />
+              <H2 a={lang === 'en' ? 'Who is building' : 'Quem está a construir'} b={lang === 'en' ? 'Banzami.' : 'a Banzami.'} />
               <Lead mw={440}>
                 {lang === 'en'
                   ? 'Banzami was founded by Fidel Monteiro and Jesus Monteiro on 1 August 2025.'
-                  : 'O Banzami foi fundado por Fidel Monteiro e Jesus Monteiro a 1 de agosto de 2025.'}
+                  : 'A Banzami foi fundada por Fidel Monteiro e Jesus Monteiro a 1 de agosto de 2025.'}
               </Lead>
               <div style={{ marginTop: '24px', display: 'inline-flex', alignItems: 'center', gap: '14px', padding: '12px 18px 12px 12px', borderRadius: '20px', background: '#FFF8F7', border: '1px solid #F3E3E1' }}>
                 <span style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'linear-gradient(150deg,#D8121F,#8E1620)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 20px -8px rgba(181,16,31,.6)' }}>

@@ -36,7 +36,7 @@ const T = {
     activatePre: 'Ativar ', activateFallback: 'o seu negócio',
     l_pin: 'Defina um PIN', hint_pin: '4 a 8 dígitos. Vai usá-lo para entrar na app Banzami Business.',
     l_pin2: 'Confirmar PIN',
-    c2pre: 'Aceito os ', c2terms: 'Termos de Serviço', c2mid: ' e a ', c2priv: 'Política de Privacidade', c2post: ' do Banzami.',
+    c2pre: 'Aceito os ', c2terms: 'Termos de Serviço', c2mid: ' e a ', c2priv: 'Política de Privacidade', c2post: ' da Banzami.',
     c3: 'Compreendo que, nesta fase, o negócio recebe apenas dinheiro fictício na Sandbox.',
     ativar: 'Ativar o negócio', ativando: 'A ativar…',
     doneT: 'Negócio ativado na Sandbox',

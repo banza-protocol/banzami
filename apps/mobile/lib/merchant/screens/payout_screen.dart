@@ -122,7 +122,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = isOutcomeUnknown(e)
-          ? '${banzamiErrorMessage(e)} Se o pedido chegou ao Banzami, '
+          ? '${banzamiErrorMessage(e)} Se o pedido chegou à Banzami, '
               'tentar de novo não cria um segundo levantamento.'
           : banzamiErrorMessage(e));
     } finally {

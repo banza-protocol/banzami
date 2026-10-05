@@ -324,7 +324,7 @@ export const EVENT_DOCS: EventDoc[] = [
     resource: { pt: 'Liquidação', en: 'Settlement' },
     endpoint: 'ref-settlement-create',
     when: {
-      pt: 'Quando o Banzami cancela uma liquidação que foi criada mas não chegou a concluir. Nenhum dinheiro saiu da conta.',
+      pt: 'Quando a Banzami cancela uma liquidação que foi criada mas não chegou a concluir. Nenhum dinheiro saiu da conta.',
       en: 'When Banzami cancels a settlement that was created but never completed. No money left the account.',
     },
     fields: [
@@ -370,7 +370,7 @@ export const EVENT_DOCS: EventDoc[] = [
     resource: { pt: 'Liquidação', en: 'Settlement' },
     endpoint: 'ref-settlement-create',
     when: {
-      pt: 'Quando o Banzami marca como falhada uma liquidação que não pôde concluir. Nenhum dinheiro saiu da conta.',
+      pt: 'Quando a Banzami marca como falhada uma liquidação que não pôde concluir. Nenhum dinheiro saiu da conta.',
       en: 'When Banzami marks as failed a settlement that could not complete. No money left the account.',
     },
     fields: [

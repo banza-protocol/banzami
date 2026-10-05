@@ -16,7 +16,7 @@ export type CopyFn = (text: string, label: string) => void;
 export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
   { slug: '', label: 'Início', desc: 'O que pode construir e por onde começar.' },
   { slug: 'get-started', label: 'Quickstart', desc: 'Da conta ao primeiro pagamento confirmado.' },
-  { slug: 'concepts', label: 'Como o Banzami funciona', desc: 'Modelo, ambientes, montantes e idempotência.' },
+  { slug: 'concepts', label: 'Como a Banzami funciona', desc: 'Modelo, ambientes, montantes e idempotência.' },
   { slug: 'payments', label: 'Aceitar pagamentos', desc: 'Sessões, links e QR.' },
   { slug: 'webhooks', label: 'Webhooks', desc: 'Receber e verificar eventos.' },
   { slug: 'refunds', label: 'Reembolsos', desc: 'Devolver um pagamento, total ou parcialmente.' },
@@ -126,9 +126,9 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
       <a href="#docs-content" className="bz-skip">{lang === 'pt' ? 'Saltar para o conteúdo' : 'Skip to content'}</a>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1320, width: '100%', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
-          <a href="https://banzami.com" aria-label={lang === 'pt' ? 'Voltar ao Banzami' : 'Back to Banzami'} className="bz-toplink" style={backLinkStyle}>
+          <a href="https://banzami.com" aria-label={lang === 'pt' ? 'Voltar à Banzami' : 'Back to Banzami'} className="bz-toplink" style={backLinkStyle}>
             <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
-            {lang === 'pt' ? 'Voltar ao Banzami' : 'Back to Banzami'}
+            {lang === 'pt' ? 'Voltar à Banzami' : 'Back to Banzami'}
           </a>
           <span style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <BrandTile size={32} radius={10} />

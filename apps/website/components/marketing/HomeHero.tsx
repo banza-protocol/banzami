@@ -24,7 +24,7 @@ const T = {
   cardPeopleDesc: L('Pagamentos simples, rápidos e com comprovativo.', 'Simple, fast payments with a receipt.'),
   cardPeopleCta: L('Conhecer o produto', 'Get to know the product'),
   cardDev: L('Para developers', 'For developers'),
-  cardDevDesc: L('Integre o Banzami no seu produto e comece a testar hoje.', 'Integrate Banzami into your product and start testing today.'),
+  cardDevDesc: L('Integre a Banzami no seu produto e comece a testar hoje.', 'Integrate Banzami into your product and start testing today.'),
   portal: L('Portal Developers', 'Portal Developers'),
   betaWeb: L('Beta Web', 'Beta Web'),
   inBrowser: L('No browser', 'In the browser'),

@@ -33,7 +33,7 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     const nav = screen.getByRole('navigation', { name: /Secções da documentação/i });
     const expected: [string, string][] = [
       ['Quickstart', '/docs/get-started'],
-      ['Como o Banzami funciona', '/docs/concepts'],
+      ['Como a Banzami funciona', '/docs/concepts'],
       ['Aceitar pagamentos', '/docs/payments'],
       ['Webhooks', '/docs/webhooks'],
       ['Eventos', '/docs/events'],
@@ -83,7 +83,7 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Sandbox e Live' })).toBeTruthy();
     expect(PT).toContain('usam dinheiro fictício');
     expect(PT).toContain('bz_live_ é recusada; não são emitidas');
-    expect(PT).toMatch(/O DOA é uma implementação de referência, não um cliente privilegiado do Banzami/);
+    expect(PT).toMatch(/O DOA é uma implementação de referência, não um cliente privilegiado da Banzami/);
   });
   it('API Reference uses the real payment-session model, never /v1/charges', () => {
     expect(PT).toContain('createPaymentSession');
@@ -151,7 +151,7 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
   });
   it('the get-started page links back to banzami.com and to the Console login', () => {
     render(<PtGetStartedPage />);
-    expect(screen.getByRole('link', { name: /Voltar ao Banzami/i }).getAttribute('href')).toBe('https://banzami.com');
+    expect(screen.getByRole('link', { name: /Voltar à Banzami/i }).getAttribute('href')).toBe('https://banzami.com');
     expect(screen.getAllByRole('link', { name: /Entrar na Consola/i }).some((a) => a.getAttribute('href') === '/login')).toBe(true);
   });
 });

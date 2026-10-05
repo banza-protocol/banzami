@@ -17,7 +17,7 @@ const T = {
   h1a: L('Termos de', 'Terms of'),
   h1b: L('Serviço.', 'Service.'),
   lead: L(
-    'As regras de utilização da app Banzami, do Banzami Business e das ferramentas para developers, na Beta Sandbox.',
+    'As regras de utilização da app Banzami, da Banzami Business e das ferramentas para developers, na Beta Sandbox.',
     'The rules for using the Banzami app, Banzami Business and the developer tools, in the Beta Sandbox.',
   ),
   tocLabel: L('Índice', 'Contents'),

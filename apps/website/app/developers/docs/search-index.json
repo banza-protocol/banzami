@@ -15,7 +15,7 @@
   },
   {
    "k": "page",
-   "t": "Como o Banzami funciona",
+   "t": "Como a Banzami funciona",
    "h": "/docs/concepts",
    "d": "Modelo, ambientes, montantes e idempotência.",
    "a": "how it works|sandbox and live|minor units|idempotency|request id"
@@ -279,7 +279,7 @@
   },
   {
    "k": "section",
-   "t": "O que é da sua aplicação e o que é do Banzami",
+   "t": "O que é da sua aplicação e o que é da Banzami",
    "h": "/docs/concepts#responsabilidades"
   },
   {
@@ -1445,7 +1445,7 @@
    "k": "error",
    "t": "ENVIRONMENT_UNDECLARED",
    "h": "/docs/errors#error-ENVIRONMENT_UNDECLARED",
-   "d": "O serviço não conseguiu confirmar o ambiente da credencial, por uma falha de configuração do Banzami."
+   "d": "O serviço não conseguiu confirmar o ambiente da credencial, por uma falha de configuração da Banzami."
   },
   {
    "k": "error",
@@ -1535,7 +1535,7 @@
    "k": "error",
    "t": "PRICING_FIELD_NOT_ACCEPTED",
    "h": "/docs/errors#error-PRICING_FIELD_NOT_ACCEPTED",
-   "d": "O pedido indica um preço ou uma taxa. O preço é atribuído ao Business pelo Banzami."
+   "d": "O pedido indica um preço ou uma taxa. O preço é atribuído ao Business pela Banzami."
   },
   {
    "k": "error",
@@ -1805,7 +1805,7 @@
    "k": "error",
    "t": "INTERNAL_ERROR",
    "h": "/docs/errors#error-INTERNAL_ERROR",
-   "d": "Falha do lado do Banzami."
+   "d": "Falha do lado da Banzami."
   },
   {
    "k": "error",
@@ -1817,7 +1817,7 @@
    "k": "error",
    "t": "UPSTREAM_ERROR",
    "h": "/docs/errors#error-UPSTREAM_ERROR",
-   "d": "Um serviço do Banzami falhou. O pedido pode estar correto."
+   "d": "Um serviço da Banzami falhou. O pedido pode estar correto."
   },
   {
    "k": "error",
@@ -2039,7 +2039,7 @@
    "k": "error",
    "t": "HTTP 5xx",
    "h": "/docs/errors#http-5xx",
-   "d": "Falha do lado do Banzami, ou temporariamente indisponível."
+   "d": "Falha do lado da Banzami, ou temporariamente indisponível."
   },
   {
    "k": "event",
@@ -2075,13 +2075,13 @@
    "k": "event",
    "t": "application_settlement.cancelled",
    "h": "/docs/events#event-application_settlement-cancelled",
-   "d": "Quando o Banzami cancela uma liquidação que foi criada mas não chegou a concluir. Nenhum dinheiro saiu da conta."
+   "d": "Quando a Banzami cancela uma liquidação que foi criada mas não chegou a concluir. Nenhum dinheiro saiu da conta."
   },
   {
    "k": "event",
    "t": "application_settlement.failed",
    "h": "/docs/events#event-application_settlement-failed",
-   "d": "Quando o Banzami marca como falhada uma liquidação que não pôde concluir. Nenhum dinheiro saiu da conta."
+   "d": "Quando a Banzami marca como falhada uma liquidação que não pôde concluir. Nenhum dinheiro saiu da conta."
   },
   {
    "k": "section",
@@ -2180,7 +2180,7 @@
    "k": "term",
    "t": "Ledger",
    "h": "/docs/glossary#glossario-ledger",
-   "d": "O registo contabilístico do Banzami: cada débito e crédito de cada transação, de onde derivam os saldos."
+   "d": "O registo contabilístico da Banzami: cada débito e crédito de cada transação, de onde derivam os saldos."
   },
   {
    "k": "term",
@@ -2193,13 +2193,13 @@
    "k": "term",
    "t": "Webhook",
    "h": "/docs/glossary#glossario-webhook",
-   "d": "Notificação enviada pelo Banzami diretamente para o servidor da sua aplicação quando um evento acontece."
+   "d": "Notificação enviada pela Banzami diretamente para o servidor da sua aplicação quando um evento acontece."
   },
   {
    "k": "term",
    "t": "banza-signature",
    "h": "/docs/glossary#glossario-banza-signature",
-   "d": "O header com a assinatura de cada entrega de webhook. Verificá-lo confirma que a entrega vem do Banzami e não foi alterada."
+   "d": "O header com a assinatura de cada entrega de webhook. Verificá-lo confirma que a entrega vem da Banzami e não foi alterada."
   },
   {
    "k": "term",
@@ -2223,7 +2223,7 @@
    "k": "term",
    "t": "Liquidação",
    "h": "/docs/glossary#glossario-liquidacao",
-   "d": "A transferência do saldo de uma conta para um beneficiário, com a taxa definida pelo Banzami. Só acontece quando a aplicação a pede.",
+   "d": "A transferência do saldo de uma conta para um beneficiário, com a taxa definida pela Banzami. Só acontece quando a aplicação a pede.",
    "a": "settlement"
   },
   {
@@ -2236,7 +2236,7 @@
    "k": "term",
    "t": "Chave de API",
    "h": "/docs/glossary#glossario-api-key",
-   "d": "A credencial com que uma aplicação se autentica na API do Banzami. Identifica um projeto.",
+   "d": "A credencial com que uma aplicação se autentica na API da Banzami. Identifica um projeto.",
    "a": "api key"
   },
   {
@@ -2308,7 +2308,7 @@
    "k": "term",
    "t": "Business",
    "h": "/docs/glossary#glossario-business",
-   "d": "A entidade verificada pelo Banzami que recebe os pagamentos de um projeto."
+   "d": "A entidade verificada pela Banzami que recebe os pagamentos de um projeto."
   },
   {
    "k": "term",

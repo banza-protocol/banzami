@@ -344,7 +344,7 @@
       "family": "setup",
       "source": "gateway",
       "meaning": {
-        "pt": "O serviço não conseguiu confirmar o ambiente da credencial, por uma falha de configuração do Banzami.",
+        "pt": "O serviço não conseguiu confirmar o ambiente da credencial, por uma falha de configuração da Banzami.",
         "en": "The service could not confirm the credential’s environment, because of a Banzami configuration fault."
       },
       "action": {
@@ -614,7 +614,7 @@
       "family": "request",
       "source": "gateway",
       "meaning": {
-        "pt": "O pedido indica um preço ou uma taxa. O preço é atribuído ao Business pelo Banzami.",
+        "pt": "O pedido indica um preço ou uma taxa. O preço é atribuído ao Business pela Banzami.",
         "en": "The request names a price or a fee. Pricing is assigned to the Business by Banzami."
       },
       "action": {
@@ -1140,7 +1140,7 @@
         "en": "The fee can only go to an APPLICATION or PLATFORM account."
       },
       "action": {
-        "pt": "Indique uma conta desse tipo. A classificação é atribuída pelo Banzami.",
+        "pt": "Indique uma conta desse tipo. A classificação é atribuída pela Banzami.",
         "en": "Name an account of that type. The classification is assigned by Banzami."
       },
       "retry": "no",
@@ -1194,7 +1194,7 @@
         "en": "The Business has no pricing profile yet, so the settlement cannot be calculated."
       },
       "action": {
-        "pt": "O perfil é atribuído pelo Banzami: contacte o suporte com o request_id.",
+        "pt": "O perfil é atribuído pela Banzami: contacte o suporte com o request_id.",
         "en": "The profile is assigned by Banzami: contact support with the request_id."
       },
       "retry": "no",
@@ -1424,7 +1424,7 @@
       "family": "server",
       "source": "gateway+core",
       "meaning": {
-        "pt": "Falha do lado do Banzami.",
+        "pt": "Falha do lado da Banzami.",
         "en": "A failure on Banzami’s side."
       },
       "action": {
@@ -1460,7 +1460,7 @@
       "family": "server",
       "source": "gateway",
       "meaning": {
-        "pt": "Um serviço do Banzami falhou. O pedido pode estar correto.",
+        "pt": "Um serviço da Banzami falhou. O pedido pode estar correto.",
         "en": "A Banzami service failed. Your request may be valid."
       },
       "action": {
@@ -1590,7 +1590,7 @@
         "en": "An external rail the operation needs is unavailable: simulate PROVIDER_UNAVAILABLE, any simulate while your Business's Sandbox external rail is UNAVAILABLE, or a payment started on the hosted page's external rail in that state. Nothing was created, credited or confirmed. A payment from the payer's wallet does not depend on an external rail and keeps working."
       },
       "action": {
-        "pt": "Trate como indisponibilidade do rail, não do Banzami: repita mais tarde com espera crescente, ou ofereça o pagamento a partir da carteira. No Sandbox, PUT /v1/sandbox/external-rail com state AVAILABLE repõe o rail.",
+        "pt": "Trate como indisponibilidade do rail, não da Banzami: repita mais tarde com espera crescente, ou ofereça o pagamento a partir da carteira. No Sandbox, PUT /v1/sandbox/external-rail com state AVAILABLE repõe o rail.",
         "en": "Treat it as a rail outage, not a Banzami outage: retry later with increasing backoff, or offer payment from the wallet. In the Sandbox, PUT /v1/sandbox/external-rail with state AVAILABLE brings the rail back."
       },
       "retry": "after_delay",

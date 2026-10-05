@@ -84,7 +84,7 @@ export const navMenus: NavItem[] = [
     href: '/sobre#banza',
     hasMega: true,
     end: true,
-    subtitle: 'O protocolo aberto sobre o qual o Banzami é construído.',
+    subtitle: 'O protocolo aberto sobre o qual a Banzami é construída.',
     cta: 'Ver banza.network',
     ctaHref: SITE.protocolUrl,
     visualCaption: 'protocolo banza',
@@ -104,7 +104,7 @@ export const navMenus: NavItem[] = [
     visualCaption: 'banzami',
     links: [
       { label: 'A startup', href: '/sobre', desc: 'Missão e princípios.' },
-      { label: 'Fundadores', href: '/sobre#fundadores', desc: 'Quem fundou o Banzami.' },
+      { label: 'Fundadores', href: '/sobre#fundadores', desc: 'Quem fundou a Banzami.' },
       { label: 'Suporte', href: '/suporte', desc: 'Ajuda e estado da plataforma.' },
       { label: 'Contacto', href: mailto(), desc: 'Fale connosco.' },
     ],

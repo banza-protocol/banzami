@@ -85,7 +85,7 @@ export async function resubmitApplication(ref: string): Promise<ResubmitResult> 
       return { ok: false, reason: 'NOT_WAITING', message: 'Esta candidatura já não está à espera de informação.' };
     return { ok: false, reason: 'UNAVAILABLE', message: 'Não foi possível reenviar agora. Tente novamente.' };
   } catch {
-    return { ok: false, reason: 'UNAVAILABLE', message: 'Sem ligação ao Banzami. Tente novamente.' };
+    return { ok: false, reason: 'UNAVAILABLE', message: 'Sem ligação à Banzami. Tente novamente.' };
   }
 }
 

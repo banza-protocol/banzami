@@ -136,14 +136,14 @@ export const NAV: NavItem[] = [
     group: ['sobre', 'seguranca', 'suporte'],
     mega: {
       title: L('Sobre', 'About'),
-      desc: L('A startup, a equipa e a infraestrutura por trás do Banzami.', 'The startup, the team and the infrastructure behind Banzami.'),
+      desc: L('A startup, a equipa e a infraestrutura por trás da Banzami.', 'The startup, the team and the infrastructure behind Banzami.'),
       cta: { label: L('Falar connosco', 'Talk to us'), to: { key: 'suporte', hash: '#contacto' } },
       tile: L('banzami', 'banzami'),
       links: [
         { label: L('A startup', 'The startup'), desc: L('Missão e princípios.', 'Mission and principles.'), to: { key: 'sobre', hash: '#missao' } },
         { label: L('Fundadores', 'Founders'), desc: L('Fidel Monteiro e Jesus Monteiro.', 'Fidel Monteiro and Jesus Monteiro.'), to: { key: 'sobre', hash: '#fundador' } },
         { label: L('Segurança', 'Security'), desc: L('Como protegemos a plataforma e os utilizadores.', 'How we protect the platform and its users.'), to: { key: 'seguranca' } },
-        { label: L('BANZA', 'BANZA'), desc: L('O protocolo aberto sobre o qual o Banzami é construído.', 'The open protocol Banzami is built on.'), to: { key: 'sobre', hash: '#banza' } },
+        { label: L('BANZA', 'BANZA'), desc: L('O protocolo aberto sobre o qual a Banzami é construída.', 'The open protocol Banzami is built on.'), to: { key: 'sobre', hash: '#banza' } },
         { label: L('Suporte', 'Support'), desc: L('Ajuda e estado da plataforma.', 'Help and platform status.'), to: { key: 'suporte' } },
         { label: L('Contacto', 'Contact'), desc: L('Fale connosco.', 'Get in touch.'), to: { key: 'suporte', hash: '#contacto' } },
       ],

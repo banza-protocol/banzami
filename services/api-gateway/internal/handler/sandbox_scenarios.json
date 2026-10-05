@@ -49,7 +49,7 @@
     },
     {
       "id": "EXTERNAL_RAIL_DOWN_WALLET_PAYMENT", "group": "payments", "simulated": false,
-      "goal": { "pt": "Um pagamento dentro do Banzami com o rail externo em baixo", "en": "A payment inside Banzami while the external rail is down" },
+      "goal": { "pt": "Um pagamento dentro da Banzami com o rail externo em baixo", "en": "A payment inside Banzami while the external rail is down" },
       "trigger": { "pt": "PUT /v1/sandbox/external-rail com state UNAVAILABLE; depois pague uma sessão como pagador de teste, sem simulate", "en": "PUT /v1/sandbox/external-rail with state UNAVAILABLE; then pay a session as a test payer, without simulate" },
       "result": { "pt": "200 com status PAID e rail WALLET: o valor move-se da carteira do pagador para o negócio pelo Core e pelo ledger, sem nenhum rail externo", "en": "200 with status PAID and rail WALLET: value moves from the payer's wallet to the Business through Core and the ledger, with no external rail" },
       "event": "payment_session.paid"

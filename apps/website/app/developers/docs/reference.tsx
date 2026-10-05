@@ -513,7 +513,7 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/application-settlements',
     tone: 'ok',
     desc: {
-      pt: 'Liquida todo o saldo de uma conta segregada para um beneficiário. O Banzami calcula a taxa pelo perfil de preço do Business; o pedido não indica montante nem taxa.',
+      pt: 'Liquida todo o saldo de uma conta segregada para um beneficiário. A Banzami calcula a taxa pelo perfil de preço do Business; o pedido não indica montante nem taxa.',
       en: 'Settles the whole balance of a segregated account to a beneficiary. Banzami calculates the fee from the Business’s pricing profile; the request names no amount and no fee.',
     },
     credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
@@ -543,11 +543,11 @@ export const ENDPOINTS: EndpointSpec[] = [
 }`,
     errors: [
       { code: '400 MISSING_FIELD / INVALID_BODY', note: { pt: 'falta idempotency_key, source_account_id ou beneficiary_banza_name, ou o JSON é inválido', en: 'idempotency_key, source_account_id or beneficiary_banza_name is missing, or the JSON is invalid' } },
-      { code: '400 PRICING_FIELD_NOT_ACCEPTED', note: { pt: 'o pedido indica uma taxa, um perfil de preço ou uma categoria; o preço é definido pelo Banzami', en: 'the request names a rate, pricing profile or category; pricing is set by Banzami' } },
+      { code: '400 PRICING_FIELD_NOT_ACCEPTED', note: { pt: 'o pedido indica uma taxa, um perfil de preço ou uma categoria; o preço é definido pela Banzami', en: 'the request names a rate, pricing profile or category; pricing is set by Banzami' } },
       { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem application_settlements:write, ou projeto sem configuração financeira concluída', en: 'key without application_settlements:write, or project without completed Financial Setup' } },
             { code: '403 FEE_DESTINATION_NOT_OWNED', note: { pt: 'o destino da taxa não pertence ao seu Business', en: 'the fee destination does not belong to your Business' } },
       { code: '404 NOT_FOUND', note: { pt: 'a conta de origem não existe ou pertence a outro projeto', en: 'the source account does not exist or belongs to another project' } },
-      { code: '409 PRICING_NOT_CONFIGURED', note: { pt: 'o Business ainda não tem perfil de preço atribuído pelo Banzami', en: 'the Business has no pricing profile assigned by Banzami yet' } },
+      { code: '409 PRICING_NOT_CONFIGURED', note: { pt: 'o Business ainda não tem perfil de preço atribuído pela Banzami', en: 'the Business has no pricing profile assigned by Banzami yet' } },
       { code: '409 IDEMPOTENCY_CONFLICT', note: { pt: 'a idempotency_key já foi usada com outra conta de origem ou outro beneficiário', en: 'the idempotency_key was already used with another source account or beneficiary' } },
       { code: '409 PRICING_CONFIGURATION_ERROR', note: { pt: 'a configuração de preço é ambígua; contacte o suporte com o request_id', en: 'the pricing configuration is ambiguous; contact support with the request_id' } },
       { code: '422 INSUFFICIENT_FUNDS / FEE_EXCEEDS_GROSS', note: { pt: 'o saldo mudou durante o pedido, ou a taxa excederia o montante bruto', en: 'the balance changed during the request, or the fee would exceed the gross' } },
@@ -1072,7 +1072,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/external-rail',
     tone: 'ok',
     desc: {
-      pt: 'O rail externo simulado que o seu projeto usa para o negócio Sandbox: AVAILABLE ou UNAVAILABLE. O valor que já está dentro do Banzami move-se pelo Core e pelo ledger sem rail externo; um rail externo só é atravessado quando o valor entra ou sai da rede.',
+      pt: 'O rail externo simulado que o seu projeto usa para o negócio Sandbox: AVAILABLE ou UNAVAILABLE. O valor que já está dentro da Banzami move-se pelo Core e pelo ledger sem rail externo; um rail externo só é atravessado quando o valor entra ou sai da rede.',
       en: 'The simulated external rail your Project uses for its Sandbox Business: AVAILABLE or UNAVAILABLE. Value already inside Banzami moves through Core and the ledger without an external rail; an external rail is crossed only when value enters or leaves the network.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },
@@ -1230,7 +1230,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/test-payers/{id}/payments',
     tone: 'ok',
     desc: {
-      pt: 'Paga uma sessão (pelo link ou pelo QR dinâmico) ou um link de pagamento do seu projeto como este pagador, pelo mesmo caminho de um pagador real: a sessão fica PAID, payment_session.paid é emitido e o comprovativo é emitido. Sem simulate é um pagamento a partir da carteira: o valor move-se dentro do Banzami e não depende de nenhum rail externo (rail: WALLET). simulate representa um pagamento que atravessa um rail externo e pede o resultado desse rail (rail: EXTERNAL_SIMULATED); com o rail externo do seu negócio em UNAVAILABLE responde 503 PROVIDER_UNAVAILABLE. TIMEOUT paga e responde 503, e repetir com a mesma Idempotency-Key lê o resultado real.',
+      pt: 'Paga uma sessão (pelo link ou pelo QR dinâmico) ou um link de pagamento do seu projeto como este pagador, pelo mesmo caminho de um pagador real: a sessão fica PAID, payment_session.paid é emitido e o comprovativo é emitido. Sem simulate é um pagamento a partir da carteira: o valor move-se dentro da Banzami e não depende de nenhum rail externo (rail: WALLET). simulate representa um pagamento que atravessa um rail externo e pede o resultado desse rail (rail: EXTERNAL_SIMULATED); com o rail externo do seu negócio em UNAVAILABLE responde 503 PROVIDER_UNAVAILABLE. TIMEOUT paga e responde 503, e repetir com a mesma Idempotency-Key lê o resultado real.',
       en: 'Pays one of your Project’s sessions (by its link or dynamic QR) or payment links as this payer, through the same path a real payer uses: the session becomes PAID, payment_session.paid is emitted and the receipt is issued. Without simulate it is a wallet payment: value moves inside Banzami and depends on no external rail (rail: WALLET). simulate stands in for a payment that crosses an external rail and requests that rail’s outcome (rail: EXTERNAL_SIMULATED); with your Business’s external rail UNAVAILABLE it returns 503 PROVIDER_UNAVAILABLE. TIMEOUT pays and returns 503, and repeating with the same Idempotency-Key reads the real result.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto · configuração financeira concluída', en: 'Sandbox project secret key · Financial Setup complete' },

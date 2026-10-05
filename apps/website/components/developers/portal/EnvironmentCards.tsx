@@ -23,7 +23,7 @@ export function EnvironmentCards({ compact = false }: { compact?: boolean }) {
           <span style={badge('#EAF7F0', '#1F8A5B')}>Disponível</span>
         </div>
         <ul style={{ margin: '10px 0 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.65, color: '#6a5a5e', fontWeight: 600 }}>
-          <li>Self-service: sem aprovação do Banzami.</li>
+          <li>Self-service: sem aprovação da Banzami.</li>
           <li>Valor fictício; chaves <code>bz_test_</code>.</li>
           <li>Os mesmos contratos v1 que as operações com dinheiro real usarão.</li>
         </ul>

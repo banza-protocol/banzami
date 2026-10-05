@@ -37,7 +37,7 @@ void main() {
       await t.pumpWidget(const MaterialApp(home: NotificationsScreen()));
       await t.pumpAndSettle();
       expect(find.byType(Switch), findsNothing);
-      expect(find.text('Notificações do Banzami'), findsOneWidget);
+      expect(find.text('Notificações da Banzami'), findsOneWidget);
       expect(find.text('Gerir no dispositivo'), findsOneWidget);
     });
 
@@ -49,7 +49,7 @@ void main() {
       await t.pumpWidget(const MaterialApp(home: NotificationsScreen()));
       await t.pumpAndSettle();
       expect(find.byType(Switch), findsNothing);
-      expect(find.text('Notificações do Banzami'), findsOneWidget);
+      expect(find.text('Notificações da Banzami'), findsOneWidget);
     });
   });
 

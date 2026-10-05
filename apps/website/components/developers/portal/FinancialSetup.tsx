@@ -85,8 +85,8 @@ export function FinancialSetupPointer({ setup }: { setup: FinancialSetupState })
         {unavailable
           ? 'Esta instalação não consegue ligar projetos a um negócio. Nada do que faça aqui pode alterar isso.'
           : setup.self_service
-            ? 'Este projeto ainda não recebe pagamentos. Na Sandbox basta escolher o tipo de uso: o Banzami cria um negócio de teste para o projeto, sem candidatura.'
-            : 'Este projeto ainda não recebe pagamentos. Para receber pagamentos, liquidações ou taxas de aplicação, o Banzami tem de verificar a entidade legal responsável por este projeto.'}
+            ? 'Este projeto ainda não recebe pagamentos. Na Sandbox basta escolher o tipo de uso: a Banzami cria um negócio de teste para o projeto, sem candidatura.'
+            : 'Este projeto ainda não recebe pagamentos. Para receber pagamentos, liquidações ou taxas de aplicação, a Banzami tem de verificar a entidade legal responsável por este projeto.'}
       </p>
       <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.6, color: '#8a7a7e', fontWeight: 600 }}>
         Chaves de API e integração funcionam sem isto.
@@ -202,7 +202,7 @@ export function FinancialReadinessPanel({
       )}
       <p style={{ margin: '12px 0 0', fontSize: 12, color: '#a89a9e', fontWeight: 700 }}>
         {fd.required ? '' : `Sem taxa de aplicação no preço atual${fd.type_allowed ? '' : '; a classificação para receber taxas não é necessária'}. `}
-        O preço é atribuído pelo Banzami; a sua aplicação nunca envia uma taxa. A mesma resposta está em GET /v1/financial-setup.
+        O preço é atribuído pela Banzami; a sua aplicação nunca envia uma taxa. A mesma resposta está em GET /v1/financial-setup.
       </p>
     </Card>
   );

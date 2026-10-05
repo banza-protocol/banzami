@@ -48,7 +48,7 @@ const COPY = {
     country: 'País',
     countryPlaceholder: 'ex.: Angola',
     consent:
-      'Autorizo o Banzami a usar o meu nome e e-mail para me convidar e gerir a minha participação nos testes. Posso pedir a remoção a qualquer momento.',
+      'Autorizo a Banzami a usar o meu nome e e-mail para me convidar e gerir a minha participação nos testes. Posso pedir a remoção a qualquer momento.',
     privacyPrefix: 'Saiba como tratamos os seus dados na',
     privacyLink: 'política de privacidade',
     submit: 'Participar nos testes',

@@ -108,7 +108,7 @@ func RenderMerchantRejected(d MerchantRejectedData) (html, text string) {
 		reason = "não conseguimos verificar os documentos do negócio submetidos."
 	}
 	paras := []string{
-		"Obrigado por se candidatar ao Banzami Business. Depois de analisarmos a sua submissão, não conseguimos aprovar a sua conta neste momento.",
+		"Obrigado por se candidatar à Banzami Business. Depois de analisarmos a sua submissão, não conseguimos aprovar a sua conta neste momento.",
 		"Isto não é definitivo. Assim que o ponto abaixo for resolvido, pode candidatar-se novamente — a nossa equipa está disponível para ajudar.",
 	}
 	body := emTitle("Sobre o seu pedido Banzami") +
@@ -141,7 +141,7 @@ type MerchantInformationRequestedData struct {
 // applicant. Not a rejection: the application keeps its @ and its documents.
 func RenderMerchantInformationRequested(d MerchantInformationRequestedData) (html, text string) {
 	paras := []string{
-		"Estamos a analisar a sua candidatura ao Banzami Business e precisamos de um elemento antes de decidir.",
+		"Estamos a analisar a sua candidatura à Banzami Business e precisamos de um elemento antes de decidir.",
 		"A sua candidatura continua aberta e o @negócio pedido continua reservado. Responda no link abaixo — pode enviar documentos e reenviar para análise.",
 	}
 	body := emTitle("Precisamos de mais informação") +
@@ -202,7 +202,7 @@ func RenderAdminInvite(d AdminInviteData) (html, text string) {
 		invitedBy = "security@banzami.com"
 	}
 	paras := []string{
-		"Foi convidado para o BANZADMIN, a consola de operações do Banzami. Crie a sua palavra-passe para ativar a sua conta.",
+		"Foi convidado para o BANZADMIN, a consola de operações da Banzami. Crie a sua palavra-passe para ativar a sua conta.",
 		"Por segurança, este link é único e foi gerado apenas para este convite.",
 	}
 	rows := []infoRow{
@@ -281,8 +281,8 @@ func betaAppsLabel(banzami, merchant bool) string {
 }
 
 // betaAppsPrefix is the correct article for the sentence — "da app" (one) or
-// "das apps" (both) — so the brand keeps its feminine "app" host and never reads
-// as "da Banzami" (the brand itself is masculine: "o Banzami").
+// "das apps" (both) — naming the explicit "app" host, which reads naturally for
+// one or both apps. (The brand itself is feminine: "a Banzami"; CLAUDE.md §15.6.)
 func betaAppsPrefix(banzami, merchant bool) string {
 	if banzami && merchant {
 		return "das apps "
@@ -334,11 +334,11 @@ func RenderBetaTesterAdded(d BetaTesterAddedData) (html, text string) {
 		{Label: "Apps", Value: apps},
 		{Label: "Plataforma", Value: betaPlatformLabel(d.WantsIOS, d.WantsAndroid)},
 	}
-	body := emTitle("Está nos testes do Banzami") +
+	body := emTitle("Está nos testes da Banzami") +
 		emPara(paras[0]) + emPara(paras[1]) +
 		emDetailRows(rows)
 	html = renderLayout(layoutOpts{Subtitle: "Beta", BadgeKind: "app", SafetyKind: "normal",
 		Preheader: "Já " + lead, Body: body})
-	text = textDoc("Está nos testes do Banzami", paras, rows, "", "", footerSafety("normal"))
+	text = textDoc("Está nos testes da Banzami", paras, rows, "", "", footerSafety("normal"))
 	return
 }

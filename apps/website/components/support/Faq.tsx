@@ -13,19 +13,19 @@ export const FAQ_CATEGORIES: Category[] = [
   {
     title: 'O essencial',
     items: [
-      { q: 'O que é o Banzami?', a: 'O Banzami é uma rede de pagamentos nativa de carteira para mover Kwanza entre pessoas, negócios e aplicações, por QR ou para um @banza, com comprovativos verificáveis. É o operador de referência construído sobre o protocolo aberto BANZA.' },
+      { q: 'O que é a Banzami?', a: 'A Banzami é uma rede de pagamentos nativa de carteira para mover Kwanza entre pessoas, negócios e aplicações, por QR ou para um @banza, com comprovativos verificáveis. É o operador de referência construído sobre o protocolo aberto BANZA.' },
       { q: 'O que é o @banza?', a: 'O @banza é o identificador público da sua carteira: o nome que as pessoas usam para lhe pagar, em vez de um IBAN. A conta junta o @banza a um nome próprio, que serve apenas para mostrar quem é: não é único nem é uma verificação de identidade.' },
-      { q: 'O que é o BANZA?', a: 'O BANZA é o protocolo aberto que define as regras, invariantes e contratos dos pagamentos. O Banzami é o operador que transforma essas regras numa experiência para pessoas e negócios. O BANZA é governado de forma independente do Banzami.' },
+      { q: 'O que é o BANZA?', a: 'O BANZA é o protocolo aberto que define as regras, invariantes e contratos dos pagamentos. A Banzami é o operador que transforma essas regras numa experiência para pessoas e negócios. O BANZA é governado de forma independente da Banzami.' },
       { q: 'O que é a App Banzami Web?', a: 'É a App Banzami a correr no browser, em app.banzami.com. É o mesmo produto de consumidor do iPhone e do Android (o mesmo @banza e a mesma carteira), hoje disponível na Sandbox, com dinheiro fictício.' },
     ],
   },
   {
     title: 'Disponibilidade',
     items: [
-      { q: 'O Banzami já está disponível?', a: `Para developers, sim: a ${PUBLIC_TRUTH.sandbox.name} está disponível, é self-service e usa dinheiro fictício. ${PUBLIC_TRUTH.live.summary}` },
+      { q: 'A Banzami já está disponível?', a: `Para developers, sim: a ${PUBLIC_TRUTH.sandbox.name} está disponível, é self-service e usa dinheiro fictício. ${PUBLIC_TRUTH.live.summary}` },
       { q: 'Posso descarregar a App Banzami?', a: 'A App Banzami Web está disponível no browser, em app.banzami.com. No iPhone e no Android está em testes, para testers convidados (TestFlight e Google Play); ainda não está na App Store nem no Google Play para o público. Pode registar o interesse em /testes.' },
       { q: 'Preciso de verificar a identidade (KYC) para usar a Sandbox?', a: 'Não. A Sandbox pública não exige verificação de identidade de consumidor: crie a conta e teste com dinheiro fictício. A verificação exigida para dinheiro real faz parte das aprovações de que as operações com dinheiro real dependem.' },
-      { q: 'O Banzami guarda o meu dinheiro?', a: 'Hoje não. As operações com dinheiro real não estão disponíveis: na Sandbox todos os saldos são fictícios.' },
+      { q: 'A Banzami guarda o meu dinheiro?', a: 'Hoje não. As operações com dinheiro real não estão disponíveis: na Sandbox todos os saldos são fictícios.' },
     ],
   },
   {

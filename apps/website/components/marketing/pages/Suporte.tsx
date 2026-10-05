@@ -82,7 +82,7 @@ function Faq({ lang }: { lang: Lang }) {
       q: L('O que é a Sandbox?', 'What is the Sandbox?'),
       a: lang === 'en'
         ? 'It is Banzami’s public test environment. You can create an account, send, receive and see receipts with test money.'
-        : 'É o ambiente de testes público do Banzami. Pode criar conta, enviar, receber e ver comprovativos com dinheiro fictício.',
+        : 'É o ambiente de testes público da Banzami. Pode criar conta, enviar, receber e ver comprovativos com dinheiro fictício.',
     },
     {
       q: L('O dinheiro na Sandbox é real?', 'Is the money in the Sandbox real?'),
@@ -100,7 +100,7 @@ function Faq({ lang }: { lang: Lang }) {
       q: L('O que é um @banza?', 'What is a @banza?'),
       a: lang === 'en'
         ? 'It is your username on Banzami. Use it to send and receive between people, with no IBAN or account number.'
-        : 'É o seu nome de utilizador no Banzami. Serve para enviar e receber entre pessoas, sem IBAN nem número de conta.',
+        : 'É o seu nome de utilizador na Banzami. Serve para enviar e receber entre pessoas, sem IBAN nem número de conta.',
     },
     {
       q: L('Como verifico um comprovativo?', 'How do I verify a receipt?'),
@@ -109,16 +109,16 @@ function Faq({ lang }: { lang: Lang }) {
         : (<>Cada comprovativo tem uma referência que começa por BZM-. Introduza-a em <a href={route('verificar', lang)}>Verificar comprovativo</a>.</>),
     },
     {
-      q: L('O Banzami pede o número do cartão?', 'Does Banzami ask for my card number?'),
+      q: L('A Banzami pede o número do cartão?', 'Does Banzami ask for my card number?'),
       a: lang === 'en'
         ? 'No. Banzami is not a card processor and will never ask for your card number or CVV.'
-        : 'Não. O Banzami não é um processador de cartões e nunca lhe pede o número do cartão nem o CVV.',
+        : 'Não. A Banzami não é um processador de cartões e nunca lhe pede o número do cartão nem o CVV.',
     },
     {
       q: L('Tenho um negócio. Como recebo?', 'I have a business. How do I get paid?'),
       a: lang === 'en'
         ? (<>With Banzami Business: QR, links and billing tools. Start by <a href={route('candidatura', lang)}>registering your business</a>.</>)
-        : (<>Com o Banzami Business: QR, links e ferramentas de cobrança. Comece por <a href={route('candidatura', lang)}>registar o negócio</a>.</>),
+        : (<>Com a Banzami Business: QR, links e ferramentas de cobrança. Comece por <a href={route('candidatura', lang)}>registar o negócio</a>.</>),
     },
   ];
   return (

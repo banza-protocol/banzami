@@ -22,7 +22,7 @@ describe('FinancialSetupPointer', () => {
     expect(screen.getByText('Não configurado')).not.toBeNull();
     const link = screen.getByRole('link', { name: 'Abrir configuração financeira' });
     expect(link.getAttribute('href')).toBe('/financeiro');
-    expect(document.body.textContent).toMatch(/o Banzami tem de verificar a entidade legal responsável por este projeto/);
+    expect(document.body.textContent).toMatch(/a Banzami tem de verificar a entidade legal responsável por este projeto/);
   });
 
   it('offers no one-click setup any more', () => {

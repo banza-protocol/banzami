@@ -371,7 +371,7 @@ export default function PayRequestClient({
             {openPhase === 'opening' && (
               <div className="flex h-14 items-center justify-center gap-2.5">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-banzami border-t-transparent" />
-                <span className="text-sm text-gray-400">A abrir o Banzami…</span>
+                <span className="text-sm text-gray-400">A abrir a Banzami…</span>
               </div>
             )}
 
@@ -413,7 +413,7 @@ export default function PayRequestClient({
                       stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    O Banzami foi aberto. Completa o pagamento na app.
+                    A Banzami foi aberta. Completa o pagamento na app.
                   </div>
                   <button
                     type="button"
@@ -430,7 +430,7 @@ export default function PayRequestClient({
             {openPhase === 'not_installed' && (
               <div className="flex flex-col items-center gap-3">
                 <p className="text-center text-sm text-gray-500">
-                  O Banzami não está instalado.
+                  A Banzami não está instalada.
                 </p>
                 <button
                   type="button"

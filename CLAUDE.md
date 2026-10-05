@@ -673,7 +673,7 @@ Use Banzami when referring to:
 * the merchant solution ("Banzami Business"),
 * the operator-specific APIs and integrations,
 * payment links and checkout experience,
-* consumer-facing copy ("Paga com Banzami", "adoptar o Banzami").
+* consumer-facing copy ("Paga com Banzami", "adoptar a Banzami").
 
 ## 15.3 Use "BANZA" or "Banza" for protocol context
 
@@ -728,14 +728,45 @@ existing integrations; the BANZA protocol defines the signing convention):
 
 ## 15.6 Grammatical gender — binding rule
 
-Both brand names are grammatically **masculine** in Portuguese:
+**Banzami is grammatically feminine in Portuguese** when the name stands for the
+company, startup, brand, platform or app. Banzami is presented institutionally as
+"uma startup angolana de tecnologia financeira", so the implied noun (*a empresa
+/ a startup / a plataforma / a app*) is feminine.
 
-| Wrong | Correct |
-|-------|---------|
-| a Banzami | o Banzami |
-| da Banzami | do Banzami |
-| a Banza | o Banza |
-| da Banza | do Banza |
+Use:
+
+| Wrong (as the brand) | Correct |
+|----------------------|---------|
+| o Banzami | a Banzami |
+| do Banzami | da Banzami |
+| no Banzami | na Banzami |
+| ao Banzami | à Banzami |
+| pelo Banzami | pela Banzami |
+| este Banzami | esta Banzami |
+
+Examples: "A Banzami está a construir…", "Conhece a Banzami.", "Experimenta a
+Banzami.", "a infraestrutura da Banzami", "na Banzami, estamos a…". A sentence
+also reads well with no article ("Banzami está a construir…") — prefer natural
+Portuguese over inserting or removing articles mechanically.
+
+**This does NOT change the gender of an explicit noun that precedes the brand** —
+the article agrees with that noun, not with "Banzami". These stay correct:
+
+- o ecossistema Banzami · o produto Banzami · o serviço Banzami
+- o SDK Banzami · o sistema / o backend / o website / o portal / o Sandbox Banzami
+- o Banzami Core (the Rust financial core; "Core" is the governing noun)
+
+**Banzami Business / App Banzami are feminine** (the app): *a Banzami Business*,
+*a app Banzami Business*, *a app Banzami*. Never "o Banzami Business".
+
+Do NOT apply the gender rule inside the legal entity name, kept verbatim
+(including its official en dash): **BANZAMI – Tecnologia e Serviços, Lda.**
+
+**BANZA (the protocol) remains masculine** — *o Banza*, *do Banza*, *o protocolo
+BANZA*. This feminine rule is for the Banzami operator/brand only, never BANZA.
+
+This rule guides humans and AI agents making future copy changes; it is enforced
+by `apps/website/lib/brand-gender.test.ts`.
 
 ## 15.7 Canonical names (BANZAMI-INSTITUTIONAL-SEPARATION-001, 2026-05-30)
 
@@ -756,7 +787,7 @@ branding); the GitHub org transfer remains pending. Current canonical names:
 
 ## 15.8 Canonical positioning phrases
 
-> "Banzami é construído sobre o protocolo BANZA."  
+> "Banzami é construída sobre o protocolo BANZA."  
 > "BANZA é o protocolo. Banzami é como Angola paga."  
 > "Banzami é o operador de referência da rede BANZA."
 

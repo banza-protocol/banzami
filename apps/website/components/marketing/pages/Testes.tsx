@@ -30,7 +30,7 @@ const L = (pt: string, en: string): Loc => ({ pt, en });
 const T = {
   // hero
   badge: L('Programa Beta', 'Beta Programme'),
-  h1a: L('Teste o Banzami', 'Try Banzami'),
+  h1a: L('Teste a Banzami', 'Try Banzami'),
   h1b: L('antes de todos.', 'before everyone.'),
   heroLead: L(
     'Junte-se ao Beta público. Convidamos testers por etapas para a Beta Web, iPhone (TestFlight) e Android.',

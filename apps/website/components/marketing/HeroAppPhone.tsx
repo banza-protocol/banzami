@@ -30,8 +30,8 @@ export function HeroAppPhone({ lang }: { lang: Lang }) {
       ? 'Create an account, send money and see the receipt on Beta Web.'
       : 'Crie conta, envie dinheiro e veja o comprovativo na Beta Web.',
     cta: lang === 'en' ? 'Tap to open the app' : 'Toca para abrir a app',
-    aria: lang === 'en' ? 'Open the Banzami web app' : 'Abrir a app web do Banzami',
-    title: lang === 'en' ? 'Banzami web app' : 'App web do Banzami',
+    aria: lang === 'en' ? 'Open the Banzami web app' : 'Abrir a app web da Banzami',
+    title: lang === 'en' ? 'Banzami web app' : 'App web da Banzami',
     loading: lang === 'en' ? 'Loading the app…' : 'A carregar a app…',
   };
 

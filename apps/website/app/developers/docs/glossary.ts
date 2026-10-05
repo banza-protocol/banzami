@@ -31,7 +31,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'ledger',
     term: 'Ledger',
-    def: 'O registo contabilístico do Banzami: cada débito e crédito de cada transação, de onde derivam os saldos.',
+    def: 'O registo contabilístico da Banzami: cada débito e crédito de cada transação, de onde derivam os saldos.',
   },
   {
     id: 'idempotencia',
@@ -41,13 +41,13 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'webhook',
     term: 'Webhook',
-    def: 'Notificação enviada pelo Banzami diretamente para o servidor da sua aplicação quando um evento acontece.',
+    def: 'Notificação enviada pela Banzami diretamente para o servidor da sua aplicação quando um evento acontece.',
   },
   {
     id: 'banza-signature',
     term: 'banza-signature',
     code: true,
-    def: 'O header com a assinatura de cada entrega de webhook. Verificá-lo confirma que a entrega vem do Banzami e não foi alterada.',
+    def: 'O header com a assinatura de cada entrega de webhook. Verificá-lo confirma que a entrega vem da Banzami e não foi alterada.',
   },
   {
     id: 'hmac-sha256',
@@ -67,7 +67,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'liquidacao',
     term: 'Liquidação',
-    def: 'A transferência do saldo de uma conta para um beneficiário, com a taxa definida pelo Banzami. Só acontece quando a aplicação a pede.',
+    def: 'A transferência do saldo de uma conta para um beneficiário, com a taxa definida pela Banzami. Só acontece quando a aplicação a pede.',
   },
   {
     id: 'banza-handle',
@@ -78,7 +78,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'api-key',
     term: 'Chave de API',
-    def: 'A credencial com que uma aplicação se autentica na API do Banzami. Identifica um projeto.',
+    def: 'A credencial com que uma aplicação se autentica na API da Banzami. Identifica um projeto.',
   },
   {
     id: 'chave-publicavel',
@@ -134,7 +134,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'business',
     term: 'Business',
-    def: 'A entidade verificada pelo Banzami que recebe os pagamentos de um projeto.',
+    def: 'A entidade verificada pela Banzami que recebe os pagamentos de um projeto.',
   },
   {
     id: 'wallet-account',

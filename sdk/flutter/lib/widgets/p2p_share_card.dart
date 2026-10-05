@@ -168,7 +168,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
 
     final sb = StringBuffer();
     if (widget.isSandbox) sb.writeln('🧪 SANDBOX — dinheiro de teste\n');
-    sb.writeln('💸 Envie-me um pagamento no Banzami\n');
+    sb.writeln('💸 Envie-me um pagamento na Banzami\n');
 
     final name = widget.displayName ?? '@${widget.handle}';
     sb.write(name);

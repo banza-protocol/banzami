@@ -5,7 +5,7 @@ import { ComerciantesActivarPage } from '@/components/marketing/pages/Comerciant
 
 export const metadata: Metadata = {
   title: { absolute: 'Ativar o negócio · Banzami Business' },
-  description: 'Conclua a ativação do seu negócio no Banzami Business.',
+  description: 'Conclua a ativação do seu negócio na Banzami Business.',
   alternates: {
     canonical: 'https://banzami.com/comerciantes/activar',
     languages: { en: 'https://banzami.com/en/comerciantes/activar' },

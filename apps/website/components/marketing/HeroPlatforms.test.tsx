@@ -209,11 +209,6 @@ describe('Android distribution flag (ANDROID_TESTING_AVAILABLE)', () => {
     expect(submitBetaRegistration).not.toHaveBeenCalled();
   });
 
-  it('false: the Android card shows an "Em breve" badge', () => {
-    render(<HeroPlatforms lang="pt" />);
-    expect(within(androidBtn()).getByText('Em breve')).toBeTruthy();
-  });
-
   it('false: the notice primary action links to the existing Beta Web URL', async () => {
     const user = userEvent.setup();
     render(<HeroPlatforms lang="pt" />);
@@ -241,11 +236,10 @@ describe('Android distribution flag (ANDROID_TESTING_AVAILABLE)', () => {
     expect(noticeHeading()).toBeNull();
   });
 
-  it('true: Android restores the original sign-up form, with no notice and no badge', async () => {
+  it('true: Android restores the original sign-up form, with no notice', async () => {
     betaFlags.android = true;
     const user = userEvent.setup();
     render(<HeroPlatforms lang="pt" />);
-    expect(within(androidBtn()).queryByText('Em breve')).toBeNull();
     await user.click(androidBtn());
     expect(screen.getByText('Inscrição de tester')).toBeTruthy();
     expect(screen.getByText('Android · Google Play')).toBeTruthy(); // modal subtitle (Android)

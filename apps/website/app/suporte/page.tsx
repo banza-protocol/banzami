@@ -5,7 +5,7 @@ import { SuportePage } from '@/components/marketing/pages/Suporte';
 export const metadata: Metadata = {
   title: { absolute: 'Suporte · Banzami' },
   description:
-    'Perguntas frequentes sobre a Sandbox, @banza e comprovativos, e contacto direto com a equipa do Banzami.',
+    'Perguntas frequentes sobre a Sandbox, @banza e comprovativos, e contacto direto com a equipa da Banzami.',
   alternates: {
     canonical: 'https://banzami.com/suporte',
     languages: { en: 'https://banzami.com/en/suporte' },

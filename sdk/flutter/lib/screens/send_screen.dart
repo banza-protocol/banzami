@@ -162,7 +162,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         });
       } else {
         setState(() {
-          _handleError = '@$handle não está registado no Banzami';
+          _handleError = '@$handle não está registado na Banzami';
           _validatingHandle = false;
         });
       }

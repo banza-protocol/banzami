@@ -214,7 +214,7 @@ void main() {
         jwtExpiresAt: DateTime.now().add(const Duration(minutes: 14)), httpClient: b.client)));
     await press(t, 'Gerar código');
 
-    expect(find.text('O Banzami não conseguiu gerar o código agora. Tente novamente dentro de momentos.'),
+    expect(find.text('A Banzami não conseguiu gerar o código agora. Tente novamente dentro de momentos.'),
         findsOneWidget);
     expect(code(), findsNothing);
     expect(countdown(), findsNothing);
@@ -225,7 +225,7 @@ void main() {
     expect(code(), findsOneWidget);
     b.offline = true;
     await press(t, 'Gerar novo código');
-    expect(find.text('Sem ligação ao Banzami. Tente novamente.'), findsOneWidget);
+    expect(find.text('Sem ligação à Banzami. Tente novamente.'), findsOneWidget);
     expect(code(), findsNothing);
   });
 
@@ -262,9 +262,9 @@ void main() {
   test('failure messages: temporary, offline, refused session', () {
     expect(projectLinkFailureMessage(BanzamiApiException.fromJson(401, const {})), isNull);
     expect(projectLinkFailureMessage(BanzamiApiException.fromJson(503, const {})),
-        'O Banzami não conseguiu gerar o código agora. Tente novamente dentro de momentos.');
+        'A Banzami não conseguiu gerar o código agora. Tente novamente dentro de momentos.');
     expect(projectLinkFailureMessage(const BanzamiNetworkException('down')),
-        'Sem ligação ao Banzami. Tente novamente.');
+        'Sem ligação à Banzami. Tente novamente.');
     expect(projectLinkFailureMessage(BanzamiApiException.fromJson(403, const {})),
         'Não foi possível gerar o código. Tente novamente.');
   });

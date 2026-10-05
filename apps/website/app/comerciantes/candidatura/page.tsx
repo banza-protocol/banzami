@@ -4,7 +4,7 @@ import { CandidaturaPage } from '@/components/marketing/pages/Candidatura';
 
 export const metadata: Metadata = {
   title: { absolute: 'Registar o negócio · Banzami Business' },
-  description: 'Candidatura online para receber pagamentos com o Banzami Business.',
+  description: 'Candidatura online para receber pagamentos com a Banzami Business.',
   alternates: {
     canonical: 'https://banzami.com/comerciantes/candidatura',
     languages: { en: 'https://banzami.com/en/comerciantes/candidatura' },

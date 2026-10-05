@@ -477,7 +477,7 @@ export function BusinessApplicationForm({
     >
       <h3 id="fo-new-heading" style={{ margin: 0, fontSize: 15.5, fontWeight: 900 }}>Criar/verificar um novo negócio</h3>
       <p style={{ margin: '6px 0 0', fontSize: 13.5, color: '#6a5a5e', fontWeight: 600, lineHeight: 1.6 }}>
-        A mesma candidatura de qualquer negócio Banzami. Um operador do Banzami analisa-a; quando for aprovada, o
+        A mesma candidatura de qualquer negócio Banzami. Um operador da Banzami analisa-a; quando for aprovada, o
         Banzami cria o negócio (@banza e carteira) e liga-o a este projeto.
       </p>
 
@@ -549,7 +549,7 @@ export function BusinessApplicationForm({
           <legend style={{ padding: 0, fontSize: 13, fontWeight: 900, color: '#2a2024', marginBottom: 6 }}>Documentos</legend>
           <p style={{ ...FIELD_HINT, marginTop: 0 }}>
             PDF, JPEG ou PNG, até 5 MB cada. São enviados logo depois da candidatura, directamente para o armazenamento
-            de documentos do Banzami.
+            de documentos da Banzami.
           </p>
           <div style={{ display: 'grid', gap: 14, marginTop: 10 }}>
             {DOCUMENT_SLOTS.map((d) => {
@@ -630,7 +630,7 @@ export function BusinessApplicationForm({
               <a href="/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800 }}>
                 termos e condições
               </a>{' '}
-              do Banzami Business, e confirmo que os dados são verdadeiros.
+              da Banzami Business, e confirmo que os dados são verdadeiros.
             </label>
           </div>
           {show('terms') && <p id="fo-terms-error" style={FIELD_ERROR}>{errors.terms}</p>}

@@ -392,8 +392,8 @@ export function WebhooksManager() {
                               <Pill kind={e.active ? 'success' : 'neutral'} dot>{e.active ? 'Ativo' : 'Inativo'}</Pill>
                               <span style={{ marginLeft: 9, fontSize: 12.5, fontWeight: 600, color: '#8a7a7e' }}>
                                 {e.active
-                                  ? 'O Banzami entrega os eventos subscritos a este endereço.'
-                                  : 'O Banzami não entrega nada a este endereço enquanto estiver inativo.'}
+                                  ? 'A Banzami entrega os eventos subscritos a este endereço.'
+                                  : 'A Banzami não entrega nada a este endereço enquanto estiver inativo.'}
                               </span>
                             </dd>
 
@@ -639,10 +639,10 @@ export function WebhooksManager() {
             confirming.action === 'rotate'
               ? 'É emitido um segredo novo e o actual deixa de assinar imediatamente. O seu servidor recusa as entregas até o novo estar instalado. O segredo é mostrado uma única vez.'
               : confirming.action === 'disable'
-                ? 'O Banzami deixa de entregar eventos a este endereço. O histórico de entregas mantém-se, e pode reactivá-lo depois.'
+                ? 'A Banzami deixa de entregar eventos a este endereço. O histórico de entregas mantém-se, e pode reactivá-lo depois.'
                 : confirming.action === 'delete'
                   ? 'O endpoint sai da lista e o seu segredo de assinatura deixa de existir. Não pode ser recuperado. Só é possível eliminar um endpoint que ainda não recebeu entregas; se já recebeu, desactive-o.'
-                  : 'O Banzami volta a entregar eventos a este endereço.'
+                  : 'A Banzami volta a entregar eventos a este endereço.'
           }
           subject={confirming.ep.url}
           confirmLabel={

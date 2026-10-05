@@ -16,7 +16,7 @@ const COPY = {
     title: 'Privacidade: programa de testers',
     updated: 'Última atualização: 16 de setembro de 2026',
     intro:
-      'Esta nota explica os dados que recolhemos quando se inscreve para testar as apps do Banzami (App Banzami e App Banzami Business) e como os tratamos.',
+      'Esta nota explica os dados que recolhemos quando se inscreve para testar as apps da Banzami (App Banzami e App Banzami Business) e como os tratamos.',
     sections: [
       {
         h: 'O que recolhemos',
@@ -32,7 +32,7 @@ const COPY = {
       },
       {
         h: 'Onde ficam e quem acede',
-        p: 'Os dados ficam nos sistemas do Banzami. Apenas operadores autorizados os consultam, para gerir o programa. Não há listagem pública de testers.',
+        p: 'Os dados ficam nos sistemas da Banzami. Apenas operadores autorizados os consultam, para gerir o programa. Não há listagem pública de testers.',
       },
       {
         h: 'Quanto tempo guardamos',

@@ -20,12 +20,12 @@ String? projectLinkFailureMessage(Object error) {
   if (error is BanzamiApiException) {
     if (error.statusCode == 401) return null;
     if (error.statusCode >= 500 || error.statusCode == 429 || error.statusCode == 408) {
-      return 'O Banzami não conseguiu gerar o código agora. Tente novamente dentro de momentos.';
+      return 'A Banzami não conseguiu gerar o código agora. Tente novamente dentro de momentos.';
     }
     return 'Não foi possível gerar o código. Tente novamente.';
   }
   if (error is BanzamiNetworkException) {
-    return 'Sem ligação ao Banzami. Tente novamente.';
+    return 'Sem ligação à Banzami. Tente novamente.';
   }
   return 'Não foi possível gerar o código. Tente novamente.';
 }
@@ -147,7 +147,7 @@ class _ProjectLinkScreenState extends State<ProjectLinkScreen> {
   Future<void> _share(String code, String businessName) async {
     try {
       await Share.share(
-        'Código do Banzami para ligar o seu projeto a $businessName: $code\n'
+        'Código da Banzami para ligar o seu projeto a $businessName: $code\n'
         'É válido durante 10 minutos e só pode ser usado uma vez.',
       );
     } on PlatformException {

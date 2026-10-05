@@ -65,7 +65,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
           <a
             href="https://banzami.com"
-            aria-label="Voltar ao Banzami"
+            aria-label="Voltar à Banzami"
             className="bz-toplink"
             style={{
               display: 'inline-flex',
@@ -80,7 +80,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
-            Voltar ao Banzami
+            Voltar à Banzami
           </a>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none' }}>
             <BrandTile size={34} radius={11} />

@@ -145,7 +145,7 @@ export function ChapterFacts({
   const rows: [string, ReactNode, string?][] = [
     [tr(lang, 'Objetivo', 'Goal'), goal],
     [tr(lang, `O ${appLabel} faz`, `${appLabel} does`), app],
-    [tr(lang, 'O Banzami faz', 'Banzami does'), banzami, '#9A1B22'],
+    [tr(lang, 'A Banzami faz', 'Banzami does'), banzami, '#9A1B22'],
     [tr(lang, 'Resultado esperado', 'Expected result'), result, '#1F6B47'],
     [tr(lang, 'Falha comum', 'Common failure'), failure],
   ];

@@ -20,8 +20,8 @@ type Lang = 'pt' | 'en';
 const COPY = {
   pt: {
     kicker: 'Programa de testers',
-    title: 'Ajude-nos a testar o Banzami',
-    lead: 'As apps do Banzami já funcionam e estão a ser distribuídas a testers convidados. Registe o seu interesse e, à medida que abrimos vagas, enviamos o convite para instalar no iPhone (TestFlight) ou no Android (Google Play).',
+    title: 'Ajude-nos a testar a Banzami',
+    lead: 'As apps da Banzami já funcionam e estão a ser distribuídas a testers convidados. Registe o seu interesse e, à medida que abrimos vagas, enviamos o convite para instalar no iPhone (TestFlight) ou no Android (Google Play).',
     webNote: 'Prefere experimentar já? A App Banzami Web está disponível no browser, em app.banzami.com, sem convite.',
     sandbox:
       'As apps correm em Sandbox: o dinheiro é fictício e nenhum pagamento é real. É um ambiente de testes, feito para experimentar sem risco.',

@@ -360,14 +360,14 @@ void main() {
       Object? failure;
       await client.getMerchantBalance('w-old').catchError((Object e) { failure = e; return _zero; });
       expect(balanceFailureMessage(failure!),
-          'O Banzami não conseguiu calcular o saldo agora. Tente novamente.');
+          'A Banzami não conseguiu calcular o saldo agora. Tente novamente.');
       expect(svc.route, MerchantRoute.signedIn);
       expect(store['merchant_refresh_token'], 'R1', reason: 'nothing ended, nothing rotated');
 
       b.offline = true;
       failure = null;
       await client.getMerchantBalance('w-old').catchError((Object e) { failure = e; return _zero; });
-      expect(balanceFailureMessage(failure!), 'Sem ligação ao Banzami. Tente novamente.');
+      expect(balanceFailureMessage(failure!), 'Sem ligação à Banzami. Tente novamente.');
       expect(svc.route, MerchantRoute.signedIn);
 
       // Banzami is back: the next call renews.
@@ -741,9 +741,9 @@ void main() {
       expect(balanceFailureMessage(BanzamiApiException.fromJson(404, const {})),
           'A carteira desta conta Business ainda não está disponível.');
       expect(balanceFailureMessage(BanzamiApiException.fromJson(503, const {})),
-          'O Banzami não conseguiu calcular o saldo agora. Tente novamente.');
+          'A Banzami não conseguiu calcular o saldo agora. Tente novamente.');
       expect(balanceFailureMessage(const BanzamiNetworkException('down')),
-          'Sem ligação ao Banzami. Tente novamente.');
+          'Sem ligação à Banzami. Tente novamente.');
     });
 
     test('a zero balance is money, not a failure', () {

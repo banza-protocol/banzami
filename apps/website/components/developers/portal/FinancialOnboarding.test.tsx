@@ -138,7 +138,7 @@ describe('Configuração financeira — NOT_CONFIGURED', () => {
     expect(container().getAttribute('data-state')).toBe('NOT_CONFIGURED');
     expect(heading()).toBe('Configuração financeira: Não configurado');
     expect(document.body.textContent).toContain(
-      'Para receber pagamentos, liquidações ou taxas de aplicação, o Banzami tem de verificar a entidade legal responsável por este projeto.',
+      'Para receber pagamentos, liquidações ou taxas de aplicação, a Banzami tem de verificar a entidade legal responsável por este projeto.',
     );
     expect(screen.getByRole('button', { name: 'Iniciar verificação' })).not.toBeNull();
   });
@@ -274,7 +274,7 @@ describe('Configuração financeira — a Project that receives', () => {
     expect(heading()).toBe('Configuração financeira: Bloqueado');
     const list = screen.getByTestId('onboarding-blockers');
     expect(list.textContent).toContain('Receber taxas de aplicação requer aprovação do operador Banzami (classificação da conta).');
-    expect(list.textContent).toContain('O Banzami ainda não atribuiu um preço ao negócio deste projeto.');
+    expect(list.textContent).toContain('A Banzami ainda não atribuiu um preço ao negócio deste projeto.');
     expect(screen.getAllByRole('list', { name: 'Bloqueios' })).toHaveLength(1);
   });
 

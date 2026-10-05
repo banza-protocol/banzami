@@ -601,5 +601,5 @@ class _RowChevron extends StatelessWidget {
 /// not the KYC result, so it never claims "identidade verificada".
 String verificationBadgeCaption(VerificationBadgeType type) =>
     type == VerificationBadgeType.merchant
-        ? 'Comerciante verificado pelo Banzami'
-        : 'Verificado pelo Banzami';
+        ? 'Comerciante verificado pela Banzami'
+        : 'Verificado pela Banzami';

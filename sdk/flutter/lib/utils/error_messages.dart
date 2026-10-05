@@ -39,11 +39,11 @@ String banzamiErrorMessage(
 
 /// No answer reached the phone — nothing is known about the outcome.
 const String kBanzamiOfflineMessage =
-    'Sem ligação ao Banzami. Verifique a sua rede e tente novamente.';
+    'Sem ligação à Banzami. Verifique a sua rede e tente novamente.';
 
 /// The request left but the answer did not arrive in time.
 const String kBanzamiTimeoutMessage =
-    'O Banzami demorou demasiado a responder. Tente novamente.';
+    'A Banzami demorou demasiado a responder. Tente novamente.';
 
 const String kBanzamiGenericErrorMessage =
     'Não foi possível concluir. Tente novamente.';
@@ -255,7 +255,7 @@ String? _byCode(String code) {
 
     // Outage: a store the server needs could not be read. The session stands.
     case 'SERVICE_UNAVAILABLE':
-      return 'O Banzami está temporariamente indisponível. Tente novamente dentro de momentos.';
+      return 'A Banzami está temporariamente indisponível. Tente novamente dentro de momentos.';
 
     // Documents
     case 'RECEIPT_UNAVAILABLE':

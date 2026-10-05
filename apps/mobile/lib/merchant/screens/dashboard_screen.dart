@@ -861,8 +861,8 @@ String? balanceFailureMessage(Object e) {
     if (e.statusCode == 403 || e.statusCode == 404) {
       return 'A carteira desta conta Business ainda não está disponível.';
     }
-    return 'O Banzami não conseguiu calcular o saldo agora. Tente novamente.';
+    return 'A Banzami não conseguiu calcular o saldo agora. Tente novamente.';
   }
-  if (e is BanzamiNetworkException) return 'Sem ligação ao Banzami. Tente novamente.';
+  if (e is BanzamiNetworkException) return 'Sem ligação à Banzami. Tente novamente.';
   return 'Não foi possível carregar o saldo.';
 }

@@ -142,7 +142,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
           // Banzami is unreachable but this device's session is still valid:
           // open, and say the data may be stale.
           BanzamiToast.showWarning(context,
-              'Sem ligação ao Banzami. Alguns dados podem não estar actualizados.');
+              'Sem ligação à Banzami. Alguns dados podem não estar actualizados.');
         case ConsumerUnlock.stayLocked:
           setState(() {
             _notice      = banzamiErrorMessage(loginError!);

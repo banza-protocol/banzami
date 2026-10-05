@@ -4,7 +4,7 @@ import { PrivacidadePage } from '@/components/marketing/pages/Privacidade';
 
 export const metadata: Metadata = {
   title: { absolute: 'Política de Privacidade · Banzami' },
-  description: 'Como o Banzami trata os seus dados pessoais na Beta Sandbox.',
+  description: 'Como a Banzami trata os seus dados pessoais na Beta Sandbox.',
   alternates: {
     canonical: 'https://banzami.com/privacidade',
     languages: { en: 'https://banzami.com/en/privacidade' },

@@ -24,17 +24,17 @@ vi.mock('@/lib/developer-api', () => ({
 
 afterEach(cleanup);
 
-describe('Login page — "Voltar ao Banzami" back link', () => {
+describe('Login page — "Voltar à Banzami" back link', () => {
   it('is a real anchor to exactly https://banzami.com, present on the page', () => {
     render(<LoginPage />);
-    const back = screen.getByRole('link', { name: 'Voltar ao Banzami' });
+    const back = screen.getByRole('link', { name: 'Voltar à Banzami' });
     expect(back.tagName).toBe('A');
     expect(back.getAttribute('href')).toBe('https://banzami.com');
   });
 
   it('is keyboard-focusable (native anchor with href, no tabindex removal)', () => {
     render(<LoginPage />);
-    const back = screen.getByRole('link', { name: 'Voltar ao Banzami' });
+    const back = screen.getByRole('link', { name: 'Voltar à Banzami' });
     // A native <a href> is in the tab order; ensure it wasn't opted out.
     expect(back.getAttribute('tabindex')).not.toBe('-1');
   });

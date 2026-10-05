@@ -36,7 +36,7 @@ const FAMILIES: { id: string; pt: string; en: string }[] = [
   { id: 'refund', pt: 'Reembolsos', en: 'Refunds' },
   { id: 'sandbox', pt: 'Sandbox e simulações', en: 'Sandbox and simulations' },
   { id: 'realtime', pt: 'Estado em tempo real', en: 'Realtime status' },
-  { id: 'server', pt: 'Limites e falhas do Banzami', en: 'Limits and Banzami failures' },
+  { id: 'server', pt: 'Limites e falhas da Banzami', en: 'Limits and Banzami failures' },
 ];
 
 const RETRY: Record<Entry['retry'], Record<Lang, string>> = {
@@ -85,7 +85,7 @@ export const HTTP_CLASSES: { status: string; meaning: Record<Lang, string>; acti
   { status: '410', meaning: { pt: 'A rota foi retirada.', en: 'The route was retired.' }, action: { pt: 'Use a rota que a mensagem indica.', en: 'Use the route the message names.' }, retry: 'no', key: 'n/a' },
   { status: '422', meaning: { pt: 'O pedido está bem formado, mas o estado não o permite: saldo, limite, elegibilidade.', en: 'The request is well formed, but the state does not allow it: balance, limit, eligibility.' }, action: { pt: 'Nada aconteceu. Resolva a condição que o código nomeia e repita com uma chave nova.', en: 'Nothing happened. Resolve the condition the code names and retry with a new key.' }, retry: 'after_change', key: 'new' },
   { status: '429', meaning: { pt: 'Demasiados pedidos. Nada foi executado.', en: 'Too many requests. Nothing was executed.' }, action: { pt: 'Espere os segundos de Retry-After e repita com a mesma chave.', en: 'Wait the Retry-After seconds and retry with the same key.' }, retry: 'after_delay', key: 'same' },
-  { status: '5xx', meaning: { pt: 'Falha do lado do Banzami, ou temporariamente indisponível.', en: 'A failure on Banzami’s side, or temporarily unavailable.' }, action: { pt: 'Repita com backoff e a mesma chave de idempotência; nunca conclua que nada aconteceu sem confirmar.', en: 'Retry with backoff and the same idempotency key; never conclude nothing happened without checking.' }, retry: 'yes', key: 'same' },
+  { status: '5xx', meaning: { pt: 'Falha do lado da Banzami, ou temporariamente indisponível.', en: 'A failure on Banzami’s side, or temporarily unavailable.' }, action: { pt: 'Repita com backoff e a mesma chave de idempotência; nunca conclua que nada aconteceu sem confirmar.', en: 'Retry with backoff and the same idempotency key; never conclude nothing happened without checking.' }, retry: 'yes', key: 'same' },
 ];
 
 export function HttpClassTable({ lang }: { lang: Lang }) {

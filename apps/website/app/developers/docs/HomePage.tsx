@@ -23,7 +23,7 @@ const COPY = {
     cards: [
       { href: '/docs/payments', title: 'Aceitar um pagamento', desc: 'Sessão de pagamento com link e QR, confirmada no servidor.' },
       { href: '/docs/payments#links', title: 'Partilhar um link de pagamento', desc: 'Um endereço reutilizável, sem uma sessão por cliente.' },
-      { href: '/docs/payments#apresentar', title: 'Mostrar um QR', desc: 'O QR da sessão abre a página de pagamento do Banzami.' },
+      { href: '/docs/payments#apresentar', title: 'Mostrar um QR', desc: 'O QR da sessão abre a página de pagamento da Banzami.' },
       { href: '/docs/webhooks', title: 'Receber webhooks', desc: 'Eventos assinados: verificar, deduplicar e responder.' },
       { href: '/docs/refunds', title: 'Reembolsar um pagamento', desc: 'Total ou parcial, sem risco de devolver duas vezes.' },
       { href: '/docs/settlements', title: 'Liquidar uma conta', desc: 'Do saldo da conta para o beneficiário, com a taxa calculada.' },

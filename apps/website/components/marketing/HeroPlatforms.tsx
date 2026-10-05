@@ -33,10 +33,9 @@ const T = {
   okSub: L('Entramos em contacto por e-mail quando a sua vaga abrir.', 'We will email you when your spot opens.'),
   close: L('Fechar', 'Close'),
   // Android temporarily unavailable (ANDROID_TESTING_AVAILABLE=false).
-  soon: L('Em breve', 'Coming soon'),
   naTitle: L('Android temporariamente indisponível', 'Android temporarily unavailable'),
   naP1: L(
-    'Estamos a concluir a disponibilização do Banzami para Android.',
+    'Estamos a concluir a disponibilização da Banzami para Android.',
     'We are finishing getting Banzami ready for Android.',
   ),
   naP2: L(
@@ -44,13 +43,13 @@ const T = {
     'The Android version will be available soon for testing in the Sandbox.',
   ),
   naP3: L(
-    'Podes continuar a experimentar o Banzami através da Beta Web ou regressar mais tarde para participar nos testes Android.',
+    'Podes continuar a experimentar a Banzami através da Beta Web ou regressar mais tarde para participar nos testes Android.',
     'You can keep trying Banzami through the Beta Web, or come back later to join the Android tests.',
   ),
   naPrimary: L('Experimentar Beta Web', 'Try the Beta Web'),
 };
 
-function Tile({ onClick, href, icon, title, sub, badge }: { onClick?: () => void; href?: string; icon: React.ReactNode; title: string; sub: string; badge?: string }) {
+function Tile({ onClick, href, icon, title, sub }: { onClick?: () => void; href?: string; icon: React.ReactNode; title: string; sub: string }) {
   const inner = (
     <>
       <span style={{ display: 'flex' }}>{icon}</span>
@@ -58,9 +57,6 @@ function Tile({ onClick, href, icon, title, sub, badge }: { onClick?: () => void
         <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{title}</span>
         <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'rgba(255,255,255,.55)' }}>{sub}</span>
       </span>
-      {badge && (
-        <span style={{ marginLeft: 'auto', fontSize: '9.5px', fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', padding: '3px 7px', borderRadius: '999px', background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.14)', color: 'rgba(255,255,255,.82)', whiteSpace: 'nowrap' }}>{badge}</span>
-      )}
     </>
   );
   const st: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '11px', padding: '12px 16px', borderRadius: '14px', background: 'linear-gradient(160deg,#241c1e,#120e0f)', border: '1px solid rgba(255,255,255,.06)', textDecoration: 'none', boxShadow: '0 16px 30px -18px rgba(20,16,20,.7)', cursor: 'pointer', fontFamily: 'inherit' };
@@ -175,7 +171,7 @@ export function HeroPlatforms({ lang }: { lang: Lang }) {
       <div className="bz-plat" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginTop: '14px', maxWidth: '590px' }}>
         <Tile href={APP_URL} icon={GLOBE} title={T.betaWeb[lang]} sub={T.inBrowser[lang]} />
         <Tile onClick={() => open('IOS')} icon={APPLE} title="iPhone" sub={T.channelIOS[lang]} />
-        <Tile onClick={() => (ANDROID_TESTING_AVAILABLE ? open('ANDROID') : setAndroidNotice(true))} icon={ANDROID} title="Android" sub={T.channelAndroid[lang]} badge={ANDROID_TESTING_AVAILABLE ? undefined : T.soon[lang]} />
+        <Tile onClick={() => (ANDROID_TESTING_AVAILABLE ? open('ANDROID') : setAndroidNotice(true))} icon={ANDROID} title="Android" sub={T.channelAndroid[lang]} />
       </div>
 
       {platform && (

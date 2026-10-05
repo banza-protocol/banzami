@@ -4,7 +4,7 @@ import { TermosPage } from '@/components/marketing/pages/Termos';
 
 export const metadata: Metadata = {
   title: { absolute: 'Termos de Serviço · Banzami' },
-  description: 'Termos de Serviço do Banzami para a Beta Sandbox.',
+  description: 'Termos de Serviço da Banzami para a Beta Sandbox.',
   alternates: {
     canonical: 'https://banzami.com/termos',
     languages: { en: 'https://banzami.com/en/termos' },

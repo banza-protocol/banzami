@@ -4,7 +4,7 @@ import { CandidaturaEstadoPage } from '@/components/marketing/pages/CandidaturaE
 
 export const metadata: Metadata = {
   title: { absolute: 'Estado da candidatura · Banzami Business' },
-  description: 'Consulte o estado da candidatura do seu negócio ao Banzami Business.',
+  description: 'Consulte o estado da candidatura do seu negócio à Banzami Business.',
   alternates: {
     canonical: 'https://banzami.com/comerciantes/candidatura/estado',
     languages: { en: 'https://banzami.com/en/comerciantes/candidatura/estado' },

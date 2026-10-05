@@ -181,7 +181,7 @@ function PathCards({ onNew, onExisting }: { onNew: () => void; onExisting: () =>
       {card(
         'onboarding-path-new',
         'Criar/verificar um novo negócio',
-        'Envie a candidatura do negócio responsável por este projeto, com dados e documentos. Um operador do Banzami analisa-a; quando for aprovada, o negócio é criado e ligado a este projeto.',
+        'Envie a candidatura do negócio responsável por este projeto, com dados e documentos. Um operador da Banzami analisa-a; quando for aprovada, o negócio é criado e ligado a este projeto.',
         'Criar novo negócio',
         onNew,
       )}
@@ -253,7 +253,7 @@ export function FinancialOnboardingPanel({
           projectId={projectId}
           csrf={csrf}
           onCancel={() => setMode('choose')}
-          onSubmitted={(r) => reload(r.notice ?? 'Candidatura enviada. Um operador do Banzami vai analisá-la.')}
+          onSubmitted={(r) => reload(r.notice ?? 'Candidatura enviada. Um operador da Banzami vai analisá-la.')}
           onUseExisting={() => setMode('connect')}
           onStale={(message) => reload(message)}
         />
@@ -320,14 +320,14 @@ export function FinancialOnboardingPanel({
           {view === 'REJECTED' ? (
             <>
               <p style={P}>
-                O operador do Banzami recusou a candidatura deste projeto. Nenhum negócio foi criado nem ligado. Pode
+                O operador da Banzami recusou a candidatura deste projeto. Nenhum negócio foi criado nem ligado. Pode
                 enviar uma nova candidatura ou ligar um negócio Banzami que já exista.
               </p>
               {app && <ApplicationSummary app={app} />}
             </>
           ) : (
             <p style={P}>
-              Para receber pagamentos, liquidações ou taxas de aplicação, o Banzami tem de verificar a entidade legal
+              Para receber pagamentos, liquidações ou taxas de aplicação, a Banzami tem de verificar a entidade legal
               responsável por este projeto.
             </p>
           )}
@@ -360,7 +360,7 @@ export function FinancialOnboardingPanel({
       {view === 'IN_REVIEW' && app && (
         <>
           <p style={P}>
-            A candidatura deste projeto está com um operador do Banzami. Não precisa de fazer nada enquanto é analisada,
+            A candidatura deste projeto está com um operador da Banzami. Não precisa de fazer nada enquanto é analisada,
             a não ser enviar os documentos que ainda faltem.
           </p>
           <ApplicationSummary app={app} />
@@ -383,7 +383,7 @@ export function FinancialOnboardingPanel({
             data-testid="information-request"
             style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12, background: '#FFF6E9', border: '1px solid #F7E4CB' }}
           >
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: '#B8770A', letterSpacing: '.04em' }}>O OPERADOR DO BANZAMI PEDE</p>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: '#B8770A', letterSpacing: '.04em' }}>O OPERADOR DA BANZAMI PEDE</p>
             <p style={{ margin: '6px 0 0', fontSize: 14.5, fontWeight: 800, color: '#2a2024', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
               {infoText || 'Mais informação sobre a candidatura. Reveja os requisitos abaixo.'}
             </p>
@@ -415,7 +415,7 @@ export function FinancialOnboardingPanel({
       {view === 'APPROVED_PROVISIONING' && (
         <>
           <p style={P}>
-            O operador do Banzami aprovou a candidatura. O Banzami está a criar o negócio
+            O operador da Banzami aprovou a candidatura. A Banzami está a criar o negócio
             {app?.requested_handle ? ` (@${app.requested_handle.replace(/^@/, '')})` : ''} e a ligá-lo a este projeto. Não
             precisa de fazer nada; este estado muda sozinho quando terminar.
           </p>

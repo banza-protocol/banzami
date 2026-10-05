@@ -106,12 +106,12 @@ export function SandboxSetupStart({
   return (
     <div data-testid="sandbox-setup-start">
       <p style={P}>
-        Na Sandbox, o Banzami cria um negócio de teste para este projeto, sem candidatura e sem esperar por ninguém. É
+        Na Sandbox, a Banzami cria um negócio de teste para este projeto, sem candidatura e sem esperar por ninguém. É
         uma entidade de teste: não é verificado, e o valor é fictício.
       </p>
       <UseCaseChoice value={useCase} onChange={setUseCase} disabled={!canAct || busy} />
       <p style={FIELD_HINT}>
-        A classificação e o preço são atribuídos pelo Banzami para o uso que escolher. A sua aplicação nunca envia uma taxa.
+        A classificação e o preço são atribuídos pela Banzami para o uso que escolher. A sua aplicação nunca envia uma taxa.
       </p>
       {canAct ? (
         <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>

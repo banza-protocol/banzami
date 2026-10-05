@@ -57,7 +57,7 @@ export default function FinanceiroPage() {
       <div className="bz-view">
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Configuração financeira</h1>
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
-          O negócio em que este projeto recebe pagamentos, e a verificação que o Banzami faz dele.
+          O negócio em que este projeto recebe pagamentos, e a verificação que a Banzami faz dele.
         </p>
         <p style={{ margin: '-14px 0 22px' }}>
           <DocsLink href="/docs/console#financeiro">Os dois caminhos: candidatura ou código de consentimento</DocsLink>

@@ -53,7 +53,7 @@ const STEPS: { icon: ReactNode; n: string; t: Loc; d: Loc }[] = [
     icon: <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6z" /><path d="M9.2 11.6l1.9 1.9 3.7-3.7" /></svg>,
     n: '03',
     t: L('Veja o resultado', 'See the result'),
-    d: L('Abre a página oficial de verificação do Banzami.', 'Opens Banzami’s official verification page.'),
+    d: L('Abre a página oficial de verificação da Banzami.', 'Opens Banzami’s official verification page.'),
   },
 ];
 

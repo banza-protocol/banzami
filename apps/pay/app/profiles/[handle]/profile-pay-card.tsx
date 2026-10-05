@@ -72,7 +72,7 @@ export default function ProfilePayCard({
           />
         </div>
         <p className="text-sm text-gray-500 text-center">
-          Aponta a câmara do Banzami para pagar a{' '}
+          Aponta a câmara da Banzami para pagar a{' '}
           <span className="font-semibold text-gray-800">@{handle}</span>
         </p>
       </div>

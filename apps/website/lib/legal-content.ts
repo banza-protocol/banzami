@@ -73,7 +73,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
         `General and legal contact: ${OPERATOR_CONTACT}. Security reports: ${OPERATOR_SECURITY}.`,
       ),
       p(
-        'O Banzami não é, nesta fase, uma instituição financeira, um prestador de serviços de pagamento licenciado nem uma entidade regulada, e não faz qualquer afirmação nesse sentido.',
+        'A Banzami não é, nesta fase, uma instituição financeira, um prestador de serviços de pagamento licenciado nem uma entidade regulada, e não faz qualquer afirmação nesse sentido.',
         'At this stage Banzami is not a financial institution, a licensed payment service provider or a regulated entity, and makes no such claim.',
       ),
     ],
@@ -82,7 +82,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
     id: 'ambito', n: '02', title: { pt: 'Âmbito e aceitação', en: 'Scope and acceptance' },
     body: [
       p(
-        'Estes Termos regem a utilização da app Banzami, do Banzami Business, da plataforma para developers, das APIs, SDKs e do website, no âmbito da Beta pública em ambiente Sandbox. Ao criar uma conta ou ao utilizar estes serviços, aceita estes Termos.',
+        'Estes Termos regem a utilização da app Banzami, da Banzami Business, da plataforma para developers, das APIs, SDKs e do website, no âmbito da Beta pública em ambiente Sandbox. Ao criar uma conta ou ao utilizar estes serviços, aceita estes Termos.',
         'These Terms govern the use of the Banzami app, Banzami Business, the developer platform, the APIs, SDKs and the website, within the public Beta in the Sandbox environment. By creating an account or using these services, you accept these Terms.',
       ),
       p(
@@ -118,7 +118,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
         ['Pode ser reiniciado ou removido a qualquer momento como parte dos testes.', 'It may be reset or removed at any time as part of testing.'],
       ]),
       p(
-        'Nenhum saldo, comprovativo ou transação em Sandbox representa uma obrigação financeira do Banzami ou de terceiros.',
+        'Nenhum saldo, comprovativo ou transação em Sandbox representa uma obrigação financeira da Banzami ou de terceiros.',
         'No Sandbox balance, receipt or transaction represents a financial obligation of Banzami or any third party.',
       ),
     ],
@@ -180,11 +180,11 @@ export const TERMS_SECTIONS: LegalSection[] = [
     id: 'business', n: '10', title: { pt: 'Utilização por negócios (Banzami Business)', en: 'Business use (Banzami Business)' },
     body: [
       p(
-        'Um negócio pode candidatar-se a aceder ao Banzami Business em Sandbox para experimentar cobranças por QR, links e ferramentas de cobrança, com dinheiro de teste. A aprovação de uma candidatura Beta destina-se ao acesso Sandbox e não constitui aprovação para serviços financeiros reais.',
+        'Um negócio pode candidatar-se a aceder à Banzami Business em Sandbox para experimentar cobranças por QR, links e ferramentas de cobrança, com dinheiro de teste. A aprovação de uma candidatura Beta destina-se ao acesso Sandbox e não constitui aprovação para serviços financeiros reais.',
         'A business can apply to access Banzami Business in the Sandbox to try QR charges, links and billing tools, with test money. Approving a Beta application grants Sandbox access and is not an approval for real financial services.',
       ),
       p(
-        'A candidatura Sandbox simula o processo completo: dados do negócio, do representante e documentos. Deve utilizar apenas dados fictícios: não introduza NIF, nome, contactos ou documentos reais (ver Política de Privacidade). Os documentos do fluxo são exclusivamente documentos sintéticos de teste fornecidos pelo Banzami; não são carregados ficheiros reais. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
+        'A candidatura Sandbox simula o processo completo: dados do negócio, do representante e documentos. Deve utilizar apenas dados fictícios: não introduza NIF, nome, contactos ou documentos reais (ver Política de Privacidade). Os documentos do fluxo são exclusivamente documentos sintéticos de teste fornecidos pela Banzami; não são carregados ficheiros reais. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
         'The Sandbox application rehearses the full process: business details, representative and documents. You must use fictitious data only: do not enter real tax IDs, names, contacts or documents (see the Privacy Policy). The documents in the flow are exclusively synthetic test documents provided by Banzami; no real files are uploaded. Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
       ),
     ],
@@ -215,11 +215,11 @@ export const TERMS_SECTIONS: LegalSection[] = [
     id: 'propriedade', n: '13', title: { pt: 'Propriedade intelectual e licença', en: 'Intellectual property and licence' },
     body: [
       p(
-        'O Banzami, as suas marcas, o software, a documentação e o conteúdo são protegidos por direitos de propriedade intelectual. Concedemos-lhe uma licença limitada, pessoal, revogável e não transferível para utilizar os serviços no âmbito destes Termos.',
+        'A Banzami, as suas marcas, o software, a documentação e o conteúdo são protegidos por direitos de propriedade intelectual. Concedemos-lhe uma licença limitada, pessoal, revogável e não transferível para utilizar os serviços no âmbito destes Termos.',
         'Banzami, its trademarks, software, documentation and content are protected by intellectual property rights. We grant you a limited, personal, revocable and non-transferable licence to use the services within these Terms.',
       ),
       p(
-        'Não adquire quaisquer direitos sobre o Banzami além da licença de utilização aqui prevista.',
+        'Não adquire quaisquer direitos sobre a Banzami além da licença de utilização aqui prevista.',
         'You acquire no rights over Banzami beyond the licence to use granted here.',
       ),
     ],
@@ -321,7 +321,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'responsavel', n: '01', title: { pt: 'Responsável pelo tratamento', en: 'Data controller' },
     body: [
       p(
-        `${OPERATOR_NAME} («Banzami»), NIF ${OPERATOR_NIF}, com sede na ${OPERATOR_ADDRESS.pt}, é o responsável pelo tratamento dos dados pessoais recolhidos através da app Banzami, do Banzami Business, da plataforma para developers e do website. Contacto para questões de privacidade e para exercer os seus direitos: ${OPERATOR_CONTACT}.`,
+        `${OPERATOR_NAME} («Banzami»), NIF ${OPERATOR_NIF}, com sede na ${OPERATOR_ADDRESS.pt}, é o responsável pelo tratamento dos dados pessoais recolhidos através da app Banzami, da Banzami Business, da plataforma para developers e do website. Contacto para questões de privacidade e para exercer os seus direitos: ${OPERATOR_CONTACT}.`,
         `${OPERATOR_NAME} ("Banzami"), tax number (NIF) ${OPERATOR_NIF}, with registered office at ${OPERATOR_ADDRESS.en}, is the controller of the personal data collected through the Banzami app, Banzami Business, the developer platform and the website. Contact for privacy questions and to exercise your rights: ${OPERATOR_CONTACT}.`,
       ),
     ],
@@ -366,7 +366,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
         'The Business application in the Sandbox rehearses the full process and records what you enter: business name, requested @business handle, category, contact email and, in this rehearsal, the representative details (name, role, contacts) and the tax ID (NIF) you provide (plus municipality and description, where useful). These fields are editable: please use fictitious data only and do not enter real personal or third-party data.',
       ),
       p(
-        'O passo de documentos utiliza exclusivamente documentos sintéticos de teste fornecidos pelo Banzami; não são carregados ficheiros reais no acesso Sandbox. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
+        'O passo de documentos utiliza exclusivamente documentos sintéticos de teste fornecidos pela Banzami; não são carregados ficheiros reais no acesso Sandbox. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
         'The documents step uses exclusively synthetic test documents provided by Banzami; no real files are uploaded for Sandbox access. Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
       ),
     ],

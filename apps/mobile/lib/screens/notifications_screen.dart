@@ -33,9 +33,9 @@ class NotificationsScreen extends StatelessWidget {
                 children: const [
                   _InfoCard(
                     icon: Icons.notifications_active_outlined,
-                    title: 'Notificações do Banzami',
+                    title: 'Notificações da Banzami',
                     body:
-                        'O Banzami envia notificações sobre a sua conta e as suas '
+                        'A Banzami envia notificações sobre a sua conta e as suas '
                         'transações — por exemplo, quando recebe um pagamento.',
                   ),
                   SizedBox(height: BanzamiSpacing.md),

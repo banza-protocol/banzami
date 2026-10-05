@@ -130,7 +130,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
               icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 8l-4 4 4 4M15.5 8l4 4-4 4"/></svg>}
               title="Para developers"
               meta="API · SDK · Webhooks"
-              body="Integre o Banzami no seu produto e comece a testar hoje."
+              body="Integre a Banzami no seu produto e comece a testar hoje."
               link={{ label: 'Portal Developers', href: DEVELOPERS_URL }}
             />
           </div>

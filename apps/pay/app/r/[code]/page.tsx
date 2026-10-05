@@ -12,7 +12,7 @@ interface Props {
 export function generateMetadata(): Metadata {
   return {
     title:       'Pedido de pagamento — Banzami',
-    description: 'Pague de forma rápida e segura com o Banzami.',
+    description: 'Pague de forma rápida e segura com a Banzami.',
   };
 }
 

@@ -108,7 +108,7 @@
       <!-- VERIFICATION NOTE -->
       <div class="note">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#9A1B22" stroke-width="1.7" stroke-linejoin="round"></path><path d="M9 11.5l2 2 4-4" stroke="#9A1B22" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-        <div style="font-size:13px;line-height:1.55;font-weight:600;color:#7a5a5e"><strong style="color:#9A1B22">Este documento não é a fonte da verdade.</strong> {{if .Verifiable}}Digitalize o código QR para verificar a autenticidade deste comprovativo. Não confie apenas em PDFs ou capturas de ecrã. Registado no ledger de dupla entrada do Banzami (imutável e auditável); confirme em <a class="mono" style="font-weight:800;color:#9A1B22" href="{{.VerifyURL}}">{{.VerifyShort}}</a>.{{else}}Não confie apenas em PDFs ou capturas de ecrã. O movimento está registado no ledger de dupla entrada do Banzami (imutável e auditável). Este comprovativo não tem referência de verificação: peça-a ao Banzami se precisar de a confirmar.{{end}}</div>
+        <div style="font-size:13px;line-height:1.55;font-weight:600;color:#7a5a5e"><strong style="color:#9A1B22">Este documento não é a fonte da verdade.</strong> {{if .Verifiable}}Digitalize o código QR para verificar a autenticidade deste comprovativo. Não confie apenas em PDFs ou capturas de ecrã. Registado no ledger de dupla entrada da Banzami (imutável e auditável); confirme em <a class="mono" style="font-weight:800;color:#9A1B22" href="{{.VerifyURL}}">{{.VerifyShort}}</a>.{{else}}Não confie apenas em PDFs ou capturas de ecrã. O movimento está registado no ledger de dupla entrada da Banzami (imutável e auditável). Este comprovativo não tem referência de verificação: peça-a à Banzami se precisar de a confirmar.{{end}}</div>
       </div>
 
       <div style="flex:1"></div>
@@ -116,7 +116,7 @@
       <!-- FOOTER -->
       <div class="footer">
         {{if .IsSandbox}}<p style="margin:0 0 10px;font-size:11.5px;font-weight:800;color:#B5101F">SANDBOX · Ambiente de testes — sem valor financeiro real.</p>{{end}}
-        <p style="margin:0 0 12px;font-size:11.5px;line-height:1.6;font-weight:600;color:#a8979b">{{.FooterLine}} Este documento serve como comprovativo da transação e dispensa o envio de capturas de ecrã. O Banzami é construído sobre o protocolo aberto BANZA.</p>
+        <p style="margin:0 0 12px;font-size:11.5px;line-height:1.6;font-weight:600;color:#a8979b">{{.FooterLine}} Este documento serve como comprovativo da transação e dispensa o envio de capturas de ecrã. A Banzami é construída sobre o protocolo aberto BANZA.</p>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
           <div style="font-size:12.5px;font-weight:800;color:#221c1e">Banzami</div>
           <div class="mono" style="font-size:12.5px;font-weight:600;color:#9a8a8e"><a href="mailto:contact@banzami.com">contact@banzami.com</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://banzami.com">banzami.com</a></div>

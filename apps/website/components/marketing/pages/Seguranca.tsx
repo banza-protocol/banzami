@@ -146,10 +146,10 @@ const T = {
   // honesty
   honestTitle: L('O que não afirmamos', 'What we do not claim'),
   honestText: L(
-    'O Banzami não afirma licenças, certificações ou aprovações regulatórias que não tenha. As operações com dinheiro real permanecem indisponíveis, sujeitas às aprovações aplicáveis.',
+    'A Banzami não afirma licenças, certificações ou aprovações regulatórias que não tenha. As operações com dinheiro real permanecem indisponíveis, sujeitas às aprovações aplicáveis.',
     'Banzami does not claim licences, certifications or regulatory approvals it does not have. Real-money operations remain unavailable, subject to the applicable approvals.',
   ),
-  aboutCta: L('Sobre o Banzami', 'About Banzami'),
+  aboutCta: L('Sobre a Banzami', 'About Banzami'),
 };
 
 const MAILTO = 'mailto:security@banzami.com?subject=Vulnerabilidade%20%E2%80%94%20Banzami';

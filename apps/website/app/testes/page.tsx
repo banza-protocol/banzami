@@ -5,7 +5,7 @@ import { TestesPage } from '@/components/marketing/pages/Testes';
 export const metadata: Metadata = {
   title: { absolute: 'Programa Beta · Banzami' },
   description:
-    'Inscreva-se no Programa Beta do Banzami: Beta Web, iPhone (TestFlight) e Android, na Sandbox.',
+    'Inscreva-se no Programa Beta da Banzami: Beta Web, iPhone (TestFlight) e Android, na Sandbox.',
   alternates: {
     canonical: 'https://banzami.com/testes',
     languages: { en: 'https://banzami.com/en/testes' },

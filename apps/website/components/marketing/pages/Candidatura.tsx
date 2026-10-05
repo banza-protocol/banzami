@@ -40,7 +40,7 @@ const T = {
   pt: {
     badge: 'Versão Beta · Sandbox',
     h1a: 'Registar o', h1b: 'negócio.',
-    lead: 'Simule o processo completo de candidatura ao Banzami Business na Sandbox, com dados e documentos de teste.',
+    lead: 'Simule o processo completo de candidatura à Banzami Business na Sandbox, com dados e documentos de teste.',
     smallPre: 'Já enviou? ', smallLink: 'Consulte o estado da candidatura', smallPost: '.',
     steps: ['Negócio', 'Responsável', 'Documentos', 'Confirmar'],
     of: (n: number) => `PASSO ${n} DE 4`,
