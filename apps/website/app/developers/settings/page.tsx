@@ -107,7 +107,7 @@ function ProjectSettings() {
           no seletor da barra lateral.
         </p>
         <p style={{ margin: '12px 0 0', fontSize: 14, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
-          Para gerir a equipa, sair do workspace ou encerrá-lo — incluindo um workspace sem projetos —
+          Para gerir a equipa, sair do workspace ou encerrá-lo (incluindo um workspace sem projetos)
           abra{' '}
           <Link href="/settings/workspace" style={{ color: '#B5101F', fontWeight: 800 }}>
             Definições do workspace
@@ -189,14 +189,14 @@ function ProjectSettings() {
             <FieldValue>{utcStamp(activeProject.created_at)}</FieldValue>
           </Field>
           <Field label="WORKSPACE">
-            <FieldValue>{activeWs?.name ?? '—'}</FieldValue>
+            <FieldValue>{activeWs?.name ?? 'n/d'}</FieldValue>
           </Field>
         </div>
 
         <p style={NOTE}>
           O ID do projeto <strong>não muda quando renomeia o projeto</strong>. É o que a API usa para
           atribuir chaves, webhooks e registos, e alterá-lo separaria o projeto do seu próprio
-          histórico — por isso é fixo. O nome é só um rótulo.
+          histórico, por isso é fixo. O nome é só um rótulo.
         </p>
       </Card>
 
@@ -261,7 +261,7 @@ function ProjectSettings() {
           body="Arquivar retira a este projeto toda a autoridade e mantém todo o histórico. Não é possível reabri-lo a partir da consola."
           consequence={
             <>
-              Todas as chaves ativas deixam de funcionar no momento em que confirmar — qualquer
+              Todas as chaves ativas deixam de funcionar no momento em que confirmar. Qualquer
               integração que as use passa a receber 401.{' '}
               {f ? footprintSentence(f) : 'Não foi possível ler o que este projeto contém.'}
             </>

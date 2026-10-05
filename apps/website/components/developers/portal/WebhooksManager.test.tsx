@@ -326,7 +326,7 @@ describe('reenviar uma entrega', () => {
     expect(within(dialog()).getByText(endpoint.url)).toBeTruthy();
     // The same delivery goes back in the queue; no second delivery is created,
     // and the copy must not say one is.
-    expect(within(dialog()).getByText(/não é criada uma entrega nova/)).toBeTruthy();
+    expect(within(dialog()).getByText(/Não é criada uma entrega nova/)).toBeTruthy();
 
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Reenviar' }));
     await waitFor(() =>

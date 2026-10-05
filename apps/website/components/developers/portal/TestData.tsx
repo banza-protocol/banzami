@@ -41,7 +41,7 @@ function responseError(status: number, body: unknown): string {
     PAYMENTS_UNAVAILABLE: 'Configure a Sandbox primeiro, em Configuração financeira.',
     PAYMENT_DECLINED: 'Simulação: o rail externo recusou. Nada se moveu.',
     PROVIDER_UNAVAILABLE: 'O rail externo de que este pagamento precisa está indisponível (simulação). Nada se moveu. Um pagamento sem simulação, a partir da carteira, continua a funcionar.',
-    SANDBOX_SIMULATED_TIMEOUT: 'Simulação: sem resposta a tempo. O pagamento foi feito — repita com a mesma chave para ler o resultado.',
+    SANDBOX_SIMULATED_TIMEOUT: 'Simulação: sem resposta a tempo. O pagamento foi feito. Repita com a mesma chave para ler o resultado.',
     LINK_ALREADY_PAID: 'Este link já foi pago.',
     LINK_NOT_ACTIVE: 'O link já não está ativo.',
   };
@@ -116,13 +116,13 @@ export function TestData() {
       const r = await run('payAsTestPayer', { path_params: { id: pay.id }, body, idempotency_key: pay.key });
       if (r.status === 202) {
         const d = r.body as { completes_after_seconds?: number };
-        setNotice(`Aceite, ainda pendente (simulação). O pagamento conclui-se sozinho dentro de cerca de ${d.completes_after_seconds ?? 10} segundos — veja-o chegar em Webhooks ou em Transações.`);
+        setNotice(`Aceite, ainda pendente (simulação). O pagamento conclui-se sozinho dentro de cerca de ${d.completes_after_seconds ?? 10} segundos. Veja-o chegar em Webhooks ou em Transações.`);
         setPay(null);
         return;
       }
       if (r.status !== 200) { setError(responseError(r.status, r.body)); return; }
       const t = r.body as { transfer_id?: string; proof_reference?: string | null };
-      setNotice(`Pago. Transferência ${t.transfer_id ?? '—'}${t.proof_reference ? ` · comprovativo ${t.proof_reference}` : ''}.`);
+      setNotice(`Pago. Transferência ${t.transfer_id ?? 'n/d'}${t.proof_reference ? ` · comprovativo ${t.proof_reference}` : ''}.`);
       setPay(null);
       await load();
     } catch (e) { setError(explorerRefusal(e)); }
@@ -174,7 +174,7 @@ export function TestData() {
           </label>
           <button type="button" data-testid="create-payer" onClick={() => void create()} disabled={busy} style={primaryButton(busy)}>Criar pagador</button>
         </div>
-        <p style={FIELD_HINT}>Começa com 10 000 Kz fictícios. Até 10 pagadores ativos por projeto. Um pagador de teste paga só pela API deste projeto, às sessões e links do seu negócio — não entra em nenhuma app.</p>
+        <p style={FIELD_HINT}>Começa com 10 000 Kz fictícios. Até 10 pagadores ativos por projeto. Um pagador de teste paga só pela API deste projeto, às sessões e links do seu negócio; não entra em nenhuma app.</p>
 
 
         {payers === null ? (
@@ -249,14 +249,14 @@ export function TestData() {
             <label style={{ display: 'block', marginTop: 10 }}>
               <span style={FIELD_LABEL}>Pagamento que atravessa um rail externo (simulação)</span>
               <select style={FIELD_INPUT} value={pay.simulate} onChange={(e) => setPay({ ...pay, simulate: e.target.value })}>
-                <option value="">Nenhuma — pagar a partir da carteira</option>
+                <option value="">Nenhuma (pagar a partir da carteira)</option>
                 <option value="DECLINED">Simular recusa (DECLINED)</option>
                 <option value="PROVIDER_UNAVAILABLE">Simular fornecedor indisponível</option>
                 <option value="TIMEOUT">Simular sem resposta (TIMEOUT)</option>
                 <option value="DELAYED">Simular conclusão tardia (DELAYED)</option>
               </select>
             </label>
-            <p style={FIELD_HINT}>Idempotency-Key: <code style={{ fontFamily: mono }}>{pay.key}</code> — repetir com a mesma chave não paga duas vezes.</p>
+            <p style={FIELD_HINT}>Idempotency-Key: <code style={{ fontFamily: mono }}>{pay.key}</code>. Repetir com a mesma chave não paga duas vezes.</p>
             <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
               <button type="button" onClick={() => void doPay()} disabled={busy || !pay.target.trim()} style={primaryButton(busy || !pay.target.trim())}>Pagar como este pagador</button>
               <button type="button" onClick={() => setPay(null)} style={SECONDARY_BUTTON}>Fechar</button>

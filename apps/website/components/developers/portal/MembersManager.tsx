@@ -93,7 +93,7 @@ function initialsOf(name: string | undefined): string | null {
 /** The same UTC rendering the rest of the Console uses for a server timestamp. */
 function when(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+  return Number.isNaN(d.getTime()) ? 'n/d' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
 }
 
 export function MembersManager() {
@@ -172,7 +172,7 @@ export function MembersManager() {
       // never kept: it goes to the clipboard and the pending list below comes
       // from the server, which does not return one.
       void copyText(`${window.location.origin}/invites/accept?token=${inv.token}`);
-      flash('Convite criado — link copiado');
+      flash('Convite criado. Link copiado');
       await loadMembers();
     } catch (e) {
       flash(onApiError(e));

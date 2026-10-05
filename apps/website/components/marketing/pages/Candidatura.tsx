@@ -64,7 +64,7 @@ const T = {
     l_nif: 'NIF', ph_nif: '500…', hint_nif: 'Número de identificação fiscal do negócio.',
     // step 3 — documentos
     s3t: 'Documentos', s3s: 'Anexe os dois documentos necessários para simular a candidatura.',
-    docWarn: 'Sandbox — utilize apenas documentos de teste. Não envie documentos pessoais ou empresariais reais.',
+    docWarn: 'Sandbox: utilize apenas documentos de teste. Não envie documentos pessoais ou empresariais reais.',
     doc1_t: 'Registo Comercial', doc1_d: 'Documento de registo do negócio.',
     doc2_t: 'Documento de identidade do representante', doc2_d: 'Identificação do representante do negócio.',
     docUseTest: 'Usar documento de teste', docLoaded: 'Documento de teste carregado',
@@ -130,7 +130,7 @@ const T = {
     l_rep_telefone: 'Phone (optional)', ph_rep_telefone: '+244 …',
     l_nif: 'Tax ID (NIF)', ph_nif: '500…', hint_nif: 'The business tax identification number.',
     s3t: 'Documents', s3s: 'Attach the two documents required to simulate the application.',
-    docWarn: 'Sandbox — use test documents only. Do not upload real personal or company documents.',
+    docWarn: 'Sandbox: use test documents only. Do not upload real personal or company documents.',
     doc1_t: 'Business registration', doc1_d: 'The business registration document.',
     doc2_t: 'Representative ID document', doc2_d: 'Identification of the business representative.',
     docUseTest: 'Use test document', docLoaded: 'Test document loaded',

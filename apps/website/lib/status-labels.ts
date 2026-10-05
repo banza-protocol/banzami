@@ -12,7 +12,7 @@ const KYB: Record<string, string> = {
   REJECTED: 'recusada',
   SUSPENDED: 'suspensa',
   // A Sandbox test entity (ADR-060): not verified, and not waiting to be.
-  SANDBOX_SYNTHETIC: 'não aplicável — negócio de teste da Sandbox',
+  SANDBOX_SYNTHETIC: 'não aplicável: negócio de teste da Sandbox',
 };
 
 /** A Business's KYB verification, lower-case to follow "Verificação:". */
@@ -32,7 +32,7 @@ const ACCOUNT_STATUS: Record<string, string> = {
 
 /** A wallet or wallet account's status. */
 export function accountStatusLabel(status: string | null | undefined): string {
-  if (!status) return '—';
+  if (!status) return 'n/d';
   return ACCOUNT_STATUS[status.toUpperCase()] ?? 'Por confirmar';
 }
 
@@ -47,7 +47,7 @@ const PURPOSE: Record<string, string> = {
 
 /** What a wallet account is for. */
 export function accountPurposeLabel(purpose: string | null | undefined): string {
-  if (!purpose) return '—';
+  if (!purpose) return 'n/d';
   return PURPOSE[purpose.toUpperCase()] ?? 'Outro';
 }
 

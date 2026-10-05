@@ -34,7 +34,8 @@ export const VOLUME_FAIXAS: string[] = [
   'Mais de 10.000.000 Kz',
 ];
 
-/** A volume band as a person reads it: "100.000 – 500.000 Kz" → "100 000 – 500 000 Kz". */
+/** A volume band as a person reads it: dotted thousands become spaced, and the
+ *  stored range separator reads as "a" (e.g. the stored band shows "100 000 a 500 000 Kz"). */
 export function volumeFaixaLabel(value: string): string {
-  return value.replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1 ');
+  return value.replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1 ').replace(/ – /g, ' a ');
 }

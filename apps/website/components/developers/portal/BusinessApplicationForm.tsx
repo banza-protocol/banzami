@@ -197,7 +197,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '7px 0', borderBottom: '1px solid #F3EDEC', fontSize: 13.5 }}>
       <dt style={{ color: '#8a7a7e', fontWeight: 700 }}>{label}</dt>
-      <dd style={{ margin: 0, fontWeight: 800, color: '#2a2024', textAlign: 'right', wordBreak: 'break-word' }}>{value || '—'}</dd>
+      <dd style={{ margin: 0, fontWeight: 800, color: '#2a2024', textAlign: 'right', wordBreak: 'break-word' }}>{value || 'n/d'}</dd>
     </div>
   );
 }
@@ -284,8 +284,8 @@ export function BusinessApplicationForm({
     email: missing('email') ? 'Indique o email do negócio.' : f.email.trim() && !isEmail(f.email) ? 'Email inválido.' : null,
     phone: missing('phone')
       ? 'Indique o telefone do negócio.'
-      : f.phone.trim() && !isAngolanPhone(f.phone) ? 'Telefone inválido — 9 dígitos (ex: 923 456 789).' : null,
-    nif: missing('nif') ? 'Indique o NIF da empresa.' : f.nif.trim() && !isNif(f.nif) ? 'NIF inválido — apenas dígitos (9 a 14).' : null,
+      : f.phone.trim() && !isAngolanPhone(f.phone) ? 'Telefone inválido: 9 dígitos (ex: 923 456 789).' : null,
+    nif: missing('nif') ? 'Indique o NIF da empresa.' : f.nif.trim() && !isNif(f.nif) ? 'NIF inválido: apenas dígitos (9 a 14).' : null,
     province: missing('province') ? 'Selecione a província.' : null,
     municipality: missing('municipality') ? 'Selecione o município.' : null,
     city: missing('city') ? 'Indique a cidade, bairro ou zona.' : null,
@@ -294,7 +294,7 @@ export function BusinessApplicationForm({
     representative_role: missing('representative_role') ? 'Selecione o cargo do responsável.' : null,
     representative_email: f.representative_email.trim() && !isEmail(f.representative_email) ? 'Email inválido.' : null,
     representative_phone: f.representative_phone.trim() && !isAngolanPhone(f.representative_phone)
-      ? 'Telefone inválido — 9 dígitos (ex: 923 456 789).' : null,
+      ? 'Telefone inválido: 9 dígitos (ex: 923 456 789).' : null,
     desired_handle: !handleClean
       ? 'Escolha o @banza do negócio.'
       : handle.k === 'available' ? null

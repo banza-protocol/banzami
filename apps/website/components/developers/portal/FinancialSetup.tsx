@@ -150,14 +150,14 @@ export function FinancialReadinessPanel({
     return (
       <Card style={{ padding: 20, marginBottom: 16 }}>
         <p style={{ margin: 0, fontSize: 13.5, color: '#8a7a7e', fontWeight: 700 }}>
-          Não foi possível ler a prontidão para liquidação agora. Isto não significa que falte configuração — tente mais tarde.
+          Não foi possível ler a prontidão para liquidação agora. Isto não significa que falte configuração; tente mais tarde.
         </p>
       </Card>
     );
   }
   const r: ProjectReadiness = setup.readiness;
   const fd = r.fee_destination;
-  const bps = (v: number | null) => (v === null ? '—' : `${(v / 100).toLocaleString('pt-PT')}%`);
+  const bps = (v: number | null) => (v === null ? 'n/d' : `${(v / 100).toLocaleString('pt-PT')}%`);
   return (
     <Card style={{ padding: 22, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
@@ -173,10 +173,10 @@ export function FinancialReadinessPanel({
         </span>
       </div>
       <div style={{ marginTop: 12 }}>
-        <Row label="Identidade financeira" value={r.financial_identity.handle ?? '—'} />
+        <Row label="Identidade financeira" value={r.financial_identity.handle ?? 'n/d'} />
         <Row
           label="Verificação (KYB)"
-          value={r.kyb.status ? capitalised(kybStatusLabel(r.kyb.status)) : '—'}
+          value={r.kyb.status ? capitalised(kybStatusLabel(r.kyb.status)) : 'n/d'}
           ok={r.kyb.status === 'SANDBOX_SYNTHETIC' ? undefined : r.kyb.status === 'APPROVED'}
         />
         <Row label="Carteira" value={`${accountStatusLabel(r.wallet.status)} · ${r.wallet.currency}`} ok={r.wallet.ready} />
@@ -184,7 +184,7 @@ export function FinancialReadinessPanel({
         <Row label="Taxa de liquidação · levantamento" value={`${bps(r.pricing.settlement_bps)} · ${bps(r.pricing.payout_bps)}`} />
         <Row
           label="Destino da taxa"
-          value={fd.required ? `${fd.handle ?? '—'} · ${fd.eligible ? 'elegível' : 'não elegível'}` : 'Não necessário (sem taxa)'}
+          value={fd.required ? `${fd.handle ?? 'n/d'} · ${fd.eligible ? 'elegível' : 'não elegível'}` : 'Não necessário (sem taxa)'}
           ok={fd.required ? fd.eligible : undefined}
         />
       </div>

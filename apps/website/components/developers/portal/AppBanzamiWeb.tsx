@@ -52,7 +52,7 @@ export function AppBanzamiWeb() {
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#2a2024' }}>Testar o lado do consumidor</h2>
             <p style={{ margin: '7px 0 0', fontSize: 14, fontWeight: 600, lineHeight: 1.55, color: '#5a4a4e' }}>
               Use uma conta Banzami Sandbox para pagar sessões, abrir links, usar QR e acompanhar
-              transferências com dinheiro fictício. É a App Banzami real — o mesmo cliente que os seus
+              transferências com dinheiro fictício. É a App Banzami real, o mesmo cliente que os seus
               utilizadores usarão.
             </p>
             <a
@@ -106,7 +106,7 @@ export function AppBanzamiWeb() {
         <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#6a5a5e', lineHeight: 1.6 }}>
           A App Banzami Web opera em <b>Sandbox</b>: o dinheiro é fictício e as operações com dinheiro real estão indisponíveis.
           A sua conta de <b>developer</b> (workspace, projeto, chaves) e a conta de <b>consumidor</b> (@banza,
-          carteira) são identidades separadas — abrir a App não o autentica como consumidor.
+          carteira) são identidades separadas; abrir a App não o autentica como consumidor.
         </p>
         <p style={{ margin: '10px 0 0', fontSize: 12.5, fontWeight: 600, color: '#8a7a7e', lineHeight: 1.55 }}>
           Prefere o <b>checkout hospedado</b>? Ao criar uma Payment Session ou Payment Link no{' '}
@@ -115,7 +115,7 @@ export function AppBanzamiWeb() {
         </p>
         <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12.5, fontWeight: 700 }}>
           <Link href="/docs/payments" style={{ color: '#B5101F', textDecoration: 'none' }}>Testar com a App Banzami Web →</Link>
-          <span style={{ color: '#a59699' }}>Nativo (secundário): iPhone · TestFlight — Android · Google Play testing</span>
+          <span style={{ color: '#a59699' }}>Nativo (secundário): iPhone · TestFlight; Android · Google Play testing</span>
         </div>
       </div>
     </div>

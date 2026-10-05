@@ -218,7 +218,7 @@ function Transactions() {
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 700 }}>{TYPE_LABEL[t.type] ?? t.type}</td>
                       <td style={{ padding: '12px 16px', fontFamily: mono, fontSize: 12, color: '#8a7a7e', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {merchantReference(t) ?? '—'}
+                        {merchantReference(t) ?? 'n/d'}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
                         {money(t.amount_minor, t.currency)}
@@ -265,7 +265,7 @@ function Transactions() {
                             )}
                           </div>
                         ) : (
-                          <span style={{ fontSize: 12, color: '#b9a9ad' }}>—</span>
+                          <span style={{ fontSize: 12, color: '#b9a9ad' }}>n/d</span>
                         )}
                       </td>
                       {canRefund && (
@@ -316,7 +316,7 @@ export default function TransacoesPage() {
       <div className="bz-view">
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Transações</h1>
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
-          Pagamentos, reembolsos e transferências entre contas do negócio ligado a este projeto — de
+          Pagamentos, reembolsos e transferências entre contas do negócio ligado a este projeto, de
           todo o negócio, não só as que este projeto iniciou. Os pedidos à API que
           não movem dinheiro estão em Registos.
         </p>

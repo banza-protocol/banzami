@@ -4,7 +4,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { ComerciantesActivarPage } from '@/components/marketing/pages/ComerciantesActivar';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Ativar o negócio — Banzami Business' },
+  title: { absolute: 'Ativar o negócio · Banzami Business' },
   description: 'Conclua a ativação do seu negócio no Banzami Business.',
   alternates: {
     canonical: 'https://banzami.com/comerciantes/activar',
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Business activation (accepts ?codigo=) — rebuilt from handoff_site_completo.
+// Business activation (accepts ?codigo=) · rebuilt from handoff_site_completo.
 export default function Page() {
   return (
     <SiteShell lang="pt" current="activar">

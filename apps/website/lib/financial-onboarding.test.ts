@@ -46,15 +46,15 @@ describe('onboardingViewOf', () => {
       ...base, state: 'READY', readiness: null, readiness_unavailable: true,
       onboarding: { state: 'READY', can_act: false, blockers: [] },
     })).toBe('READINESS_UNKNOWN');
-    expect(onboardingHeading('READINESS_UNKNOWN')).toBe('Configuração financeira — Estado por confirmar');
+    expect(onboardingHeading('READINESS_UNKNOWN')).toBe('Configuração financeira: Estado por confirmar');
   });
 });
 
 describe('headings', () => {
   it('say where the Project stands', () => {
-    expect(onboardingHeading('NOT_CONFIGURED')).toBe('Configuração financeira — Não configurado');
-    expect(onboardingHeading('IN_REVIEW')).toBe('Configuração financeira — Em análise');
-    expect(onboardingHeading('APPROVED_PROVISIONING')).toBe('Aprovado — a concluir a configuração');
+    expect(onboardingHeading('NOT_CONFIGURED')).toBe('Configuração financeira: Não configurado');
+    expect(onboardingHeading('IN_REVIEW')).toBe('Configuração financeira: Em análise');
+    expect(onboardingHeading('APPROVED_PROVISIONING')).toBe('Aprovado, a concluir a configuração');
   });
 });
 

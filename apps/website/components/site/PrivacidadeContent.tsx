@@ -13,14 +13,14 @@ type Lang = 'pt' | 'en';
 
 const COPY = {
   pt: {
-    title: 'Privacidade — programa de testers',
+    title: 'Privacidade: programa de testers',
     updated: 'Última atualização: 16 de setembro de 2026',
     intro:
       'Esta nota explica os dados que recolhemos quando se inscreve para testar as apps do Banzami (App Banzami e App Banzami Business) e como os tratamos.',
     sections: [
       {
         h: 'O que recolhemos',
-        p: 'O seu primeiro e último nome, o e-mail que usa na App Store ou Google Play, e as aplicações e plataformas que pretende testar. Opcionalmente, o modelo do aparelho, a versão do sistema e o país — só se os indicar, para nos ajudar a cobrir mais aparelhos. Não pedimos palavras-passe nem credenciais da Apple ou da Google.',
+        p: 'O seu primeiro e último nome, o e-mail que usa na App Store ou Google Play, e as aplicações e plataformas que pretende testar. Opcionalmente, o modelo do aparelho, a versão do sistema e o país, só se os indicar, para nos ajudar a cobrir mais aparelhos. Não pedimos palavras-passe nem credenciais da Apple ou da Google.',
       },
       {
         h: 'Para que usamos',
@@ -40,7 +40,7 @@ const COPY = {
       },
       {
         h: 'A sua identidade na app',
-        p: 'Na App Banzami, o @banza é o identificador público da sua carteira — é o que as pessoas veem quando lhe pagam. O nome completo que indica ao criar a conta serve apenas para mostrar quem é junto do @banza: não é único, não é uma verificação de identidade e não é publicado como uma lista pesquisável. Nesta fase de Sandbox e testes, funções de proteção do ecrã da app — como ocultar o conteúdo ao alternar de aplicação, bloquear capturas de ecrã ou voltar a pedir o PIN em primeiro plano — estão desativadas.',
+        p: 'Na App Banzami, o @banza é o identificador público da sua carteira: é o que as pessoas veem quando lhe pagam. O nome completo que indica ao criar a conta serve apenas para mostrar quem é junto do @banza: não é único, não é uma verificação de identidade e não é publicado como uma lista pesquisável. Nesta fase de Sandbox e testes, funções de proteção do ecrã da app (como ocultar o conteúdo ao alternar de aplicação, bloquear capturas de ecrã ou voltar a pedir o PIN em primeiro plano) estão desativadas.',
       },
       {
         h: 'Os seus direitos',
@@ -52,14 +52,14 @@ const COPY = {
     langSwitch: 'Switch to English',
   },
   en: {
-    title: 'Privacy — tester programme',
+    title: 'Privacy: tester programme',
     updated: 'Last updated: 16 September 2026',
     intro:
       'This note explains the data we collect when you register to test the Banzami apps (App Banzami and App Banzami Business) and how we handle it.',
     sections: [
       {
         h: 'What we collect',
-        p: 'Your first and last name, the email you use on the App Store or Google Play, and the apps and platforms you want to test. Optionally, your device model, OS version and country — only if you provide them, to help us cover more devices. We never ask for passwords or Apple/Google credentials.',
+        p: 'Your first and last name, the email you use on the App Store or Google Play, and the apps and platforms you want to test. Optionally, your device model, OS version and country, only if you provide them, to help us cover more devices. We never ask for passwords or Apple/Google credentials.',
       },
       {
         h: 'What we use it for',
@@ -79,7 +79,7 @@ const COPY = {
       },
       {
         h: 'Your identity in the app',
-        p: 'In the App Banzami, your @banza is the public identifier of your wallet — it is what people see when they pay you. The full name you give when creating the account is only shown next to the @banza to say who you are: it is not unique, it is not an identity verification, and it is not published as a searchable list. In this Sandbox and testing phase, app screen-protection features — such as hiding content when switching apps, blocking screenshots, or asking for the PIN again on foreground — are disabled.',
+        p: 'In the App Banzami, your @banza is the public identifier of your wallet: it is what people see when they pay you. The full name you give when creating the account is only shown next to the @banza to say who you are: it is not unique, it is not an identity verification, and it is not published as a searchable list. In this Sandbox and testing phase, app screen-protection features (such as hiding content when switching apps, blocking screenshots, or asking for the PIN again on foreground) are disabled.',
       },
       {
         h: 'Your rights',

@@ -164,7 +164,7 @@ const SDK_ROWS: SdkRow[] = [
     const m = SDK_META[p.name] ?? { lang: '', badge: L('Publicado', 'Published'), badgeBg: '#E3F4EA', badgeColor: '#1E8E4E' };
     return { pkg: p.name, lang: m.lang, published: true, badge: m.badge, badgeBg: m.badgeBg, badgeColor: m.badgeColor, install: p.install };
   }),
-  ...UNPUBLISHED_FAMILIES.map((u): SdkRow => ({ pkg: u.pkg, lang: u.lang, published: false, badge: L('Não publicado', 'Not published'), badgeBg: '#F4EFEE', badgeColor: '#8a7a7e', install: '—' })),
+  ...UNPUBLISHED_FAMILIES.map((u): SdkRow => ({ pkg: u.pkg, lang: u.lang, published: false, badge: L('Não publicado', 'Not published'), badgeBg: '#F4EFEE', badgeColor: '#8a7a7e', install: '' })),
 ];
 
 const th: React.CSSProperties = { textAlign: 'left', padding: '14px 18px', fontSize: '11px', fontWeight: 900, letterSpacing: '.14em', color: '#9a8487', borderBottom: '1px solid #F3E3E1', background: '#FFFBFA' };

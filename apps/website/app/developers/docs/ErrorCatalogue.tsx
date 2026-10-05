@@ -48,7 +48,7 @@ const RETRY: Record<Entry['retry'], Record<Lang, string>> = {
 const KEY: Record<Entry['idempotency_key'], Record<Lang, string>> = {
   new: { pt: 'nova', en: 'new' },
   same: { pt: 'a mesma', en: 'the same' },
-  'n/a': { pt: '—', en: '—' },
+  'n/a': { pt: 'n/d', en: 'n/a' },
 };
 
 const th: React.CSSProperties = { padding: '8px 10px', fontSize: 11.5, fontWeight: 650, color: '#6f6468', textAlign: 'left', borderBottom: '1px solid #E2D9DA', background: '#FAF7F7', whiteSpace: 'nowrap' };
@@ -80,7 +80,7 @@ export const HTTP_CLASSES: { status: string; meaning: Record<Lang, string>; acti
   { status: '400', meaning: { pt: 'O pedido está mal formado ou um campo é inválido.', en: 'The request is malformed or a field is invalid.' }, action: { pt: 'Corrija o campo que a mensagem nomeia.', en: 'Fix the field the message names.' }, retry: 'after_change', key: 'new' },
   { status: '401', meaning: { pt: 'A chave falta, está revogada ou não é Sandbox.', en: 'The key is missing, revoked or not a Sandbox key.' }, action: { pt: 'Use uma chave ativa; confirme com GET /v1/me.', en: 'Use an active key; confirm with GET /v1/me.' }, retry: 'after_change', key: 'n/a' },
   { status: '403', meaning: { pt: 'A chave não pode fazer isto: falta um scope, ou o projeto não está pronto.', en: 'The key may not do this: a scope is missing, or the Project is not ready.' }, action: { pt: 'Leia o código: INSUFFICIENT_SCOPE pede outra chave; PAYMENTS_UNAVAILABLE pede a configuração financeira.', en: 'Read the code: INSUFFICIENT_SCOPE needs another key; PAYMENTS_UNAVAILABLE needs financial setup.' }, retry: 'after_change', key: 'n/a' },
-  { status: '404', meaning: { pt: 'Não existe — ou é de outro projeto. As duas respostas são iguais de propósito.', en: 'It does not exist — or belongs to another Project. The two answers are the same on purpose.' }, action: { pt: 'Confirme o id e a chave do projeto que o criou.', en: 'Check the id and the key of the Project that created it.' }, retry: 'no', key: 'n/a' },
+  { status: '404', meaning: { pt: 'Não existe ou é de outro projeto. As duas respostas são iguais de propósito.', en: 'It does not exist or belongs to another Project. The two answers are the same on purpose.' }, action: { pt: 'Confirme o id e a chave do projeto que o criou.', en: 'Check the id and the key of the Project that created it.' }, retry: 'no', key: 'n/a' },
   { status: '409', meaning: { pt: 'Conflito: a mesma chave de idempotência noutro pedido, um pedido ainda em curso, ou o estado mudou.', en: 'Conflict: the same idempotency key on another request, a request still in flight, or the state changed.' }, action: { pt: 'IDEMPOTENCY_CONFLICT: espere e repita com a mesma chave. KEY_REUSED: é outro pedido, use outra chave.', en: 'IDEMPOTENCY_CONFLICT: wait and retry with the same key. KEY_REUSED: it is another request, use another key.' }, retry: 'after_change', key: 'same' },
   { status: '410', meaning: { pt: 'A rota foi retirada.', en: 'The route was retired.' }, action: { pt: 'Use a rota que a mensagem indica.', en: 'Use the route the message names.' }, retry: 'no', key: 'n/a' },
   { status: '422', meaning: { pt: 'O pedido está bem formado, mas o estado não o permite: saldo, limite, elegibilidade.', en: 'The request is well formed, but the state does not allow it: balance, limit, eligibility.' }, action: { pt: 'Nada aconteceu. Resolva a condição que o código nomeia e repita com uma chave nova.', en: 'Nothing happened. Resolve the condition the code names and retry with a new key.' }, retry: 'after_change', key: 'new' },
@@ -159,7 +159,7 @@ export function ErrorCatalogue({ lang }: { lang: Lang }) {
       <p aria-live="polite" style={{ margin: '0 0 12px', fontSize: 12.5, color: MUT, fontWeight: 700 }}>
         {t(`${shown} de ${ERROR_CATALOGUE.length} códigos`, `${shown} of ${ERROR_CATALOGUE.length} codes`)}
         {' · '}
-        {t('Em todos: guarde o request_id da resposta — é por ele que encontra o pedido nos Registos e que o suporte o segue.', 'For all of them: keep the response’s request_id — it finds the request in Logs, and it is what support follows.')}
+        {t('Em todos: guarde o request_id da resposta: é por ele que encontra o pedido nos Registos e que o suporte o segue.', 'For all of them: keep the response’s request_id: it finds the request in Logs, and it is what support follows.')}
       </p>
       {FAMILIES.map((f) => {
         const rows = ERROR_CATALOGUE.filter((e) => e.family === f.id);

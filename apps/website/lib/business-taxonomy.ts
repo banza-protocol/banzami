@@ -176,7 +176,7 @@ export const BUSINESS_TAXONOMY: BusinessCategoryDef[] = [
     subcategories: ['Serviço público', 'Autarquia', 'Taxa / licença'],
     businessCategory: 'government',
     pricingCategory: 'MERCHANT_PAYMENT',
-    riskHint: 'Entidade pública — validar mandato.',
+    riskHint: 'Entidade pública: validar mandato.',
     examples: ['Autarquia', 'Serviço de licenças'],
   },
   {
@@ -195,7 +195,7 @@ export const BUSINESS_TAXONOMY: BusinessCategoryDef[] = [
     subcategories: [],
     businessCategory: 'other',
     pricingCategory: 'MERCHANT_PAYMENT',
-    riskHint: 'Fallback — rever manualmente antes de ativar.',
+    riskHint: 'Fallback: rever manualmente antes de ativar.',
     examples: [],
   },
 ];

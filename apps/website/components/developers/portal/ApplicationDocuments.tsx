@@ -115,7 +115,7 @@ export function ApplicationDocuments({
         <p style={FIELD_HINT}>A carregar os documentos…</p>
       )}
       {docs === null && (
-        <p style={FIELD_HINT}>Não foi possível ler os documentos agora. Isto não significa que faltem — tente mais tarde.</p>
+        <p style={FIELD_HINT}>Não foi possível ler os documentos agora. Isto não significa que faltem; tente mais tarde.</p>
       )}
       {Array.isArray(docs) && docs.length === 0 && (
         <p style={FIELD_HINT}>Ainda não foi enviado nenhum documento.</p>

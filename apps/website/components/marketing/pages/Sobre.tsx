@@ -65,8 +65,8 @@ const FOUNDERS: { img: string; alt: string; name: string; role: Loc; bio: Loc; l
     name: 'Fidel Monteiro',
     role: L('Cofundador do Banzami', 'Co-founder of Banzami'),
     bio: L(
-      'Engenheiro de desenvolvimento em IA e software, com mais de 7 anos de experiência em IA e MLOps, arquitetura de software, visão computacional e sistemas embebidos — na STMicroelectronics, Hyperion Seven, SuperGrid Institute e Akkodis. Criou o Banzami e o protocolo aberto BANZA.',
-      'AI and software development engineer with 7+ years of experience in AI and MLOps, software architecture, computer vision and embedded systems — at STMicroelectronics, Hyperion Seven, SuperGrid Institute and Akkodis. He created Banzami and the open BANZA protocol.',
+      'Engenheiro de desenvolvimento em IA e software, com mais de 7 anos de experiência em IA e MLOps, arquitetura de software, visão computacional e sistemas embebidos, na STMicroelectronics, Hyperion Seven, SuperGrid Institute e Akkodis. Criou o Banzami e o protocolo aberto BANZA.',
+      'AI and software development engineer with 7+ years of experience in AI and MLOps, software architecture, computer vision and embedded systems, at STMicroelectronics, Hyperion Seven, SuperGrid Institute and Akkodis. He created Banzami and the open BANZA protocol.',
     ),
     linkHref: 'https://www.fidelmonteiro.com',
     linkLabel: 'fidelmonteiro.com',
@@ -162,8 +162,8 @@ export function SobrePage({ lang }: { lang: Lang }) {
               <H2 a={lang === 'en' ? 'How we build' : 'Como construímos'} b={lang === 'en' ? 'Banzami.' : 'o Banzami.'} />
               <Lead mw={440}>
                 {lang === 'en'
-                  ? 'Before features, we decide how we build — the choices that guide the product, the engineering and how we communicate.'
-                  : 'Antes das funcionalidades, decidimos como construímos — as escolhas que orientam o produto, a engenharia e a forma como comunicamos.'}
+                  ? 'Before features, we decide how we build: the choices that guide the product, the engineering and how we communicate.'
+                  : 'Antes das funcionalidades, decidimos como construímos: as escolhas que orientam o produto, a engenharia e a forma como comunicamos.'}
               </Lead>
             </div>
             <div style={{ position: 'relative', minWidth: 0 }}>

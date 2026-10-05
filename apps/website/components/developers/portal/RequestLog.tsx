@@ -29,7 +29,7 @@ function statusTone(status: number): PillKind {
 
 function when(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+  return Number.isNaN(d.getTime()) ? 'n/d' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
 }
 
 type Window = '1h' | '24h' | '7d' | 'all';
@@ -238,9 +238,9 @@ export function RequestLog() {
                         ) : null}
                       </td>
                       <td style={{ ...td, color: '#8a7a7e' }}>
-                        {typeof l.latency_ms === 'number' ? `${l.latency_ms} ms` : '—'}
+                        {typeof l.latency_ms === 'number' ? `${l.latency_ms} ms` : 'n/d'}
                       </td>
-                      <td style={{ ...td, padding: '13px 22px', color: '#8a7a7e' }}>{l.request_id || '—'}</td>
+                      <td style={{ ...td, padding: '13px 22px', color: '#8a7a7e' }}>{l.request_id || 'n/d'}</td>
                     </tr>
                   ))}
                 </tbody>

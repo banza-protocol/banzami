@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { SuportePage } from '@/components/marketing/pages/Suporte';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Support — Banzami' },
+  title: { absolute: 'Support · Banzami' },
   description:
     'Frequently asked questions about the Sandbox, @banza and receipts, and direct contact with the Banzami team.',
   alternates: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Support (EN) — ported from handoff_site_completo on the shared marketing shell.
+// Support (EN) · ported from handoff_site_completo on the shared marketing shell.
 export default function Page() {
   return (
     <SiteShell lang="en" current="suporte">

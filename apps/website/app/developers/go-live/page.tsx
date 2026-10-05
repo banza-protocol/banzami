@@ -37,7 +37,7 @@ export default function GoLivePage() {
           Uma plataforma, dois ambientes financeiros. A Sandbox está disponível e é self-service. O
           Live é a mesma plataforma, com valor real, e requer aprovação institucional: não está pronto,
           os trilhos financeiros de produção não estão activados para nenhuma conta, e nada nesta
-          consola — nenhum botão, nenhuma definição, nenhuma chave — os pode activar.
+          consola (nenhum botão, nenhuma definição, nenhuma chave) os pode activar.
         </p>
         <p style={{ margin: '-16px 0 22px' }}>
           <DocsLink href="/docs/going-live">Preparar a integração para Live</DocsLink>
@@ -57,14 +57,14 @@ export default function GoLivePage() {
             </li>
             <li>Nenhum pagamento feito em Sandbox move dinheiro real, nem hoje nem retroactivamente.</li>
             <li>Não há migração automática de Sandbox para produção. Quando Live existir, será uma decisão sua.</li>
-            <li>O trabalho que fizer aqui — integração, webhooks, reconciliação — continua válido.</li>
+            <li>O trabalho que fizer aqui (integração, webhooks, reconciliação) continua válido.</li>
           </ul>
         </Card>
 
         <Card style={{ padding: 24 }}>
           <h3 style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 900 }}>Se quiser ser avisado</h3>
           <p style={{ margin: '0 0 14px', fontSize: 14, lineHeight: 1.65, color: '#7a6a6e', fontWeight: 600 }}>
-            Não há lista de espera nem formulário de candidatura — criar um daria a impressão de
+            Não há lista de espera nem formulário de candidatura: criar um daria a impressão de
             uma fila que não existe. Escreva-nos a partir do email da sua conta e responderemos
             quando houver algo concreto a dizer.
           </p>

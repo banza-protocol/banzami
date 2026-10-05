@@ -362,7 +362,7 @@ function TopBar() {
             reader would be left with a dead button and no reason. */}
         <Link
           href="/go-live"
-          title="As operações com dinheiro real ainda não estão disponíveis — saiba porquê"
+          title="As operações com dinheiro real ainda não estão disponíveis. Saiba porquê."
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -449,7 +449,7 @@ function SandboxBanner() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#2a2024' }}>Você está no modo Sandbox</p>
         <p style={{ margin: '3px 0 0', fontSize: 13.5, fontWeight: 600, color: '#8a6a4e' }}>
-          Teste livremente — nada aqui afeta dinheiro real. Live ainda não está
+          Teste livremente. Nada aqui afeta dinheiro real. Live ainda não está
           disponível para nenhuma conta, por isso só são emitidas chaves de teste.
         </p>
       </div>

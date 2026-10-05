@@ -41,9 +41,9 @@ export function confirmedTitle(kind?: string | null): string {
 /** An instant in Luanda time, and saying so: "10/09/2026, 20:13 (WAT)". The
  *  PDF prints the same clock; a reader comparing them sees the same time. */
 export function fmtWAT(iso?: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return 'n/d';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return 'n/d';
   const s = d.toLocaleString('pt-PT', {
     timeZone: 'Africa/Luanda', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
@@ -114,9 +114,9 @@ export function proofRows(p: ProofResult, ref: string): ProofRow[] {
   const push = (label: string, value: string | null | undefined, mono?: boolean) => {
     if (value && value.trim()) rows.push({ label, value, mono });
   };
-  push('De', partyLabel(p.payer_display, p.payer_handle) ?? '—');
+  push('De', partyLabel(p.payer_display, p.payer_handle) ?? 'n/d');
   // A payee is named at its @handle — a Business is paid at its public address.
-  push('Para', payeeLabel(p.payee_display, p.payee_handle) ?? '—');
+  push('Para', payeeLabel(p.payee_display, p.payee_handle) ?? 'n/d');
   push('Referência', ref, true);
   const op = operationLabel(p.operation_kind);
   if (op) {

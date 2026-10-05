@@ -136,7 +136,7 @@ describe('Configuração financeira — NOT_CONFIGURED', () => {
   it('says what is needed and why, and offers to start', () => {
     open(setupFor('NOT_CONFIGURED'));
     expect(container().getAttribute('data-state')).toBe('NOT_CONFIGURED');
-    expect(heading()).toBe('Configuração financeira — Não configurado');
+    expect(heading()).toBe('Configuração financeira: Não configurado');
     expect(document.body.textContent).toContain(
       'Para receber pagamentos, liquidações ou taxas de aplicação, o Banzami tem de verificar a entidade legal responsável por este projeto.',
     );
@@ -204,7 +204,7 @@ describe('Configuração financeira — an application in review', () => {
   it('IN_REVIEW shows the reference, the @ asked for, what is pending and the documents', async () => {
     open(setupFor('IN_REVIEW'));
     expect(container().getAttribute('data-state')).toBe('IN_REVIEW');
-    expect(heading()).toBe('Configuração financeira — Em análise');
+    expect(heading()).toBe('Configuração financeira: Em análise');
     expect(screen.getByTestId('application-reference').textContent).toBe('3F2A9C1E');
     expect(document.body.textContent).toContain('@loja');
     expect(within(screen.getByTestId('requirements-pending')).getByText('Registo Comercial')).not.toBeNull();
@@ -221,7 +221,7 @@ describe('Configuração financeira — an application in review', () => {
     resubmit.mockResolvedValue({ ok: true });
     const { onChanged } = open(setupFor('INFORMATION_REQUIRED'));
     expect(container().getAttribute('data-state')).toBe('INFORMATION_REQUIRED');
-    expect(heading()).toBe('Configuração financeira — Informação pedida');
+    expect(heading()).toBe('Configuração financeira: Informação pedida');
     expect(screen.getByTestId('information-request').textContent).toContain('Envie o registo comercial legível.');
     expect(within(screen.getByTestId('requirements-errors')).getByText('Recusado: ilegível')).not.toBeNull();
     // The reviewer's request is not repeated as a line of the list.
@@ -243,14 +243,14 @@ describe('Configuração financeira — an application in review', () => {
   it('APPROVED_PROVISIONING says it is approved and being finished', () => {
     open(setupFor('APPROVED_PROVISIONING'));
     expect(container().getAttribute('data-state')).toBe('APPROVED_PROVISIONING');
-    expect(heading()).toBe('Aprovado — a concluir a configuração');
+    expect(heading()).toBe('Aprovado, a concluir a configuração');
     expect(screen.getByTestId('application-reference').textContent).toBe('3F2A9C1E');
   });
 
   it('REJECTED says so, and allows starting again', () => {
     open(setupFor('REJECTED'));
     expect(container().getAttribute('data-state')).toBe('REJECTED');
-    expect(heading()).toBe('Configuração financeira — Candidatura recusada');
+    expect(heading()).toBe('Configuração financeira: Candidatura recusada');
     expect(document.body.textContent).toMatch(/recusou a candidatura/);
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar nova verificação' }));
     expect(screen.getByTestId('onboarding-path-new')).not.toBeNull();
@@ -262,7 +262,7 @@ describe('Configuração financeira — a Project that receives', () => {
   it('READY shows the Business and the settlement readiness', () => {
     open(setupFor('READY'));
     expect(container().getAttribute('data-state')).toBe('READY');
-    expect(heading()).toBe('Configuração financeira — Pronto');
+    expect(heading()).toBe('Configuração financeira: Pronto');
     expect(screen.getByTestId('business-card').textContent).toBe('Loja Kianda·@kianda·Verificado');
     expect(document.body.textContent).toContain('Prontidão para liquidação');
   });
@@ -271,7 +271,7 @@ describe('Configuração financeira — a Project that receives', () => {
     const setup = setupFor('BLOCKED', 'OWNER', { blockers: ['FEE_DESTINATION_TYPE_NOT_ALLOWED', 'PRICING_NOT_CONFIGURED'] });
     setup.readiness = { ...READINESS, settlement: { ready: false, blockers: ['FEE_DESTINATION_TYPE_NOT_ALLOWED', 'PRICING_NOT_CONFIGURED'], warnings: [] } };
     open(setup);
-    expect(heading()).toBe('Configuração financeira — Bloqueado');
+    expect(heading()).toBe('Configuração financeira: Bloqueado');
     const list = screen.getByTestId('onboarding-blockers');
     expect(list.textContent).toContain('Receber taxas de aplicação requer aprovação do operador Banzami (classificação da conta).');
     expect(list.textContent).toContain('O Banzami ainda não atribuiu um preço ao negócio deste projeto.');
@@ -283,7 +283,7 @@ describe('Configuração financeira — a Project that receives', () => {
   it('READINESS_UNKNOWN shows the Business, says the readiness could not be read, and never "Pronto"', () => {
     open(setupFor('READINESS_UNKNOWN'));
     expect(container().getAttribute('data-state')).toBe('READINESS_UNKNOWN');
-    expect(heading()).toBe('Configuração financeira — Estado por confirmar');
+    expect(heading()).toBe('Configuração financeira: Estado por confirmar');
     expect(screen.getByTestId('business-card').textContent).toBe('Loja Kianda·@kianda·Verificado');
     expect(document.body.textContent).toContain('Não foi possível ler a prontidão para liquidação agora.');
     expect(document.body.textContent).not.toContain('Pronto');

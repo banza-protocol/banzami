@@ -310,7 +310,7 @@ function WorkspaceSettings() {
                 <Link href="/settings" style={{ color: '#B5101F', fontWeight: 800 }}>
                   Configurações · Projeto
                 </Link>{' '}
-                — selecionando-o primeiro no seletor da barra lateral — e volte aqui.
+                (selecionando-o primeiro no seletor da barra lateral) e volte aqui.
               </>
             ) : (
               <>Nenhum projeto ativo neste workspace. Os membros perdem o acesso assim que confirmar.</>

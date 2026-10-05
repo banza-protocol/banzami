@@ -65,7 +65,7 @@ function attemptLabel(a: WebhookDeliveryAttempt): string {
 
 function when(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+  return Number.isNaN(d.getTime()) ? 'n/d' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
 }
 
 const th = { padding: '13px 12px', fontSize: 11, fontWeight: 800, textAlign: 'left' } as const;
@@ -565,7 +565,7 @@ export function WebhooksManager() {
                                         <td style={{ padding: '6px 0' }}><Pill kind={tone.kind}>{tone.label}</Pill></td>
                                         <td style={{ padding: '6px 0', fontWeight: 800 }}>{d.attempt_count}</td>
                                         <td style={{ padding: '6px 0', color: '#a89a9e', fontWeight: 700 }}>
-                                          {d.delivered_at ? when(d.delivered_at) : '—'}
+                                          {d.delivered_at ? when(d.delivered_at) : 'n/d'}
                                         </td>
                                         <td style={{ padding: '6px 0', textAlign: 'right' }}>
                                           {/* Only on a delivery that failed. A delivery
@@ -641,7 +641,7 @@ export function WebhooksManager() {
               : confirming.action === 'disable'
                 ? 'O Banzami deixa de entregar eventos a este endereço. O histórico de entregas mantém-se, e pode reactivá-lo depois.'
                 : confirming.action === 'delete'
-                  ? 'O endpoint sai da lista e o seu segredo de assinatura deixa de existir. Não pode ser recuperado. Só é possível eliminar um endpoint que ainda não recebeu entregas — se já recebeu, desactive-o.'
+                  ? 'O endpoint sai da lista e o seu segredo de assinatura deixa de existir. Não pode ser recuperado. Só é possível eliminar um endpoint que ainda não recebeu entregas; se já recebeu, desactive-o.'
                   : 'O Banzami volta a entregar eventos a este endereço.'
           }
           subject={confirming.ep.url}
@@ -682,7 +682,7 @@ export function WebhooksManager() {
       {replaying ? (
         <ConfirmDialog
           title="Reenviar esta entrega"
-          body="A mesma entrega volta para a fila e é tentada outra vez — não é criada uma entrega nova, e as tentativas continuam a ser contadas nesta. O seu servidor recebe o mesmo evento, com o mesmo id, por isso deve tratá-lo de forma idempotente."
+          body="A mesma entrega volta para a fila e é tentada outra vez. Não é criada uma entrega nova, e as tentativas continuam a ser contadas nesta. O seu servidor recebe o mesmo evento, com o mesmo id, por isso deve tratá-lo de forma idempotente."
           // The address it is going back to — the same thing every other dialog
           // on this screen names, and the id if the endpoint is not in the list.
           subject={endpoints.find((e) => e.id === replaying.delivery.endpoint_id)?.url ?? replaying.delivery.endpoint_id}
@@ -697,7 +697,7 @@ export function WebhooksManager() {
           secret={revealSecret}
           onDismiss={() => setRevealSecret(null)}
           title="Guarde o segredo de assinatura"
-          description="Este segredo é mostrado uma única vez. Instale-o no servidor que recebe os webhooks — é com ele que verifica a assinatura de cada entrega. Não é uma chave de API e não deve ser usado para autenticar chamadas."
+          description="Este segredo é mostrado uma única vez. Instale-o no servidor que recebe os webhooks: é com ele que verifica a assinatura de cada entrega. Não é uma chave de API e não deve ser usado para autenticar chamadas."
           label="Segredo de assinatura"
           ack="Instalei o segredo no meu servidor."
         />

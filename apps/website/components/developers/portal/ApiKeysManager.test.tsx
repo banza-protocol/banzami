@@ -291,7 +291,7 @@ describe('scopes', () => {
     expect(within(drawer).getByText('Sessões de pagamento')).toBeTruthy();
     expect(within(drawer).getByText('payment_sessions:write')).toBeTruthy();
     // The same plain-language text the picker shows when the scope is chosen.
-    expect(within(drawer).getByText('Abrir sessões de pagamento — cobrar.')).toBeTruthy();
+    expect(within(drawer).getByText('Abrir sessões de pagamento: cobrar.')).toBeTruthy();
     // Read and write are not two shades of the same permission.
     expect(within(drawer).getAllByText('Leitura').length).toBe(2);
     expect(within(drawer).getAllByText('Escrita').length).toBe(1);

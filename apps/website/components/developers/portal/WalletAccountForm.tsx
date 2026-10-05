@@ -117,7 +117,7 @@ export function WalletAccountForm({ onCreated }: { onCreated: () => void }) {
       <h3 style={{ margin: '0 0 4px', fontSize: 15.5, fontWeight: 900 }}>Nova conta</h3>
       <p style={{ margin: '0 0 18px', fontSize: 13, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.55 }}>
         Uma conta mantém dinheiro separado do resto do negócio ligado a este projeto. Crie uma por cada coisa que precisa de
-        contabilidade própria — uma campanha, um vendedor, um evento.
+        contabilidade própria: uma campanha, um vendedor, um evento.
       </p>
 
       <div style={{ marginBottom: 14 }}>
@@ -134,7 +134,7 @@ export function WalletAccountForm({ onCreated }: { onCreated: () => void }) {
           {purposes.map((p) => <option key={p} value={p}>{WORDS[p]?.label ?? p}</option>)}
         </select>
         <p id="wa-purpose-hint" style={{ margin: '6px 0 0', fontSize: 12, color: '#8a7a7e', fontWeight: 600 }}>
-          {chosen?.hint ?? 'Uma etiqueta para si — não altera o que acontece ao dinheiro.'}
+          {chosen?.hint ?? 'Uma etiqueta para si. Não altera o que acontece ao dinheiro.'}
         </p>
       </div>
 

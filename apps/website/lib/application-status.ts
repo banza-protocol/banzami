@@ -105,7 +105,7 @@ export const STATUS_COPY: Record<ApplicationStatus['status'], { title: string; b
   REJECTED: { title: 'Não aprovada', body: 'A candidatura não foi aprovada. Recebeu por email o motivo e pode candidatar-se de novo.' },
   CANCELLED: { title: 'Cancelada', body: 'Esta candidatura foi cancelada.' },
   PROVISIONING_FAILED: {
-    title: 'Aprovada — a concluir',
+    title: 'Aprovada, a concluir',
     body: 'A candidatura foi aprovada e a equipa Banzami está a concluir a criação da sua conta.',
   },
 };

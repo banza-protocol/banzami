@@ -164,7 +164,7 @@ describe('P0 — /docs content contracts (rendered)', () => {
     expect(screen.getByRole('heading', { name: 'Capacidades por credencial' })).toBeTruthy();
     // Whatever the Sandbox evidence says, this row does not move: real-money
     // operations are unavailable and fail-closed (DOCS-PROD-001 §31).
-    expect(DOCS).toContain("['Operações com dinheiro real', '—', 'Indisponível (fail-closed)']");
+    expect(DOCS).toContain("['Operações com dinheiro real', 'n/d', 'Indisponível (fail-closed)']");
     // An unreleased capability must never be presented as usable. The old test
     // demanded the literal "Pendente E2E" for it — a phrase §2 lists as stale.
     // What it has to be is absent from the "available" column, not tagged.

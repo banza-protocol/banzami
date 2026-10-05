@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { TestesPage } from '@/components/marketing/pages/Testes';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Beta Programme — Banzami' },
+  title: { absolute: 'Beta Programme · Banzami' },
   description:
     'Join the Banzami Beta Programme: Beta Web, iPhone (TestFlight) and Android, in the Sandbox.',
   alternates: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Beta Programme (EN) — rebuilt entirely from handoff_site_completo on the shared marketing shell.
+// Beta Programme (EN) · rebuilt entirely from handoff_site_completo on the shared marketing shell.
 export default function Page() {
   return (
     <SiteShell lang="en" current="testes">

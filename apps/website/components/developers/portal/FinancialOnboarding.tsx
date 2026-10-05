@@ -114,12 +114,12 @@ function ApplicationSummary({ app }: { app: OnboardingApplication }) {
       </div>
       <div>
         <dt style={{ fontSize: 11.5, fontWeight: 800, color: '#a89a9e', letterSpacing: '.04em' }}>NEGÓCIO</dt>
-        <dd style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 800, color: '#2a2024' }}>{app.business_name || '—'}</dd>
+        <dd style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 800, color: '#2a2024' }}>{app.business_name || 'n/d'}</dd>
       </div>
       <div>
         <dt style={{ fontSize: 11.5, fontWeight: 800, color: '#a89a9e', letterSpacing: '.04em' }}>@BANZA PEDIDO</dt>
         <dd style={{ margin: '3px 0 0', fontSize: 14, fontWeight: 800, color: '#2a2024' }}>
-          {app.requested_handle ? `@${app.requested_handle.replace(/^@/, '')}` : '—'}
+          {app.requested_handle ? `@${app.requested_handle.replace(/^@/, '')}` : 'n/d'}
         </dd>
       </div>
       {submitted && !Number.isNaN(submitted.getTime()) && (
@@ -147,7 +147,7 @@ export function BusinessCard({ business }: { business: OnboardingBusiness }) {
     >
       <span style={{ fontSize: 15, fontWeight: 900, color: '#2a2024' }}>{business.name || 'Negócio Banzami'}</span>
       <span aria-hidden="true" style={{ color: '#b8a4a6' }}>·</span>
-      <span style={{ fontSize: 14, fontWeight: 800, color: '#6a5a5e' }}>{business.handle || '—'}</span>
+      <span style={{ fontSize: 14, fontWeight: 800, color: '#6a5a5e' }}>{business.handle || 'n/d'}</span>
       <span aria-hidden="true" style={{ color: '#b8a4a6' }}>·</span>
       {business.synthetic ? (
         <span data-testid="business-synthetic" style={{ fontSize: 13, fontWeight: 800, color: '#6a5a5e' }}>
@@ -181,7 +181,7 @@ function PathCards({ onNew, onExisting }: { onNew: () => void; onExisting: () =>
       {card(
         'onboarding-path-new',
         'Criar/verificar um novo negócio',
-        'Envie a candidatura do negócio responsável por este projeto — dados e documentos. Um operador do Banzami analisa-a; quando for aprovada, o negócio é criado e ligado a este projeto.',
+        'Envie a candidatura do negócio responsável por este projeto, com dados e documentos. Um operador do Banzami analisa-a; quando for aprovada, o negócio é criado e ligado a este projeto.',
         'Criar novo negócio',
         onNew,
       )}
@@ -332,7 +332,7 @@ export function FinancialOnboardingPanel({
             </p>
           )}
           <p style={{ ...P, fontSize: 13, color: '#8a7a7e' }}>
-            Chaves de API, webhooks e a integração funcionam sem isto — só receber dinheiro depende desta verificação.
+            Chaves de API, webhooks e a integração funcionam sem isto; só receber dinheiro depende desta verificação.
           </p>
           {canStart ? (
             mode === 'choose' ? (
@@ -417,7 +417,7 @@ export function FinancialOnboardingPanel({
           <p style={P}>
             O operador do Banzami aprovou a candidatura. O Banzami está a criar o negócio
             {app?.requested_handle ? ` (@${app.requested_handle.replace(/^@/, '')})` : ''} e a ligá-lo a este projeto. Não
-            precisa de fazer nada — este estado muda sozinho quando terminar.
+            precisa de fazer nada; este estado muda sozinho quando terminar.
           </p>
           {app && <ApplicationSummary app={app} />}
           <button type="button" onClick={() => reload()} style={{ ...SECONDARY_BUTTON, marginTop: 18 }}>
@@ -429,7 +429,7 @@ export function FinancialOnboardingPanel({
       {view === 'READINESS_UNKNOWN' && (
         <>
           <p style={P}>
-            Este projeto está ligado ao negócio abaixo. Não foi possível confirmar agora se já pode liquidar — isto não
+            Este projeto está ligado ao negócio abaixo. Não foi possível confirmar agora se já pode liquidar; isto não
             significa que falte configuração. Tente novamente daqui a pouco.
           </p>
           {onboarding?.business && <BusinessCard business={onboarding.business} />}

@@ -29,7 +29,7 @@ export function formatKwanza(kwanzas: number): string {
  * 5 000 000 → "50 000 Kz", 1 → "0,01 Kz", 0 → "0 Kz".
  */
 export function formatMoneyDisplay(amountMinor: number | null | undefined, currency = 'AOA'): string {
-  if (amountMinor == null) return '—';
+  if (amountMinor == null) return 'n/d';
   const ccy = (currency || 'AOA').toUpperCase();
   const abs = Math.abs(Math.trunc(amountMinor));
   const major = Math.trunc(abs / AOA_SUBUNIT);

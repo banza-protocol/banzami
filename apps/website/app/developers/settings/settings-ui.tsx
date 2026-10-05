@@ -194,7 +194,7 @@ export function Identifier({ value, what }: { value: string; what: string }) {
 /** UTC, stated as UTC. The server sends UTC and a local rendering would lie. */
 export function utcStamp(iso: string): string {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return 'n/d';
   return `${d.toISOString().replace('T', ' ').slice(0, 16)} UTC`;
 }
 
@@ -468,7 +468,7 @@ export function EnvironmentValue({ reading }: { reading: EnvironmentReading }) {
       </span>
       <p style={{ ...NOTE, margin: '8px 0 0' }}>
         {confirmed
-          ? 'O ambiente é desta instalação do Banzami, não deste projeto — não há ambiente por projeto. É o mesmo valor que as suas chaves levam e que a API devolve.'
+          ? 'O ambiente é desta instalação do Banzami, não deste projeto, pois não há ambiente por projeto. É o mesmo valor que as suas chaves levam e que a API devolve.'
           : 'Esta instalação não declarou um ambiente que a consola possa confirmar. Não assumimos Sandbox por omissão.'}
       </p>
     </>

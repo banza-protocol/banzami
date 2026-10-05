@@ -169,7 +169,7 @@ export function RefundDialog({
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
             <span style={{ color: '#8a7a7e', fontWeight: 700 }}>Pagamento</span>
             <span style={{ fontFamily: mono, fontSize: 12, color: '#5a4a4e', wordBreak: 'break-all', textAlign: 'right' }}>
-              {merchantReference(payment) ?? '—'}
+              {merchantReference(payment) ?? 'n/d'}
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, marginTop: 6 }}>
@@ -209,7 +209,7 @@ export function RefundDialog({
               <p id="refund-amount-help" style={{ margin: '6px 0 0', fontSize: 12, color: '#8a7a7e', fontWeight: 600 }}>
                 {received !== null
                   ? `Pode devolver a totalidade ou uma parte, até ${money(received, payment.currency)}. Use vírgula para os cêntimos.`
-                  : 'Este pagamento foi aberto sem montante fixo — indique quanto devolver. O limite é o que foi recebido.'}
+                  : 'Este pagamento foi aberto sem montante fixo; indique quanto devolver. O limite é o que foi recebido.'}
               </p>
             </div>
 

@@ -49,7 +49,7 @@ describe('acquiring state is shown beside the protocol status, never instead of 
     // A refund and an internal transfer have no acquiring rail; showing them as
     // POR PAGAR would say something false about them.
     expect(page).toContain("t.acquiring ? (");
-    expect(page).toContain('—');
+    expect(page).toContain('n/d');
   });
 
   it('refundability follows the money, not only the protocol status', () => {

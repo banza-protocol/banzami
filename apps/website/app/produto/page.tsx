@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { ProdutoPage } from '@/components/marketing/pages/Produto';
 
 export const metadata: Metadata = {
-  title: { absolute: 'App Banzami — Pagar e receber em Kwanza' },
+  title: { absolute: 'App Banzami · Pagar e receber em Kwanza' },
   description:
     'A app Banzami para pagar por QR, enviar para um @banza e receber em segundos, com comprovativo verificável. Beta público em Sandbox.',
   alternates: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-// /produto — ported verbatim from handoff_site_completo/pages/Produto.dc.html.
+// /produto · ported verbatim from handoff_site_completo/pages/Produto.dc.html.
 export default function Page() {
   return (
     <SiteShell lang="pt" current="produto">

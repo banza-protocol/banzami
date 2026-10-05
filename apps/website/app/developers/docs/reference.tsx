@@ -589,7 +589,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   "next_cursor": "6f1c2d3e-0000-4000-8000-000000000000"
 }`,
     errors: [
-      { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1–100, ou um cursor que não é um next_cursor', en: 'limit outside 1–100, or a cursor that is not a next_cursor' } },
+      { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1 a 100, ou um cursor que não é um next_cursor', en: 'limit outside 1 to 100, or a cursor that is not a next_cursor' } },
       { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem payment_links:read, ou projeto sem configuração financeira concluída', en: 'key without payment_links:read, or project without completed Financial Setup' } },
     ],
   },
@@ -688,7 +688,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   ]
 }`,
     errors: [
-      { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1–100', en: 'limit outside 1–100' } },
+      { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1 a 100', en: 'limit outside 1 to 100' } },
       { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem refunds:read, ou projeto sem configuração financeira concluída', en: 'key without refunds:read, or project without completed Financial Setup' } },
     ],
   },
@@ -887,7 +887,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   ]
 }`,
     errors: [
-      { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1–100', en: 'limit outside 1–100' } },
+      { code: '400 INVALID_PARAM', note: { pt: 'limit fora de 1 a 100', en: 'limit outside 1 to 100' } },
       { code: '403 INSUFFICIENT_SCOPE / PAYMENTS_UNAVAILABLE', note: { pt: 'chave sem webhooks:read, ou projeto sem configuração financeira concluída', en: 'key without webhooks:read, or project without completed Financial Setup' } },
     ],
   },
@@ -933,8 +933,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/deliveries/{id}/replay',
     tone: 'ok',
     desc: {
-      pt: 'Volta a pôr em fila uma entrega que falhou, com o mesmo id. Uma entrega que já teve sucesso responde 409 e não é reenviada — exceto a de um evento de teste webhook.test, que não move nada e pode ser reenviada sempre.',
-      en: 'Queues a failed delivery again, with the same id. A delivery that already succeeded returns 409 and is not sent again — except one of a webhook.test event, which moves nothing and can always be replayed.',
+      pt: 'Volta a pôr em fila uma entrega que falhou, com o mesmo id. Uma entrega que já teve sucesso responde 409 e não é reenviada, exceto a de um evento de teste webhook.test, que não move nada e pode ser reenviada sempre.',
+      en: 'Queues a failed delivery again, with the same id. A delivery that already succeeded returns 409 and is not sent again, except one of a webhook.test event, which moves nothing and can always be replayed.',
     },
     credential: { pt: 'Chave secreta do projeto · configuração financeira concluída', en: 'Project secret key · Financial Setup complete' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/webhooks/deliveries/whdel_exemplo/replay \\
@@ -960,10 +960,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/public/proofs/{ref}',
     tone: 'ok',
     desc: {
-      pt: 'Verifica um comprovativo pela referência BZM-…, sem autenticação — a mesma verificação de banzami.com/r/{ref}. A referência é exata, sem normalização; um 503 não indica que o comprovativo é falso.',
-      en: 'Verifies a receipt by its BZM-… reference, with no authentication — the same check as banzami.com/r/{ref}. The reference is exact, with no normalisation; a 503 does not mean the receipt is forged.',
+      pt: 'Verifica um comprovativo pela referência BZM-…, sem autenticação, a mesma verificação de banzami.com/r/{ref}. A referência é exata, sem normalização; um 503 não indica que o comprovativo é falso.',
+      en: 'Verifies a receipt by its BZM-… reference, with no authentication, the same check as banzami.com/r/{ref}. The reference is exact, with no normalisation; a 503 does not mean the receipt is forged.',
     },
-    credential: { pt: 'Nenhuma — rota pública, com limite por IP', en: 'None — a public route, rate-limited per IP' },
+    credential: { pt: 'Nenhuma: rota pública, com limite por IP', en: 'None: a public route, rate-limited per IP' },
     curl: `curl https://sandbox-api.banzami.com/v1/public/proofs/BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`,
     response: `{
   "exists": true,
@@ -1009,10 +1009,10 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/realtime/payment-sessions/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Para uma página no browser: o estado de uma sessão de pagamento em tempo real, por Server-Sent Events — um snapshot, um evento status em cada mudança, um heartbeat a cada 5 s, e o fecho num estado final. Com Accept: application/json, uma leitura única. Abre-se com o token de estado da sessão, nunca com uma chave. Serve o ecrã; não é prova de pagamento.',
-      en: 'For a browser page: a Payment Session’s status in real time, over Server-Sent Events — a snapshot, a status event on each change, a heartbeat every 5 s, and a close on a terminal status. With Accept: application/json, a single read. Opened with the session’s status token, never with a key. It serves the screen; it is not proof of payment.',
+      pt: 'Para uma página no browser: o estado de uma sessão de pagamento em tempo real, por Server-Sent Events: um snapshot, um evento status em cada mudança, um heartbeat a cada 5 s e o fecho num estado final. Com Accept: application/json, uma leitura única. Abre-se com o token de estado da sessão, nunca com uma chave. Serve o ecrã; não é prova de pagamento.',
+      en: 'For a browser page: a Payment Session’s status in real time, over Server-Sent Events: a snapshot, a status event on each change, a heartbeat every 5 s, and a close on a terminal status. With Accept: application/json, a single read. Opened with the session’s status token, never with a key. It serves the screen; it is not proof of payment.',
     },
-    credential: { pt: 'Token de estado bzst_ da sessão, no cabeçalho Authorization — nunca no endereço. Sem chave de API.', en: 'The session’s bzst_ status token, in the Authorization header — never in the URL. No API key.' },
+    credential: { pt: 'Token de estado bzst_ da sessão, no cabeçalho Authorization, nunca no endereço. Sem chave de API.', en: 'The session’s bzst_ status token, in the Authorization header, never in the URL. No API key.' },
     curl: `curl -N https://sandbox-api.banzami.com/v1/realtime/payment-sessions/payment_session_exemplo \\
   -H "Authorization: Bearer bzst_XXXXXXXXXXXXXXXX" \\
   -H "Accept: text/event-stream"`,
@@ -1115,8 +1115,8 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/test-payers',
     tone: 'ok',
     desc: {
-      pt: 'Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. Age só pela API do projeto — não entra em nenhuma app. No máximo 10 pagadores ativos por projeto.',
-      en: 'Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. It acts only through the Project’s API — it signs in to no app. At most 10 active payers per Project.',
+      pt: 'Cria um pagador de teste do seu projeto: um consumidor Sandbox com carteira e saldo fictício. Age só pela API do projeto e não entra em nenhuma app. No máximo 10 pagadores ativos por projeto.',
+      en: 'Creates a test payer owned by your Project: a Sandbox consumer with a wallet and a fictitious balance. It acts only through the Project’s API and signs in to no app. At most 10 active payers per Project.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers \\
@@ -1135,7 +1135,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
   "retired_at": null
 }`,
     errors: [
-      { code: '400 INVALID_BODY / INVALID_PARAM', note: { pt: 'um campo desconhecido, label com mais de 60 caracteres, ou saldo fora de 0–1 000 000', en: 'an unknown field, a label over 60 characters, or a balance outside 0–1,000,000' } },
+      { code: '400 INVALID_BODY / INVALID_PARAM', note: { pt: 'um campo desconhecido, label com mais de 60 caracteres, ou saldo fora de 0 a 1 000 000', en: 'an unknown field, a label over 60 characters, or a balance outside 0 to 1,000,000' } },
       { code: '403 INSUFFICIENT_SCOPE / SANDBOX_ONLY', note: { pt: 'chave sem sandbox:write, ou chave que não é Sandbox', en: 'key without sandbox:write, or a key that is not a Sandbox key' } },
       { code: '429 SANDBOX_QUOTA_EXCEEDED', note: { pt: 'já há 10 pagadores ativos; retire um', en: 'there are already 10 active payers; retire one' } },
     ],
@@ -1197,8 +1197,8 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     path: '/v1/sandbox/test-payers/{id}/fund',
     tone: 'ok',
     desc: {
-      pt: 'Carrega valor fictício num pagador de teste, pelo ledger — nunca editando um saldo. O cabeçalho Idempotency-Key é obrigatório e identifica o carregamento. Limites: 2 500 000 por carregamento, saldo de 5 000 000, e 20 carregamentos e 10 000 000 por projeto em 24 h.',
-      en: 'Adds fictitious value to a test payer, through the ledger — never by editing a balance. The Idempotency-Key header is required and identifies the top-up. Limits: 2,500,000 per top-up, a 5,000,000 balance, and 20 top-ups and 10,000,000 per Project in 24 h.',
+      pt: 'Carrega valor fictício num pagador de teste, pelo ledger, nunca editando um saldo. O cabeçalho Idempotency-Key é obrigatório e identifica o carregamento. Limites: 2 500 000 por carregamento, saldo de 5 000 000, e 20 carregamentos e 10 000 000 por projeto em 24 h.',
+      en: 'Adds fictitious value to a test payer, through the ledger, never by editing a balance. The Idempotency-Key header is required and identifies the top-up. Limits: 2,500,000 per top-up, a 5,000,000 balance, and 20 top-ups and 10,000,000 per Project in 24 h.',
     },
     credential: { pt: 'Chave secreta Sandbox do projeto', en: 'Sandbox project secret key' },
     curl: `curl -X POST https://sandbox-api.banzami.com/v1/sandbox/test-payers/tp_exemplo/fund \\
@@ -1218,7 +1218,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
   "retired_at": null
 }`,
     errors: [
-      { code: '400 IDEMPOTENCY_KEY_REQUIRED / INVALID_PARAM', note: { pt: 'sem Idempotency-Key, ou montante fora de 1–2 500 000', en: 'no Idempotency-Key, or an amount outside 1–2,500,000' } },
+      { code: '400 IDEMPOTENCY_KEY_REQUIRED / INVALID_PARAM', note: { pt: 'sem Idempotency-Key, ou montante fora de 1 a 2 500 000', en: 'no Idempotency-Key, or an amount outside 1 to 2,500,000' } },
       { code: '409 IDEMPOTENCY_KEY_REUSED', note: { pt: 'a chave já foi usada para outro carregamento', en: 'the key was already used for another top-up' } },
       { code: '422 TEST_PAYER_RETIRED / SANDBOX_FUNDING_REFUSED', note: { pt: 'pagador retirado, ou o saldo passaria o limite', en: 'a retired payer, or the balance would pass its limit' } },
       { code: '429 SANDBOX_QUOTA_EXCEEDED', note: { pt: 'limite de 24 h do projeto', en: 'the Project’s 24-hour limit' } },
@@ -1486,9 +1486,9 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
                 ) : null}
                 <dl className="bz-facts" style={{ display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr)', gap: '8px 18px', margin: '0 0 18px', padding: '12px 14px', maxWidth: 760, background: '#FBF9F9', border: '1px solid #EFE8E8', borderRadius: 10 }}>
                   <Fact k={label(lang, 'Autenticação', 'Authentication')}>{t(e.credential)}</Fact>
-                  <Fact k="Scope">{e.scope ? <Code>{e.scope}</Code> : label(lang, 'nenhum — rota pública', 'none — public route')}</Fact>
-                  <Fact k={label(lang, 'Idempotência', 'Idempotency')}>{e.idem ? t(e.idem) : e.method === 'GET' ? label(lang, 'leitura — repetir é seguro', 'read — safe to repeat') : label(lang, 'Idempotency-Key recomendado', 'Idempotency-Key recommended')}</Fact>
-                  <Fact k="SDK">{e.sdk ? <Code>{e.sdk}()</Code> : null}{e.sdk && e.sdkNote ? ' — ' : null}{e.sdkNote ? t(e.sdkNote) : null}</Fact>
+                  <Fact k="Scope">{e.scope ? <Code>{e.scope}</Code> : label(lang, 'nenhum, rota pública', 'none, public route')}</Fact>
+                  <Fact k={label(lang, 'Idempotência', 'Idempotency')}>{e.idem ? t(e.idem) : e.method === 'GET' ? label(lang, 'leitura: repetir é seguro', 'read: safe to repeat') : label(lang, 'Idempotency-Key recomendado', 'Idempotency-Key recommended')}</Fact>
+                  <Fact k="SDK">{e.sdk ? <Code>{e.sdk}()</Code> : null}{e.sdk && e.sdkNote ? ' · ' : null}{e.sdkNote ? t(e.sdkNote) : null}</Fact>
                   <Fact k={label(lang, 'Eventos', 'Events')}>
                     {e.events.length
                       ? <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6 }}>{e.events.map((ev) => <EventChip key={ev} lang={lang} name={ev} />)}</span>
@@ -1505,7 +1505,7 @@ export function ResourceReference({ lang, onCopy }: { lang: 'pt' | 'en'; onCopy:
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style={{ flex: 'none', marginTop: 2 }}><path d="M12 3l10 18H2z" fill="none" stroke="#A86A06" strokeWidth="2" strokeLinejoin="round" /><path d="M12 10v5M12 18h.01" stroke="#A86A06" strokeWidth="2" strokeLinecap="round" /></svg>
                     <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#4A3610' }}>
                       <strong>{label(lang, 'Não envie com uma chave de projeto', 'Do not send with a project key')}:</strong>{' '}
-                      {e.refused.map((f, i) => <span key={f}>{i > 0 ? ' · ' : ''}<code style={{ fontFamily: mono, fontSize: 12, padding: '0 4px', borderRadius: 4, background: '#fff', border: '1px solid #EAD9B5', textDecoration: 'line-through', textDecorationColor: '#C98A1B' }}>{f}</code></span>)} — {label(lang, 'responde 400 PAYEE_NOT_ALLOWED: quem recebe vem da configuração financeira.', 'answers 400 PAYEE_NOT_ALLOWED: who is paid comes from financial setup.')}
+                      {e.refused.map((f, i) => <span key={f}>{i > 0 ? ' · ' : ''}<code style={{ fontFamily: mono, fontSize: 12, padding: '0 4px', borderRadius: 4, background: '#fff', border: '1px solid #EAD9B5', textDecoration: 'line-through', textDecorationColor: '#C98A1B' }}>{f}</code></span>)}: {label(lang, 'responde 400 PAYEE_NOT_ALLOWED: quem recebe vem da configuração financeira.', 'answers 400 PAYEE_NOT_ALLOWED: who is paid comes from financial setup.')}
                     </p>
                   </div>
                 ) : null}

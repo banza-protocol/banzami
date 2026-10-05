@@ -29,13 +29,13 @@ export const USE_CASES: { id: SandboxUseCase; title: string; body: string; gets:
   {
     id: 'APPLICATION',
     title: 'Aplicação ou plataforma',
-    body: 'Recebe em nome de terceiros e liquida para eles, com uma taxa de aplicação — como uma app de doações ou um marketplace.',
+    body: 'Recebe em nome de terceiros e liquida para eles, com uma taxa de aplicação, como uma app de doações ou um marketplace.',
     gets: 'Classificação Aplicação · preço Sandbox de referência, com taxa de aplicação',
   },
 ];
 
 export function useCaseTitle(u: string | null | undefined): string {
-  return USE_CASES.find((x) => x.id === u)?.title ?? '—';
+  return USE_CASES.find((x) => x.id === u)?.title ?? 'n/d';
 }
 
 function UseCaseChoice({ value, onChange, disabled }: { value: SandboxUseCase | null; onChange: (u: SandboxUseCase) => void; disabled?: boolean }) {
@@ -106,7 +106,7 @@ export function SandboxSetupStart({
   return (
     <div data-testid="sandbox-setup-start">
       <p style={P}>
-        Na Sandbox, o Banzami cria um negócio de teste para este projeto — sem candidatura e sem esperar por ninguém. É
+        Na Sandbox, o Banzami cria um negócio de teste para este projeto, sem candidatura e sem esperar por ninguém. É
         uma entidade de teste: não é verificado, e o valor é fictício.
       </p>
       <UseCaseChoice value={useCase} onChange={setUseCase} disabled={!canAct || busy} />

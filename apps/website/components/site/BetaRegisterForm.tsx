@@ -29,18 +29,18 @@ const COPY = {
     emailIOS: 'E-mail da sua conta App Store',
     emailAndroid: 'E-mail da sua conta Google Play',
     emailHelp:
-      'Usamos este e-mail para o convidar no TestFlight (iPhone) ou no Google Play (Android). Tem de ser o mesmo e-mail da sua conta da App Store ou Google Play — é para esse endereço que o convite chega.',
+      'Usamos este e-mail para o convidar no TestFlight (iPhone) ou no Google Play (Android). Tem de ser o mesmo e-mail da sua conta da App Store ou Google Play; é para esse endereço que o convite chega.',
     emailHelpIOS:
-      'Usamos este e-mail para o convidar no TestFlight. Tem de ser o mesmo e-mail da sua conta da App Store — é para esse endereço que o convite chega.',
+      'Usamos este e-mail para o convidar no TestFlight. Tem de ser o mesmo e-mail da sua conta da App Store; é para esse endereço que o convite chega.',
     emailHelpAndroid:
-      'Usamos este e-mail para o convidar no Google Play. Tem de ser o mesmo e-mail da sua conta Google — é para esse endereço que o convite chega.',
+      'Usamos este e-mail para o convidar no Google Play. Tem de ser o mesmo e-mail da sua conta Google; é para esse endereço que o convite chega.',
     platform: 'Plataforma',
     platformIOS: 'iPhone (TestFlight)',
     platformAndroid: 'Android (Google Play)',
     platformBoth: 'Ambas',
     apps: 'Aplicação que pretende testar',
     appBoth: 'Ambas as aplicações',
-    optional: 'Opcional — ajuda-nos a cobrir mais aparelhos',
+    optional: 'Opcional: ajuda-nos a cobrir mais aparelhos',
     device: 'Modelo do aparelho',
     devicePlaceholder: 'ex.: iPhone 13, Samsung Galaxy A54',
     os: 'Versão do sistema',
@@ -55,7 +55,7 @@ const COPY = {
     submitting: 'A enviar…',
     successTitle: 'Inscrição recebida',
     successBody:
-      'Obrigado! Registámos o seu interesse em testar. As vagas são limitadas e os convites são enviados por etapas — se for selecionado, receberá o convite no e-mail que indicou. Não é um convite imediato.',
+      'Obrigado! Registámos o seu interesse em testar. As vagas são limitadas e os convites são enviados por etapas; se for selecionado, receberá o convite no e-mail que indicou. Não é um convite imediato.',
     errRequired: 'Preencha o nome, o apelido e o e-mail.',
     errEmail: 'Indique um e-mail válido.',
     errPlatform: 'Escolha uma plataforma.',
@@ -72,18 +72,18 @@ const COPY = {
     emailIOS: 'Email of your App Store account',
     emailAndroid: 'Email of your Google Play account',
     emailHelp:
-      'We use this email to invite you on TestFlight (iPhone) or Google Play (Android). It must be the same email as your App Store or Google Play account — that is where the invite is sent.',
+      'We use this email to invite you on TestFlight (iPhone) or Google Play (Android). It must be the same email as your App Store or Google Play account; that is where the invite is sent.',
     emailHelpIOS:
-      'We use this email to invite you on TestFlight. It must be the same email as your App Store account — that is where the invite is sent.',
+      'We use this email to invite you on TestFlight. It must be the same email as your App Store account; that is where the invite is sent.',
     emailHelpAndroid:
-      'We use this email to invite you on Google Play. It must be the same email as your Google account — that is where the invite is sent.',
+      'We use this email to invite you on Google Play. It must be the same email as your Google account; that is where the invite is sent.',
     platform: 'Platform',
     platformIOS: 'iPhone (TestFlight)',
     platformAndroid: 'Android (Google Play)',
     platformBoth: 'Both',
     apps: 'App you want to test',
     appBoth: 'Both apps',
-    optional: 'Optional — helps us cover more devices',
+    optional: 'Optional: helps us cover more devices',
     device: 'Device model',
     devicePlaceholder: 'e.g. iPhone 13, Samsung Galaxy A54',
     os: 'OS version',
@@ -98,7 +98,7 @@ const COPY = {
     submitting: 'Sending…',
     successTitle: 'Registration received',
     successBody:
-      'Thank you! We have recorded your interest in testing. Places are limited and invites go out in stages — if selected, you will receive the invite at the email you gave. This is not an immediate invite.',
+      'Thank you! We have recorded your interest in testing. Places are limited and invites go out in stages; if selected, you will receive the invite at the email you gave. This is not an immediate invite.',
     errRequired: 'Please fill in your first name, last name and email.',
     errEmail: 'Enter a valid email.',
     errPlatform: 'Choose a platform.',

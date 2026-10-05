@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { PrivacidadePage } from '@/components/marketing/pages/Privacidade';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Política de Privacidade — Banzami' },
+  title: { absolute: 'Política de Privacidade · Banzami' },
   description: 'Como o Banzami trata os seus dados pessoais na Beta Sandbox.',
   alternates: {
     canonical: 'https://banzami.com/privacidade',
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Política de Privacidade — rebuilt entirely from handoff_site_completo on the shared marketing shell.
+// Política de Privacidade · rebuilt entirely from handoff_site_completo on the shared marketing shell.
 export default function Page() {
   return (
     <SiteShell lang="pt" current="privacidade">

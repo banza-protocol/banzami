@@ -10,7 +10,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://banzami.com'),
   title: {
-    default: 'Banzami — Pagamentos em Kwanza, de carteira para carteira',
+    default: 'Banzami · Pagamentos em Kwanza, de carteira para carteira',
     template: '%s · Banzami',
   },
   description:
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'pt_AO',
     siteName: 'Banzami',
-    title: 'Banzami — Pagamentos em Kwanza, de carteira para carteira',
+    title: 'Banzami · Pagamentos em Kwanza, de carteira para carteira',
     description:
       'Pagamentos nativos de carteira em Kwanza, por QR ou para um @banza, construídos sobre o protocolo aberto BANZA. Sandbox pública disponível; operações com dinheiro real indisponíveis.',
     url: 'https://banzami.com',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Banzami — Pagamentos em Kwanza, de carteira para carteira',
+    title: 'Banzami · Pagamentos em Kwanza, de carteira para carteira',
     description: 'Pagamentos nativos de carteira em Kwanza, construídos sobre o protocolo aberto BANZA.',
     images: ['/brand/banzami_icon.png'],
   },
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // The nonce middleware minted for this request. Next stamps it onto every
   // inline <script> it emits, which is what lets the policy use 'strict-dynamic'
-  // instead of 'unsafe-inline'. headers() is a Promise in Next 15 — without the
+  // instead of 'unsafe-inline'. headers() is a Promise in Next 15 · without the
   // await this reads .get off the Promise, the nonce is undefined, and our own
   // CSP then blocks the framework's bootstrap scripts.
   const nonce = (await headers()).get('x-nonce') ?? undefined;

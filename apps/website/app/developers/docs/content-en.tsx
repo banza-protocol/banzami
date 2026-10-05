@@ -43,10 +43,10 @@ const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
   { term: 'Project', def: 'One integrated application: its keys, webhooks and logs. The Project ID does not change when its name does.' },
   { term: 'Financial Setup', def: 'The connection between a project and the Business that receives its payments. Without it, the project cannot be paid.' },
   { term: 'Business', def: 'The entity, verified by Banzami, that receives a project’s payments.' },
-  { term: 'Wallet account', def: 'An account inside a Business wallet, to keep funds apart — one per campaign, for example.' },
+  { term: 'Wallet account', def: 'An account inside a Business wallet, to keep funds apart (one per campaign, for example).' },
   { term: 'Payment link', def: 'An address on pay.banzami.com where the payer pays; with a fixed or an open amount.' },
   { term: 'Refund', def: 'Returning a confirmed payment, fully or partially, from the account that received it.' },
-  { term: 'Transaction', def: 'A movement of value recorded in the ledger — a payment, a refund or a transfer.' },
+  { term: 'Transaction', def: 'A movement of value recorded in the ledger: a payment, a refund or a transfer.' },
   { term: 'Minor units', def: 'The format of amounts in the API: integers, where 100 minor units are 1 Kz. Never decimals.' },
   { term: 'amount_minor', def: 'The API’s amount field, in minor units: 25000 is 250 Kz.', code: true },
 ];
@@ -213,10 +213,10 @@ curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
 const EVENTS: string[] = EVENT_NAMES;
 
 const SDKS: { name: string; lang: string; state: string; consume: string }[] = [
-  { name: '@banzami/sdk', lang: 'TypeScript / Node.js', state: 'Published — server', consume: 'npm install @banzami/sdk' },
-  { name: 'banzami_client', lang: 'Dart / Flutter', state: 'Published — client, read-only', consume: 'dart pub add banzami_client' },
-  { name: 'banzami-python', lang: 'Python', state: 'Published — server', consume: 'pip install banzami-python' },
-  { name: 'banzami/sdk-php', lang: 'PHP', state: 'Not published', consume: '—' },
+  { name: '@banzami/sdk', lang: 'TypeScript / Node.js', state: 'Published (server)', consume: 'npm install @banzami/sdk' },
+  { name: 'banzami_client', lang: 'Dart / Flutter', state: 'Published (client, read-only)', consume: 'dart pub add banzami_client' },
+  { name: 'banzami-python', lang: 'Python', state: 'Published (server)', consume: 'pip install banzami-python' },
+  { name: 'banzami/sdk-php', lang: 'PHP', state: 'Not published', consume: 'n/a' },
 ]
 
 
@@ -437,8 +437,8 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
               <H2 id="financial-setup">Financial Setup</H2>
               <P>
                 Financial Setup connects the project to a <strong>Business</strong>: the entity that receives payments.
-                Without it, the project can use keys, webhooks and the API, but cannot be paid — creating a session returns <Code>403 PAYMENTS_UNAVAILABLE</Code>.
-                In the Sandbox, Banzami creates a <strong>test Business</strong> for the project the moment you choose the use case: no application, no documents, no waiting. It is a test entity — not verified, and it does not exist outside the Sandbox.
+                Without it, the project can use keys, webhooks and the API, but cannot be paid: creating a session returns <Code>403 PAYMENTS_UNAVAILABLE</Code>.
+                In the Sandbox, Banzami creates a <strong>test Business</strong> for the project the moment you choose the use case: no application, no documents, no waiting. It is a test entity: not verified, and it does not exist outside the Sandbox.
               </P>
               <FinancialSetupDiagram l={{
                 title: 'Financial Setup in the Sandbox: two paths, one result',
@@ -458,7 +458,7 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {[
                       ['Use when', 'Almost always: it is the Sandbox path for a new project.', 'Another project of yours already has a test Business, or you want to use a Banzami Business that already exists.'],
-                      ['What you do', 'Choose the use case: “Store, service or business” or “Application or platform”.', 'Enter the consent code its owner generates — in the other project’s Console or in the Banzami Business app.'],
+                      ['What you do', 'Choose the use case: “Store, service or business” or “Application or platform”.', 'Enter the consent code its owner generates, in the other project’s Console or in the Banzami Business app.'],
                       ['Who decides', 'Nobody waits: Banzami creates the Business and assigns the classification and pricing for that use.', 'The owner, by issuing the code. Each code works once, for ten minutes.'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
@@ -471,7 +471,7 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 why="The payee of every payment comes from this setup, never from your application’s request."
                 success={<>The Console shows the project as ready, and <Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
                 next="Create a secret key.">
-                In the Console, open <strong>Financial Setup</strong>, choose the use case and select <strong>Set up the Sandbox</strong> — or connect an existing Business with its code. In your application, check readiness before offering payment:
+                In the Console, open <strong>Financial Setup</strong>, choose the use case and select <strong>Set up the Sandbox</strong>, or connect an existing Business with its code. In your application, check readiness before offering payment:
                 <CodeBlock label="ts · check financial readiness" raw={SAMPLE_READY} onCopy={copy} {...enCopy} />
               </StepCard>
               <Callout>Your application never sends a classification, a price or a fee: Banzami assigns them to the Business for the chosen use case. The use case can change until the first payment is issued.</Callout>
@@ -525,7 +525,7 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
               <StepCard lang="en" n={9} of={12} id="step-9" title="Open the payment page"
                 what={<>The session link, at <Code>pay.banzami.com/pay/…</Code>. The QR code encodes the same address.</>}
                 why="The payer pays on a Banzami page. Your application never handles payment details."
-                success="The page shows the amount and the SANDBOX — test environment notice."
+                success="The page shows the amount and the SANDBOX · test environment notice."
                 next="Pay the session and confirm it on your server.">
                 Open <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code> in a browser. The page switches to “Payment confirmed” as soon as the session is paid, on any device. <a href="/docs/en/payments#realtime" style={a}>Realtime status</a>
               </StepCard>
@@ -571,7 +571,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="concepts-banzami">
               <h1 style={H1_STYLE}>How Banzami works</h1>
-              <PageLede>How Banzami organises an integration — workspace, project, Business — and the rules every financial resource follows. Read it before your first integration, or when a term in another guide is unclear.</PageLede>
+              <PageLede>How Banzami organises an integration (workspace, project, Business) and the rules every financial resource follows. Read it before your first integration, or when a term in another guide is unclear.</PageLede>
 
               <H2 id="sandbox-live">Sandbox and Live</H2>
               <P>
@@ -588,13 +588,13 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {[
                       ['Status', 'Available', 'Unavailable (fail-closed)'],
-                      ['Money', 'Fictitious', '—'],
+                      ['Money', 'Fictitious', 'n/a'],
                       ['API rules', 'API v1: authorisation, idempotency, events and errors', 'The same, once it exists'],
-                      ['Data', 'May be retired by Banzami; keep your own records', '—'],
-                      ['Does not prove', 'Regulatory approval, Live readiness or automatic Live access', '—'],
+                      ['Data', 'May be retired by Banzami; keep your own records', 'n/a'],
+                      ['Does not prove', 'Regulatory approval, Live readiness or automatic Live access', 'n/a'],
                       ['Keys', 'bz_test_sk_ and bz_test_pk_', 'bz_live_ is refused; none are issued'],
-                      ['API', 'https://sandbox-api.banzami.com/v1', '—'],
-                      ['Console', 'Your project’s real data', '—'],
+                      ['API', 'https://sandbox-api.banzami.com/v1', 'n/a'],
+                      ['Console', 'Your project’s real data', 'n/a'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
@@ -606,7 +606,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
 
               <H2 id="how-money-moves">How money moves</H2>
               <P>
-                Banzami is a wallet-native payment network. Every participant — a person, a Business, an application — has a wallet and wallet accounts,
+                Banzami is a wallet-native payment network. Every participant (a person, a Business, an application) has a wallet and wallet accounts,
                 and every movement between them is a double-entry posting written by Banzami Core to the ledger. A payment to a Business, a transfer between people,
                 the refund of a wallet payment and an application settlement move value <strong>inside</strong> the network and need no external rail
                 to happen.
@@ -624,7 +624,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                 footnote: 'Sandbox: fictitious money and a simulated external rail · Real-money operations: unavailable',
               }} />
               <P>
-                External rails — banks, EMIS, PSPs — are <strong>interoperability boundaries</strong>: they are crossed when value enters or leaves the network, or when
+                External rails (banks, EMIS, PSPs) are <strong>interoperability boundaries</strong>: they are crossed when value enters or leaves the network, or when
                 an operation explicitly requires one. Banzami is decoupled from rails, not independent of them, and none of this removes a regulatory obligation.
               </P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
@@ -670,10 +670,10 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Concept</th><th style={TH}>What it is</th><th style={TH}>Not to be confused with</th></tr></thead>
                   <tbody>
                     {[
-                      ['Workspace', 'Your team’s access boundary. A person can belong to several workspaces.', 'Project — the integration boundary.'],
-                      ['Project', 'One application: keys, webhooks and logs.', 'Business — the entity that receives payments.'],
-                      ['Business', 'The verified entity that receives payments.', 'Account — where value sits, inside the Business wallet.'],
-                      ['Account', 'A division of the wallet, per campaign or store for example.', 'Wallet — the set of the Business’s accounts.'],
+                      ['Workspace', 'Your team’s access boundary. A person can belong to several workspaces.', 'Project: the integration boundary.'],
+                      ['Project', 'One application: keys, webhooks and logs.', 'Business: the entity that receives payments.'],
+                      ['Business', 'The verified entity that receives payments.', 'Account: where value sits, inside the Business wallet.'],
+                      ['Account', 'A division of the wallet, per campaign or store for example.', 'Wallet: the set of the Business’s accounts.'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
@@ -717,7 +717,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                     {[
                       ['Payment Session', 'createPaymentSession', 'payment_session.paid · status PAID', 'Idempotency-Key; one session per purpose + reference', 'Transactions'],
                       ['Payment Link', 'POST /v1/payment-links', 'payment_link.paid', 'Idempotency-Key', 'Transactions'],
-                      ['QR code', 'included in the session (DYNAMIC_QR or STATIC_QR)', 'the session’s', '—', 'Transactions'],
+                      ['QR code', 'included in the session (DYNAMIC_QR or STATIC_QR)', 'the session’s', 'n/a', 'Transactions'],
                       ['Refund', 'createRefund', 'refund.completed · status SUCCEEDED', 'idempotency_key required', 'Transactions'],
                       ['Transfer', 'createTransfer', 'the response · status COMPLETED', 'idempotencyKey required', 'Transactions · Balances'],
                       ['Settlement', 'createBusinessApplicationSettlement', 'application_settlement.completed', 'idempotencyKey required', 'Balances'],
@@ -826,9 +826,9 @@ export function EnPayments({ copy }: { copy: CopyFn }) {
 
               <H2 id="present">Show the link or QR code</H2>
               <UL>
-                <LI><strong>Link:</strong> <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code> — an <Code>https://pay.banzami.com/pay/…</Code> URL.</LI>
+                <LI><strong>Link:</strong> <Code>paymentSessionInterface(session, &apos;PAYMENT_LINK&apos;).value</Code>: an <Code>https://pay.banzami.com/pay/…</Code> URL.</LI>
                 <LI><strong>QR code:</strong> <Code>paymentSessionInterface(session, &apos;DYNAMIC_QR&apos;).value</Code> (or <Code>STATIC_QR</Code>, for an open amount) holds the same URL. For the image, call <Code>GET /v1/payment-sessions/{'{'}id{'}'}/qr?format=svg</Code>.</LI>
-                <LI>Any phone camera opens the page from the QR code. The page shows “SANDBOX — test environment”.</LI>
+                <LI>Any phone camera opens the page from the QR code. The page shows “SANDBOX · test environment”.</LI>
               </UL>
 
               <H2 id="confirm">Confirm the payment</H2>
@@ -853,7 +853,7 @@ export function EnPayments({ copy }: { copy: CopyFn }) {
 
               <H2 id="realtime">Realtime status</H2>
               <P>
-                A page showing a QR code or a link can switch to “paid” the moment the payment happens — even when the payer paid on another device.
+                A page showing a QR code or a link can switch to “paid” the moment the payment happens, even when the payer paid on another device.
                 Every session read with your key carries <Code>realtime.token</Code>: a status token (<Code>bzst_…</Code>) that opens, read-only and for up to 30 minutes, that session’s public status.
                 Hand the token to your page; the page opens <Code>GET /v1/realtime/payment-sessions/{'{id}'}</Code> with the token in the <Code>Authorization</Code> header.
               </P>
@@ -872,7 +872,7 @@ export function EnPayments({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>The stream:</strong> with <Code>Accept: text/event-stream</Code>, a <Code>snapshot</Code> event with the current status, a <Code>status</Code> on each change, a heartbeat every 5 seconds and an <Code>expired</Code> when the token expires. It closes on a terminal status: <Code>PAID</Code>, <Code>EXPIRED</Code>, <Code>CANCELLED</Code> or <Code>FAILED</Code>. With <Code>Accept: application/json</Code>, a single read.</LI>
                 <LI><strong>The token goes in the header, never the URL:</strong> a token in the URL is refused with <Code>400 REALTIME_TOKEN_IN_URL</Code>. That is why the page uses <Code>fetch</Code> with a streaming read rather than <Code>EventSource</Code>, which cannot send headers.</LI>
-                <LI><strong>Reconnect:</strong> if the connection drops, open it again — it starts with a fresh snapshot. With an expired token (<Code>401 REALTIME_TOKEN_EXPIRED</Code>), read the session on your server for a new one.</LI>
+                <LI><strong>Reconnect:</strong> if the connection drops, open it again; it starts with a fresh snapshot. With an expired token (<Code>401 REALTIME_TOKEN_EXPIRED</Code>), read the session on your server for a new one.</LI>
                 <LI><strong>No stream:</strong> if the connection cannot stay up (<Code>503 REALTIME_UNAVAILABLE</Code>, a restricted network), the page asks your server at a modest interval, for example every five seconds.</LI>
                 <LI><strong>Limits:</strong> 3 streams per session and 20 per IP (<Code>429 REALTIME_STREAM_LIMIT</Code>). A page needs one.</LI>
               </UL>
@@ -943,7 +943,7 @@ export function EnWebhooks({ copy }: { copy: CopyFn }) {
               <StepCard lang="en" n={2} of={10} id="webhook-step-2" title="Register the endpoint and store the secret"
                 what={<><Code>createWebhookEndpoint</Code> (<Code>POST /v1/webhooks/endpoints</Code>) with the URL and the events you want.</>}
                 why="The returned secret is the only way to verify that a delivery comes from Banzami."
-                success={<>The response includes <Code>secret</Code>. Store it as <Code>BANZAMI_WEBHOOK_SECRET</Code> — it is not returned again.</>}
+                success={<>The response includes <Code>secret</Code>. Store it as <Code>BANZAMI_WEBHOOK_SECRET</Code>. It is not returned again.</>}
                 next="Read the raw body.">
                 <CodeBlock label="ts · register and rotate the secret" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} {...enCopy} />
               </StepCard>
@@ -979,7 +979,7 @@ export function EnWebhooks({ copy }: { copy: CopyFn }) {
               </StepCard>
               <StepCard lang="en" n={7} of={10} id="webhook-step-7" title="Apply the business effect"
                 what={<>Update your state from <Code>type</Code> and <Code>data</Code>.</>}
-                why="The event carries your reference — reference_id, for example — so you can match it to your resource."
+                why="The event carries your reference (reference_id, for example), so you can match it to your resource."
                 success="The order, donation or settlement is updated exactly once."
                 next="Respond quickly.">
                 Each event’s fields are listed in <a href="/docs/en/events" style={a}>Events</a>. Do not rely on arrival order.
@@ -1229,7 +1229,7 @@ export function EnSettlements({ copy }: { copy: CopyFn }) {
               <P>
                 When the pricing profile resolves a fee, pass <Code>feeDestinationBanzaName</Code>: an @banza of your own Business, of type
                 <Code> APPLICATION</Code> or <Code>PLATFORM</Code>, with approved verification and an active wallet. Without it, the settlement returns <Code>422 FEE_DESTINATION_REQUIRED</Code>.
-                The APPLICATION classification of an account is assigned by Banzami. In the Sandbox, it is assigned when you choose the <strong>Application or platform</strong> use case, and the project’s own test Business serves as the fee destination without verification — in the Sandbox only.
+                The APPLICATION classification of an account is assigned by Banzami. In the Sandbox, it is assigned when you choose the <strong>Application or platform</strong> use case, and the project’s own test Business serves as the fee destination without verification, in the Sandbox only.
               </P>
 
               <H2 id="settlement-errors">Errors and retries</H2>
@@ -1243,7 +1243,7 @@ export function EnSettlements({ copy }: { copy: CopyFn }) {
                       ['422 NOTHING_TO_SETTLE', 'The account has no available balance.', 'New, once there is a balance'],
                       ['422 SOURCE_NOT_SEGREGATED', 'The source is the Business’s main account.', 'New, with a segregated account'],
                       ['422 BENEFICIARY_NOT_FOUND', 'The @banza has no active wallet in this currency.', 'New, with another beneficiary'],
-                      ['422 SETTLEMENT_NOT_COMPLETED', 'The settlement was created but did not complete.', 'The same — it resumes the settlement'],
+                      ['422 SETTLEMENT_NOT_COMPLETED', 'The settlement was created but did not complete.', 'The same; it resumes the settlement'],
                       ['503', 'A temporary failure.', 'The same'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
@@ -1397,7 +1397,7 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="doa">
-              <h1 style={H1_STYLE}>Reference implementation — DOA</h1>
+              <h1 style={H1_STYLE}>Reference implementation: DOA</h1>
               <PageLede>
                 <a href="https://www.doadoa.app" style={a}>DOA</a> is an Angolan fundraising application that uses the Banzami Sandbox for its financial flows.
                 This guide uses DOA to show how an external application integrates Banzami through the public contracts.
@@ -1458,13 +1458,13 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
               <ChapterFacts lang="en" appLabel="DOA"
                 goal="A project with Financial Setup complete and a key with the scopes it needs."
                 app="Creates the workspace and project in the Console, completes Financial Setup, and stores the key and webhook secret on its server."
-                banzami="Creates the project’s test Business for the Application or platform use case — or accepts the owner’s consent code — and assigns the classification and pricing profile."
+                banzami="Creates the project’s test Business for the Application or platform use case (or accepts the owner’s consent code) and assigns the classification and pricing profile."
                 result={<><Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
                 failure={<><Code>403 PAYMENTS_UNAVAILABLE</Code> when creating a session: Financial Setup is not complete yet.</>} />
               <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <LI>In the <a href="/docs/en/console" style={a}>Console</a>, create a <strong>workspace</strong> and a <strong>project</strong> for the application.</LI>
                 <LI>
-                  Complete <strong>Financial Setup</strong>: choose the <strong>Application or platform</strong> use case — Banzami creates the test Business with the APPLICATION classification and the reference price, waiting for nobody — or connect an existing Business with the
+                  Complete <strong>Financial Setup</strong>: choose the <strong>Application or platform</strong> use case. Banzami creates the test Business with the APPLICATION classification and the reference price, waiting for nobody; or connect an existing Business with the
                   consent code its owner generates. <a href="/docs/en/get-started#financial-setup" style={a}>Financial Setup</a>
                 </LI>
                 <LI>
@@ -1668,10 +1668,10 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               <H2 id="account">Account</H2>
               <P>Your personal account is at <Code>/conta</Code>. You sign in with your email and a six-digit code; there is no password.</P>
               <UL>
-                <LI><strong>Profile</strong> — the name shown to members of your workspaces. Your email is your identifier and cannot be changed.</LI>
-                <LI><strong>Security</strong> — describes how sign-in works: a code by email and a cookie session. There is no password or MFA to configure.</LI>
-                <LI><strong>Sessions</strong> — open sessions, with origin and last use, and an option to end all others.</LI>
-                <LI><strong>Sign out</strong> — asks for confirmation and ends the current session.</LI>
+                <LI><strong>Profile:</strong> the name shown to members of your workspaces. Your email is your identifier and cannot be changed.</LI>
+                <LI><strong>Security:</strong> describes how sign-in works: a code by email and a cookie session. There is no password or MFA to configure.</LI>
+                <LI><strong>Sessions:</strong> open sessions, with origin and last use, and an option to end all others.</LI>
+                <LI><strong>Sign out:</strong> asks for confirmation and ends the current session.</LI>
               </UL>
 
               <H2 id="workspace">Workspaces, members and roles</H2>
@@ -1725,18 +1725,18 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
 
               <H2 id="project">Projects</H2>
               <UL>
-                <LI><strong>Project ID</strong> — does not change when you rename the project.</LI>
-                <LI><strong>Delete</strong> — available to Owners and Admins, even after test payments, refunds or settlements, and for an archived project too. You confirm by typing the project name.</LI>
-                <LI><strong>Archive</strong> — optional. Revokes active keys; from then on they return <Code>401</Code>. Archived projects appear under <strong>Show archived</strong>.</LI>
+                <LI><strong>Project ID:</strong> does not change when you rename the project.</LI>
+                <LI><strong>Delete:</strong> available to Owners and Admins, even after test payments, refunds or settlements, and for an archived project too. You confirm by typing the project name.</LI>
+                <LI><strong>Archive:</strong> optional. Revokes active keys; from then on they return <Code>401</Code>. Archived projects appear under <strong>Show archived</strong>.</LI>
               </UL>
 
               <H2 id="deleting">What deleting does</H2>
               <P>In the Sandbox, resources are disposable. Deleting removes the project from your environment immediately, and Banzami closes the rest:</P>
               <UL>
-                <LI><strong>Immediately</strong> — API keys are revoked and return <Code>401</Code>; the project leaves the lists; realtime tokens are no longer accepted; no new sessions or links can be created.</LI>
-                <LI><strong>Close-out</strong> — test payers are retired, open sessions and links are cancelled, webhooks are disabled and the project's test business is retired if no other project uses it. Fictitious balances are returned through balanced postings; no balance is edited.</LI>
-                <LI><strong>Status</strong> — while the close-out runs, the request returns <Code>202</Code> with <Code>DELETING</Code>; once it finishes, <Code>DELETED</Code>. Repeating the request is safe.</LI>
-                <LI><strong>What remains</strong> — ledger history is not rewritten: payments, refunds and receipts already issued stay verifiable as SANDBOX. Banzami keeps internally only the financial, audit and security records it needs; workspace Activity still shows the deleted project. Request logs are removed.</LI>
+                <LI><strong>Immediately:</strong> API keys are revoked and return <Code>401</Code>; the project leaves the lists; realtime tokens are no longer accepted; no new sessions or links can be created.</LI>
+                <LI><strong>Close-out:</strong> test payers are retired, open sessions and links are cancelled, webhooks are disabled and the project's test business is retired if no other project uses it. Fictitious balances are returned through balanced postings; no balance is edited.</LI>
+                <LI><strong>Status:</strong> while the close-out runs, the request returns <Code>202</Code> with <Code>DELETING</Code>; once it finishes, <Code>DELETED</Code>. Repeating the request is safe.</LI>
+                <LI><strong>What remains:</strong> ledger history is not rewritten: payments, refunds and receipts already issued stay verifiable as SANDBOX. Banzami keeps internally only the financial, audit and security records it needs; workspace Activity still shows the deleted project. Request logs are removed.</LI>
                 <LI><strong>The name</strong> is released: a new project with the same name is a new resource, with nothing from the old one.</LI>
                 <LI>A real Business connected with a consent code, or a test business shared with another project, is not affected.</LI>
                 <LI>This applies to the Sandbox only. It gives financial production no equivalent deletion.</LI>
@@ -1744,7 +1744,7 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
 
               <H2 id="financial">Financial Setup</H2>
               <P>
-                Connects the project to the Business that receives its payments. In the Sandbox, choose the use case — <strong>Store, service or business</strong> or <strong>Application or platform</strong> — and Banzami creates a test Business with that use’s classification and price; or connect an existing Business with its consent code.
+                Connects the project to the Business that receives its payments. In the Sandbox, choose the use case (<strong>Store, service or business</strong> or <strong>Application or platform</strong>) and Banzami creates a test Business with that use’s classification and price; or connect an existing Business with its consent code.
                 It shows the Business (a test Business appears as not verified), settlement readiness, the pricing profile and the fee destination. The use case can change until the first payment is issued, and
                 <strong> Generate connection code</strong> lets another project of yours use the same test Business. <a href="/docs/en/get-started#financial-setup" style={a}>The two paths</a>
               </P>
@@ -1752,12 +1752,12 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
 
               <H2 id="keys">API keys</H2>
               <UL>
-                <LI><strong>Name</strong> — identifies the key in the list and in Activity; it does not change permissions.</LI>
-                <LI><strong>Scopes</strong> — set at creation and immutable.</LI>
-                <LI><strong>Secret</strong> — starts with <Code>bz_test_sk_</Code> and is shown once, in the creation dialog. Afterwards the list shows only the prefix and a mask.</LI>
-                <LI><strong>Rotate</strong> — creates the successor and revokes the previous key in one step. For a switch without downtime, create a new key first, deploy it, then revoke the old one.</LI>
-                <LI><strong>Revoke</strong> — immediate: the next request with that key returns <Code>401</Code>.</LI>
-                <LI><strong>Last used</strong> — shows which keys are no longer in use.</LI>
+                <LI><strong>Name:</strong> identifies the key in the list and in Activity; it does not change permissions.</LI>
+                <LI><strong>Scopes:</strong> set at creation and immutable.</LI>
+                <LI><strong>Secret:</strong> starts with <Code>bz_test_sk_</Code> and is shown once, in the creation dialog. Afterwards the list shows only the prefix and a mask.</LI>
+                <LI><strong>Rotate:</strong> creates the successor and revokes the previous key in one step. For a switch without downtime, create a new key first, deploy it, then revoke the old one.</LI>
+                <LI><strong>Revoke:</strong> immediate: the next request with that key returns <Code>401</Code>.</LI>
+                <LI><strong>Last used:</strong> shows which keys are no longer in use.</LI>
               </UL>
               <P>Each endpoint requires one scope. Give each key only the scopes its server needs:</P>
               <ScopeTable lang="en" />
@@ -1776,16 +1776,16 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
 
               <H2 id="logs">Balances, transactions and logs</H2>
               <UL>
-                <LI><strong>Balances</strong> — the accounts of the Business connected to the project, and the balance of each.</LI>
-                <LI><strong>Transactions</strong> — payments, refunds and transfers between accounts of the Business connected to the project, including those started by other projects of the same Business.</LI>
-                <LI><strong>Logs</strong> — every request made with the project’s keys, with <Code>request_id</Code>, status and latency, kept for 30 days. Filter by method and by source: the integration’s keys or the API Explorer.</LI>
+                <LI><strong>Balances:</strong> the accounts of the Business connected to the project, and the balance of each.</LI>
+                <LI><strong>Transactions:</strong> payments, refunds and transfers between accounts of the Business connected to the project, including those started by other projects of the same Business.</LI>
+                <LI><strong>Logs:</strong> every request made with the project’s keys, with <Code>request_id</Code>, status and latency, kept for 30 days. Filter by method and by source: the integration’s keys or the API Explorer.</LI>
               </UL>
 
               <H2 id="console-test-data">Test data and API Explorer</H2>
               <UL>
-                <LI><strong>Overview</strong> — the steps to get started in the Sandbox, ticked from what the project has already done, and the two environments: Sandbox available; Live unavailable, requiring institutional approval.</LI>
-                <LI><strong>Test data</strong> — test payers (create, top up, pay as, retire), the scenarios and <strong>Reset the Sandbox</strong>.</LI>
-                <LI><strong>API Explorer</strong> — runs the v1 API against the Sandbox with no key in the browser: each request uses a 60-second key holding only the operation’s scope.</LI>
+                <LI><strong>Overview:</strong> the steps to get started in the Sandbox, ticked from what the project has already done, and the two environments: Sandbox available; Live unavailable, requiring institutional approval.</LI>
+                <LI><strong>Test data:</strong> test payers (create, top up, pay as, retire), the scenarios and <strong>Reset the Sandbox</strong>.</LI>
+                <LI><strong>API Explorer:</strong> runs the v1 API against the Sandbox with no key in the browser: each request uses a 60-second key holding only the operation’s scope.</LI>
               </UL>
               <P><a href="/docs/en/testing" style={a}>Sandbox testing</a></P>
               <P style={{ fontSize: 13, color: MUT }}>No Console page shows illustrative data. An empty list means there is nothing recorded yet.</P>
@@ -1838,7 +1838,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Capability</th><th style={TH}>Credential</th><th style={TH}>Status</th></tr></thead>
                   <tbody>
                     {([
-                      ['Console — workspaces, projects, members, keys', 'Session (email + code)', 'Available in Sandbox'],
+                      ['Console: workspaces, projects, members, keys', 'Session (email + code)', 'Available in Sandbox'],
                       ['GET /v1/me', 'Project key (identity:read)', 'Available in Sandbox'],
                       ['Payment Sessions', 'Project key (payment_sessions:write / :read) and completed Financial Setup', 'Available in Sandbox'],
                       ['Payment Links', 'Project key (payment_links:write / :read) and completed Financial Setup', 'Available in Sandbox'],
@@ -1846,7 +1846,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                       ['Refunds', 'Project key (refunds:write / :read)', 'Available in Sandbox'],
                       ['Transfers between accounts', 'Project key (transfers:write)', 'Available in Sandbox'],
                       ['Settlements', 'Project key (application_settlements:write)', 'Available in Sandbox'],
-                      ['Real-money operations', '—', 'Unavailable (fail-closed)'],
+                      ['Real-money operations', 'n/a', 'Unavailable (fail-closed)'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}><td style={TD_HEAD}>{cap}</td><td style={TD}>{cred}</td><td style={TD}>{st}</td></tr>
                     ))}
@@ -1877,12 +1877,12 @@ export function EnReference({ copy }: { copy: CopyFn }) {
               </P>
               <H2 id="identifiers">Identifiers to store</H2>
               <UL>
-                <LI><strong>Project ID</strong> — unchanged when the project is renamed.</LI>
-                <LI><strong>Resource ids</strong> — <Code>session_id</Code>, account, refund, endpoint — to look them up.</LI>
-                <LI><strong><Code>reference_id</Code></strong> — your reference, returned on resources and events.</LI>
-                <LI><strong>Each event’s <Code>id</Code></strong> — to deduplicate deliveries.</LI>
-                <LI><strong>The <Code>BZM-…</Code> reference</strong> — the one that verifies publicly.</LI>
-                <LI><strong><Code>request_id</Code></strong> — of every unexpected response.</LI>
+                <LI><strong>Project ID:</strong> unchanged when the project is renamed.</LI>
+                <LI><strong>Resource ids:</strong> <Code>session_id</Code>, account, refund, endpoint, to look them up.</LI>
+                <LI><strong><Code>reference_id</Code>:</strong> your reference, returned on resources and events.</LI>
+                <LI><strong>Each event’s <Code>id</Code>:</strong> to deduplicate deliveries.</LI>
+                <LI><strong>The <Code>BZM-…</Code> reference:</strong> the one that verifies publicly.</LI>
+                <LI><strong><Code>request_id</Code>:</strong> of every unexpected response.</LI>
               </UL>
               <P style={{ fontSize: 13, color: MUT }}>An id grants no access: another project’s resource returns <Code>404</Code>.</P>
 
@@ -1905,12 +1905,12 @@ export function EnErrors({ copy }: { copy: CopyFn }) {
     <>
 <Section id="errors">
               <h1 style={H1_STYLE}>Errors</h1>
-              <PageLede>Every error response uses the same envelope. Handle it by HTTP status first, then by the <Code>code</Code> field — never by the message.</PageLede>
+              <PageLede>Every error response uses the same envelope. Handle it by HTTP status first, then by the <Code>code</Code> field, never by the message.</PageLede>
               <CodeBlock label="json · error envelope" raw={SAMPLE_ERROR} onCopy={copy} {...enCopy} />
               <UL>
-                <LI><Code>code</Code> — stable; the field to branch on in your application.</LI>
-                <LI><Code>message</Code> — an English explanation for logs. It may change.</LI>
-                <LI><Code>request_id</Code> — finds the request in <strong>Console → Logs</strong> for 30 days. Logs never store the <Code>Authorization</Code> header, keys, secrets, cookies, OTP codes or request bodies.</LI>
+                <LI><Code>code</Code>: stable; the field to branch on in your application.</LI>
+                <LI><Code>message</Code>: an English explanation for logs. It may change.</LI>
+                <LI><Code>request_id</Code>: finds the request in <strong>Console → Logs</strong> for 30 days. Logs never store the <Code>Authorization</Code> header, keys, secrets, cookies, OTP codes or request bodies.</LI>
               </UL>
 
               <H2 id="by-status">By HTTP status</H2>
@@ -2004,10 +2004,10 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Family</th><th style={TH}>Status</th><th style={TH}>Public package</th><th style={TH}>Use</th></tr></thead>
                   <tbody>
                     {([
-                      ['JavaScript / TypeScript', 'Published', '@banzami/sdk', 'Server — secret key'],
-                      ['Dart / Flutter (client)', 'Published', 'banzami_client', 'Client — publishable key, read-only'],
-                      ['Python', 'Published', 'banzami-python', 'Server — secret key'],
-                      ['PHP', 'Not published', '—', 'Source code'],
+                      ['JavaScript / TypeScript', 'Published', '@banzami/sdk', 'Server (secret key)'],
+                      ['Dart / Flutter (client)', 'Published', 'banzami_client', 'Client (publishable key, read-only)'],
+                      ['Python', 'Published', 'banzami-python', 'Server (secret key)'],
+                      ['PHP', 'Not published', 'n/a', 'Source code'],
                     ] as [string, string, string, string][]).map((r) => (
                       <tr key={r[0]}><td style={TD_HEAD}>{r[0]}</td><td style={TD}>{r[1]}</td><td style={TD_MONO}>{r[2]}</td><td style={TD}>{r[3]}</td></tr>
                     ))}
@@ -2129,26 +2129,26 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
 
               <H2 id="test-with-app-banzami-web">Test with App Banzami Web</H2>
               <P>
-                There are three complementary ways to test the payer side in Sandbox — all with fictitious money, all through the same Core financial path (there is no second state machine):
+                There are three complementary ways to test the payer side in Sandbox, all with fictitious money and all through the same Core financial path (there is no second state machine):
               </P>
               <P>
-                <strong>1. App Banzami Web</strong> — the real, interactive Consumer at <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" style={a}>app.banzami.com</a>. Create a Sandbox Banzami account and pay by hand like a customer. When you create a Payment Session or Payment Link in the <a href="/explorer" style={a}>API Explorer</a>, the <strong>Test in App Banzami Web</strong> button opens <Code>app.banzami.com/pay/{'{slug}'}</Code> — the same public payer slug (no key, no session, no authority in the URL); the app authenticates and resumes the payment (opening the link never pays — it lands on the review screen).{' '}
-                <strong>2. Hosted checkout</strong> — the payer page hosted at <Code>pay.banzami.com</Code>, via the <strong>Open the payment page</strong> button.{' '}
-                <strong>3. Test payer</strong> — deterministic, for automation and scenarios (below).
+                <strong>1. App Banzami Web:</strong> the real, interactive Consumer at <a href="https://app.banzami.com" target="_blank" rel="noopener noreferrer" style={a}>app.banzami.com</a>. Create a Sandbox Banzami account and pay by hand like a customer. When you create a Payment Session or Payment Link in the <a href="/explorer" style={a}>API Explorer</a>, the <strong>Test in App Banzami Web</strong> button opens <Code>app.banzami.com/pay/{'{slug}'}</Code>, the same public payer slug (no key, no session, no authority in the URL); the app authenticates and resumes the payment (opening the link never pays; it lands on the review screen).{' '}
+                <strong>2. Hosted checkout:</strong> the payer page hosted at <Code>pay.banzami.com</Code>, via the <strong>Open the payment page</strong> button.{' '}
+                <strong>3. Test payer:</strong> deterministic, for automation and scenarios (below).
               </P>
               <P>
-                Your <strong>developer</strong> account and the <strong>consumer</strong> account are separate identities: opening the app does not sign you in as a consumer. After payment, observe through the canonical path — webhook, <a href="/logs" style={a}>Logs / Events</a> and the receipt.
+                Your <strong>developer</strong> account and the <strong>consumer</strong> account are separate identities: opening the app does not sign you in as a consumer. After payment, observe through the canonical path: webhook, <a href="/logs" style={a}>Logs / Events</a> and the receipt.
               </P>
 
               <H2 id="test-payers">Test payers</H2>
               <P>
-                A test payer is a Sandbox customer of your project, with a wallet and a fictitious balance. It pays your sessions and links through the same path a real customer uses — the session becomes <Code>PAID</Code>, the event is emitted and the receipt is issued.
+                A test payer is a Sandbox customer of your project, with a wallet and a fictitious balance. It pays your sessions and links through the same path a real customer uses: the session becomes <Code>PAID</Code>, the event is emitted and the receipt is issued.
                 A payer of project A does not exist for project B, and pays only its own project’s sessions and links.
               </P>
               <P>
                 In the Console, open <strong>Test data</strong>: create a payer, top it up and pay a session by its <Code>session_id</Code>. Through the API, with a key holding <Code>sandbox:write</Code>:
                 <Code>POST /v1/sandbox/test-payers</Code>, <Code>POST /v1/sandbox/test-payers/{'{id}'}/fund</Code> (with an <Code>Idempotency-Key</Code>) and <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>.
-                A test payer acts only through your project’s API: it does not sign in to any app, and what your test Business receives settles only to test payers and test Businesses — test value never reaches a real account. <a href="/docs/en/reference#resource-sandbox" style={a}>Test data reference</a>
+                A test payer acts only through your project’s API: it does not sign in to any app, and what your test Business receives settles only to test payers and test Businesses; test value never reaches a real account. <a href="/docs/en/reference#resource-sandbox" style={a}>Test data reference</a>
               </P>
               <CodeTabs ui="en" items={[{ lang: 'ts', raw: SAMPLE_TEST_PAYER, context: 'test payer' }, { lang: 'curl', raw: SAMPLE_CURL_TEST_PAYER_PAY, context: 'pay a session as a test payer' }]} />
 
@@ -2192,7 +2192,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 console: 'Webhooks → Events: the event.',
                 cleanup: 'Not needed: an unpaid session has no financial effect.' }} />
               <RecipeCard lang="en" r={{ id: 'pay-session', title: 'Pay a session', scenario: 'PAYMENT_SUCCESS',
-                trigger: <>Create a test payer and pay the session with <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>, <Code>payment_session_id</Code> and <Code>via</Code> <Code>LINK</Code> or <Code>QR</Code> — or, in the Console, under Test data.</>,
+                trigger: <>Create a test payer and pay the session with <Code>POST /v1/sandbox/test-payers/{'{id}'}/payments</Code>, <Code>payment_session_id</Code> and <Code>via</Code> <Code>LINK</Code> or <Code>QR</Code>, or, in the Console, under Test data.</>,
                 api: <><Code>200</Code> with <Code>transfer_id</Code> and <Code>proof_reference</Code>; <Code>getPaymentSession</Code> returns <Code>status: &quot;PAID&quot;</Code> and <Code>refund_source</Code>.</>,
                 event: <><Code>payment_session.paid</Code> and <Code>payment_link.paid</Code>.</>,
                 console: 'Transactions: the payment; Balances: the account holding the amount.',
@@ -2220,16 +2220,16 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 event: 'None.', console: 'Logs: the request, with the 503 response.', cleanup: <>Bring the rail back with <Code>state: &quot;AVAILABLE&quot;</Code>.</> }} />
               <RecipeCard lang="en" r={{ id: 'no-answer', title: 'No answer in time', scenario: 'AMBIGUOUS_TIMEOUT',
                 trigger: <>Pay as a test payer with <Code>simulate: &quot;TIMEOUT&quot;</Code> and an <Code>Idempotency-Key</Code>; then repeat the request with the same key.</>,
-                api: <>First <Code>503 SANDBOX_SIMULATED_TIMEOUT</Code> — but the payment was made. The repeat answers <Code>200</Code> with the real result and does not pay again.</>,
+                api: <>First <Code>503 SANDBOX_SIMULATED_TIMEOUT</Code>, but the payment was made. The repeat answers <Code>200</Code> with the real result and does not pay again.</>,
                 event: <><Code>payment_session.paid</Code>, once.</>,
                 console: 'Transactions: a single payment.', cleanup: 'Refund the payment, or reset the Sandbox.',
                 limits: 'This is the case to handle in production: a timeout does not say whether the payment happened. Retry with the same key; never create a new payment.' }} />
               <RecipeCard lang="en" r={{ id: 'completes-later', title: 'A payment that completes later', scenario: 'DELAYED_COMPLETION',
                 trigger: <>Pay as a test payer with <Code>simulate: &quot;DELAYED&quot;</Code> and an <Code>Idempotency-Key</Code>.</>,
                 api: <><Code>202</Code> with <Code>status: &quot;PENDING&quot;</Code> and <Code>simulated: true</Code>. About 10 seconds later the payment completes on its own: the session becomes <Code>PAID</Code>, and the same request with the same key answers <Code>200</Code> with the result.</>,
-                event: <><Code>payment_session.paid</Code>, when it completes — the realtime stream turns <Code>PAID</Code> at the same moment.</>,
+                event: <><Code>payment_session.paid</Code>, when it completes; the realtime stream turns <Code>PAID</Code> at the same moment.</>,
                 console: 'Transactions: the payment appears when it completes.', cleanup: 'Refund the payment, or reset the Sandbox.',
-                limits: 'Show a pending state, then act on the webhook or the stream — not on the 202.' }} />
+                limits: 'Show a pending state, then act on the webhook or the stream, not on the 202.' }} />
               <RecipeCard lang="en" r={{ id: 'test-idempotency', title: 'Retry a request safely', scenario: 'IDEMPOTENT_REPLAY IDEMPOTENCY_PAYLOAD_CONFLICT CONCURRENT_DUPLICATE',
                 trigger: <>Send the same POST twice with the same <Code>Idempotency-Key</Code>; then the same key with a different body.</>,
                 api: <>The second response matches the first. With a different body: <Code>409 IDEMPOTENCY_KEY_REUSED</Code>. Two concurrent requests: <Code>409 IDEMPOTENCY_CONFLICT</Code>.</>,
@@ -2247,13 +2247,13 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <RecipeCard lang="en" r={{ id: 'realtime-status', title: 'Realtime status', scenario: 'REALTIME_STATUS',
                 trigger: <>Open the status stream with the session’s <Code>realtime.token</Code> and pay it with a test payer.</>,
                 api: <>A <Code>snapshot</Code> with <Code>ACTIVE</Code>, then a <Code>status</Code> with <Code>PAID</Code>, and the stream closes.</>,
-                event: <><Code>payment_session.paid</Code>, at your webhook — the confirmation to fulfil the order on.</>,
+                event: <><Code>payment_session.paid</Code>, at your webhook, the confirmation to fulfil the order on.</>,
                 console: 'API Explorer: read the session and choose “Watch the realtime status”.', cleanup: 'None.',
                 limits: <>The token lasts up to 30 minutes; read the session again for another. <a href="/docs/en/payments#realtime" style={a}>Realtime status</a></> }} />
 
               <H2 id="test-webhooks">Webhooks</H2>
               <RecipeCard lang="en" r={{ id: 'webhook-test-event', title: 'Test event', scenario: 'WEBHOOK_SUCCESS',
-                trigger: <>In the Console, under Webhooks, choose <strong>Send test event</strong> — or <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code>.</>,
+                trigger: <>In the Console, under Webhooks, choose <strong>Send test event</strong>, or <Code>POST /v1/webhooks/endpoints/{'{id}'}/test</Code>.</>,
                 api: <><Code>202</Code> with <Code>type: &quot;webhook.test&quot;</Code> and <Code>synthetic: true</Code>.</>,
                 event: <><Code>webhook.test</Code>, signed like the others, to this endpoint only. It describes no payment.</>,
                 console: 'Webhooks → Events: the event, marked as a test, with its delivery.',
@@ -2274,7 +2274,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <RecipeCard lang="en" r={{ id: 'webhook-signature', title: 'Invalid signature', scenario: 'WEBHOOK_SIGNATURE_INVALID',
                 trigger: <>POST to your own endpoint with a made-up <Code>banza-signature</Code>.</>,
                 api: <><Code>constructEvent</Code> throws; the endpoint responds <Code>400</Code> with no side effects.</>,
-                event: 'None — the request did not come from Banzami.', console: 'Nothing: the test is local.', cleanup: 'None.' }} />
+                event: 'None: the request did not come from Banzami.', console: 'Nothing: the test is local.', cleanup: 'None.' }} />
               <RecipeCard lang="en" r={{ id: 'webhook-disabled', title: 'Disabled endpoint',
                 trigger: 'Disable the endpoint and create a session.',
                 api: <>The event appears in <Code>listWebhookEvents</Code>, with no delivery to that endpoint. A test event returns <Code>409 ENDPOINT_DISABLED</Code>.</>,
@@ -2546,8 +2546,8 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
                       ['12 Sep 2026', 'SDK', '@banzami/sdk 0.13.0; createApplicationSettlement removed in favour of createBusinessApplicationSettlement.', 'Calls to the removed method fail.', 'Migrate to createBusinessApplicationSettlement.'],
                       ['11 Sep 2026', 'API', 'POST /v1/payment-links/{id}/mark-used retired: returns 410 ROUTE_RETIRED.', 'A link is marked paid only by a payment.', 'Use DELETE /v1/payment-links/{id} to close a link.'],
                       ['10 Sep 2026', 'Sandbox', 'Financial Setup by reviewed application or consent code; one-click setup removed.', 'New projects must complete Financial Setup to receive payments.', 'Complete Financial Setup.'],
-                      ['11 Jul 2026', 'Docs', 'Per-resource reference, testing guide, authentication and webhook envelope.', '—', 'None.'],
-                      ['July 2026', 'Sandbox', 'Sandbox Console: email-and-code sign-in, workspaces, projects, test keys, roles and invitations.', '—', 'None.'],
+                      ['11 Jul 2026', 'Docs', 'Per-resource reference, testing guide, authentication and webhook envelope.', 'n/a', 'None.'],
+                      ['July 2026', 'Sandbox', 'Sandbox Console: email-and-code sign-in, workspaces, projects, test keys, roles and invitations.', 'n/a', 'None.'],
                     ] as [string, string, string, string, string][]).map((r, i) => (
                       <tr key={i}>
                         <td style={{ ...TD_MONO, whiteSpace: 'nowrap' }}>{r[0]}</td>

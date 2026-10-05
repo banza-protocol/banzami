@@ -92,7 +92,7 @@ export function SandboxChecklist({ projectId }: { projectId: string }) {
                 <Link href={s.href} style={{ fontSize: 14, fontWeight: 900, color: s.done ? '#8a7a7e' : '#2a2024', textDecoration: 'none' }}>
                   {s.title}
                 </Link>
-                <span className="bz-sr-only">{s.done ? ' — concluído' : ' — por fazer'}</span>
+                <span className="bz-sr-only">{s.done ? ', concluído' : ', por fazer'}</span>
                 <span style={{ display: 'block', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600 }}>{s.hint}</span>
               </span>
             </li>

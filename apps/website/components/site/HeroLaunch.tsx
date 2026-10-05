@@ -86,7 +86,7 @@ export function HeroLaunch({ sandboxName, liveSummaryShort }: { sandboxName: str
           </h1>
 
           <p className="m-0 mt-[clamp(20px,3vh,34px)] max-w-[540px] text-[clamp(15px,0.5vw+0.7vh,18px)] font-semibold leading-[1.6] text-ink-secondary">
-            Envie, receba e aceite pagamentos em Kz entre pessoas, negócios e aplicações — na app
+            Envie, receba e aceite pagamentos em Kz entre pessoas, negócios e aplicações, na app
             Banzami ou integrado no seu produto.
           </p>
 

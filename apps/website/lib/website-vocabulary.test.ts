@@ -23,7 +23,7 @@ describe('website vocabulary', () => {
 
   it('volume bands read with space grouping, and submit what they always submitted', () => {
     expect(VOLUME_FAIXAS).toContain('100.000 – 500.000 Kz'); // stored value, unchanged
-    expect(volumeFaixaLabel('100.000 – 500.000 Kz')).toBe('100 000 – 500 000 Kz');
+    expect(volumeFaixaLabel('100.000 – 500.000 Kz')).toBe('100 000 a 500 000 Kz');
     expect(volumeFaixaLabel('Mais de 10.000.000 Kz')).toBe('Mais de 10 000 000 Kz');
     for (const v of VOLUME_FAIXAS) expect(volumeFaixaLabel(v)).not.toMatch(/\d\.\d/);
     // The volume band lives on the Console (LIVE) business application; the

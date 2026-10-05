@@ -127,8 +127,8 @@ export const TERMS_SECTIONS: LegalSection[] = [
     id: 'financial-live', n: '05', title: { pt: 'Operações com dinheiro real indisponíveis', en: 'Real-money operations unavailable' },
     body: [
       p(
-        'As operações com dinheiro real — a movimentação de dinheiro real — não estão disponíveis e estão fora do âmbito destes Termos.',
-        'Real-money operations — the movement of real money — are not available and are out of scope of these Terms.',
+        'As operações com dinheiro real (a movimentação de dinheiro real) não estão disponíveis e estão fora do âmbito destes Termos.',
+        'Real-money operations (the movement of real money) are not available and are out of scope of these Terms.',
       ),
       p(
         'Não realizamos liquidação, transferências financeiras reais nem levantamentos. Caso as operações com dinheiro real venham a ser lançadas, terão termos e condições próprios.',
@@ -184,8 +184,8 @@ export const TERMS_SECTIONS: LegalSection[] = [
         'A business can apply to access Banzami Business in the Sandbox to try QR charges, links and billing tools, with test money. Approving a Beta application grants Sandbox access and is not an approval for real financial services.',
       ),
       p(
-        'A candidatura Sandbox simula o processo completo — dados do negócio, do representante e documentos. Deve utilizar apenas dados fictícios: não introduza NIF, nome, contactos ou documentos reais (ver Política de Privacidade). Os documentos do fluxo são exclusivamente documentos sintéticos de teste fornecidos pelo Banzami; não são carregados ficheiros reais. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
-        'The Sandbox application rehearses the full process — business details, representative and documents. You must use fictitious data only: do not enter real tax IDs, names, contacts or documents (see the Privacy Policy). The documents in the flow are exclusively synthetic test documents provided by Banzami; no real files are uploaded. Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
+        'A candidatura Sandbox simula o processo completo: dados do negócio, do representante e documentos. Deve utilizar apenas dados fictícios: não introduza NIF, nome, contactos ou documentos reais (ver Política de Privacidade). Os documentos do fluxo são exclusivamente documentos sintéticos de teste fornecidos pelo Banzami; não são carregados ficheiros reais. A verificação completa de identidade de empresa (KYB), com documentos reais, só se aplica às operações com dinheiro real, que não estão disponíveis.',
+        'The Sandbox application rehearses the full process: business details, representative and documents. You must use fictitious data only: do not enter real tax IDs, names, contacts or documents (see the Privacy Policy). The documents in the flow are exclusively synthetic test documents provided by Banzami; no real files are uploaded. Full business identity verification (KYB), with real documents, applies only to real-money operations, which are not available.',
       ),
     ],
   },
@@ -341,7 +341,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       ul([
         ['Email, nome e telefone associados à conta.', 'Email, name and phone associated with the account.'],
         ['O seu @banza (identificador da carteira).', 'Your @banza (wallet identifier).'],
-        ['Metadados de sessão e de autenticação (incluindo metadados de PIN/MFA — nunca o próprio PIN).', 'Session and authentication metadata (including PIN/MFA metadata — never the PIN itself).'],
+        ['Metadados de sessão e de autenticação (incluindo metadados de PIN/MFA, nunca o próprio PIN).', 'Session and authentication metadata (including PIN/MFA metadata, never the PIN itself).'],
       ]),
     ],
   },
@@ -423,8 +423,8 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'cookies', n: '11', title: { pt: 'Cookies e armazenamento local', en: 'Cookies and local storage' },
     body: [
       p(
-        'O website público usa apenas cookies estritamente necessários e funcionais — por exemplo, um cookie não secreto que ajuda a encaminhar links de pagamento para a app quando tem sessão iniciada, e o cookie de sessão da Consola de Developers. Não usamos cookies de análise ou de marketing no website público, pelo que não apresentamos um banner de cookies.',
-        'The public website uses only strictly necessary and functional cookies — for example, a non-secret cookie that helps route payment links to the app when you are signed in, and the Developer Console session cookie. We do not use analytics or marketing cookies on the public website, so we do not show a cookie banner.',
+        'O website público usa apenas cookies estritamente necessários e funcionais, por exemplo um cookie não secreto que ajuda a encaminhar links de pagamento para a app quando tem sessão iniciada, e o cookie de sessão da Consola de Developers. Não usamos cookies de análise ou de marketing no website público, pelo que não apresentamos um banner de cookies.',
+        'The public website uses only strictly necessary and functional cookies, for example a non-secret cookie that helps route payment links to the app when you are signed in, and the Developer Console session cookie. We do not use analytics or marketing cookies on the public website, so we do not show a cookie banner.',
       ),
     ],
   },

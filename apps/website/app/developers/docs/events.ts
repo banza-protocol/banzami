@@ -36,8 +36,8 @@ export type EventDoc = {
 };
 
 const ENVELOPE_ID: Bi = {
-  pt: 'Guarde o id do envelope (evt_…) e ignore um id que já processou — a entrega é at-least-once.',
-  en: 'Store the envelope id (evt_…) and ignore an id you already processed — delivery is at-least-once.',
+  pt: 'Guarde o id do envelope (evt_…) e ignore um id que já processou: a entrega é at-least-once.',
+  en: 'Store the envelope id (evt_…) and ignore an id you already processed: delivery is at-least-once.',
 };
 
 export const EVENT_DOCS: EventDoc[] = [
@@ -69,7 +69,7 @@ export const EVENT_DOCS: EventDoc[] = [
       pt: 'Sem garantia de ordem: pode chegar depois de payment_session.paid da mesma sessão. Nunca trate «created depois de paid» como regressão.',
       en: 'No ordering guarantee: it can arrive after payment_session.paid for the same session. Never treat "created after paid" as a regression.',
     },
-    sandbox: { pt: 'Sim — criar uma sessão.', en: 'Yes — create a session.' },
+    sandbox: { pt: 'Sim: criar uma sessão.', en: 'Yes: create a session.' },
     doa: null,
     guide: 'payments',
     sample: `{
@@ -94,19 +94,19 @@ export const EVENT_DOCS: EventDoc[] = [
     resource: { pt: 'Sessão de pagamento', en: 'Payment Session' },
     endpoint: 'ref-ps-get',
     when: {
-      pt: 'Quando o pagador paga a sessão e o dinheiro fica na sua conta — no mesmo instante em que a sessão passa a PAID.',
-      en: 'When the payer pays the session and the money is in your account — at the same moment the session becomes PAID.',
+      pt: 'Quando o pagador paga a sessão e o dinheiro fica na sua conta, no mesmo instante em que a sessão passa a PAID.',
+      en: 'When the payer pays the session and the money is in your account, at the same moment the session becomes PAID.',
     },
     fields: [
       { name: 'payment_session_id', type: 'string (uuid)', note: { pt: 'a sessão que foi paga', en: 'the session that was paid' } },
       { name: 'amount_minor', type: 'integer', note: { pt: 'o que foi pago, em unidades menores', en: 'what was paid, in minor units' } },
-      { name: 'interface', type: 'string', note: { pt: 'por onde pagou; hoje PAYMENT_LINK — o QR abre o mesmo link', en: 'how it was paid; today PAYMENT_LINK — the QR opens the same link' } },
+      { name: 'interface', type: 'string', note: { pt: 'por onde pagou; hoje PAYMENT_LINK; o QR abre o mesmo link', en: 'how it was paid; today PAYMENT_LINK; the QR opens the same link' } },
       { name: 'destination_account_ref', type: 'string (uuid)', note: { pt: 'a sua conta que recebeu', en: 'your account that received it' } },
       { name: 'reference_type', type: 'string | null', note: { pt: 'a sua referência', en: 'your reference' } },
-      { name: 'reference_id', type: 'string | null', note: { pt: 'a sua referência — é por ela que liga o pagamento à sua encomenda', en: 'your reference — how you tie the payment to your order' } },
+      { name: 'reference_id', type: 'string | null', note: { pt: 'a sua referência, é por ela que liga o pagamento à sua encomenda', en: 'your reference, how you tie the payment to your order' } },
       { name: 'transfer_id', type: 'string (uuid)', note: { pt: 'presente quando pagou com uma carteira Banzami (o caso do Sandbox)', en: 'present when paid from a Banzami wallet (the Sandbox case)' } },
-      { name: 'acquiring_payment_id', type: 'string (uuid)', note: { pt: 'presente, em vez de transfer_id, quando pagou por um trilho externo — indisponível no Sandbox', en: 'present, instead of transfer_id, when paid through an external rail — unavailable in the Sandbox' } },
-      { name: 'refund_source', type: 'object | null', note: { pt: '{ source_type, source_id } — o que envia a createRefund para devolver este pagamento; null num trilho externo', en: '{ source_type, source_id } — what you send to createRefund to return this payment; null for an external rail' } },
+      { name: 'acquiring_payment_id', type: 'string (uuid)', note: { pt: 'presente, em vez de transfer_id, quando pagou por um trilho externo (indisponível no Sandbox)', en: 'present, instead of transfer_id, when paid through an external rail (unavailable in the Sandbox)' } },
+      { name: 'refund_source', type: 'object | null', note: { pt: '{ source_type, source_id }: o que envia a createRefund para devolver este pagamento; null num trilho externo', en: '{ source_type, source_id }: what you send to createRefund to return this payment; null for an external rail' } },
     ],
     action: {
       pt: 'Verifique a assinatura, deduplique pelo id, e marque a encomenda de reference_id como paga. Guarde refund_source se pode vir a reembolsar.',
@@ -121,8 +121,8 @@ export const EVENT_DOCS: EventDoc[] = [
       en: 'No ordering guarantee relative to payment_session.created and payment_link.paid.',
     },
     sandbox: {
-      pt: 'Precisa de um pagador com uma carteira Banzami no Sandbox — ver Testar no Sandbox.',
-      en: 'Needs a payer with a Banzami wallet in the Sandbox — see Sandbox testing.',
+      pt: 'Precisa de um pagador com uma carteira Banzami no Sandbox; ver Testar no Sandbox.',
+      en: 'Needs a payer with a Banzami wallet in the Sandbox; see Sandbox testing.',
     },
     doa: {
       pt: 'É a confirmação da doação: o DOA lê reference_id, que é o id da intenção de doação que deu ao criar a sessão.',
@@ -151,8 +151,8 @@ export const EVENT_DOCS: EventDoc[] = [
     resource: { pt: 'Link de pagamento', en: 'Payment Link' },
     endpoint: 'ref-pl-get',
     when: {
-      pt: 'Quando um link é pago — um link criado por si, ou o link de uma sessão de pagamento.',
-      en: 'When a link is paid — a link you created, or the link behind a Payment Session.',
+      pt: 'Quando um link é pago: um link criado por si, ou o link de uma sessão de pagamento.',
+      en: 'When a link is paid: a link you created, or the link behind a Payment Session.',
     },
     fields: [
       { name: 'id', type: 'string (uuid)', note: { pt: 'o id do link (o de getPaymentLink)', en: 'the link id (the one getPaymentLink takes)' } },
@@ -181,8 +181,8 @@ export const EVENT_DOCS: EventDoc[] = [
       en: 'No ordering guarantee relative to payment_session.paid.',
     },
     sandbox: {
-      pt: 'Precisa de um pagador com uma carteira Banzami no Sandbox — ver Testar no Sandbox.',
-      en: 'Needs a payer with a Banzami wallet in the Sandbox — see Sandbox testing.',
+      pt: 'Precisa de um pagador com uma carteira Banzami no Sandbox; ver Testar no Sandbox.',
+      en: 'Needs a payer with a Banzami wallet in the Sandbox; see Sandbox testing.',
     },
     doa: {
       pt: 'O DOA também o consome: guarda o slug do link ao criar a sessão e confirma a doação por ele, uma única vez, venha por este evento ou por payment_session.paid.',
@@ -215,8 +215,8 @@ export const EVENT_DOCS: EventDoc[] = [
     resource: { pt: 'Reembolso', en: 'Refund' },
     endpoint: 'ref-refund-create',
     when: {
-      pt: 'Quando um reembolso foi feito e o valor voltou ao pagador — no mesmo pedido que createRefund responde 201.',
-      en: 'When a refund was made and the value is back with the payer — in the same request that createRefund answers 201.',
+      pt: 'Quando um reembolso foi feito e o valor voltou ao pagador, no mesmo pedido em que createRefund responde 201.',
+      en: 'When a refund was made and the value is back with the payer, in the same request that createRefund answers 201.',
     },
     fields: [
       { name: 'refund_id', type: 'string (uuid)', note: { pt: 'o id do reembolso', en: 'the refund id' } },
@@ -225,7 +225,7 @@ export const EVENT_DOCS: EventDoc[] = [
       { name: 'amount_minor', type: 'integer', note: { pt: 'o valor devolvido, em unidades menores', en: 'the value returned, in minor units' } },
       { name: 'currency', type: 'string', note: { pt: 'AOA', en: 'AOA' } },
       { name: 'status', type: 'string', note: { pt: 'SUCCEEDED', en: 'SUCCEEDED' } },
-      { name: 'trace_id', type: 'string', note: { pt: 'o idempotency_key que enviou — é por ele que liga o evento ao seu pedido', en: 'the idempotency_key you sent — how you tie the event to your request' } },
+      { name: 'trace_id', type: 'string', note: { pt: 'o idempotency_key que enviou, é por ele que liga o evento ao seu pedido', en: 'the idempotency_key you sent, how you tie the event to your request' } },
       { name: 'created_at', type: 'string (RFC 3339)', note: { pt: 'quando o reembolso foi feito', en: 'when the refund was made' } },
     ],
     action: {
@@ -272,7 +272,7 @@ export const EVENT_DOCS: EventDoc[] = [
       { name: 'id', type: 'string (uuid)', note: { pt: 'o id da liquidação', en: 'the settlement id' } },
       { name: 'owner_ref', type: 'string', note: { pt: 'o seu reference_id (ou reason)', en: 'your reference_id (or reason)' } },
       { name: 'status', type: 'string', note: { pt: 'COMPLETED', en: 'COMPLETED' } },
-      { name: 'gross_amount', type: '{ amount_minor, currency }', note: { pt: 'o bruto — objeto, não o gross_amount_minor da resposta REST', en: 'the gross — an object, not the REST response’s gross_amount_minor' } },
+      { name: 'gross_amount', type: '{ amount_minor, currency }', note: { pt: 'o bruto, um objeto e não o gross_amount_minor da resposta REST', en: 'the gross, an object and not the REST response’s gross_amount_minor' } },
       { name: 'application_fee', type: '{ amount_minor, currency }', note: { pt: 'a taxa', en: 'the fee' } },
       { name: 'net_amount', type: '{ amount_minor, currency }', note: { pt: 'o líquido do beneficiário', en: 'the beneficiary’s net' } },
       { name: 'currency', type: 'string', note: { pt: 'AOA', en: 'AOA' } },

@@ -84,7 +84,7 @@ export const MESSAGES: Record<string, string> = {
   // The lifecycle refusals. Each one names what is in the way and what to do
   // instead, because "conflito" tells a developer nothing they can act on. The
   // counts travel in ApiError.details, so a dialog can be specific.
-  WORKSPACE_NOT_EMPTY: 'Este workspace ainda tem projetos ativos. Para o arquivar, arquive-os primeiro — ou elimine o workspace, que elimina também os projetos.',
+  WORKSPACE_NOT_EMPTY: 'Este workspace ainda tem projetos ativos. Para o arquivar, arquive-os primeiro, ou elimine o workspace, que elimina também os projetos.',
   PROJECT_NOT_EMPTY: 'Este projeto já tem histórico e, fora do ambiente de testes, só pode ser arquivado.',
   // Self-service creation limits (developer-api limits.go): archiving frees an
   // active place, not the day's allowance.

@@ -62,7 +62,7 @@ export const ONBOARDING_LABEL: Record<OnboardingView, string> = {
   NOT_CONFIGURED: 'Não configurado',
   IN_REVIEW: 'Em análise',
   INFORMATION_REQUIRED: 'Informação pedida',
-  APPROVED_PROVISIONING: 'Aprovado — a concluir a configuração',
+  APPROVED_PROVISIONING: 'Aprovado, a concluir a configuração',
   REJECTED: 'Candidatura recusada',
   READY: 'Pronto',
   BLOCKED: 'Bloqueado',
@@ -74,7 +74,7 @@ export const ONBOARDING_LABEL: Record<OnboardingView, string> = {
 export function onboardingHeading(view: OnboardingView): string {
   // Approval is the news; the heading says it on its own.
   if (view === 'APPROVED_PROVISIONING') return ONBOARDING_LABEL.APPROVED_PROVISIONING;
-  return `Configuração financeira — ${ONBOARDING_LABEL[view]}`;
+  return `Configuração financeira: ${ONBOARDING_LABEL[view]}`;
 }
 
 /**
@@ -171,7 +171,7 @@ export const REFUSAL_TEXT: Record<string, string> = {
   ONBOARDING_UNAVAILABLE: 'A verificação de negócios não está disponível agora. Tente novamente mais tarde.',
   FORBIDDEN: 'Só um Owner ou Admin do workspace pode fazer isto.',
   LINK_CODE_INVALID:
-    'O código não é válido ou já expirou. Peça ao negócio um código novo — vale 10 minutos e só pode ser usado uma vez.',
+    'O código não é válido ou já expirou. Peça ao negócio um código novo. Vale 10 minutos e só pode ser usado uma vez.',
   BUSINESS_NOT_READY:
     'Este negócio ainda não pode receber pagamentos, por isso não pode ser ligado: tem de estar activo, com @banza e carteira em Kwanza.',
   RATE_LIMITED: 'Demasiados pedidos. Tente novamente daqui a pouco.',
@@ -191,7 +191,7 @@ export function refusalText(code: string | undefined): string {
 export function handleUnavailableText(reason: string | undefined): string {
   switch (reason) {
     case 'BUSINESS':
-      return 'Este @ já é de um negócio — ligue-o com o código do negócio.';
+      return 'Este @ já é de um negócio. Ligue-o com o código do negócio.';
     case 'TAKEN':
       return 'Este @banza já está em uso.';
     case 'RESERVED':

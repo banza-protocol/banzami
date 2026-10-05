@@ -71,7 +71,7 @@ function Account() {
       <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>A minha conta</h1>
       <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
         Esta é a sua conta pessoal. O workspace, os projetos e o negócio que recebe pagamentos são
-        outras coisas — e têm as suas próprias definições.
+        outras coisas e têm as suas próprias definições.
       </p>
 
       <Card style={{ padding: 24, marginBottom: 16 }}>
@@ -81,10 +81,10 @@ function Account() {
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#746469', letterSpacing: '.04em' }}>EMAIL</div>
-          <div style={{ marginTop: 4, fontSize: 14.5, fontWeight: 800 }}>{user?.email ?? '—'}</div>
+          <div style={{ marginTop: 4, fontSize: 14.5, fontWeight: 800 }}>{user?.email ?? 'n/d'}</div>
           <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600 }}>
             O email identifica a conta e é por onde recebe o código de entrada. Não pode ser alterado
-            aqui — abra um pedido no suporte.
+            aqui; abra um pedido no suporte.
           </p>
         </div>
       </Card>
@@ -97,7 +97,7 @@ function Account() {
         <p style={{ margin: 0, fontSize: 14, color: '#6b5a5e', fontWeight: 600, lineHeight: 1.6 }}>
           A entrada é feita com um código de 6 dígitos enviado para <strong>{user?.email ?? 'o seu email'}</strong>.
           Não existe palavra-passe para memorizar nem para perder, e o código expira passados poucos
-          minutos. Quem tiver acesso ao seu email tem acesso a esta conta — proteja-o.
+          minutos. Quem tiver acesso ao seu email tem acesso a esta conta. Proteja-o.
         </p>
       </Card>
 
@@ -136,7 +136,7 @@ function Account() {
                           </span>
                         ) : null}
                       </td>
-                      <td style={{ padding: '11px 12px', color: '#6b5a5e' }}>{s.ip || '—'}</td>
+                      <td style={{ padding: '11px 12px', color: '#6b5a5e' }}>{s.ip || 'n/d'}</td>
                       <td style={{ padding: '11px 12px', color: '#6b5a5e' }}>{utcStamp(s.last_seen_at ?? s.created_at)}</td>
                       <td style={{ padding: '11px 0', color: '#6b5a5e' }}>{utcStamp(s.expires_at)}</td>
                     </tr>
@@ -162,7 +162,7 @@ function Account() {
               </button>
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600 }}>
                 {others === 0
-                  ? 'Esta é a única sessão aberta — não há outra para terminar.'
+                  ? 'Esta é a única sessão aberta, não há outra para terminar.'
                   : 'Fecha a sessão em todos os outros dispositivos. Esta continua aberta.'}
               </p>
             </div>

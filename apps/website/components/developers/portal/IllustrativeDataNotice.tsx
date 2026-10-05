@@ -36,7 +36,7 @@ export function IllustrativeDataNotice({ what }: { what: string }) {
       <span>
         <strong>Dados ilustrativos.</strong> {what} apresentados aqui são um exemplo
         de interface, não a sua actividade real. Para dados reais do seu projecto,
-        use a API — esta página ainda não está ligada.
+        use a API. Esta página ainda não está ligada.
       </span>
     </div>
   );

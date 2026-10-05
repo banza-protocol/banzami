@@ -192,7 +192,7 @@ export function UserMenu({
         onClick={() => (open ? close() : setOpen(true))}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={name ? `A sua conta — ${name}` : 'A sua conta'}
+        aria-label={name ? `A sua conta: ${name}` : 'A sua conta'}
         style={{
           display: 'flex',
           alignItems: 'center',

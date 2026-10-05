@@ -60,10 +60,10 @@ for (const g of groups) {
 push('## Endpoints', '');
 for (const e of endpoints) {
   const m = ENDPOINT_META[e.id];
-  push(`- ${e.method} ${e.path} — scope ${m.scope ?? 'none (public)'}${m.sdk ? `; SDK ${m.sdk}()` : ''}${m.events.length ? `; events ${m.events.join(', ')}` : ''} — ${ORIGIN}/docs/en/reference#${e.id}`);
+  push(`- ${e.method} ${e.path} · scope ${m.scope ?? 'none (public)'}${m.sdk ? `; SDK ${m.sdk}()` : ''}${m.events.length ? `; events ${m.events.join(', ')}` : ''} · ${ORIGIN}/docs/en/reference#${e.id}`);
 }
 push('', '## Webhook events', '');
-for (const e of EVENT_DOCS) push(`- ${e.name}: ${e.when.en} Fields: ${e.fields.map((f) => f.name).join(', ')}. — ${ORIGIN}/docs/en/events#event-${e.name.replace('.', '-')}`);
+for (const e of EVENT_DOCS) push(`- ${e.name}: ${e.when.en} Fields: ${e.fields.map((f) => f.name).join(', ')}. See ${ORIGIN}/docs/en/events#event-${e.name.replace('.', '-')}`);
 push('', '## Errors', '', `Envelope: { ${catalogue.envelope.fields.join(', ')} }. Branch on code. ${catalogue.idempotency_rule.en}`, '');
 for (const e of catalogue.errors) push(`- ${e.code} (${e.http.join(', ')}): ${e.meaning.en} ${e.action.en}`);
 push('');

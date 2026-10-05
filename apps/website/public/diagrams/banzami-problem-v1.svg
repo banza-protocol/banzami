@@ -14,7 +14,7 @@
   <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">Paying in Angola today</text>
   <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">Slow · manual · unverifiable</text>
 
-  <text x="32" y="100" font-size="11" font-weight="700" fill="#6B7280" letter-spacing="1">TODAY — TRUST IN A SCREENSHOT</text>
+  <text x="32" y="100" font-size="11" font-weight="700" fill="#6B7280" letter-spacing="1">TODAY: TRUST IN A SCREENSHOT</text>
   <g font-size="11" font-weight="600" fill="#4B5563">
     <rect x="32" y="112" width="150" height="52" rx="9" fill="#F3F4F6" stroke="#D1D5DB"></rect>
     <text x="107" y="143" text-anchor="middle">Consumer</text>
@@ -41,7 +41,7 @@
   <line x1="450" y1="184" x2="450" y2="212" stroke="#B5101F" stroke-width="2" marker-end="url(#ag)"></line>
   <text x="468" y="202" font-size="10.5" font-weight="700" fill="#B5101F">Banzami replaces the entire flow</text>
 
-  <text x="32" y="244" font-size="11" font-weight="700" fill="#9A1B22" letter-spacing="1">WITH BANZAMI — ONE MOTION</text>
+  <text x="32" y="244" font-size="11" font-weight="700" fill="#9A1B22" letter-spacing="1">WITH BANZAMI: ONE MOTION</text>
   <g font-size="15" font-weight="800" fill="#FFFFFF">
     <rect x="32" y="256" width="252" height="68" rx="11" fill="url(#hg)"></rect>
     <text x="158" y="297" text-anchor="middle">SCAN</text>
@@ -54,5 +54,5 @@
     <line x1="286" y1="290" x2="320" y2="290" marker-end="url(#aw)"></line>
     <line x1="578" y1="290" x2="612" y2="290" marker-end="url(#aw)"></line>
   </g>
-  <text x="32" y="344" font-size="9.5" fill="#9CA3AF">No screenshots · no manual verification · no waiting — settlement in seconds.</text>
+  <text x="32" y="344" font-size="9.5" fill="#9CA3AF">No screenshots · no manual verification · no waiting. Settlement in seconds.</text>
 </svg>

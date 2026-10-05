@@ -35,7 +35,7 @@ const th = { padding: '10px 12px', fontSize: 11, fontWeight: 800, letterSpacing:
 const nf = new Intl.NumberFormat('pt-PT');
 const when = (iso: string) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toISOString().replace('T', ' ').slice(5, 16) + 'Z';
+  return Number.isNaN(d.getTime()) ? 'n/d' : d.toISOString().replace('T', ' ').slice(5, 16) + 'Z';
 };
 
 type Kpi = { label: string; value: string; note: string; icon: React.ReactNode; tile: string; iconColor: string };
@@ -84,15 +84,15 @@ export function Overview() {
     const req = summary?.requests ?? 0;
     const err = summary?.errors ?? 0;
     const ok = req - err;
-    const rate = req > 0 ? `${((ok / req) * 100).toFixed(1)}%` : '—';
-    const med = typeof summary?.median_latency_ms === 'number' ? `${summary.median_latency_ms} ms` : '—';
+    const rate = req > 0 ? `${((ok / req) * 100).toFixed(1)}%` : 'n/d';
+    const med = typeof summary?.median_latency_ms === 'number' ? `${summary.median_latency_ms} ms` : 'n/d';
     return [
       { label: 'Pedidos à API', value: nf.format(req), note: 'últimos 7 dias', icon: <IconCode size={16} />, tile: '#FFF1F0', iconColor: '#B5101F' },
       { label: 'Com erro', value: nf.format(err), note: req ? `${((err / req) * 100).toFixed(1)}% dos pedidos` : 'sem pedidos', icon: <IconSwap size={16} />, tile: '#FFF1F0', iconColor: '#B5101F' },
       { label: 'Taxa de sucesso', value: rate, note: req ? `${nf.format(ok)} de ${nf.format(req)}` : 'sem pedidos', icon: <IconCheck size={16} />, tile: '#EAF7F0', iconColor: '#1F8A5B' },
       { label: 'Latência mediana', value: med, note: 'últimos 7 dias', icon: <IconChart size={16} />, tile: '#FFF1F0', iconColor: '#B5101F' },
       { label: 'Eventos emitidos', value: nf.format(events.length), note: 'mais recentes', icon: <IconWebhookNodes size={16} />, tile: '#FFF1F0', iconColor: '#B5101F' },
-      { label: 'Chaves activas', value: keyCount === null ? '—' : nf.format(keyCount), note: 'neste projeto', icon: <IconFlask size={16} />, tile: '#FFF1F0', iconColor: '#B5101F' },
+      { label: 'Chaves activas', value: keyCount === null ? 'n/d' : nf.format(keyCount), note: 'neste projeto', icon: <IconFlask size={16} />, tile: '#FFF1F0', iconColor: '#B5101F' },
     ];
   }, [summary, events, keyCount]);
 
@@ -121,7 +121,7 @@ export function Overview() {
     <div className="bz-view">
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Visão geral</h1>
         <p style={{ margin: '6px 0 20px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
-          Actividade real do projeto {activeProject?.name ? `“${activeProject.name}”` : ''} em Sandbox — últimos 7 dias.
+          Actividade real do projeto {activeProject?.name ? `“${activeProject.name}”` : ''} em Sandbox, nos últimos 7 dias.
         </p>
 
         {projectId && <SandboxChecklist projectId={projectId} />}
@@ -247,7 +247,7 @@ export function Overview() {
                               <td style={{ padding: '13px 12px', fontFamily: mono, color: '#2a2024' }}>{l.path}</td>
                               <td style={{ padding: '13px 12px' }}><Pill kind={tone(l.status)} dot>{l.status}</Pill></td>
                               <td style={{ padding: '13px 12px', fontFamily: mono, color: '#8a7a7e' }}>
-                                {typeof l.latency_ms === 'number' ? `${l.latency_ms} ms` : '—'}
+                                {typeof l.latency_ms === 'number' ? `${l.latency_ms} ms` : 'n/d'}
                               </td>
                               <td style={{ padding: '13px 22px', color: '#a89a9e', fontWeight: 700 }}>{when(l.created_at)}</td>
                             </tr>

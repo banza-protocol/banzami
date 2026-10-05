@@ -1781,7 +1781,7 @@
    "k": "error",
    "t": "WALLET_NOT_FOUND",
    "h": "/docs/errors#error-WALLET_NOT_FOUND",
-   "d": "A carteira não foi encontrada: a da Business que recebeu o pagamento, ou — num pagamento de um pagador de teste — a do pagador."
+   "d": "A carteira não foi encontrada: a da Business que recebeu o pagamento ou, num pagamento de um pagador de teste, a do pagador."
   },
   {
    "k": "error",
@@ -2009,7 +2009,7 @@
    "k": "error",
    "t": "HTTP 404",
    "h": "/docs/errors#http-404",
-   "d": "Não existe — ou é de outro projeto. As duas respostas são iguais de propósito."
+   "d": "Não existe ou é de outro projeto. As duas respostas são iguais de propósito."
   },
   {
    "k": "error",
@@ -2051,19 +2051,19 @@
    "k": "event",
    "t": "payment_session.paid",
    "h": "/docs/events#event-payment_session-paid",
-   "d": "Quando o pagador paga a sessão e o dinheiro fica na sua conta — no mesmo instante em que a sessão passa a PAID."
+   "d": "Quando o pagador paga a sessão e o dinheiro fica na sua conta, no mesmo instante em que a sessão passa a PAID."
   },
   {
    "k": "event",
    "t": "payment_link.paid",
    "h": "/docs/events#event-payment_link-paid",
-   "d": "Quando um link é pago — um link criado por si, ou o link de uma sessão de pagamento."
+   "d": "Quando um link é pago: um link criado por si, ou o link de uma sessão de pagamento."
   },
   {
    "k": "event",
    "t": "refund.completed",
    "h": "/docs/events#event-refund-completed",
-   "d": "Quando um reembolso foi feito e o valor voltou ao pagador — no mesmo pedido que createRefund responde 201."
+   "d": "Quando um reembolso foi feito e o valor voltou ao pagador, no mesmo pedido em que createRefund responde 201."
   },
   {
    "k": "event",
@@ -2314,7 +2314,7 @@
    "k": "term",
    "t": "Conta (wallet account)",
    "h": "/docs/glossary#glossario-wallet-account",
-   "d": "Uma conta dentro da carteira de um Business, para separar valores — por exemplo, uma por campanha."
+   "d": "Uma conta dentro da carteira de um Business, para separar valores, por exemplo uma por campanha."
   },
   {
    "k": "term",
@@ -4099,7 +4099,7 @@
    "k": "error",
    "t": "WALLET_NOT_FOUND",
    "h": "/docs/en/errors#error-WALLET_NOT_FOUND",
-   "d": "The wallet was not found: the one of the Business that received the payment, or — in a test payer's payment — the payer's."
+   "d": "The wallet was not found: the one of the Business that received the payment, or, in a test payer's payment, the payer's."
   },
   {
    "k": "error",
@@ -4327,7 +4327,7 @@
    "k": "error",
    "t": "HTTP 404",
    "h": "/docs/en/errors#http-404",
-   "d": "It does not exist — or belongs to another Project. The two answers are the same on purpose."
+   "d": "It does not exist or belongs to another Project. The two answers are the same on purpose."
   },
   {
    "k": "error",
@@ -4369,19 +4369,19 @@
    "k": "event",
    "t": "payment_session.paid",
    "h": "/docs/en/events#event-payment_session-paid",
-   "d": "When the payer pays the session and the money is in your account — at the same moment the session becomes PAID."
+   "d": "When the payer pays the session and the money is in your account, at the same moment the session becomes PAID."
   },
   {
    "k": "event",
    "t": "payment_link.paid",
    "h": "/docs/en/events#event-payment_link-paid",
-   "d": "When a link is paid — a link you created, or the link behind a Payment Session."
+   "d": "When a link is paid: a link you created, or the link behind a Payment Session."
   },
   {
    "k": "event",
    "t": "refund.completed",
    "h": "/docs/en/events#event-refund-completed",
-   "d": "When a refund was made and the value is back with the payer — in the same request that createRefund answers 201."
+   "d": "When a refund was made and the value is back with the payer, in the same request that createRefund answers 201."
   },
   {
    "k": "event",
@@ -4623,7 +4623,7 @@
    "k": "term",
    "t": "Wallet account",
    "h": "/docs/en/glossary#concepts",
-   "d": "An account inside a Business wallet, to keep funds apart — one per campaign, for example."
+   "d": "An account inside a Business wallet, to keep funds apart (one per campaign, for example)."
   },
   {
    "k": "term",
@@ -4641,7 +4641,7 @@
    "k": "term",
    "t": "Transaction",
    "h": "/docs/en/glossary#concepts",
-   "d": "A movement of value recorded in the ledger — a payment, a refund or a transfer."
+   "d": "A movement of value recorded in the ledger: a payment, a refund or a transfer."
   },
   {
    "k": "term",

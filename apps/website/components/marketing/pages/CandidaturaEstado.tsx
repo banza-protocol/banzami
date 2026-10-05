@@ -90,7 +90,7 @@ const STATUS_LABEL: Record<ApplicationStatus['status'], { pt: string; en: string
   APPROVED: { pt: STATUS_COPY.APPROVED.title, en: 'Approved', body_en: 'Your business was approved. You received an email with the link to activate access to the Banzami Business app.' },
   REJECTED: { pt: STATUS_COPY.REJECTED.title, en: 'Not approved', body_en: 'The application was not approved. You received the reason by email and can apply again.' },
   CANCELLED: { pt: STATUS_COPY.CANCELLED.title, en: 'Cancelled', body_en: 'This application was cancelled.' },
-  PROVISIONING_FAILED: { pt: STATUS_COPY.PROVISIONING_FAILED.title, en: 'Approved — finishing', body_en: 'The application was approved and the Banzami team is finishing creating your account.' },
+  PROVISIONING_FAILED: { pt: STATUS_COPY.PROVISIONING_FAILED.title, en: 'Approved, finishing up', body_en: 'The application was approved and the Banzami team is finishing creating your account.' },
 };
 
 // Which of the four visible phases a real status sits at.

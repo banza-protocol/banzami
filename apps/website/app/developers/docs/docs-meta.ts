@@ -21,7 +21,7 @@ export const DOCS_META: Record<string, { pt: [string, string]; en: [string, stri
   transfers: { pt: ['Contas e transferências', 'Contas segregadas por campanha ou loja e transferências entre contas do mesmo Business.'], en: ['Accounts and transfers', 'Segregated accounts per campaign or store, and transfers between accounts of the same Business.'] },
   console: { pt: ['A Consola', 'Conta, workspaces e papéis, projetos, configuração financeira, chaves de API, webhooks, registos e atividade.'], en: ['The Console', 'Account, workspaces and roles, projects, Financial Setup, API keys, webhooks, logs and activity.'] },
   sdk: { pt: ['SDKs', '@banzami/sdk (npm) e banzami_client (pub.dev): o que cada SDK trata e o estado de cada família.'], en: ['SDKs', '@banzami/sdk (npm) and banzami_client (pub.dev): what each SDK handles and the status of each family.'] },
-  doa: { pt: ['Implementação de referência — DOA', 'Como uma aplicação de angariação de fundos integra o Banzami pelos contratos públicos, da conta da campanha à liquidação.'], en: ['Reference implementation — DOA', 'How a fundraising application integrates Banzami through the public contracts, from campaign account to settlement.'] },
+  doa: { pt: ['Implementação de referência: DOA', 'Como uma aplicação de angariação de fundos integra o Banzami pelos contratos públicos, da conta da campanha à liquidação.'], en: ['Reference implementation: DOA', 'How a fundraising application integrates Banzami through the public contracts, from campaign account to settlement.'] },
   reference: { pt: ['Referência da API', 'API pública v1: autenticação, idempotência, limites e cada endpoint, com scope, parâmetros, resposta, erros e método do SDK.'], en: ['API reference', 'Public API v1: authentication, idempotency, limits and every endpoint, with scope, parameters, response, errors and SDK method.'] },
   errors: { pt: ['Erros', 'O envelope de erro, o que fazer por código HTTP e o catálogo pesquisável de todos os códigos.'], en: ['Errors', 'The error envelope, what to do by HTTP status and the searchable catalogue of every code.'] },
   testing: { pt: ['Testar no Sandbox', 'Cenários de teste com a forma de os provocar, a resposta esperada, o evento e a verificação na Consola.'], en: ['Sandbox testing', 'Test scenarios with how to trigger them, the expected response, the event and the Console check.'] },
@@ -40,13 +40,13 @@ export function docsMetadata(lang: 'pt' | 'en', slug: string): Metadata {
   const path = (l: 'pt' | 'en') => `${l === 'pt' ? '/docs' : '/docs/en'}${slug ? `/${slug}` : ''}`;
   return {
     // absolute: the root layout's template would append "· Banzami" again.
-    title: { absolute: `${title} — Banzami Developers` },
+    title: { absolute: `${title} · Banzami Developers` },
     description,
     alternates: {
       canonical: `${ORIGIN}${path(lang)}`,
       languages: { pt: `${ORIGIN}${path('pt')}`, en: `${ORIGIN}${path('en')}` },
     },
-    openGraph: { title: `${title} — Banzami Developers`, description, url: `${ORIGIN}${path(lang)}`, siteName: 'Banzami Developers' },
+    openGraph: { title: `${title} · Banzami Developers`, description, url: `${ORIGIN}${path(lang)}`, siteName: 'Banzami Developers' },
     robots: slug === 'guides' ? { index: false, follow: true } : { index: true, follow: true },
   };
 }

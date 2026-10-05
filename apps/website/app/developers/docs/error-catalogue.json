@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "about": "The public error catalogue of the Banzami Developer API (Sandbox). Every code a developer key, the dual-credential payment surface or a public route can return — and only those. The documentation renders its error reference from this file, in both languages, so the two cannot disagree. tools/check-docs-error-catalogue.mjs derives the reachable codes from the gateway and core source and fails if this file and the source disagree in either direction.",
+  "about": "The public error catalogue of the Banzami Developer API (Sandbox). Every code a developer key, the dual-credential payment surface or a public route can return, and only those. The documentation renders its error reference from this file, in both languages, so the two cannot disagree. tools/check-docs-error-catalogue.mjs derives the reachable codes from the gateway and core source and fails if this file and the source disagree in either direction.",
   "envelope": {
     "fields": [
       "code",
@@ -1352,8 +1352,8 @@
       "family": "refund",
       "source": "core",
       "meaning": {
-        "pt": "A carteira não foi encontrada: a da Business que recebeu o pagamento, ou — num pagamento de um pagador de teste — a do pagador.",
-        "en": "The wallet was not found: the one of the Business that received the payment, or — in a test payer's payment — the payer's."
+        "pt": "A carteira não foi encontrada: a da Business que recebeu o pagamento ou, num pagamento de um pagador de teste, a do pagador.",
+        "en": "The wallet was not found: the one of the Business that received the payment, or, in a test payer's payment, the payer's."
       },
       "action": {
         "pt": "Contacte o suporte com o request_id.",

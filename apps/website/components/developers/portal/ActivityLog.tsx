@@ -36,7 +36,7 @@ function deliveryTone(status: string, code?: number | null): { kind: PillKind; l
 
 function when(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+  return Number.isNaN(d.getTime()) ? 'n/d' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
 }
 
 type Row = { event: WebhookEvent; deliveries: WebhookDelivery[] };
@@ -173,7 +173,7 @@ export function ActivityLog() {
                         {tone ? <Pill kind={tone.kind}>{tone.label}</Pill> : <Pill kind="neutral">Sem endpoint</Pill>}
                       </td>
                       <td style={{ padding: '13px 12px', fontFamily: mono, color: '#8a7a7e' }}>
-                        {last ? last.attempt_count : '—'}
+                        {last ? last.attempt_count : 'n/d'}
                       </td>
                       <td style={{ padding: '13px 22px', fontFamily: mono, color: '#8a7a7e' }}>{when(event.created_at)}</td>
                     </tr>

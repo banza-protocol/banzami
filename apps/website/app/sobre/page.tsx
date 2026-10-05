@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { SobrePage } from '@/components/marketing/pages/Sobre';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Sobre — Banzami' },
+  title: { absolute: 'Sobre · Banzami' },
   description:
     'O Banzami é a startup que está a construir uma rede de pagamentos nativa de carteira para Angola, sobre o protocolo aberto BANZA.',
   alternates: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Sobre — rebuilt entirely from handoff_site_completo on the shared marketing shell.
+// Sobre · rebuilt entirely from handoff_site_completo on the shared marketing shell.
 export default function Page() {
   return (
     <SiteShell lang="pt" current="sobre">

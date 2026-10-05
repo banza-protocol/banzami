@@ -17,7 +17,7 @@ describe('documentation SEO (DOCS-PROD-001 §57)', () => {
       for (const lang of ['pt', 'en'] as const) {
         const m = docsMetadata(lang, slug);
         const t = (m.title as { absolute: string }).absolute;
-        expect(t).toMatch(/— Banzami Developers$/);
+        expect(t).toMatch(/· Banzami Developers$/);
         expect(String(m.description).length).toBeGreaterThan(40);
         expect(String(m.alternates?.canonical)).toBe(`https://developers.banzami.com${lang === 'pt' ? '/docs' : '/docs/en'}${slug ? `/${slug}` : ''}`);
         titles.add(`${lang}:${t}`);

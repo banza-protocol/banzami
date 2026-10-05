@@ -139,7 +139,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'wallet-account',
     term: 'Conta (wallet account)',
-    def: 'Uma conta dentro da carteira de um Business, para separar valores — por exemplo, uma por campanha.',
+    def: 'Uma conta dentro da carteira de um Business, para separar valores, por exemplo uma por campanha.',
   },
   {
     id: 'link-pagamento',

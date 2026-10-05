@@ -191,7 +191,7 @@ export function WorkspaceSwitcher() {
           description={
             creating === 'workspace'
               ? 'Um workspace agrupa os seus projetos e as pessoas que lhes acedem.'
-              : 'Um projeto é o que detém chaves, webhooks e contas. Fica no ambiente desta instalação — não se escolhe um ambiente por projeto.'
+              : 'Um projeto é o que detém chaves, webhooks e contas. Fica no ambiente desta instalação; não se escolhe um ambiente por projeto.'
           }
           label="Nome"
           placeholder={creating === 'workspace' ? 'A minha empresa' : 'Integração de pagamentos'}

@@ -11,8 +11,8 @@ const T = {
   h1a: L('O novo caminho do', 'The new way for the'),
   h1b: L('Kwanza.', 'Kwanza.'),
   lead: L(
-    'Envie, receba e aceite pagamentos em Kz entre pessoas, negócios e aplicações — na app Banzami ou integrado no seu produto.',
-    'Send, receive and accept payments in Kz between people, businesses and apps — in the Banzami app or built into your product.',
+    'Envie, receba e aceite pagamentos em Kz entre pessoas, negócios e aplicações, na app Banzami ou integrado no seu produto.',
+    'Send, receive and accept payments in Kz between people, businesses and apps, in the Banzami app or built into your product.',
   ),
   small: L(
     'A Sandbox pública está disponível com dinheiro fictício. As operações com dinheiro real ainda não estão disponíveis, sujeitas às aprovações aplicáveis.',

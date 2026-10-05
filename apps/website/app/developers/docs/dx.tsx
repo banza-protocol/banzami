@@ -31,7 +31,7 @@ export function StageBar({ lang, stages, anchor }: { lang: Lang; stages: Stage[]
           <li key={s.title}>
             <a href={`#${anchor(s.steps[0])}`} className="bz-doccard" style={{ display: 'block', height: '100%', textDecoration: 'none', background: '#fff', border: '1px solid #EAE3E3', borderRadius: 14, padding: '10px 12px' }}>
               <span style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '.05em', color: RED }}>
-                {tr(lang, 'ETAPA', 'STAGE')} {i + 1} · {tr(lang, 'PASSOS', 'STEPS')} {s.steps[0]}{s.steps[1] !== s.steps[0] ? `–${s.steps[1]}` : ''}
+                {tr(lang, 'ETAPA', 'STAGE')} {i + 1} · {tr(lang, 'PASSOS', 'STEPS')} {s.steps[0]}{s.steps[1] !== s.steps[0] ? ` ${tr(lang, 'a', 'to')} ${s.steps[1]}` : ''}
               </span>
               <span style={{ display: 'block', margin: '3px 0 0', fontSize: 14, fontWeight: 700, color: INK }}>{s.title}</span>
               <span style={{ display: 'block', margin: '2px 0 0', fontSize: 12.5, fontWeight: 400, color: '#6f6468', lineHeight: 1.45 }}>{s.note}</span>

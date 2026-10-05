@@ -159,7 +159,7 @@ export const UI = {
   langLabel: L('Idioma: PT', 'Language: EN'),
   langPt: L('Português', 'Português'),
   langEn: L('English', 'English'),
-  homeAria: L('Banzami — início', 'Banzami — home'),
+  homeAria: L('Banzami, início', 'Banzami, home'),
 };
 
 export function navHref(link: NavLink, lang: Lang): string {

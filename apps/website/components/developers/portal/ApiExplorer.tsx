@@ -61,7 +61,7 @@ function RealtimeWatch({ rt }: { rt: Realtime }) {
     });
     return () => stop.current();
   }, [rt.sessionId, rt.token]);
-  const END: Record<string, string> = { terminal: 'terminou num estado final', token_expired: 'o token expirou — leia a sessão de novo', closed: 'parado' };
+  const END: Record<string, string> = { terminal: 'terminou num estado final', token_expired: 'o token expirou, leia a sessão de novo', closed: 'parado' };
   return (
     <div data-testid="explorer-realtime" style={{ marginTop: 14, padding: 14, borderRadius: 12, background: '#FBF8F8', border: '1px solid #F2E2E0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
@@ -183,7 +183,7 @@ export function ApiExplorer() {
       <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>API Explorer</h1>
       <p style={{ margin: '6px 0 20px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600, maxWidth: 760 }}>
         Execute a API v1 na Sandbox com o projeto “{activeProject.name}”. Cada pedido usa uma chave de {ttl} segundos, só com o
-        scope da operação, criada e revogada no servidor — nenhuma chave chega ao browser. <DocsLink href="/docs/testing">Como funciona</DocsLink>
+        scope da operação, criada e revogada no servidor; nenhuma chave chega ao browser. <DocsLink href="/docs/testing">Como funciona</DocsLink>
       </p>
       {loadError && <Card style={{ padding: 18 }}><p role="alert" style={{ margin: 0, color: '#B5101F', fontWeight: 700 }}>{loadError}</p></Card>}
       {ops && (

@@ -26,7 +26,7 @@ const COPY = {
     iosSub: 'TestFlight',
     android: 'Testar no Android',
     androidSub: 'Google Play',
-    available: 'Use a App Banzami no browser agora — ou teste as apps nativas (iPhone/Android) como tester convidado.',
+    available: 'Use a App Banzami no browser agora, ou teste as apps nativas (iPhone/Android) como tester convidado.',
     modalTitle: 'Participar nos testes das apps Banzami',
     modalSubtitle:
       'As apps Banzami estão em Sandbox: o dinheiro é fictício e nenhum pagamento é real. Convidamos testers por etapas.',
@@ -39,7 +39,7 @@ const COPY = {
     iosSub: 'TestFlight',
     android: 'Test on Android',
     androidSub: 'Google Play',
-    available: 'Use Banzami in your browser now — or test the native apps (iPhone/Android) as an invited tester.',
+    available: 'Use Banzami in your browser now, or test the native apps (iPhone/Android) as an invited tester.',
     modalTitle: 'Join the Banzami app tests',
     modalSubtitle:
       'The Banzami apps run in Sandbox: money is fictitious and no payment is real. We invite testers in stages.',

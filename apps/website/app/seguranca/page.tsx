@@ -3,7 +3,7 @@ import { SiteShell } from '@/components/marketing/SiteShell';
 import { SegurancaPage } from '@/components/marketing/pages/Seguranca';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Segurança — Banzami' },
+  title: { absolute: 'Segurança · Banzami' },
   description:
     'Ledger double-entry imutável, idempotência, TLS, comprovativos verificáveis e operações com dinheiro real fechadas por omissão (fail-closed). Reporte vulnerabilidades para security@banzami.com.',
   alternates: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Segurança — rebuilt entirely from handoff_site_completo on the shared marketing shell.
+// Segurança · rebuilt entirely from handoff_site_completo on the shared marketing shell.
 export default function Page() {
   return (
     <SiteShell lang="pt" current="seguranca">

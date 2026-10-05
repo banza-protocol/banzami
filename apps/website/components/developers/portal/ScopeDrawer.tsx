@@ -118,12 +118,12 @@ export function ScopeDrawer({
 
         <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.55 }}>
           Cada permissão (<em>scope</em>) é uma decisão de autoridade. Uma permissão de{' '}
-          <strong>leitura</strong> nunca autoriza uma alteração — só ver.
+          <strong>leitura</strong> nunca autoriza uma alteração: só ver.
         </p>
 
         {groups.length === 0 ? (
           <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#8a7a7e' }}>
-            Esta chave não tem permissões — não consegue chamar nenhuma rota.
+            Esta chave não tem permissões. Não consegue chamar nenhuma rota.
           </p>
         ) : (
           groups.map((g) => (

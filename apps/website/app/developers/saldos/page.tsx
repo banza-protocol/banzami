@@ -122,7 +122,7 @@ function Balances() {
         <Card style={{ padding: 26, marginBottom: 16 }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não criou nenhuma conta.</p>
           <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
-            Uma conta mantém dinheiro separado do resto do negócio ligado a este projeto — uma por campanha, por vendedor, por
+            Uma conta mantém dinheiro separado do resto do negócio ligado a este projeto: uma por campanha, por vendedor, por
             evento, ou pelo que a sua aplicação precisar de manter à parte. Pode criá-la aqui ou pela API.
           </p>
         </Card>
@@ -176,7 +176,7 @@ function Balances() {
                     ) : null}
                   </td>
                   <td style={{ padding: '12px 16px', fontFamily: mono, fontSize: 12, color: '#8a7a7e', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {a.reference_id || '—'}
+                    {a.reference_id || 'n/d'}
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
                     {money(a.balance_minor, a.currency)}

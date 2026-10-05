@@ -59,7 +59,7 @@ export function ConnectBusinessForm({
         <li>No telemóvel do negócio, abra a app Banzami Business.</li>
         <li>Vá a Perfil → «Ligar a um projeto».</li>
         <li>A app mostra um código no formato ABCD-EFGH-JKMN, válido durante 10 minutos e só uma vez.</li>
-        <li>Introduza esse código aqui. O negócio não é verificado nem criado de novo — este projeto passa a receber nele.</li>
+        <li>Introduza esse código aqui. O negócio não é verificado nem criado de novo. Este projeto passa a receber nele.</li>
       </ol>
 
       <div style={{ marginTop: 16, maxWidth: 320 }}>

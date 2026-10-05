@@ -18,10 +18,10 @@ function nowWAT(): string {
 const statusPT = proofStatusLabel;
 
 // Display transforms: network is the protocol (BANZA), operator is title-cased.
-function netLabel(n?: string | null): string { return (n || '').trim() ? (n as string).toUpperCase() : '—'; }
+function netLabel(n?: string | null): string { return (n || '').trim() ? (n as string).toUpperCase() : 'n/d'; }
 function opLabel(o?: string | null): string {
   const s = (o || '').trim();
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—';
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'n/d';
 }
 
 /**
@@ -51,13 +51,13 @@ export function verdict(p: ProofResult): { tone: 'green' | 'yellow' | 'red'; tit
     return {
       tone: 'yellow',
       title: 'Verificação indisponível',
-      sub: 'Foram feitas demasiadas verificações a partir deste endereço. Tente novamente dentro de momentos — não considere este comprovativo validado até lá.',
+      sub: 'Foram feitas demasiadas verificações a partir deste endereço. Tente novamente dentro de momentos. Não considere este comprovativo validado até lá.',
     };
   }
   switch (p.status) {
     case 'CONFIRMED': return { tone: 'green', title: confirmedTitle(p.operation_kind), sub: 'Esta transação existe no sistema oficial do Banzami.' };
     case 'PENDING': return { tone: 'yellow', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência pendente' : 'Pagamento pendente', sub: 'A transação existe mas ainda não foi confirmada.' };
-    case 'REVERSED': return { tone: 'red', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência revertida' : 'Pagamento revertido', sub: 'Esta transação foi revertida — não representa um pagamento válido.' };
+    case 'REVERSED': return { tone: 'red', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência revertida' : 'Pagamento revertido', sub: 'Esta transação foi revertida. Não representa um pagamento válido.' };
     default: return { tone: 'red', title: 'Comprovativo inválido', sub: `Estado: ${statusPT(p.status)}. Não representa um pagamento confirmado.` };
   }
 }
@@ -66,7 +66,7 @@ function Row({ label, value, mono }: { label: string; value?: string | null; mon
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '11px 0', borderBottom: '1px solid #f3eded' }}>
       <span style={{ fontSize: 13, fontWeight: 700, color: '#746469' }}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: 800, color: '#2a2024', fontFamily: mono ? 'JetBrains Mono, monospace' : undefined, textAlign: 'right', wordBreak: 'break-all' }}>{value || '—'}</span>
+      <span style={{ fontSize: 14, fontWeight: 800, color: '#2a2024', fontFamily: mono ? 'JetBrains Mono, monospace' : undefined, textAlign: 'right', wordBreak: 'break-all' }}>{value || 'n/d'}</span>
     </div>
   );
 }

@@ -45,11 +45,11 @@ const ALL_SCOPES = [
 // making an authority decision; the raw string does not say what it grants.
 const SCOPE_HELP: Record<string, string> = {
   'identity:read':                 'Ler a identidade do projecto (GET /v1/me).',
-  'payment_sessions:write':        'Abrir sessões de pagamento — cobrar.',
+  'payment_sessions:write':        'Abrir sessões de pagamento: cobrar.',
   'payment_sessions:read':         'Consultar sessões de pagamento.',
   'wallet_accounts:create':        'Abrir contas segregadas dentro do titular do projecto.',
   'wallet_accounts:read':          'Listar as contas do próprio projecto.',
-  'application_settlements:write': 'Liquidar — move dinheiro para um beneficiário.',
+  'application_settlements:write': 'Liquidar: move dinheiro para um beneficiário.',
   'payment_links:write':           'Criar links de pagamento.',
   'payment_links:read':            'Consultar links de pagamento.',
   'webhooks:write':                'Registar, desativar e rodar o segredo de endpoints; enviar eventos de teste.',
@@ -59,7 +59,7 @@ const SCOPE_HELP: Record<string, string> = {
   'transfers:write':               'Mover valor entre contas do seu projeto.',
   'customers:read':                'Confirmar que um @banza existe antes de o indicar.',
   'sandbox:read':                  'Ler os cenários e os pagadores de teste (só Sandbox).',
-  'sandbox:write':                 'Criar, carregar, pagar como e retirar pagadores de teste — valor fictício (só Sandbox).',
+  'sandbox:write':                 'Criar, carregar, pagar como e retirar pagadores de teste; valor fictício (só Sandbox).',
 };
 
 // ── Reveal-once dialog ───────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ export function SecretRevealDialog({
   secret,
   onDismiss,
   title = 'Guarde a sua chave secreta',
-  description = 'Esta chave de teste (Sandbox) é mostrada uma única vez. Copie-a agora — não poderá vê-la novamente. Não movimenta dinheiro real.',
+  description = 'Esta chave de teste (Sandbox) é mostrada uma única vez. Copie-a agora. Não poderá vê-la novamente. Não movimenta dinheiro real.',
   label = 'Chave secreta',
   ack: ackLabel = 'Guardei a chave num local seguro.',
 }: {
@@ -136,7 +136,7 @@ export function SecretRevealDialog({
           <button
             onClick={() => {
               void copyText(secret);
-              flash(`${label} copiada — guarde-a em segurança`);
+              flash(`${label} copiada. Guarde-a em segurança`);
             }}
             aria-label={`Copiar ${label.toLowerCase()}`}
             style={{ flex: 'none', width: 32, height: 32, border: '1px solid rgba(255,255,255,.14)', borderRadius: 9, background: 'rgba(255,255,255,.06)', color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
@@ -276,7 +276,7 @@ export function scopeSummary(scopes: string[] | null): { count: number; label: s
 const PAGE = 20;
 
 const dateFmt = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  iso ? new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : 'n/d';
 
 export function ApiKeysManager() {
   const data = useDeveloperData();
@@ -366,7 +366,7 @@ export function ApiKeysManager() {
       // stopped working. Show both, once, right after the act that made them.
       setFilter('ALL');
       setQuery('');
-      flash('Chave rotacionada — a nova está ativa, a anterior ficou revogada');
+      flash('Chave rotacionada: a nova está ativa, a anterior ficou revogada');
     } catch (e) {
       throw new Error(onApiError(e));
     }
@@ -436,7 +436,7 @@ export function ApiKeysManager() {
           <p id="scopes-label" style={{ fontSize: 13, fontWeight: 800, color: '#6a5a5e', margin: '0 0 4px' }}>Permissões da chave</p>
           <p style={{ margin: '0 0 10px', fontSize: 12, color: '#8a7a7e', lineHeight: 1.5 }}>
             Cada permissão (<em>scope</em>) é uma decisão de autoridade. <code style={{ fontFamily: mono }}>application_settlements:write</code>{' '}
-            move dinheiro para um beneficiário — dá-o apenas a uma chave que precise de liquidar.
+            move dinheiro para um beneficiário; dá-o apenas a uma chave que precise de liquidar.
           </p>
           {/*
             These were pills whose only selected/unselected signal was colour,
@@ -668,7 +668,7 @@ export function ApiKeysManager() {
                             // column. Repeating it here in a different word —
                             // "Inativa" beside a pill reading "Revogada" — read
                             // as two different facts about the same key.
-                            <span aria-hidden style={{ fontSize: 12, color: '#c8b8ba', fontWeight: 700 }}>—</span>
+                            <span aria-hidden style={{ fontSize: 12, color: '#c8b8ba', fontWeight: 700 }}>·</span>
                           )}
                         </td>
                       </tr>
@@ -696,7 +696,7 @@ export function ApiKeysManager() {
           <IconShield size={15} />
         </span>
         Chaves revogadas e rotacionadas deixam de funcionar imediatamente. O segredo de uma chave secreta é
-        mostrado uma única vez, na criação — a consola só volta a mostrar o prefixo público. As chaves
+        mostrado uma única vez, na criação. A consola só volta a mostrar o prefixo público. As chaves
         Live/produção não estão disponíveis.
       </p>
 
@@ -706,7 +706,7 @@ export function ApiKeysManager() {
           body={
             confirming.action === 'revoke'
               ? 'A chave deixa de funcionar imediatamente e não pode ser reactivada. Qualquer integração que a use passa a receber 401.'
-              : 'É emitido um segredo novo e o actual deixa de funcionar imediatamente — a chave anterior fica revogada na lista. O novo segredo é mostrado uma única vez e não é recuperável depois.'
+              : 'É emitido um segredo novo e o actual deixa de funcionar imediatamente. A chave anterior fica revogada na lista. O novo segredo é mostrado uma única vez e não é recuperável depois.'
           }
           subject={`${confirming.key.name} · ${maskedKeyValue(confirming.key)}`}
           confirmLabel={confirming.action === 'revoke' ? 'Revogar' : 'Rotacionar'}
@@ -768,7 +768,7 @@ function Bootstrap({
   return (
     <Card style={{ maxWidth: 460, margin: '20px auto', padding: 26, textAlign: 'center' }}>
       <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900 }}>{title}</h3>
-      <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600 }}>Ambiente Sandbox — sem dinheiro real.</p>
+      <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600 }}>Ambiente Sandbox, sem dinheiro real.</p>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}

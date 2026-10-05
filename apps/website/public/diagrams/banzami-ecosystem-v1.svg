@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" role="img" aria-label="Ecosystem" font-family="system-ui,-apple-system,sans-serif">
-  <title>Ecosystem — BANZA defines, Banzami operates, BanzAI explains</title>
+  <title>Ecosystem: BANZA defines, Banzami operates, BanzAI explains</title>
   <defs>
     <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"></stop><stop offset="100%" stop-color="#E03A43"></stop></linearGradient>
     <linearGradient id="banza" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A0A14"></stop><stop offset="100%" stop-color="#A01020"></stop></linearGradient>
@@ -18,13 +18,13 @@
 
   <rect x="120" y="100" width="330" height="58" rx="12" fill="url(#banza)"></rect>
   <text x="285" y="126" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">BANZA</text>
-  <text x="285" y="145" text-anchor="middle" font-size="9.5" fill="#F3C9CD">open financial protocol — the rules</text>
+  <text x="285" y="145" text-anchor="middle" font-size="9.5" fill="#F3C9CD">open financial protocol: the rules</text>
 
   <line x1="285" y1="158" x2="285" y2="192" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"></line>
   <text x="299" y="180" font-size="9.5" fill="#6B7280">defines the protocol</text>
 
   <rect x="120" y="196" width="330" height="58" rx="12" fill="url(#hg)"></rect>
-  <text x="285" y="221" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">Banzami — First Operator</text>
+  <text x="285" y="221" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">Banzami: First Operator</text>
   <text x="285" y="240" text-anchor="middle" font-size="9.5" fill="#FBD2D0">founding operator of the BANZA ecosystem</text>
 
   <line x1="285" y1="254" x2="285" y2="288" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"></line>

@@ -51,56 +51,56 @@
 
 ## Endpoints
 
-- GET /v1/me — scope identity:read; SDK me() — https://developers.banzami.com/docs/en/reference#ref-me
-- GET /v1/financial-setup — scope identity:read; SDK getFinancialSetup() — https://developers.banzami.com/docs/en/reference#ref-financial-setup
-- POST /v1/payment-sessions — scope payment_sessions:write; SDK createPaymentSession(); events payment_session.created, payment_session.paid — https://developers.banzami.com/docs/en/reference#ref-ps-create
-- GET /v1/payment-sessions/{id} — scope payment_sessions:read; SDK getPaymentSession() — https://developers.banzami.com/docs/en/reference#ref-ps-get
-- GET /v1/payment-sessions — scope payment_sessions:read; SDK listPaymentSessions() — https://developers.banzami.com/docs/en/reference#ref-ps-list
-- GET /v1/payment-sessions/{id}/link — scope payment_sessions:read — https://developers.banzami.com/docs/en/reference#ref-ps-link
-- GET /v1/payment-sessions/{id}/qr — scope payment_sessions:read — https://developers.banzami.com/docs/en/reference#ref-ps-qr
-- POST /v1/payment-links — scope payment_links:write; SDK createPaymentLink(); events payment_link.paid — https://developers.banzami.com/docs/en/reference#ref-pl-create
-- POST /v1/wallet-accounts — scope wallet_accounts:create; SDK createWalletAccount() — https://developers.banzami.com/docs/en/reference#ref-wacc-create
-- GET /v1/wallet-accounts — scope wallet_accounts:read; SDK listWalletAccounts() — https://developers.banzami.com/docs/en/reference#ref-wacc-list
-- GET /v1/wallet-accounts/{id} — scope wallet_accounts:read; SDK getWalletAccount() — https://developers.banzami.com/docs/en/reference#ref-wacc-get
-- POST /v1/wallet-account-transfers — scope transfers:write; SDK createTransfer() — https://developers.banzami.com/docs/en/reference#ref-transfer-create
-- POST /v1/refunds — scope refunds:write; SDK createRefund(); events refund.completed — https://developers.banzami.com/docs/en/reference#ref-refund-create
-- POST /v1/webhooks/endpoints — scope webhooks:write; SDK createWebhookEndpoint() — https://developers.banzami.com/docs/en/reference#ref-webhook-register
-- POST /v1/application-settlements — scope application_settlements:write; SDK createBusinessApplicationSettlement(); events application_settlement.completed — https://developers.banzami.com/docs/en/reference#ref-settlement-create
-- GET /v1/payment-links — scope payment_links:read; SDK listPaymentLinks() — https://developers.banzami.com/docs/en/reference#ref-pl-list
-- GET /v1/payment-links/{id} — scope payment_links:read; SDK getPaymentLink() — https://developers.banzami.com/docs/en/reference#ref-pl-get
-- DELETE /v1/payment-links/{id} — scope payment_links:write; SDK cancelPaymentLink() — https://developers.banzami.com/docs/en/reference#ref-pl-cancel
-- GET /v1/refunds — scope refunds:read; SDK listRefunds() — https://developers.banzami.com/docs/en/reference#ref-refund-list
-- GET /v1/refunds/{id} — scope refunds:read; SDK getRefund() — https://developers.banzami.com/docs/en/reference#ref-refund-get
-- GET /v1/consumers/handle/{handle} — scope customers:read; SDK resolveHandle() — https://developers.banzami.com/docs/en/reference#ref-handle-resolve
-- GET /v1/webhooks/endpoints — scope webhooks:read; SDK listWebhookEndpoints() — https://developers.banzami.com/docs/en/reference#ref-webhook-list
-- GET /v1/webhooks/endpoints/{id} — scope webhooks:read; SDK getWebhookEndpoint() — https://developers.banzami.com/docs/en/reference#ref-webhook-get
-- DELETE /v1/webhooks/endpoints/{id} — scope webhooks:write; SDK deactivateWebhookEndpoint() — https://developers.banzami.com/docs/en/reference#ref-webhook-deactivate
-- GET /v1/webhooks/endpoints/{id}/health — scope webhooks:read; SDK endpointHealth() — https://developers.banzami.com/docs/en/reference#ref-webhook-health
-- POST /v1/webhooks/endpoints/{id}/rotate-secret — scope webhooks:write; SDK rotateWebhookEndpointSecret() — https://developers.banzami.com/docs/en/reference#ref-webhook-rotate
-- GET /v1/webhooks/events — scope webhooks:read; SDK listWebhookEvents() — https://developers.banzami.com/docs/en/reference#ref-webhook-events
-- GET /v1/webhooks/events/{id}/deliveries — scope webhooks:read; SDK listWebhookDeliveries() — https://developers.banzami.com/docs/en/reference#ref-webhook-deliveries
-- POST /v1/webhooks/deliveries/{id}/replay — scope webhooks:write; SDK replayWebhookDelivery() — https://developers.banzami.com/docs/en/reference#ref-webhook-replay
-- GET /v1/public/proofs/{ref} — scope none (public) — https://developers.banzami.com/docs/en/reference#ref-public-proof
-- POST /v1/webhooks/endpoints/{id}/test — scope webhooks:write; SDK sendWebhookTestEvent() — https://developers.banzami.com/docs/en/reference#ref-webhook-test
-- GET /v1/realtime/payment-sessions/{id} — scope none (public) — https://developers.banzami.com/docs/en/reference#ref-realtime-status
-- GET /v1/sandbox/scenarios — scope sandbox:read; SDK listSandboxScenarios() — https://developers.banzami.com/docs/en/reference#ref-sandbox-scenarios
-- GET /v1/sandbox/external-rail — scope sandbox:read — https://developers.banzami.com/docs/en/reference#ref-sandbox-external-rail-get
-- POST /v1/sandbox/test-payers — scope sandbox:write; SDK createTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-create
-- GET /v1/sandbox/test-payers — scope sandbox:read; SDK listTestPayers() — https://developers.banzami.com/docs/en/reference#ref-test-payer-list
-- GET /v1/sandbox/test-payers/{id} — scope sandbox:read; SDK getTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-get
-- POST /v1/sandbox/test-payers/{id}/fund — scope sandbox:write; SDK fundTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-fund
-- POST /v1/sandbox/test-payers/{id}/payments — scope sandbox:write; SDK payAsTestPayer(); events payment_session.paid, payment_link.paid — https://developers.banzami.com/docs/en/reference#ref-test-payer-pay
-- DELETE /v1/sandbox/test-payers/{id} — scope sandbox:write; SDK retireTestPayer() — https://developers.banzami.com/docs/en/reference#ref-test-payer-retire
+- GET /v1/me · scope identity:read; SDK me() · https://developers.banzami.com/docs/en/reference#ref-me
+- GET /v1/financial-setup · scope identity:read; SDK getFinancialSetup() · https://developers.banzami.com/docs/en/reference#ref-financial-setup
+- POST /v1/payment-sessions · scope payment_sessions:write; SDK createPaymentSession(); events payment_session.created, payment_session.paid · https://developers.banzami.com/docs/en/reference#ref-ps-create
+- GET /v1/payment-sessions/{id} · scope payment_sessions:read; SDK getPaymentSession() · https://developers.banzami.com/docs/en/reference#ref-ps-get
+- GET /v1/payment-sessions · scope payment_sessions:read; SDK listPaymentSessions() · https://developers.banzami.com/docs/en/reference#ref-ps-list
+- GET /v1/payment-sessions/{id}/link · scope payment_sessions:read · https://developers.banzami.com/docs/en/reference#ref-ps-link
+- GET /v1/payment-sessions/{id}/qr · scope payment_sessions:read · https://developers.banzami.com/docs/en/reference#ref-ps-qr
+- POST /v1/payment-links · scope payment_links:write; SDK createPaymentLink(); events payment_link.paid · https://developers.banzami.com/docs/en/reference#ref-pl-create
+- POST /v1/wallet-accounts · scope wallet_accounts:create; SDK createWalletAccount() · https://developers.banzami.com/docs/en/reference#ref-wacc-create
+- GET /v1/wallet-accounts · scope wallet_accounts:read; SDK listWalletAccounts() · https://developers.banzami.com/docs/en/reference#ref-wacc-list
+- GET /v1/wallet-accounts/{id} · scope wallet_accounts:read; SDK getWalletAccount() · https://developers.banzami.com/docs/en/reference#ref-wacc-get
+- POST /v1/wallet-account-transfers · scope transfers:write; SDK createTransfer() · https://developers.banzami.com/docs/en/reference#ref-transfer-create
+- POST /v1/refunds · scope refunds:write; SDK createRefund(); events refund.completed · https://developers.banzami.com/docs/en/reference#ref-refund-create
+- POST /v1/webhooks/endpoints · scope webhooks:write; SDK createWebhookEndpoint() · https://developers.banzami.com/docs/en/reference#ref-webhook-register
+- POST /v1/application-settlements · scope application_settlements:write; SDK createBusinessApplicationSettlement(); events application_settlement.completed · https://developers.banzami.com/docs/en/reference#ref-settlement-create
+- GET /v1/payment-links · scope payment_links:read; SDK listPaymentLinks() · https://developers.banzami.com/docs/en/reference#ref-pl-list
+- GET /v1/payment-links/{id} · scope payment_links:read; SDK getPaymentLink() · https://developers.banzami.com/docs/en/reference#ref-pl-get
+- DELETE /v1/payment-links/{id} · scope payment_links:write; SDK cancelPaymentLink() · https://developers.banzami.com/docs/en/reference#ref-pl-cancel
+- GET /v1/refunds · scope refunds:read; SDK listRefunds() · https://developers.banzami.com/docs/en/reference#ref-refund-list
+- GET /v1/refunds/{id} · scope refunds:read; SDK getRefund() · https://developers.banzami.com/docs/en/reference#ref-refund-get
+- GET /v1/consumers/handle/{handle} · scope customers:read; SDK resolveHandle() · https://developers.banzami.com/docs/en/reference#ref-handle-resolve
+- GET /v1/webhooks/endpoints · scope webhooks:read; SDK listWebhookEndpoints() · https://developers.banzami.com/docs/en/reference#ref-webhook-list
+- GET /v1/webhooks/endpoints/{id} · scope webhooks:read; SDK getWebhookEndpoint() · https://developers.banzami.com/docs/en/reference#ref-webhook-get
+- DELETE /v1/webhooks/endpoints/{id} · scope webhooks:write; SDK deactivateWebhookEndpoint() · https://developers.banzami.com/docs/en/reference#ref-webhook-deactivate
+- GET /v1/webhooks/endpoints/{id}/health · scope webhooks:read; SDK endpointHealth() · https://developers.banzami.com/docs/en/reference#ref-webhook-health
+- POST /v1/webhooks/endpoints/{id}/rotate-secret · scope webhooks:write; SDK rotateWebhookEndpointSecret() · https://developers.banzami.com/docs/en/reference#ref-webhook-rotate
+- GET /v1/webhooks/events · scope webhooks:read; SDK listWebhookEvents() · https://developers.banzami.com/docs/en/reference#ref-webhook-events
+- GET /v1/webhooks/events/{id}/deliveries · scope webhooks:read; SDK listWebhookDeliveries() · https://developers.banzami.com/docs/en/reference#ref-webhook-deliveries
+- POST /v1/webhooks/deliveries/{id}/replay · scope webhooks:write; SDK replayWebhookDelivery() · https://developers.banzami.com/docs/en/reference#ref-webhook-replay
+- GET /v1/public/proofs/{ref} · scope none (public) · https://developers.banzami.com/docs/en/reference#ref-public-proof
+- POST /v1/webhooks/endpoints/{id}/test · scope webhooks:write; SDK sendWebhookTestEvent() · https://developers.banzami.com/docs/en/reference#ref-webhook-test
+- GET /v1/realtime/payment-sessions/{id} · scope none (public) · https://developers.banzami.com/docs/en/reference#ref-realtime-status
+- GET /v1/sandbox/scenarios · scope sandbox:read; SDK listSandboxScenarios() · https://developers.banzami.com/docs/en/reference#ref-sandbox-scenarios
+- GET /v1/sandbox/external-rail · scope sandbox:read · https://developers.banzami.com/docs/en/reference#ref-sandbox-external-rail-get
+- POST /v1/sandbox/test-payers · scope sandbox:write; SDK createTestPayer() · https://developers.banzami.com/docs/en/reference#ref-test-payer-create
+- GET /v1/sandbox/test-payers · scope sandbox:read; SDK listTestPayers() · https://developers.banzami.com/docs/en/reference#ref-test-payer-list
+- GET /v1/sandbox/test-payers/{id} · scope sandbox:read; SDK getTestPayer() · https://developers.banzami.com/docs/en/reference#ref-test-payer-get
+- POST /v1/sandbox/test-payers/{id}/fund · scope sandbox:write; SDK fundTestPayer() · https://developers.banzami.com/docs/en/reference#ref-test-payer-fund
+- POST /v1/sandbox/test-payers/{id}/payments · scope sandbox:write; SDK payAsTestPayer(); events payment_session.paid, payment_link.paid · https://developers.banzami.com/docs/en/reference#ref-test-payer-pay
+- DELETE /v1/sandbox/test-payers/{id} · scope sandbox:write; SDK retireTestPayer() · https://developers.banzami.com/docs/en/reference#ref-test-payer-retire
 
 ## Webhook events
 
-- payment_session.created: When a new session is created. Not emitted when the same purpose + reference returns a session that already existed. Fields: payment_session_id, destination_account_ref, amount_minor, currency, purpose, reference_type, reference_id, interfaces. — https://developers.banzami.com/docs/en/events#event-payment_session-created
-- payment_session.paid: When the payer pays the session and the money is in your account — at the same moment the session becomes PAID. Fields: payment_session_id, amount_minor, interface, destination_account_ref, reference_type, reference_id, transfer_id, acquiring_payment_id, refund_source. — https://developers.banzami.com/docs/en/events#event-payment_session-paid
-- payment_link.paid: When a link is paid — a link you created, or the link behind a Payment Session. Fields: id, slug, wallet_account_id, amount_minor, currency, description, status, paid_at, expires_at, created_at, updated_at, refund_source. — https://developers.banzami.com/docs/en/events#event-payment_link-paid
-- refund.completed: When a refund was made and the value is back with the payer — in the same request that createRefund answers 201. Fields: refund_id, source_type, source_id, amount_minor, currency, status, trace_id, created_at. — https://developers.banzami.com/docs/en/events#event-refund-completed
-- application_settlement.completed: When a settlement you requested finished: the net is with the beneficiary and the fee, if any, in your fee destination. Fields: id, owner_ref, status, gross_amount, application_fee, net_amount, currency, source_account_id, idempotency_key, created_at, completed_at. — https://developers.banzami.com/docs/en/events#event-application_settlement-completed
-- application_settlement.cancelled: When Banzami cancels a settlement that was created but never completed. No money left the account. Fields: id, owner_ref, status, source_account_id, idempotency_key, cancelled_at. — https://developers.banzami.com/docs/en/events#event-application_settlement-cancelled
-- application_settlement.failed: When Banzami marks as failed a settlement that could not complete. No money left the account. Fields: id, owner_ref, status, failure_reason, source_account_id, idempotency_key, failed_at. — https://developers.banzami.com/docs/en/events#event-application_settlement-failed
+- payment_session.created: When a new session is created. Not emitted when the same purpose + reference returns a session that already existed. Fields: payment_session_id, destination_account_ref, amount_minor, currency, purpose, reference_type, reference_id, interfaces. See https://developers.banzami.com/docs/en/events#event-payment_session-created
+- payment_session.paid: When the payer pays the session and the money is in your account, at the same moment the session becomes PAID. Fields: payment_session_id, amount_minor, interface, destination_account_ref, reference_type, reference_id, transfer_id, acquiring_payment_id, refund_source. See https://developers.banzami.com/docs/en/events#event-payment_session-paid
+- payment_link.paid: When a link is paid: a link you created, or the link behind a Payment Session. Fields: id, slug, wallet_account_id, amount_minor, currency, description, status, paid_at, expires_at, created_at, updated_at, refund_source. See https://developers.banzami.com/docs/en/events#event-payment_link-paid
+- refund.completed: When a refund was made and the value is back with the payer, in the same request that createRefund answers 201. Fields: refund_id, source_type, source_id, amount_minor, currency, status, trace_id, created_at. See https://developers.banzami.com/docs/en/events#event-refund-completed
+- application_settlement.completed: When a settlement you requested finished: the net is with the beneficiary and the fee, if any, in your fee destination. Fields: id, owner_ref, status, gross_amount, application_fee, net_amount, currency, source_account_id, idempotency_key, created_at, completed_at. See https://developers.banzami.com/docs/en/events#event-application_settlement-completed
+- application_settlement.cancelled: When Banzami cancels a settlement that was created but never completed. No money left the account. Fields: id, owner_ref, status, source_account_id, idempotency_key, cancelled_at. See https://developers.banzami.com/docs/en/events#event-application_settlement-cancelled
+- application_settlement.failed: When Banzami marks as failed a settlement that could not complete. No money left the account. Fields: id, owner_ref, status, failure_reason, source_account_id, idempotency_key, failed_at. See https://developers.banzami.com/docs/en/events#event-application_settlement-failed
 
 ## Errors
 
@@ -172,7 +172,7 @@ Envelope: { code, message, request_id }. Branch on code. A 4xx error stays store
 - REFUND_NOT_FUNDABLE (422): The account that received the payment does not hold enough to return it. Retry once the account holds enough, with a new key.
 - INVALID_PAYMENT_STATUS (422): The payment is in a state that cannot be refunded. Only a completed payment can be refunded.
 - INVALID_TRANSACTION_STATUS (422): The transaction is in a state that cannot be refunded. Only a completed payment can be refunded.
-- WALLET_NOT_FOUND (422): The wallet was not found: the one of the Business that received the payment, or — in a test payer's payment — the payer's. Contact support with the request_id.
+- WALLET_NOT_FOUND (422): The wallet was not found: the one of the Business that received the payment, or, in a test payer's payment, the payer's. Contact support with the request_id.
 - CONSUMER_WALLET_NOT_FOUND (422): The payer’s wallet no longer exists. Contact support with the request_id.
 - REFUND_FAILED (4xx): The refund was refused without a more specific reason. Read the message and contact support with the request_id.
 - RATE_LIMITED (429): Too many requests. Nothing was executed. Wait for Retry-After, then retry with the same key.
