@@ -18,7 +18,7 @@ import (
 // developer/integration credential.
 var (
 	ErrHandleInvalid        = errors.New("handle format is invalid")
-	ErrPinInvalid           = errors.New("pin must be 4-8 digits")
+	ErrPinInvalid           = errors.New("pin must be exactly 6 digits")
 	ErrHandleReserved       = errors.New("handle is reserved")
 	ErrMerchantHandleTaken  = errors.New("handle is already taken")
 	ErrMerchantCredsInvalid = errors.New("invalid handle or pin") // non-enumerating
@@ -42,7 +42,10 @@ const (
 // (no hyphen — matches merchant_profiles + consumer handle conventions).
 var (
 	handleRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_]{1,28}[a-z0-9]$`)
-	pinRe    = regexp.MustCompile(`^[0-9]{4,8}$`)
+	// Canonical Banzami PIN: EXACTLY 6 numeric digits (same rule as the Consumer
+	// app). Business login is @banza + PIN; this is the Banzami user PIN, NOT a
+	// BANZADMIN operator credential (those use password/TOTP/recovery codes).
+	pinRe    = regexp.MustCompile(`^[0-9]{6}$`)
 )
 
 // ValidateHandle returns nil if the handle matches the global format rules.
@@ -53,7 +56,7 @@ func ValidateHandle(handle string) error {
 	return nil
 }
 
-// ValidatePin returns nil if the PIN is 4-8 digits.
+// ValidatePin returns nil if the PIN is exactly 6 digits.
 func ValidatePin(pin string) error {
 	if !pinRe.MatchString(pin) {
 		return ErrPinInvalid
@@ -83,6 +86,12 @@ type MerchantLookup struct {
 type MerchantCredentialService interface {
 	VerifyHandlePin(ctx context.Context, handle, pin string) (merchantID, environment string, err error)
 	LookupHandle(ctx context.Context, handle string) (MerchantLookup, error)
+	// VerifyPinByMerchantID re-verifies a Business's PIN by session-derived id for
+	// a fresh re-auth on account deletion (issues no token).
+	VerifyPinByMerchantID(ctx context.Context, merchantID, environment, pin string) error
+	// DeleteCredentialByMerchant removes the app credential after deletion
+	// (defence-in-depth; CLOSED status already blocks sign-in).
+	DeleteCredentialByMerchant(ctx context.Context, merchantID, environment string) error
 }
 
 type PostgresMerchantCredentialService struct {
@@ -216,6 +225,46 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		return "", "", fmt.Errorf("%w: clear attempts: %w", ErrMerchantCredsUnavailable, err)
 	}
 	return merchantID, environment, nil
+}
+
+// VerifyPinByMerchantID re-verifies a Business's PIN by merchant id + environment,
+// for a fresh re-auth on a high-impact action (account deletion). The id comes
+// from the authenticated session, never from the client. It confirms the PIN over
+// the already-authenticated, TLS-protected request and issues no token.
+func (s *PostgresMerchantCredentialService) VerifyPinByMerchantID(ctx context.Context, merchantID, environment, pin string) error {
+	if ValidatePin(pin) != nil {
+		return ErrMerchantCredsInvalid
+	}
+	var pinHash *string
+	err := s.pool.QueryRow(ctx,
+		`SELECT pin_hash FROM merchant_app_credentials WHERE merchant_id = $1 AND environment = $2`,
+		merchantID, environment).Scan(&pinHash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrMerchantCredsInvalid
+	}
+	if err != nil {
+		return fmt.Errorf("%w: read credential: %w", ErrMerchantCredsUnavailable, err)
+	}
+	if pinHash == nil {
+		return ErrMerchantCredsInvalid
+	}
+	if bcrypt.CompareHashAndPassword([]byte(*pinHash), []byte(pin)) != nil {
+		return ErrMerchantCredsInvalid
+	}
+	return nil
+}
+
+// DeleteCredentialByMerchant removes the Business app credential after deletion —
+// defence-in-depth. merchants.status = CLOSED already blocks every sign-in
+// (VerifyHandlePin refuses a non-ACTIVE merchant), so this is cleanup, not the
+// barrier. A missing row is not an error (idempotent).
+func (s *PostgresMerchantCredentialService) DeleteCredentialByMerchant(ctx context.Context, merchantID, environment string) error {
+	if _, err := s.pool.Exec(ctx,
+		`DELETE FROM merchant_app_credentials WHERE merchant_id = $1 AND environment = $2`,
+		merchantID, environment); err != nil {
+		return fmt.Errorf("%w: delete credential: %w", ErrMerchantCredsUnavailable, err)
+	}
+	return nil
 }
 
 // LookupHandle reports whether a login handle exists and may sign in. It returns

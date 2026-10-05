@@ -30,7 +30,7 @@ func TestVerifyHandlePin_ConcurrentGuessesCannotPassTheLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	handle := "rc" + strings.ReplaceAll(uuid.NewString(), "-", "")[:10]
-	hash, _ := bcrypt.GenerateFromPassword([]byte("2468"), bcrypt.MinCost)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("246824"), bcrypt.MinCost)
 	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`, handle, id); err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestVerifyHandlePin_ConcurrentGuessesCannotPassTheLimit(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			if _, _, err := svc.VerifyHandlePin(ctx, handle, "1111"); errors.Is(err, ErrMerchantCredsInvalid) {
+			if _, _, err := svc.VerifyHandlePin(ctx, handle, "111111"); errors.Is(err, ErrMerchantCredsInvalid) {
 				compared.Add(1) // only a compared, wrong PIN answers "invalid"
 			}
 		}()
@@ -61,7 +61,7 @@ func TestVerifyHandlePin_ConcurrentGuessesCannotPassTheLimit(t *testing.T) {
 	if n := compared.Load(); n > maxPinAttempts {
 		t.Fatalf("%d concurrent guesses were compared, want at most %d", n, maxPinAttempts)
 	}
-	if _, _, err := svc.VerifyHandlePin(ctx, handle, "2468"); !errors.Is(err, ErrMerchantLocked) {
+	if _, _, err := svc.VerifyHandlePin(ctx, handle, "246824"); !errors.Is(err, ErrMerchantLocked) {
 		t.Fatalf("after the limit, the right PIN must wait for the lock; got %v", err)
 	}
 }

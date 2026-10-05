@@ -31,14 +31,21 @@ func (f *fakeCreds) VerifyHandlePin(_ context.Context, _, _ string) (string, str
 func (f *fakeCreds) LookupHandle(_ context.Context, _ string) (service.MerchantLookup, error) {
 	return f.lookup, nil
 }
+func (f *fakeCreds) VerifyPinByMerchantID(_ context.Context, _, _, _ string) error {
+	return f.verifyErr
+}
+func (f *fakeCreds) DeleteCredentialByMerchant(_ context.Context, _, _ string) error {
+	return nil
+}
 
 // fakeSessions is an in-memory Business App session store: enough to prove the
 // handler issues, renews and ends sessions; rotation and reuse are proven
 // against Postgres in the service tests.
 type fakeSessions struct {
-	opened   int
-	renewErr error
-	ended    []string
+	opened     int
+	renewErr   error
+	ended      []string
+	revokedAll []string
 }
 
 func (f *fakeSessions) Open(_ context.Context, mid, env string) (service.IssuedSession, error) {
@@ -53,6 +60,10 @@ func (f *fakeSessions) Renew(_ context.Context, tok string) (service.IssuedSessi
 }
 func (f *fakeSessions) End(_ context.Context, tok string) error {
 	f.ended = append(f.ended, tok)
+	return nil
+}
+func (f *fakeSessions) RevokeAllForMerchant(_ context.Context, mid, _ string) error {
+	f.revokedAll = append(f.revokedAll, mid)
 	return nil
 }
 

@@ -67,6 +67,13 @@ type Config struct {
 	// contact@banzami.com.
 	ContactRecipient string
 
+	// OTPPepper is the HMAC pepper for the public account-deletion request email
+	// OTP (the same OTP_PEPPER the other services use). It is never stored in
+	// Postgres — only the HMAC of a code is. Empty disables the public web
+	// deletion-request intake (fail-closed): the authenticated in-app deletion
+	// flow does not use it.
+	OTPPepper string
+
 	// PublicSiteURL is the marketing site origin used to build public links in
 	// transactional emails (e.g. the application-status link). Defaults to
 	// https://banzami.com; no trailing slash.
@@ -218,6 +225,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("CORE_INTERNAL_KEY"); v != "" {
 		cfg.CoreInternalKey = v
+	}
+	if v := os.Getenv("OTP_PEPPER"); v != "" {
+		cfg.OTPPepper = v
 	}
 	if v := os.Getenv("DEVELOPER_API_URL"); v != "" {
 		cfg.DeveloperAPIURL = v

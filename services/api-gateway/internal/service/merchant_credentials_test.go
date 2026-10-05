@@ -28,13 +28,14 @@ func TestValidateHandle(t *testing.T) {
 }
 
 func TestValidatePin(t *testing.T) {
-	valid := []string{"1234", "12345", "12345678"}
+	// Canonical Banzami PIN: EXACTLY 6 numeric digits (leading zeros valid).
+	valid := []string{"000000", "012345", "123456", "900001", "999999"}
 	for _, p := range valid {
 		if err := ValidatePin(p); err != nil {
 			t.Errorf("ValidatePin(%q) = %v, want nil", p, err)
 		}
 	}
-	invalid := []string{"123", "123456789", "12a4", "", "abcd"}
+	invalid := []string{"123", "1234", "12345", "1234567", "12345678", "12a456", "abcdef", "123456 ", " 123456", ""}
 	for _, p := range invalid {
 		if err := ValidatePin(p); err == nil {
 			t.Errorf("ValidatePin(%q) = nil, want error", p)
