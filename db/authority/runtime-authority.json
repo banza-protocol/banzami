@@ -1,5 +1,5 @@
 {
-  "$comment": "Database authority of every runtime identity (WALLET-NATIVE-001, ADR-061 §2). PostgreSQL privilege is the authority; application_name (0144) is detection. tools/db-authority.mjs generates db/authority/runtime-authority.sql from this file and fails the build when the SQL, the financial-table list in 0144, or a service's own write footprint disagree with it.",
+  "$comment": "Database authority of every runtime identity (WALLET-NATIVE-001, ADR-061 \u00a72). PostgreSQL privilege is the authority; application_name (0144) is detection. tools/db-authority.mjs generates db/authority/runtime-authority.sql from this file and fails the build when the SQL, the financial-table list in 0144, or a service's own write footprint disagree with it.",
   "version": 1,
   "schemas": [
     "public",
@@ -87,6 +87,7 @@
         "tables": [
           "developer.dev_api_request_logs",
           "developer.dev_project_sandbox_binding",
+          "public.account_deletion_requests",
           "public.beta_testers",
           "public.business_link_codes",
           "public.business_receive_point_mints",
@@ -127,6 +128,11 @@
       ],
       "write": {
         "tables": [
+          "public.audit_log",
+          "public.consumer_auth_grants",
+          "public.consumer_devices",
+          "public.consumer_email_otps",
+          "public.consumer_login_source_throttle",
           "public.customer_compliance",
           "public.kyc_cases",
           "public.kyc_documents",
@@ -211,7 +217,7 @@
     "bl_app_runtime": {
       "service": null,
       "source": [],
-      "purpose": "Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority, and no write on retirement/lifecycle-truth tables (a host operator must not erase a retirement marker and reopen lifecycle eligibility — MONEY-MODEL-001).",
+      "purpose": "Operator tooling on the Sandbox host (fixture sweeps, residue retirement, read-only harness queries). Mounted into no container; its password lives only in the root-only secrets directory. No financial write authority, and no write on retirement/lifecycle-truth tables (a host operator must not erase a retirement marker and reopen lifecycle eligibility \u2014 MONEY-MODEL-001).",
       "read_schemas": [
         "public",
         "developer",

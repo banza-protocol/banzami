@@ -130,6 +130,7 @@ BEGIN
 END $$;
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_api_request_logs"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"developer"."dev_project_sandbox_binding"', 'bl_gateway_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."account_deletion_requests"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."beta_testers"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."business_link_codes"', 'bl_gateway_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."business_receive_point_mints"', 'bl_gateway_runtime');
@@ -165,6 +166,11 @@ BEGIN
     ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA public GRANT SELECT ON TABLES TO bl_public_api_runtime;
   END IF;
 END $$;
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."audit_log"', 'bl_public_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."consumer_auth_grants"', 'bl_public_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."consumer_devices"', 'bl_public_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."consumer_email_otps"', 'bl_public_api_runtime');
+SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."consumer_login_source_throttle"', 'bl_public_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."customer_compliance"', 'bl_public_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."kyc_cases"', 'bl_public_api_runtime');
 SELECT pg_temp.bz_grant('INSERT, UPDATE, DELETE', '"public"."kyc_documents"', 'bl_public_api_runtime');
