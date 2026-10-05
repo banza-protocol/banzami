@@ -260,6 +260,37 @@ String? _byCode(String code) {
     // Documents
     case 'RECEIPT_UNAVAILABLE':
       return 'O comprovativo não está disponível neste momento. Tente novamente dentro de momentos.';
+
+    // Account security + recovery (email verification, Change/Forgot PIN).
+    case 'PIN_REQUIRED':
+      return 'Confirme com o seu PIN.';
+    case 'REAUTH_REQUIRED':
+      return 'PIN incorrecto. Tente novamente.';
+    case 'INVALID_EMAIL':
+      return 'Introduza um email válido.';
+    case 'INVALID_CODE':
+      return 'Código inválido ou expirado. Verifique ou peça um novo.';
+    case 'EMAIL_NOT_VERIFIED':
+      return 'A verificação do email expirou. Verifique novamente.';
+    case 'EMAIL_TAKEN':
+      return 'Este email já está associado a uma conta.';
+    case 'EMAIL_ALREADY_SET':
+      return 'Esta conta já tem um email de recuperação.';
+    case 'TOO_MANY_REQUESTS':
+      return 'Pediu códigos demasiadas vezes. Aguarde um momento e tente novamente.';
+    case 'RESET_INVALID':
+      return 'A autorização de recuperação é inválida ou expirou. Comece novamente.';
+    case 'ACCOUNT_NOT_ACTIVE':
+      return 'Esta conta não pode ser recuperada.';
+    case 'PIN_RECOVERY_REQUIRED':
+      return 'O acesso por PIN foi protegido. Recupera o acesso para definir um novo PIN.';
+    case 'DELIVERY_FAILED':
+      return 'Não foi possível enviar o email agora. Tente novamente.';
+    case 'SIGNUP_UNAVAILABLE':
+    case 'SIGNUP_RETRY':
+      return 'A criação de conta está temporariamente indisponível. Tente novamente mais tarde.';
+    case 'UNAVAILABLE':
+      return 'Este serviço está temporariamente indisponível. Tente novamente dentro de momentos.';
   }
   return null;
 }

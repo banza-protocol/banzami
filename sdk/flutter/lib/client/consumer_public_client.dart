@@ -116,6 +116,29 @@ class ConsumerPublicClient {
     await _call(method: 'POST', path: '/v1/auth/logout');
     _token = null;
   }
+
+  /// Suprimir conta — permanently deletes this consumer account. This is NOT
+  /// logout and NOT "remover deste dispositivo": the server closes the account
+  /// (status CLOSED), sweeps any Sandbox balance through balanced ledger
+  /// postings, revokes every session and retires the @banza handle. After it
+  /// succeeds no sign-in works again, on any device.
+  ///
+  /// [pin] is a fresh re-authentication, confirmed server-side over TLS — it is
+  /// never sent by email or a public form. An Idempotency-Key makes a retried
+  /// call safe (the server applies the deletion once). On success the caller
+  /// should still run the normal local teardown (clear the stored session,
+  /// unregister push). Throws [BanzamiApiException] on a wrong PIN (403) or if
+  /// the account could not be deleted.
+  Future<void> deleteAccount({required String pin}) async {
+    await _call(
+      method: 'POST',
+      path: '/v1/me/deletion',
+      body: {'pin': pin},
+      headers: {'Idempotency-Key': _uuid.v4()},
+    );
+    _token = null;
+  }
+
   String? get token => _token;
 
   // ---------------------------------------------------------------------------
@@ -131,6 +154,8 @@ class ConsumerPublicClient {
     required String handle,
     required String displayName,
     required String pin,
+    String? email,
+    String? emailVerificationToken,
   }) async {
     final resp = await _call(
       method: 'POST',
@@ -140,6 +165,10 @@ class ConsumerPublicClient {
         // Full name is REQUIRED (user-declared; NOT identity verification).
         'display_name': displayName,
         'pin': pin,
+        // Email is a verified recovery attribute: the token proves the OTP step.
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (emailVerificationToken != null && emailVerificationToken.isNotEmpty)
+          'email_verification_token': emailVerificationToken,
       },
       auth: false,
     );
@@ -179,6 +208,139 @@ class ConsumerPublicClient {
 
     final wallet = await _call(method: 'GET', path: '/v1/me/wallet');
     return (consumer: consumer, walletId: wallet['id'] as String, token: tok);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Verified email (signup) + PIN recovery
+  //
+  // Login stays @handle + PIN. These add email as a verified recovery channel.
+  // The server never returns an OTP; it emails a 6-digit code. Verifying a code
+  // yields an opaque token (never the code itself) that the next step consumes.
+  // ---------------------------------------------------------------------------
+
+  /// Signup step: ask the server to email a verification code to [email].
+  /// Throws [BanzamiApiException] on an invalid email or when unavailable.
+  Future<void> requestEmailOtp({required String email}) async {
+    await _call(
+      method: 'POST',
+      path: '/v1/auth/email/otp',
+      body: {'email': email},
+      auth: false,
+    );
+  }
+
+  /// Signup step: confirm the emailed [code] for [email]. On success returns the
+  /// opaque `email_verification_token` to pass to [register]. Throws on a wrong
+  /// or expired code.
+  Future<String> verifyEmailOtp({
+    required String email,
+    required String code,
+  }) async {
+    final resp = await _call(
+      method: 'POST',
+      path: '/v1/auth/email/verify',
+      body: {'email': email, 'code': code},
+      auth: false,
+    );
+    return resp['email_verification_token'] as String;
+  }
+
+  /// Authenticated Change PIN. Requires the current PIN (a fresh server-side
+  /// re-auth), sets the new one, revokes other sessions and returns a fresh
+  /// token for THIS device — installed here so the app stays signed in. Throws
+  /// [BanzamiApiException] 403 on a wrong current PIN.
+  Future<void> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    final resp = await _call(
+      method: 'POST',
+      path: '/v1/me/pin',
+      body: {'current_pin': currentPin, 'new_pin': newPin},
+      headers: {'Idempotency-Key': _uuid.v4()},
+    );
+    if (resp['token'] is String) {
+      _token = resp['token'] as String;
+    }
+  }
+
+  /// Forgot-PIN step 1 (unauthenticated): ask for a reset code for [handle]. The
+  /// response is deliberately the same whether or not the account is eligible
+  /// (anti-enumeration) — it never throws for an unknown handle.
+  Future<void> requestPinReset({required String handle}) async {
+    await _call(
+      method: 'POST',
+      path: '/v1/auth/pin-reset/request',
+      body: {'handle': handle},
+      auth: false,
+    );
+  }
+
+  /// Forgot-PIN step 2: confirm the reset [code] for [handle]. On success returns
+  /// the opaque `reset_token` for [confirmPinReset]. Throws on a wrong/expired code.
+  Future<String> verifyPinReset({
+    required String handle,
+    required String code,
+  }) async {
+    final resp = await _call(
+      method: 'POST',
+      path: '/v1/auth/pin-reset/verify',
+      body: {'handle': handle, 'code': code},
+      auth: false,
+    );
+    return resp['reset_token'] as String;
+  }
+
+  /// Forgot-PIN step 3: set the new PIN with the [resetToken]. On success the
+  /// server has revoked every session; the person signs in again with the new
+  /// PIN. Throws on an invalid/expired token or a non-active account.
+  Future<void> confirmPinReset({
+    required String resetToken,
+    required String newPin,
+  }) async {
+    await _call(
+      method: 'POST',
+      path: '/v1/auth/pin-reset/confirm',
+      body: {'reset_token': resetToken, 'new_pin': newPin},
+      auth: false,
+    );
+  }
+
+  // --- Recovery-email enrolment (authenticated; for legacy accounts) ----------
+
+  /// Whether the signed-in account has a verified recovery email, and a masked
+  /// form (f***@example.com) for display when it does.
+  Future<({bool hasEmail, String? emailMasked})> recoveryEmailStatus() async {
+    final resp = await _call(method: 'GET', path: '/v1/me/recovery-email');
+    return (
+      hasEmail: resp['has_email'] == true,
+      emailMasked: resp['email_masked'] as String?,
+    );
+  }
+
+  /// Start adding a recovery email to an account that has none: emails a code to
+  /// [email]. Throws [BanzamiApiException] 409 EMAIL_ALREADY_SET if one exists.
+  Future<void> requestRecoveryEmailOtp({required String email}) async {
+    await _call(
+      method: 'POST',
+      path: '/v1/me/recovery-email/otp',
+      body: {'email': email},
+    );
+  }
+
+  /// Confirm the code and associate the verified email with the account. After
+  /// this, Forgot-PIN works. Returns the masked email. Throws on a wrong/expired
+  /// code or if the email is already used by another account (409 EMAIL_TAKEN).
+  Future<String?> verifyRecoveryEmailOtp({
+    required String email,
+    required String code,
+  }) async {
+    final resp = await _call(
+      method: 'POST',
+      path: '/v1/me/recovery-email/verify',
+      body: {'email': email, 'code': code},
+    );
+    return resp['email_masked'] as String?;
   }
 
   /// Returns up to 5 active consumers whose handle contains [prefix].
