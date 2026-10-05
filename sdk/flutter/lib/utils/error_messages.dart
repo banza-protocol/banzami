@@ -289,6 +289,8 @@ String? _byCode(String code) {
     case 'SIGNUP_UNAVAILABLE':
     case 'SIGNUP_RETRY':
       return 'A criação de conta está temporariamente indisponível. Tente novamente mais tarde.';
+    case 'SECURITY_UNAVAILABLE':
+      return 'O início de sessão está temporariamente indisponível. Tente novamente dentro de momentos.';
     case 'UNAVAILABLE':
       return 'Este serviço está temporariamente indisponível. Tente novamente dentro de momentos.';
   }
