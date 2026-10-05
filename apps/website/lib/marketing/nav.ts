@@ -25,6 +25,7 @@ export const ROUTES = {
   testes: { pt: '/testes', en: '/en/testes' },
   termos: { pt: '/termos', en: '/en/termos' },
   privacidade: { pt: '/privacidade', en: '/en/privacidade' },
+  supressao: { pt: '/supressao-de-conta', en: '/en/supressao-de-conta' },
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

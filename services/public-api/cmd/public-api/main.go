@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/banzami/banzami/services/common/pushtopic"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -94,6 +96,51 @@ func main() {
 	}
 	kycSvc := service.NewKycService(pool, kycStore, cfg.Environment)
 
+	// Email (Resend/SMTP) + the Consumer recovery OTP store. Both optional and
+	// fail-closed: without a working mailer or an OTP_PEPPER, the verified-email
+	// and PIN-recovery endpoints respond 503 and the rest of the API is intact.
+	mailer := ce.NewSender(ce.Config{
+		Provider:       cfg.EmailProvider,
+		DryRun:         cfg.EmailDryRun,
+		ResendAPIKey:   cfg.ResendAPIKey,
+		SMTPHost:       cfg.SMTPHost,
+		SMTPPort:       cfg.SMTPPort,
+		SMTPUser:       cfg.SMTPUser,
+		SMTPPassword:   cfg.SMTPPassword,
+		FromName:       cfg.EmailFromName,
+		FromAddress:    cfg.EmailFromAddress,
+		ReplyTo:        cfg.EmailReplyTo,
+		NoreplyName:    cfg.EmailNoreplyName,
+		NoreplyAddress: cfg.EmailNoreplyAddress,
+	})
+	if !mailer.Enabled() {
+		slog.Warn("email NOT configured (no RESEND_API_KEY/EMAIL_*) — verified-email signup is MANDATORY, so NEW CONSUMER SIGNUP IS BLOCKED (register + email/recovery endpoints fail closed with 503). Existing accounts still sign in.")
+	}
+	// The login-abuse throttle protects the authentication path. Its secret is the
+	// dedicated RATE_LIMIT_PEPPER and nothing else — there is no derivation from
+	// OTP_PEPPER. A missing RATE_LIMIT_PEPPER is a HARD requirement failure: an
+	// auth protection must never run without a secret, so refuse to boot rather
+	// than run unthrottled.
+	if !cfg.RateLimitConfigured() {
+		slog.Error("boot: refusing to start — RATE_LIMIT_PEPPER is not set; the login-abuse throttle must never run without its dedicated secret (OTP_PEPPER is NOT a fallback)")
+		os.Exit(1)
+	}
+	sourceThrottle := service.NewSourceThrottle(pool, cfg.RateLimitSecret())
+	recovery := service.NewConsumerRecoveryService(pool, cfg.OTPPepper)
+	if recovery == nil {
+		slog.Warn("OTP_PEPPER NOT set — verified-email signup is MANDATORY, so NEW CONSUMER SIGNUP IS BLOCKED (register + email/recovery endpoints fail closed with 503). Existing accounts still sign in.")
+	}
+
+	// Public-launch readiness: name every mandatory secret still missing (never
+	// the values — this list is safe to log). A missing throttle secret already
+	// aborted the boot above; the rest (OTP_PEPPER, email) fail their dependent
+	// flows closed while sign-in keeps working, but the environment is NOT ready
+	// for a public launch until all are set.
+	if missing := cfg.MissingLaunchSecrets(); len(missing) > 0 {
+		slog.Warn("launch readiness: environment NOT ready for a public launch — mandatory secrets missing",
+			"missing", strings.Join(missing, ", "))
+	}
+
 	// The FCM topic names are keyed (A6-06). Without the key no topic is
 	// named: pushes are skipped and GET /v1/me/push-topic answers null.
 	pushTopics, topicErr := pushtopic.New(cfg.PushTopicKey, env.Parse(cfg.Environment).IsSandbox())
@@ -116,6 +163,9 @@ func main() {
 		KycSvc:             kycSvc,
 		ProofClient:        service.NewProofClient(cfg.GatewayInternalURL, cfg.InternalAPIKey),
 		ReceivePointClient: service.NewReceivePointClient(cfg.GatewayInternalURL, cfg.InternalAPIKey),
+		Mailer:             mailer,
+		Recovery:           recovery,
+		SourceThrottle:     sourceThrottle,
 	})
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

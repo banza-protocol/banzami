@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/common/edgestatus"
 	"github.com/banzami/banzami/services/common/env"
 	"net/http"
@@ -57,6 +58,15 @@ type Dependencies struct {
 
 	// TestPayers records which Project owns a Sandbox test payer (ADR-060 §4).
 	TestPayers *service.TestPayerStore
+
+	// Mailer delivers the Consumer email-verification + PIN-recovery emails.
+	// Nil / not enabled ⇒ those endpoints respond 503 (the rest is unaffected).
+	Mailer *ce.Sender
+	// Recovery is the OTP + grant store for verified email and forgot-PIN. Nil
+	// (no OTP_PEPPER) ⇒ those flows are disabled (fail-closed).
+	Recovery *service.ConsumerRecoveryService
+	// SourceThrottle is the persistent anti-DoS login-source velocity guard.
+	SourceThrottle *service.SourceThrottle
 }
 
 // Server wraps the HTTP server lifecycle.
@@ -97,7 +107,10 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 	transferLimiter := handler.NewTransferRateLimiter(transferRateLimit, transferRateWindow)
 
-	authH := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
+	authH := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore).
+		WithRecovery(deps.Recovery, deps.Mailer).
+		WithSourceThrottle(deps.SourceThrottle).
+		WithRateLimitRequired(true)
 	consumerH := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
 	meH := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
 	transferH := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter, deps.FCMSvc)
@@ -149,6 +162,15 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	r.With(authRL).Post("/v1/auth/register", authH.Register)
 	r.With(authRL).Post("/v1/auth/token", authH.Token)
 
+	// Consumer verified-email (signup) + PIN recovery — unauthenticated, per-IP
+	// rate-limited. The forgot-PIN request is anti-enumeration (same answer for
+	// any input); the OTP is never the reset token. See handler/auth_recovery.go.
+	r.With(authRL).Post("/v1/auth/email/otp", authH.RequestEmailOtp)
+	r.With(authRL).Post("/v1/auth/email/verify", authH.VerifyEmailOtp)
+	r.With(authRL).Post("/v1/auth/pin-reset/request", authH.RequestPinReset)
+	r.With(authRL).Post("/v1/auth/pin-reset/verify", authH.VerifyPinReset)
+	r.With(authRL).Post("/v1/auth/pin-reset/confirm", authH.ConfirmPinReset)
+
 	// Consumer wallet onboarding — no JWT required (consumer doesn't have one yet)
 	r.Post("/v1/consumer/onboarding/start", onboardingH.Start)
 	r.Post("/v1/consumer/onboarding/verify-otp", onboardingH.VerifyOtp)
@@ -175,6 +197,16 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Use(middleware.Auth(cfg, sessionsOf(deps.CredStore)))
 
 		r.Post("/v1/auth/logout", authH.Logout)
+		r.Post("/v1/me/deletion", authH.DeleteAccount)
+		// Authenticated Change PIN (fresh current-PIN re-auth; revokes other
+		// sessions and re-mints this one).
+		r.Post("/v1/me/pin", authH.ChangePin)
+
+		// Authenticated recovery-email enrolment (legacy accounts adding a
+		// verified email so Forgot-PIN can work). Read status + add via OTP.
+		r.Get("/v1/me/recovery-email", authH.RecoveryEmailStatus)
+		r.Post("/v1/me/recovery-email/otp", authH.RequestRecoveryEmailOtp)
+		r.Post("/v1/me/recovery-email/verify", authH.VerifyRecoveryEmailOtp)
 
 		// @banza suggestions for a signed-in consumer, limited per consumer. The
 		// static /search segment wins over the public /{handle} route in chi.

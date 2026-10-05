@@ -494,6 +494,24 @@ class BanzamiClient {
   Future<void> disableReceivePoint() =>
       _postWithRetry('/v1/business/receive-point/disable', const {});
 
+  /// Suprimir conta Business — permanently closes this Business account. This is
+  /// NOT logout and NOT "remover deste dispositivo": the server runs the
+  /// ledger-safe retire (sweeping any Sandbox balance, cancelling sessions and
+  /// payment links, closing segregated wallet accounts), sets the merchant to
+  /// CLOSED, revokes the API keys and retires the @banza handle. After it
+  /// succeeds no sign-in works again. Business, financial, settlement and KYB
+  /// history is retained as required.
+  ///
+  /// [pin] is a fresh re-authentication, confirmed server-side over TLS. It is a
+  /// deliberate one-shot (no automatic retry): the server is idempotent on the
+  /// Idempotency-Key, and it refuses with 409 while a settlement is still in
+  /// flight (surface that as "try again shortly"). On success the caller should
+  /// still run the normal local teardown. Throws [BanzamiApiException] on a wrong
+  /// PIN (403), a pending settlement (409) or if the account could not be deleted.
+  Future<void> deleteBusinessAccount({required String pin}) async {
+    await _post('/v1/merchant/deletion', {'pin': pin}, idempotencyKey: _uuid.v4());
+  }
+
   Future<PaymentLink> createPaymentLink({
     required String merchantId,
     required String walletId,

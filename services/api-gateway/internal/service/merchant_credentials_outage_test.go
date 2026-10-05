@@ -21,7 +21,7 @@ func TestVerifyHandlePin_UnreachableStoreIsUnavailableNotInvalid(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, _, err = NewPostgresMerchantCredentialService(pool).VerifyHandlePin(ctx, "doa_sandbox", "1234")
+	_, _, err = NewPostgresMerchantCredentialService(pool).VerifyHandlePin(ctx, "doa_sandbox", "123456")
 	if !errors.Is(err, ErrMerchantCredsUnavailable) {
 		t.Fatalf("err = %v, want ErrMerchantCredsUnavailable", err)
 	}

@@ -20,6 +20,9 @@ use crate::{
 pub struct CreateConsumerBody {
     pub handle: String,
     pub display_name: Option<String>,
+    /// An already-verified recovery email (public-api verifies it by OTP before
+    /// calling this). Optional for legacy/no-email creation.
+    pub email: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -116,11 +119,15 @@ pub async fn create(
         .create(CreateConsumerRequest {
             handle: body.handle,
             display_name: body.display_name,
+            email: body.email,
         })
         .await
         .map_err(|e| match e {
             IdentityError::HandleTaken(_) => {
                 ApiError::conflict("HANDLE_TAKEN", "handle already taken")
+            }
+            IdentityError::EmailTaken => {
+                ApiError::conflict("EMAIL_TAKEN", "email already in use")
             }
             IdentityError::InvalidHandle(r) => ApiError::bad_request(r),
             other => ApiError::internal(other.to_string()),
@@ -130,6 +137,36 @@ pub async fn create(
         StatusCode::CREATED,
         Json(serde_json::to_value(&identity).unwrap()),
     ))
+}
+
+#[derive(Deserialize)]
+pub struct SetConsumerEmailBody {
+    pub email: String,
+}
+
+/// POST /internal/v1/consumers/:id/email — associate a verified recovery email
+/// with an ACTIVE consumer (legacy enrolment). public-api calls this only after
+/// an authenticated OTP verification. EmailTaken → 409; a non-ACTIVE/unknown
+/// consumer → 404.
+pub async fn set_email(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<SetConsumerEmailBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let consumer_id = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid consumer id"))?;
+    state
+        .identity
+        .set_email(consumer_id, &body.email)
+        .await
+        .map_err(|e| match e {
+            IdentityError::EmailTaken => ApiError::conflict("EMAIL_TAKEN", "email already in use"),
+            IdentityError::NotFound(_) => ApiError::not_found("consumer not found or not active"),
+            IdentityError::InvalidHandle(r) => ApiError::bad_request(r),
+            other => ApiError::internal(other.to_string()),
+        })?;
+    Ok(Json(serde_json::json!({ "ok": true })))
 }
 
 pub async fn get(

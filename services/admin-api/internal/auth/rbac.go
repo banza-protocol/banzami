@@ -45,6 +45,17 @@ const (
 	CapConsumerSuspend Capability = "consumer.suspend"
 	CapConsumerBadge   Capability = "consumer.badge"
 
+	// Account-deletion requests (public web "supressão de conta" intake).
+	// CapAccountDeletionReview lets an operator read the queue and record the
+	// ownership verification (EMAIL_VERIFIED → OPERATOR_REVIEW), or reject a
+	// request. It decides who the account belongs to — the identity-standing desk.
+	CapAccountDeletionReview Capability = "account_deletion.review"
+	// CapAccountDeletionExecute runs the irreversible deletion (the ledger-safe
+	// Core retire + close). Like wallet_account.close it is destructive and
+	// enumerated to no role here: SUPER_ADMIN only, so execution is dual-control
+	// (one operator verifies ownership, a higher authority executes).
+	CapAccountDeletionExecute Capability = "account_deletion.execute"
+
 	// Financial actions.
 	CapSettlementManage Capability = "settlement.manage" // create/submit/confirm/fail
 	CapPayoutManage     Capability = "payout.manage"     // process/sent/confirm/fail/returned
@@ -123,6 +134,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapConsumerSuspend, CapRiskView, CapRiskResolve, CapRiskFreeze, CapAuditView,
 		CapPricingView, CapFinanceView,
 		CapBetaView,
+		CapAccountDeletionReview,
 		CapValidationView,
 	),
 

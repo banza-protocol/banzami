@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/banzami_premium_dialog.dart';
+import '../../widgets/reauth_pin_dialog.dart';
 import '../config.dart';
 import '../services/merchant_reauth.dart';
 import '../services/merchant_session_service.dart';
@@ -195,11 +196,21 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
             const SizedBox(height: BanzamiSpacing.sm),
 
             _ActionTile(
-              icon:     Icons.delete_outline_rounded,
-              label:    'Remover conta',
-              sublabel: 'Apaga todas as credenciais guardadas',
+              icon:     Icons.phonelink_erase_rounded,
+              label:    'Remover deste dispositivo',
+              sublabel: 'Apaga as credenciais guardadas neste telemóvel. A conta mantém-se.',
               color:    BanzamiColors.gray400,
               onTap:    () => _confirmClearAccount(svc),
+            ),
+
+            const SizedBox(height: BanzamiSpacing.sm),
+
+            _ActionTile(
+              icon:     Icons.delete_forever_rounded,
+              label:    'Suprimir conta Business',
+              sublabel: 'Encerra a conta de forma definitiva',
+              color:    BanzamiColors.error,
+              onTap:    () => _confirmDeleteBusinessAccount(svc),
             ),
 
             const SizedBox(height: BanzamiSpacing.xxl),
@@ -264,19 +275,80 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     if (confirm == true) await signOutBusiness(client: client, session: svc);
   }
 
+  /// Remover deste dispositivo — a LOCAL wipe only. The Business account keeps
+  /// existing; the app can be set up again. Distinct from "Suprimir conta
+  /// Business" below, which actually closes the account on the server.
   Future<void> _confirmClearAccount(MerchantSessionService svc) async {
     final client  = context.read<BanzamiClient>();
     final confirm = await showBanzamiDialog(
       context:      context,
-      icon:         Icons.delete_forever_rounded,
-      title:        'Remover conta?',
-      description:  'Todas as credenciais guardadas serão apagadas.\nTerá de reconfigurar a aplicação para voltar a usar.',
+      icon:         Icons.phonelink_erase_rounded,
+      title:        'Remover deste dispositivo?',
+      description:  'Apaga as credenciais guardadas neste telemóvel. A conta Business mantém-se; terá de reconfigurar a aplicação para voltar a usar.',
       cancelLabel:  'Cancelar',
       confirmLabel: 'Remover',
-      variant:      BanzamiDialogVariant.danger,
+      variant:      BanzamiDialogVariant.warning,
     );
     if (confirm == true) {
       await signOutBusiness(client: client, session: svc, removeAccount: true);
+    }
+  }
+
+  /// Suprimir conta Business — the real, permanent deletion. It explains the
+  /// consequences, requires a fresh PIN, then runs the server deletion (the
+  /// ledger-safe retire + close). On success the local session is torn down like
+  /// "remover deste dispositivo". A settlement still in flight makes the server
+  /// refuse with 409, surfaced as "try again shortly".
+  Future<void> _confirmDeleteBusinessAccount(MerchantSessionService svc) async {
+    final client  = context.read<BanzamiClient>();
+    final confirm = await showBanzamiDialog(
+      context:      context,
+      icon:         Icons.delete_forever_rounded,
+      title:        'Suprimir conta Business?',
+      description:
+          'Esta ação é definitiva. A conta Business é encerrada, o início de sessão deixa de funcionar, as chaves de API são revogadas e o @banza é retirado. '
+          'O histórico financeiro, de liquidações e de conformidade (KYB) é conservado por obrigação legal.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Continuar',
+      variant:      BanzamiDialogVariant.danger,
+    );
+    if (confirm != true || !mounted) return;
+
+    final pin = await showReauthPinDialog(
+      context:     context,
+      title:       'Confirme com o PIN',
+      description: 'Introduza o seu PIN para suprimir a conta Business.',
+      confirmLabel: 'Suprimir',
+    );
+    if (pin == null || pin.isEmpty || !mounted) return;
+
+    try {
+      await client.deleteBusinessAccount(pin: pin);
+    } on BanzamiApiException catch (e) {
+      if (!mounted) return;
+      if (e.statusCode == 403) {
+        BanzamiToast.showWarning(context, 'PIN incorreto. Tente novamente.');
+      } else if (e.statusCode == 409) {
+        BanzamiToast.showWarning(context,
+            'Há uma liquidação a decorrer. Tente novamente dentro de momentos.');
+      } else {
+        BanzamiToast.showWarning(context,
+            'Não foi possível suprimir a conta. Tente novamente.');
+      }
+      return;
+    } catch (_) {
+      if (mounted) {
+        BanzamiToast.showWarning(context,
+            'Não foi possível suprimir a conta. Tente novamente.');
+      }
+      return;
+    }
+
+    // Deleted server-side: tear down the local session (same path as "remover
+    // deste dispositivo"). signOutBusiness drives the navigation on session clear.
+    await signOutBusiness(client: client, session: svc, removeAccount: true);
+    if (mounted) {
+      BanzamiToast.showSuccess(context, 'Conta suprimida.');
     }
   }
 }

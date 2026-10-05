@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/banzami/banzami/services/common/clientip"
 )
@@ -44,6 +45,37 @@ type Config struct {
 	InternalAPIKey     string
 	// CoreInternalKey authenticates this service to Core (X-Internal-Key).
 	CoreInternalKey string
+
+	// Email delivery (Resend / SMTP via services/common/email). When unset, the
+	// email-verification and PIN-recovery endpoints respond 503 rather than
+	// failing startup. Mirrors the api-gateway env var names so ops config is
+	// uniform.
+	EmailProvider       string
+	EmailDryRun         bool
+	ResendAPIKey        string
+	SMTPHost            string
+	SMTPPort            int
+	SMTPUser            string
+	SMTPPassword        string
+	EmailFromName       string
+	EmailFromAddress    string
+	EmailReplyTo        string
+	EmailNoreplyName    string
+	EmailNoreplyAddress string
+
+	// OTPPepper is the HMAC pepper for the Consumer email-verification and
+	// PIN-reset OTP codes (OTP_PEPPER, shared env name). Never stored in
+	// Postgres. Empty disables those flows (fail-closed).
+	OTPPepper string
+
+	// RateLimitPepper is a SEPARATE, dedicated HMAC secret for hashing login
+	// sources (IPs) and targets in the persistent abuse throttle. It is wholly
+	// distinct from the OTP pepper (separate responsibilities: OTP_PEPPER hashes
+	// OTP codes, RATE_LIMIT_PEPPER hashes throttle keys) and MUST be configured
+	// explicitly (RATE_LIMIT_PEPPER). There is NO derivation from OTP_PEPPER and
+	// no empty fallback: a missing secret is a hard boot failure (see
+	// MissingLaunchSecrets / main), never a silently disabled throttle.
+	RateLimitPepper string
 
 	// ClientIP decides who the client is for the per-IP limits and log lines:
 	// the edge's X-Real-IP, believed only from TRUSTED_PROXY_CIDRS (A9-09). Nil
@@ -118,5 +150,89 @@ func Load() (*Config, error) {
 		GatewayInternalURL:      os.Getenv("GATEWAY_INTERNAL_URL"),
 		InternalAPIKey:          os.Getenv("INTERNAL_API_KEY"),
 		CoreInternalKey:         os.Getenv("CORE_INTERNAL_KEY"),
+		EmailProvider:           os.Getenv("EMAIL_PROVIDER"),
+		EmailDryRun:             os.Getenv("EMAIL_DRY_RUN") == "true" || os.Getenv("EMAIL_DRY_RUN") == "1",
+		ResendAPIKey:            os.Getenv("RESEND_API_KEY"),
+		SMTPHost:                os.Getenv("SMTP_HOST"),
+		SMTPPort:                atoiOr(os.Getenv("SMTP_PORT"), 587),
+		SMTPUser:                os.Getenv("SMTP_USER"),
+		SMTPPassword:            os.Getenv("SMTP_PASSWORD"),
+		EmailFromName:           os.Getenv("EMAIL_FROM_NAME"),
+		EmailFromAddress:        os.Getenv("EMAIL_FROM_ADDRESS"),
+		EmailReplyTo:            os.Getenv("EMAIL_REPLY_TO"),
+		EmailNoreplyName:        os.Getenv("EMAIL_NOREPLY_NAME"),
+		EmailNoreplyAddress:     os.Getenv("EMAIL_NOREPLY_ADDRESS"),
+		OTPPepper:               os.Getenv("OTP_PEPPER"),
+		RateLimitPepper:         os.Getenv("RATE_LIMIT_PEPPER"),
 	}, nil
+}
+
+// RateLimitSecret returns the secret for hashing throttle keys. It is the
+// dedicated RATE_LIMIT_PEPPER and NOTHING else — there is deliberately no
+// derivation from OTP_PEPPER and no other fallback. The two secrets have
+// separate responsibilities (OTP_PEPPER hashes OTP codes; RATE_LIMIT_PEPPER
+// hashes source/target throttle keys) and are configured independently.
+//
+// An empty result means the login-abuse throttle has no secret. This is NOT a
+// degraded-but-running mode: the service refuses to boot in that state (see
+// MissingLaunchSecrets and cmd/public-api/main.go), and the throttle
+// constructor refuses to build a keyless throttle. The protection can therefore
+// never be silently disabled, nor quietly satisfied by the OTP pepper.
+func (c *Config) RateLimitSecret() string {
+	return strings.TrimSpace(c.RateLimitPepper)
+}
+
+// RateLimitConfigured reports whether a non-empty throttle secret is available.
+// False is a hard misconfiguration for a running service (the login-abuse
+// throttle would have no secret), not an acceptable degraded mode.
+func (c *Config) RateLimitConfigured() bool {
+	return c.RateLimitSecret() != ""
+}
+
+// emailConfigured mirrors (coarsely) services/common/email.Sender.Enabled: a
+// transport (Resend or SMTP) plus the institutional from/noreply addresses.
+func (c *Config) emailConfigured() bool {
+	transport := strings.TrimSpace(c.ResendAPIKey) != "" || strings.TrimSpace(c.SMTPHost) != ""
+	return transport && strings.TrimSpace(c.EmailFromAddress) != "" && strings.TrimSpace(c.EmailNoreplyAddress) != ""
+}
+
+// MissingLaunchSecrets returns the human-readable names of the mandatory
+// public-launch secrets that are not configured. An empty slice means the
+// environment is configured for a public launch. The names are config keys,
+// never the secret values — this result is safe to log.
+//
+// Two tiers of consequence (see main): a missing RATE_LIMIT secret is a HARD
+// boot failure (an auth protection cannot be silently disabled); a missing
+// OTP_PEPPER or email config fails the dependent flows closed (signup +
+// recovery → 503) while existing sign-in keeps working. Either way the
+// environment is NOT ready for a public launch until all are set.
+func (c *Config) MissingLaunchSecrets() []string {
+	var missing []string
+	if strings.TrimSpace(c.OTPPepper) == "" {
+		missing = append(missing, "OTP_PEPPER")
+	}
+	if !c.RateLimitConfigured() {
+		missing = append(missing, "RATE_LIMIT_PEPPER")
+	}
+	if !c.emailConfigured() {
+		missing = append(missing, "RESEND_API_KEY/EMAIL_* (sender config)")
+	}
+	return missing
+}
+
+// IsSandbox reports whether this stack is the Sandbox environment. Used to gate
+// test-only affordances (e.g. returning an OTP in a response), never a request
+// field. Anything other than the literal PRODUCTION is treated as Sandbox.
+func (c *Config) IsSandbox() bool {
+	return c.Environment != "PRODUCTION"
+}
+
+func atoiOr(s string, def int) int {
+	if s == "" {
+		return def
+	}
+	if n, err := strconv.Atoi(s); err == nil {
+		return n
+	}
+	return def
 }

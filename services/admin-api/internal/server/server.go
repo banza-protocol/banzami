@@ -249,6 +249,21 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/business-state", applicationsH.BusinessState)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/businesses/{id}", applicationsH.BusinessByID)
 
+		// Account-deletion requests (public web "supressão de conta" intake).
+		// Review + record ownership + reject need CapAccountDeletionReview;
+		// executing the irreversible deletion needs CapAccountDeletionExecute
+		// (SUPER_ADMIN) plus step-up. The gateway owns the data; this forwards.
+		var gwDelSandbox handler.GatewayAccountDeletions
+		if gwSandbox != nil {
+			gwDelSandbox = gwSandbox
+		}
+		accountDeletionH := handler.NewAccountDeletionRequestHandler(gw, gwDelSandbox, platform)
+		r.With(cap(auth.CapAccountDeletionReview)).Get("/admin/v1/account-deletion-requests", accountDeletionH.List)
+		r.With(cap(auth.CapAccountDeletionReview)).Get("/admin/v1/account-deletion-requests/{id}", accountDeletionH.Get)
+		r.With(cap(auth.CapAccountDeletionReview)).Post("/admin/v1/account-deletion-requests/{id}/record-ownership", accountDeletionH.RecordOwnership)
+		r.With(cap(auth.CapAccountDeletionReview)).Post("/admin/v1/account-deletion-requests/{id}/reject", accountDeletionH.Reject)
+		r.With(cap(auth.CapAccountDeletionExecute), stepUp).Post("/admin/v1/account-deletion-requests/{id}/execute", accountDeletionH.Execute)
+
 		// ── Banzami Validation Studio ───────────────────────────────────────
 		//
 		// The CONTROL plane (doc 23). It prepares, describes and cancels; it

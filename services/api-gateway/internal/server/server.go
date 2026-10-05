@@ -180,6 +180,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// ---------------------------------------------------------------------------
 	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
 	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc).WithSessions(deps.MerchantSessionSvc)
+	merchantDeletionHandler := handler.NewMerchantDeletionHandler(deps.CoreClient, deps.MerchantCredSvc, deps.MerchantSessionSvc)
 	// Platform Mode is the single source of truth for the onboarding environment
 	// (ADR-025): this gate refuses application submission/approval when the gateway
 	// stack's environment (cfg.Environment) disagrees with the current mode.
@@ -187,6 +188,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate)
 	betaTesterHandler := handler.NewBetaTesterHandler(deps.BetaTesterSvc)
 	contactHandler := handler.NewContactHandler(deps.Mailer, deps.ContactRecipient)
+	accountDeletionRequestHandler := handler.NewAccountDeletionRequestHandler(
+		service.NewAccountDeletionRequestService(deps.DBPool, cfg.OTPPepper), deps.Mailer, deps.CoreClient)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate).WithReadiness(deps.SettlementReadinessSvc)
 	businessOnboardingHandler := handler.NewBusinessOnboardingHandler(deps.MerchantAppSvc, deps.MerchantAppAdminSvc, deps.BusinessLinkCodeSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
@@ -301,6 +304,13 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// so it cannot be turned into a mail relay.
 		r.With(middleware.RateLimitPerIPWindow(deps.Redis, 10, 24*time.Hour, "contact")).
 			Post("/v1/contact", contactHandler.Submit)
+		// Public account-deletion request intake (supressao-de-conta). Creating a
+		// request emails a code; both steps are rate-limited per IP. This files a
+		// request for operator ownership review — it never deletes on its own.
+		r.With(middleware.RateLimitPerIPWindow(deps.Redis, 10, 24*time.Hour, "account-deletion-request")).
+			Post("/v1/account-deletion-requests", accountDeletionRequestHandler.Create)
+		r.With(middleware.RateLimitPerIP(deps.Redis, 10, "account-deletion-verify")).
+			Post("/v1/account-deletion-requests/verify", accountDeletionRequestHandler.Verify)
 		r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
 		// Each submission reserves an @handle for as long as its application is
 		// open. Thirty a day per address covers a person applying (and
@@ -383,6 +393,17 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Post("/documents/{id}/read-url", merchantKybHandler.AdminReadURL)
 			r.Get("/merchants/{id}/context", merchantKybHandler.AdminContext)
 			r.Get("/merchants/{id}/timeline", merchantKybHandler.AdminTimeline)
+		})
+		// Operator processing of public account-deletion requests. The gateway
+		// owns account_deletion_requests; admin-api drives this with X-Internal-Key.
+		// Execution runs the ledger-safe Core deletion and is fail-closed (only an
+		// OPERATOR_REVIEW request with a VERIFIED ownership check runs).
+		r.Route("/internal/v1/account-deletion-requests", func(r chi.Router) {
+			r.Get("/", accountDeletionRequestHandler.OperatorList)
+			r.Get("/{id}", accountDeletionRequestHandler.OperatorGet)
+			r.Post("/{id}/record-ownership", accountDeletionRequestHandler.OperatorRecordOwnership)
+			r.Post("/{id}/reject", accountDeletionRequestHandler.OperatorReject)
+			r.Post("/{id}/execute", accountDeletionRequestHandler.OperatorExecute)
 		})
 		// Operator review-queue summary (sidebar badges).
 		r.Get("/internal/v1/attention-summary", attentionHandler.Summary)
@@ -474,6 +495,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// A signed-in Business consents to a Developer Project connecting
 			// to it: a short-lived single-use code, shown only here.
 			r.Post("/merchant/project-link-codes", businessOnboardingHandler.IssueLinkCode)
+
+			// "Suprimir conta Business" — authenticated self-service deletion
+			// (fresh PIN re-auth, ledger-safe retire + close). NOT logout.
+			r.Post("/merchant/deletion", merchantDeletionHandler.Delete)
 
 			r.Post("/transactions", txHandler.Create)
 			r.Get("/transactions", txHandler.List)

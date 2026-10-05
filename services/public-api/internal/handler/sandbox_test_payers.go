@@ -149,7 +149,7 @@ func (h *TestPayerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var handle string
 	for attempt := 0; attempt < 3; attempt++ {
 		handle = "tp" + randomString("abcdefghijklmnopqrstuvwxyz0123456789", 10)
-		consumer, err = h.core.CreateConsumer(r.Context(), handle, &display)
+		consumer, err = h.core.CreateConsumer(r.Context(), handle, &display, "")
 		if !errors.Is(err, service.ErrHandleTaken) {
 			break
 		}

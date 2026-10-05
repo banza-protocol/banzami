@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/banzami/banzami/services/common/obs"
 	"net/url"
@@ -239,6 +240,37 @@ func (c *GatewayClient) RejectDocumentRaw(ctx context.Context, id, documentID, r
 // receiptRaw posts to one of the gateway's internal receipt endpoints.
 func (c *GatewayClient) receiptRaw(ctx context.Context, path string, body any) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodPost, path, body)
+}
+
+// ── Account-deletion requests (public web intake; operator processing) ──────
+// The gateway owns account_deletion_requests. These forward the gateway JSON and
+// status verbatim so the operator UI sees the real state and refusal reasons.
+
+func (c *GatewayClient) ListAccountDeletionRequestsRaw(ctx context.Context, status string) (json.RawMessage, int, error) {
+	path := "/internal/v1/account-deletion-requests"
+	if s := strings.TrimSpace(status); s != "" {
+		path += "?status=" + url.QueryEscape(s)
+	}
+	return c.doRaw(ctx, http.MethodGet, path, nil)
+}
+
+func (c *GatewayClient) GetAccountDeletionRequestRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/account-deletion-requests/"+url.PathEscape(id), nil)
+}
+
+func (c *GatewayClient) RecordAccountDeletionOwnershipRaw(ctx context.Context, id, operator, result, notes string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/account-deletion-requests/"+url.PathEscape(id)+"/record-ownership",
+		map[string]string{"operator": operator, "result": result, "notes": notes})
+}
+
+func (c *GatewayClient) RejectAccountDeletionRequestRaw(ctx context.Context, id, operator, reason string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/account-deletion-requests/"+url.PathEscape(id)+"/reject",
+		map[string]string{"operator": operator, "reason": reason})
+}
+
+func (c *GatewayClient) ExecuteAccountDeletionRequestRaw(ctx context.Context, id, operator, requestID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/account-deletion-requests/"+url.PathEscape(id)+"/execute",
+		map[string]string{"operator": operator, "request_id": requestID})
 }
 
 // AttentionSummaryRaw returns what waits for an operator, per category, in the

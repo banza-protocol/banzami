@@ -118,11 +118,22 @@ pub struct ConsumerIdentity {
     pub suspension_notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Verified recovery email. Written at creation when the signup verified an
+    /// email; never serialized out of the identity (a contact attribute read
+    /// directly by the recovery service, not exposed on identity responses).
+    #[serde(skip, default)]
+    pub email: Option<String>,
+    #[serde(skip, default)]
+    pub email_verified_at: Option<DateTime<Utc>>,
 }
 
 pub struct CreateConsumerRequest {
     pub handle: String,
     pub display_name: Option<String>,
+    /// An already-verified recovery email (lower-cased by the caller). When set,
+    /// the consumer is created with email_verified_at = now. None keeps the
+    /// legacy no-email account shape.
+    pub email: Option<String>,
 }
 
 /// Result returned by `IdentityEngine::resolve_handle`.

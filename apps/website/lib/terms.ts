@@ -48,7 +48,7 @@ export const TERMS: TermsMeta = {
   privacyVersion: PRIVACY_VERSION,
   effectiveDate: LEGAL_EFFECTIVE_DATE,
   publishedAt: LEGAL_EFFECTIVE_DATE,
-  documentHash: 'b6ecdf12cf73c21ae6c002d50e05a5f4b91a79a7ba82000753e9738950c96c9e',
+  documentHash: '43a78ed999db09aeb95e6de89b8e5d4c7b2b35b320b4bab1f4f008da01de56a2',
   legalEntity: OPERATOR_NAME,
   contactEmail: OPERATOR_CONTACT,
 };

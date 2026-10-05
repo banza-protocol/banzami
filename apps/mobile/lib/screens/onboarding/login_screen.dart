@@ -6,6 +6,7 @@ import '../../branding_assets.dart';
 import '../../services/session_service.dart';
 import '../../widgets/pin_pad.dart';
 import '../main_screen.dart';
+import 'forgot_pin_screen.dart';
 
 enum _LoginStep { handle, pin }
 
@@ -104,8 +105,31 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         (_) => false,
       );
+    } on BanzamiApiException catch (e) {
+      // PIN login was protected after repeated failures: the person must recover
+      // access to set a new PIN (identified by @banza, never by email).
+      if (e.code == 'PIN_RECOVERY_REQUIRED') {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _pin = '';
+        });
+        BanzamiToast.showWarning(context,
+            'O acesso por PIN foi protegido. Recupera o acesso para definir um novo PIN.');
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ForgotPinScreen(initialHandle: handle),
+        ));
+        return;
+      }
+      setState(() {
+        _error = banzamiErrorMessage(e, codes: const {
+          'INVALID_CREDENTIALS': '@banza ou PIN incorrectos.',
+          'TOO_MANY_ATTEMPTS': 'Muitas tentativas sem sucesso. Tenta novamente dentro de 1 minuto.',
+        });
+        _loading = false;
+        _pin = '';
+      });
     } catch (e) {
-      // Only a definitive 401 is a wrong @banza/PIN; an outage says so.
       setState(() {
         _error = banzamiErrorMessage(e, codes: const {
           'INVALID_CREDENTIALS': '@banza ou PIN incorrectos.',
@@ -232,11 +256,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 const CircularProgressIndicator(color: BanzamiColors.primary)
               else
                 PinPad(
+                  // A failed login sets _error; the keypad then clears its dots
+                  // and reshuffles (canonical: new layout after every failure).
+                  error: _error != null,
                   onChanged: (v) => setState(() {
                     _pin = v;
                     _error = null;
                   }),
                   onComplete: _login,
+                ),
+              const SizedBox(height: 12),
+              if (!_loading)
+                BanzamiGhostButton(
+                  label: 'Esqueci o PIN',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ForgotPinScreen(
+                        initialHandle: _handleCtrl.text.trim().replaceAll('@', '').toLowerCase(),
+                      ),
+                    ),
+                  ),
                 ),
               const SizedBox(height: 48),
             ],

@@ -104,7 +104,11 @@ const LEDGER_PATH = 'quality/validation/unclassified-routes.yaml';
 const ledger = parseLedger(readFileSync(join(ROOT, LEDGER_PATH), 'utf-8'));
 // A baseline that can only shrink. The number is committed so CI can compare
 // against it; raising it is a deliberate, reviewable edit rather than drift.
-const BASELINE = 338;
+// 2026-10: 338 → 356. INVENTORY RECONCILIATION only — the account-identity-
+// security suite added 18 real reachable routes (5 BANZADMIN operator-surface,
+// 13 product pending-classification). The gate stays shrink-only from 356; this
+// is not a relaxation and not approval/assurance of those routes.
+const BASELINE = 356;
 const excused = new Map();
 for (const e of ledger) {
   if (!e.route) { fail('an unclassified_routes entry has no route'); continue; }

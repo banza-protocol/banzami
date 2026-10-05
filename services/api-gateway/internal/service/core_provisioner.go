@@ -2,9 +2,16 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 )
+
+// ErrBusinessDeletionPendingSettlement is returned when a Business cannot be
+// deleted yet because a settlement is still in flight (core refuses the retire
+// with 409 PENDING_SETTLEMENT). The caller surfaces a "try again shortly" error.
+var ErrBusinessDeletionPendingSettlement = errors.New("a settlement is still in flight")
 
 // Core provisioning calls used by the merchant-application approval flow. These
 // hit the same core-api internal endpoints the admin-api uses for manual
@@ -82,6 +89,43 @@ func (c *CoreApiClient) AssignPricingProfile(ctx context.Context, merchantID, pr
 	}
 	if status >= 300 {
 		return fmt.Errorf("core-api: assign pricing profile: %d %.160s", status, string(raw))
+	}
+	return nil
+}
+
+// DeleteConsumer executes the ledger-safe Consumer account deletion in core:
+// sweep any fictitious Sandbox balance, close the consumer to a tombstone, scrub
+// the display name, retire the @banza handle and drop known devices. Core is
+// idempotent (a replay returns the first result) and Sandbox-guarded. The id is
+// resolved by the operator flow from the request's handle, never client-supplied.
+func (c *CoreApiClient) DeleteConsumer(ctx context.Context, consumerID string) error {
+	status, raw, err := c.requestRaw(ctx, "POST",
+		"/internal/v1/consumers/"+url.PathEscape(consumerID)+"/delete", nil)
+	if err != nil {
+		return err
+	}
+	if status >= 300 {
+		return fmt.Errorf("core-api: delete consumer: %d %.160s", status, string(raw))
+	}
+	return nil
+}
+
+// DeleteBusiness executes the ledger-safe Business account deletion in core:
+// retire (refuses while a settlement is in flight), close the merchant to a
+// tombstone, revoke API keys, retire the @banza handle and scrub the public
+// profile. Core is idempotent (a replay returns the first result). The id comes
+// from the authenticated session, never the client.
+func (c *CoreApiClient) DeleteBusiness(ctx context.Context, merchantID string) error {
+	status, raw, err := c.requestRaw(ctx, "POST",
+		"/internal/v1/merchants/"+url.PathEscape(merchantID)+"/delete", nil)
+	if err != nil {
+		return err
+	}
+	if status == http.StatusConflict {
+		return ErrBusinessDeletionPendingSettlement
+	}
+	if status >= 300 {
+		return fmt.Errorf("core-api: delete business: %d %.160s", status, string(raw))
 	}
 	return nil
 }

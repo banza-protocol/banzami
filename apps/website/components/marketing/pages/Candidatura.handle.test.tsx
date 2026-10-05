@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 const { submitApplication, getPlatformMode, checkHandle } = vi.hoisted(() => ({
   submitApplication: vi.fn(async () => ({ ok: true, applicationId: 'app-1' })),
   getPlatformMode: vi.fn(async () => ({ mode: 'SANDBOX' as const })),
-  checkHandle: vi.fn(async () => ({ available: true as boolean })),
+  checkHandle: vi.fn(async (): Promise<{ available: boolean; reason?: string }> => ({ available: true })),
 }));
 vi.mock('@/lib/api', () => ({ submitApplication, getPlatformMode, checkHandle }));
 vi.mock('@/lib/terms', () => ({ TERMS: { version: 'v' }, isTermsPublished: () => true }));

@@ -33,7 +33,7 @@ func TestVerifyHandlePin_RefusesACredentialWhoseMerchantNoLongerOwnsTheHandle(t 
 	}
 	oldOwner, newOwner := mk(), mk()
 	handle := "co" + strings.ReplaceAll(uuid.NewString(), "-", "")[:10]
-	hash, _ := bcrypt.GenerateFromPassword([]byte("1357"), bcrypt.MinCost)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("135724"), bcrypt.MinCost)
 	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`, handle, oldOwner); err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestVerifyHandlePin_RefusesACredentialWhoseMerchantNoLongerOwnsTheHandle(t 
 		_, _ = pool.Exec(ctx, `DELETE FROM handle_registry WHERE handle=$1`, handle)
 	})
 
-	got, _, err := svc.VerifyHandlePin(ctx, handle, "1357")
+	got, _, err := svc.VerifyHandlePin(ctx, handle, "135724")
 	if err != nil || got != oldOwner {
 		t.Fatalf("precondition: the owner signs in as itself, got %q %v", got, err)
 	}
@@ -55,7 +55,7 @@ func TestVerifyHandlePin_RefusesACredentialWhoseMerchantNoLongerOwnsTheHandle(t 
 	if _, err := pool.Exec(ctx, `UPDATE handle_registry SET owner_id=$2 WHERE handle=$1`, handle, newOwner); err != nil {
 		t.Fatal(err)
 	}
-	got, _, err = svc.VerifyHandlePin(ctx, handle, "1357")
+	got, _, err = svc.VerifyHandlePin(ctx, handle, "135724")
 	if !errors.Is(err, ErrMerchantCredsInvalid) {
 		t.Fatalf("a credential for a handle its merchant no longer owns signed in as %q (err %v)", got, err)
 	}
@@ -78,7 +78,7 @@ func TestVerifyHandlePin_RefusesASuspendedBusiness(t *testing.T) {
 		t.Fatal(err)
 	}
 	handle := "cs" + strings.ReplaceAll(uuid.NewString(), "-", "")[:10]
-	hash, _ := bcrypt.GenerateFromPassword([]byte("2468"), bcrypt.MinCost)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("246824"), bcrypt.MinCost)
 	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`, handle, id); err != nil {
 		t.Fatal(err)
 	}
@@ -91,13 +91,13 @@ func TestVerifyHandlePin_RefusesASuspendedBusiness(t *testing.T) {
 		_, _ = pool.Exec(ctx, `DELETE FROM handle_registry WHERE handle=$1`, handle)
 	})
 
-	if got, _, err := svc.VerifyHandlePin(ctx, handle, "2468"); err != nil || got != id {
+	if got, _, err := svc.VerifyHandlePin(ctx, handle, "246824"); err != nil || got != id {
 		t.Fatalf("precondition: an active Business signs in, got %q %v", got, err)
 	}
 	if _, err := pool.Exec(ctx, `UPDATE merchants SET status='SUSPENDED' WHERE id=$1`, id); err != nil {
 		t.Fatal(err)
 	}
-	if got, _, err := svc.VerifyHandlePin(ctx, handle, "2468"); err == nil {
+	if got, _, err := svc.VerifyHandlePin(ctx, handle, "246824"); err == nil {
 		t.Fatalf("a suspended Business signed in as %q", got)
 	}
 }

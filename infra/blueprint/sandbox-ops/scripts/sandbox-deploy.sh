@@ -106,6 +106,10 @@ load_context() {
   PAYEEVAL_FILE="$EVIDENCE_ROOT/core_payee_validation_key"
   SESSION_FILE="$EVIDENCE_ROOT/session_secret"
   OTP_FILE="$EVIDENCE_ROOT/otp_pepper"
+  # Login-abuse throttle pepper (public-api). A DEDICATED HMAC secret, distinct
+  # from otp_pepper (no derivation, no fallback). public-api refuses to boot
+  # without it (RATE_LIMIT_PEPPER boot gate), so it is minted here like otp_pepper.
+  RATE_LIMIT_FILE="$EVIDENCE_ROOT/rate_limit_pepper"
   # Operator console (Stage D). Signs BANZADMIN sessions; regenerating it signs
   # every operator out, so it is preserved across applies like the rest.
   ADMINJWT_FILE="$EVIDENCE_ROOT/admin_jwt_secret"
@@ -240,6 +244,8 @@ write_devkey_secrets() {
   keep_or_mint "$PAYEEVAL_FILE"      core_payee_validation_key
   keep_or_mint "$SESSION_FILE"       session_secret
   keep_or_mint "$OTP_FILE"           otp_pepper
+  # Dedicated, separate from otp_pepper. public-api hard-requires it to boot.
+  keep_or_mint "$RATE_LIMIT_FILE"    rate_limit_pepper
   keep_or_mint_key32 "$WEBHOOK_KEY_FILE" webhook_encryption_key
   keep_or_mint_key32 "$PUSH_TOPIC_KEY_FILE" push_topic_key
 }
@@ -304,15 +310,23 @@ secret_exports_for() {
         push_topic_key:PUSH_TOPIC_KEY \
         firebase_credentials_json:FIREBASE_CREDENTIALS_JSON \
         resend_api_key:RESEND_API_KEY \
+        otp_pepper:OTP_PEPPER \
         kyb_storage_endpoint:KYB_STORAGE_ENDPOINT \
         kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID \
         kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY
       ;;
     public-api-staging)
+      # otp_pepper (verified-email + PIN-recovery OTP), rate_limit_pepper
+      # (dedicated login-abuse throttle secret — boot-fatal, NO otp_pepper
+      # derivation) and resend_api_key (signup/recovery/security email) were added
+      # for the account-identity-security suite. Without rate_limit_pepper public-api
+      # refuses to boot; without otp_pepper/resend signup + recovery fail closed.
       printf '%s\n' db_url_public_api:DATABASE_URL jwt_secret:JWT_SECRET \
         core_internal_key:CORE_INTERNAL_KEY core_internal_key:INTERNAL_API_KEY \
         push_topic_key:PUSH_TOPIC_KEY \
-        firebase_credentials_json:FIREBASE_CREDENTIALS_JSON
+        firebase_credentials_json:FIREBASE_CREDENTIALS_JSON \
+        otp_pepper:OTP_PEPPER rate_limit_pepper:RATE_LIMIT_PEPPER \
+        resend_api_key:RESEND_API_KEY
       ;;
     developer-api)
       printf '%s\n' db_url_developer_api:DATABASE_URL api_key_pepper:API_KEY_PEPPER \
@@ -602,6 +616,17 @@ release_config_env() {
       gw="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
       [ -n "$gw" ] || gw="${BZSB_PROJECT:-}-api-gateway-staging"
       echo "GATEWAY_INTERNAL_URL=http://${gw}:8080"
+      # Mail configuration for verified-email signup, Forgot-PIN and PIN-change
+      # security notices (account-identity-security suite). Re-applied every deploy
+      # (deploy-one clones the previous env). RESEND_API_KEY arrives as a secret
+      # file (see secret_exports_for). Without this block signup/recovery fail closed.
+      echo "EMAIL_PROVIDER=resend"
+      echo "EMAIL_DRY_RUN=false"
+      echo "EMAIL_FROM_NAME=Banzami"
+      echo "EMAIL_FROM_ADDRESS=contact@banzami.com"
+      echo "EMAIL_NOREPLY_NAME=Banzami"
+      echo "EMAIL_NOREPLY_ADDRESS=noreply@banzami.com"
+      echo "EMAIL_REPLY_TO=contact@banzami.com"
       ;;
     app-frontend)
       # Non-secret config, re-applied on every deploy so a later change reaches a

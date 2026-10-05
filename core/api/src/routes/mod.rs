@@ -1,3 +1,4 @@
+pub mod account_deletion;
 pub mod acquiring;
 #[cfg(test)]
 mod acquiring_settlement_tests;

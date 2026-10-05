@@ -1371,3 +1371,86 @@ unclassified_routes:
     class: pending-classification
     reason: "Reachable product surface not yet claimed by a capability. Seeded by the D14 baseline; to be claimed during Phase B/C capability expansion."
     owning_milestone: "Phase B/C capability expansion"
+
+  # ── Account-identity-security suite (2026-10) ────────────────────────────────
+  # 18 routes added by the Consumer/Business account deletion + verified-email +
+  # PIN-recovery + anti-DoS work. This is INVENTORY RECONCILIATION: the repo's
+  # real reachable surface grew by 18, so the shrink-only BASELINE in
+  # check-runtime-route-registration.mjs moves 338 → 356 to match. It is NOT a
+  # relaxation of the gate and NOT approval, verification or assurance of these
+  # routes — the gate stays shrink-only from the new baseline. The 5 admin routes
+  # are operator-surface (CAP-APP-003 precedent); the 13 product routes are
+  # pending-classification and will be claimed by (or made into) capabilities with
+  # REAL evidence only after end-to-end Sandbox validation. None is verified.
+  - route: "GET /admin/v1/account-deletion-requests"
+    class: operator-surface
+    reason: "BANZADMIN operator surface: list account-deletion requests. Behind operator session + RBAC (account_deletion.review) + audit; covered conceptually by CAP-APP-003."
+    owning_milestone: "none — classified"
+  - route: "GET /admin/v1/account-deletion-requests/{p}"
+    class: operator-surface
+    reason: "BANZADMIN operator surface: read one account-deletion request. Behind operator session + RBAC (account_deletion.review) + audit; covered conceptually by CAP-APP-003."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/account-deletion-requests/{p}/record-ownership"
+    class: operator-surface
+    reason: "BANZADMIN operator surface: record the ownership-verification result on a deletion request. Behind operator session + RBAC (account_deletion.review) + audit; covered conceptually by CAP-APP-003."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/account-deletion-requests/{p}/reject"
+    class: operator-surface
+    reason: "BANZADMIN operator surface: reject an account-deletion request. Behind operator session + RBAC (account_deletion.execute) + audit; covered conceptually by CAP-APP-003."
+    owning_milestone: "none — classified"
+  - route: "POST /admin/v1/account-deletion-requests/{p}/execute"
+    class: operator-surface
+    reason: "BANZADMIN operator surface: execute an ownership-verified account-deletion request via Core. Behind operator session + RBAC (account_deletion.execute, step-up) + audit; covered conceptually by CAP-APP-003."
+    owning_milestone: "none — classified"
+  - route: "POST /v1/account-deletion-requests"
+    class: pending-classification
+    reason: "Public web intake that files an account-deletion request (email OTP, operator ownership review before any execution). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: account-deletion)"
+  - route: "POST /v1/account-deletion-requests/verify"
+    class: pending-classification
+    reason: "Confirms the email OTP on a web account-deletion request (PENDING_VERIFICATION → EMAIL_VERIFIED). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: account-deletion)"
+  - route: "POST /v1/merchant/deletion"
+    class: pending-classification
+    reason: "Authenticated Business self-service account deletion (fresh 6-digit PIN reauth, Core retire, session + key revocation). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: account-deletion/business)"
+  - route: "POST /v1/auth/email/otp"
+    class: pending-classification
+    reason: "Sends the signup email-verification OTP for a new Consumer account (verified email is the Sandbox recovery factor). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "POST /v1/auth/email/verify"
+    class: pending-classification
+    reason: "Verifies the signup email OTP and issues the opaque email-verified grant consumed by register. New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "POST /v1/auth/pin-reset/request"
+    class: pending-classification
+    reason: "Forgot-PIN step 1: anti-enumeration request that sends a recovery OTP to the account's verified email (identified by @banza). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "POST /v1/auth/pin-reset/verify"
+    class: pending-classification
+    reason: "Forgot-PIN step 2: verifies the recovery OTP and issues an opaque single-use PIN-reset grant (the OTP is never the reset token). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "POST /v1/auth/pin-reset/confirm"
+    class: pending-classification
+    reason: "Forgot-PIN step 3: consumes the reset grant to set a new 6-digit PIN and revoke all sessions; re-checks ACTIVE, never reactivates. New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "POST /v1/me/deletion"
+    class: pending-classification
+    reason: "Authenticated Consumer account deletion (fresh 6-digit PIN reauth, Core delete_consumer, session revocation). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: account-deletion)"
+  - route: "POST /v1/me/pin"
+    class: pending-classification
+    reason: "Authenticated Change-PIN (verifies the current 6-digit PIN, sets a new one, revokes other sessions, sends a security email). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "GET /v1/me/recovery-email"
+    class: pending-classification
+    reason: "Returns the authenticated Consumer's recovery-email enrolment status (masked), for legacy email-NULL accounts. New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "POST /v1/me/recovery-email/otp"
+    class: pending-classification
+    reason: "Legacy recovery-email enrolment step 1: sends a verification OTP to a newly supplied recovery email (refused if one is already set). New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"
+  - route: "POST /v1/me/recovery-email/verify"
+    class: pending-classification
+    reason: "Legacy recovery-email enrolment step 2: verifies the OTP and stores the recovery email so Forgot-PIN becomes available. New account-identity-security surface; not yet a validated capability."
+    owning_milestone: "Sandbox E2E validation → formal classification (candidate: consumer-identity-recovery)"

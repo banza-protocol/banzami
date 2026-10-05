@@ -52,6 +52,9 @@ type MerchantSessionService interface {
 	Open(ctx context.Context, merchantID, environment string) (IssuedSession, error)
 	Renew(ctx context.Context, refreshToken string) (IssuedSession, error)
 	End(ctx context.Context, refreshToken string) error
+	// RevokeAllForMerchant ends every session family a Business holds (account
+	// deletion). Idempotent.
+	RevokeAllForMerchant(ctx context.Context, merchantID, environment string) error
 }
 
 type PostgresMerchantSessionService struct {
@@ -193,6 +196,18 @@ func (s *PostgresMerchantSessionService) End(ctx context.Context, refreshToken s
 		  WHERE revoked_at IS NULL
 		    AND family_id = (SELECT family_id FROM merchant_app_sessions WHERE refresh_token_hash = $1)`,
 		hashRefreshToken(refreshToken))
+	return err
+}
+
+// RevokeAllForMerchant ends every session family a Business holds — used on
+// account deletion so no refresh token survives. Idempotent: already-revoked rows
+// are left as they are. merchants.status = CLOSED is the real barrier to a new
+// session; this removes any still-live refresh token as well.
+func (s *PostgresMerchantSessionService) RevokeAllForMerchant(ctx context.Context, merchantID, environment string) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE merchant_app_sessions SET revoked_at = now(), revoked_reason = 'ACCOUNT_DELETED'
+		  WHERE merchant_id = $1 AND environment = $2 AND revoked_at IS NULL`,
+		merchantID, environment)
 	return err
 }
 

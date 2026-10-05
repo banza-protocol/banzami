@@ -31,6 +31,9 @@ pub trait IdentityEngine: Send + Sync {
         id: ConsumerId,
         badge: Option<VerificationBadge>,
     ) -> Result<ConsumerIdentity, IdentityError>;
+    /// Associate a verified recovery email with an ACTIVE consumer (legacy
+    /// enrolment). EmailTaken on a duplicate; NotFound when not ACTIVE/unknown.
+    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError>;
 
     /// Resolve a @banza handle to its owner, confirming they are ACTIVE.
     ///
@@ -59,6 +62,14 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
         validate_handle(&handle).map_err(IdentityError::InvalidHandle)?;
 
         let now = Utc::now();
+        // A verified email, if the signup carried one, is stored with its
+        // verification time. Normalised to lower-case so the one-live-per-email
+        // unique index (consumers_email_idx) is case-insensitive.
+        let email = req
+            .email
+            .map(|e| e.trim().to_ascii_lowercase())
+            .filter(|e| !e.is_empty());
+        let email_verified_at = email.as_ref().map(|_| now);
         let identity = ConsumerIdentity {
             id: ConsumerId::new(),
             handle,
@@ -68,6 +79,8 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
             suspension_notes: None,
             created_at: now,
             updated_at: now,
+            email,
+            email_verified_at,
         };
 
         self.repo.create(identity).await
@@ -107,6 +120,14 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
         badge: Option<VerificationBadge>,
     ) -> Result<ConsumerIdentity, IdentityError> {
         self.repo.set_badge(id, badge).await
+    }
+
+    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError> {
+        let normalized = email.trim().to_ascii_lowercase();
+        if normalized.is_empty() {
+            return Err(IdentityError::InvalidHandle("email is required"));
+        }
+        self.repo.set_email(id, &normalized).await
     }
 
     async fn resolve_handle(&self, handle: &str) -> Result<HandleResolution, IdentityError> {
@@ -226,6 +247,17 @@ mod tests {
             identity.verification_badge = badge;
             Ok(identity.clone())
         }
+
+        async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError> {
+            let mut store = self.identities.lock().unwrap();
+            let identity = store
+                .iter_mut()
+                .find(|i| i.id == id)
+                .ok_or(IdentityError::NotFound(id))?;
+            identity.email = Some(email.to_string());
+            identity.email_verified_at = Some(Utc::now());
+            Ok(identity.clone())
+        }
     }
 
     fn engine() -> PostgresIdentityEngine<MockRepo> {
@@ -239,6 +271,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "@Carlos".into(),
                 display_name: Some("Carlos Silva".into()),
+                email: None,
             })
             .await
             .unwrap();
@@ -256,6 +289,7 @@ mod tests {
         eng.create(CreateConsumerRequest {
             handle: "ana".into(),
             display_name: None,
+            email: None,
         })
         .await
         .unwrap();
@@ -263,6 +297,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "ana".into(),
                 display_name: None,
+                email: None,
             })
             .await
             .unwrap_err();
@@ -276,6 +311,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "admin".into(),
                 display_name: None,
+                email: None,
             })
             .await
             .unwrap_err();
@@ -289,6 +325,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "paulo".into(),
                 display_name: None,
+                email: None,
             })
             .await
             .unwrap();
@@ -310,6 +347,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "joao".into(),
                 display_name: None,
+                email: None,
             })
             .await
             .unwrap();
@@ -331,6 +369,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "@Maria".into(),
                 display_name: Some("Maria".into()),
+                email: None,
             })
             .await
             .unwrap();
@@ -348,6 +387,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "rui".into(),
                 display_name: None,
+                email: None,
             })
             .await
             .unwrap();
@@ -364,6 +404,7 @@ mod tests {
             .create(CreateConsumerRequest {
                 handle: "luis".into(),
                 display_name: None,
+                email: None,
             })
             .await
             .unwrap();

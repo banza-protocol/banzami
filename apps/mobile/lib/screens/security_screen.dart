@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/session_service.dart';
+import 'add_recovery_email_screen.dart';
+import 'change_pin_screen.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -14,6 +16,7 @@ class SecurityScreen extends StatefulWidget {
 class _SecurityScreenState extends State<SecurityScreen> {
   bool          _bioBusy   = false;
   Future<bool>? _canUseBio;
+  Future<({bool hasEmail, String? emailMasked})>? _recovery;
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +57,21 @@ class _SecurityScreenState extends State<SecurityScreen> {
             _RowChevron(
               icon:    Icons.lock_outline_rounded,
               label:   'Alterar PIN',
-              onTap:   () => _showComingSoon('Alteração de PIN'),
+              onTap:   () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChangePinScreen()),
+              ),
             ),
           ]),
+
+          const SizedBox(height: BanzamiSpacing.xl),
+
+          // ── Recovery section ─────────────────────────────────────────────
+          // Email is recovery/security metadata only — NOT a login identifier.
+          // Login stays @banza + PIN. A legacy account with no email can add one
+          // here so "Esqueci o PIN" works.
+          const _SectionLabel(label: 'Recuperação'),
+          const SizedBox(height: BanzamiSpacing.sm),
+          _recoveryEmailCard(),
 
           const SizedBox(height: BanzamiSpacing.xl),
 
@@ -130,6 +145,53 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   void _showComingSoon(String feature) {
     BanzamiToast.showInfo(context, '$feature em breve');
+  }
+
+  Widget _recoveryEmailCard() {
+    _recovery ??= context.read<ConsumerPublicClient>().recoveryEmailStatus();
+    return FutureBuilder<({bool hasEmail, String? emailMasked})>(
+      future: _recovery,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const _SettingsCard(children: [
+            _RowStatus(
+              icon: Icons.mark_email_read_outlined,
+              label: 'Email de recuperação',
+              sub: 'A carregar...',
+              status: '',
+            ),
+          ]);
+        }
+        final data = snap.data;
+        if (data != null && data.hasEmail) {
+          return _SettingsCard(children: [
+            _RowStatus(
+              icon: Icons.mark_email_read_outlined,
+              label: 'Email de recuperação',
+              sub: 'Usado para recuperar o PIN',
+              status: data.emailMasked ?? 'Definido',
+            ),
+          ]);
+        }
+        // No verified email (legacy account) — offer to add one.
+        return _SettingsCard(children: [
+          _RowChevron(
+            icon: Icons.add_moderator_outlined,
+            label: 'Adicionar email de recuperação',
+            onTap: () async {
+              final added = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(builder: (_) => const AddRecoveryEmailScreen()),
+              );
+              if (added == true && mounted) {
+                setState(() {
+                  _recovery = context.read<ConsumerPublicClient>().recoveryEmailStatus();
+                });
+              }
+            },
+          ),
+        ]);
+      },
+    );
   }
 }
 

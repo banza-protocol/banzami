@@ -10,6 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/config"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
@@ -20,13 +21,73 @@ const consumerTokenTTL = 24 * time.Hour
 
 // AuthHandler handles consumer registration and token issuance.
 type AuthHandler struct {
-	cfg   *config.Config
-	core  *service.CorePublicClient
-	creds *service.CredentialStore
+	cfg      *config.Config
+	core     *service.CorePublicClient
+	creds    *service.CredentialStore
+	rec      *service.ConsumerRecoveryService // nil ⇒ email/recovery flows unavailable
+	mailer   *ce.Sender                       // nil ⇒ email delivery unavailable
+	throttle *service.SourceThrottle          // nil ⇒ no persistent source throttle
+
+	// requireThrottle makes the login-abuse throttle a HARD requirement: when set
+	// and the throttle is absent (misconfigured secret), an untrusted login fails
+	// closed instead of running unthrottled. Production sets this true; the boot
+	// gate already refuses to start without a secret, so this is defence in depth
+	// that guarantees the protection is never silently disabled on the login path.
+	requireThrottle bool
 }
 
 func NewAuthHandler(cfg *config.Config, core *service.CorePublicClient, creds *service.CredentialStore) *AuthHandler {
 	return &AuthHandler{cfg: cfg, core: core, creds: creds}
+}
+
+// WithSourceThrottle wires the persistent anti-DoS login-source throttle.
+func (h *AuthHandler) WithSourceThrottle(t *service.SourceThrottle) *AuthHandler {
+	h.throttle = t
+	return h
+}
+
+// WithRateLimitRequired marks the login-abuse throttle as mandatory. When true
+// and no throttle is wired, untrusted logins fail closed rather than run
+// unthrottled — the protection can never be silently disabled by a missing
+// secret. Production sets this true.
+func (h *AuthHandler) WithRateLimitRequired(required bool) *AuthHandler {
+	h.requireThrottle = required
+	return h
+}
+
+// recordUntrustedFailure records one untrusted failed login against the three
+// abuse budgets (per source, per target, per source+target) and audits the
+// first time a source or target becomes blocked. Never called for a trusted
+// device. targetID may be "" (unknown handle → only the source budget).
+func (h *AuthHandler) recordUntrustedFailure(r *http.Request, source, targetID string) {
+	if blocked, err := h.throttle.RecordFailure(r.Context(),
+		service.SourceKey(source), service.ThrottleWindow(), service.CapPerSource(), service.ThrottleBlock()); err == nil && blocked {
+		_ = h.creds.WriteAudit(r.Context(), "", "SOURCE_RATE_LIMITED", "login-source", nil)
+	}
+	if targetID != "" {
+		if blocked, err := h.throttle.RecordFailure(r.Context(),
+			service.TargetKey(targetID), service.ThrottleWindow(), service.CapPerTarget(), service.ThrottleBlock()); err == nil && blocked {
+			_ = h.creds.WriteAudit(r.Context(), targetID, "SOURCE_RATE_LIMITED", targetID, nil)
+		}
+		_, _ = h.throttle.RecordFailure(r.Context(),
+			service.SourceTargetKey(source, targetID), service.ThrottleWindow(), service.CapPerSourceTarget(), service.ThrottleBlock())
+	}
+}
+
+// WithRecovery wires the verified-email + PIN-recovery subsystem (OTP store +
+// mailer). Both must be present for the email-verification and forgot-PIN
+// endpoints to be enabled; Change-PIN needs only the mailer (for the security
+// notice) and works without the OTP store.
+func (h *AuthHandler) WithRecovery(rec *service.ConsumerRecoveryService, mailer *ce.Sender) *AuthHandler {
+	h.rec = rec
+	h.mailer = mailer
+	return h
+}
+
+// recoveryEnabled reports whether the OTP-backed flows (email verify, forgot
+// PIN) can run: a configured OTP store AND a working mailer.
+func (h *AuthHandler) recoveryEnabled() bool {
+	return h.rec != nil && h.mailer != nil && h.mailer.Enabled()
 }
 
 // hasControlChars reports whether s contains any Unicode control character
@@ -48,6 +109,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Handle      string  `json:"handle"`
 		DisplayName *string `json:"display_name"`
 		Pin         string  `json:"pin"`
+		Email       string  `json:"email"`
+		// EmailVerificationToken is the opaque grant from POST /v1/auth/email/verify
+		// proving the email was OTP-verified. Required when recovery is enabled.
+		EmailVerificationToken string `json:"email_verification_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -61,8 +126,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	case utf8.RuneCountInString(body.Handle) < 3 || utf8.RuneCountInString(body.Handle) > 30:
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "handle must be between 3 and 30 characters")
 		return
-	case len(body.Pin) < 4 || len(body.Pin) > 8:
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "pin must be between 4 and 8 digits")
+	}
+	if err := validateConsumerPin(body.Pin); err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", err.Error())
 		return
 	}
 
@@ -88,28 +154,79 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A verified email is MANDATORY for every new Consumer account — there is no
+	// legacy no-email path. If the email/OTP subsystem is unavailable (no pepper
+	// or no working mailer), registration FAILS CLOSED here: no consumer, no
+	// credential, no wallet, no financial identity is reserved. The rule lives on
+	// the server; an old client that omits email/token cannot bypass it.
+	if !h.recoveryEnabled() {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SIGNUP_UNAVAILABLE",
+			"account creation is temporarily unavailable — please try again later")
+		return
+	}
+	email := normalizeEmail(body.Email)
+	if email == "" || !looksLikeConsumerEmail(email) {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "a valid email is required")
+		return
+	}
+	if strings.TrimSpace(body.EmailVerificationToken) == "" {
+		apierror.Respond(w, r, http.StatusBadRequest, "EMAIL_NOT_VERIFIED", "verify your email first")
+		return
+	}
+	// Check the EMAIL_VERIFIED grant is live WITHOUT consuming it yet. Registration
+	// is retry-safe: a transient failure during creation leaves the grant usable so
+	// the SAME attempt can be retried. The grant is consumed only once creation
+	// succeeds; the "1 verified email = 1 live Consumer" unique index guarantees it
+	// can never create a second identity even while it stays live across a retry.
+	if err := h.rec.CheckEmailVerificationGrantLive(r.Context(), body.EmailVerificationToken, email); err != nil {
+		apierror.Respond(w, r, http.StatusForbidden, "EMAIL_NOT_VERIFIED",
+			"email verification is invalid or expired — verify again")
+		return
+	}
+
 	handle := strings.ToLower(strings.TrimSpace(body.Handle))
 
-	consumer, err := h.core.CreateConsumer(r.Context(), handle, &name)
+	// Create the consumer, or RESUME a prior attempt. CreateConsumer binds the
+	// verified email (unique among live consumers). A HANDLE_TAKEN/EMAIL_TAKEN can
+	// therefore mean a previous attempt of THIS registration already created the
+	// account (it holds our verified email) — resume onto it instead of failing.
+	consumer, err := h.core.CreateConsumer(r.Context(), handle, &name, email)
 	if err != nil {
-		if errors.Is(err, service.ErrHandleTaken) {
-			apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "handle is already registered")
+		if errors.Is(err, service.ErrHandleTaken) || errors.Is(err, service.ErrEmailTaken) {
+			id, status, found, lerr := h.creds.ConsumerByEmail(r.Context(), email)
+			if lerr == nil && found && status == "ACTIVE" {
+				// A prior attempt created this account (same verified email) — resume.
+				if existing, gerr := h.core.GetConsumer(r.Context(), id); gerr == nil {
+					consumer = existing
+				} else {
+					consumer = &service.ConsumerRecord{ID: id, Handle: handle}
+				}
+			} else if errors.Is(err, service.ErrHandleTaken) {
+				apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "handle is already registered")
+				return
+			} else {
+				apierror.Respond(w, r, http.StatusConflict, "EMAIL_TAKEN", "email is already in use")
+				return
+			}
+		} else {
+			// Transient (timeout / 5xx / network): the grant stays live so the same
+			// registration can be retried. Nothing was created.
+			apierror.Respond(w, r, http.StatusServiceUnavailable, "SIGNUP_RETRY",
+				"could not create the account right now — please try again")
 			return
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not create account")
+	}
+
+	// Credential: idempotent on retry (a prior attempt may have saved it).
+	if err := h.creds.Save(r.Context(), consumer.ID, handle, body.Pin); err != nil &&
+		!errors.Is(err, service.ErrHandleAlreadyRegistered) {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SIGNUP_RETRY",
+			"could not finish account setup — please try again")
 		return
 	}
 
-	if err := h.creds.Save(r.Context(), consumer.ID, handle, body.Pin); err != nil {
-		if errors.Is(err, service.ErrHandleAlreadyRegistered) {
-			apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "handle is already registered")
-			return
-		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not save credentials")
-		return
-	}
-
-	// Auto-provision an AOA wallet so the consumer can transact immediately.
+	// Auto-provision an AOA wallet so the consumer can transact immediately
+	// (GetOrCreate: idempotent, so a retry never makes a second wallet).
 	_, _ = h.core.GetOrCreateWallet(r.Context(), consumer.ID, "AOA")
 
 	// Sandbox-only: grant 10,000 Kz test balance so testers can transact immediately.
@@ -133,8 +250,24 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// The account now fully exists: consume the grant (single-use from here on).
+	// Best-effort — a concurrent retry of the same attempt may have consumed it
+	// already; the unique email index still guarantees exactly one identity, so a
+	// failed consume here is not fatal and is only logged.
+	if err := h.rec.ConsumeEmailVerificationGrant(r.Context(), body.EmailVerificationToken, email); err != nil {
+		slog.Warn("email verification grant not consumed after successful registration",
+			"consumer_id", consumer.ID, "error", err)
+	}
+
+	// Issue a token for this device at the credential's current session version
+	// (0 for a fresh account; read back so a resumed attempt is correct).
+	version, err := h.creds.CurrentTokenVersion(r.Context(), consumer.ID)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue token")
+		return
+	}
 	token, expiresAt, err := middleware.NewConsumerToken(
-		h.cfg.JWTSecret, consumer.ID, 0, []string{"consumer"}, consumerTokenTTL,
+		h.cfg.JWTSecret, consumer.ID, version, []string{"consumer"}, consumerTokenTTL,
 	)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue token")
@@ -168,15 +301,69 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 
 	handle := strings.ToLower(strings.TrimSpace(body.Handle))
 
-	consumerID, tokenVersion, err := h.creds.Verify(r.Context(), handle, body.Pin)
+	// The device id (SDK X-Device-Id) is used ONLY to decide brute-force
+	// escalation and source-throttle applicability — never as a login credential.
+	deviceID := strings.TrimSpace(r.Header.Get("X-Device-Id"))
+	source := clientIP(r)
+
+	// Deliberate ordering (anti-DoS). A TRUSTED device (one that previously signed
+	// into THIS account) is governed solely by the account credential policy
+	// (3→lock→3→recovery) and bypasses the untrusted throttle entirely — the
+	// intended escalation is never pre-empted, and an untrusted failure never
+	// touches the global credential state. An UNTRUSTED source is governed ONLY by
+	// the separate persistent throttle across three budgets: per source (password
+	// spray), per target (distributed brute force of the 1e6 PIN space), and per
+	// source+target. A blocked key refuses the attempt before the credential is
+	// read; a trusted login is never refused by these budgets.
+	trusted := h.creds.IsTrustedDevice(r.Context(), handle, deviceID)
+	var targetID string
+	if !trusted {
+		if id, ok := h.creds.ConsumerIDByHandle(r.Context(), handle); ok {
+			targetID = id
+		}
+		if h.throttle == nil && h.requireThrottle {
+			// The login-abuse throttle is required but unconfigured (missing
+			// secret). Never serve an untrusted login unthrottled — fail closed.
+			// A trusted device (handled above) is unaffected.
+			apierror.Respond(w, r, http.StatusServiceUnavailable, "SECURITY_UNAVAILABLE",
+				"login temporarily unavailable")
+			return
+		}
+		if h.throttle != nil {
+			keys := []string{service.SourceKey(source)}
+			if targetID != "" {
+				keys = append(keys, service.TargetKey(targetID), service.SourceTargetKey(source, targetID))
+			}
+			if blocked, berr := h.throttle.AnyBlocked(r.Context(), keys...); berr == nil && blocked {
+				apierror.Respond(w, r, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS",
+					"too many attempts — try again later")
+				return
+			}
+		}
+	}
+
+	consumerID, tokenVersion, err := h.creds.VerifyWithDevice(r.Context(), handle, body.Pin, deviceID)
 	if err != nil {
+		// Count the failure in the untrusted budgets ONLY for an untrusted source.
+		// A trusted device must never be throttled out of the account policy, and
+		// its failures already drive the credential policy inside Verify.
+		if !trusted && h.throttle != nil {
+			h.recordUntrustedFailure(r, source, targetID)
+		}
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid handle or PIN")
 			return
 		}
+		if errors.Is(err, service.ErrPinRecoveryRequired) {
+			// PIN login is protected after repeated failures — the person must
+			// recover access (Forgot-PIN) to set a new PIN. The consumer stays ACTIVE.
+			apierror.Respond(w, r, http.StatusForbidden, "PIN_RECOVERY_REQUIRED",
+				"o acesso por PIN foi protegido — recupera o acesso para definir um novo PIN")
+			return
+		}
 		if errors.Is(err, service.ErrCredentialsLocked) {
 			apierror.Respond(w, r, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS",
-				"too many wrong PINs — try again in 15 minutes")
+				"muitas tentativas sem sucesso — tenta novamente dentro de 1 minuto")
 			return
 		}
 		if errors.Is(err, service.ErrTestPayerSignIn) {
@@ -223,4 +410,47 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond(w, http.StatusOK, map[string]any{"signed_out": true})
+}
+
+// POST /v1/me/deletion
+// Suprimir conta — real, permanent account deletion. This is NOT logout and NOT
+// "remover deste dispositivo": it requires a fresh PIN re-auth over the signed-in
+// session, then executes the ledger-safe deletion in core (balance swept to
+// transit, consumer closed to a tombstone, declared name scrubbed, @banza handle
+// retired, device signals removed) and removes this service's credential so no
+// future sign-in can succeed.
+func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	consumer, ok := middleware.GetConsumer(r.Context())
+	if !ok {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "not signed in")
+		return
+	}
+	var body struct {
+		Pin string `json:"pin"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Pin) == "" {
+		apierror.Respond(w, r, http.StatusBadRequest, "PIN_REQUIRED",
+			"confirm the deletion with your PIN")
+		return
+	}
+	// Fresh PIN re-auth over the authenticated session (server-side, over TLS —
+	// never by email or a public form). The id is the session's, not the client's.
+	if err := h.creds.VerifyPinByID(r.Context(), consumer.ID, body.Pin); err != nil {
+		apierror.Respond(w, r, http.StatusForbidden, "REAUTH_REQUIRED", "incorrect PIN")
+		return
+	}
+	// Execute the ledger-safe deletion in core (idempotent, fail-closed).
+	if err := h.core.DeleteConsumer(r.Context(), consumer.ID); err != nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE",
+			"could not delete the account — try again")
+		return
+	}
+	// Remove this service's credential: no future sign-in, existing sessions
+	// invalid. Core has already closed the account (CLOSED blocks auth), so a
+	// failure here never leaves the account usable; log and still report success.
+	if err := h.creds.DeleteCredential(r.Context(), consumer.ID); err != nil {
+		slog.ErrorContext(r.Context(), "account deleted in core but credential removal failed",
+			"consumer_id", consumer.ID, "error", err)
+	}
+	respond(w, http.StatusOK, map[string]any{"deleted": true})
 }

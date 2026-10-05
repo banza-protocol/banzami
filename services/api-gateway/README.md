@@ -122,6 +122,8 @@ mounted**: `/v1/transfers` (SEC-015 / RA-053), `/v1/payment-requests`
 |--------|------|-------------|
 | POST | /v1/beta/testers | Register interest in testing the mobile apps (20/day per IP). No auth, no email; idempotent, non-enumerating (APP-BETA-001) |
 | POST | /v1/contact | Public contact form — delivered by email to the team (10/day per IP). No auth, stores nothing (PUBLIC-WEBSITE-CONTACT-001) |
+| POST | /v1/account-deletion-requests | Public account-deletion web intake — files a request and sends an email OTP. No auth; operator verifies ownership before any execution |
+| POST | /v1/account-deletion-requests/verify | Confirm the email OTP on an account-deletion request (EMAIL_VERIFIED). No auth |
 
 ### Project key only (mounted when developer-key auth is active)
 
@@ -179,6 +181,7 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | GET | /v1/transactions | Create · list transactions |
 | GET | /v1/transactions/{id} | Read a transaction |
 | GET | /v1/merchant/wallet-payments | Wallet payments received |
+| POST | /v1/merchant/deletion | Delete the Business account (fresh 6-digit PIN reauth, immediate in Sandbox; retains financial/KYB history) |
 | GET | /v1/merchant/push-topic | The Business's own FCM topic, `{"topic": "m_<32 hex>"}` (`sandbox_m_…` on the Sandbox), or `{"topic": null}` when `PUSH_TOPIC_KEY` is unset. The Business App subscribes to exactly this name (A6-06). Merchant JWT only; a consumer token gets 403 |
 | GET | /v1/merchant/transactions/{id}/receipt.pdf | Receipt PDF |
 | POST | /v1/merchants | Create merchant — **Sandbox fixture route only**; not mounted on LIVE (ADR-058) |
@@ -263,6 +266,11 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | POST | /internal/v1/merchant-applications/{id}/request-information | Review decisions |
 | POST | /internal/v1/merchant-applications/for-project | Project applications |
 | GET | /internal/v1/merchant-applications/for-project/{projectID} | Project applications |
+| GET | /internal/v1/account-deletion-requests | Account-deletion review queue (admin-api) |
+| GET | /internal/v1/account-deletion-requests/{id} | Read one account-deletion request (admin-api) |
+| POST | /internal/v1/account-deletion-requests/{id}/record-ownership | Record the ownership-verification result (admin-api) |
+| POST | /internal/v1/account-deletion-requests/{id}/reject | Reject an account-deletion request (admin-api) |
+| POST | /internal/v1/account-deletion-requests/{id}/execute | Execute an ownership-verified deletion via Core (admin-api) |
 | POST | /internal/v1/merchant-applications/{id}/link-existing | Provisioning steps |
 | POST | /internal/v1/merchant-applications/{id}/reissue-activation | Provisioning steps |
 | GET | /internal/v1/merchant-applications/{id}/link-candidates | Review context |
