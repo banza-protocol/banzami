@@ -2446,6 +2446,30 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
               </div>
               <P>Verify the signature over the raw body, before parsing the event, with the SDK’s verifier. <a href="/docs/en/webhooks#recipe" style={a}>Set up webhooks</a></P>
 
+              <H2 id="cryptography">How credentials are protected</H2>
+              <P>No credential is stored in clear text: PINs, codes and keys are kept in a derived form, and connections are encrypted in transit. The real mechanisms are below, with the internal parameters deliberately omitted.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Control</th><th style={TH}>Mechanism</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['PIN', 'bcrypt (salted, adaptive); constant-time verification. The plaintext PIN is never stored or logged.'],
+                      ['OTP codes', 'stored only as an HMAC with a server-side secret; 10-minute validity; single-use.'],
+                      ['API keys', 'stored only as a one-way hash (developer keys use HMAC-SHA256 with a server-side secret); the raw key is shown once and never stored; revocable.'],
+                      ['Webhook signing', 'HMAC-SHA256 over "<timestamp>.<raw body>"; banza-signature: t=…,v1=… header; constant-time comparison.'],
+                      ['API authentication', 'signed JWT (HS256).'],
+                      ['Web sessions', 'the browser holds only a high-entropy opaque session id in an HttpOnly cookie; the token stays server-side; CSRF protection.'],
+                      ['Transport', 'HTTPS on every connection, with TLS 1.2 as the minimum.'],
+                      ['Secrets at rest', 'server-side files, isolated per environment; secret keys never reach the browser or app.'],
+                      ['Receipts', 'internal integrity via HMAC-SHA256; public verification is by reference against the ledger, not a signature the client verifies.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>As a developer, the control you verify directly is the webhook signature: validate it over the raw body, before parsing the event. To confirm a receipt, look up its reference: <a href="/docs/en/reference#ref-public-proof" style={a}>GET /v1/public/proofs/{'{ref}'}</a>.</P>
+
               <H2 id="sandbox-guarantees">What the Sandbox guarantees</H2>
               <UL>
                 <LI>Payment, refund, settlement and webhook flows follow the same rules as in production, with fictitious money.</LI>

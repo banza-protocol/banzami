@@ -2432,6 +2432,30 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
               </div>
               <P>Verifique a assinatura sobre o corpo em bruto, antes de interpretar o evento, com o verificador do SDK. <a href="/docs/webhooks#receita" style={a}>Configurar webhooks</a></P>
 
+              <H2 id="criptografia">Como as credenciais são protegidas</H2>
+              <P>Nenhuma credencial é guardada em texto simples: PINs, códigos e chaves ficam numa forma derivada e as ligações são cifradas em trânsito. Abaixo estão os mecanismos reais, com os parâmetros internos deliberadamente omitidos.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Controlo</th><th style={TH}>Mecanismo</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['PIN', 'bcrypt (com sal, adaptativo); verificação em tempo constante. O PIN em texto simples nunca é guardado nem registado.'],
+                      ['Códigos OTP', 'guardados apenas como HMAC com um segredo do servidor; validade de 10 minutos; uso único.'],
+                      ['Chaves de API', 'guardadas apenas como hash unidirecional (as chaves de developer usam HMAC-SHA256 com um segredo do servidor); a chave em bruto aparece uma vez e nunca é guardada; revogáveis.'],
+                      ['Assinatura de webhooks', 'HMAC-SHA256 sobre "<timestamp>.<corpo em bruto>"; cabeçalho banza-signature: t=…,v1=…; comparação em tempo constante.'],
+                      ['Autenticação da API', 'token JWT assinado (HS256).'],
+                      ['Sessões na Web', 'o browser guarda apenas um identificador de sessão opaco de alta entropia num cookie HttpOnly; o token fica no servidor; proteção CSRF.'],
+                      ['Transporte', 'HTTPS em todas as ligações, com TLS 1.2 no mínimo.'],
+                      ['Segredos em repouso', 'ficheiros no servidor, isolados por ambiente; as chaves secretas nunca chegam ao browser nem à app.'],
+                      ['Comprovativos', 'integridade interna por HMAC-SHA256; verificação pública por referência contra o ledger, não uma assinatura que o cliente verifica.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>Como developer, o controlo que verifica diretamente é a assinatura do webhook: valide-a sobre o corpo em bruto, antes de interpretar o evento. Para confirmar um comprovativo, consulte a referência: <a href="/docs/reference#ref-public-proof" style={a}>GET /v1/public/proofs/{'{ref}'}</a>.</P>
+
               <H2 id="sandbox-garante">O que o Sandbox garante</H2>
               <UL>
                 <LI>Os fluxos de pagamento, reembolso, liquidação e webhook seguem as mesmas regras que em produção, com dinheiro fictício.</LI>

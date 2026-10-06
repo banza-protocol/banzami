@@ -1153,6 +1153,11 @@
   },
   {
    "k": "section",
+   "t": "Como as credenciais são protegidas",
+   "h": "/docs/trust#criptografia"
+  },
+  {
+   "k": "section",
    "t": "O que o Sandbox garante",
    "h": "/docs/trust#sandbox-garante"
   },
@@ -3468,6 +3473,11 @@
    "k": "section",
    "t": "The webhook secret",
    "h": "/docs/en/trust#webhook-secret"
+  },
+  {
+   "k": "section",
+   "t": "How credentials are protected",
+   "h": "/docs/en/trust#cryptography"
   },
   {
    "k": "section",

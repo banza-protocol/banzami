@@ -215,6 +215,65 @@ const CONTROL: { icon: IconName; title: Loc; desc: Loc }[] = [
   },
 ];
 
+// ── 05 · Criptografia e credenciais ──────────────────────────────────────────
+// PUBLIC PROPERTIES only, grounded in the real code (see docs/trust for detail):
+// bcrypt PIN hashing (public-api CredentialStore, merchant credentials), OTP as
+// HMAC with a server-side secret (10-min, single-use), API keys stored only as a
+// one-way hash and shown once, HMAC-SHA256 webhook signatures (banza-signature),
+// HTTPS/TLS 1.2 at the edge. No algorithm is named here unless it is the real,
+// publishable mechanism. Receipts are reference-verifiable against the ledger,
+// never described as a client-verifiable cryptographic signature.
+const CRYPTO: { icon: IconName; tag: Loc; title: Loc; desc: Loc }[] = [
+  {
+    icon: 'key',
+    tag: L('PIN', 'PIN'),
+    title: L('PIN e credenciais', 'PIN and credentials'),
+    desc: L(
+      'Nunca guardados em texto simples. Guardamos apenas uma derivação unidirecional, com sal e resistente a força bruta (bcrypt).',
+      'Never stored in clear text. We keep only a salted, brute-force-resistant one-way hash (bcrypt).',
+    ),
+  },
+  {
+    icon: 'mail',
+    tag: L('OTP', 'OTP'),
+    title: L('Códigos de confirmação', 'Confirmation codes'),
+    desc: L(
+      'Os códigos enviados por email são de uso único, expiram em 10 minutos e são guardados apenas como HMAC, nunca em texto simples.',
+      'Codes sent by email are single-use, expire in 10 minutes and are stored only as an HMAC, never in clear text.',
+    ),
+  },
+  {
+    icon: 'bolt',
+    tag: L('WEBHOOKS', 'WEBHOOKS'),
+    title: L('Chaves e webhooks', 'Keys and webhooks'),
+    desc: L(
+      'As chaves secretas nunca são guardadas em bruto (apenas um hash) e aparecem uma só vez. Os webhooks são assinados com HMAC-SHA256 e verificáveis.',
+      'Secret keys are never stored raw (only a hash) and are shown once. Webhooks are signed with HMAC-SHA256 and verifiable.',
+    ),
+  },
+  {
+    icon: 'lock',
+    tag: L('TLS', 'TLS'),
+    title: L('Dados em trânsito', 'Data in transit'),
+    desc: L(
+      'Todas as ligações usam HTTPS, com TLS 1.2 no mínimo.',
+      'Every connection uses HTTPS, with TLS 1.2 as the minimum.',
+    ),
+  },
+];
+
+// Short, verified "Control | Mechanism" table. Only publishable mechanisms; no
+// parameters, peppers, paths or table names.
+const CRYPTO_TABLE: { c: Loc; m: Loc }[] = [
+  { c: L('PIN', 'PIN'), m: L('bcrypt com sal, adaptativo; verificação em tempo constante', 'bcrypt, salted and adaptive; constant-time verification') },
+  { c: L('Códigos OTP', 'OTP codes'), m: L('HMAC com segredo do servidor; validade de 10 minutos; uso único', 'HMAC with a server-side secret; 10-minute validity; single-use') },
+  { c: L('Chaves de API', 'API keys'), m: L('hash unidirecional (chaves de developer: HMAC-SHA256); reveladas uma vez; revogáveis', 'one-way hash (developer keys: HMAC-SHA256); shown once; revocable') },
+  { c: L('Assinatura de webhooks', 'Webhook signing'), m: L('HMAC-SHA256, cabeçalho banza-signature com timestamp', 'HMAC-SHA256, banza-signature header with a timestamp') },
+  { c: L('Transporte', 'Transport'), m: L('HTTPS, TLS 1.2 no mínimo', 'HTTPS, TLS 1.2 minimum') },
+  { c: L('Isolamento de segredos', 'Secret isolation'), m: L('ficheiros no servidor, isolados por ambiente; chaves secretas nunca no browser nem na app', 'server-side files, isolated per environment; secret keys never reach the browser or app') },
+  { c: L('Comprovativos', 'Receipts'), m: L('referência verificável contra o ledger da Banzami (não uma assinatura pública)', 'reference verifiable against the Banzami ledger (not a public signature)') },
+];
+
 const T = {
   // hero
   badge: L('Versão Beta · Sandbox', 'Beta · Sandbox'),
@@ -286,7 +345,18 @@ const T = {
   liveDesc: L('Pedidos rejeitados por omissão.', 'Requests rejected by default.'),
   liveState: L('Indisponível', 'Unavailable'),
   envNote: L('Atualizado a cada mudança de estado.', 'Updated on every status change.'),
-  // 03
+  // 05 · Criptografia e credenciais
+  cryptoLabel: L('CRIPTOGRAFIA E CREDENCIAIS', 'CRYPTOGRAPHY AND CREDENTIALS'),
+  cryptoH2a: L('Credenciais protegidas,', 'Protected credentials,'),
+  cryptoH2b: L('nunca em texto simples.', 'never in clear text.'),
+  cryptoLead: L(
+    'PINs, códigos e chaves são guardados de forma derivada, não em texto simples, e as comunicações são cifradas em trânsito. Nomeamos apenas os mecanismos reais.',
+    'PINs, codes and keys are stored derived, not in clear text, and traffic is encrypted in transit. We name only the real mechanisms.',
+  ),
+  cryptoTableTitle: L('Detalhes técnicos', 'Technical details'),
+  cryptoTableC: L('Controlo', 'Control'),
+  cryptoTableM: L('Mecanismo', 'Mechanism'),
+  // 06
   label03: L('REPORTAR VULNERABILIDADES', 'REPORT VULNERABILITIES'),
   s3h2a: L('Encontrou uma falha?', 'Found a flaw?'),
   s3h2b: L('Fale connosco.', 'Get in touch.'),
@@ -529,12 +599,54 @@ export function SegurancaPage({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* ═══════════════ 05 · REPORTAR VULNERABILIDADES ═══════════════ */}
+      {/* ═══════════════ 05 · CRIPTOGRAFIA E CREDENCIAIS ═══════════════ */}
+      <section id="criptografia" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto' }}>
+          <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,.9fr)', gap: '20px 56px', alignItems: 'end' }}>
+            <div>
+              <SectionLabel n="05" label={T.cryptoLabel[lang]} />
+              <H2 a={T.cryptoH2a[lang]} b={T.cryptoH2b[lang]} />
+            </div>
+            <p style={{ margin: '0 0 6px', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '480px', textWrap: 'pretty' }}>{T.cryptoLead[lang]}</p>
+          </div>
+          <Rotator mode="card" idle="#FFF8F7" className="bz-g4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: '14px', marginTop: '44px' }}>
+            {CRYPTO.map((g, i) => (
+              <div key={i} data-ri style={{ position: 'relative', overflow: 'hidden', padding: '20px 20px 22px', borderRadius: '22px', border: '1px solid rgba(181,16,31,.06)', background: '#FFF8F7', transition: 'background .6s,border-color .6s,box-shadow .6s,transform .6s cubic-bezier(.16,1,.3,1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                  <span data-ri-ic style={{ flex: 'none', width: '42px', height: '42px', borderRadius: '13px', background: '#FFF1F0', color: '#B5101F', border: '1px solid rgba(181,16,31,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .6s,color .6s,box-shadow .6s' }}>
+                    <Icon name={g.icon} size={19} color="currentColor" />
+                  </span>
+                  <span data-ri-tag style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', fontWeight: 600, letterSpacing: '.06em', color: '#B5101F', opacity: 0, transition: 'opacity .6s' }}>{g.tag[lang]}</span>
+                </div>
+                <p style={{ margin: '16px 0 0', fontSize: '16px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{g.title[lang]}</p>
+                <p style={{ margin: '6px 0 0', fontSize: '13.5px', lineHeight: 1.5, fontWeight: 600, color: '#8a7a7e', textWrap: 'pretty' }}>{g.desc[lang]}</p>
+                <span data-ri-bar style={{ position: 'absolute', left: '16px', right: '16px', bottom: 0, height: '2px', borderRadius: '2px', background: 'rgba(181,16,31,.08)', overflow: 'hidden', opacity: 0, transition: 'opacity .6s' }}><span style={{ display: 'block', height: '100%', width: 0, background: 'linear-gradient(90deg,#D8121F,#9A1B22)' }} /></span>
+              </div>
+            ))}
+          </Rotator>
+          {/* Technical details — verified Control | Mechanism table */}
+          <Card style={{ marginTop: '18px', padding: '26px' }}>
+            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{T.cryptoTableTitle[lang]}</h3>
+            <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'minmax(120px,.5fr) minmax(0,1fr)', gap: '0 20px' }}>
+              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 600, letterSpacing: '.06em', color: '#9a8487', paddingBottom: '8px', borderBottom: '1px solid #F5E8E6' }}>{T.cryptoTableC[lang]}</span>
+              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: 600, letterSpacing: '.06em', color: '#9a8487', paddingBottom: '8px', borderBottom: '1px solid #F5E8E6' }}>{T.cryptoTableM[lang]}</span>
+              {CRYPTO_TABLE.map((r, i) => (
+                <div key={i} style={{ display: 'contents' }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#141014', padding: '12px 0', borderBottom: i < CRYPTO_TABLE.length - 1 ? '1px solid #F7ECEA' : 'none' }}>{r.c[lang]}</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 600, lineHeight: 1.5, color: '#6a5a5e', padding: '12px 0', borderBottom: i < CRYPTO_TABLE.length - 1 ? '1px solid #F7ECEA' : 'none', textWrap: 'pretty' }}>{r.m[lang]}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* ═══════════════ 06 · REPORTAR VULNERABILIDADES ═══════════════ */}
       <section id="reportar" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', margin: '28px 14px', borderRadius: '48px', background: '#fff', boxShadow: '0 40px 90px -70px rgba(122,16,22,.55)', overflow: 'hidden' }}>
         <div style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto' }}>
           <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: '.9fr 1.1fr', gap: '56px', alignItems: 'center' }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
-              <SectionLabel n="05" label={T.label03[lang]} panel />
+              <SectionLabel n="06" label={T.label03[lang]} panel />
               <H2 a={T.s3h2a[lang]} b={T.s3h2b[lang]} />
               <p style={{ margin: '16px 0 0', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '440px', textWrap: 'pretty' }}>{T.s3lead[lang]}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px', marginTop: '28px' }}>
