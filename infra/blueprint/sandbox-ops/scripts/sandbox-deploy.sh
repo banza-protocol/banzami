@@ -101,9 +101,18 @@ _resolve_stack() {
   : "${BZSB_PROJECT:?no target Sandbox project}" "${BZSB_APP_NET:?}" "${BZSB_DATA_NET:?}"
   docker inspect "${BZSB_PROJECT}-core-api-staging" >/dev/null 2>&1 \
     || die "core-api-staging of ${BZSB_PROJECT} is not running — cannot target this stack"
-  if [ -z "${BZSB_SECRET_ROOT:-}" ] || [ ! -d "${BZSB_SECRET_ROOT:-/nonexistent}" ]; then
-    # From the project's OWN core-api container mount (that container
-    # unambiguously belongs to this project — not a cross-stack glob).
+  # deploy-one reads ONLY deploy secrets (db_url_<service>, core_internal_key, resend_api_key,
+  # admin_jwt_secret, app_web_session_store_key, …) — never the mi_* bootstrap credentials. Those
+  # deploy secrets live in the EVIDENCE root, NOT the bootstrap secrets/ dir. SANDBOX_STATE sets
+  # BZSB_SECRET_ROOT to secrets/ (mi_* only), so bind the deploy-secret dir to EVIDENCE_ROOT
+  # (the dir that holds core_internal_key). Without this, admin-api's db_url_admin_api is looked
+  # up in secrets/ and the app-plane deploy fails closed ("no database credential of its own").
+  if [ -n "${EVIDENCE_ROOT:-}" ] && [ -d "${EVIDENCE_ROOT:-/nonexistent}" ]; then
+    BZSB_SECRET_ROOT="$EVIDENCE_ROOT"
+  elif [ -z "${BZSB_SECRET_ROOT:-}" ] || [ ! -d "${BZSB_SECRET_ROOT:-/nonexistent}" ] || [ ! -e "${BZSB_SECRET_ROOT}/core_internal_key" ]; then
+    # Fallback (no SANDBOX_STATE EVIDENCE_ROOT): the project's OWN core-api container mount — the
+    # dir holding core_internal_key IS the evidence/deploy-secret dir. That container
+    # unambiguously belongs to this project (not a cross-stack glob).
     BZSB_SECRET_ROOT="$(docker inspect "${BZSB_PROJECT}-core-api-staging" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' | grep '/run/secrets/core_internal_key:' | head -1 | sed 's#/core_internal_key:.*##')"
   fi
   [ -d "${BZSB_SECRET_ROOT:-/nonexistent}" ] || die "cannot locate the Sandbox credential directory for ${BZSB_PROJECT}"
