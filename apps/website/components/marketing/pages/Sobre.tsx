@@ -61,8 +61,8 @@ const BANZA_OPERATOR: Loc[] = [
 const FOUNDERS: { img: string; alt: string; name: string; role: Loc; bio: Loc; linkHref: string; linkLabel: string }[] = [
   {
     img: '/assets/founder-fidel-v4.png',
-    alt: 'Fidel Monteiro',
-    name: 'Fidel Monteiro',
+    alt: 'Fidel Rodrigues Monteiro',
+    name: 'Fidel Rodrigues Monteiro',
     role: L('Cofundador da Banzami', 'Co-founder of Banzami'),
     bio: L(
       'Engenheiro de desenvolvimento em IA e software, com mais de 7 anos de experiência em IA e MLOps, arquitetura de software, visão computacional e sistemas embebidos, na STMicroelectronics, Hyperion Seven, SuperGrid Institute e Akkodis. Criou a Banzami e o protocolo aberto BANZA.',
@@ -73,8 +73,8 @@ const FOUNDERS: { img: string; alt: string; name: string; role: Loc; bio: Loc; l
   },
   {
     img: '/assets/founder-jesus-cut.png',
-    alt: 'Jesus Monteiro',
-    name: 'Jesus Monteiro',
+    alt: 'Jesus Rodrigues Monteiro',
+    name: 'Jesus Rodrigues Monteiro',
     role: L('Cofundador da Banzami', 'Co-founder of Banzami'),
     bio: L(
       'Engenheiro e investigador em energia eólica. Doutorado em Engenharia Mecânica pela FEUP (Universidade do Porto), com mestrado em Engenharia Eletromecânica pela Universidade da Beira Interior. Engenheiro de projeto na ENERCON, especialista em escoamento atmosférico, CFD/RANS e avaliação de recurso eólico.',
@@ -244,8 +244,8 @@ export function SobrePage({ lang }: { lang: Lang }) {
               <H2 a={lang === 'en' ? 'Who is building' : 'Quem está a construir'} b={lang === 'en' ? 'Banzami.' : 'a Banzami.'} />
               <Lead mw={440}>
                 {lang === 'en'
-                  ? 'Banzami was founded by Fidel Monteiro and Jesus Monteiro on 1 August 2025.'
-                  : 'A Banzami foi fundada por Fidel Monteiro e Jesus Monteiro a 1 de agosto de 2025.'}
+                  ? 'Banzami was founded by Fidel Rodrigues Monteiro and Jesus Rodrigues Monteiro on 1 August 2025.'
+                  : 'A Banzami foi fundada por Fidel Rodrigues Monteiro e Jesus Rodrigues Monteiro a 1 de agosto de 2025.'}
               </Lead>
               <div style={{ marginTop: '24px', display: 'inline-flex', alignItems: 'center', gap: '14px', padding: '12px 18px 12px 12px', borderRadius: '20px', background: '#FFF8F7', border: '1px solid #F3E3E1' }}>
                 <span style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'linear-gradient(150deg,#D8121F,#8E1620)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 20px -8px rgba(181,16,31,.6)' }}>
