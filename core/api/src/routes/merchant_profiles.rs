@@ -47,8 +47,10 @@ pub struct SocialLink {
 #[derive(Deserialize)]
 pub struct CreateProfileBody {
     pub merchant_id: String,
-    // No `handle`: the profile never chooses an identity. The Business @banza is
-    // the merchant's handle_registry entry; this endpoint only stores metadata.
+    // `handle` is captured ONLY to reject it explicitly: the profile never chooses
+    // an identity. Sending a handle is a 400, never silently ignored. The Business
+    // @banza is the merchant's handle_registry entry.
+    pub handle: Option<String>,
     pub display_name: String,
     pub tagline: Option<String>,
     pub description: Option<String>,
@@ -58,10 +60,23 @@ pub struct CreateProfileBody {
     pub wallet_id: Option<String>,
 }
 
+// The @banza is managed by handle_registry, never by the profile API. A request
+// that carries a handle is rejected rather than silently ignored.
+fn reject_handle(handle: &Option<String>) -> ApiResult<()> {
+    if handle.is_some() {
+        return Err(ApiError::bad_request(
+            "handle cannot be set through the merchant profile API; the @banza is managed in the registry",
+        ));
+    }
+    Ok(())
+}
+
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateProfileBody>,
 ) -> ApiResult<(StatusCode, Json<ProfileResponse>)> {
+    reject_handle(&body.handle)?;
+
     let merchant_id: Uuid = body
         .merchant_id
         .parse()
@@ -131,6 +146,9 @@ pub async fn create(
 
 #[derive(Deserialize)]
 pub struct UpdateProfileBody {
+    // Captured only to reject it (see reject_handle): the @banza is never changed
+    // through the profile API.
+    pub handle: Option<String>,
     pub display_name: Option<String>,
     pub tagline: Option<String>,
     pub description: Option<String>,
@@ -146,6 +164,8 @@ pub async fn update(
     Path(id): Path<String>,
     Json(body): Json<UpdateProfileBody>,
 ) -> ApiResult<Json<ProfileResponse>> {
+    reject_handle(&body.handle)?;
+
     let id: Uuid = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid profile id"))?;
@@ -368,4 +388,67 @@ async fn fetch_profile(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<ProfileRespon
         created_at: row.created_at,
         updated_at: row.updated_at,
     })
+}
+
+// ---------------------------------------------------------------------------
+// Tests — the profile API cannot set or change a @banza.
+// ---------------------------------------------------------------------------
+//
+// The @banza is managed only by handle_registry. A profile create/update that
+// carries a `handle` is rejected with 400 (reject_handle, the first thing both
+// handlers do) rather than silently ignored — so the request never reaches any
+// SQL and handle_registry is never touched by this API.
+#[cfg(test)]
+mod handle_rejection_tests {
+    use super::*;
+    use axum::http::StatusCode;
+    use serde_json::json;
+
+    #[test]
+    fn create_body_captures_and_rejects_a_handle() {
+        let body: CreateProfileBody = serde_json::from_value(json!({
+            "merchant_id": "00000000-0000-0000-0000-000000000000",
+            "handle": "novo_handle",
+            "display_name": "Loja",
+        }))
+        .expect("body should deserialize");
+        assert!(body.handle.is_some(), "the handle must be captured, not dropped by serde");
+        let err = reject_handle(&body.handle).unwrap_err();
+        assert_eq!(err.status, StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn update_body_captures_and_rejects_a_handle() {
+        let body: UpdateProfileBody = serde_json::from_value(json!({
+            "handle": "novo_handle",
+            "display_name": "Novo Nome",
+        }))
+        .expect("body should deserialize");
+        assert!(body.handle.is_some());
+        let err = reject_handle(&body.handle).unwrap_err();
+        assert_eq!(err.status, StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn metadata_only_create_passes_the_guard() {
+        let body: CreateProfileBody = serde_json::from_value(json!({
+            "merchant_id": "00000000-0000-0000-0000-000000000000",
+            "display_name": "Loja",
+            "category": "RETAIL",
+        }))
+        .unwrap();
+        assert!(body.handle.is_none());
+        assert!(reject_handle(&body.handle).is_ok());
+    }
+
+    #[test]
+    fn metadata_only_update_passes_the_guard() {
+        let body: UpdateProfileBody = serde_json::from_value(json!({
+            "display_name": "Novo Nome",
+            "public": true,
+        }))
+        .unwrap();
+        assert!(body.handle.is_none());
+        assert!(reject_handle(&body.handle).is_ok());
+    }
 }
