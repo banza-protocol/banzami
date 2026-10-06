@@ -1,4 +1,4 @@
-# App Store Connect — Review Notes
+# App Store Connect - Review Notes
 
 Source of truth for the **App Review Information → Notes** field and the
 **TestFlight → What to Test** field for each submission.
@@ -36,22 +36,22 @@ The review account has full access to:
 Important:
 * Please allow Camera permissions (required for QR code scanning)
 * Please allow Push Notifications (required for payment confirmations)
-* The app operates in sandbox mode — no real money is moved
+* The app operates in sandbox mode - no real money is moved
 
 Security behaviour:
 * The app automatically locks when sent to the background (e.g. switching apps,
   pressing the Home button, or opening the app switcher)
-* When returning to the app you will be prompted for the PIN — this is intentional
+* When returning to the app you will be prompted for the PIN - this is intentional
   security behaviour, not a bug
 * The app asks for the review PIN again after any background/foreground transition
 ```
 
-### TestFlight — What to Test
+### TestFlight - What to Test
 
 ```
 Bem-vindo ao beta da Banzami!
 
-A Banzami é a forma como Angola paga — carteira Kwanza, QR nativo, transferências
+A Banzami é a forma como Angola paga - carteira Kwanza, QR nativo, transferências
 P2P e identidade financeira @banza, construído sobre o protocolo BANZA.
 
 O que testar:
@@ -60,11 +60,11 @@ O que testar:
 3. Enviar dinheiro para outro @banza
 4. Pagar via QR code
 5. Pagar via link de pagamento
-6. Segurança — sai da app (prima Home ou muda de app) e volta:
+6. Segurança - sai da app (prima Home ou muda de app) e volta:
    deve aparecer um ecrã de bloqueio com pedido de PIN
-7. Protecção no selector de apps — abre o selector de apps (duplo clique Home
+7. Protecção no selector de apps - abre o selector de apps (duplo clique Home
    ou desliza de baixo): a app deve mostrar um ecrã de privacidade sem conteúdo
-8. Cartão de saldo — o saldo principal deve aparecer em destaque no topo do ecrã
+8. Cartão de saldo - o saldo principal deve aparecer em destaque no topo do ecrã
    com gradiente escuro premium
 
 O que reportar:
@@ -105,7 +105,7 @@ Instructions:
 4. Enter the review PIN
 
 The review account has full access to:
-* Business dashboard — balance, KPIs (today/month volume & payments, average
+* Business dashboard - balance, KPIs (today/month volume & payments, average
   ticket, success rate), a 7-day volume chart and a settlement/payout summary
 * Merchant wallet balance and transaction history
 * Generating QR codes to receive payments
@@ -116,21 +116,21 @@ The review account has full access to:
 Important:
 * Please allow Camera permissions (required for QR code scanning)
 * Please allow Push Notifications (required for payment alerts)
-* The app operates in sandbox mode — no real money is moved
+* The app operates in sandbox mode - no real money is moved
 ```
 
-### TestFlight — What to Test
+### TestFlight - What to Test
 
 ```
 Bem-vindo ao beta da Banzami Business!
 
 A Banzami Business é a camada comerciante da rede de pagamentos instantâneos de
-Angola — QR nativo, liquidação instantânea, sem terminal de cartão, sem espera,
+Angola - QR nativo, liquidação instantânea, sem terminal de cartão, sem espera,
 construído sobre o protocolo BANZA.
 
 O que testar:
 1. Entrar com @banza (handle) e PIN
-2. Painel de negócio — saldo, KPIs (volume e nº de pagamentos de hoje e do mês,
+2. Painel de negócio - saldo, KPIs (volume e nº de pagamentos de hoje e do mês,
    ticket médio, taxa de sucesso), gráfico de volume dos últimos 7 dias e cartão
    de liquidações/payouts (estado de verificação KYB)
 3. Gerar QR code para receber pagamento
@@ -187,11 +187,11 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 3. **App Information** → **App Review Information**
 4. Cola o bloco correspondente no campo **Notes**
 5. Para o **Demo Account** (ambos usam @banza handle + PIN):
-   - Consumer: Username = `review`, Password = *(PIN de demo — não publicado no repo)*
-   - Business: Username = `review_merchant`, Password = *(PIN de demo — não publicado no repo)*
+   - Consumer: Username = `review`, Password = *(PIN de demo - não publicado no repo)*
+   - Business: Username = `review_merchant`, Password = *(PIN de demo - não publicado no repo)*
 6. Grava → submete o build para revisão
 
-### TestFlight — What to Test
+### TestFlight - What to Test
 
 1. Abre https://appstoreconnect.apple.com/
 2. Selecciona a app → **TestFlight**
@@ -206,7 +206,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 > **Estado (2026-10-06):** após o clean reset do Sandbox, ambas as contas de
 > revisão são recriadas pelos fluxos normais do produto e entram por **@banza + PIN**
 > (6 dígitos), igual nas duas apps. O PIN de demonstração **não é publicado neste
-> repositório** — vive só no campo Demo Account privado do App Store Connect / Play
+> repositório** - vive só no campo Demo Account privado do App Store Connect / Play
 > Console. São contas de teste (**dinheiro fictício**); os IDs (consumer/merchant)
 > são atribuídos no momento da criação.
 
@@ -214,10 +214,10 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 
 | Campo    | Valor                       | Estado |
 |----------|-----------------------------|--------|
-| Handle   | review                      | —      |
-| PIN      | *(demo — campo Demo Account)* | —    |
-| Email    | verificado na criação       | —      |
-| Ambiente | SANDBOX                     | —      |
+| Handle   | review                      | -      |
+| PIN      | *(demo - campo Demo Account)* | -    |
+| Email    | verificado na criação       | -      |
+| Ambiente | SANDBOX                     | -      |
 
 Criação: signup normal (nome → @banza `review` → email → código OTP → email
 verificado → define o PIN de demo). Para desactivar: `POST /admin/v1/consumers/{id}/suspend`
@@ -227,9 +227,9 @@ na admin-api (operador com a capacidade `consumer.suspend`).
 
 | Campo    | Valor           | Estado |
 |----------|-----------------|--------|
-| Handle   | review_merchant | —      |
-| PIN      | *(demo — campo Demo Account)* | — |
-| Ambiente | SANDBOX         | —      |
+| Handle   | review_merchant | -      |
+| PIN      | *(demo - campo Demo Account)* | - |
+| Ambiente | SANDBOX         | -      |
 
 Criação: fluxo Business normal (candidatura pública → aprovação em BANZADMIN →
 ativação com o PIN de demo). A app Business entra por **@banza + PIN**, igual à
@@ -237,13 +237,13 @@ Consumer; o antigo modelo *Merchant ID + API Key* deixou de ser o login da app
 (a API Key continua a existir apenas para integrações/SDK, não para a app).
 
 > **Repositório público:** o PIN de demonstração destas contas **não** é publicado
-> neste ficheiro — vive só no campo **Demo Account** privado do App Store Connect /
-> Play Console. **Nunca** colocar aqui PINs, chaves ou credenciais — nem as de demo.
+> neste ficheiro - vive só no campo **Demo Account** privado do App Store Connect /
+> Play Console. **Nunca** colocar aqui PINs, chaves ou credenciais - nem as de demo.
 > São contas Sandbox (dinheiro fictício); suspende/roda-as após a revisão.
 
 ---
 
-## App Store Connect — Registo de apps criadas
+## App Store Connect - Registo de apps criadas
 
 | App | Bundle ID | SKU | Team ID | Estado |
 |-----|-----------|-----|---------|--------|
@@ -262,13 +262,13 @@ Consumer; o antigo modelo *Merchant ID + API Key* deixou de ser o login da app
 
 Use these for the App Store listing pages. Mirrors new infrastructure positioning.
 
-### Banzami (Consumer) — App Store Description
+### Banzami (Consumer) - App Store Description
 
 ```
 A Banzami é a tua carteira de pagamentos instantâneos em Kwanza.
 
 Com a Banzami podes:
-• Pagar em qualquer comerciante com QR — sem cash, sem espera
+• Pagar em qualquer comerciante com QR - sem cash, sem espera
 • Receber e enviar dinheiro para qualquer @banza em segundos
 • Consultar o teu saldo e histórico em tempo real
 • Pagar links de pagamento partilhados no WhatsApp
@@ -277,16 +277,16 @@ A Banzami é a forma como Angola paga: QR-native, wallet-native, construído par
 Kwanza sobre o protocolo BANZA.
 
 Sem cartão. Sem IBAN. Sem confirmação manual.
-Apenas @banza — e o dinheiro move-se.
+Apenas @banza - e o dinheiro move-se.
 ```
 
-### Banzami Business (Merchant) — App Store Description
+### Banzami Business (Merchant) - App Store Description
 
 ```
 A Banzami Business é o ponto de venda da nova economia angolana.
 
 Com a Banzami Business podes:
-• Receber pagamentos instantâneos via QR — imprime e aceita de imediato
+• Receber pagamentos instantâneos via QR - imprime e aceita de imediato
 • Criar e partilhar links de pagamento por WhatsApp ou SMS
 • Ver cada pagamento em tempo real, sem esperar por confirmação
 • Gerir o teu saldo e histórico de transacções num só lugar
@@ -304,8 +304,8 @@ construído sobre o protocolo BANZA.
 
 | Data | Build | App | Ambiente | Estado |
 |------|-------|-----|----------|--------|
-| 2026-05-18 | 1.0.0 (1) | Banzami + Banzami Business (Banza legacy) | — | ✅ Aprovado (TestFlight External) — app antiga |
-| 2026-05-24 | 1.0.0 (1) | Banzami | Sandbox | 🔄 IPA pronto — pendente upload Transporter |
+| 2026-05-18 | 1.0.0 (1) | Banzami + Banzami Business (Banza legacy) | - | ✅ Aprovado (TestFlight External) - app antiga |
+| 2026-05-24 | 1.0.0 (1) | Banzami | Sandbox | 🔄 IPA pronto - pendente upload Transporter |
 | 2026-06-25 | 1.0.0 (2) | Banzami | Sandbox | 🔄 Build iOS em preparação (bundle `com.banzami.consumer`, SDK source-of-truth) |
 
 Adicionar uma linha a cada submissão.
