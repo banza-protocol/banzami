@@ -162,7 +162,7 @@ esx_vm_main() {
 # Direct invocation — used by the VM-side preamble (via an explicit esx_vm_main call appended by
 # vm-execute.sh) and by the offline test harness. Sourcing (BASH_SOURCE != $0) only defines
 # functions, so operator-side use in vm-execute.sh has no side effects.
-if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+if [ "${BASH_SOURCE[0]:-}" = "${0:-}" ]; then
   set -euo pipefail
   _sub="${1:-}"; shift || true
   case "$_sub" in
