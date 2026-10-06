@@ -109,6 +109,24 @@ function Faq({ lang }: { lang: Lang }) {
         : (<>Cada comprovativo tem uma referência que começa por BZM-. Introduza-a em <a href={route('verificar', lang)}>Verificar comprovativo</a>.</>),
     },
     {
+      q: L('Esqueci o PIN. Como recupero o acesso?', 'I forgot my PIN. How do I recover access?'),
+      a: lang === 'en'
+        ? 'In the Beta Sandbox, identify by your @banza and request recovery: we send a code to the account’s verified email and, once you confirm it, you set a new PIN. We never ask for your PIN by email.'
+        : 'Na Beta Sandbox, identifique-se pelo @banza e peça a recuperação: enviamos um código para o email verificado da conta e, depois de o confirmar, define um novo PIN. Nunca pedimos o PIN por email.',
+    },
+    {
+      q: L('Perdi o telemóvel. A minha conta está segura?', 'I lost my phone. Is my account safe?'),
+      a: lang === 'en'
+        ? 'Your account lives on the server, not on the phone, and access always needs @banza plus PIN. Sign in on another device with your @banza and PIN; if needed, recover the PIN via your verified email. Security changes can end earlier sessions.'
+        : 'A conta vive no servidor, não no telemóvel, e o acesso exige sempre @banza mais PIN. Entre noutro dispositivo com o @banza e o PIN; se precisar, recupere o PIN pelo email verificado. Alterações de segurança podem terminar sessões anteriores.',
+    },
+    {
+      q: L('Como suprimo a minha conta?', 'How do I delete my account?'),
+      a: lang === 'en'
+        ? (<>In the app, under Settings, choose “Delete account” and confirm with your PIN. Without the app, use the form at <a href={route('supressao', lang)}>Account deletion</a>. Logging out and “Remove from this device” are not the same as deleting.</>)
+        : (<>Na app, em Definições, escolha «Suprimir conta» e confirme com o PIN. Sem a app, use o formulário em <a href={route('supressao', lang)}>Supressão de conta</a>. Sair e «Remover deste dispositivo» não são o mesmo que suprimir.</>),
+    },
+    {
       q: L('A Banzami pede o número do cartão?', 'Does Banzami ask for my card number?'),
       a: lang === 'en'
         ? 'No. Banzami is not a card processor and will never ask for your card number or CVV.'

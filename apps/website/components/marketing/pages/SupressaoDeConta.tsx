@@ -42,7 +42,7 @@ const SECTIONS: { id: string; n: string; title: Loc; body: Block[] }[] = [
       },
       {
         p: L(
-          'Alguns registos financeiros, de auditoria e de conformidade sao conservados, porque a lei e as regras de integridade do sistema de pagamentos assim o exigem. A conta fica encerrada, não apagada sem rasto.',
+          'Alguns registos financeiros, de auditoria e de conformidade são conservados, porque a lei e as regras de integridade do sistema de pagamentos assim o exigem. A conta fica encerrada, não apagada sem rasto.',
           'Some financial, audit and compliance records are retained, because the law and the payment system integrity rules require it. The account is closed, not erased without trace.',
         ),
       },

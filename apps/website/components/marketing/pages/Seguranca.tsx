@@ -87,6 +87,125 @@ const ASK: Loc[] = [
   L('Aguarde a correção antes de divulgar publicamente', 'Wait for a fix before public disclosure'),
 ];
 
+// ── 02 · Conta, identidade e acesso ──────────────────────────────────────────
+// Public security PROPERTIES of the identity/auth/recovery layer. Describes what
+// the product guarantees, never the internal recipe (no thresholds, budgets,
+// secrets, tables or device-hash mechanics).
+const ACCESS: { icon: IconName; tag: Loc; title: Loc; desc: Loc }[] = [
+  {
+    icon: 'at',
+    tag: L('IDENTIDADE', 'IDENTITY'),
+    title: L('O @banza é a sua identidade', 'Your @banza is your identity'),
+    desc: L(
+      'Identifica a conta e é por onde recebe pagamentos. É um identificador público, como um nome de utilizador.',
+      'It identifies the account and is how you get paid. It is a public identifier, like a username.',
+    ),
+  },
+  {
+    icon: 'lock',
+    tag: L('LOGIN', 'LOGIN'),
+    title: L('Entra com @banza e PIN', 'Sign in with @banza and PIN'),
+    desc: L(
+      'O início de sessão é sempre @banza mais PIN. O email e o telefone nunca substituem o @banza nem servem para iniciar sessão.',
+      'Signing in is always @banza plus PIN. Email and phone never replace your @banza and are never a login method.',
+    ),
+  },
+  {
+    icon: 'key',
+    tag: L('PIN', 'PIN'),
+    title: L('PIN de 6 dígitos', '6-digit PIN'),
+    desc: L(
+      'Tratado como segredo: nunca é guardado nem mostrado em texto simples, e nunca deve ser partilhado com ninguém.',
+      'Treated as a secret: never stored or shown in clear text, and never to be shared with anyone.',
+    ),
+  },
+  {
+    icon: 'repeat',
+    tag: L('TECLADO', 'KEYPAD'),
+    title: L('Teclado numérico aleatório', 'Randomised number keypad'),
+    desc: L(
+      'Na app, a ordem dos números pode mudar entre ecrãs e tentativas, uma camada adicional ao introduzir o PIN.',
+      'In the app, the digits can change position between screens and attempts, an extra layer when entering the PIN.',
+    ),
+  },
+  {
+    icon: 'shield',
+    tag: L('ABUSO', 'ABUSE'),
+    title: L('Proteção contra tentativas abusivas', 'Protection against abusive attempts'),
+    desc: L(
+      'As tentativas de acesso estão sujeitas a limites persistentes. Fontes e dispositivos desconhecidos têm controlos próprios e podem levar a bloqueio temporário ou exigir recuperação segura.',
+      'Access attempts are subject to persistent limits. Unknown sources and devices face their own controls and may lead to a temporary block or require secure recovery.',
+    ),
+  },
+  {
+    icon: 'life',
+    tag: L('RECUPERAÇÃO', 'RECOVERY'),
+    title: L('Recuperação e alteração do PIN', 'PIN recovery and change'),
+    desc: L(
+      'Esqueceu o PIN? Identifica-se pelo @banza e recebe um código no email verificado para definir um novo. Pode também alterá-lo quando quiser, confirmando o atual; por segurança, sessões anteriores podem terminar.',
+      'Forgot your PIN? Identify by @banza and get a code at your verified email to set a new one. You can also change it anytime by confirming the current one; for security, earlier sessions may end.',
+    ),
+  },
+  {
+    icon: 'mail',
+    tag: L('EMAIL', 'EMAIL'),
+    title: L('Email verificado', 'Verified email'),
+    desc: L(
+      'Na Beta Sandbox, confirma a conta e serve de contacto de segurança, recuperação e notificações. Não é o seu login e não é um identificador público.',
+      'In the Beta Sandbox it confirms the account and serves as a security, recovery and notification contact. It is not your login and not a public identifier.',
+    ),
+  },
+  {
+    icon: 'phone',
+    tag: L('SESSÕES', 'SESSIONS'),
+    title: L('Sessões e dispositivos', 'Sessions and devices'),
+    desc: L(
+      'As sessões são geridas no servidor e alterações de segurança podem terminá-las. Um dispositivo reconhecido é apenas um sinal adicional, não uma prova de identidade nem um segundo fator.',
+      'Sessions are managed server-side and security changes can end them. A recognised device is only an extra signal, not proof of identity nor a second factor.',
+    ),
+  },
+  {
+    icon: 'bolt',
+    tag: L('FAIL-CLOSED', 'FAIL-CLOSED'),
+    title: L('Acesso falha fechado', 'Access fails closed'),
+    desc: L(
+      'Funções críticas de acesso e recuperação não continuam em modo degradado quando uma proteção obrigatória está indisponível: preferimos recusar a arriscar.',
+      'Critical access and recovery functions do not keep running in a degraded mode when a required protection is unavailable: we would rather refuse than risk it.',
+    ),
+  },
+];
+
+// ── 03 · Controlo da sua conta ───────────────────────────────────────────────
+// logout != remove-from-device != delete. Three distinct, separately-named
+// actions; delete is described honestly (deletable PII removed/anonymised, some
+// immutable records retained), never "everything is physically erased".
+const CONTROL: { icon: IconName; title: Loc; desc: Loc }[] = [
+  {
+    icon: 'user',
+    title: L('Sair da conta', 'Log out'),
+    desc: L(
+      'Termina a sessão neste dispositivo. Não apaga nada; volta a entrar com @banza e PIN.',
+      'Ends the session on this device. It deletes nothing; you sign back in with @banza and PIN.',
+    ),
+  },
+  {
+    icon: 'phone',
+    title: L('Remover deste dispositivo', 'Remove from this device'),
+    desc: L(
+      'Esquece a conta apenas neste telemóvel. A conta continua a existir e pode ser usada noutro dispositivo.',
+      'Forgets the account on this phone only. The account still exists and can be used on another device.',
+    ),
+  },
+  {
+    icon: 'shield',
+    title: L('Suprimir conta', 'Delete account'),
+    desc: L(
+      'Encerra a conta e impede novo acesso. Dados pessoais elimináveis são removidos ou anonimizados; registos de livro-razão, auditoria ou outros que devam ser preservados podem permanecer.',
+      'Closes the account and blocks further access. Deletable personal data is removed or anonymised; ledger, audit and other records that must be preserved may remain.',
+    ),
+  },
+];
+
 const T = {
   // hero
   badge: L('Versão Beta · Sandbox', 'Beta · Sandbox'),
@@ -119,7 +238,32 @@ const T = {
     'Princípios aplicados em todo o sistema, da app à API.',
     'Principles applied across the whole system, from the app to the API.',
   ),
-  // 02
+  // 02 · Conta e acesso
+  accessLabel: L('CONTA E ACESSO', 'ACCOUNT & ACCESS'),
+  accessH2a: L('Conta, identidade', 'Account, identity'),
+  accessH2b: L('e acesso.', 'and access.'),
+  accessLead: L(
+    'Como entra, como recupera e como protegemos o acesso à sua conta, sem revelar a implementação que o tornaria mais fácil de atacar.',
+    'How you sign in, how you recover, and how we protect access, without revealing the implementation that would make it easier to attack.',
+  ),
+  // 03 · Controlo da conta
+  controlLabel: L('CONTROLO DA CONTA', 'ACCOUNT CONTROL'),
+  controlH2a: L('Controlo da', 'Control over'),
+  controlH2b: L('sua conta.', 'your account.'),
+  controlLead: L(
+    'Sair, remover do dispositivo e suprimir a conta são ações diferentes, com nomes diferentes e efeitos diferentes.',
+    'Logging out, removing from the device and deleting the account are different actions, with different names and different effects.',
+  ),
+  controlPublic: L(
+    'Também pode solicitar a supressão em banzami.com/supressao-de-conta: confirma um email de contacto e a equipa verifica a titularidade antes de executar. Confirmar o email não prova, por si só, que a conta é sua.',
+    'You can also request deletion at banzami.com/supressao-de-conta: you confirm a contact email and the team verifies ownership before executing. Confirming the email does not, by itself, prove the account is yours.',
+  ),
+  controlClosed: L(
+    'Uma conta encerrada não volta a iniciar sessão e não é reaberta por recuperação.',
+    'A closed account cannot sign in again and is not reopened by recovery.',
+  ),
+  controlCta: L('Solicitar supressão de conta', 'Request account deletion'),
+  // 04 (was 02)
   label02: L('FAIL-CLOSED', 'FAIL-CLOSED'),
   s2h2a: L('Se não está aprovado,', 'If it is not approved,'),
   s2h2b: L('não passa.', 'it does not go through.'),
@@ -276,12 +420,73 @@ export function SegurancaPage({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* ═══════════════ 02 · FAIL-CLOSED ═══════════════ */}
+      {/* ═══════════════ 02 · CONTA, IDENTIDADE E ACESSO ═══════════════ */}
+      <section id="acesso" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto' }}>
+          <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,.9fr)', gap: '20px 56px', alignItems: 'end' }}>
+            <div>
+              <SectionLabel n="02" label={T.accessLabel[lang]} />
+              <H2 a={T.accessH2a[lang]} b={T.accessH2b[lang]} />
+            </div>
+            <p style={{ margin: '0 0 6px', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '480px', textWrap: 'pretty' }}>{T.accessLead[lang]}</p>
+          </div>
+          <Rotator mode="card" idle="#FFF8F7" className="bz-g3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '14px', marginTop: '44px' }}>
+            {ACCESS.map((g, i) => (
+              <div key={i} data-ri style={{ position: 'relative', overflow: 'hidden', padding: '20px 20px 22px', borderRadius: '22px', border: '1px solid rgba(181,16,31,.06)', background: '#FFF8F7', transition: 'background .6s,border-color .6s,box-shadow .6s,transform .6s cubic-bezier(.16,1,.3,1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                  <span data-ri-ic style={{ flex: 'none', width: '42px', height: '42px', borderRadius: '13px', background: '#FFF1F0', color: '#B5101F', border: '1px solid rgba(181,16,31,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .6s,color .6s,box-shadow .6s' }}>
+                    <Icon name={g.icon} size={19} color="currentColor" />
+                  </span>
+                  <span data-ri-tag style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', fontWeight: 600, letterSpacing: '.06em', color: '#B5101F', opacity: 0, transition: 'opacity .6s' }}>{g.tag[lang]}</span>
+                </div>
+                <p style={{ margin: '16px 0 0', fontSize: '16px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{g.title[lang]}</p>
+                <p style={{ margin: '6px 0 0', fontSize: '13.5px', lineHeight: 1.5, fontWeight: 600, color: '#8a7a7e', textWrap: 'pretty' }}>{g.desc[lang]}</p>
+                <span data-ri-bar style={{ position: 'absolute', left: '16px', right: '16px', bottom: 0, height: '2px', borderRadius: '2px', background: 'rgba(181,16,31,.08)', overflow: 'hidden', opacity: 0, transition: 'opacity .6s' }}><span style={{ display: 'block', height: '100%', width: 0, background: 'linear-gradient(90deg,#D8121F,#9A1B22)' }} /></span>
+              </div>
+            ))}
+          </Rotator>
+        </div>
+      </section>
+
+      {/* ═══════════════ 03 · CONTROLO DA SUA CONTA ═══════════════ */}
+      <section id="controlo" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', margin: '28px 14px', borderRadius: '48px', background: '#fff', boxShadow: '0 40px 90px -70px rgba(122,16,22,.55)', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto' }}>
+          <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: '.9fr 1.1fr', gap: '56px', alignItems: 'center' }}>
+            <div style={{ position: 'relative', minWidth: 0 }}>
+              <SectionLabel n="03" label={T.controlLabel[lang]} panel />
+              <H2 a={T.controlH2a[lang]} b={T.controlH2b[lang]} />
+              <p style={{ margin: '16px 0 0', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '440px', textWrap: 'pretty' }}>{T.controlLead[lang]}</p>
+              <p style={{ margin: '14px 0 0', fontSize: '14px', lineHeight: 1.6, fontWeight: 600, color: '#8a7a7e', maxWidth: '440px', textWrap: 'pretty' }}>{T.controlPublic[lang]}</p>
+              <p style={{ margin: '10px 0 0', fontSize: '14px', lineHeight: 1.6, fontWeight: 700, color: '#6a5a5e', maxWidth: '440px', textWrap: 'pretty' }}>{T.controlClosed[lang]}</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px', marginTop: '24px' }}>
+                <Btn href={route('supressao', lang)} kind="ghost">{T.controlCta[lang]}</Btn>
+              </div>
+            </div>
+            <div style={{ position: 'relative', minWidth: 0, display: 'grid', gap: '14px' }}>
+              {CONTROL.map((c, i) => (
+                <Card key={i} style={{ padding: '22px' }}>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                    <span style={{ flex: 'none', width: '42px', height: '42px', borderRadius: '13px', background: '#FFF1F0', color: '#B5101F', border: '1px solid rgba(181,16,31,.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name={c.icon} size={19} color="currentColor" />
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, letterSpacing: '-.01em', color: '#141014' }}>{c.title[lang]}</h3>
+                      <p style={{ margin: '6px 0 0', fontSize: '13.5px', lineHeight: 1.5, fontWeight: 600, color: '#8a7a7e', textWrap: 'pretty' }}>{c.desc[lang]}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ 04 · FAIL-CLOSED ═══════════════ */}
       <section id="fail-closed" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', overflow: 'hidden' }}>
         <div style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto' }}>
           <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: '.9fr 1.1fr', gap: '56px', alignItems: 'center' }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
-              <SectionLabel n="02" label={T.label02[lang]} />
+              <SectionLabel n="04" label={T.label02[lang]} />
               <H2 a={T.s2h2a[lang]} b={T.s2h2b[lang]} />
               <p style={{ margin: '16px 0 0', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '440px', textWrap: 'pretty' }}>{T.s2lead[lang]}</p>
             </div>
@@ -315,12 +520,12 @@ export function SegurancaPage({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* ═══════════════ 03 · REPORTAR VULNERABILIDADES ═══════════════ */}
+      {/* ═══════════════ 05 · REPORTAR VULNERABILIDADES ═══════════════ */}
       <section id="reportar" style={{ position: 'relative', padding: 'clamp(64px,8vw,116px) 24px', margin: '28px 14px', borderRadius: '48px', background: '#fff', boxShadow: '0 40px 90px -70px rgba(122,16,22,.55)', overflow: 'hidden' }}>
         <div style={{ position: 'relative', maxWidth: '1140px', margin: '0 auto' }}>
           <div className="bz-g2" style={{ display: 'grid', gridTemplateColumns: '.9fr 1.1fr', gap: '56px', alignItems: 'center' }}>
             <div style={{ position: 'relative', minWidth: 0 }}>
-              <SectionLabel n="03" label={T.label03[lang]} panel />
+              <SectionLabel n="05" label={T.label03[lang]} panel />
               <H2 a={T.s3h2a[lang]} b={T.s3h2b[lang]} />
               <p style={{ margin: '16px 0 0', fontSize: '16px', lineHeight: 1.6, fontWeight: 600, color: '#6a5a5e', maxWidth: '440px', textWrap: 'pretty' }}>{T.s3lead[lang]}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px', marginTop: '28px' }}>

@@ -16,7 +16,7 @@ const HANDLE_RE = /^[a-z0-9][a-z0-9_]{1,28}[a-z0-9]$/;
 const T = {
   title: L('Solicitar supressão de conta', 'Request account deletion'),
   sub: L(
-    'Preencha o pedido com o seu @banza e um e-mail de contacto. Enviamos um código para confirmar que controla o e-mail. A confirmação do e-mail nao suprime a conta: a equipa verifica a titularidade antes de processar.',
+    'Preencha o pedido com o seu @banza e um e-mail de contacto. Enviamos um código para confirmar que controla o e-mail. A confirmação do e-mail não suprime a conta: a equipa verifica a titularidade antes de processar.',
     'File the request with your @banza and a contact email. We send a code to confirm you control the email. Confirming the email does not delete the account: the team verifies ownership before processing.',
   ),
   kind: L('Tipo de conta', 'Account type'),
