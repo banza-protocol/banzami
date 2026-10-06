@@ -23,6 +23,7 @@ const COPY = [
   'core/api/src/routes', 'services/developer-api/internal', 'services/developer-api/cmd',
   'services/public-api/internal/handler', 'services/public-api/internal/server',
   'apps/website/app/developers/page.tsx', 'apps/website/app/developers/docs',
+  'apps/website/components/marketing/pages/Developers.tsx',
   'docs/developer/openapi',
 ];
 
@@ -103,8 +104,8 @@ const CASES = [
   },
   {
     name: 'B — the landing page names a code no developer route returns',
-    mutate: (d) => edit(d, 'apps/website/app/developers/page.tsx', (s) => s.replace(
-      '<li>Dinheiro fictício: nada entra ou sai de um banco.</li>', '<li>Dinheiro fictício: nada entra ou sai de um banco. 401 API_KEY_INVALID.</li>')),
+    mutate: (d) => edit(d, 'apps/website/components/marketing/pages/Developers.tsx', (s) => s.replace(
+      'As operações com dinheiro real permanecem indisponíveis.', 'As operações com dinheiro real permanecem indisponíveis. 401 API_KEY_INVALID.')),
     expect: (c) => c.code !== 0 && Number(c.counters.DOC_ERRORS_NOT_PUBLIC) >= 1,
   },
   {

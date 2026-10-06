@@ -133,7 +133,11 @@ const notPublic = errors.filter((e) => !reachable.has(e.code)).map((e) => `${e.c
 
 /** Text files the public reads for the developer platform. */
 const docFiles = [
+  // The /developers landing: a thin route shell (app/developers/page.tsx) that
+  // renders the real prose component. Scan both so a code named on the landing is
+  // still caught after the handoff_site_completo rebuild moved the prose out.
   'apps/website/app/developers/page.tsx',
+  'apps/website/components/marketing/pages/Developers.tsx',
   ...readdirSync(join(ROOT, DOCS), { recursive: true })
     .map(String)
     .filter((f) => /\.(tsx|ts)$/.test(f) && !/\.test\.|selftest|ErrorCatalogue\.tsx$|content-map\.ts$|glossary\.ts$|assurance-manifest\.ts$|published-packages\.ts$/.test(f))
