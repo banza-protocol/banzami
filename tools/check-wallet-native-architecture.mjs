@@ -139,14 +139,21 @@ const PUBLIC_COPY = [
   ...walk('apps/website/lib', /\.ts$/).filter((f) => !/\.test\./.test(f)),
   'sdk/typescript/README.md', 'README.md',
 ].filter((f) => exists(f) && !/search-index|claims\.json/.test(f));
+// A disclaimer ("Banzami is NOT a licensed PSP", "makes no such claim") states
+// the opposite of a bypass/licence claim, so a BYPASS match inside a negated
+// sentence is not a finding. An affirmative claim ("Banzami is a licensed PSP",
+// "independente do sistema bancário") carries no such negation and is still caught.
+const DISCLAIMER = /n[ãa]o\s+[ée]\b|n[ãa]o\s+s[ãa]o\b|\bis not\b|\bare not\b|\bnot an?\b|makes no such claim|n[ãa]o faz qualquer afirma/i;
 for (const f of PUBLIC_COPY) {
   const src = read(f).replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|(^|[^:'"`])\/\/[^\n]*/g, '$1');
-  const m = src.match(BYPASS);
-  if (m) findings.RAIL_DECOUPLING_REGULATORY_BYPASS_CLAIMS.push(`${f}: "${m[0]}"`);
-  // §68: internal execution may be fast, but no SLO has been measured for public
-  // use, so public copy does not promise instant, zero-latency or always-on.
-  const n = src.match(INSTANT);
-  if (n) findings.PUBLIC_UNMEASURED_INSTANT_CLAIMS.push(`${f}: "${n[0]}"`);
+  for (const sentence of src.split(/(?<=[.!?\n])/)) {
+    const m = sentence.match(BYPASS);
+    if (m && !DISCLAIMER.test(sentence)) findings.RAIL_DECOUPLING_REGULATORY_BYPASS_CLAIMS.push(`${f}: "${m[0]}"`);
+    // §68: internal execution may be fast, but no SLO has been measured for public
+    // use, so public copy does not promise instant, zero-latency or always-on.
+    const n = sentence.match(INSTANT);
+    if (n) findings.PUBLIC_UNMEASURED_INSTANT_CLAIMS.push(`${f}: "${n[0]}"`);
+  }
 }
 
 // ── 6. Financial Live stays closed ────────────────────────────────────────────

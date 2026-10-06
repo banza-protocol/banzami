@@ -104,6 +104,13 @@ const CASES = [
     expect: fails('RAIL_DECOUPLING_REGULATORY_BYPASS_CLAIMS'),
   },
   {
+    // The inverse must pass: a disclaimer that Banzami is NOT a licensed PSP states
+    // the opposite of a claim, so the negated sentence is not a finding.
+    name: 'a disclaimer that Banzami is NOT a licensed PSP is allowed',
+    mutate: (d) => edit(d, 'sdk/typescript/README.md', (s) => s.replace('# @banzami/sdk', '# @banzami/sdk\n\nBanzami is not a licensed PSP and makes no such claim.')),
+    expect: (c) => c.code === 0,
+  },
+  {
     name: 'a Live developer key is accepted',
     mutate: (d) => edit(d, 'services/api-gateway/internal/middleware/developer_auth.go', (s) => s.replace('[]string{"bz_test_sk_", "bz_test_pk_"}', '[]string{"bz_test_sk_", "bz_test_pk_", "bz_live_sk_"}')),
     expect: fails('LIVE_EXECUTION_ENABLED'),

@@ -154,6 +154,7 @@ const TRANSIT_USERS = {
   'core/api/src/routes/wallets.rs': 'SANDBOX_ONLY',            // sandbox_credit, admin_credit
   'core/api/src/routes/sandbox_funds.rs': 'SANDBOX_ONLY',      // retire: value goes BACK to transit
   'core/api/src/routes/sandbox_reset.rs': 'SANDBOX_ONLY',      // retire: value goes BACK to transit
+  'core/api/src/routes/account_deletion.rs': 'SANDBOX_ONLY',   // delete: fictitious balance swept BACK to transit (LIVE refused)
   'core/api/src/routes/refunds.rs': 'VALUE_LEAVES',            // restitution of an acquired payment credits transit
   'core/api/src/routes/disputes.rs': 'VALUE_LEAVES',
   'core/api/src/routes/restitution.rs': 'VALUE_LEAVES',
@@ -163,6 +164,7 @@ const SANDBOX_FUNDING_FNS = {
   'core/api/src/routes/wallets.rs': ['sandbox_credit', 'admin_credit'],
   'core/api/src/routes/sandbox_funds.rs': ['retire'],
   'core/api/src/routes/sandbox_reset.rs': ['reset'],
+  'core/api/src/routes/account_deletion.rs': ['delete_consumer', 'delete_business'],
 };
 const fnBody = (src, name) => {
   const m = new RegExp(`pub async fn ${name}\\s*\\(`).exec(src);
@@ -270,9 +272,14 @@ zero('PREMATURE_LEGAL_TERMS_PUBLIC');
   ].filter((f) => !/\.test\.|\/__tests__\//.test(f));
   if (existsSync(join(ROOT, 'sdk/typescript/README.md'))) PUBLIC.push('sdk/typescript/README.md');
   const TERMS = /\b(dep[oó]sitos?|deposits?|dinheiro\s+el[e]?ctr[oó]nico|moeda\s+el[e]?ctr[oó]nica|e-money|electronic\s+money|conta\s+banc[aá]ria\s+banzami|banzami\s+bank\s+account)\b/i;
+  // A disclaimer ("Test money is NOT electronic money", "não é moeda eletrónica")
+  // states the opposite of the premature claim, so a term inside a negated line is
+  // not a finding. An affirmative line ("é moeda eletrónica", "offers deposits")
+  // carries no such negation and is still caught.
+  const DISCLAIMER = /n[ãa]o\s+[ée]\b|n[ãa]o\s+s[ãa]o\b|\bis not\b|\bare not\b|\bnot an?\b|makes no such claim|n[ãa]o faz qualquer afirma/i;
   for (const f of PUBLIC) {
     read(f).split('\n').forEach((l, i) => {
-      if (TERMS.test(l)) fail('PREMATURE_LEGAL_TERMS_PUBLIC', `${f}:${i + 1} ${l.trim().slice(0, 140)}`);
+      if (TERMS.test(l) && !DISCLAIMER.test(l)) fail('PREMATURE_LEGAL_TERMS_PUBLIC', `${f}:${i + 1} ${l.trim().slice(0, 140)}`);
     });
   }
 }
