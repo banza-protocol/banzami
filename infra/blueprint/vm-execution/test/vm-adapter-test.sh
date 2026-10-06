@@ -61,5 +61,18 @@ if BZVM_INVENTORY_FILE="$FIXTURE" bash "$EXEC" legacy-reset-apply --apply >"$RUN
 AUTH="$RUN/authz"; printf 'BZVM_APPLY=yes\nBZVM_APPLY_SCOPE=legacy-reset\n' > "$AUTH"; chmod 0600 "$AUTH"
 if BZVM_INVENTORY_FILE="$FIXTURE" BZVM_AUTH_FILE="$AUTH" bash "$EXEC" legacy-reset-apply --apply >"$RUN/a3.out" 2>&1; then fail "apply proceeded without a runtime VM target"; else grep -q 'VM target not supplied' "$RUN/a3.out" && pass "authorised apply still fails closed without a runtime target" || fail "apply target guard"; fi
 
+echo "== evidence secret-mode contract (regression: transfer must not clobber NEW evidence modes) =="
+SBScripts="$(cd "$VMX_DIR/../sandbox-ops/scripts" && pwd)"
+# A) release-transfer scopes its chmod to the tmp + release-state dirs, never a recursive chmod of
+#    the Sandbox evidence tree (a `chmod -R` of $vmtmp clobbered every evidence secret to 0700).
+if grep -Eq "chmod -R[^\n]*\\\$vmtmp" "$EXEC"; then fail "release-transfer still does a recursive chmod of \$vmtmp (would clobber NEW evidence modes)"; else pass "release-transfer chmod does not recurse into the Sandbox evidence tree"; fi
+grep -Eq "chmod 0700 '\\\$vmtmp' '\\\$vmtmp/banzami-blueprint-release'" "$EXEC" && pass "release-transfer chmod is scoped to tmp + release-state dirs" || fail "release-transfer scoped chmod missing"
+# B) the ceremony apply path asserts evidence modes before mounting them into the four services.
+awk '/cmd_apply\(\)/{a=1} /cmd_verify\(\)/{a=0} a' "$SBScripts/sandbox-deploy.sh" | grep -Eq 'assert_secret_modes "\$EVIDENCE_ROOT"' \
+  && pass "ceremony cmd_apply asserts evidence secret modes (0644) before deploy" || fail "cmd_apply does not assert_secret_modes on \$EVIDENCE_ROOT"
+# C) runtime-authority forces 0644 on the final db_url file (cat>existing preserves the old mode).
+grep -Eq 'chmod 0644 "\$EV/\$file"' "$SBScripts/runtime-authority.sh" \
+  && pass "runtime-authority forces 0644 on the final db_url file" || fail "runtime-authority does not force 0644 on the final db_url file"
+
 echo "VM_ADAPTER_TEST_RESULT: $([ "$rc" -eq 0 ] && echo PASS || echo FAIL)"
 exit "$rc"

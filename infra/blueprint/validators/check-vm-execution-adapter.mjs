@@ -155,6 +155,18 @@ const all = Object.values(src).join('\n');
     : fail(9, `external-secret transfer (wired=${wired} allow=${allow} deny=${denies} noBulk=${noBulk} binds=${bindsOnly} noHead1=${noHead1} atomic=${atomic} noLeak=${noLeak} input=${inputGuard})`);
 }
 
+// 10. release-transfer must NOT recursively chmod the VM tmp tree. $vmtmp also holds the live
+//     Sandbox state (banzami-blueprint-sandbox/root-*/evidence/*); a `chmod -R` there clobbers
+//     every evidence secret mode and breaks the next deploy. The chmod must be scoped to the tmp
+//     dir itself and the release-state subdir only (non-recursive).
+{
+  const noRecursiveVmtmp = !/chmod -R[^\n]*\$vmtmp/.test(exec);
+  const scoped = /chmod 0700 '\$vmtmp' '\$vmtmp\/banzami-blueprint-release'/.test(exec);
+  (noRecursiveVmtmp && scoped)
+    ? pass(10, 'release-transfer chmod is scoped to the tmp + release-state dirs (never a recursive chmod of the Sandbox evidence tree)')
+    : fail(10, `release-transfer chmod scope (noRecursive=${noRecursiveVmtmp} scoped=${scoped})`);
+}
+
 console.log('');
 if (failed) { console.error(`check-vm-execution-adapter: ${failed} check(s) FAILED`); process.exit(1); }
 console.log('check-vm-execution-adapter: all checks passed');

@@ -40,10 +40,15 @@ for (const [key, rel] of COMPONENTS) {
 // here, and that is now named precisely rather than by substring.
 {
   const deploy = readIf(resolve(ROOT, 'sandbox-ops/scripts/sandbox-deploy.sh'));
-  const inDeploySet = (svc) => !!deploy && new RegExp(`SERVICES=\\([\\s\\S]*?"${svc}\\|`).test(deploy);
+  // Membership is read from the DEPLOY_ONE_ALLOWED_SERVICES set (the authorised deploy-one
+  // surfaces, "<name>|<port>|<bin>"); the ceremony subset is CEREMONY_APPLY_SERVICES.
+  const deploySet = (deploy.match(/DEPLOY_ONE_ALLOWED_SERVICES=\(([\s\S]*?)\)/) || [])[1] || '';
+  const inDeploySet = (svc) => new RegExp(`"${svc}\\|`).test(deploySet);
 
-  // (a) Still forbidden — admin and live surfaces have no place in this project.
-  const forbidden = ['admin-api-staging', 'admin-frontend', 'dashboard-frontend', 'checkout-frontend', 'banzai', 'banza-docs'];
+  // (a) Still forbidden — retired/live surfaces have no place in this project. admin-api and
+  // admin-frontend LEFT this list when Stage D approved the operator console (they are now
+  // authorised app-plane deploy-one surfaces); this mirrors sandbox-deploy.sh's own FORBIDDEN.
+  const forbidden = ['admin-api-staging', 'dashboard-frontend', 'checkout-frontend', 'reverse-proxy', 'banzai', 'banza-docs'];
   const present = forbidden.filter(inDeploySet);
   if (present.length) fail('allowlist', `deployment adapter deploys a forbidden service: ${present.join(', ')}`);
   else pass('allowlist', 'deployment adapter deploys no admin/live/retired surface');
@@ -57,12 +62,21 @@ for (const [key, rel] of COMPONENTS) {
   // (c) The payer surface holds no financial authority. It is the only entry
   //     with no secret mount, and adding a frontend must not broaden what the
   //     Sandbox exposes: application plane only, no data plane.
-  if (!deploy || !/PAY_FRONTEND_APP_PLANE_ONLY=1/.test(deploy)) {
+  // The real guard: the app-plane frontend first-create runs on the APPLICATION network only,
+  // with non-secret config env, NO secret mounts (-v) and NO data network. Assert that block
+  // directly rather than by a fragile proximity scan (which false-matched unrelated data-plane
+  // setup for the ceremony services nearby).
+  const appOnlyFlag = /PAY_FRONTEND_APP_PLANE_ONLY=1/.test(deploy);
+  const frontendCreate = (deploy.match(/first create on \$appnet \(application plane only, no secrets\)[\s\S]*?"\$tag" >\/dev\/null/) || [])[0] || '';
+  const appNetOnly = /docker run -d --name "\$cname" --network "\$appnet"/.test(frontendCreate)
+    && !/ -v /.test(frontendCreate)
+    && !/BZSB_DATA_NET|datanet|db_url|core_internal_key|jwt_secret/.test(frontendCreate);
+  if (!deploy || !appOnlyFlag) {
     fail('pay-plane', 'pay-frontend is deployed without the application-plane-only constraint');
-  } else if (/pay-frontend[\s\S]{0,900}?(BZSB_DATA_NET|db_url|core_internal_key|jwt_secret)/.test(deploy)) {
-    fail('pay-plane', 'pay-frontend is wired to the data plane or to a secret');
+  } else if (!frontendCreate || !appNetOnly) {
+    fail('pay-plane', 'the app-plane frontend create is not application-network-only / mounts a secret or the data plane');
   } else {
-    pass('pay-plane', 'pay-frontend is application-plane only and mounts no secret');
+    pass('pay-plane', 'pay-frontend (app-plane frontend) is application-network only and mounts no secret');
   }
 }
 

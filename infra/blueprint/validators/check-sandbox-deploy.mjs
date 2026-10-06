@@ -20,14 +20,19 @@ const FORBIDDEN = ['admin-api', 'dashboard', 'checkout', 'pay', 'banzai', 'banza
 // 1. exactly the four approved services; forbidden rejected
 {
   const all = FOUR.every(s => d.includes(s));
-  const noForbidden = !FORBIDDEN.some(s => new RegExp(`SERVICES=\\([\\s\\S]*"${s}\\|`).test(d));
+  // The CEREMONY deploys exactly the four core services; forbidden services (admin-api, pay,
+  // etc.) may appear in DEPLOY_ONE_ALLOWED_SERVICES (app-plane deploy-one) but NEVER in the
+  // ceremony set.
+  const ceremony = (d.match(/CEREMONY_APPLY_SERVICES=\(([^)]*)\)/) || [])[1] || '';
+  const noForbidden = ceremony !== '' && FOUR.every(s => ceremony.includes(s)) && !FORBIDDEN.some(s => ceremony.includes(s));
   const rejects = /allow_ok "\$name" \|\| die/.test(d) && /is forbidden/.test(d);
   (all && noForbidden && rejects) ? pass(1, 'exactly the four approved services; forbidden services rejected') : fail(1, `allowlist (all=${all} noForbidden=${noForbidden} rejects=${rejects})`);
 }
 // 2. provenance-before-health, one at a time
 {
   const provFirst = /provenance validation BEFORE load\/deploy/.test(d) && /validate_service "\$name"[\s\S]*deploy_one/.test(d);
-  const oneAtATime = /for e in "\$\{SERVICES\[@\]\}"; do[\s\S]*deploy_one/.test(d);
+  // The ceremony iterates DEPLOY_ONE_ALLOWED_SERVICES filtered to the ceremony set, one at a time.
+  const oneAtATime = /for e in "\$\{DEPLOY_ONE_ALLOWED_SERVICES\[@\]\}"; do[\s\S]*?is_ceremony_service[\s\S]*?deploy_one/.test(d);
   (provFirst && oneAtATime) ? pass(2, 'provenance validated before deployment; one service at a time') : fail(2, `sequence (prov=${provFirst} seq=${oneAtATime})`);
 }
 // 3. no build / no pull / no mutable tag — load only + digest match
@@ -36,17 +41,17 @@ const FORBIDDEN = ['admin-api', 'dashboard', 'checkout', 'pay', 'banzai', 'banza
   const digest = /loaded digest != manifest/.test(d) && /image_identity_matches/.test(d);
   (loadOnly && digest) ? pass(3, 'no build, no pull; image loaded from package with manifest-digest match') : fail(3, `immutable (load=${loadOnly} digest=${digest})`);
 }
-// 4. file-only in-process secrets — DB credential + JWT signing secret (never in Docker env)
+// 4. file-only in-process secrets — per-service DB credential + JWT signing secret (never in env)
+//    WALLET-NATIVE-001: each service reads its OWN db_url_<service>, mounted at /run/secrets and
+//    exported in-process by the entrypoint (never a Docker -e), then verified absent from the env.
 {
-  const dbCred = /-v "\$DBURL_FILE:\/run\/secrets\/db_url:ro"/.test(d)
-    && /export DATABASE_URL="\$\(cat \/run\/secrets\/db_url\)"/.test(d)
+  const dbCred = /db_url_core:DATABASE_URL/.test(d)
+    && /-v "\$EVIDENCE_ROOT\/\$sf:\/run\/secrets\/\$sf:ro"/.test(d)
     && !/-e "DATABASE_URL=/.test(d);
-  const jwtCred = /-v "\$JWT_FILE:\/run\/secrets\/jwt_secret:ro"/.test(d)
-    && /export JWT_SECRET="\$\(cat \/run\/secrets\/jwt_secret\)"/.test(d)
-    && !/-e "JWT_SECRET=/.test(d);
-  const inProcExec = /export DATABASE_URL="\$\(cat \/run\/secrets\/db_url\)";[\s\S]*?; exec /.test(d);
+  const jwtCred = /jwt_secret:JWT_SECRET/.test(d) && !/-e "JWT_SECRET=/.test(d);
+  const inProcExec = /export "\$v"="\$\(cat "\$f"\)"; done; exec /.test(d);
   const verifyNoSecret = /no_secret_in_env/.test(d) && /DATABASE_URL=\|password=/.test(d);
-  (dbCred && jwtCred && inProcExec && verifyNoSecret) ? pass(4, 'DB + JWT secrets file-only + exported in-process (never in Docker env); verified absent from inspectable env') : fail(4, `secret boundary (db=${dbCred} jwt=${jwtCred} exec=${inProcExec} verify=${verifyNoSecret})`);
+  (dbCred && jwtCred && inProcExec && verifyNoSecret) ? pass(4, 'per-service DB + JWT secrets file-only + exported in-process (never in Docker env); verified absent from inspectable env') : fail(4, `secret boundary (db=${dbCred} jwt=${jwtCred} exec=${inProcExec} verify=${verifyNoSecret})`);
 }
 // 5. non-root + health via real contract + no host port
 {
@@ -67,6 +72,17 @@ const FORBIDDEN = ['admin-api', 'dashboard', 'checkout', 'pay', 'banzai', 'banza
 {
   const CRED = /(postgres(ql)?|mysql):\/\/[^/\s"']+:[A-Za-z0-9]{6,}@|-----BEGIN [A-Z ]*PRIVATE KEY-----/i;
   (!/217\.160\.9\.248|ssh /.test(d) && !CRED.test(d)) ? pass(7, 'no VM contact; no credential literal') : fail(7, 'VM contact or credential literal present');
+}
+
+// 8. the ceremony apply path asserts evidence secret modes (0644) before mounting them into the
+//    four services, so a file left non-0644 upstream (recursive chmod during transfer, or
+//    runtime-authority rewriting over an existing file) cannot make a non-root container's
+//    db_url unreadable and fail the deploy closed.
+{
+  const apply = d.slice(d.indexOf('cmd_apply()'), d.indexOf('cmd_verify()'));
+  /assert_secret_modes "\$EVIDENCE_ROOT"/.test(apply)
+    ? pass(8, 'ceremony cmd_apply asserts evidence secret modes (0644) before the deploy loop')
+    : fail(8, 'cmd_apply does not assert_secret_modes on $EVIDENCE_ROOT');
 }
 
 console.log('');
