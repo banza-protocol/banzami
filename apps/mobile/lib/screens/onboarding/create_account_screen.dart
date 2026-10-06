@@ -125,7 +125,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       const Text('Escolha o seu @banza', style: BanzamiTextStyles.headingMd),
                       const SizedBox(height: 6),
                       Text(
-                        'É o nome único que as pessoas usam para lhe enviar pagamentos.',
+                        'Nome único para receber pagamentos.',
                         style: BanzamiTextStyles.bodyMd.copyWith(
                           color:  BanzamiColors.gray400,
                           height: 1.5,
@@ -164,7 +164,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       const Text('Nome completo', style: BanzamiTextStyles.headingMd),
                       const SizedBox(height: 6),
                       Text(
-                        'Usado no seu perfil, pagamentos e comprovativos.',
+                        'Como aparecerá no seu perfil e comprovativos.',
                         style: BanzamiTextStyles.bodyMd.copyWith(
                           color:  BanzamiColors.gray400,
                           height: 1.5,
@@ -204,7 +204,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       const Text('Email', style: BanzamiTextStyles.headingMd),
                       const SizedBox(height: 6),
                       Text(
-                        'Confirmamos o seu email por código. Serve para recuperar a conta se esquecer o PIN.',
+                        'Usado para confirmar e proteger a sua conta.',
                         style: BanzamiTextStyles.bodyMd.copyWith(
                           color:  BanzamiColors.gray400,
                           height: 1.5,
@@ -216,7 +216,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         label: 'Email',
                         child: TextFormField(
                           controller:      _emailCtrl,
-                          decoration:      _fieldDecoration(hint: 'ana@exemplo.ao'),
+                          decoration:      _fieldDecoration(hint: 'ana@exemplo.com'),
                           style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
                           cursorColor:     BanzamiColors.primary,
                           keyboardType:    TextInputType.emailAddress,

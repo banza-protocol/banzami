@@ -195,7 +195,10 @@ class _MerchantWelcomeScreenState extends State<MerchantWelcomeScreen>
                               foregroundColor: BanzamiColors.white,
                               onPressed: _connectExisting,
                             ),
-                            const SizedBox(height: BanzamiSpacing.lg),
+                            // Match the consumer welcome's bottom gap exactly (32px =
+                            // BanzamiSpacing.xxl) so the last button sits the same
+                            // distance from the bottom edge in both apps.
+                            const SizedBox(height: BanzamiSpacing.xxl),
                           ],
                         ),
                       ),
