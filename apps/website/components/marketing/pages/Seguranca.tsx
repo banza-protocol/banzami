@@ -124,8 +124,8 @@ const ACCESS: { icon: IconName; tag: Loc; title: Loc; desc: Loc }[] = [
     tag: L('PIN', 'PIN'),
     title: L('PIN de 6 dígitos', '6-digit PIN'),
     desc: L(
-      'Tratado como segredo: nunca é guardado nem mostrado em texto simples, e nunca deve ser partilhado com ninguém.',
-      'Treated as a secret: never stored or shown in clear text, and never to be shared with anyone.',
+      'Tratado como segredo: nunca é guardado nem mostrado em texto simples, e nunca deve ser partilhado com ninguém. A Banzami nunca pede o PIN por email, telefone ou mensagem.',
+      'Treated as a secret: never stored or shown in clear text, and never to be shared with anyone. Banzami never asks for your PIN by email, phone or message.',
     ),
   },
   {
@@ -305,7 +305,7 @@ const T = {
   aboutCta: L('Sobre a Banzami', 'About Banzami'),
 };
 
-const MAILTO = 'mailto:security@banzami.com?subject=Vulnerabilidade%20%E2%80%94%20Banzami';
+const MAILTO = 'mailto:security@banzami.com?subject=Vulnerabilidade%20Banzami';
 
 // Small reusable checklist row (dossier: check icon + label).
 function Checklist({ items, lang }: { items: Loc[]; lang: Lang }) {

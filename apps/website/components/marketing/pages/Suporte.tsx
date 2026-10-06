@@ -139,6 +139,15 @@ function Faq({ lang }: { lang: Lang }) {
         : (<>Na app, em Definições, escolha «Suprimir conta» e confirme com o PIN. Sem a app, use o formulário em <a href={route('supressao', lang)}>Supressão de conta</a>. Sair e «Remover deste dispositivo» não são o mesmo que suprimir.</>),
     },
     {
+      q: L(
+        'Qual é a diferença entre sair, remover deste dispositivo e suprimir a conta?',
+        'What is the difference between signing out, removing from this device, and deleting the account?',
+      ),
+      a: lang === 'en'
+        ? (<>Three different actions. <strong>Sign out</strong> ends the session on this device; your account and data stay intact and you can sign back in with @banza and PIN. <strong>Remove from this device</strong> also clears the locally stored access, but changes nothing on the server. <strong>Delete account</strong> is permanent: access is blocked, sessions and credentials are revoked and your personal data is removed or anonymized. See <a href={route('supressao', lang)}>Account deletion</a>.</>)
+        : (<>São três ações diferentes. <strong>Sair</strong> termina a sessão neste dispositivo; a conta e os dados permanecem intactos e pode voltar a entrar com @banza e PIN. <strong>Remover deste dispositivo</strong> apaga também o acesso guardado localmente, mas não altera nada no servidor. <strong>Suprimir a conta</strong> é permanente: o acesso é bloqueado, as sessões e as credenciais são revogadas e os seus dados pessoais são removidos ou anonimizados. Veja <a href={route('supressao', lang)}>Supressão de conta</a>.</>),
+    },
+    {
       q: L('A Banzami pede o número do cartão?', 'Does Banzami ask for my card number?'),
       a: lang === 'en'
         ? 'No. Banzami is not a card processor and will never ask for your card number or CVV.'

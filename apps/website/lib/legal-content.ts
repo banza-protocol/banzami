@@ -339,7 +339,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     id: 'dados-conta', n: '03', title: { pt: 'Dados de identidade e conta', en: 'Identity and account data' },
     body: [
       ul([
-        ['Email associado à conta (verificado por código e usado para gestão e recuperação da conta, por exemplo redefinir o PIN), nome e, quando aplicável, telefone.', 'Email associated with the account (verified by code and used for account management and recovery, for example resetting the PIN), name and, where applicable, phone.'],
+        ['Email associado à conta (verificado por código na criação da conta e usado para confirmar a conta, para segurança, para recuperação como redefinir o PIN, para notificações da conta e para a supressão da conta), nome e, quando aplicável, telefone.', 'Email associated with the account (verified by code at account creation and used to confirm the account, for security, for recovery such as resetting the PIN, for account notifications and for account deletion), name and, where applicable, phone.'],
         ['O seu @banza (identificador da carteira). O login é sempre @banza + PIN; o email e o telefone nunca substituem o @banza nem servem de método de login.', 'Your @banza (wallet identifier). Login is always @banza + PIN; email and phone never replace the @banza and are not a login method.'],
         ['Metadados de sessão e de autenticação (incluindo metadados de PIN/MFA, nunca o próprio PIN).', 'Session and authentication metadata (including PIN/MFA metadata, never the PIN itself).'],
       ]),
