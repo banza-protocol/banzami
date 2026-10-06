@@ -29,7 +29,11 @@ pub trait IdentityRepository: Send + Sync {
     /// Associate a verified recovery email with an ACTIVE consumer (legacy
     /// enrolment). Fails with EmailTaken on the unique index, NotFound when the
     /// consumer does not exist or is not ACTIVE.
-    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError>;
+    async fn set_email(
+        &self,
+        id: ConsumerId,
+        email: &str,
+    ) -> Result<ConsumerIdentity, IdentityError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -185,7 +189,11 @@ impl IdentityRepository for PostgresIdentityRepository {
         self.get(id).await
     }
 
-    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError> {
+    async fn set_email(
+        &self,
+        id: ConsumerId,
+        email: &str,
+    ) -> Result<ConsumerIdentity, IdentityError> {
         let now = Utc::now();
         let res = sqlx::query(
             "UPDATE consumers SET email = lower($1), email_verified_at = $2, updated_at = $2

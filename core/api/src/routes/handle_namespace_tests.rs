@@ -249,12 +249,12 @@ async fn fresh_db_is_born_with_the_protected_namespace(pool: PgPool) {
 
     // One representative name from each class, with its expected owner_type.
     let cases: &[(&str, &str)] = &[
-        ("admin", "SYSTEM"),         // internal reserved
-        ("banzami", "PROTECTED"),    // brand (upgraded from the 0133 SYSTEM row)
+        ("admin", "SYSTEM"),              // internal reserved
+        ("banzami", "PROTECTED"),         // brand (upgraded from the 0133 SYSTEM row)
         ("banzami_support", "PROTECTED"), // brand impersonation combo
-        ("bna", "PROTECTED"),        // ecosystem
-        ("bai", "PROTECTED"),        // bank
-        ("visa", "PROTECTED"),       // global payment brand
+        ("bna", "PROTECTED"),             // ecosystem
+        ("bai", "PROTECTED"),             // bank
+        ("visa", "PROTECTED"),            // global payment brand
     ];
     for (handle, want_owner) in cases {
         let owner: Option<String> =
@@ -316,7 +316,10 @@ async fn case_variants_cannot_escape_protection(pool: PgPool) {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(variants, 0, "a non-normalized spelling of a protected name was seeded");
+    assert_eq!(
+        variants, 0,
+        "a non-normalized spelling of a protected name was seeded"
+    );
 
     // Claiming the normalized spelling (what the app produces from BANZAMI/Banzami)
     // is blocked.
@@ -334,7 +337,10 @@ async fn case_variants_cannot_escape_protection(pool: PgPool) {
             .bind(id)
             .execute(&pool)
             .await;
-    assert!(claim.is_err(), "the normalized spelling of a protected name was claimable");
+    assert!(
+        claim.is_err(),
+        "the normalized spelling of a protected name was claimable"
+    );
 }
 
 // ── merchant_profiles holds NO identity: handle_registry is the sole authority ──
@@ -363,16 +369,20 @@ async fn merchant_profiles_has_no_handle_column(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn business_profile_resolves_through_the_registry(pool: PgPool) {
     let merchant = Uuid::new_v4();
-    sqlx::query("INSERT INTO merchants (id, name, email, status) VALUES ($1,'Loja X','x@t.test','ACTIVE')")
-        .bind(merchant)
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('lojax','MERCHANT',$1)")
-        .bind(merchant)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "INSERT INTO merchants (id, name, email, status) VALUES ($1,'Loja X','x@t.test','ACTIVE')",
+    )
+    .bind(merchant)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('lojax','MERCHANT',$1)",
+    )
+    .bind(merchant)
+    .execute(&pool)
+    .await
+    .unwrap();
     // Profile row carries metadata only — no handle column to insert into.
     sqlx::query("INSERT INTO merchant_profiles (merchant_id, display_name, public) VALUES ($1,'Loja X',true)")
         .bind(merchant)
@@ -387,15 +397,18 @@ async fn business_profile_resolves_through_the_registry(pool: PgPool) {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(owner, Some(merchant), "registry did not resolve the merchant handle");
+    assert_eq!(
+        owner,
+        Some(merchant),
+        "registry did not resolve the merchant handle"
+    );
 
-    let profile: Option<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM merchant_profiles WHERE merchant_id=$1 AND public=true",
-    )
-    .bind(merchant)
-    .fetch_optional(&pool)
-    .await
-    .unwrap();
+    let profile: Option<Uuid> =
+        sqlx::query_scalar("SELECT id FROM merchant_profiles WHERE merchant_id=$1 AND public=true")
+            .bind(merchant)
+            .fetch_optional(&pool)
+            .await
+            .unwrap();
     assert!(profile.is_some(), "profile not found by merchant_id");
 }
 
@@ -419,18 +432,23 @@ async fn two_claims_on_one_name_cannot_both_succeed(pool: PgPool) {
         .await
         .unwrap();
     }
-    let first =
-        sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)")
-            .bind(name)
-            .bind(a)
-            .execute(&pool)
-            .await;
-    let second =
-        sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)")
-            .bind(name)
-            .bind(b)
-            .execute(&pool)
-            .await;
+    let first = sqlx::query(
+        "INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)",
+    )
+    .bind(name)
+    .bind(a)
+    .execute(&pool)
+    .await;
+    let second = sqlx::query(
+        "INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)",
+    )
+    .bind(name)
+    .bind(b)
+    .execute(&pool)
+    .await;
     assert!(first.is_ok(), "the first claim on a free name failed");
-    assert!(second.is_err(), "a second claim on the same name also succeeded — one @banza, two owners");
+    assert!(
+        second.is_err(),
+        "a second claim on the same name also succeeded — one @banza, two owners"
+    );
 }

@@ -126,9 +126,7 @@ pub async fn create(
             IdentityError::HandleTaken(_) => {
                 ApiError::conflict("HANDLE_TAKEN", "handle already taken")
             }
-            IdentityError::EmailTaken => {
-                ApiError::conflict("EMAIL_TAKEN", "email already in use")
-            }
+            IdentityError::EmailTaken => ApiError::conflict("EMAIL_TAKEN", "email already in use"),
             IdentityError::InvalidHandle(r) => ApiError::bad_request(r),
             other => ApiError::internal(other.to_string()),
         })?;

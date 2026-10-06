@@ -33,7 +33,11 @@ pub trait IdentityEngine: Send + Sync {
     ) -> Result<ConsumerIdentity, IdentityError>;
     /// Associate a verified recovery email with an ACTIVE consumer (legacy
     /// enrolment). EmailTaken on a duplicate; NotFound when not ACTIVE/unknown.
-    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError>;
+    async fn set_email(
+        &self,
+        id: ConsumerId,
+        email: &str,
+    ) -> Result<ConsumerIdentity, IdentityError>;
 
     /// Resolve a @banza handle to its owner, confirming they are ACTIVE.
     ///
@@ -122,7 +126,11 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
         self.repo.set_badge(id, badge).await
     }
 
-    async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError> {
+    async fn set_email(
+        &self,
+        id: ConsumerId,
+        email: &str,
+    ) -> Result<ConsumerIdentity, IdentityError> {
         let normalized = email.trim().to_ascii_lowercase();
         if normalized.is_empty() {
             return Err(IdentityError::InvalidHandle("email is required"));
@@ -248,7 +256,11 @@ mod tests {
             Ok(identity.clone())
         }
 
-        async fn set_email(&self, id: ConsumerId, email: &str) -> Result<ConsumerIdentity, IdentityError> {
+        async fn set_email(
+            &self,
+            id: ConsumerId,
+            email: &str,
+        ) -> Result<ConsumerIdentity, IdentityError> {
             let mut store = self.identities.lock().unwrap();
             let identity = store
                 .iter_mut()

@@ -412,7 +412,10 @@ mod handle_rejection_tests {
             "display_name": "Loja",
         }))
         .expect("body should deserialize");
-        assert!(body.handle.is_some(), "the handle must be captured, not dropped by serde");
+        assert!(
+            body.handle.is_some(),
+            "the handle must be captured, not dropped by serde"
+        );
         let err = reject_handle(&body.handle).unwrap_err();
         assert_eq!(err.status, StatusCode::BAD_REQUEST);
     }

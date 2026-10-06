@@ -212,7 +212,15 @@ mod tests {
     // reserved list cannot creep back in.
     #[test]
     fn validate_handle_is_syntax_only_not_a_reserved_list() {
-        for h in &["banzami", "banza", "bna", "bai", "emis", "multicaixa", "admin"] {
+        for h in &[
+            "banzami",
+            "banza",
+            "bna",
+            "bai",
+            "emis",
+            "multicaixa",
+            "admin",
+        ] {
             assert!(
                 validate_handle(h).is_ok(),
                 "{h} failed SYNTAX validation — reserved/protected is the registry's job, not validate_handle's"
