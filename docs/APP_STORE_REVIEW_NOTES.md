@@ -17,12 +17,12 @@ The app uses handle + PIN authentication.
 A dedicated sandbox account has been provisioned for App Review.
 
 Review account:
-  Handle:  <issued for the submission — see the note below this block>
-  PIN:     <issued for the submission — see the note below this block>
+  Handle:  review
+  PIN:     123456
 
 Instructions:
 1. Open the app
-2. Tap "Entrar" (Log in)
+2. Tap "Já tenho conta" (Log in)
 3. Enter the review handle
 4. Enter the review PIN
 
@@ -86,24 +86,23 @@ Obrigado por fazeres parte do beta Banzami!
 
 ## Banzami Business (Merchant app)
 
-Usa autenticação por **Merchant ID + API Key** (diferente da app consumer).
+Usa autenticação por **@banza handle + PIN** (igual à app consumer; PIN de 6 dígitos).
 
 ### App Store Review Notes
 
 ```
-The app uses Merchant ID + API Key authentication.
-A dedicated sandbox merchant account has been provisioned for App Review.
+The app uses handle + PIN authentication.
+A dedicated sandbox business account has been provisioned for App Review.
 
-Review credentials:
-  Merchant ID:  b7f088ce-ca5e-4810-8624-d503da4d83dc
-  API Key:      <issued for the submission — see the note below this block>
+Review account:
+  Handle:  review_merchant
+  PIN:     123456
 
 Instructions:
 1. Open the app
-2. Tap "Configurar" (Set up)
-3. Enter the Merchant ID above
-4. Enter the API Key above
-5. Tap "Continuar"
+2. Tap "Conectar conta existente" (Connect existing account)
+3. Enter the review handle
+4. Enter the review PIN
 
 The review account has full access to:
 * Business dashboard — balance, KPIs (today/month volume & payments, average
@@ -130,7 +129,7 @@ Angola — QR nativo, liquidação instantânea, sem terminal de cartão, sem es
 construído sobre o protocolo BANZA.
 
 O que testar:
-1. Configurar a conta com Merchant ID e API Key
+1. Entrar com @banza (handle) e PIN
 2. Painel de negócio — saldo, KPIs (volume e nº de pagamentos de hoje e do mês,
    ticket médio, taxa de sucesso), gráfico de volume dos últimos 7 dias e cartão
    de liquidações/payouts (estado de verificação KYB)
@@ -187,9 +186,9 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 2. Selecciona a app (`Banzami` ou `Banzami Business`)
 3. **App Information** → **App Review Information**
 4. Cola o bloco correspondente no campo **Notes**
-5. Para o **Demo Account**:
-   - Consumer: the review handle and PIN issued for the submission
-   - Business: Username = Merchant ID, Password = API Key
+5. Para o **Demo Account** (ambos usam @banza handle + PIN):
+   - Consumer: Username = `review`, Password = `123456`
+   - Business: Username = `review_merchant`, Password = `123456`
 6. Grava → submete o build para revisão
 
 ### TestFlight — What to Test
@@ -204,46 +203,43 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 
 ## Contas de revisão sandbox
 
-> **Estado:** Apps aprovadas em 2026-05-18 (TestFlight External).
-> Conta `review` recriada em 2026-05-24 para próxima submissão (Banzami consumer).
-> Banzami Business ainda não submetido — conta merchant pendente.
-> Builds TestFlight seguintes não precisam de nova revisão Apple após aprovação inicial.
+> **Estado (2026-10-06):** após o clean reset do Sandbox, ambas as contas de
+> revisão são recriadas pelos fluxos normais do produto e entram por **@banza + PIN**
+> (6 dígitos), igual nas duas apps. O PIN de demonstração é `123456` (conta de
+> teste, **dinheiro fictício**). Os IDs (consumer/merchant) são atribuídos no
+> momento da criação.
 
 ### Consumer (Banzami)
 
-| Campo       | Valor                                    | Estado  |
-|-------------|------------------------------------------|---------|
-| Handle      | review                                   | ACTIVE  |
-| PIN         | *(não publicado — emitido para a submissão)* | — |
-| Consumer ID | 8d94dd9c-73d6-4743-94f5-4235249dbb79     | ACTIVE  |
-| Criada em   | 2026-05-24                               | —       |
+| Campo    | Valor                       | Estado |
+|----------|-----------------------------|--------|
+| Handle   | review                      | —      |
+| PIN      | 123456                      | —      |
+| Email    | verificado na criação       | —      |
+| Ambiente | SANDBOX                     | —      |
 
-Para desactivar: `POST /admin/v1/consumers/8d94dd9c-73d6-4743-94f5-4235249dbb79/suspend`
-na admin-api (consola de operador), autenticado como operador com a capacidade
-`consumer.suspend`. A rota equivalente na superfície de merchant do API gateway
-foi removida por não ter autorização (auditoria de segurança, SEC-003).
+Criação: signup normal (nome → @banza `review` → email → código OTP → email
+verificado → PIN `123456`). Para desactivar: `POST /admin/v1/consumers/{id}/suspend`
+na admin-api (operador com a capacidade `consumer.suspend`).
 
 ### Merchant (Banzami Business)
 
-| Campo       | Valor                                                                      | Estado                |
-|-------------|----------------------------------------------------------------------------|-----------------------|
-| Merchant ID | b7f088ce-ca5e-4810-8624-d503da4d83dc                                       | Desactivar no sandbox |
-| API Key     | *(não publicada — ver abaixo)*                                              | Revogada              |
-| Ambiente    | SANDBOX                                                                    | —                     |
+| Campo    | Valor           | Estado |
+|----------|-----------------|--------|
+| Handle   | review_merchant | —      |
+| PIN      | 123456          | —      |
+| Ambiente | SANDBOX         | —      |
 
-A chave desta conta de revisão foi **revogada** e deliberadamente não está aqui.
+Criação: fluxo Business normal (candidatura pública → aprovação em BANZADMIN →
+ativação com PIN `123456`). A app Business entra por **@banza + PIN**, igual à
+Consumer; o antigo modelo *Merchant ID + API Key* deixou de ser o login da app
+(a API Key continua a existir apenas para integrações/SDK, não para a app).
 
-Este documento continha a chave em texto claro, num repositório que é público, e
-dizia para a revogar em `dashboard.banzami.com` — um host que não existe
-(NXDOMAIN). Ambas as coisas eram falsas de maneiras diferentes: a chave já não
-autenticava (401 no rail Sandbox), e o sítio indicado para a revogar nunca
-esteve lá.
-
-As chaves de API do Sandbox são emitidas e revogadas na Consola de programadores,
-em **https://developers.banzami.com/api-keys**. Uma chave é mostrada uma única
-vez, no momento em que é criada; a partir daí só existe o seu prefixo. Se a
-revisão precisar de uma credencial nova, ela é emitida aí e entregue pelo canal
-privado do pedido — nunca num ficheiro versionado.
+> **Repositório público:** `123456` é um PIN de demonstração para contas de review
+> em Sandbox (sem valor real) e tem de ser partilhado com a revisão da Apple/Google.
+> **Nunca** colocar aqui PINs, chaves ou credenciais de contas reais — essas vivem
+> só no campo privado do App Store Connect / Play Console ou no canal privado do
+> pedido. Suspende/roda estas contas de demo após a revisão.
 
 ---
 
