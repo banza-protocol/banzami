@@ -18,7 +18,7 @@ A dedicated sandbox account has been provisioned for App Review.
 
 Review account:
   Handle:  review
-  PIN:     123456
+  PIN:     (see the Demo Account field)
 
 Instructions:
 1. Open the app
@@ -96,7 +96,7 @@ A dedicated sandbox business account has been provisioned for App Review.
 
 Review account:
   Handle:  review_merchant
-  PIN:     123456
+  PIN:     (see the Demo Account field)
 
 Instructions:
 1. Open the app
@@ -187,8 +187,8 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 3. **App Information** → **App Review Information**
 4. Cola o bloco correspondente no campo **Notes**
 5. Para o **Demo Account** (ambos usam @banza handle + PIN):
-   - Consumer: Username = `review`, Password = `123456`
-   - Business: Username = `review_merchant`, Password = `123456`
+   - Consumer: Username = `review`, Password = *(PIN de demo — não publicado no repo)*
+   - Business: Username = `review_merchant`, Password = *(PIN de demo — não publicado no repo)*
 6. Grava → submete o build para revisão
 
 ### TestFlight — What to Test
@@ -205,21 +205,22 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 
 > **Estado (2026-10-06):** após o clean reset do Sandbox, ambas as contas de
 > revisão são recriadas pelos fluxos normais do produto e entram por **@banza + PIN**
-> (6 dígitos), igual nas duas apps. O PIN de demonstração é `123456` (conta de
-> teste, **dinheiro fictício**). Os IDs (consumer/merchant) são atribuídos no
-> momento da criação.
+> (6 dígitos), igual nas duas apps. O PIN de demonstração **não é publicado neste
+> repositório** — vive só no campo Demo Account privado do App Store Connect / Play
+> Console. São contas de teste (**dinheiro fictício**); os IDs (consumer/merchant)
+> são atribuídos no momento da criação.
 
 ### Consumer (Banzami)
 
 | Campo    | Valor                       | Estado |
 |----------|-----------------------------|--------|
 | Handle   | review                      | —      |
-| PIN      | 123456                      | —      |
+| PIN      | *(demo — campo Demo Account)* | —    |
 | Email    | verificado na criação       | —      |
 | Ambiente | SANDBOX                     | —      |
 
 Criação: signup normal (nome → @banza `review` → email → código OTP → email
-verificado → PIN `123456`). Para desactivar: `POST /admin/v1/consumers/{id}/suspend`
+verificado → define o PIN de demo). Para desactivar: `POST /admin/v1/consumers/{id}/suspend`
 na admin-api (operador com a capacidade `consumer.suspend`).
 
 ### Merchant (Banzami Business)
@@ -227,19 +228,18 @@ na admin-api (operador com a capacidade `consumer.suspend`).
 | Campo    | Valor           | Estado |
 |----------|-----------------|--------|
 | Handle   | review_merchant | —      |
-| PIN      | 123456          | —      |
+| PIN      | *(demo — campo Demo Account)* | — |
 | Ambiente | SANDBOX         | —      |
 
 Criação: fluxo Business normal (candidatura pública → aprovação em BANZADMIN →
-ativação com PIN `123456`). A app Business entra por **@banza + PIN**, igual à
+ativação com o PIN de demo). A app Business entra por **@banza + PIN**, igual à
 Consumer; o antigo modelo *Merchant ID + API Key* deixou de ser o login da app
 (a API Key continua a existir apenas para integrações/SDK, não para a app).
 
-> **Repositório público:** `123456` é um PIN de demonstração para contas de review
-> em Sandbox (sem valor real) e tem de ser partilhado com a revisão da Apple/Google.
-> **Nunca** colocar aqui PINs, chaves ou credenciais de contas reais — essas vivem
-> só no campo privado do App Store Connect / Play Console ou no canal privado do
-> pedido. Suspende/roda estas contas de demo após a revisão.
+> **Repositório público:** o PIN de demonstração destas contas **não** é publicado
+> neste ficheiro — vive só no campo **Demo Account** privado do App Store Connect /
+> Play Console. **Nunca** colocar aqui PINs, chaves ou credenciais — nem as de demo.
+> São contas Sandbox (dinheiro fictício); suspende/roda-as após a revisão.
 
 ---
 
