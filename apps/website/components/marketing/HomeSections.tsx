@@ -35,7 +35,7 @@ const CF = {
   steps: [
     { t: L('Ler', 'Read'), d: L('Leia o QR ou use um @banza', 'Read the QR or use a @banza') },
     { t: L('Confirmar', 'Confirm'), d: L('Revise os detalhes e confirme', 'Review the details and confirm') },
-    { t: L('Pagar', 'Pay'), d: L('Receba o comprovativo instantaneamente', 'Get the receipt instantly') },
+    { t: L('Pagar', 'Pay'), d: L('Receba o comprovativo em segundos', 'Get the receipt in seconds') },
   ],
   step: L('PASSO', 'STEP'),
 };

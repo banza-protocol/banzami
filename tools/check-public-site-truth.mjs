@@ -104,11 +104,12 @@ const RULES = [
   // rede de pagamentos"), not as an ordinal in legitimate copy ("o primeiro
   // lançamento" / "the first ledger entry"), which is not a superlative about Banzami.
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /\b(?:o melhor|a melhor|líder|revolucion\w*|inovador\w*|incrível|mais rápid\w*|mais segur\w*)\b|(?:o primeiro|a primeira)\s+(?:rede|plataforma|operador\w*|startup|app|aplica[çc][ãa]o|sistema|banco|carteira|QR|gateway|fintech)\b/gi, 'a superlative'],
-  // Instant settlement is the documented core product property (CLAUDE.md §2.6:
-  // scan → confirm → paid; the Sandbox ledger write is synchronous), so "em
-  // segundos" and "instantaneamente" are supported statements, not unprovable
-  // promises. Vaguer or sloganeering timing stays forbidden.
-  ['PUBLIC_SITE_UNSUPPORTED_COPY', /em minutos|menos de \d+ (?:segundos|minutos)|à velocidade da internet/gi, 'a speed promise'],
+  // "em segundos" is a concrete, supported statement (instant settlement is the
+  // documented core property, CLAUDE.md §2.6; the Sandbox ledger write is
+  // synchronous). The ABSOLUTE claim "instantaneamente" is NOT allowed — no public
+  // SLO has been measured (BANZA ADR-061 §68, enforced by check-wallet-native);
+  // vaguer or sloganeering timing stays forbidden too.
+  ['PUBLIC_SITE_UNSUPPORTED_COPY', /instantaneamente|em minutos|menos de \d+ (?:segundos|minutos)|à velocidade da internet/gi, 'a speed promise'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /[Ee]m breve|soon:\s*true|[Ww]aitlist|lista de espera/g, 'a roadmap promise or waitlist'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /\b(?:Junta-te|precisares|Constrói connosco|Descobre|Aceita pagamentos|Imprime um|recebes|Vês tudo|procuras|Arrasta para|Toca para|Cria a tua|escolhe o teu|o teu negócio|a tua app)\b/g, 'the "tu" form (the site addresses the reader as "você")'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /encripta[çc][ãa]o de ponta a ponta|end-to-end encrypt/gi, 'an end-to-end encryption claim'],

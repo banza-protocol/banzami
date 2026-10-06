@@ -161,6 +161,13 @@ const CASES = [
     expect: (c) => c.code === 0 && c.counters.PUBLIC_SITE_TRUTH === 'PASS',
   },
   {
+    // …but the absolute claim "instantaneamente" is not (no measured public SLO,
+    // ADR-061 §68); only the concrete "em segundos" is.
+    name: 'copy — the absolute "instantaneamente" claim is caught',
+    mutate: (d) => edit(d, `${W}/components/marketing/Footer.tsx`, (s) => s.replace('Construído sobre o BANZA.', 'Pague instantaneamente.')),
+    expect: fails('PUBLIC_SITE_UNSUPPORTED_COPY'),
+  },
+  {
     name: 'copy — a market-position superlative ("a primeira rede") is caught',
     mutate: (d) => edit(d, `${W}/components/marketing/Footer.tsx`, (s) => s.replace('Construído sobre o BANZA.', 'A primeira rede de pagamentos de Angola.')),
     expect: fails('PUBLIC_SITE_UNSUPPORTED_COPY'),
