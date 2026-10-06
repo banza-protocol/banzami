@@ -187,7 +187,7 @@ const DV = {
 const DV_ROWS = [
   { in: 'A', h: '@ana', v: '3 000 Kz', ok: true },
   { in: 'M', h: '@maria', v: '3 000 Kz', ok: true },
-  { in: 'J', h: '@joao', v: '3 000 Kz', ok: false },
+  { in: 'N', h: '@nei', v: '3 000 Kz', ok: false },
   { in: 'K', h: '@kiala', v: '3 000 Kz', ok: false },
 ];
 
@@ -209,7 +209,7 @@ const VA = {
 const VA_ROWS = [
   { t: '12:40', h: '@ana', r: 'BZM-7Q4K-2M9A', v: '1 500 Kz' },
   { t: '12:31', h: '@maria', r: 'BZM-3HNA-GZ5T', v: '4 500 Kz' },
-  { t: '12:02', h: '@joao', r: 'BZM-P8LE-4Q2C', v: '2 250 Kz' },
+  { t: '12:02', h: '@nei', r: 'BZM-P8LE-4Q2C', v: '2 250 Kz' },
   { t: '11:48', h: '@kiala', r: 'BZM-M2VX-9KD1', v: '850 Kz' },
 ];
 
