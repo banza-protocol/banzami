@@ -20,6 +20,7 @@
 #   sandbox-bootstrap-apply
 #   sandbox-migration-apply
 #   sandbox-deploy-apply
+#   external-secret-transfer-plan | external-secret-transfer-apply
 #   final-verify
 set -euo pipefail
 
@@ -28,6 +29,8 @@ VMX_DIR="$SCRIPT_DIR"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # shellcheck source=lib/classify.sh
 . "$VMX_DIR/lib/classify.sh"
+# shellcheck source=lib/external-secret-xfer.sh
+. "$VMX_DIR/lib/external-secret-xfer.sh"
 
 RELEASE_STATE="${TMPDIR:-/tmp}/banzami-blueprint-release/current.run"
 WORK_BASE="${TMPDIR:-/tmp}/banzami-blueprint-vmx"
@@ -48,6 +51,9 @@ require_target() {
 # < file` loop (e.g. the reset delete loop) drains the loop's stdin and only the first item runs.
 remote()  { require_target; ssh -n -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$BZVM_SSH_TARGET" "$@"; }
 xfer()    { require_target; rsync -a --checksum "$@"; }
+# remote_in: like remote() but WITHOUT -n, so a script can be piped to the VM over stdin
+# (`printf '%s' "$script" | remote_in "bash -s -- <args>"`). Target still from env, never a literal.
+remote_in() { require_target; ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$BZVM_SSH_TARGET" "$@"; }
 
 # --- apply guard: explicit flag + per-execution authorisation file ------------------------
 MODE=plan
@@ -246,6 +252,48 @@ cmd_sandbox_deploy_clean() {
   echo "VM_SANDBOX_DEPLOY_CLEAN: PASS"
 }
 
+# Owner-gated external-secret transfer between two Sandbox RUNIDs (OLD -> NEW), replacing the
+# manual "owner places secret files" step with a sanctioned, allow-listed, idempotent, fail-closed
+# mechanism. Inputs are runtime-only (BZVM_OLD_RUNID / BZVM_NEW_RUNID / BZVM_SECRET_NAMES); nothing
+# is hard-coded. All input validation happens here, operator-side, BEFORE any VM contact; the VM
+# then resolves the evidence roots (NEW from the current SANDBOX_STATE, OLD from the OLD core-api
+# container binds) and performs the atomic placement via the pure library inlined over stdin. The
+# secret VALUE never leaves the VM and is never printed.
+cmd_external_secret_transfer() { # <plan|apply>
+  local act="$1"
+  local old="${BZVM_OLD_RUNID:-}" new="${BZVM_NEW_RUNID:-}" names="${BZVM_SECRET_NAMES:-}"
+  # 1) presence
+  [ -n "$old" ]   || die "refusing external-secret-transfer: BZVM_OLD_RUNID not supplied"
+  [ -n "$new" ]   || die "refusing external-secret-transfer: BZVM_NEW_RUNID not supplied"
+  [ -n "$names" ] || die "refusing external-secret-transfer: BZVM_SECRET_NAMES not supplied"
+  # 2) RUNID shape + 3) OLD must differ from NEW (prevents self-copy / stale-stack mistakes)
+  esx_valid_runid "$old" || die "refusing external-secret-transfer: BZVM_OLD_RUNID malformed"
+  esx_valid_runid "$new" || die "refusing external-secret-transfer: BZVM_NEW_RUNID malformed"
+  [ "$old" != "$new" ]   || die "refusing external-secret-transfer: OLD_RUNID == NEW_RUNID"
+  # 4) every requested name must be allow-listed (rejects peppers, mi_*, db_url_*, traversal, wildcard)
+  local oldifs="$IFS" n; set -f; IFS=,; local -a _names=($names); set +f; IFS="$oldifs"
+  for n in "${_names[@]}"; do
+    esx_valid_name "$n" || die "refusing external-secret-transfer: secret name not permitted: $n"
+  done
+  # apply needs the explicit flag + scoped authorisation; plan is read-only. Both need a VM target.
+  [ "$act" = apply ] && guard_apply external-secret-transfer
+  require_target
+  local new_state="$BZVM_REMOTE_ROOT/tmp/banzami-blueprint-sandbox/current.run"
+  # Non-sensitive, operator-side identity (no paths, no values).
+  echo "  mode: $act"
+  echo "  old_runid: $old"
+  echo "  new_runid: $new"
+  echo "  secret_names: $names"
+  echo "  scope: external-secret-transfer"
+  echo "  allow_list: $ESX_ALLOW"
+  # Inline the pure library + an explicit entrypoint call, piped to the VM over stdin. The library's
+  # own direct-run guard does not fire here (BASH_SOURCE != $0 under `bash -s`), so we call it.
+  local vm_script; vm_script="$(printf 'set -euo pipefail\n%s\nesx_vm_main "$@"\n' "$(cat "$VMX_DIR/lib/external-secret-xfer.sh")")"
+  printf '%s' "$vm_script" | remote_in "bash -s -- '$old' '$new' '$names' '$act' '$new_state'" \
+    || hold "BLOCKER — VM EXTERNAL SECRET TRANSFER FAILED" 47
+  echo "VM_EXTERNAL_SECRET_TRANSFER_$([ "$act" = apply ] && echo APPLY || echo PLAN): PASS"
+}
+
 cmd_final_verify() {
   local rc=0
   remote_adapter "infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh"  verify || rc=1
@@ -276,6 +324,8 @@ case "$SUB" in
   sandbox-migration-apply)  cmd_sandbox_migration_apply ;;
   sandbox-deploy-apply)     cmd_sandbox_deploy_apply ;;
   sandbox-deploy-clean)     cmd_sandbox_deploy_clean ;;
+  external-secret-transfer-plan)  cmd_external_secret_transfer plan ;;
+  external-secret-transfer-apply) cmd_external_secret_transfer apply ;;
   final-verify)             cmd_final_verify ;;
-  *) die "usage: vm-execute.sh {preflight|release-transfer-plan|release-transfer-apply|dry-run|legacy-reset-plan|legacy-reset-apply|sandbox-bootstrap-apply|sandbox-migration-apply|sandbox-deploy-apply|final-verify} [--apply]" ;;
+  *) die "usage: vm-execute.sh {preflight|release-transfer-plan|release-transfer-apply|dry-run|legacy-reset-plan|legacy-reset-apply|sandbox-bootstrap-apply|sandbox-migration-apply|sandbox-deploy-apply|external-secret-transfer-plan|external-secret-transfer-apply|final-verify} [--apply]" ;;
 esac

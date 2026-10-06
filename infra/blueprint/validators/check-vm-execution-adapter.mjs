@@ -122,6 +122,39 @@ const all = Object.values(src).join('\n');
     : fail(8, `remote wiring (mat=${materialise} rev=${revVerify} state=${releaseState} dry=${dryRun} gate=${resetGatedOnDryRun} order=${markerAfterProof})`);
 }
 
+// 9. owner-gated external-secret transfer: allow-list only, forbidden families denied, no
+//    wildcard/recursive copy, no container-env secret source, no head -1 stack selection, apply
+//    guarded, idempotent, and the secret value is never printed.
+{
+  const lib = readFileSync(resolve(VMX, 'lib', 'external-secret-xfer.sh'), 'utf8');
+  // subcommands wired, plan-by-default (plan vs apply), apply guarded by its own scope
+  const wired = /external-secret-transfer-plan\)\s*cmd_external_secret_transfer plan/.test(exec)
+    && /external-secret-transfer-apply\)\s*cmd_external_secret_transfer apply/.test(exec)
+    && /guard_apply external-secret-transfer/.test(exec);
+  // allow-list contains exactly the five external secrets; peppers / mi_* / db_url_* are denied
+  const allow = /ESX_ALLOW="resend_api_key firebase_credentials_json kyb_storage_endpoint kyb_storage_access_key_id kyb_storage_secret_access_key"/.test(lib);
+  const denies = /ESX_DENY=.*otp_pepper.*rate_limit_pepper/.test(lib)
+    && /case "\$n" in db_url\*\|mi_\*\) return 1/.test(lib)
+    && /\[\[ "\$n" =~ \^\[a-z0-9_\]\+\$ \]\] \|\| return 1/.test(lib); // charset blocks traversal/wildcards
+  // no wildcard / recursive / bulk copy anywhere; the copy is a redirected single-file read
+  const noBulk = !/\bcp\s+-[a-zA-Z]*r/.test(lib) && !/\brsync\b/.test(lib) && !/\btar\b/.test(lib)
+    && !/\bcp\s+["']?\$\w+\/\*/.test(lib) && /cat "\$src" > "\$tmp"/.test(lib);
+  // OLD evidence root from container BINDS only — never from container env
+  const bindsOnly = /HostConfig\.Binds/.test(lib) && !/\.Config\.Env/.test(lib) && !/docker inspect[^\n]*Env/.test(lib);
+  // exactly-one match, no head -1 glob selection in the new resolution
+  const noHead1 = /\[ "\$hits" = 1 \]/.test(lib) && !/head -1/.test(lib);
+  // atomic placement + idempotency: temp inside dest, rename, differ-blocks, identical-noop
+  const atomic = /mv -f "\$tmp" "\$dst"/.test(lib) && /destination_exists_and_differs/.test(lib) && /ALREADY_IDENTICAL/.test(lib);
+  // never prints the value: no set -x, no echo/cat of the secret content
+  const noLeak = !/set -x/.test(lib) && !/echo "\$\{?(src|dst|secret|value)/.test(lib) && !/cat "\$dst"/.test(lib);
+  // operator-side runid validation + OLD != NEW before any VM contact
+  const inputGuard = /esx_valid_runid "\$old"/.test(exec) && /esx_valid_runid "\$new"/.test(exec)
+    && /\[ "\$old" != "\$new" \]\s*\|\| die/.test(exec);
+  (wired && allow && denies && noBulk && bindsOnly && noHead1 && atomic && noLeak && inputGuard)
+    ? pass(9, 'external-secret transfer: allow-list only; peppers/mi_*/db_url_*/traversal/wildcards denied; no recursive/bulk copy; binds-only (no container-env); no head -1; atomic + idempotent; value never printed; apply guarded')
+    : fail(9, `external-secret transfer (wired=${wired} allow=${allow} deny=${denies} noBulk=${noBulk} binds=${bindsOnly} noHead1=${noHead1} atomic=${atomic} noLeak=${noLeak} input=${inputGuard})`);
+}
+
 console.log('');
 if (failed) { console.error(`check-vm-execution-adapter: ${failed} check(s) FAILED`); process.exit(1); }
 console.log('check-vm-execution-adapter: all checks passed');

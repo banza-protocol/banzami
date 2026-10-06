@@ -1282,12 +1282,16 @@ sandbox-operational-rehearsal:
 .PHONY: check-vm-execution-adapter vm-execution-test \
 	vm-execution-preflight vm-release-transfer-plan vm-release-transfer-apply vm-dry-run \
 	vm-legacy-reset-plan vm-legacy-reset-apply vm-sandbox-bootstrap-apply \
-	vm-sandbox-migration-apply vm-sandbox-deploy-apply vm-sandbox-deploy-clean vm-sandbox-final-verify
+	vm-sandbox-migration-apply vm-sandbox-deploy-apply vm-sandbox-deploy-clean vm-sandbox-final-verify \
+	vm-external-secret-transfer-plan vm-external-secret-transfer-apply
 check-vm-execution-adapter:
 	node infra/blueprint/validators/check-vm-execution-adapter.mjs
 
+# Both offline, synthetic, no-VM harnesses: the classification/apply-guard adapter test and the
+# external-secret transfer test (pure placement + operator-side validation against temp fixtures).
 vm-execution-test:
 	bash infra/blueprint/vm-execution/test/vm-adapter-test.sh
+	bash infra/blueprint/vm-execution/test/external-secret-xfer-test.sh
 
 vm-execution-preflight:
 	bash infra/blueprint/vm-execution/vm-execute.sh preflight
@@ -1318,6 +1322,15 @@ vm-sandbox-deploy-apply:
 
 vm-sandbox-deploy-clean:
 	bash infra/blueprint/vm-execution/vm-execute.sh sandbox-deploy-clean --apply
+
+# Owner-gated external-secret transfer between Sandbox RUNIDs (OLD -> NEW). Runtime inputs:
+# BZVM_OLD_RUNID / BZVM_NEW_RUNID / BZVM_SECRET_NAMES (comma list, allow-listed). plan is
+# read-only; apply needs --apply + a BZVM_AUTH_FILE scoped to external-secret-transfer.
+vm-external-secret-transfer-plan:
+	bash infra/blueprint/vm-execution/vm-execute.sh external-secret-transfer-plan
+
+vm-external-secret-transfer-apply:
+	bash infra/blueprint/vm-execution/vm-execute.sh external-secret-transfer-apply --apply
 
 vm-sandbox-final-verify:
 	bash infra/blueprint/vm-execution/vm-execute.sh final-verify
