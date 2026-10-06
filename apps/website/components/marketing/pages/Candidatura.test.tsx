@@ -50,7 +50,7 @@ describe('Sandbox Business application — full rehearsal flow', () => {
     await testDataBtn(); // wait for sandbox mode
     // Fill Step 1 manually (avoid the fill-all button so documents stay empty).
     await user.type(screen.getByLabelText(/Nome comercial/), 'Cantina Teste');
-    await user.type(screen.getByLabelText(/@negócio/), 'cantina_teste_x');
+    await user.type(screen.getByLabelText(/@banza/), 'cantina_teste_x');
     await user.selectOptions(screen.getByLabelText(/Categoria/), 'Restauração');
     await user.type(screen.getByLabelText(/E-mail de contacto/), 'x@exemplo.ao');
     await user.click(cont()); // → Responsável

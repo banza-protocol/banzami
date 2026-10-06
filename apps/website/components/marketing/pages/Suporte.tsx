@@ -103,10 +103,16 @@ function Faq({ lang }: { lang: Lang }) {
         : 'É o seu nome de utilizador na Banzami. Serve para enviar e receber entre pessoas, sem IBAN nem número de conta.',
     },
     {
-      q: L('Porque é que alguns @banza não estão disponíveis?', 'Why are some @banza unavailable?'),
+      q: L('Porque é que um @banza pode não estar disponível?', 'Why might a @banza be unavailable?'),
       a: lang === 'en'
-        ? 'Some @banza are unavailable or reserved for reasons of security, platform integrity or identity protection. If a name cannot be taken, simply choose another.'
-        : 'Alguns @banza podem estar indisponíveis ou reservados por razões de segurança, integridade da plataforma ou proteção de identidade. Se um nome não puder ser usado, basta escolher outro.',
+        ? 'A @banza may already be in use, or reserved or protected for reasons of security and identity protection. In that case, choose another name.'
+        : 'Um @banza pode já estar em uso ou estar reservado ou protegido por razões de segurança e proteção de identidade. Nesse caso, escolha outro nome.',
+    },
+    {
+      q: L('Posso mudar o meu @banza?', 'Can I change my @banza?'),
+      a: lang === 'en'
+        ? 'Your @banza identifies your account and currently cannot be changed through your profile.'
+        : 'O @banza identifica a sua conta e atualmente não pode ser alterado através do perfil.',
     },
     {
       q: L('Como verifico um comprovativo?', 'How do I verify a receipt?'),

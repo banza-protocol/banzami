@@ -272,14 +272,14 @@ export function isValidHandleFormat(handle: string): boolean {
 export function handleReasonMessage(reason?: string): string {
   switch (reason) {
     case 'INVALID':
-      return 'Use 3 a 30 caracteres: letras minúsculas, números ou _.';
+      return 'Use 3 a 30 caracteres, começando por uma letra: letras minúsculas, números ou _.';
     case 'UNAVAILABLE':
     case 'TAKEN':
     case 'RESERVED':
     case 'PENDING':
     case 'BUSINESS':
     default:
-      return 'Este @negócio não está disponível. Escolha outro.';
+      return 'Este @banza não está disponível. Escolha outro.';
   }
 }
 

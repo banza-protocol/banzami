@@ -96,7 +96,7 @@ export const STATUS_COPY: Record<ApplicationStatus['status'], { title: string; b
   UNDER_REVIEW: { title: 'Em análise', body: 'A equipa Banzami está a analisar a sua candidatura.' },
   INFORMATION_REQUIRED: {
     title: 'Precisamos de mais informação',
-    body: 'A análise está em espera até responder ao pedido abaixo. A candidatura continua aberta e o @negócio continua reservado.',
+    body: 'A análise está em espera até responder ao pedido abaixo. A candidatura continua aberta e o @banza continua guardado para si.',
   },
   APPROVED: {
     title: 'Aprovada',

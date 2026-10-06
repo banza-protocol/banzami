@@ -111,8 +111,14 @@ describe('blockers', () => {
 });
 
 describe('refusals', () => {
-  it('a @ that belongs to a Business sends the developer to its code', () => {
-    expect(refusalText('HANDLE_OWNED_BY_BUSINESS')).toMatch(/código/);
+  it('an unavailable @banza refusal is neutral — never reveals it belongs to a Business', () => {
+    // Policy: the interface must not disclose a name's class. The "link an
+    // existing business with a code" path is a deliberate, always-present option
+    // elsewhere, never surfaced by the handle refusal.
+    expect(refusalText('HANDLE_OWNED_BY_BUSINESS')).toMatch(/não está disponível/i);
+    expect(refusalText('HANDLE_OWNED_BY_BUSINESS')).not.toMatch(/código|negócio|business/i);
+    expect(refusalText('HANDLE_RESERVED')).toMatch(/não está disponível/i);
+    expect(refusalText('HANDLE_RESERVED')).not.toMatch(/reservad|protegid/i);
   });
 
   it('an unknown code is still a sentence, never raw English', () => {

@@ -46,7 +46,7 @@ const T = {
     of: (n: number) => `PASSO ${n} DE 4`,
     s1t: 'Dados do negócio', s1s: 'O essencial do negócio. Na Sandbox, utilize apenas dados de teste.',
     l_nome_comercial: 'Nome comercial', ph_nome_comercial: 'Cantina do Alex',
-    l_handle: '@negócio', ph_handle: 'cantinadoalex', hint_handle: '3 a 30 letras minúsculas, dígitos ou _. É como recebe pagamentos.',
+    l_handle: '@banza', ph_handle: 'cantinadoalex', hint_handle: 'Comece por uma letra. 3 a 30: minúsculas, números ou _. É como recebe pagamentos.',
     l_categoria: 'Categoria', l_municipio: 'Município (opcional)', ph_municipio: 'Talatona',
     l_descricao: 'O que vende? (opcional)', ph_descricao: 'Refeições, bebidas…',
     l_email: 'E-mail de contacto', ph_email: 'alex@exemplo.ao',
@@ -70,7 +70,7 @@ const T = {
     docUseTest: 'Usar documento de teste', docLoaded: 'Documento de teste carregado',
     // step 4 — confirmar
     s4t: 'Confirmar', s4s: 'Reveja os dados antes de enviar.',
-    sum: { negocio: 'Negócio', handle: '@negócio', categoria: 'Categoria', email: 'E-mail', rep: 'Representante', nif: 'NIF', docs: 'Documentos' },
+    sum: { negocio: 'Negócio', handle: '@banza', categoria: 'Categoria', email: 'E-mail', rep: 'Representante', nif: 'NIF', docs: 'Documentos' },
     docsValue: 'Registo Comercial + Documento de identidade (teste)',
     confirmNote: 'Esta candidatura destina-se apenas à Sandbox e utiliza dados de teste.',
     enviar: 'Enviar candidatura',
@@ -82,7 +82,7 @@ const T = {
     verEstado: 'Ver estado da candidatura', nova: 'Nova candidatura',
     aside1: 'O que vai precisar',
     aside1rows: [
-      { icon: 'store' as IconName, t: 'Dados do negócio', d: 'Nome, @negócio e categoria.' },
+      { icon: 'store' as IconName, t: 'Dados do negócio', d: 'Nome, @banza e categoria.' },
       { icon: 'user' as IconName, t: 'Responsável', d: 'Dados do representante.' },
       { icon: 'doc' as IconName, t: 'Documentos', d: 'Dois documentos de teste.' },
       { icon: 'mail' as IconName, t: 'Contacto', d: 'E-mail do negócio.' },
@@ -93,14 +93,14 @@ const T = {
     sandboxLabel: 'Compreendo que, nesta fase Beta, o negócio opera apenas na Sandbox, com dinheiro fictício.',
     v_default: 'Campo obrigatório.',
     v_email: 'Introduza um e-mail válido.',
-    v_handle: 'O @negócio deve ter 3 a 30 letras minúsculas, dígitos ou _.',
+    v_handle: 'O @banza deve ter 3 a 30 caracteres, começar por uma letra e usar minúsculas, números ou _.',
     v_nif: 'Introduza um NIF (dados de teste na Sandbox).',
     v_doc: 'Anexe o documento de teste para continuar.',
     v_termos: 'É necessário aceitar os Termos.',
     v_sandbox: 'Confirme que compreende a fase Sandbox.',
-    v_handle_taken: 'Este @negócio já está em uso. Escolha outro.',
+    v_handle_taken: 'Este @banza não está disponível. Escolha outro.',
     v_handle_checking: 'A verificar disponibilidade…',
-    v_handle_available: 'Este @negócio está disponível.',
+    v_handle_available: 'Este @banza está disponível.',
     v_submit: 'Não foi possível enviar a candidatura. Tente novamente.',
     sbxFill: 'Usar dados de teste',
     sbxToast: 'Preenchido com dados sandbox.',
@@ -114,7 +114,7 @@ const T = {
     of: (n: number) => `STEP ${n} OF 4`,
     s1t: 'Business details', s1s: 'The business essentials. In the Sandbox, use test data only.',
     l_nome_comercial: 'Business name', ph_nome_comercial: 'Alex’s Canteen',
-    l_handle: '@business', ph_handle: 'alexcanteen', hint_handle: '3 to 30 lowercase letters, digits or _. This is how you get paid.',
+    l_handle: '@banza', ph_handle: 'alexcanteen', hint_handle: 'Start with a letter. 3 to 30: lowercase, numbers or _. This is how you get paid.',
     l_categoria: 'Category', l_municipio: 'Municipality (optional)', ph_municipio: 'Talatona',
     l_descricao: 'What do you sell? (optional)', ph_descricao: 'Meals, drinks…',
     l_email: 'Contact email', ph_email: 'alex@example.ao',
@@ -135,7 +135,7 @@ const T = {
     doc2_t: 'Representative ID document', doc2_d: 'Identification of the business representative.',
     docUseTest: 'Use test document', docLoaded: 'Test document loaded',
     s4t: 'Confirm', s4s: 'Review the details before sending.',
-    sum: { negocio: 'Business', handle: '@business', categoria: 'Category', email: 'Email', rep: 'Representative', nif: 'Tax ID', docs: 'Documents' },
+    sum: { negocio: 'Business', handle: '@banza', categoria: 'Category', email: 'Email', rep: 'Representative', nif: 'Tax ID', docs: 'Documents' },
     docsValue: 'Business registration + ID document (test)',
     confirmNote: 'This application is for the Sandbox only and uses test data.',
     enviar: 'Send application',
@@ -147,7 +147,7 @@ const T = {
     verEstado: 'Check application status', nova: 'New application',
     aside1: 'What you will need',
     aside1rows: [
-      { icon: 'store' as IconName, t: 'Business details', d: 'Name, @business and category.' },
+      { icon: 'store' as IconName, t: 'Business details', d: 'Name, @banza and category.' },
       { icon: 'user' as IconName, t: 'Representative', d: 'The representative’s details.' },
       { icon: 'doc' as IconName, t: 'Documents', d: 'Two test documents.' },
       { icon: 'mail' as IconName, t: 'Contact', d: 'Business email.' },
@@ -158,14 +158,14 @@ const T = {
     sandboxLabel: 'I understand that, during this Beta, the business operates only in the Sandbox, with test money.',
     v_default: 'Required field.',
     v_email: 'Enter a valid email.',
-    v_handle: 'The @business must be 3 to 30 lowercase letters, digits or _.',
+    v_handle: 'The @banza must be 3 to 30 characters, start with a letter and use lowercase, numbers or _.',
     v_nif: 'Enter a tax ID (test data in the Sandbox).',
     v_doc: 'Attach the test document to continue.',
     v_termos: 'You must accept the Terms.',
     v_sandbox: 'Confirm you understand the Sandbox phase.',
-    v_handle_taken: 'This @business is already taken. Choose another.',
+    v_handle_taken: "This @banza isn't available. Choose another.",
     v_handle_checking: 'Checking availability…',
-    v_handle_available: 'This @business is available.',
+    v_handle_available: 'This @banza is available.',
     v_submit: 'Could not send the application. Please try again.',
     sbxFill: 'Use test data',
     sbxToast: 'Filled with sandbox data.',
@@ -261,7 +261,9 @@ function DocCard({ name, title, desc, useLabel, loadedLabel, attached, error, on
   );
 }
 
-const HANDLE_RE = /^[a-z0-9_]{3,30}$/;
+// Canonical @banza grammar: starts with a letter, 3-30, lowercase letters/digits/_,
+// ends alphanumeric, no consecutive underscores. The server re-check still governs.
+const HANDLE_RE = /^(?!.*__)[a-z][a-z0-9_]{1,28}[a-z0-9]$/;
 const NIF_RE = /^[0-9A-Za-z]{5,20}$/;
 // Mask an address for the on-screen "we'll email you" line: keep the first
 // character and the domain, e.g. alex@exemplo.ao → a***@exemplo.ao. Purely

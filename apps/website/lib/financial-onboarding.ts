@@ -158,15 +158,17 @@ export function isCompleteLinkCode(raw: string): boolean {
  * sentence that sends the developer to try again, never a raw English message.
  */
 export const REFUSAL_TEXT: Record<string, string> = {
-  INVALID_HANDLE: 'O @banza tem de ter 3 a 30 caracteres: letras minúsculas, números ou _.',
+  INVALID_HANDLE: 'Use 3 a 30 caracteres, começando por uma letra: letras minúsculas, números ou _.',
   VALIDATION_ERROR: 'Alguns dados não foram aceites. Reveja o formulário e tente novamente.',
   VALIDATION: 'Alguns dados não foram aceites. Reveja o formulário e tente novamente.',
   APPLICATION_IN_PROGRESS:
     'Este projeto já tem uma candidatura em curso. Aguarde a decisão do operador antes de ligar ou pedir outro negócio.',
-  HANDLE_RESERVED: 'Este @banza está reservado. Escolha outro.',
-  HANDLE_OWNED_BY_BUSINESS:
-    'Este @banza já é de um negócio Banzami. Peça ao negócio um código e ligue-o a este projeto, em vez de criar outro.',
-  HANDLE_TAKEN: 'Este @banza já não está disponível. Escolha outro.',
+  // Neutral by policy: the public interface never discloses WHY a @banza is
+  // unavailable (reserved / protected / owned / retired / institutional). All
+  // unavailable cases collapse to one message; no class is ever named.
+  HANDLE_RESERVED: 'Este @banza não está disponível. Escolha outro.',
+  HANDLE_OWNED_BY_BUSINESS: 'Este @banza não está disponível. Escolha outro.',
+  HANDLE_TAKEN: 'Este @banza não está disponível. Escolha outro.',
   PROJECT_ALREADY_RECEIVING: 'Este projeto já recebe num negócio. Mudar de negócio é uma decisão do operador.',
   ONBOARDING_UNAVAILABLE: 'A verificação de negócios não está disponível agora. Tente novamente mais tarde.',
   FORBIDDEN: 'Só um Owner ou Admin do workspace pode fazer isto.',
@@ -184,25 +186,17 @@ export function refusalText(code: string | undefined): string {
 }
 
 /**
- * Why a requested @banza is not available (the public check-handle reasons).
- * BUSINESS is the one with somewhere to go: the @ is an existing Business's,
- * and the way to use it is that Business's consent code, not a new application.
+ * Why a requested @banza is not available. Neutral by policy: the public
+ * interface never distinguishes the reason a name is unavailable (already in
+ * use, reserved, protected, retired or institutional) — every case reads the
+ * same, so the nature of a name can never be enumerated. Only a format hint is
+ * distinct, because it is not sensitive.
  */
 export function handleUnavailableText(reason: string | undefined): string {
-  switch (reason) {
-    case 'BUSINESS':
-      return 'Este @ já é de um negócio. Ligue-o com o código do negócio.';
-    case 'TAKEN':
-      return 'Este @banza já está em uso.';
-    case 'RESERVED':
-      return 'Este @banza está reservado.';
-    case 'PENDING':
-      return 'Este @banza já tem uma candidatura em curso.';
-    case 'INVALID':
-      return 'Use 3 a 30 caracteres: letras minúsculas, números ou _.';
-    default:
-      return 'Este @banza não está disponível.';
+  if (reason === 'INVALID') {
+    return 'Use 3 a 30 caracteres, começando por uma letra: letras minúsculas, números ou _.';
   }
+  return 'Este @banza não está disponível. Escolha outro.';
 }
 
 // ── An application in review ───────────────────────────────────────────────

@@ -102,6 +102,15 @@ const ACCESS: { icon: IconName; tag: Loc; title: Loc; desc: Loc }[] = [
     ),
   },
   {
+    icon: 'shield',
+    tag: L('PROTEÇÃO DE IDENTIDADE', 'IDENTITY PROTECTION'),
+    title: L('Protegemos o namespace @banza', 'We protect the @banza namespace'),
+    desc: L(
+      'Pessoas e negócios partilham um namespace único. A Banzami protege determinados nomes para reduzir riscos de impersonação, confusão ou uso indevido de identidades institucionais. Um nome protegido aparece apenas como indisponível e não divulgamos publicamente a razão.',
+      'People and businesses share a single namespace. Banzami protects certain names to reduce impersonation, confusion or misuse of institutional identities. A protected name simply shows as unavailable, and we do not publicly disclose the reason.',
+    ),
+  },
+  {
     icon: 'lock',
     tag: L('LOGIN', 'LOGIN'),
     title: L('Entra com @banza e PIN', 'Sign in with @banza and PIN'),

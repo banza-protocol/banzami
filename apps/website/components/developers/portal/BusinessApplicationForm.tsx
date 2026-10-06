@@ -588,16 +588,16 @@ export function BusinessApplicationForm({
               onChange={(v) => set('desired_handle', v)}
               error={tried[3] || (handle.k === 'unavailable' && handleClean) ? errors.desired_handle : null}
               prefix="@"
-              hint="O nome com que o negócio recebe pagamentos. 3 a 30 caracteres: letras minúsculas, números ou _."
+              hint="O @banza com que o negócio recebe pagamentos. 3 a 30 caracteres, começa por uma letra: minúsculas, números ou _."
             />
             <p role="status" aria-live="polite" style={{ ...FIELD_HINT, fontWeight: 800, color: handle.k === 'available' ? '#1F8A5B' : '#8a7a7e' }}>
               {handle.k === 'checking' ? 'A verificar a disponibilidade…' : handle.k === 'available' ? `@${handleClean} está disponível.` : ''}
             </p>
-            {handle.k === 'unavailable' && handle.reason === 'BUSINESS' && (
-              <button type="button" onClick={onUseExisting} style={{ ...SECONDARY_BUTTON, marginTop: 8 }}>
-                Ligar com o código do negócio
-              </button>
-            )}
+            {/* Neutral, always-present option — never conditioned on a name's class, so
+                the interface cannot disclose that a specific @banza belongs to a business. */}
+            <button type="button" onClick={onUseExisting} style={{ ...SECONDARY_BUTTON, marginTop: 8 }}>
+              Já tem um negócio na Banzami? Ligar com código
+            </button>
           </div>
         </Section>
       )}
