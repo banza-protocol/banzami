@@ -18,8 +18,37 @@ MIG="$SCRIPT_DIR/sandbox-migration.sh"
 DEP="$SCRIPT_DIR/sandbox-deploy.sh"
 run() { echo "+ $*"; "$@"; }
 
+# The zero-residue proof is RUN-SCOPED, by baseline diff: it asserts the rehearsal
+# left nothing behind, not that the host is pristine. During a blue/green rebuild
+# the OLD Sandbox stack stays alive (a different RUNID, intentionally), and the host
+# may carry unrelated pre-existing blueprint cruft (old builders, old package roots).
+# Those are captured in the baseline at the start of the run and ignored; only a
+# resource the rehearsal ADDED and did not clean up fails the check.
+BASELINE_FILE="${TMPDIR:-/tmp}/banzami-blueprint-rehearsal.baseline"
+_bp_fingerprint() {
+  local L
+  for L in com.banzami.blueprint.sandbox com.banzami.blueprint.sandbox-migration com.banzami.blueprint.sandbox-deploy com.banzami.blueprint.sandbox-executor; do
+    docker ps -a --filter "label=$L" --format "container $L {{.Names}}" 2>/dev/null || true
+    docker volume ls --filter "label=$L" --format "volume $L {{.Name}}" 2>/dev/null || true
+    docker network ls --filter "label=$L" --format "network $L {{.Name}}" 2>/dev/null || true
+  done
+  docker buildx ls 2>/dev/null | awk '/bzrelease-|bzrunnerlab-/{gsub(/\*/,"",$1); print "builder "$1}' || true
+  docker image ls --filter 'label=com.banzami.blueprint.service-lab' --format "image {{.Repository}}:{{.Tag}}@{{.ID}}" 2>/dev/null || true
+  local base dd
+  for base in banzami-blueprint-sandbox banzami-blueprint-release; do
+    dd="${TMPDIR:-/tmp}/$base"
+    [ -d "$dd" ] && find "$dd" -maxdepth 1 -type d \( -name 'root-*' -o -name 'pkg-*' \) 2>/dev/null | sed 's/^/root /' || true
+  done
+  return 0
+}
+_capture_baseline() { _bp_fingerprint | sort -u > "$BASELINE_FILE"; _BASELINE_CAPTURED=1; }
+
 do_build()  { echo "== E: build + verify release package =="; bash "$RP" build && bash "$RP" verify; }
 do_run()    {
+  # Capture the pre-run baseline (OLD stack + any pre-existing cruft) so the
+  # residue proof is scoped to what THIS run adds. Fresh per `run` process; skipped
+  # only when do_full already captured it before do_build.
+  [ -n "${_BASELINE_CAPTURED:-}" ] || _capture_baseline
   echo "== E: bootstrap isolated Sandbox (banzami_staging test db) =="; bash "$BOOT" apply
   echo "== E: controlled operational migration =="; bash "$MIG" apply
   echo "== E: provenance-first deployment (4 services, one at a time) =="; bash "$DEP" apply
@@ -40,6 +69,20 @@ do_clean()  {
   echo "sandbox-operational-rehearsal: teardown done"
 }
 do_residue() {
+  if [ -f "$BASELINE_FILE" ]; then
+    # Run-scoped: fail only on blueprint resources this run added and did not clean
+    # up (present now, absent at the baseline). The OLD live stack and any
+    # pre-existing cruft are in the baseline and ignored.
+    local cur new
+    cur="$(_bp_fingerprint | sort -u)"
+    new="$(comm -13 "$BASELINE_FILE" <(printf '%s\n' "$cur") | sed '/^$/d')"
+    rm -f "$BASELINE_FILE" 2>/dev/null || true
+    if [ -z "$new" ]; then echo "REHEARSAL_RESIDUE: PASS (run-scoped; pre-existing stacks/cruft ignored)"; return 0; fi
+    printf '%s\n' "$new" | sed 's/^/  RESIDUE (added by this run, not cleaned) /'
+    echo "REHEARSAL_RESIDUE: FAIL"; return 1
+  fi
+  # Fallback (no baseline, e.g. `residue` called standalone on a clean host): the
+  # strict host-wide zero-residue check.
   local bad=0 L c i n v
   for L in com.banzami.blueprint.sandbox com.banzami.blueprint.sandbox-migration com.banzami.blueprint.sandbox-deploy com.banzami.blueprint.sandbox-executor; do
     c="$(docker ps -aq --filter "label=$L" 2>/dev/null | grep -c . || true)"
@@ -49,7 +92,6 @@ do_residue() {
     [ "$c" = 0 ] && [ "$i" = 0 ] && [ "$n" = 0 ] && [ "$v" = 0 ] || { echo "  RESIDUE $L c=$c i=$i n=$n v=$v"; bad=1; }
   done
   local b; b="$(docker buildx ls 2>/dev/null | grep -c 'bzrelease-\|bzrunnerlab-' || true)"; [ "$b" = 0 ] || { echo "  RESIDUE builders=$b"; bad=1; }
-  # temp roots (sandbox + release) + loaded service images
   local base roots=0
   for base in banzami-blueprint-sandbox banzami-blueprint-release; do
     local dd="${TMPDIR:-/tmp}/$base"; [ -d "$dd" ] && roots=$((roots + $(find "$dd" -maxdepth 1 -type d \( -name 'root-*' -o -name 'pkg-*' \) 2>/dev/null | wc -l | tr -d ' ')))
@@ -60,6 +102,7 @@ do_residue() {
 }
 do_full() {
   local rc=0
+  _capture_baseline   # baseline BEFORE do_build, so build artifacts are in scope too
   trap 'do_clean >/dev/null 2>&1 || true' EXIT
   do_build || rc=1
   do_run || rc=1
