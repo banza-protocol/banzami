@@ -300,11 +300,14 @@ pub async fn list(
 // ---------------------------------------------------------------------------
 
 fn normalise_handle(raw: &str) -> ApiResult<String> {
-    // The ONE canonical @banza grammar, shared with Consumer and Business (fixes
-    // the old divergent 3-50 Unicode-lowercase rule here). normalize_handle strips
-    // one '@' and folds ASCII only; validate_handle enforces syntax (3-30,
-    // letter-start, no '__'/trailing '_'). The DB CHECK (3-50) stays a looser
-    // backstop.
+    // merchant_profiles.handle is NOT a separate identity: it is the Business's
+    // @banza, denormalized from handle_registry at approval (merchant_application_admin
+    // sets both to the same application handle). It is validated with the SAME
+    // canonical @banza grammar for that reason — not because every column named
+    // "handle" is an @banza. The authoritative uniqueness and payment routing live
+    // in handle_registry (the resolver reads only that); this table's UNIQUE/CHECK
+    // are a redundant backstop on the denormalized copy. (Fixes the old divergent
+    // 3-50 Unicode-lowercase rule here.)
     let h = banzami_identity::normalize_handle(raw);
     banzami_identity::validate_handle(&h).map_err(|e| ApiError::bad_request(e))?;
     Ok(h)
