@@ -106,8 +106,12 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
     } catch (e) {
       setState(() {
         _apiError   = banzamiErrorMessage(e, codes: const {
+          // Neutral: never reveal whether a @banza is taken, reserved, protected
+          // or retired — all unavailability reads the same (handle namespace policy).
           'HANDLE_TAKEN':
-              'Este @banza já está em uso. Volte atrás e escolha outro.',
+              'Este @banza não está disponível. Volte atrás e escolha outro.',
+          'HANDLE_UNAVAILABLE':
+              'Este @banza não está disponível. Volte atrás e escolha outro.',
           'EMAIL_TAKEN':
               'Este email já está associado a uma conta. Use outro.',
           'EMAIL_NOT_VERIFIED':

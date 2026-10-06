@@ -48,7 +48,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       final taken = await client.handleExists(handle);
       if (!mounted) return;
       if (taken) {
-        setState(() { _handleError = 'Este @banza já está em uso.'; _checking = false; });
+        setState(() { _handleError = 'Este @banza não está disponível. Escolha outro.'; _checking = false; });
         _formKey.currentState!.validate();
         return;
       }
