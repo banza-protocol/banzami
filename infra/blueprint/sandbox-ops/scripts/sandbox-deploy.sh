@@ -150,7 +150,8 @@ write_db_url() { # file-only per-service credentials (evidence/db_url_<service>)
   # 0644 (not 0600): bind-mounted read-only into NON-root service containers; on Linux the mount
   # preserves host perms so a 0600 root-owned file is unreadable by the container user. Host
   # confidentiality is preserved by the 0700 root-only EVIDENCE_ROOT dir that contains it.
-  "$SCRIPT_DIR/runtime-authority.sh" apply || die "runtime authority (per-service database roles) failed"
+  BZSB_PROJECT="$BZSB_PROJECT" BZSB_DATA_NET="$BZSB_DATA_NET" BZSB_SECRET_ROOT="$BZSB_SECRET_ROOT" \
+    "$SCRIPT_DIR/runtime-authority.sh" apply || die "runtime authority (per-service database roles) failed"
 }
 uuid() { uuidgen 2>/dev/null | tr 'A-Z' 'a-z' || python3 -c 'import uuid;print(uuid.uuid4())'; }
 

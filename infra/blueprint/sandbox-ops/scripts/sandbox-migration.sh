@@ -151,7 +151,8 @@ cmd_apply() {
   # bl_core_runtime may write a financial table; the grants are
   # db/authority/runtime-authority.sql, applied in one transaction, and a new
   # table is readable by default and writable only by the role the manifest names.
-  "$SCRIPT_DIR/runtime-authority.sh" apply || die "runtime authority apply failed"
+  BZSB_PROJECT="$BZSB_PROJECT" BZSB_DATA_NET="$BZSB_DATA_NET" BZSB_SECRET_ROOT="$BZSB_SECRET_ROOT" \
+    "$SCRIPT_DIR/runtime-authority.sh" apply || die "runtime authority apply failed"
   echo "  runtime_authority_enabled PASS (per-service roles; financial writes: bl_core_runtime only)"
   echo "sandbox-migration: apply complete"
 }

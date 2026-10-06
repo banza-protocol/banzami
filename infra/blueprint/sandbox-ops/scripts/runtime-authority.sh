@@ -36,12 +36,29 @@ VERIFY_SQL="$REPO/db/authority/verify-authority.sql"
 
 die() { echo "runtime-authority: $*" >&2; exit 1; }
 
-PGC="$(docker ps --format '{{.Names}}' | grep -E '^bzsandbox-.*-postgres-1$' | head -1)"
+# Resolve the target Sandbox stack. The migration and deploy pipelines pass the
+# exact project identity (BZSB_PROJECT/BZSB_DATA_NET/BZSB_SECRET_ROOT) and it MUST
+# be used verbatim: during a rebuild more than one Sandbox stack runs at once, so
+# globbing the running containers and taking `head -1` could pair one stack's data
+# network with another stack's superuser secret and fail authentication. Only when
+# no identity is passed (standalone operator use) do we auto-detect, and then we
+# fail closed unless exactly one Sandbox stack is present.
+if [ -n "${BZSB_PROJECT:-}" ] && [ -n "${BZSB_DATA_NET:-}" ] && [ -n "${BZSB_SECRET_ROOT:-}" ]; then
+  PGC="${BZSB_PROJECT}-postgres-1"
+  NET="$BZSB_DATA_NET"
+  SEC="$BZSB_SECRET_ROOT"
+  docker inspect "$PGC" >/dev/null 2>&1 || die "Sandbox postgres container '$PGC' not found"
+else
+  PGC="$(docker ps --format '{{.Names}}' | grep -E '^bzsandbox-.*-postgres-1$' || true)"
+  _N="$(printf '%s\n' "$PGC" | grep -c . || true)"
+  [ "$_N" -eq 1 ] || die "expected exactly one Sandbox postgres container, found ${_N} — set BZSB_PROJECT/BZSB_DATA_NET/BZSB_SECRET_ROOT to target one stack"
+  _RID="${PGC#bzsandbox-}"; _RID="${_RID%-postgres-1}"
+  NET="bzsb-data-${_RID}"
+  SEC="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/run/secrets/mi_superuser"}}{{.Source}}{{end}}{{end}}' "$PGC" | xargs dirname)"
+fi
 [ -n "$PGC" ] || die "no Sandbox postgres container"
 PG_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$PGC")"
-NET="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-data-' | head -1)"
 [ -n "$NET" ] || die "no Sandbox data network"
-SEC="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/run/secrets/mi_superuser"}}{{.Source}}{{end}}{{end}}' "$PGC" | xargs dirname)"
 [ -f "$SEC/mi_superuser" ] || die "cannot locate the Sandbox secrets directory"
 EV="$(dirname "$SEC")/evidence"
 [ -d "$EV" ] || die "cannot locate the Sandbox evidence directory"
