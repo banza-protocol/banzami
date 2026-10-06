@@ -135,7 +135,11 @@ cmd_release_transfer() { # <plan|apply>
   local src_rev; src_rev="$(remote "git -C '$rroot/source' rev-parse HEAD" || true)"
   [ "$src_rev" = "$SOURCE_REVISION" ] || hold "BLOCKER — VM SOURCE TREE REVISION MISMATCH" 47
   # 4) materialise the VM-local release state the reused Sandbox adapters read (RELEASE_ROOT on VM).
-  remote "mkdir -p '$vmtmp/banzami-blueprint-release' && chmod -R 0700 '$vmtmp'"
+  # Lock down ONLY the tmp dir itself and the release-state subdir — NEVER recurse. $vmtmp also
+  # holds the live Sandbox state tree (banzami-blueprint-sandbox/root-*/evidence/*), and a
+  # `chmod -R 0700 "$vmtmp"` would clobber every evidence secret file to 0700, making the
+  # per-service db_url unreadable by the non-root containers and failing the next deploy closed.
+  remote "mkdir -p '$vmtmp/banzami-blueprint-release' && chmod 0700 '$vmtmp' '$vmtmp/banzami-blueprint-release'"
   remote "umask 077; printf 'RUNID=%s\nBUILDER=%s\nRELEASE_ROOT=%s\nSOURCE_REVISION=%s\nPARENT_DIGEST=%s\n' '${RUNID:-vmrel}' '${BUILDER:-vmrel}' '$rroot' '$SOURCE_REVISION' '$PARENT_DIGEST' > '$vmtmp/banzami-blueprint-release/current.run'"
   # verify the VM-local release state resolves (state file + manifest + executor image all present).
   remote "test -f '$vmtmp/banzami-blueprint-release/current.run' && test -f '$rroot/manifest.txt' && test -d '$rroot/images/sandbox-executor.oci'" || hold "BLOCKER — VM RELEASE STATE INCOMPLETE" 47

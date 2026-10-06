@@ -121,6 +121,11 @@ cmd_apply() {
     printf 'postgresql://%s:%s@postgres:5432/banzami_staging' "$role" "$(cat "$SEC/mi_$role")" > "$EV/$file.tmp"
     chmod 0644 "$EV/$file.tmp"
     if [ -f "$EV/$file" ]; then cat "$EV/$file.tmp" > "$EV/$file"; rm -f "$EV/$file.tmp"; else mv "$EV/$file.tmp" "$EV/$file"; fi
+    # Rewriting over an existing file with `cat >` preserves the OLD file's mode. The
+    # secret-interface contract is 0644 (readable by the non-root service user inside
+    # the 0700 root-only dir), so assert it on the final file regardless of how it got
+    # there — a stray 0600/0700 would make the connection string unreadable at mount.
+    chmod 0644 "$EV/$file"
   done <<< "$ROLES"
   install -d -m 0700 /root/.banzami
   (umask 077; printf 'postgresql://bl_app_runtime:%s@postgres:5432/banzami_staging' "$(cat "$SEC/mi_runtime")" > /root/.banzami/operator_db_url)

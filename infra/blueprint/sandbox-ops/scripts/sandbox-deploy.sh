@@ -453,6 +453,13 @@ cmd_plan() {
 
 cmd_apply() {
   load_context; write_db_url; write_jwt_secret; write_core_internal_key; write_devkey_secrets
+  # Every evidence secret the four services mount must be readable by the non-root
+  # service user (0644 inside the 0700 root-only dir). The app-plane deploy-one path
+  # already asserts this; the ceremony mounts $EVIDENCE_ROOT/<secret> directly, so it
+  # must assert it too — otherwise a file left non-0644 by anything upstream (e.g. a
+  # recursive chmod during transfer, or runtime-authority rewriting over an existing
+  # file) makes core-api's db_url unreadable and the deploy fails closed.
+  assert_secret_modes "$EVIDENCE_ROOT"
   local e name port bin tag
   for e in "${DEPLOY_ONE_ALLOWED_SERVICES[@]}"; do
     IFS='|' read -r name port bin <<<"$e"
