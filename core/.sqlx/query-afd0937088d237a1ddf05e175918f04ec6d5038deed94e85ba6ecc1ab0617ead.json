@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, merchant_id, handle, display_name, tagline, description,\n               category, logo_url, cover_url, public, wallet_id, created_at, updated_at\n        FROM merchant_profiles WHERE id = $1\n        ",
+  "query": "\n        SELECT mp.id, mp.merchant_id,\n               (SELECT hr.handle FROM handle_registry hr\n                 WHERE hr.owner_type = 'MERCHANT' AND hr.owner_id = mp.merchant_id) AS handle,\n               mp.display_name, mp.tagline, mp.description,\n               mp.category, mp.logo_url, mp.cover_url, mp.public, mp.wallet_id,\n               mp.created_at, mp.updated_at\n        FROM merchant_profiles mp WHERE mp.id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,7 @@
       {
         "ordinal": 2,
         "name": "handle",
-        "type_info": "Varchar"
+        "type_info": "Text"
       },
       {
         "ordinal": 3,
@@ -77,7 +77,7 @@
     "nullable": [
       false,
       false,
-      false,
+      null,
       false,
       true,
       true,
@@ -90,5 +90,5 @@
       false
     ]
   },
-  "hash": "01a5272f10cd59ff9e42322f28483f29808cecae12936dbe188d41e7b14f44f6"
+  "hash": "afd0937088d237a1ddf05e175918f04ec6d5038deed94e85ba6ecc1ab0617ead"
 }

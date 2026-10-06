@@ -63,7 +63,7 @@ func TestWalletPaymentsList_PayeeIsPublicIdentity_ReferenceIsTheTransfersProof(t
 	})
 
 	exec(`INSERT INTO merchants (id, name, email, status) VALUES ($1, 'Sandbox · Loja-Projecto', $2, 'ACTIVE')`, m, m+"@test")
-	exec(`INSERT INTO merchant_profiles (merchant_id, handle, display_name) VALUES ($1, $2, 'Loja Kiame')`, m, handle)
+	exec(`INSERT INTO merchant_profiles (merchant_id, display_name) VALUES ($1, 'Loja Kiame')`, m)
 	exec(`INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1, 'MERCHANT', $2)`, handle, m)
 	exec(`INSERT INTO consumers (id, handle, display_name) VALUES ($1, $2, 'Ana Paula')`, c, "c"+uuid.NewString()[:8])
 	for _, wp := range []struct{ id, transfer string }{{withProof, transferA}, {withoutProof, transferB}} {

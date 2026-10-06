@@ -337,6 +337,68 @@ async fn case_variants_cannot_escape_protection(pool: PgPool) {
     assert!(claim.is_err(), "the normalized spelling of a protected name was claimable");
 }
 
+// ── merchant_profiles holds NO identity: handle_registry is the sole authority ──
+
+/// Schema invariant: merchant_profiles must not carry a `handle` column. The
+/// Business identity lives only in handle_registry; the profile is metadata keyed
+/// by merchant_id.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn merchant_profiles_has_no_handle_column(pool: PgPool) {
+    let has_handle: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM information_schema.columns
+          WHERE table_name='merchant_profiles' AND column_name='handle')",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(
+        !has_handle,
+        "merchant_profiles still has a handle column — a second identity authority"
+    );
+}
+
+/// The Business @banza resolves ONLY through handle_registry: a profile is reached
+/// by resolving the handle in the registry to a MERCHANT owner, then loading the
+/// profile by merchant_id. There is no profile-side handle to resolve by.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn business_profile_resolves_through_the_registry(pool: PgPool) {
+    let merchant = Uuid::new_v4();
+    sqlx::query("INSERT INTO merchants (id, name, email, status) VALUES ($1,'Loja X','x@t.test','ACTIVE')")
+        .bind(merchant)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('lojax','MERCHANT',$1)")
+        .bind(merchant)
+        .execute(&pool)
+        .await
+        .unwrap();
+    // Profile row carries metadata only — no handle column to insert into.
+    sqlx::query("INSERT INTO merchant_profiles (merchant_id, display_name, public) VALUES ($1,'Loja X',true)")
+        .bind(merchant)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // Resolve @lojax the way get_by_handle now does: registry → merchant → profile.
+    let owner: Option<Uuid> = sqlx::query_scalar(
+        "SELECT owner_id FROM handle_registry WHERE handle='lojax' AND owner_type='MERCHANT'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(owner, Some(merchant), "registry did not resolve the merchant handle");
+
+    let profile: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM merchant_profiles WHERE merchant_id=$1 AND public=true",
+    )
+    .bind(merchant)
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
+    assert!(profile.is_some(), "profile not found by merchant_id");
+}
+
 /// Two concurrent claims on the same free name: the PRIMARY KEY lets exactly one
 /// win. Reserved/protected rows are blocked by the same mechanism, so no race can
 /// hand out a protected name either.

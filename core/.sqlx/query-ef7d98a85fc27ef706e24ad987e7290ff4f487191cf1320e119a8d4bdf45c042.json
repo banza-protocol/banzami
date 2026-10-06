@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT owner_id FROM handle_registry WHERE handle = $1 AND owner_type = 'MERCHANT'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "owner_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "ef7d98a85fc27ef706e24ad987e7290ff4f487191cf1320e119a8d4bdf45c042"
+}

@@ -398,7 +398,7 @@ func (s *PostgresMerchantKybService) AdminListMerchants(ctx context.Context, lim
 		  SELECT DISTINCT merchant_id FROM merchant_kyb_documents
 		)
 		SELECT ids.merchant_id,
-		       COALESCE(m.name,''), COALESCE(p.handle,''), COALESCE(m.status,''),
+		       COALESCE(m.name,''), COALESCE(hr.handle,''), COALESCE(m.status,''),
 		       COALESCE(mc.kyb_status,''), COALESCE(max(d.environment), max(a.environment), ''),
 		       COALESCE(max(a.country),''), COALESCE(max(a.email), m.email, ''),
 		       (m.id IS NOT NULL) AS merchant_exists,
@@ -411,10 +411,10 @@ func (s *PostgresMerchantKybService) AdminListMerchants(ctx context.Context, lim
 		  FROM ids
 		  LEFT JOIN merchants m            ON m.id = ids.merchant_id
 		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = ids.merchant_id
-		  LEFT JOIN merchant_profiles p    ON p.merchant_id = ids.merchant_id
+		  LEFT JOIN handle_registry hr     ON hr.owner_id = ids.merchant_id AND hr.owner_type = 'MERCHANT'
 		  LEFT JOIN merchant_applications a ON a.created_merchant_id = ids.merchant_id
 		  LEFT JOIN merchant_kyb_documents d ON d.merchant_id = ids.merchant_id
-		 GROUP BY ids.merchant_id, m.id, m.name, p.handle, m.status, mc.kyb_status, m.email
+		 GROUP BY ids.merchant_id, m.id, m.name, hr.handle, m.status, mc.kyb_status, m.email
 		 ORDER BY (count(d.id) FILTER (WHERE d.status = 'PENDING_REVIEW')) DESC,
 		          max(d.submitted_at) DESC NULLS LAST,
 		          m.name ASC
@@ -525,13 +525,14 @@ func (s *PostgresMerchantKybService) Context(ctx context.Context, merchantID str
 	var created *time.Time
 	err := s.pool.QueryRow(ctx, `
 		SELECT (m.id IS NOT NULL), COALESCE(m.name,''), COALESCE(m.email,''), COALESCE(m.status,''),
-		       COALESCE(mc.kyb_status,''), COALESCE(p.handle,''), COALESCE(p.category,''), m.created_at,
+		       COALESCE(mc.kyb_status,''), COALESCE(hr.handle,''), COALESCE(p.category,''), m.created_at,
 		       COALESCE(a.legal_representative,''), COALESCE(a.email,''), COALESCE(a.phone,''),
 		       COALESCE(a.business_name,''), COALESCE(a.nif,''), COALESCE(a.country,''),
 		       COALESCE(a.city,''), COALESCE(a.address,''), COALESCE(a.business_activity,'')
 		  FROM (SELECT $1::uuid AS id) q
 		  LEFT JOIN merchants m             ON m.id = q.id
 		  LEFT JOIN merchant_compliance mc  ON mc.merchant_id = q.id
+		  LEFT JOIN handle_registry hr      ON hr.owner_id = q.id AND hr.owner_type = 'MERCHANT'
 		  LEFT JOIN merchant_profiles p     ON p.merchant_id = q.id
 		  LEFT JOIN merchant_applications a ON a.created_merchant_id = q.id
 		 LIMIT 1`, merchantID).

@@ -92,14 +92,14 @@ var caseUpsertQueries = []string{
 	// Merchants with at least one pending KYB document.
 	`INSERT INTO compliance_cases (id, environment, case_type, entity_type, entity_id, entity_name, entity_handle, priority, risk_level, source_key, created_at, last_activity, metadata)
 	 SELECT gen_random_uuid(), $1, 'KYB_MERCHANT', 'merchant', d.merchant_id::text,
-	        COALESCE(m.name,'Comerciante'), p.handle, 'NORMAL', 'LOW',
+	        COALESCE(m.name,'Comerciante'), hr.handle, 'NORMAL', 'LOW',
 	        'kyb:'||d.merchant_id::text, min(d.submitted_at), max(d.submitted_at),
 	        jsonb_strip_nulls(jsonb_build_object('pending_documents', count(*)))
 	   FROM merchant_kyb_documents d
 	   LEFT JOIN merchants m ON m.id = d.merchant_id
-	   LEFT JOIN merchant_profiles p ON p.merchant_id = d.merchant_id
+	   LEFT JOIN handle_registry hr ON hr.owner_id = d.merchant_id AND hr.owner_type = 'MERCHANT'
 	  WHERE d.environment = $1 AND d.status = 'PENDING_REVIEW'
-	  GROUP BY d.merchant_id, m.name, p.handle
+	  GROUP BY d.merchant_id, m.name, hr.handle
 	 ON CONFLICT (source_key) DO UPDATE
 	    SET entity_name = EXCLUDED.entity_name, entity_handle = EXCLUDED.entity_handle,
 	        metadata = EXCLUDED.metadata,

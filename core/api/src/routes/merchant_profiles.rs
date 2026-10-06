@@ -47,7 +47,8 @@ pub struct SocialLink {
 #[derive(Deserialize)]
 pub struct CreateProfileBody {
     pub merchant_id: String,
-    pub handle: String,
+    // No `handle`: the profile never chooses an identity. The Business @banza is
+    // the merchant's handle_registry entry; this endpoint only stores metadata.
     pub display_name: String,
     pub tagline: Option<String>,
     pub description: Option<String>,
@@ -65,8 +66,6 @@ pub async fn create(
         .merchant_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
-
-    let handle = normalise_handle(&body.handle)?;
 
     if body.display_name.trim().is_empty() {
         return Err(ApiError::bad_request("display_name is required"));
@@ -98,13 +97,12 @@ pub async fn create(
     sqlx::query!(
         r#"
         INSERT INTO merchant_profiles
-            (id, merchant_id, handle, display_name, tagline, description,
+            (id, merchant_id, display_name, tagline, description,
              category, logo_url, cover_url, wallet_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         "#,
         profile_id,
         merchant_id,
-        handle,
         body.display_name.trim(),
         body.tagline,
         body.description,
@@ -116,11 +114,7 @@ pub async fn create(
     .execute(&state.pool)
     .await
     .map_err(|e| {
-        if e.to_string().contains("merchant_profiles_handle_key")
-            || e.to_string().contains("unique")
-        {
-            ApiError::unprocessable("HANDLE_TAKEN", "this handle is already in use")
-        } else if e.to_string().contains("merchant_profiles_merchant_id_key") {
+        if e.to_string().contains("merchant_profiles_merchant_id_key") {
             ApiError::unprocessable("PROFILE_EXISTS", "merchant already has a profile")
         } else {
             ApiError::internal(e.to_string())
@@ -218,9 +212,22 @@ pub async fn get_by_handle(
 ) -> ApiResult<Json<ProfileResponse>> {
     let handle = normalise_handle(&handle)?;
 
-    let row = sqlx::query!(
-        "SELECT id FROM merchant_profiles WHERE handle = $1 AND public = true",
+    // handle_registry is the identity authority: resolve the @banza there and
+    // require a MERCHANT owner. merchant_profiles is then looked up by merchant_id
+    // (it holds no handle of its own).
+    let owner = sqlx::query!(
+        "SELECT owner_id FROM handle_registry WHERE handle = $1 AND owner_type = 'MERCHANT'",
         handle,
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .and_then(|r| r.owner_id)
+    .ok_or_else(|| ApiError::not_found("merchant profile not found"))?;
+
+    let row = sqlx::query!(
+        "SELECT id FROM merchant_profiles WHERE merchant_id = $1 AND public = true",
+        owner,
     )
     .fetch_optional(&state.pool)
     .await
@@ -254,13 +261,16 @@ pub async fn list(
 
     let rows = sqlx::query!(
         r#"
-        SELECT id, merchant_id, handle, display_name, tagline, category,
-               logo_url, cover_url, created_at
-        FROM merchant_profiles
-        WHERE public = true
-          AND ($1::text IS NULL OR category = $1)
-          AND ($2::text IS NULL OR display_name ILIKE $2)
-        ORDER BY created_at DESC
+        SELECT mp.id, mp.merchant_id,
+               (SELECT hr.handle FROM handle_registry hr
+                 WHERE hr.owner_type = 'MERCHANT' AND hr.owner_id = mp.merchant_id) AS handle,
+               mp.display_name, mp.tagline, mp.category,
+               mp.logo_url, mp.cover_url, mp.created_at
+        FROM merchant_profiles mp
+        WHERE mp.public = true
+          AND ($1::text IS NULL OR mp.category = $1)
+          AND ($2::text IS NULL OR mp.display_name ILIKE $2)
+        ORDER BY mp.created_at DESC
         LIMIT $3
         "#,
         q.category,
@@ -299,15 +309,11 @@ pub async fn list(
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Normalize + syntax-validate a @banza passed to the by-handle lookup. The
+// profile no longer stores a handle; this only sanitises the lookup input before
+// it is resolved against handle_registry (the identity authority), using the one
+// canonical @banza grammar.
 fn normalise_handle(raw: &str) -> ApiResult<String> {
-    // merchant_profiles.handle is NOT a separate identity: it is the Business's
-    // @banza, denormalized from handle_registry at approval (merchant_application_admin
-    // sets both to the same application handle). It is validated with the SAME
-    // canonical @banza grammar for that reason — not because every column named
-    // "handle" is an @banza. The authoritative uniqueness and payment routing live
-    // in handle_registry (the resolver reads only that); this table's UNIQUE/CHECK
-    // are a redundant backstop on the denormalized copy. (Fixes the old divergent
-    // 3-50 Unicode-lowercase rule here.)
     let h = banzami_identity::normalize_handle(raw);
     banzami_identity::validate_handle(&h).map_err(|e| ApiError::bad_request(e))?;
     Ok(h)
@@ -316,9 +322,13 @@ fn normalise_handle(raw: &str) -> ApiResult<String> {
 async fn fetch_profile(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<ProfileResponse> {
     let row = sqlx::query!(
         r#"
-        SELECT id, merchant_id, handle, display_name, tagline, description,
-               category, logo_url, cover_url, public, wallet_id, created_at, updated_at
-        FROM merchant_profiles WHERE id = $1
+        SELECT mp.id, mp.merchant_id,
+               (SELECT hr.handle FROM handle_registry hr
+                 WHERE hr.owner_type = 'MERCHANT' AND hr.owner_id = mp.merchant_id) AS handle,
+               mp.display_name, mp.tagline, mp.description,
+               mp.category, mp.logo_url, mp.cover_url, mp.public, mp.wallet_id,
+               mp.created_at, mp.updated_at
+        FROM merchant_profiles mp WHERE mp.id = $1
         "#,
         id,
     )
@@ -344,7 +354,8 @@ async fn fetch_profile(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<ProfileRespon
     Ok(ProfileResponse {
         id: row.id.to_string(),
         merchant_id: row.merchant_id.to_string(),
-        handle: row.handle,
+        // Derived from handle_registry (the authority), not stored on the profile.
+        handle: row.handle.unwrap_or_default(),
         display_name: row.display_name,
         tagline: row.tagline,
         description: row.description,

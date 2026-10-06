@@ -534,11 +534,14 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 	defer tx.Rollback(ctx)
 
 	pbErr := func() error {
+		// merchant_profiles holds profile METADATA only. The Business identity is
+		// the @banza in handle_registry (set just below); the profile is keyed by
+		// merchant_id and never stores a second copy of the handle.
 		if _, err := tx.Exec(ctx,
-			`INSERT INTO merchant_profiles (merchant_id, handle, display_name, category, wallet_id, public)
-			 VALUES ($1, $2, $3, $4, $5, false)
+			`INSERT INTO merchant_profiles (merchant_id, display_name, category, wallet_id, public)
+			 VALUES ($1, $2, $3, $4, false)
 			 ON CONFLICT (merchant_id) DO NOTHING`,
-			merchantID, app.DesiredHandle, app.BusinessName, nullStr(app.Category), nullStr(walletID)); err != nil {
+			merchantID, app.BusinessName, nullStr(app.Category), nullStr(walletID)); err != nil {
 			return err
 		}
 		// The handle becomes the Business's — only from THIS application's hold

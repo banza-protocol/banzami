@@ -161,7 +161,7 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment,
 	err := s.pool.QueryRow(ctx, `
 		SELECT m.id::text, m.name, COALESCE(m.status,''),
 		       COALESCE(m.business_account_type,'MERCHANT'),
-		       COALESCE(mp.handle, hr.handle), mp.display_name, mp.category,
+		       hr.handle, mp.display_name, mp.category,
 		       COALESCE(w.id, ow.id)::text,
 		       mc.kyb_status,
 		       COALESCE(w.currency, ow.currency),

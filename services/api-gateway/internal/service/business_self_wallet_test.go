@@ -187,8 +187,8 @@ func TestSelf_TheProfilesWalletStillWinsWhenSet(t *testing.T) {
 		t.Skipf("a second-currency wallet is not permitted here: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO merchant_profiles (merchant_id, handle, display_name, wallet_id)
-		 VALUES ($1,$2,'Named',$3)`, merchant, "h"+merchant[:8], second); err != nil {
+		`INSERT INTO merchant_profiles (merchant_id, display_name, wallet_id)
+		 VALUES ($1,'Named',$2)`, merchant, second); err != nil {
 		t.Skipf("merchant_profiles shape differs: %v", err)
 	}
 
