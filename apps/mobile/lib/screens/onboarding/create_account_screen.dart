@@ -125,7 +125,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       const Text('Escolha o seu @banza', style: BanzamiTextStyles.headingMd),
                       const SizedBox(height: 6),
                       Text(
-                        'Nome único para receber pagamentos.',
+                        'O seu identificador único na Banzami.',
                         style: BanzamiTextStyles.bodyMd.copyWith(
                           color:  BanzamiColors.gray400,
                           height: 1.5,

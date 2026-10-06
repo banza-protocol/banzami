@@ -199,7 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const Text('O seu @banza', style: BanzamiTextStyles.headingMd),
             const SizedBox(height: 8),
             Text(
-              'É o nome único que usa para receber pagamentos.',
+              'O seu identificador único na Banzami.',
               style: BanzamiTextStyles.bodyMd.copyWith(
                 color: BanzamiColors.gray400,
                 height: 1.5,
