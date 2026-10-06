@@ -162,8 +162,12 @@ cmd_verify() {
   done
   # executor digest matches + present
   [ -d "$RELEASE_ROOT/images/sandbox-executor.oci" ] && [ "$(oci_image_digest "$RELEASE_ROOT/images/sandbox-executor.oci")" = "$(grep '^executor.image_digest=' "$m" | cut -d= -f2)" ] && echo "RELEASE executor_digest_matches PASS" || { echo "RELEASE executor_digest_matches FAIL"; rc=1; }
-  # forbidden services / mutable tags / placeholders / secrets rejected
-  grep -qiE 'admin-api|website|checkout|dashboard|pay-frontend|banzai|banza-docs' "$m" && { echo "RELEASE no_forbidden_service FAIL"; rc=1; } || echo "RELEASE no_forbidden_service PASS"
+  # The core release package attests exactly the four core/API services. App-plane
+  # services (pay-frontend, admin-api, …) and other surfaces are NOT part of the VM
+  # core release package — they ship through the separate application deploy path
+  # (deploy-one). This rejects their presence IN THE PACKAGE; it does NOT forbid
+  # them from the product. Mutable tags / placeholders / secrets are rejected too.
+  grep -qiE 'admin-api|website|checkout|dashboard|pay-frontend|banzai|banza-docs' "$m" && { echo "RELEASE core_package_is_core_only FAIL (an app-plane/other surface is in the core package — it must ship via the application deploy path)"; rc=1; } || echo "RELEASE core_package_is_core_only PASS"
   grep -qiE ':latest|<digest>|placeholder' "$m" && { echo "RELEASE no_mutable_or_placeholder FAIL"; rc=1; } || echo "RELEASE no_mutable_or_placeholder PASS"
   if grep -rqiE 'password|://[^ ]*:[^ ]*@|BEGIN [A-Z ]*PRIVATE KEY|DATABASE_URL=[A-Za-z]|217\.160\.9\.248' "$m" "$RELEASE_ROOT/checksums.txt"; then echo "RELEASE secret_free FAIL"; rc=1; else echo "RELEASE secret_free PASS"; fi
   echo "RELEASE_PACKAGE_VERIFY_RESULT: $([ "$rc" -eq 0 ] && echo PASS || echo FAIL)"; return "$rc"

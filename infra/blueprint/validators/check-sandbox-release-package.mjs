@@ -27,7 +27,7 @@ const FORBIDDEN = ['admin-api', 'website', 'checkout', 'dashboard', 'pay-fronten
 {
   const all = FOUR.every(s => rp.includes(s));
   const noForbidden = !FORBIDDEN.some(s => new RegExp(`SERVICES=\\([\\s\\S]*"${s}\\|`).test(rp));
-  const rejects = /no_forbidden_service/.test(rp);
+  const rejects = /core_package_is_core_only/.test(rp);
   (all && noForbidden && rejects) ? pass(1, 'exactly the four approved services; forbidden services excluded and rejected in verify') : fail(1, `allowlist (all=${all} noForbidden=${noForbidden} rejects=${rejects})`);
 }
 // 2. verified immutable source transfer (git bundle create + verify) bound to full SHA

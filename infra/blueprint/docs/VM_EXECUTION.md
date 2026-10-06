@@ -96,3 +96,13 @@ Deploys exactly and only `core-api-staging`, `api-gateway-staging`,
 real-money rails, external payment providers, public routes, DNS, certificates or
 SMTP. Preserves the OS, SSH access, authorised keys, Docker Engine and any
 confirmed unrelated non-Banzami workload.
+
+App-plane services (`pay-frontend`, `admin-api`, `admin-frontend`, `app-frontend`)
+are **not** part of this ceremony or its provenance package. They are deployed
+through the separate sanctioned application path (`./deploy.sh` →
+`sandbox-source-deploy.sh` → `remote-native-build.sh` → `sandbox-deploy.sh
+deploy-one`), each built natively and bound **explicitly** to the selected Sandbox
+stack (`_resolve_stack` → `BZSB_PROJECT`), so a blue/green rebuild that keeps the
+old stack alive never cross-matches networks or secrets. The equality of the
+four-service ceremony set across the package, `sandbox-deploy.sh`, `vm-execute.sh`
+`APPROVED` and this document is enforced by `tools/check-sandbox-service-sets.mjs`.

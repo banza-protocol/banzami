@@ -1198,6 +1198,13 @@ sandbox-bootstrap-full:
 check-sandbox-release-package:
 	node infra/blueprint/validators/check-sandbox-release-package.mjs
 
+.PHONY: check-sandbox-service-sets
+# One four-service ceremony contract across package/deploy/vm-execute/doc, and
+# app-plane deploy-one binds to the resolved stack (no cross-stack head -1 glob).
+check-sandbox-service-sets:
+	node tools/check-sandbox-service-sets.mjs
+	node tools/check-sandbox-service-sets.selftest.mjs
+
 # Capacity is a gate, not an afterthought. Disk exhaustion killed a Rust
 # attestation build mid-compile twice, and ENOSPC surfaces as a compiler error
 # or a hung daemon rather than as "no disk" — an hour after the decision.

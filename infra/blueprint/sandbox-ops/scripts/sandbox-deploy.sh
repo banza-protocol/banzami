@@ -17,48 +17,35 @@ SVC_EVIDENCE="$REPO_ROOT/infra/blueprint/service-lab/scripts/validate-service-ev
 SANDBOX_STATE="${TMPDIR:-/tmp}/banzami-blueprint-sandbox/current.run"
 RELEASE_STATE="${TMPDIR:-/tmp}/banzami-blueprint-release/current.run"
 LABEL="com.banzami.blueprint.sandbox-deploy"
-# APPROVED four services: name|port|binary
-SERVICES=(
+# ─── Service sets (two explicit concepts) ─────────────────────────────────────
+# The VM execution ceremony attests and deploys ONLY the four core/API Sandbox
+# services. That set is exactly what the provenance release package builds
+# (sandbox-release-package.sh), what vm-execute.sh APPROVED allows, and what
+# VM_EXECUTION.md documents. The equality across all four sources is enforced by
+# tools/check-sandbox-service-sets.mjs — do not let them drift.
+CEREMONY_APPLY_SERVICES=(core-api-staging api-gateway-staging developer-api public-api-staging)
+
+# App-plane services (pay-frontend, admin-api, admin-frontend, app-frontend) are
+# NOT part of the core release package and are NEVER deployed by the ceremony
+# (cmd_apply / cmd_verify / the vm-dry-run). They are deployed through the separate
+# sanctioned application path — ./deploy.sh -> sandbox-source-deploy.sh ->
+# remote-native-build.sh -> this script's `deploy-one` — each built natively and
+# bound EXPLICITLY to the selected Sandbox stack (see _resolve_stack). Because
+# deploy-one also redeploys/rolls back the four core services, its allow-list is
+# the superset below.
+#
+# name|port|binary. The third field is what the entrypoint execs: a Go binary for
+# the core services, `node server.js` / `node server.mjs` for the Node frontends
+# (`node` alone is a REPL — it would exit 0 immediately and answer 502).
+DEPLOY_ONE_ALLOWED_SERVICES=(
   "core-api-staging|8081|core-api"
   "api-gateway-staging|8080|api-gateway"
   "developer-api|8086|developer-api"
   "public-api-staging|8083|public-api"
-  # pay-frontend — the hosted payer surface (Banzami ADR-052, CAP-APP-004).
-  #
-  # It was previously forbidden here. That invariant was written when the
-  # Sandbox project was API-only; the external Sandbox product now includes the
-  # page a payer actually opens, and every payment link the platform issues
-  # points at it. A surface the product requires does not belong in a fourth
-  # standalone topology to preserve a rule that no longer describes the product.
-  #
-  # It is the ONLY entry here with no financial authority: no secret mount, no
-  # database URL, no Core credential. See PAY_FRONTEND_APP_PLANE_ONLY below.
-  # The third field is what the entrypoint execs. For the Go services it is a
-  # binary; for this one it is a Next.js standalone server, and `node` alone is
-  # a REPL. Deployed that way the container started, found stdin was not a
-  # terminal, exited 0 in under a second, and pay.banzami.com answered 502 to
-  # every payer for twelve hours. A clean exit code is what made it quiet:
-  # nothing crashed, nothing restarted, no log line was written.
+  # app-plane — deployed via the application path, never the ceremony:
   "pay-frontend|3002|node server.js"
-  # The operator console (Stage D, approved 2026-09-08). Two entries, because it
-  # is two things: an API that reads this Sandbox database, and a browser app.
-  #
-  # It is here rather than in a separate topology for the same reason
-  # pay-frontend is: the operator console is part of the released Sandbox
-  # product — a platform whose routine operations require psql is not a platform
-  # — and it reads exactly the database these services already write.
-  #
-  # ENVIRONMENT=SANDBOX is not decoration. admin-api used to label its primary
-  # database LIVE, and the primary database here is banzami_staging; the console
-  # would have reported Sandbox balances and compliance cases as real money.
   "admin-api|8082|admin-api"
   "admin-frontend|3002|node server.js"
-  # app-frontend — App Banzami Web (WEB-APP-001). The Flutter Consumer app
-  # compiled to the Web target, served behind a same-origin session BFF. Unlike
-  # pay-frontend it holds ONE secret — the at-rest key that encrypts the opaque
-  # server-side session record — but no database URL, no Core credential, and it
-  # never joins the data plane. The third field is what the entrypoint execs:
-  # `node server.mjs` (an ES-module Node host), never `node` alone.
   "app-frontend|3007|node server.mjs"
 )
 # Services that must never exist in this project.
@@ -84,7 +71,44 @@ PAY_FRONTEND_APP_PLANE_ONLY=1
 
 die() { echo "sandbox-deploy: $*" >&2; exit 1; }
 hold() { echo "$1"; exit "${2:-43}"; }
-allow_ok() { local n="$1" e; for e in "${SERVICES[@]}"; do [ "${e%%|*}" = "$n" ] && return 0; done; return 1; }
+allow_ok() { local n="$1" e; for e in "${DEPLOY_ONE_ALLOWED_SERVICES[@]}"; do [ "${e%%|*}" = "$n" ] && return 0; done; return 1; }
+is_ceremony_service() { local n="$1" s; for s in "${CEREMONY_APPLY_SERVICES[@]}"; do [ "$s" = "$n" ] && return 0; done; return 1; }
+
+# _resolve_stack — bind a deploy-one to ONE canonical Sandbox stack.
+#
+# Two Sandbox stacks can run at once during a blue/green rebuild (OLD stays alive
+# while NEW is built), so NOTHING a first-create needs may be selected by a global
+# `head -1` glob: project, app/data network, core-api/public-api/api-gateway/
+# developer-api containers, and the secret directory must all belong to the SAME
+# project. The authority is the bootstrap identity (SANDBOX_STATE → BZSB_PROJECT /
+# BZSB_APP_NET / BZSB_DATA_NET / BZSB_SECRET_ROOT); from it every resource name is
+# deterministic (${BZSB_PROJECT}-<svc>). With no bootstrap identity (e.g. after a
+# reboot) it auto-detects ONLY when exactly one Sandbox stack is present, else it
+# fails closed. Same pattern as runtime-authority.sh.
+_resolve_stack() {
+  [ -n "${_STACK_RESOLVED:-}" ] && return 0
+  [ -f "$SANDBOX_STATE" ] && . "$SANDBOX_STATE"
+  if [ -z "${BZSB_PROJECT:-}" ]; then
+    local pgs n
+    pgs="$(docker ps --format '{{.Names}}' | grep -E '^bzsandbox-.*-postgres-1$' || true)"
+    n="$(printf '%s\n' "$pgs" | grep -c . || true)"
+    [ "$n" -eq 1 ] || die "cannot identify the target Sandbox stack ($n candidates) — restore $SANDBOX_STATE"
+    BZSB_PROJECT="${pgs%-postgres-1}"
+    local rid="${BZSB_PROJECT#bzsandbox-}"
+    [ -n "${BZSB_APP_NET:-}" ]  || BZSB_APP_NET="bzsb-app-${rid}"
+    [ -n "${BZSB_DATA_NET:-}" ] || BZSB_DATA_NET="bzsb-data-${rid}"
+  fi
+  : "${BZSB_PROJECT:?no target Sandbox project}" "${BZSB_APP_NET:?}" "${BZSB_DATA_NET:?}"
+  docker inspect "${BZSB_PROJECT}-core-api-staging" >/dev/null 2>&1 \
+    || die "core-api-staging of ${BZSB_PROJECT} is not running — cannot target this stack"
+  if [ -z "${BZSB_SECRET_ROOT:-}" ] || [ ! -d "${BZSB_SECRET_ROOT:-/nonexistent}" ]; then
+    # From the project's OWN core-api container mount (that container
+    # unambiguously belongs to this project — not a cross-stack glob).
+    BZSB_SECRET_ROOT="$(docker inspect "${BZSB_PROJECT}-core-api-staging" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' | grep '/run/secrets/core_internal_key:' | head -1 | sed 's#/core_internal_key:.*##')"
+  fi
+  [ -d "${BZSB_SECRET_ROOT:-/nonexistent}" ] || die "cannot locate the Sandbox credential directory for ${BZSB_PROJECT}"
+  _STACK_RESOLVED=1
+}
 mget() { grep -E "^$1=" "$MANIFEST" | head -1 | cut -d= -f2-; }
 oci_digest() { OCI="$1" node -e 'const fs=require("fs"),p=require("path");const oci=process.env.OCI;const b=d=>JSON.parse(fs.readFileSync(p.join(oci,"blobs",d.split(":")[0],d.split(":")[1])));const t=JSON.parse(fs.readFileSync(p.join(oci,"index.json")));let img=null;const v=d=>{const m=d.mediaType||"";if(m.includes("image.index"))b(d.digest).manifests.forEach(v);else if(m.includes("image.manifest")&&(d.annotations||{})["vnd.docker.reference.type"]!=="attestation-manifest")img=img||d.digest;};t.manifests.forEach(v);process.stdout.write(img||"");'; }
 
@@ -430,8 +454,9 @@ cmd_plan() {
 cmd_apply() {
   load_context; write_db_url; write_jwt_secret; write_core_internal_key; write_devkey_secrets
   local e name port bin tag
-  for e in "${SERVICES[@]}"; do
+  for e in "${DEPLOY_ONE_ALLOWED_SERVICES[@]}"; do
     IFS='|' read -r name port bin <<<"$e"
+    is_ceremony_service "$name" || continue   # ceremony deploys only the 4 core services
     echo "sandbox-deploy: validating + deploying $name"
     tag="$(validate_service "$name")" || hold "BLOCKER — SANDBOX DEPLOYMENT CONTRACT CANNOT BE VALIDATED" 43
     echo "  $name provenance_validated PASS"
@@ -442,8 +467,10 @@ cmd_apply() {
 
 cmd_verify() {
   load_context; local rc=0 e name port bin cname
-  for e in "${SERVICES[@]}"; do
-    IFS='|' read -r name port bin <<<"$e"; cname="${BZSB_PROJECT}-$name"
+  for e in "${DEPLOY_ONE_ALLOWED_SERVICES[@]}"; do
+    IFS='|' read -r name port bin <<<"$e"
+    is_ceremony_service "$name" || continue   # ceremony verifies only the 4 core services
+    cname="${BZSB_PROJECT}-$name"
     docker ps -q --filter "name=$cname" | grep -q . || { echo "  $name running FAIL"; rc=1; continue; }
     # health
     local st; st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohc{{end}}' "$cname")"
@@ -463,7 +490,7 @@ cmd_clean() {
   load_context 2>/dev/null || true
   [ -n "${BZSB_PROJECT:-}" ] && docker ps -aq --filter "label=$LABEL.run=$BZSB_PROJECT" | xargs -r docker rm -f >/dev/null 2>&1 || true
   docker ps -aq --filter "label=$LABEL" | xargs -r docker rm -f >/dev/null 2>&1 || true
-  local e name; for e in "${SERVICES[@]}"; do name="${e%%|*}"; docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$name" -q | xargs -r docker image rm -f >/dev/null 2>&1 || true; done
+  local e name; for e in "${DEPLOY_ONE_ALLOWED_SERVICES[@]}"; do name="${e%%|*}"; docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$name" -q | xargs -r docker image rm -f >/dev/null 2>&1 || true; done
   rm -f "${DBURL_FILE:-/nonexistent}" "${JWT_FILE:-/nonexistent}" "${CIK_FILE:-/nonexistent}" \
         "${APIKEY_PEPPER_FILE:-/nonexistent}" "${DEVINT_FILE:-/nonexistent}" "${PAYEEVAL_FILE:-/nonexistent}" \
         "${SESSION_FILE:-/nonexistent}" "${OTP_FILE:-/nonexistent}" 2>/dev/null || true
@@ -522,6 +549,11 @@ client_ip_config() {
 }
 
 release_config_env() {
+  # The target stack is already resolved before any deploy (load_context for the
+  # ceremony, _resolve_stack for deploy-one), so every peer below is named
+  # deterministically under BZSB_PROJECT — never globbed across all running stacks,
+  # which would cross-match the other stack during a blue/green rebuild.
+  : "${BZSB_PROJECT:?release_config_env requires a resolved stack (BZSB_PROJECT)}"
   case "$1" in
     admin-api|api-gateway-staging|developer-api|public-api-staging) client_ip_config "$1" ;;
   esac
@@ -575,20 +607,14 @@ release_config_env() {
       # (ADR-060 §4). The credential is INTERNAL_API_KEY, which both services
       # read from /run/secrets/core_internal_key. Without this URL the
       # /v1/sandbox/test-payers routes answer 503 UNAVAILABLE.
-      local papi
-      papi="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
-      [ -n "$papi" ] || papi="${BZSB_PROJECT:-}-public-api-staging"
-      echo "PUBLIC_API_INTERNAL_URL=http://${papi}:8083"
+      echo "PUBLIC_API_INTERNAL_URL=http://${BZSB_PROJECT}-public-api-staging:8083"
       ;;
     developer-api)
       # Where the Developers Console's financial onboarding reaches the Business
       # application domain (applications, Business consent codes). The internal
       # credential is INTERNAL_API_KEY from /run/secrets/core_internal_key.
       # Resolved from the running Gateway, like public-api's below.
-      local dgw
-      dgw="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
-      [ -n "$dgw" ] || dgw="${BZSB_PROJECT:-}-api-gateway-staging"
-      echo "GATEWAY_INTERNAL_URL=http://${dgw}:8080"
+      echo "GATEWAY_INTERNAL_URL=http://${BZSB_PROJECT}-api-gateway-staging:8080"
       ;;
     public-api-staging)
       # Where public-api asks the Gateway to mint a transaction proof.
@@ -610,13 +636,7 @@ release_config_env() {
       # single-service swap path does not carry that variable, and a config value
       # that is correct only on a full bootstrap is the failure mode this whole
       # function exists to prevent.
-      local gw
-      # || true: pipefail turns an empty grep into a failed command substitution,
-      # which under set -e kills the deploy — the same trap already documented at
-      # the top of cmd_deploy_one.
-      gw="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
-      [ -n "$gw" ] || gw="${BZSB_PROJECT:-}-api-gateway-staging"
-      echo "GATEWAY_INTERNAL_URL=http://${gw}:8080"
+      echo "GATEWAY_INTERNAL_URL=http://${BZSB_PROJECT}-api-gateway-staging:8080"
       # Mail configuration for verified-email signup, Forgot-PIN and PIN-change
       # security notices (account-identity-security suite). Re-applied every deploy
       # (deploy-one clones the previous env). RESEND_API_KEY arrives as a secret
@@ -637,31 +657,27 @@ release_config_env() {
       # container so a single-service swap does not depend on BZSB_PROJECT. The
       # session Redis is the dedicated app-plane one created at first deploy.
       echo "NODE_ENV=production"
-      local afp afr afg
-      afp="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
-      [ -n "$afp" ] || afp="${BZSB_PROJECT:-}-public-api-staging"
-      echo "CONSUMER_API_BASE=http://${afp}:8083"
+      echo "CONSUMER_API_BASE=http://${BZSB_PROJECT}-public-api-staging:8083"
       # BUSINESS_API_BASE is the INTERNAL gateway (ADR-066): the Business context's
       # merchant-JWT endpoints (/v1/merchant/auth/*, /v1/business/*, /v1/payment-links,
       # /v1/transactions, …) live on the gateway, reached by the BFF at /business/api/*.
-      afg="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
-      [ -n "$afg" ] || afg="${BZSB_PROJECT:-}-api-gateway-staging"
-      echo "BUSINESS_API_BASE=http://${afg}:8080"
-      afr="$(docker ps --format '{{.Names}}' | grep -E -- '-app-session-redis$' | head -1 || true)"
-      [ -n "$afr" ] || afr="${BZSB_PROJECT:-}-app-session-redis"
-      echo "SESSION_REDIS_ADDR=${afr}:6379"
+      echo "BUSINESS_API_BASE=http://${BZSB_PROJECT}-api-gateway-staging:8080"
+      echo "SESSION_REDIS_ADDR=${BZSB_PROJECT}-app-session-redis:6379"
       ;;
   esac
 }
 
 cmd_deploy_one() {
   local name="$1" tag="$2" rollback="${3:-}"
-  local e n p b bin port; for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && { bin="$b"; port="$p"; }; done
+  local e n p b bin port; for e in "${DEPLOY_ONE_ALLOWED_SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && { bin="$b"; port="$p"; }; done
   [ -n "${bin:-}" ] || die "unknown sandbox service: $name"
-  # `|| true`: under `set -e` an empty grep result exits the script, which is
-  # exactly the case a FIRST deploy is — no container yet. Without it the script
-  # died silently before reaching the create path below, reporting only rc=1.
-  local cname; cname="$(docker ps -a --format '{{.Names}}' | grep -E -- "-${name}\$" | head -1 || true)"
+  # Bind to ONE canonical stack (SANDBOX_STATE → BZSB_PROJECT), never a global
+  # `head -1` glob — two stacks may be live during a blue/green rebuild.
+  _resolve_stack
+  # The container name is the project's own; its presence decides first-create vs
+  # redeploy. Never grep across all stacks (that could clone/redeploy OLD).
+  local cname=""
+  docker ps -a --format '{{.Names}}' | grep -qx "${BZSB_PROJECT}-${name}" && cname="${BZSB_PROJECT}-${name}"
 
   # First deploy of a service that has never run here.
   #
@@ -684,17 +700,11 @@ cmd_deploy_one() {
   # Losing that Redis logs Web sessions out and nothing more — a safe failure
   # mode, never a financial one. No database, no Core credential, no data plane.
   if [ -z "$cname" ] && [ "$name" = "app-frontend" ]; then
-    local proj appnet secret_dir core_c papi sredis
-    proj="$(docker ps --format '{{.Names}}' | grep -oE '^bzsandbox-[0-9]+-[0-9]+-[0-9]+' | head -1)"
-    [ -n "$proj" ] || die "no bootstrapped Sandbox project found"
-    appnet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-app-' | head -1)"
-    [ -n "$appnet" ] || die "no Sandbox application network found"
+    # All resources belong to the ONE resolved stack (BZSB_PROJECT) — never a
+    # cross-stack head -1 glob.
+    local proj="$BZSB_PROJECT" appnet="$BZSB_APP_NET" secret_dir="$BZSB_SECRET_ROOT" papi sredis
     cname="${proj}-app-frontend"
-    core_c="$(docker ps --format '{{.Names}}' | grep -E -- '-core-api-staging$' | head -1)"
-    [ -n "$core_c" ] || die "core-api-staging is not running — cannot locate the Sandbox secret directory"
-    secret_dir="$(docker inspect "$core_c" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' \
-      | grep '/run/secrets/core_internal_key:' | head -1 | sed 's#/core_internal_key:.*##')"
-    [ -n "$secret_dir" ] && [ -d "$secret_dir" ] || die "cannot locate the Sandbox credential directory"
+    [ -d "$secret_dir" ] || die "cannot locate the Sandbox credential directory for ${proj}"
     assert_secret_modes "$secret_dir"
     # The at-rest session-store key: minted once and NEVER rotated (keep_or_mint_key32),
     # because every opaque session record is sealed under it — a new key would
@@ -713,11 +723,8 @@ cmd_deploy_one() {
         || { echo "  app-session-redis create FAIL"; return 1; }
       echo "  app-session-redis created on $appnet (app plane, no host port)"
     fi
-    papi="$(docker ps --format '{{.Names}}' | grep -E -- '-public-api-staging$' | head -1 || true)"
-    [ -n "$papi" ] || papi="${proj}-public-api-staging"
-    local pgw
-    pgw="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
-    [ -n "$pgw" ] || pgw="${proj}-api-gateway-staging"
+    papi="${proj}-public-api-staging"
+    local pgw="${proj}-api-gateway-staging"
     echo "  $name first create on $appnet (application plane; session-store key only)"
     docker create --name "$cname" --network "$appnet" \
       --security-opt "no-new-privileges:true" --restart unless-stopped \
@@ -738,29 +745,17 @@ cmd_deploy_one() {
     done
   fi
   if [ -z "$cname" ] && { [ "$name" = "pay-frontend" ] || [ "$name" = "admin-frontend" ] || [ "$name" = "admin-api" ]; }; then
-    local proj appnet datanet
-    proj="$(docker ps --format '{{.Names}}' | grep -oE '^bzsandbox-[0-9]+-[0-9]+-[0-9]+' | head -1)"
-    [ -n "$proj" ] || die "no bootstrapped Sandbox project found"
-    appnet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-app-' | head -1)"
-    [ -n "$appnet" ] || die "no Sandbox application network found"
+    # All resources belong to the ONE resolved stack (BZSB_PROJECT) — never a
+    # cross-stack head -1 glob.
+    local proj="$BZSB_PROJECT" appnet="$BZSB_APP_NET" datanet="$BZSB_DATA_NET"
     cname="${proj}-${name}"
 
     if [ "$name" = "admin-api" ]; then
-      # Where the credential files live is read from a service that is already
-      # running, not from the bootstrap state file.
-      #
-      # That state file lives under /tmp and does not survive a reboot; every
-      # other deploy-one works anyway because it clones a container rather than
-      # reading it. Deriving the paths from core-api-staging's own mounts is
-      # both more robust than reading the bootstrap state file. admin-api then
-      # mounts its OWN credential (db_url_admin_api, runtime-authority.sh): a
-      # role with no write authority over financial state.
-      local core_c secret_dir
-      core_c="$(docker ps --format '{{.Names}}' | grep -E -- '-core-api-staging$' | head -1)"
-      [ -n "$core_c" ] || die "core-api-staging is not running — cannot locate the Sandbox credential files"
-      secret_dir="$(docker inspect "$core_c" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' \
-        | grep '/run/secrets/core_internal_key:' | head -1 | sed 's#/core_internal_key:.*##')"
-      [ -n "$secret_dir" ] && [ -d "$secret_dir" ] || die "cannot locate the Sandbox credential directory"
+      # Credentials come from the resolved stack's own secret directory
+      # (BZSB_SECRET_ROOT). admin-api mounts its OWN credential (db_url_admin_api,
+      # runtime-authority.sh): a role with no write authority over financial state.
+      local secret_dir="$BZSB_SECRET_ROOT"
+      [ -d "$secret_dir" ] || die "cannot locate the Sandbox credential directory for ${proj}"
       DBURL_FILE="$secret_dir/db_url_admin_api"
       [ -s "$DBURL_FILE" ] || die "admin-api has no database credential of its own — run runtime-authority.sh apply"
       CIK_FILE="$secret_dir/core_internal_key"
@@ -778,9 +773,9 @@ cmd_deploy_one() {
       # cannot send, which it warns about.
       RESEND_FILE="$secret_dir/resend_api_key"
       if [ ! -s "$RESEND_FILE" ]; then
-        local dev_c
-        dev_c="$(docker ps --format '{{.Names}}' | grep -E -- '-developer-api$' | head -1)"
-        if [ -n "$dev_c" ]; then
+        # From THIS stack's developer-api (deterministic name), not a cross-stack glob.
+        local dev_c="${proj}-developer-api"
+        if docker inspect "$dev_c" >/dev/null 2>&1; then
           docker inspect "$dev_c" --format '{{range .Config.Env}}{{println .}}{{end}}' \
             | sed -n 's/^RESEND_API_KEY=//p' | head -1 | tr -d '\r\n' > "$RESEND_FILE"
           chmod 0644 "$RESEND_FILE"
@@ -788,8 +783,6 @@ cmd_deploy_one() {
         [ -s "$RESEND_FILE" ] && echo "  resend_api_key provisioned from developer-api" \
                               || echo "  resend_api_key NOT available — BANZADMIN cannot send mail"
       fi
-      datanet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-data-' | head -1)"
-      [ -n "$datanet" ] || die "no Sandbox data network found"
       # The admin JWT signing key. Preserved across applies like every other
       # credential — regenerating it would sign every operator out and, worse,
       # would do it silently at the next deploy.

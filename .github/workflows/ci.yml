@@ -677,6 +677,16 @@ jobs:
           node tools/db-authority.mjs
           node tools/db-authority.selftest.mjs
 
+      # The VM execution ceremony has ONE four-service contract (core-api-staging,
+      # api-gateway-staging, developer-api, public-api-staging), stated identically in
+      # the release package, sandbox-deploy's ceremony set, vm-execute APPROVED and
+      # VM_EXECUTION.md; and app-plane deploy-one binds to the resolved stack, never a
+      # cross-stack head -1 glob. The selftest breaks it six ways.
+      - name: Sandbox service-set + app-plane targeting gate
+        run: |
+          node tools/check-sandbox-service-sets.mjs
+          node tools/check-sandbox-service-sets.selftest.mjs
+
       - name: Public website truth gate
         run: |
           node tools/check-public-site-truth.mjs
