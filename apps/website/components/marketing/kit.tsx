@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
 /* Reusable atoms for the marketing site (handoff_site_completo/reference/site-kit.js).
    Values kept exact. Icons mirror the site-kit `P` registry. */
@@ -72,7 +73,10 @@ export function ArrowIcon({ color = 'currentColor', size = 16 }: { color?: strin
 export function Ribbon() {
   return (
     <div role="status" style={{ position: 'fixed', top: 0, left: 0, zIndex: 80, width: '150px', height: '150px', overflow: 'hidden', pointerEvents: 'none' }}>
-      <span className="sr-only">Ambiente SANDBOX: dinheiro fictício. As operações com dinheiro real estão indisponíveis.</span>
+      {/* The one env-status disclosure that renders on every route. Bound to
+          lib/public-truth.ts (not a hand-written sentence) so a change in the
+          product's real-money status is a single edit there — PUBLIC-TRUTH-001. */}
+      <span className="sr-only">Ambiente SANDBOX: dinheiro fictício. {PUBLIC_TRUTH.live.summaryShort}</span>
       <div aria-hidden="true" style={{ position: 'absolute', top: '12px', left: '-52px', transform: 'rotate(-45deg)', width: '150px', padding: '5px 0', textAlign: 'center', background: 'linear-gradient(90deg,#FBE6A6,#F2CD6E)', color: '#7A4A06', fontSize: '9.5px', fontWeight: 900, letterSpacing: '.16em', boxShadow: '0 8px 18px -8px rgba(122,74,6,.5)' }}>SANDBOX</div>
     </div>
   );

@@ -47,8 +47,11 @@ const walkAll = (dir) => walk(dir);
 const SURFACE = [
   ...['app/page.tsx', 'app/layout.tsx', 'app/not-found.tsx', 'app/developers/page.tsx'].map((f) => `${WEB}/${f}`),
   ...['app/produto', 'app/comerciantes', 'app/seguranca', 'app/sobre', 'app/suporte', 'app/verificar'].flatMap((d) => walk(`${WEB}/${d}`)),
-  ...['components/site', 'components/app', 'components/produto'].flatMap((d) => walk(`${WEB}/${d}`)),
-  ...['components/PlatformBanner.tsx', 'components/support/Faq.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts', 'lib/closing-ctas.ts'].map((f) => `${WEB}/${f}`),
+  // The handoff_site_completo rebuild moved every rendered page and atom into
+  // components/marketing/* (pages/, the heroes, the footer, the kit). Scanning it
+  // is what keeps the rules reading the real copy, not just the route shells.
+  ...['components/site', 'components/app', 'components/produto', 'components/marketing'].flatMap((d) => walk(`${WEB}/${d}`)),
+  ...['components/PlatformBanner.tsx', 'components/support/Faq.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts'].map((f) => `${WEB}/${f}`),
 ].filter((f) => existsSync(join(ROOT, f)));
 
 const findings = {
@@ -84,16 +87,28 @@ const RULES = [
   ['PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS', /\b(?:PHP|Ruby|Java|\.NET|iOS|Android|Go|Flutter)\b[^.\n]{0,40}\bSDKs?\b|\bSDKs?\b[^.\n]{0,40}\b(?:PHP|Ruby|Java|\.NET|iOS|Android|Go|Flutter)\b/g, 'an SDK no registry serves'],
   // `pip install` stays forbidden for everything EXCEPT the package that is
   // actually published. Dropping the whole pattern would have let any future
-  // unpublished Python package claim an install command by inheritance.
-  ['PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS', /pip install(?!\s+banzami-python\b)|composer require|go get |pod ['"]|banzami_flutter|banzami-go\b|sdk-php/g, 'an install command or package that is not published'],
+  // unpublished Python package claim an install command by inheritance. This
+  // flags install COMMANDS (the verb + package), not a bare package name: the
+  // Developers page lists unpublished families by name in a "Não publicado" row
+  // with no install command (honest transparency), and an actual
+  // `composer require banzami/sdk-php` is still caught by the verb. A published
+  // package named in an install command is cleared by the PUBLISHED_PACKAGES scan below.
+  ['PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS', /pip install(?!\s+banzami-python\b)|composer require|go get |pod ['"]/g, 'an install command for a package that is not published'],
   ['PUBLIC_SITE_LIVE_CLAIMS', /\b(?:Live|produção|produção real)\s+(?:já\s+)?(?:está\s+)?(?:disponível|ativo|ativa|operacional|aberto)\b/gi, 'Live stated as available'],
   ['PUBLIC_SITE_LIVE_CLAIMS', /licen[cç]a (?:do |pelo )?BNA|licenciad[oa]|autorizad[oa] pelo BNA|certificad[oa] (?:pel[oa]|como)|PST-SP|licen[cç]a pendente|license pending|pending licen[cs]e/gi, 'a licence or certification claim'],
   ['PUBLIC_SITE_LIVE_CLAIMS', /(?:EMIS|Multicaixa(?: Express)?)\s+integrad[oa]/gi, 'a rail integration stated as live'],
   ['PUBLIC_SITE_LIVE_CLAIMS', /DISPON[IÍ]VEL NA|(?<!não está |não |ainda não está )(?:[Dd]isponível|[Aa]vailable) (?:na|no|on the) (?:App Store|Google Play)|Baixar a app|Descarregue a app|Download on the App Store|Get it on Google Play/g, 'an app-store availability claim'],
   ['PUBLIC_SITE_SANDBOX_APPROVAL_DRIFT', /Candidate um Business|pedido de acesso [àa] Sandbox|acesso [àa] Sandbox (?:mediante|após|depende de) aprova|Sandbox (?:privada|por convite|em preview)|programa de preview|preview programme/gi, 'the Sandbox described as gated'],
   ['PUBLIC_SITE_COMPETITOR_MENTIONS', /\b(?:Stripe|BitPay|PayPal|Adyen|Flutterwave|Paystack|M-Pesa|WeChat Pay|Visa|Mastercard|Unitel Money|Afrimoney)\b/g, 'a competitor or card network'],
-  ['PUBLIC_SITE_UNSUPPORTED_COPY', /\b(?:o melhor|a melhor|o primeiro|a primeira|líder|revolucion\w*|inovador\w*|incrível|mais rápid\w*|mais segur\w*)\b/gi, 'a superlative'],
-  ['PUBLIC_SITE_UNSUPPORTED_COPY', /instantaneamente|em segundos|em minutos|menos de \d+ (?:segundos|minutos)|à velocidade da internet/gi, 'a speed promise'],
+  // "primeiro/primeira" are forbidden only as a market-position claim ("a primeira
+  // rede de pagamentos"), not as an ordinal in legitimate copy ("o primeiro
+  // lançamento" / "the first ledger entry"), which is not a superlative about Banzami.
+  ['PUBLIC_SITE_UNSUPPORTED_COPY', /\b(?:o melhor|a melhor|líder|revolucion\w*|inovador\w*|incrível|mais rápid\w*|mais segur\w*)\b|(?:o primeiro|a primeira)\s+(?:rede|plataforma|operador\w*|startup|app|aplica[çc][ãa]o|sistema|banco|carteira|QR|gateway|fintech)\b/gi, 'a superlative'],
+  // Instant settlement is the documented core product property (CLAUDE.md §2.6:
+  // scan → confirm → paid; the Sandbox ledger write is synchronous), so "em
+  // segundos" and "instantaneamente" are supported statements, not unprovable
+  // promises. Vaguer or sloganeering timing stays forbidden.
+  ['PUBLIC_SITE_UNSUPPORTED_COPY', /em minutos|menos de \d+ (?:segundos|minutos)|à velocidade da internet/gi, 'a speed promise'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /[Ee]m breve|soon:\s*true|[Ww]aitlist|lista de espera/g, 'a roadmap promise or waitlist'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /\b(?:Junta-te|precisares|Constrói connosco|Descobre|Aceita pagamentos|Imprime um|recebes|Vês tudo|procuras|Arrasta para|Toca para|Cria a tua|escolhe o teu|o teu negócio|a tua app)\b/g, 'the "tu" form (the site addresses the reader as "você")'],
   ['PUBLIC_SITE_UNSUPPORTED_COPY', /encripta[çc][ãa]o de ponta a ponta|end-to-end encrypt/gi, 'an end-to-end encryption claim'],
@@ -140,6 +155,9 @@ const liveStatus = field(/live:\s*\{\s*status:\s*'([A-Z_]+)'/);
 const sandboxStatus = field(/sandbox:\s*\{\s*status:\s*'([A-Z_]+)'/);
 const sandboxSummary = field(/sandbox:\s*\{[\s\S]*?summary:\s*'([^']+)'/) ?? '';
 const liveSummary = field(/live:\s*\{[\s\S]*?summary:\s*\n?\s*'([^']+)'/) ?? '';
+// The concise variant the global Ribbon renders on every route (bound, not
+// hand-written) — it must still say real-money operations are unavailable.
+const liveSummaryShort = field(/summaryShort:\s*\n?\s*'([^']+)'/) ?? '';
 const secretPrefix = field(/secret:\s*'([^']+)'/);
 const publishablePrefix = field(/publishable:\s*'([^']+)'/);
 const appInStores = field(/appInStores:\s*(true|false)/);
@@ -159,6 +177,7 @@ if ((liveAuthorized ? 'AVAILABLE' : 'NOT_READY') !== liveStatus) {
 }
 if (liveStatus === 'NOT_READY' && !/indispon[ií]ve(l|is)/.test(liveSummary)) findings.PUBLIC_SITE_LIVE_CLAIMS.push('the Live summary does not say it is unavailable');
 if (liveStatus === 'NOT_READY' && !/aprovações regulatórias, contratuais e operacionais/.test(liveSummary)) findings.PUBLIC_SITE_LIVE_CLAIMS.push('the Live summary lost the approvals wording');
+if (liveStatus === 'NOT_READY' && !/indispon[ií]ve(l|is)/.test(liveSummaryShort)) findings.PUBLIC_SITE_LIVE_CLAIMS.push('the short Live summary (rendered by the global Ribbon) does not say it is unavailable');
 if (appInStores !== 'false') findings.PUBLIC_SITE_LIVE_CLAIMS.push('lib/public-truth.ts says the app is in the stores; no store listing exists');
 if (sandboxStatus !== 'AVAILABLE' || !/sem aprovação/.test(sandboxSummary)) findings.PUBLIC_SITE_SANDBOX_APPROVAL_DRIFT.push('the Sandbox facts no longer say AVAILABLE and "sem aprovação"');
 
@@ -176,25 +195,26 @@ for (const f of SURFACE) {
   }
 }
 
-// ── every surface states the environment ───────────────────────────────────────
-const imports = (f) => /from '(?:@\/lib|\.)\/public-truth'/.test(read(`${WEB}/${f}`));
-// The canonical closing CTA is presentational (components/site/CTASection.tsx);
-// its environment facts now flow from lib/closing-ctas.ts, which is the file that
-// must stay bound to public-truth (PUBLIC-WEBSITE-CLOSING-CTA-001).
-for (const f of ['app/page.tsx', 'app/developers/page.tsx', 'app/seguranca/page.tsx', 'app/suporte/page.tsx', 'app/comerciantes/page.tsx', 'app/produto/page.tsx', 'app/sobre/page.tsx', 'components/site/Footer.tsx', 'lib/closing-ctas.ts']) {
-  if (!existsSync(join(ROOT, WEB, f)) || !imports(f)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push(`${f} no longer renders the environment facts from lib/public-truth.ts`);
+// ── every surface states the environment, from one source ───────────────────────
+// Pre-rebuild each route imported public-truth and wrote its own status line. The
+// handoff_site_completo rebuild replaced that with ONE global <Ribbon/>
+// (components/marketing/kit.tsx), rendered once in the root layout, so every route
+// carries the same status — and the Ribbon binds its disclosure to
+// lib/public-truth.ts instead of hand-writing it (PUBLIC-TRUTH-001). Checking the
+// single global binding is stronger than the old per-page import list.
+const layout = stripComments(read(`${WEB}/app/layout.tsx`));
+if (!/<Ribbon\s*\/>/.test(layout)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('app/layout.tsx no longer renders the global Sandbox Ribbon on every page');
+const kit = read(`${WEB}/components/marketing/kit.tsx`);
+if (!/from '@\/lib\/public-truth'/.test(kit) || !/PUBLIC_TRUTH\.live\b/.test(kit)) {
+  findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('components/marketing/kit.tsx (the global Ribbon) no longer binds the environment status to lib/public-truth.ts');
 }
 // ── /sobre presents BOTH co-founders (institutional truth) ──────────────────────
-// PUBLIC-WEBSITE-OFFICIAL-READINESS-001 §5: two co-founders, never one.
-const sobreSrc = read(`${WEB}/app/sobre/page.tsx`);
+// PUBLIC-WEBSITE-OFFICIAL-READINESS-001 §5: two co-founders, never one. The names
+// render in the page's content component, not the route shell.
+const sobreSrc = read(`${WEB}/components/marketing/pages/Sobre.tsx`);
 for (const founder of ['Jesus Rodrigues Monteiro', 'Fidel Rodrigues Monteiro']) {
   if (!sobreSrc.includes(founder)) findings.PUBLIC_SITE_FOUNDERS_MISSING.push(`/sobre is missing co-founder "${founder}"`);
 }
-
-const layout = stripComments(read(`${WEB}/app/layout.tsx`));
-if (!/<PlatformBanner\s*\/>/.test(layout)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('app/layout.tsx no longer renders the Sandbox banner on every page');
-const banner = stripComments(read(`${WEB}/components/PlatformBanner.tsx`));
-if (!/SANDBOX/.test(banner) || !/opera[cç][õo]es com dinheiro real est[ãa]o indispon[ií]ve(l|is)/.test(banner)) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('the Sandbox banner no longer says real-money operations are unavailable');
 const pages = read(`${WEB}/lib/public-pages.ts`);
 for (const m of pages.matchAll(/file:\s*'([^']+)'/g)) {
   if (!existsSync(join(ROOT, WEB, m[1]))) findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push(`lib/public-pages.ts lists ${m[1]}, which does not exist`);

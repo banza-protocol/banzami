@@ -39,8 +39,8 @@ const T = {
     'We are finishing getting Banzami ready for Android.',
   ),
   naP2: L(
-    'A versão Android estará disponível em breve para testes em ambiente Sandbox.',
-    'The Android version will be available soon for testing in the Sandbox.',
+    'A versão Android para testes em ambiente Sandbox ainda não está disponível.',
+    'The Android version for Sandbox testing is not yet available.',
   ),
   naP3: L(
     'Podes continuar a experimentar a Banzami através da Beta Web ou regressar mais tarde para participar nos testes Android.',

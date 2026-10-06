@@ -65,7 +65,7 @@ const CASES = [
   },
   {
     name: 'SDK — an install command for a package that is not published',
-    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('<li>Dinheiro fictício: nada entra ou sai de um banco.</li>', '<li>Dinheiro fictício: nada entra ou sai de um banco. npm install @banzami/checkout</li>')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Developers.tsx`, (s) => s.replace('As operações com dinheiro real permanecem indisponíveis.', 'As operações com dinheiro real permanecem indisponíveis. npm install @banzami/checkout')),
     expect: fails('PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS'),
   },
   {
@@ -75,14 +75,14 @@ const CASES = [
     // real — the same defect as claiming something unreal, pointing the other
     // way.
     name: 'SDK — the published Python install command is allowed',
-    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('<li>Dinheiro fictício: nada entra ou sai de um banco.</li>', '<li>Dinheiro fictício: nada entra ou sai de um banco. pip install banzami-python</li>')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Developers.tsx`, (s) => s.replace('As operações com dinheiro real permanecem indisponíveis.', 'As operações com dinheiro real permanecem indisponíveis. pip install banzami-python')),
     expect: (c) => c.code === 0 && c.counters.PUBLIC_SITE_TRUTH === 'PASS',
   },
   {
     // …and the exemption is for THAT package, not for pip. A future unpublished
     // Python package must not inherit an install command by association.
     name: 'SDK — pip install of an unpublished package still fails',
-    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('<li>Dinheiro fictício: nada entra ou sai de um banco.</li>', '<li>Dinheiro fictício: nada entra ou sai de um banco. pip install banzami-go</li>')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Developers.tsx`, (s) => s.replace('As operações com dinheiro real permanecem indisponíveis.', 'As operações com dinheiro real permanecem indisponíveis. pip install banzami-go')),
     expect: fails('PUBLIC_SITE_UNPUBLISHED_SDK_CLAIMS'),
   },
   {
@@ -107,12 +107,12 @@ const CASES = [
   },
   {
     name: 'live — the Suporte page claims a BNA licence',
-    mutate: (d) => edit(d, `${W}/app/suporte/page.tsx`, (s) => s.replace('Como podemos ajudar?', 'Operador com licença do BNA.')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Suporte.tsx`, (s) => s.replace('Como podemos ajudar?', 'Operador com licença do BNA.')),
     expect: fails('PUBLIC_SITE_LIVE_CLAIMS'),
   },
   {
     name: 'sandbox — the old "Candidate um Business" onboarding returns',
-    mutate: (d) => edit(d, `${W}/app/developers/page.tsx`, (s) => s.replace('Sandbox pública self-service', 'Candidate um Business para aceder')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Developers.tsx`, (s) => s.replace('Comece hoje na Sandbox.', 'Candidate um Business para aceder.')),
     expect: fails('PUBLIC_SITE_SANDBOX_APPROVAL_DRIFT'),
   },
   {
@@ -126,24 +126,46 @@ const CASES = [
     expect: fails('PUBLIC_SITE_KEY_PREFIX_DRIFT'),
   },
   {
-    name: 'status — the Footer stops rendering the environment facts',
-    mutate: (d) => edit(d, `${W}/components/site/Footer.tsx`, (s) => s.replace("import { PUBLIC_TRUTH } from '@/lib/public-truth';\n", 'const PUBLIC_TRUTH = { sandbox: { name: "" }, live: { name: "" } };\n')),
+    name: 'status — the global Ribbon stops binding the environment facts',
+    mutate: (d) => edit(d, `${W}/components/marketing/kit.tsx`, (s) => s.replace("import { PUBLIC_TRUTH } from '@/lib/public-truth';\n", '')),
     expect: fails('PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING'),
   },
   {
-    name: 'status — the banner goes back to "ambiente de testes" only',
-    mutate: (d) => edit(d, `${W}/components/PlatformBanner.tsx`, (s) => s.replace('As operações com dinheiro real estão indisponíveis.', 'Esta plataforma encontra-se em ambiente de testes.')),
-    expect: fails('PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING'),
+    name: 'status — the short Live summary (global Ribbon) stops saying unavailable',
+    mutate: (d) => edit(d, `${W}/lib/public-truth.ts`, (s) => s.replace('permanecem indisponíveis, sujeitas às aprovações aplicáveis.', 'estão em preparação, sujeitas às aprovações aplicáveis.')),
+    expect: fails('PUBLIC_SITE_LIVE_CLAIMS'),
   },
   {
     name: 'competitor — a product page names a competitor',
-    mutate: (d) => edit(d, `${W}/app/sobre/page.tsx`, (s) => s.replace('Pagamentos em Kwanza, de carteira para carteira.', 'Mais simples do que o Stripe.')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Sobre.tsx`, (s) => s.replace('Sem cartões e sem dinheiro físico.', 'Mais simples do que o Stripe.')),
     expect: fails('PUBLIC_SITE_COMPETITOR_MENTIONS'),
   },
   {
+    // "em segundos" is now allowed (instant settlement is the documented core
+    // property); a vaguer "em minutos" promise and a waitlist are still caught.
     name: 'copy — a speed promise and a waitlist return',
-    mutate: (d) => edit(d, `${W}/lib/closing-ctas.ts`, (s) => s.replace('Experimente a App Banzami.', 'Receba em segundos. Entre na waitlist.')),
+    mutate: (d) => edit(d, `${W}/components/marketing/Footer.tsx`, (s) => s.replace('Construído sobre o BANZA.', 'Receba em minutos. Entre na waitlist.')),
     expect: (c) => fails('PUBLIC_SITE_UNSUPPORTED_COPY')(c) && /speed promise/.test(c.out) && /waitlist/.test(c.out),
+  },
+  {
+    // Instant settlement is the documented core property (CLAUDE.md §2.6). Stating
+    // it ("em segundos") is true, and a gate that refused it would force the site
+    // to omit something real — the same defect as claiming something unreal.
+    name: 'copy — "em segundos" (instant settlement) is allowed',
+    mutate: (d) => edit(d, `${W}/components/marketing/Footer.tsx`, (s) => s.replace('Construído sobre o BANZA.', 'Receba em segundos.')),
+    expect: (c) => c.code === 0 && c.counters.PUBLIC_SITE_TRUTH === 'PASS',
+  },
+  {
+    name: 'copy — a market-position superlative ("a primeira rede") is caught',
+    mutate: (d) => edit(d, `${W}/components/marketing/Footer.tsx`, (s) => s.replace('Construído sobre o BANZA.', 'A primeira rede de pagamentos de Angola.')),
+    expect: fails('PUBLIC_SITE_UNSUPPORTED_COPY'),
+  },
+  {
+    // …and the narrowing does not fire on an ordinal in legitimate copy: "o
+    // primeiro lançamento" (the first ledger entry) is not a superlative claim.
+    name: 'copy — an ordinal ("o primeiro lançamento") is allowed',
+    mutate: (d) => edit(d, `${W}/components/marketing/Footer.tsx`, (s) => s.replace('Construído sobre o BANZA.', 'Cada conta começa com o primeiro lançamento.')),
+    expect: (c) => c.code === 0 && c.counters.PUBLIC_SITE_TRUTH === 'PASS',
   },
   {
     name: 'copy — "Em breve" roadmap items return to the menu',
@@ -152,7 +174,7 @@ const CASES = [
   },
   {
     name: 'startup — Banzami described as an "empresa" again',
-    mutate: (d) => edit(d, `${W}/app/sobre/page.tsx`, (s) => s.replace('O Banzami é a startup que está a construir esta rede', 'O Banzami é a empresa que constrói esta rede')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Sobre.tsx`, (s) => s.replace('A Banzami é a startup que está a construir uma rede de pagamentos nativa de carteira para Angola, sobre o protocolo aberto BANZA.', 'A Banzami é a empresa que constrói esta rede.')),
     expect: fails('PUBLIC_SITE_BANZAMI_EMPRESA'),
   },
   {
@@ -162,7 +184,7 @@ const CASES = [
   },
   {
     name: 'naming — "Banzami Wallet" appears as a public product name',
-    mutate: (d) => edit(d, `${W}/app/produto/page.tsx`, (s) => s.replace('receba na sua carteira em Kwanza', 'receba no seu Banzami Wallet')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Produto.tsx`, (s) => s.replace('O valor já entrou na sua carteira.', 'O valor já entrou no seu Banzami Wallet.')),
     expect: fails('PUBLIC_SITE_TERMINOLOGY_DRIFT'),
   },
   {
@@ -172,7 +194,7 @@ const CASES = [
   },
   {
     name: 'founders — /sobre drops a co-founder (single-founder regression)',
-    mutate: (d) => edit(d, `${W}/app/sobre/page.tsx`, (s) => s.replace('Jesus Rodrigues Monteiro', 'Equipa Banzami')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Sobre.tsx`, (s) => s.replaceAll('Jesus Rodrigues Monteiro', 'Equipa Banzami')),
     expect: fails('PUBLIC_SITE_FOUNDERS_MISSING'),
   },
   {
@@ -192,7 +214,7 @@ const CASES = [
   },
   {
     name: 'comments do not count — history in a comment passes',
-    mutate: (d) => edit(d, `${W}/app/page.tsx`, (s) => s.replace('{/* ===================== HERO ===================== */}', '{/* HERO — it used to say DISPONÍVEL NA App Store and em segundos */}')),
+    mutate: (d) => edit(d, `${W}/components/marketing/pages/Sobre.tsx`, (s) => s.replace('{/* ─────────── 01 · MISSÃO (#missao) ─────────── */}', '{/* MISSÃO — it used to say DISPONÍVEL NA App Store and em minutos */}')),
     expect: (c) => c.code === 0,
   },
 ];
