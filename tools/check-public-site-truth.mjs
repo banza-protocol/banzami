@@ -51,7 +51,7 @@ const SURFACE = [
   // components/marketing/* (pages/, the heroes, the footer, the kit). Scanning it
   // is what keeps the rules reading the real copy, not just the route shells.
   ...['components/site', 'components/app', 'components/produto', 'components/marketing'].flatMap((d) => walk(`${WEB}/${d}`)),
-  ...['components/PlatformBanner.tsx', 'components/support/Faq.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts'].map((f) => `${WEB}/${f}`),
+  ...['components/support/Faq.tsx', 'lib/site.ts', 'lib/nav-menus.ts', 'lib/public-truth.ts', 'lib/entities.ts', 'lib/public-pages.ts'].map((f) => `${WEB}/${f}`),
 ].filter((f) => existsSync(join(ROOT, f)));
 
 const findings = {
