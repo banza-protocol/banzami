@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/pin_pad.dart';
+import '../../widgets/otp_code_field.dart';
 
 /// "Esqueci o PIN" — unauthenticated PIN recovery.
 ///
@@ -12,6 +14,10 @@ import '../../widgets/pin_pad.dart';
 /// ("if eligible, we sent a code") so it never reveals whether an account
 /// exists or has an email. A successful reset revokes every session server-side,
 /// so the person signs in again with the new PIN.
+///
+/// The code step uses the SAME segmented OtpCodeField + resend countdown as
+/// account creation (email_verify_screen), so recovery and signup share one
+/// verification experience.
 enum _Step { handle, code, newPin, confirmPin }
 
 class ForgotPinScreen extends StatefulWidget {
@@ -22,7 +28,10 @@ class ForgotPinScreen extends StatefulWidget {
   State<ForgotPinScreen> createState() => _ForgotPinScreenState();
 }
 
-class _ForgotPinScreenState extends State<ForgotPinScreen> {
+class _ForgotPinScreenState extends State<ForgotPinScreen> with WidgetsBindingObserver {
+  static const int _codeLength = 6;
+  static const int _resendCooldownSecs = 60;
+
   _Step _step = _Step.handle;
   final _handleCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
@@ -31,12 +40,20 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
   String _newPin = '';
   String _entry = '';
   bool _busy = false;
+  bool _resending = false;
   bool _pinMismatch = false;
+  bool _hasError = false;
   String? _error;
+
+  // Resend cooldown, clock-derived so a background/foreground round-trip resumes
+  // the correct remaining time (never the full window again).
+  DateTime? _cooldownEndsAt;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.initialHandle != null) {
       _handleCtrl.text = widget.initialHandle!;
     }
@@ -44,9 +61,43 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
     _handleCtrl.dispose();
     _codeCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) setState(() {});
+  }
+
+  int get _remaining {
+    final end = _cooldownEndsAt;
+    if (end == null) return 0;
+    final left = end.difference(DateTime.now()).inSeconds;
+    return left > 0 ? left : 0;
+  }
+
+  void _startCooldown(int seconds) {
+    _timer?.cancel();
+    _cooldownEndsAt = DateTime.now().add(Duration(seconds: seconds));
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_remaining <= 0) t.cancel();
+      setState(() {});
+    });
+    setState(() {});
+  }
+
+  String _mmss(int totalSeconds) {
+    final m = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final s = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   String get _title {
@@ -86,18 +137,23 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
     setState(() {
       _busy = false;
       _step = _Step.code;
+      _hasError = false;
+      _codeCtrl.clear();
     });
+    _startCooldown(_resendCooldownSecs);
   }
 
   Future<void> _submitCode() async {
+    if (_busy) return; // dedup: one verification in flight at a time
     final code = _codeCtrl.text.trim();
-    if (code.length != 6) {
-      setState(() => _error = 'Introduza o código de 6 dígitos.');
+    if (code.length != _codeLength) {
+      setState(() => _error = 'Introduza o código de $_codeLength dígitos.');
       return;
     }
     setState(() {
       _busy = true;
       _error = null;
+      _hasError = false;
     });
     try {
       final token = await _client.verifyPinReset(handle: _handle, code: code);
@@ -109,10 +165,42 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
       });
     } catch (_) {
       if (!mounted) return;
+      // Keep the digits visible so the person can fix them or ask for a new code.
       setState(() {
         _busy = false;
+        _hasError = true;
         _error = 'Código inválido ou expirado. Verifique ou peça um novo.';
       });
+    }
+  }
+
+  Future<void> _resend() async {
+    if (_resending || _remaining > 0) return; // dedup + respect the cooldown
+    setState(() {
+      _resending = true;
+      _error = null;
+      _hasError = false;
+    });
+    try {
+      await _client.requestPinReset(handle: _handle);
+      if (!mounted) return;
+      _codeCtrl.clear();
+      BanzamiToast.showSuccess(context, 'Enviámos um novo código.');
+      _startCooldown(_resendCooldownSecs);
+    } on BanzamiApiException catch (e) {
+      if (!mounted) return;
+      if (e.statusCode == 429) {
+        BanzamiToast.showWarning(context, 'Aguarde para reenviar o código.');
+        _startCooldown(_resendCooldownSecs);
+      } else {
+        BanzamiToast.showWarning(context, 'Não foi possível reenviar o código.');
+      }
+    } catch (_) {
+      if (mounted) {
+        BanzamiToast.showWarning(context, 'Não foi possível reenviar o código.');
+      }
+    } finally {
+      if (mounted) setState(() => _resending = false);
     }
   }
 
@@ -170,7 +258,12 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
         Navigator.of(context).pop();
         break;
       case _Step.code:
-        setState(() => _step = _Step.handle);
+        _timer?.cancel();
+        setState(() {
+          _step = _Step.handle;
+          _hasError = false;
+          _error = null;
+        });
         break;
       case _Step.newPin:
         setState(() => _step = _Step.code);
@@ -197,7 +290,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: _busy
+                child: (_busy && _step != _Step.code)
                     ? const Padding(
                         padding: EdgeInsets.only(top: 80),
                         child: Center(
@@ -254,33 +347,57 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
   }
 
   Widget _codeStep() {
+    final complete = _codeCtrl.text.length == _codeLength;
+    final remaining = _remaining;
+    final canResend = remaining <= 0 && !_resending;
+    final String resendLabel = _resending
+        ? 'A reenviar...'
+        : remaining > 0
+            ? 'Reenviar código em ${_mmss(remaining)}'
+            : 'Reenviar código';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 24),
         Text(
-          'Se os dados corresponderem a uma conta elegível, enviámos um código para o email associado. Introduza-o abaixo.',
+          'Se os dados corresponderem a uma conta elegível, enviámos um código de $_codeLength dígitos para o email associado. Introduza-o abaixo.',
           style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
         ),
-        const SizedBox(height: 24),
-        TextField(
+        const SizedBox(height: 28),
+        OtpCodeField(
           controller: _codeCtrl,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(6),
-          ],
-          textAlign: TextAlign.center,
-          style: BanzamiTextStyles.headingSm.copyWith(letterSpacing: 8),
-          decoration: const InputDecoration(hintText: '000000'),
-          onSubmitted: (_) => _submitCode(),
+          length: _codeLength,
+          enabled: !_busy,
+          autofocus: true,
+          hasError: _hasError,
+          onChanged: (_) {
+            if (_hasError || _error != null) {
+              setState(() {
+                _hasError = false;
+                _error = null;
+              });
+            } else {
+              setState(() {}); // keep "Verificar" enabled-state in sync
+            }
+          },
+          onCompleted: (_) => _submitCode(), // auto-confirm on the 6th digit
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),
           Text(_error!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
         ],
-        const SizedBox(height: 32),
-        BanzamiPrimaryButton(label: 'Verificar', onPressed: _submitCode),
+        const SizedBox(height: 28),
+        BanzamiPrimaryButton(
+          label: 'Verificar',
+          isLoading: _busy,
+          onPressed: (complete && !_busy) ? _submitCode : null,
+        ),
+        const SizedBox(height: 8),
+        BanzamiGhostButton(
+          label: resendLabel,
+          onPressed: canResend ? _resend : null,
+        ),
       ],
     );
   }
