@@ -350,20 +350,27 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		if !trusted && h.throttle != nil {
 			h.recordUntrustedFailure(r, source, targetID)
 		}
+		// Trusted-device wrong PIN: return how many attempts remain so the client
+		// can show it. Only ever for a real account on a trusted device — unknown
+		// handles and untrusted sources fall through to the generic response below,
+		// which never discloses a counter.
+		var pinErr *service.PinAttemptError
+		if errors.As(err, &pinErr) {
+			apierror.RespondExtra(w, r, http.StatusUnauthorized, "INVALID_CREDENTIALS",
+				"invalid handle or PIN", map[string]any{"remaining_attempts": pinErr.Remaining})
+			return
+		}
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid handle or PIN")
 			return
 		}
 		if errors.Is(err, service.ErrPinRecoveryRequired) {
-			// PIN login is protected after repeated failures — the person must
-			// recover access (Forgot-PIN) to set a new PIN. The consumer stays ACTIVE.
-			apierror.Respond(w, r, http.StatusForbidden, "PIN_RECOVERY_REQUIRED",
-				"o acesso por PIN foi protegido — recupera o acesso para definir um novo PIN")
-			return
-		}
-		if errors.Is(err, service.ErrCredentialsLocked) {
-			apierror.Respond(w, r, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS",
-				"muitas tentativas sem sucesso — tenta novamente dentro de 1 minuto")
+			// Three wrong PINs on a trusted device — PIN login is now protected; the
+			// person must recover access (Forgot-PIN) to set a new PIN. The consumer
+			// stays ACTIVE. remaining_attempts = 0 + recovery_required for the client.
+			apierror.RespondExtra(w, r, http.StatusForbidden, "PIN_RECOVERY_REQUIRED",
+				"o acesso por PIN foi protegido — redefina o PIN para continuar",
+				map[string]any{"remaining_attempts": 0, "recovery_required": true})
 			return
 		}
 		if errors.Is(err, service.ErrTestPayerSignIn) {

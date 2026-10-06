@@ -111,22 +111,29 @@ func (s *CredentialStore) Exists(ctx context.Context, handle string) (bool, erro
 	return found, nil
 }
 
-// ErrCredentialsLocked: too many wrong PINs for this handle; wait for the lock.
-var ErrCredentialsLocked = errors.New("too many attempts")
-
-// ErrPinRecoveryRequired: repeated wrong PINs have disabled PIN login for this
-// credential. Time does not clear it and even the correct PIN is refused — only
-// identity recovery (Forgot-PIN) restores access. The consumer stays ACTIVE.
+// ErrPinRecoveryRequired: three wrong PINs on a trusted device have disabled PIN
+// login for this credential. Time does not clear it and even the correct PIN is
+// refused — only identity recovery (Forgot-PIN) restores access. The consumer
+// stays ACTIVE (credential state, not a lifecycle change).
 var ErrPinRecoveryRequired = errors.New("pin recovery required")
 
-// PIN brute-force escalation (credential state, never consumer lifecycle):
-//   - firstLockThreshold wrong PINs → a firstLockDuration credential lock;
-//   - after the lock, a further firstLockThreshold wrong PINs within
-//     escalationWindow → PIN_RECOVERY_REQUIRED (persistent, recovery-only).
+// PinAttemptError is a wrong-PIN failure on a TRUSTED device for a real account.
+// It carries how many attempts remain before PIN recovery is required, so the
+// client can show it. Unknown handles and untrusted sources use the generic
+// ErrInvalidCredentials instead — their count is never disclosed (anti-enumeration).
+type PinAttemptError struct{ Remaining int }
+
+func (e *PinAttemptError) Error() string { return "invalid pin" }
+
+// PIN brute-force policy (credential state, never consumer lifecycle). On a
+// TRUSTED device the 1st/2nd/3rd wrong PIN takes failed_attempts to 1/2/3; the
+// recoveryThreshold-th failure sets PIN_RECOVERY_REQUIRED at once — persistent,
+// recovery-only, with no temporary lock. A quiet gap beyond escalationWindow (and
+// any correct PIN) resets the counter. An untrusted source never drives this
+// state (anti-DoS); it is governed only by the handler's per-source throttle.
 const (
-	firstLockThreshold = 3
-	firstLockDuration  = 1 * time.Minute
-	escalationWindow   = 1 * time.Hour
+	recoveryThreshold = 3
+	escalationWindow  = 1 * time.Hour
 )
 
 // dummyPinHash is spent on an unknown handle so that a miss costs what a
@@ -145,12 +152,12 @@ func (s *CredentialStore) Verify(ctx context.Context, handle, rawPin string) (st
 }
 
 // VerifyWithDevice is Verify with the caller's device identifier (the SDK's
-// X-Device-Id). The device matters only for brute-force ESCALATION: the
-// persistent PIN_RECOVERY_REQUIRED state is set only when the failing requests
-// come from a device that has previously signed into THIS account (a trusted
-// device). An unknown/remote source that merely knows a public @banza can
-// therefore only trigger the temporary 1-minute lock, never the persistent
-// recovery state (anti-DoS). A successful sign-in records the device as trusted.
+// X-Device-Id). The device matters only for the credential policy: the persistent
+// PIN_RECOVERY_REQUIRED state is set only when the failing requests come from a
+// device that has previously signed into THIS account (a trusted device). An
+// unknown/remote source that merely knows a public @banza never moves the global
+// counter or the recovery state (anti-DoS) — the handler's per-source throttle
+// governs it. A successful sign-in records the device as trusted.
 func (s *CredentialStore) VerifyWithDevice(ctx context.Context, handle, rawPin, deviceID string) (string, int, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -162,17 +169,15 @@ func (s *CredentialStore) VerifyWithDevice(ctx context.Context, handle, rawPin, 
 		consumerID, pinHash string
 		tokenVersion        int
 		failedAttempts      int
-		lockCount           int
-		lockedUntil         *time.Time
 		lastFailedAt        *time.Time
 		recoveryRequired    *time.Time
 	)
 	err = tx.QueryRow(ctx,
-		`SELECT consumer_id, pin_hash, token_version, failed_attempts, lock_count,
-		        locked_until, last_failed_at, pin_recovery_required_at
+		`SELECT consumer_id, pin_hash, token_version, failed_attempts,
+		        last_failed_at, pin_recovery_required_at
 		   FROM public_api_credentials WHERE handle = $1 FOR UPDATE`, handle).
-		Scan(&consumerID, &pinHash, &tokenVersion, &failedAttempts, &lockCount,
-			&lockedUntil, &lastFailedAt, &recoveryRequired)
+		Scan(&consumerID, &pinHash, &tokenVersion, &failedAttempts,
+			&lastFailedAt, &recoveryRequired)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Unknown handle: spend a compare so a miss costs what a hit costs.
 		_ = bcrypt.CompareHashAndPassword(dummyPinHash, []byte(rawPin))
@@ -188,23 +193,18 @@ func (s *CredentialStore) VerifyWithDevice(ctx context.Context, handle, rawPin, 
 	if recoveryRequired != nil {
 		return "", 0, ErrPinRecoveryRequired
 	}
-	// An active lock refuses everything, including the correct PIN.
-	if lockedUntil != nil && lockedUntil.After(now) {
-		return "", 0, ErrCredentialsLocked
-	}
 
-	// A quiet period beyond the window starts a fresh escalation sequence, so an
-	// occasional typo long after the fact never escalates.
+	// A quiet period beyond the window starts a fresh sequence, so an occasional
+	// typo long after the fact never accumulates toward recovery.
 	if lastFailedAt == nil || lastFailedAt.Before(now.Add(-escalationWindow)) {
 		failedAttempts = 0
-		lockCount = 0
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(pinHash), []byte(rawPin)) == nil {
-		// Correct PIN: clear the whole escalation state.
+		// Correct PIN before the third failure: clear the counter.
 		if _, err := tx.Exec(ctx,
 			`UPDATE public_api_credentials
-			    SET failed_attempts = 0, lock_count = 0, locked_until = NULL, last_failed_at = NULL
+			    SET failed_attempts = 0, last_failed_at = NULL
 			  WHERE consumer_id = $1`, consumerID); err != nil {
 			return "", 0, fmt.Errorf("credential reset: %w", err)
 		}
@@ -249,42 +249,34 @@ func (s *CredentialStore) VerifyWithDevice(ctx context.Context, handle, rawPin, 
 		return "", 0, ErrInvalidCredentials
 	}
 
-	// Trusted-context escalation: 3 wrong → a short lock; a further 3 →
-	// persistent PIN_RECOVERY_REQUIRED.
+	// Trusted-context policy: 1st/2nd/3rd wrong → failed_attempts 1/2/3. The third
+	// failure sets PIN_RECOVERY_REQUIRED at once — no temporary lock, no second
+	// sequence. The whole transition is one atomic UPDATE under the row lock taken
+	// above (FOR UPDATE), so concurrent guesses cannot lose an increment or slip a
+	// fourth attempt past the boundary.
 	failedAttempts++
-	newLocked := lockedUntil
 	var newRecovery *time.Time
-	escalated := ""
-	if failedAttempts >= firstLockThreshold {
-		if lockCount == 0 {
-			lockCount = 1
-			lk := now.Add(firstLockDuration)
-			newLocked = &lk
-			failedAttempts = 0
-			escalated = "LOCKED"
-		} else {
-			newRecovery = &now
-			escalated = "RECOVERY_REQUIRED"
-		}
+	if failedAttempts >= recoveryThreshold {
+		newRecovery = &now
 	}
 	if _, err := tx.Exec(ctx,
 		`UPDATE public_api_credentials
-		    SET failed_attempts = $2, lock_count = $3, locked_until = $4,
-		        last_failed_at = $5, pin_recovery_required_at = $6
+		    SET failed_attempts = $2, last_failed_at = $3, pin_recovery_required_at = $4
 		  WHERE consumer_id = $1`,
-		consumerID, failedAttempts, lockCount, newLocked, now, newRecovery); err != nil {
+		consumerID, failedAttempts, now, newRecovery); err != nil {
 		return "", 0, fmt.Errorf("credential attempt: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return "", 0, fmt.Errorf("credential attempt: %w", err)
 	}
-	switch escalated {
-	case "LOCKED":
-		_ = s.WriteAudit(ctx, consumerID, "PIN_LOGIN_LOCKED", consumerID, nil)
-	case "RECOVERY_REQUIRED":
+	if newRecovery != nil {
+		// A single security notification may follow (dedup/cooldown owned by the
+		// notifier); never with the PIN, OTP, reset token or attacker detail.
 		_ = s.WriteAudit(ctx, consumerID, "PIN_RECOVERY_REQUIRED", consumerID, nil)
+		return "", 0, ErrPinRecoveryRequired
 	}
-	return "", 0, ErrInvalidCredentials
+	// Wrong but not yet locked: tell the client how many attempts remain.
+	return "", 0, &PinAttemptError{Remaining: recoveryThreshold - failedAttempts}
 }
 
 // sessionCacheTTL bounds how long a session check is reused within this
@@ -393,7 +385,7 @@ func (s *CredentialStore) UpdatePin(ctx context.Context, consumerID, newRawPin s
 	}
 	ct, err := s.pool.Exec(ctx,
 		`UPDATE public_api_credentials
-		    SET pin_hash = $2, failed_attempts = 0, lock_count = 0, locked_until = NULL,
+		    SET pin_hash = $2, failed_attempts = 0,
 		        last_failed_at = NULL, pin_recovery_required_at = NULL
 		  WHERE consumer_id = $1`,
 		consumerID, string(hash))

@@ -4,10 +4,15 @@ class BanzamiApiException implements Exception {
   final String code;
   final String message;
 
+  /// The full decoded error body, so callers can read top-level extras the
+  /// endpoint returns alongside code/message (e.g. remaining_attempts).
+  final Map<String, dynamic> data;
+
   const BanzamiApiException({
     required this.statusCode,
     required this.code,
     required this.message,
+    this.data = const {},
   });
 
   bool get isNotFound => statusCode == 404;
@@ -19,12 +24,25 @@ class BanzamiApiException implements Exception {
   bool get isQrExpired => code == 'QR_EXPIRED';
   bool get isQrAlreadyUsed => code == 'QR_ALREADY_USED';
 
+  /// Attempts remaining before PIN recovery is required, when the server includes
+  /// it on a wrong-PIN login (trusted device). Null when not provided.
+  int? get remainingAttempts {
+    final v = data['remaining_attempts'];
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return null;
+  }
+
+  /// True when a wrong PIN has tripped the recovery requirement.
+  bool get isPinRecoveryRequired => code == 'PIN_RECOVERY_REQUIRED';
+
   factory BanzamiApiException.fromJson(
       int statusCode, Map<String, dynamic> json) {
     return BanzamiApiException(
       statusCode: statusCode,
       code: json['code'] as String? ?? 'UNKNOWN',
       message: json['message'] as String? ?? 'Unknown error',
+      data: json,
     );
   }
 

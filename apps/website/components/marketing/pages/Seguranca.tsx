@@ -142,8 +142,8 @@ const ACCESS: { icon: IconName; tag: Loc; title: Loc; desc: Loc }[] = [
     tag: L('ABUSO', 'ABUSE'),
     title: L('Proteção contra tentativas abusivas', 'Protection against abusive attempts'),
     desc: L(
-      'As tentativas de acesso estão sujeitas a limites persistentes. Fontes e dispositivos desconhecidos têm controlos próprios e podem levar a bloqueio temporário ou exigir recuperação segura.',
-      'Access attempts are subject to persistent limits. Unknown sources and devices face their own controls and may lead to a temporary block or require secure recovery.',
+      'Após tentativas consecutivas incorretas num dispositivo de confiança, a Banzami pode exigir a redefinição do PIN para proteger a conta. Fontes e dispositivos desconhecidos têm limites persistentes próprios. A conta mantém-se ativa.',
+      'After consecutive incorrect attempts on a trusted device, Banzami may require resetting the PIN to protect the account. Unknown sources and devices face their own persistent limits. The account stays active.',
     ),
   },
   {

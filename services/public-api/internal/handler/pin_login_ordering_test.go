@@ -74,50 +74,37 @@ func login(t *testing.T, h *AuthHandler, handle, pin, deviceID, ip string) *http
 	return rr
 }
 
-func TestPinLogin_TrustedDeviceReachesRecoveryRequiredOnSixthFailure(t *testing.T) {
+func TestPinLogin_TrustedDeviceReachesRecoveryRequiredOnThirdFailure(t *testing.T) {
 	h, pool := orderingHarnessOrSkip(t)
 	ctx := context.Background()
 	id, handle := seedLoginConsumer(t, pool, "246824")
 	const dev = "trusted-install-xyz"
 	const ip = "203.0.113.5:5555"
-	expireLock := func() {
-		_, _ = pool.Exec(ctx, `UPDATE public_api_credentials SET locked_until = now() - interval '1 second' WHERE handle=$1`, handle)
-	}
 
 	// A successful login records the device as trusted for this account.
 	if rr := login(t, h, handle, "246824", dev, ip); rr.Code != http.StatusOK {
 		t.Fatalf("precondition: correct PIN should sign in, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Attempts 1 and 2: plain refusals (401).
+	// Attempts 1 and 2: plain refusals (401) that report how many remain. No lock.
 	for i := 1; i <= 2; i++ {
-		if rr := login(t, h, handle, "000000", dev, ip); rr.Code != http.StatusUnauthorized {
-			t.Fatalf("attempt %d want 401, got %d", i, rr.Code)
-		}
-	}
-	// Attempt 3: still 401, and now the credential is locked.
-	if rr := login(t, h, handle, "000000", dev, ip); rr.Code != http.StatusUnauthorized {
-		t.Fatalf("attempt 3 want 401, got %d", rr.Code)
-	}
-	// During the lock, even the correct PIN is refused (429) and does not advance
-	// the second sequence.
-	if rr := login(t, h, handle, "246824", dev, ip); rr.Code != http.StatusTooManyRequests {
-		t.Fatalf("correct PIN during lock want 429, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	expireLock()
-	// Attempts 4 and 5: second sequence, 401.
-	for i := 4; i <= 5; i++ {
-		if rr := login(t, h, handle, "000000", dev, ip); rr.Code != http.StatusUnauthorized {
+		rr := login(t, h, handle, "000000", dev, ip)
+		if rr.Code != http.StatusUnauthorized {
 			t.Fatalf("attempt %d want 401, got %d: %s", i, rr.Code, rr.Body.String())
 		}
-		expireLock() // a mid-run lock may re-apply; clear it to continue the sequence
+		if want := `"remaining_attempts":` + itoa(3-i); !strings.Contains(rr.Body.String(), want) {
+			t.Fatalf("attempt %d should report %s, got %s", i, want, rr.Body.String())
+		}
 	}
-	// Attempt 6 from the TRUSTED device → PIN_RECOVERY_REQUIRED (403), NOT blocked
-	// by the source throttle.
+	// Attempt 3 from the TRUSTED device → PIN_RECOVERY_REQUIRED (403), unimpeded by
+	// the source throttle, with no temporary lock along the way.
 	rr := login(t, h, handle, "000000", dev, ip)
 	if rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "PIN_RECOVERY_REQUIRED") {
-		t.Fatalf("attempt 6 (trusted) want 403 PIN_RECOVERY_REQUIRED, got %d: %s", rr.Code, rr.Body.String())
+		t.Fatalf("attempt 3 (trusted) want 403 PIN_RECOVERY_REQUIRED, got %d: %s", rr.Code, rr.Body.String())
+	}
+	// The correct PIN is now refused too (cannot bypass recovery).
+	if rr := login(t, h, handle, "246824", dev, ip); rr.Code != http.StatusForbidden {
+		t.Fatalf("the correct PIN after recovery-required want 403, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var status string
 	_ = pool.QueryRow(ctx, `SELECT status FROM consumers WHERE id=$1`, id).Scan(&status)
@@ -131,9 +118,6 @@ func TestPinLogin_UnknownSourceCannotForceRecoveryRequired(t *testing.T) {
 	ctx := context.Background()
 	id, handle := seedLoginConsumer(t, pool, "246824")
 	const ip = "198.51.100.9:4444"
-	expireLock := func() {
-		_, _ = pool.Exec(ctx, `UPDATE public_api_credentials SET locked_until = now() - interval '1 second' WHERE handle=$1`, handle)
-	}
 
 	// An unknown device (never recorded for this account) hammers the known @banza.
 	sawBlocked := false
@@ -146,7 +130,6 @@ func TestPinLogin_UnknownSourceCannotForceRecoveryRequired(t *testing.T) {
 		if strings.Contains(rr.Body.String(), "PIN_RECOVERY_REQUIRED") {
 			t.Fatalf("an unknown source produced PIN_RECOVERY_REQUIRED on attempt %d", i)
 		}
-		expireLock()
 	}
 	if !sawBlocked {
 		t.Fatal("the source should have been throttled (429) during the barrage")
@@ -195,13 +178,13 @@ func TestPinLogin_DistributedAttackBoundedByTargetBudget(t *testing.T) {
 		t.Fatal("the per-target budget should have blocked the distributed attack even as the IP rotated")
 	}
 	// Global credential state untouched; account still ACTIVE.
-	var fa, lc int
-	var lu, rr *string
+	var fa int
+	var rr *string
 	_ = pool.QueryRow(ctx,
-		`SELECT failed_attempts, lock_count, locked_until::text, pin_recovery_required_at::text
-		   FROM public_api_credentials WHERE consumer_id=$1`, id).Scan(&fa, &lc, &lu, &rr)
-	if fa != 0 || lc != 0 || lu != nil || rr != nil {
-		t.Fatalf("untrusted distributed attack must not touch global state, got fa=%d lc=%d lu=%v rr=%v", fa, lc, lu, rr)
+		`SELECT failed_attempts, pin_recovery_required_at::text
+		   FROM public_api_credentials WHERE consumer_id=$1`, id).Scan(&fa, &rr)
+	if fa != 0 || rr != nil {
+		t.Fatalf("untrusted distributed attack must not touch global state, got fa=%d rr=%v", fa, rr)
 	}
 	// The legitimate trusted device still authenticates despite the target budget.
 	if r := login(t, h, handle, "246824", trustedDev, "203.0.113.1:2"); r.Code != http.StatusOK {
@@ -240,11 +223,10 @@ func TestPinLogin_PasswordSprayBoundedBySourceBudget(t *testing.T) {
 		t.Fatal("the per-source budget should have blocked the spraying source")
 	}
 	for _, id := range ids {
-		var lc int
 		var rr *string
-		_ = pool.QueryRow(ctx, `SELECT lock_count, pin_recovery_required_at::text FROM public_api_credentials WHERE consumer_id=$1`, id).Scan(&lc, &rr)
-		if lc != 0 || rr != nil {
-			t.Fatalf("password spray must not lock or recovery-flag victim %s, lc=%d rr=%v", id, lc, rr)
+		_ = pool.QueryRow(ctx, `SELECT pin_recovery_required_at::text FROM public_api_credentials WHERE consumer_id=$1`, id).Scan(&rr)
+		if rr != nil {
+			t.Fatalf("password spray must not recovery-flag victim %s, rr=%v", id, rr)
 		}
 	}
 }

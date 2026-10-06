@@ -22,3 +22,24 @@ func Respond(w http.ResponseWriter, r *http.Request, status int, code, message s
 		RequestID: w.Header().Get("X-Request-ID"),
 	})
 }
+
+// RespondExtra writes the canonical error body plus top-level extra fields (e.g.
+// remaining_attempts, recovery_required). Reserved keys (code/message/request_id)
+// are ignored in extra so the envelope stays canonical.
+func RespondExtra(w http.ResponseWriter, r *http.Request, status int, code, message string, extra map[string]any) {
+	body := map[string]any{"code": code, "message": message}
+	if rid := w.Header().Get("X-Request-ID"); rid != "" {
+		body["request_id"] = rid
+	}
+	for k, v := range extra {
+		switch k {
+		case "code", "message", "request_id":
+			// reserved — never overwritten by extra
+		default:
+			body[k] = v
+		}
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(body)
+}

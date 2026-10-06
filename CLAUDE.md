@@ -479,12 +479,16 @@ RECOVERY FACTOR: depends on the environment (below)
 - **Account deletion is terminal** and cannot be circumvented by recovery: a
   CLOSED consumer can never log in, recover a PIN, reset a PIN, be reactivated by
   `PIN_RECOVERY_REQUIRED`, or be reopened by email/phone verification.
-- **PIN brute-force escalation is on the credential, not the lifecycle**: 3 wrong
-  PINs → a short credential lock; a further 3 → `PIN_RECOVERY_REQUIRED` (PIN login
-  disabled until recovery; time does not clear it); `consumers.status` stays
-  ACTIVE. A persistent per-source throttle stops one source from forcing mass
-  locks via known public @banza. All of this state is persistent (PostgreSQL),
-  surviving restarts and spanning instances.
+- **PIN brute-force is on the credential, not the lifecycle**: on a **trusted
+  device** (one that has previously signed into the account) three wrong PINs →
+  `PIN_RECOVERY_REQUIRED` (PIN login disabled, even the correct PIN, until identity
+  recovery clears it; time never clears it). There is **no temporary lock** and no
+  3+3 escalation. `consumers.status` stays ACTIVE. An **untrusted source never
+  moves the credential counter or the recovery state** — it is governed only by the
+  persistent per-source/target throttle, so knowing a public @banza cannot force a
+  victim into recovery (anti-DoS). The failing login reports `remaining_attempts`
+  (2, then 1, then 0 + `recovery_required`) so the client can show it. All of this
+  state is persistent (PostgreSQL), surviving restarts and spanning instances.
 
 Enforced in code across `core/identity` (handle + status truth, email on
 `consumers`), `services/public-api` (credential, OTP/grant, recovery policy,

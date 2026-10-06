@@ -13,12 +13,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// PIN brute-force escalation (§G/H): 3 wrong PINs → a 1-minute credential lock
-// (even the correct PIN waits); a further 3 wrong PINs → PIN_RECOVERY_REQUIRED,
-// which time never clears and the correct PIN never bypasses. consumers.status
-// stays ACTIVE throughout — the escalation is on the credential, not the
-// lifecycle. Racing guesses cannot slip past the threshold.
-func TestVerify_PinEscalationLockThenRecoveryRequired(t *testing.T) {
+// PIN policy: three wrong PINs on a TRUSTED device require PIN recovery. No
+// temporary lock, no 3+3. The 1st/2nd failure report remaining 2/1; the 3rd sets
+// PIN_RECOVERY_REQUIRED (persistent, recovery-only, even the correct PIN refused);
+// a correct PIN before the third clears the counter. consumers.status stays ACTIVE
+// throughout. An untrusted source never moves the global state, and racing guesses
+// cannot slip a fourth attempt past the boundary.
+func TestVerify_PinThreeFailuresRequireRecovery(t *testing.T) {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		t.Skip("DATABASE_URL not set — skipping DB-backed credential test")
@@ -47,117 +48,110 @@ func TestVerify_PinEscalationLockThenRecoveryRequired(t *testing.T) {
 		return id, handle
 	}
 	store := &CredentialStore{pool: pool}
-	expireLock := func(handle string) {
-		// Simulate the 1-minute lock elapsing without a successful login.
-		if _, err := pool.Exec(ctx, `UPDATE public_api_credentials SET locked_until = now() - interval '1 second' WHERE handle = $1`, handle); err != nil {
-			t.Fatal(err)
-		}
-	}
 	statusOf := func(id string) string {
 		var s string
 		_ = pool.QueryRow(ctx, `SELECT status FROM consumers WHERE id = $1`, id).Scan(&s)
 		return s
 	}
+	stateOf := func(handle string) (int, *time.Time) {
+		var fa int
+		var rr *time.Time
+		_ = pool.QueryRow(ctx, `SELECT failed_attempts, pin_recovery_required_at FROM public_api_credentials WHERE handle = $1`, handle).Scan(&fa, &rr)
+		return fa, rr
+	}
+	remaining := func(err error) int {
+		var pe *PinAttemptError
+		if errors.As(err, &pe) {
+			return pe.Remaining
+		}
+		return -1
+	}
 
 	const trusted = "trusted-device-1"
 
-	// First two wrong PINs: refused, not locked.
+	// ── 1/2/3 failures on a trusted device → remaining 2, 1, then recovery ──
 	id, h1 := seed()
-	// Make this device trusted for the account: a successful sign-in records it.
-	// Persistent recovery-required may only ever be reached from a trusted device.
 	if _, _, err := store.VerifyWithDevice(ctx, h1, "246810", trusted); err != nil {
 		t.Fatalf("precondition: a correct PIN should sign in and record the device, got %v", err)
 	}
-	for i := 0; i < firstLockThreshold-1; i++ {
-		if _, _, err := store.VerifyWithDevice(ctx, h1, "000000", trusted); !errors.Is(err, ErrInvalidCredentials) {
-			t.Fatalf("wrong PIN %d should be a plain refusal, got %v", i, err)
-		}
+	if _, _, err := store.VerifyWithDevice(ctx, h1, "000000", trusted); remaining(err) != 2 {
+		t.Fatalf("wrong #1 should report remaining=2, got %d (%v)", remaining(err), err)
 	}
-	// Third wrong PIN trips the first lock — the correct PIN now waits.
-	if _, _, err := store.VerifyWithDevice(ctx, h1, "000000", trusted); !errors.Is(err, ErrInvalidCredentials) {
-		t.Fatalf("the threshold wrong PIN should still read as invalid, got %v", err)
+	if _, _, err := store.VerifyWithDevice(ctx, h1, "000000", trusted); remaining(err) != 1 {
+		t.Fatalf("wrong #2 should report remaining=1, got %d (%v)", remaining(err), err)
 	}
-	if _, _, err := store.VerifyWithDevice(ctx, h1, "246810", trusted); !errors.Is(err, ErrCredentialsLocked) {
-		t.Fatalf("the correct PIN during the first lock must be refused as locked, got %v", err)
+	if _, _, err := store.VerifyWithDevice(ctx, h1, "000000", trusted); !errors.Is(err, ErrPinRecoveryRequired) {
+		t.Fatalf("wrong #3 must require recovery, got %v", err)
 	}
-	if statusOf(id) != "ACTIVE" {
-		t.Fatal("a locked credential must not change the consumer lifecycle")
-	}
-
-	// The lock elapses; a second run of 3 wrong PINs from the TRUSTED device
-	// escalates to recovery-required.
-	expireLock(h1)
-	for i := 0; i < firstLockThreshold; i++ {
-		_, _, _ = store.VerifyWithDevice(ctx, h1, "000000", trusted)
-		// A lock may be re-applied mid-run; clear it so the sequence can continue.
-		expireLock(h1)
-	}
-	// Now PIN login is disabled regardless of time or the correct PIN.
+	// The correct old PIN is now refused — "I remembered it" cannot bypass recovery.
 	if _, _, err := store.VerifyWithDevice(ctx, h1, "246810", trusted); !errors.Is(err, ErrPinRecoveryRequired) {
-		t.Fatalf("after the second run the account must require recovery, got %v", err)
-	}
-	// Time passing (any residual lock cleared) does not lift it.
-	expireLock(h1)
-	if _, _, err := store.Verify(ctx, h1, "246810"); !errors.Is(err, ErrPinRecoveryRequired) {
-		t.Fatalf("recovery-required must not be cleared by time, got %v", err)
+		t.Fatalf("the correct old PIN must be refused after recovery-required, got %v", err)
 	}
 	if statusOf(id) != "ACTIVE" {
 		t.Fatal("recovery-required must not change the consumer lifecycle")
 	}
-	// A completed recovery (UpdatePin) clears everything and restores login.
+	// A completed recovery (UpdatePin) clears the counter + the recovery state.
 	if err := store.UpdatePin(ctx, id, "135790"); err != nil {
-		t.Fatalf("recovery (UpdatePin) should clear the escalation, got %v", err)
+		t.Fatalf("recovery (UpdatePin) should clear the state, got %v", err)
 	}
 	if _, _, err := store.Verify(ctx, h1, "135790"); err != nil {
 		t.Fatalf("after recovery the new PIN should sign in, got %v", err)
 	}
+	if fa, rr := stateOf(h1); fa != 0 || rr != nil {
+		t.Fatalf("recovery did not clear the state: failed_attempts=%d recovery=%v", fa, rr)
+	}
 
-	// Concurrency on a TRUSTED device: 50 simultaneous wrong guesses cannot slip
-	// past the threshold — at the threshold the credential locks and the rest are
-	// refused as locked.
+	// ── wrong, wrong, correct → success + the counter resets to zero ──
 	id2, h2 := seed()
 	if _, _, err := store.VerifyWithDevice(ctx, h2, "246810", trusted); err != nil {
 		t.Fatalf("precondition: trust the device, got %v", err)
 	}
-	var wg sync.WaitGroup
-	start := make(chan struct{})
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-		go func() { defer wg.Done(); <-start; _, _, _ = store.VerifyWithDevice(ctx, h2, "000000", trusted) }()
+	_, _, _ = store.VerifyWithDevice(ctx, h2, "000000", trusted)
+	_, _, _ = store.VerifyWithDevice(ctx, h2, "000000", trusted)
+	if _, _, err := store.VerifyWithDevice(ctx, h2, "246810", trusted); err != nil {
+		t.Fatalf("a correct PIN before the third failure should sign in, got %v", err)
 	}
-	close(start)
-	wg.Wait()
-	var lockCount int
-	_ = pool.QueryRow(ctx, `SELECT lock_count FROM public_api_credentials WHERE handle = $1`, h2).Scan(&lockCount)
-	if lockCount < 1 {
-		t.Fatalf("a burst from a trusted device should have locked the credential, lock_count=%d", lockCount)
+	if fa, _ := stateOf(h2); fa != 0 {
+		t.Fatalf("a correct PIN should reset failed_attempts to 0, got %d", fa)
 	}
-	if statusOf(id2) != "ACTIVE" {
-		t.Fatal("a burst must not change the consumer lifecycle")
-	}
+	_ = id2
 
-	// Anti-DoS: an UNKNOWN device never touches the GLOBAL credential state at all
-	// — no failed_attempts, no lock, no recovery-required — so knowing a public
-	// @banza cannot lock out or hold down the victim. (The untrusted throttle,
-	// tested at the handler layer, is what bounds the unknown source.)
+	// ── Anti-DoS: an UNKNOWN device never moves the global state at all ──
 	id3, h3 := seed()
-	for i := 0; i < firstLockThreshold*4; i++ {
+	for i := 0; i < recoveryThreshold*4; i++ {
 		if _, _, err := store.VerifyWithDevice(ctx, h3, "000000", "attacker-device-unknown"); !errors.Is(err, ErrInvalidCredentials) {
 			t.Fatalf("an unknown wrong PIN should be a plain refusal, got %v", err)
 		}
 	}
-	var (
-		fa, lc int
-		lu, rr *time.Time
-	)
-	_ = pool.QueryRow(ctx,
-		`SELECT failed_attempts, lock_count, locked_until, pin_recovery_required_at
-		   FROM public_api_credentials WHERE handle = $1`, h3).Scan(&fa, &lc, &lu, &rr)
-	if fa != 0 || lc != 0 || lu != nil || rr != nil {
-		t.Fatalf("an unknown device must not mutate global credential state, got fa=%d lc=%d lu=%v rr=%v", fa, lc, lu, rr)
+	if fa, rr := stateOf(h3); fa != 0 || rr != nil {
+		t.Fatalf("an unknown device must not mutate global state, got failed_attempts=%d recovery=%v", fa, rr)
 	}
 	if statusOf(id3) != "ACTIVE" {
 		t.Fatal("status must remain ACTIVE for an attacked account")
+	}
+
+	// ── Concurrency: 50 simultaneous wrong guesses on a trusted device reach
+	// recovery-required exactly, never a fourth attempt, lifecycle unchanged. ──
+	id4, h4 := seed()
+	if _, _, err := store.VerifyWithDevice(ctx, h4, "246810", trusted); err != nil {
+		t.Fatalf("precondition: trust the device, got %v", err)
+	}
+	var wg sync.WaitGroup
+	startCh := make(chan struct{})
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() { defer wg.Done(); <-startCh; _, _, _ = store.VerifyWithDevice(ctx, h4, "000000", trusted) }()
+	}
+	close(startCh)
+	wg.Wait()
+	if fa, rr := stateOf(h4); fa != recoveryThreshold || rr == nil {
+		t.Fatalf("a trusted burst must stop exactly at recovery-required, got failed_attempts=%d recovery=%v", fa, rr)
+	}
+	if _, _, err := store.VerifyWithDevice(ctx, h4, "246810", trusted); !errors.Is(err, ErrPinRecoveryRequired) {
+		t.Fatalf("after the burst the account must require recovery, got %v", err)
+	}
+	if statusOf(id4) != "ACTIVE" {
+		t.Fatal("a burst must not change the consumer lifecycle")
 	}
 }
 

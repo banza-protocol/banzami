@@ -106,8 +106,9 @@ class _LoginScreenState extends State<LoginScreen> {
         (_) => false,
       );
     } on BanzamiApiException catch (e) {
-      // PIN login was protected after repeated failures: the person must recover
-      // access to set a new PIN (identified by @banza, never by email).
+      // Three wrong PINs on a trusted device: PIN login is protected. The person
+      // must reset the PIN (identified by @banza, never by email). The account
+      // stays ACTIVE — never say "conta bloqueada".
       if (e.code == 'PIN_RECOVERY_REQUIRED') {
         if (!mounted) return;
         setState(() {
@@ -115,16 +116,29 @@ class _LoginScreenState extends State<LoginScreen> {
           _pin = '';
         });
         BanzamiToast.showWarning(context,
-            'O acesso por PIN foi protegido. Recupera o acesso para definir um novo PIN.');
+            'PIN bloqueado por segurança. Redefina o PIN para continuar.');
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ForgotPinScreen(initialHandle: handle),
         ));
         return;
       }
+      // Wrong PIN on a trusted device: show how many attempts remain, and warn
+      // explicitly before the last one.
+      if (e.code == 'INVALID_CREDENTIALS' && e.remainingAttempts != null) {
+        final r = e.remainingAttempts!;
+        setState(() {
+          _error = r <= 1
+              ? 'PIN incorreto. Resta 1 tentativa. Se voltar a errar, terá de redefinir o PIN para continuar.'
+              : 'PIN incorreto. Restam $r tentativas.';
+          _loading = false;
+          _pin = '';
+        });
+        return;
+      }
       setState(() {
         _error = banzamiErrorMessage(e, codes: const {
           'INVALID_CREDENTIALS': '@banza ou PIN incorrectos.',
-          'TOO_MANY_ATTEMPTS': 'Muitas tentativas sem sucesso. Tenta novamente dentro de 1 minuto.',
+          'TOO_MANY_ATTEMPTS': 'Demasiadas tentativas. Tenta novamente mais tarde.',
         });
         _loading = false;
         _pin = '';
