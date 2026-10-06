@@ -46,7 +46,7 @@ The authorisation file is a local KEY=VALUE file:
 
 ```
 BZVM_APPLY=yes
-BZVM_APPLY_SCOPE=all        # or a single scope: legacy-reset | release-transfer | sandbox-bootstrap | sandbox-migration | sandbox-deploy
+BZVM_APPLY_SCOPE=all        # or a single scope: legacy-reset | release-transfer | sandbox-bootstrap | sandbox-migration | sandbox-deploy | external-secret-transfer
 ```
 
 ## Local validation (no VM)
@@ -88,6 +88,54 @@ state the reused Sandbox adapters read. `vm-dry-run` reuses the merged rehearsal
 harness (bootstrap → migrate → deploy → verify → teardown) in a temporary isolated
 project and writes a marker; the legacy reset fails closed unless that marker exists,
 so the irreversible wipe can never precede a proven-good rebuild.
+
+## External-secret transfer (owner-gated)
+
+Runtime-generated secrets are RUNID-local and the deploy path mints them fresh per
+stack; they are **never** moved between stacks. A small set of **external** secrets
+comes from outside the stack and must be carried over when a new Sandbox RUNID
+replaces an old one (for example a blue/green rebuild). This step transfers them from
+the old RUNID's evidence root to the new one — replacing the former manual "owner
+places secret files" step with a sanctioned, auditable mechanism.
+
+```bash
+export BZVM_SSH_TARGET=...        # from your SSH context — not committed, not printed
+export BZVM_REMOTE_ROOT=...
+export BZVM_OLD_RUNID=bzsandbox-...     # the previous stack (still alive)
+export BZVM_NEW_RUNID=bzsandbox-...     # MUST equal the current SANDBOX_STATE RUNID
+export BZVM_SECRET_NAMES=resend_api_key # comma-separated, allow-listed names only
+
+make vm-external-secret-transfer-plan              # read-only: metadata + action, no values
+make vm-external-secret-transfer-apply             # needs --apply + a scoped BZVM_AUTH_FILE
+```
+
+Guarantees:
+- **Allow-list only.** `resend_api_key`, `firebase_credentials_json`,
+  `kyb_storage_endpoint`, `kyb_storage_access_key_id`, `kyb_storage_secret_access_key`.
+  Anything else — the peppers, the `mi_*` bootstrap identities, `db_url_*`, any other
+  minted key, any path/traversal/wildcard — is refused. No recursive or bulk copy.
+- **RUNID-safe resolution.** The destination is the **current** Sandbox stack
+  (`SANDBOX_STATE` RUNID must equal `BZVM_NEW_RUNID`); the source evidence root is
+  located from the old core-api container's bind mounts (container metadata only —
+  the value is read from the resolved file, never from container env). Ambiguity
+  fails closed. `OLD == NEW` is refused.
+- **Idempotent + atomic.** An identical destination is a no-op (`ALREADY_IDENTICAL`);
+  a destination that differs is a blocker and is never overwritten; a new file is
+  written to a temp inside the destination root, set to the contract owner/mode
+  (root-owned, `0644`), renamed atomically and verified (`cmp`), with the source
+  proven unchanged. Temp files are cleaned up on any failure.
+- **No value ever printed.** Plan and apply emit only names, actions and
+  owner/mode metadata.
+
+Secret classification for the current release:
+
+| Secret | Class | This release |
+|--------|-------|--------------|
+| `resend_api_key` | external, owner-placed | REQUIRED_NOW (signup / recovery / security email) |
+| `firebase_credentials_json` | external, owner-placed | OPTIONAL — push disabled gracefully when absent; not transferred now |
+| `kyb_storage_*` | external, owner-placed | OPTIONAL / feature-specific — KYB upload responds 503 when absent; not transferred now |
+| `otp_pepper`, `rate_limit_pepper` | runtime-generated, RUNID-local | NEVER transferred — minted fresh by the deploy path |
+| `mi_*`, `db_url_*`, other minted keys | runtime-generated / bootstrap | NEVER transferred |
 
 ## Scope
 

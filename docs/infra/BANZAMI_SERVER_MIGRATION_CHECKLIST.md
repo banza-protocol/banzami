@@ -27,8 +27,18 @@ Legend: ☐ = to do · record date/operator/outcome for each item.
 - ☐ Check out the exact canonical revision to be deployed.
 
 ## 5. Secret file placement
-- ☐ Place secret files into the protected, root-only state root (file-only; never `-e`,
-  never in Git). Verify permissions restrict access to the administrative account.
+- ☐ **Runtime-generated** secrets (otp_pepper, rate_limit_pepper, the mi_* bootstrap database
+  identities, the per-service db_url_* credentials, jwt/session/webhook keys) are minted fresh by
+  the sanctioned deploy path for the new RUNID — never copied from an old stack.
+- ☐ **External, owner-placed** secrets (resend_api_key; optional firebase_credentials_json,
+  kyb_storage_*) that must carry over from a previous Sandbox RUNID are transferred with the
+  sanctioned, owner-gated mechanism — not copied by hand:
+  `make vm-external-secret-transfer-plan` then, authorised, `make vm-external-secret-transfer-apply`
+  (allow-listed names only, idempotent, atomic, value never printed — see
+  [VM_EXECUTION.md](../../infra/blueprint/docs/VM_EXECUTION.md)). Break-glass only: placing an
+  external secret file into the protected root-only evidence root by hand (file-only, mode 0644,
+  root-owned; never `-e`, never in Git), when the gated mechanism is unavailable.
+- ☐ Verify permissions restrict access to the administrative account (0700 root-only root dir).
 
 ## 6. Role / bootstrap refresh
 - ☐ Ensure database roles exist with least privilege; refresh the short-lived migration
