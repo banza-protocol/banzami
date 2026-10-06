@@ -38,7 +38,17 @@ APP="nspname NOT IN ('pg_catalog','information_schema','pg_toast') AND nspname N
 [ "$(q "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls AND rolcanlogin) FROM pg_roles WHERE rolname='bl_migration'")" = "t" ] \
   && rep PRIV migration_login_least_privilege PASS || rep PRIV migration_login_least_privilege FAIL
 [ "$(q "SELECT rolconnlimit FROM pg_roles WHERE rolname='bl_migration'")" = "${EXPECT_CONNLIMIT:-1}" ] && rep PRIV migration_login_conn_limit_bounded PASS || rep PRIV migration_login_conn_limit_bounded FAIL
-[ "$(q "SELECT (rolvaliduntil IS NOT NULL AND rolvaliduntil > now()) FROM pg_roles WHERE rolname='bl_migration'")" = "t" ] \
+# Phase-correct expiry invariant. bl_migration must ALWAYS carry a FINITE VALID UNTIL
+# (never permanent); a permanently-valid migration login (rolvaliduntil IS NULL) fails in
+# BOTH phases. During the migration phase (default — the verifier was built to run while the
+# window is open) it must additionally be OPEN (> now()). In steady state (final verification,
+# run long after the migration) an ELAPSED window is the SAFE, EXPECTED end-state, so we
+# require finite AND expired (<= now()) and must NOT require a future validity.
+case "${VERIFY_PHASE:-migration}" in
+  steady) VU_COND="rolvaliduntil IS NOT NULL AND rolvaliduntil <= now()" ;;
+  *)      VU_COND="rolvaliduntil IS NOT NULL AND rolvaliduntil > now()" ;;
+esac
+[ "$(q "SELECT ($VU_COND) FROM pg_roles WHERE rolname='bl_migration'")" = "t" ] \
   && rep PRIV migration_login_valid_until_set PASS || rep PRIV migration_login_valid_until_set FAIL
 
 # ---- separation: ONLY the migration login is a member of the stable owner ----

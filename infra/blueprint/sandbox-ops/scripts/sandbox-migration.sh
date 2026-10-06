@@ -179,7 +179,10 @@ cmd_verify() {
 
   echo "== integrity + ownership =="
   local MIG_COUNT MIG_MAXVER; MIG_COUNT="$(ls "$MIG_DIR"/*.sql | wc -l | tr -d ' ')"; MIG_MAXVER="$(ls "$MIG_DIR"/*.sql | sed -E 's#.*/0*([0-9]+)_.*#\1#' | sort -n | tail -1)"
+  # VERIFY_PHASE selects the migration-login expiry invariant (default migration = window open;
+  # the ceremony final-verify passes steady = window elapsed). Propagated into the verifier.
   docker run --rm --network "$BZSB_DATA_NET" -e "EXPECT_COUNT=$MIG_COUNT" -e "EXPECT_MAXVER=$MIG_MAXVER" -e "EXPECT_CONNLIMIT=2" \
+    -e "VERIFY_PHASE=${VERIFY_PHASE:-migration}" \
     -e "PG_SUPERUSER=sbadmin" -e "PG_DB=banzami_staging" \
     -v "$BZSB_SECRET_ROOT/mi_superuser:/run/secrets/mi_superuser:ro" -v "$VERIFY_IDENTITY:/lab/verify-identity.sh:ro" \
     --entrypoint /bin/bash "$PG_IMAGE" -c 'sed -e "s/miadmin/${PG_SUPERUSER}/g" -e "s/blueprint_migration_lab/${PG_DB}/g" /lab/verify-identity.sh > /tmp/v.sh; bash /tmp/v.sh' || rc=1

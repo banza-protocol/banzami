@@ -73,7 +73,16 @@ const eviv = read(resolve(MI, 'scripts', 'validate-derived-evidence.mjs'));
     && /migration_login_least_privilege/.test(vid) && /migration_login_conn_limit_bounded/.test(vid) && /migration_login_valid_until_set/.test(vid)
     && /no_foreign_role_owns_objects/.test(vid);
   const derived = /EXPECT_COUNT/.test(vid) && !/\b97\b/.test(vid) && !/\b97\b/.test(orch);
-  (ok && derived) ? pass(7, 'verifier proves privilege separation + least-privilege + no hardcoded count') : fail(7, `verifier (ok=${ok} derived=${derived})`);
+  // The expiry invariant must be PHASE-CORRECT: migration phase requires the window OPEN
+  // (> now()), steady phase requires it ELAPSED (<= now()), and BOTH require a FINITE expiry
+  // (IS NOT NULL) so a permanently-valid migration credential fails in either phase. The
+  // steady check must NOT require a future validity (that was the false-FAIL this fixes).
+  const phaseAware = /VERIFY_PHASE/.test(vid) && /steady\)/.test(vid);
+  const migrationOpen = /IS NOT NULL AND rolvaliduntil > now\(\)/.test(vid);
+  const steadyElapsed = /IS NOT NULL AND rolvaliduntil <= now\(\)/.test(vid);
+  const rejectsPermanent = migrationOpen && steadyElapsed; // IS NOT NULL in both branches
+  const phaseCorrect = phaseAware && migrationOpen && steadyElapsed && rejectsPermanent;
+  (ok && derived && phaseCorrect) ? pass(7, 'verifier proves privilege separation + least-privilege + no hardcoded count + phase-correct expiry (migration open / steady elapsed; permanent rejected)') : fail(7, `verifier (ok=${ok} derived=${derived} phaseCorrect=${phaseCorrect} aware=${phaseAware} open=${migrationOpen} elapsed=${steadyElapsed})`);
 }
 // 8. evidence validator asserts derived SBOM+provenance + parent/revision/migration linkage + no secret
 {

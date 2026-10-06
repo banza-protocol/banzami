@@ -137,8 +137,8 @@ cmd_release_transfer() { # <plan|apply>
   # 4) materialise the VM-local release state the reused Sandbox adapters read (RELEASE_ROOT on VM).
   # Lock down ONLY the tmp dir itself and the release-state subdir — NEVER recurse. $vmtmp also
   # holds the live Sandbox state tree (banzami-blueprint-sandbox/root-*/evidence/*), and a
-  # `chmod -R 0700 "$vmtmp"` would clobber every evidence secret file to 0700, making the
-  # per-service db_url unreadable by the non-root containers and failing the next deploy closed.
+  # recursive mode change over the tmp tree would clobber every evidence secret file to 0700,
+  # making the per-service db_url unreadable by the non-root containers and failing the deploy.
   remote "mkdir -p '$vmtmp/banzami-blueprint-release' && chmod 0700 '$vmtmp' '$vmtmp/banzami-blueprint-release'"
   remote "umask 077; printf 'RUNID=%s\nBUILDER=%s\nRELEASE_ROOT=%s\nSOURCE_REVISION=%s\nPARENT_DIGEST=%s\n' '${RUNID:-vmrel}' '${BUILDER:-vmrel}' '$rroot' '$SOURCE_REVISION' '$PARENT_DIGEST' > '$vmtmp/banzami-blueprint-release/current.run'"
   # verify the VM-local release state resolves (state file + manifest + executor image all present).
@@ -226,9 +226,9 @@ cmd_legacy_reset() { # <plan|apply>
 }
 
 # Remote execution of a merged Sandbox adapter against the VM's Docker.
-remote_adapter() { # <script-relative> <subcommand>
-  local rel="$1" sub="$2" rroot="$BZVM_REMOTE_ROOT/release"
-  remote "cd '$rroot/source' && TMPDIR='$BZVM_REMOTE_ROOT/tmp' bash '$rel' '$sub'"
+remote_adapter() { # <script-relative> <subcommand> [env-prefix]
+  local rel="$1" sub="$2" env="${3:-}" rroot="$BZVM_REMOTE_ROOT/release"
+  remote "cd '$rroot/source' && TMPDIR='$BZVM_REMOTE_ROOT/tmp' $env bash '$rel' '$sub'"
 }
 
 cmd_sandbox_bootstrap_apply() {
@@ -300,7 +300,9 @@ cmd_external_secret_transfer() { # <plan|apply>
 
 cmd_final_verify() {
   local rc=0
-  remote_adapter "infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh"  verify || rc=1
+  # Final verification runs in STEADY state (long after the migration), so the migration
+  # login's short VALID UNTIL window is expected to have elapsed — the safe end-state.
+  remote_adapter "infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh"  verify "VERIFY_PHASE=steady" || rc=1
   remote_adapter "infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh"     verify || rc=1
   remote_adapter "infra/blueprint/sandbox-ops/scripts/sandbox-bootstrap.sh"  verify || rc=1
   # legacy-absence re-check — ephemeral scratch removed on any exit
