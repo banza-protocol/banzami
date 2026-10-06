@@ -66,11 +66,30 @@ export const ALLOWLIST = [
   { m: 'POST', re: `^/v1/auth/token$`, auth: 'none', mutating: true, csrf: true, authIssue: true },
   { m: 'POST', re: `^/v1/auth/logout$`, auth: 'required', mutating: true, csrf: true, authEnd: true },
 
+  // Verified-email signup + PIN recovery (account-identity-security suite).
+  // Pre-auth like register/token: no bearer, CSRF-checked against the pre-auth
+  // session. email/verify returns an opaque grant the client passes to register;
+  // pin-reset/* drive Forgot-PIN. None of these issues a BFF session — register
+  // (authIssue above) still does, after email verification.
+  { m: 'POST', re: `^/v1/auth/email/otp$`, auth: 'none', mutating: true, csrf: true },
+  { m: 'POST', re: `^/v1/auth/email/verify$`, auth: 'none', mutating: true, csrf: true },
+  { m: 'POST', re: `^/v1/auth/pin-reset/request$`, auth: 'none', mutating: true, csrf: true },
+  { m: 'POST', re: `^/v1/auth/pin-reset/verify$`, auth: 'none', mutating: true, csrf: true },
+  { m: 'POST', re: `^/v1/auth/pin-reset/confirm$`, auth: 'none', mutating: true, csrf: true },
+
   { m: 'GET', re: `^/v1/me$`, auth: 'required' },
   { m: 'GET', re: `^/v1/me/wallet$`, auth: 'required' },
   { m: 'GET', re: `^/v1/me/wallet/balance$`, auth: 'required' },
   { m: 'GET', re: `^/v1/me/activity$`, auth: 'required' },
   { m: 'GET', re: `^/v1/me/push-topic$`, auth: 'required' },
+
+  // Authenticated account security (account-identity-security suite): change PIN,
+  // legacy recovery-email enrolment, and terminal account deletion.
+  { m: 'POST', re: `^/v1/me/pin$`, auth: 'required', mutating: true, csrf: true },
+  { m: 'GET', re: `^/v1/me/recovery-email$`, auth: 'required' },
+  { m: 'POST', re: `^/v1/me/recovery-email/otp$`, auth: 'required', mutating: true, csrf: true },
+  { m: 'POST', re: `^/v1/me/recovery-email/verify$`, auth: 'required', mutating: true, csrf: true },
+  { m: 'POST', re: `^/v1/me/deletion$`, auth: 'required', mutating: true, csrf: true },
 
   // Consumer wallet realtime — a same-origin SSE stream. The browser opens it
   // with EventSource (session cookie); the BFF attaches the Bearer upstream and
