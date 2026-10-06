@@ -149,8 +149,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                             if (val.isEmpty) return 'O @banza é obrigatório';
                             if (val.length < 3) return 'Mínimo 3 caracteres';
                             if (val.length > 30) return 'Máximo 30 caracteres';
-                            if (!RegExp(r'^[a-z0-9_]+$').hasMatch(val)) {
-                              return 'Apenas letras minúsculas, números e _';
+                            // Canonical @banza grammar (same for Consumer and Business):
+                            // starts with a letter, ends alphanumeric, only a-z/0-9/_,
+                            // no consecutive underscores.
+                            if (!RegExp(r'^[a-z][a-z0-9_]{1,28}[a-z0-9]$').hasMatch(val) ||
+                                val.contains('__')) {
+                              return 'Comece por letra; só minúsculas, números e _';
                             }
                             if (_handleError != null) return _handleError;
                             return null;

@@ -1,52 +1,63 @@
 #!/usr/bin/env node
 // Canonical, versioned, testable source for the protected @banza namespace.
 //
-// This file is the ONE place the protected-handle sets live. The migration
-// `db/migrations/0171_handle_namespace_protection.sql` is SEEDED from the output
-// of this generator, and `tools/check-reserved-handles.mjs` fails CI if the
-// migration ever drifts from it — so the namespace is reproducible on a fresh DB
-// and can never silently diverge (the A3-07 split-brain that let a Business apply
-// for @bna/@emis). The authority is server-side (the DB `handle_registry`), never
-// the apps.
+// This file is the ONE place the protected-handle sets and the institution
+// inventory live. The migration db/migrations/0171_handle_namespace_protection.sql
+// is SEEDED from this generator, and tools/check-reserved-handles.mjs fails CI if
+// the migration (or the committed inventory doc) drifts from it — so the namespace
+// is reproducible on a fresh DB and can never silently diverge.
 //
-// Design rules (binding — see the pre-launch brief):
+// Authority split (single authority — see the brief):
+//   * GRAMMAR / normalization  -> code (ONE canonical grammar, below).
+//   * RESERVED / PROTECTED / ALLOCATED / RETIRED  -> handle_registry (the DB).
+// There is no hand-maintained reserved list in Rust any more; the registry is the
+// sole namespace authority and this generator is its single source.
+//
+// Design rules (binding):
 //   * Protection is by EXPLICIT handles and controlled impersonation combos, never
-//     by substring/`contains()` rules that would block legitimate handles.
-//   * Every emitted handle must be creatable under the widest creation grammar
-//     (the Business grammar) — a name no grammar can produce needs no blocking row.
-//   * Categories: internal (platform/security/generic), brand (Banzami/BANZA/
-//     BanzAI + impersonation), ecosystem (Angolan payment infrastructure),
-//     bank (BNA-authorized institutions — siglas + distinctive tokens only),
-//     payment-brand (global networks).
+//     substring/`contains()` rules that would block legitimate handles.
+//   * Every emitted handle must be creatable under the ONE canonical grammar.
+//   * Angolan bank coverage is the current BNA official registry (primary source);
+//     ABANC is secondary cross-check only.
 //
 // Usage:
-//   node tools/gen-reserved-handles.mjs            # print the SQL seed block
-//   node tools/gen-reserved-handles.mjs --json     # print {handle,ownerType,category,reason,source}[]
-//
-// It prints data only; it never writes files or touches a database.
+//   node tools/gen-reserved-handles.mjs             # SQL seed block
+//   node tools/gen-reserved-handles.mjs --json      # rows [{handle,ownerType,category,reason,source}]
+//   node tools/gen-reserved-handles.mjs --handles   # one handle per line
+//   node tools/gen-reserved-handles.mjs --inventory # auditable institution table (markdown)
+// Prints data only; never writes files or touches a database.
 
-// --- Creation grammar (widest = Business). A protected row only matters if some
-// --- real signup could produce the handle. Business: 3-30, alnum start/end,
-// --- [a-z0-9_] body. We additionally forbid '__' (consumer rule) for clean seeds.
-const BUSINESS_GRAMMAR = /^[a-z0-9][a-z0-9_]{1,28}[a-z0-9]$/;
-function creatable(h) {
-  return BUSINESS_GRAMMAR.test(h) && !h.includes('__');
+// === THE ONE canonical @banza grammar (Consumer AND Business) ================
+// 3-30 chars, ASCII lowercase, must start with a letter, end alphanumeric, only
+// [a-z0-9_], no consecutive underscores. Mirror this EXACTLY in every creation
+// path (Core, gateway, public-api, SDK, Flutter, website); tools/check-handle-grammar.mjs
+// pins them together.
+export const CANONICAL_GRAMMAR = /^[a-z][a-z0-9_]{1,28}[a-z0-9]$/;
+export const HANDLE_MIN = 3;
+export const HANDLE_MAX = 30;
+export function creatable(h) {
+  return CANONICAL_GRAMMAR.test(h) && !h.includes('__');
 }
 
 // --- Provenance strings (stored in handle_registry.protect_source). ---
 const SRC_INTERNAL = 'Banzami platform namespace';
 const SRC_BRAND = 'Banzami brand protection';
-const SRC_ECOSYSTEM = 'Angolan payment ecosystem';
-const SRC_BANK = 'BNA authorized banking institutions (ABANC registry)';
+const SRC_REGULATOR = 'Banco Nacional de Angola (regulator)';
+const SRC_ECOSYSTEM = 'Angolan payment infrastructure';
+const SRC_BANK = 'BNA authorized banking institutions (primary); ABANC (secondary)';
 const SRC_PAYMENT = 'Global payment networks';
 
+// Primary source snapshot provenance for the Angolan bank inventory.
+export const BNA_SOURCE = {
+  primary: 'Banco Nacional de Angola — Supervisão → Instituições Financeiras Bancárias Autorizadas (bna.ao)',
+  secondary: 'ABANC — Associação Angolana de Bancos (abanc.ao) — cross-check only',
+  snapshotDate: '2026-10-06',
+};
+
 // === 1. INTERNAL reserved — platform, security, generic product words ========
-// owner_type SYSTEM, reserved_reason 'reserved'. These are the names a Business
-// or Consumer must never take. Superset of migration 0133's list + the brief's
-// section-4 list. The Rust core RESERVED_HANDLES array must stay a subset of
-// this set (asserted by the guard test).
+// owner_type SYSTEM, reserved_reason 'reserved'. Superset of migration 0133's
+// list (the guard asserts 0133 ⊆ this set) plus the brief's section-4 list.
 const INTERNAL = [
-  // brand roots live in BRAND (below), not here.
   'admin', 'administrator', 'root', 'system', 'sys', 'operator', 'staff',
   'official', 'verified', 'moderator', 'superuser', 'service', 'ops',
   'support', 'suporte', 'help', 'ajuda',
@@ -64,60 +75,59 @@ const INTERNAL = [
   'notification', 'notifications', 'notificacoes', 'alert', 'alerts', 'alertas',
   'finance', 'financial', 'bank', 'banco', 'banking',
   'terms', 'termos', 'policy', 'politica',
-  // Angola + Kwanza currency words, and the test marker, kept reserved (also in
-  // the Rust core RESERVED_HANDLES array — the guard keeps the two in step).
-  'angola', 'angolar', 'test',
+  // Angola + Kwanza currency words; legacy reserved 'bde' (kept from 0133).
+  'angola', 'angolar', 'test', 'bde',
 ];
 
-// === 2. BRAND roots — Banzami operator + BANZA/BanzAI ========================
-// owner_type PROTECTED, reason 'brand'. Exact names plus controlled
-// impersonation combos (see IMPERSONATION below).
+// === 2. BRAND roots — Banzami operator + BANZA/BanzAI =======================
 const BRAND = ['banzami', 'banza', 'banzai', 'banzamii'];
 
-// === 3. ECOSYSTEM — Angolan payment infrastructure ===========================
+// === 3. Institutions (structured for the auditable inventory) ================
+// Each: { name, acronym, canonical, aliases[], category, source }. The canonical
+// handle + aliases are protected exactly; impersonation combos are generated.
+const REGULATOR = [
+  { name: 'Banco Nacional de Angola', acronym: 'BNA', canonical: 'bna', aliases: [], source: SRC_REGULATOR },
+];
+
 const ECOSYSTEM = [
-  'bna', 'emis', 'multicaixa', 'multicaixaexpress', 'kwik',
+  { name: 'EMIS — Empresa Interbancária de Serviços', acronym: 'EMIS', canonical: 'emis', aliases: [], source: SRC_ECOSYSTEM },
+  { name: 'MULTICAIXA', acronym: 'MULTICAIXA', canonical: 'multicaixa', aliases: [], source: SRC_ECOSYSTEM },
+  { name: 'MULTICAIXA Express', acronym: 'MULTICAIXA Express', canonical: 'multicaixaexpress', aliases: [], source: SRC_ECOSYSTEM },
+  { name: 'KWiK (EMIS instant payment)', acronym: 'KWiK', canonical: 'kwik', aliases: [], source: SRC_ECOSYSTEM },
 ];
 
-// === 4. BANKS — BNA-authorized institutions (via ABANC). Siglas + distinctive
-// name tokens ONLY. Deliberately NOT bare common words (sol, mais, valor,
-// express) to avoid blocking legitimate handles — impersonation is covered by
-// explicit combos instead.
+// Current BNA-authorized banking institutions (22), primary source = BNA.
 const BANKS = [
-  'bai', 'baimicro',            // Banco Angolano de Investimentos / BAI Microfinanças
-  'bfa',                        // Banco de Fomento Angola
-  'bpc',                        // Banco de Poupança e Crédito
-  'bic',                        // Banco BIC
-  'bni',                        // Banco de Negócios Internacional
-  'bcga',                       // Banco Caixa Geral Angola
-  'bci',                        // Banco de Comércio e Indústria
-  'bch',                        // Banco Comercial do Huambo
-  'bda',                        // Banco de Desenvolvimento de Angola
-  'bir',                        // Banco de Investimento Rural
-  'bki', 'kwanzainvest',        // Banco Kwanza Invest
-  'bma', 'atlantico', 'millennium', // Banco Millennium Atlântico
-  'bkv', 'keve',                // Banco Keve
-  'bvr',                        // Banco Valor
-  'fba', 'finibanco',           // Finibanco Angola
-  'bsl', 'bancosol',            // Banco Sol
-  'sba', 'standard', 'standardbank', // Standard Bank Angola
-  'vtb',                        // Banco VTB África
-  'bcs',                        // Banco de Crédito do Sul
-  'byt', 'yetu',                // Banco Yetu
-  'bancopostal',                // Banco Postal
-  'bancomais',                  // Banco Mais
-  'economico', 'bancoeconomico',// Banco Económico
-  'bankofchina',                // Banco da China (Luanda)
-  'bde',                        // legacy sigla kept from 0133
-];
+  { name: 'Access Bank Angola', acronym: 'ACCESS', canonical: 'access', aliases: ['accessbank'] },
+  { name: 'Banco Angolano de Investimentos', acronym: 'BAI', canonical: 'bai', aliases: [] },
+  { name: 'Banco Comercial Angolano', acronym: 'BCA', canonical: 'bca', aliases: [] },
+  { name: 'Banco Caixa Geral Angola', acronym: 'BCGA', canonical: 'bcga', aliases: [] },
+  { name: 'Banco Comercial do Huambo', acronym: 'BCH', canonical: 'bch', aliases: [] },
+  { name: 'Banco de Comércio e Indústria', acronym: 'BCI', canonical: 'bci', aliases: [] },
+  { name: 'Banco de Crédito do Sul', acronym: 'BCS', canonical: 'bcs', aliases: [] },
+  { name: 'Banco de Desenvolvimento de Angola', acronym: 'BDA', canonical: 'bda', aliases: [] },
+  { name: 'Banco Económico', acronym: 'BE', canonical: 'economico', aliases: ['bancoeconomico'] },
+  { name: 'Banco de Fomento Angola', acronym: 'BFA', canonical: 'bfa', aliases: [] },
+  { name: 'Banco BIC', acronym: 'BIC', canonical: 'bic', aliases: [] },
+  { name: 'Banco de Investimento Rural', acronym: 'BIR', canonical: 'bir', aliases: [] },
+  { name: 'Banco Keve', acronym: 'BKEVE', canonical: 'bkeve', aliases: ['keve'] },
+  { name: 'Banco Millennium Atlântico', acronym: 'BMA', canonical: 'bma', aliases: ['atlantico', 'millennium'] },
+  { name: 'Banco de Negócios Internacional', acronym: 'BNI', canonical: 'bni', aliases: [] },
+  { name: 'Bank of China (Luanda)', acronym: 'BOCLB', canonical: 'boclb', aliases: ['boc', 'bankofchina'] },
+  { name: 'Banco de Poupança e Crédito', acronym: 'BPC', canonical: 'bpc', aliases: [] },
+  { name: 'Banco Sol', acronym: 'BSOL', canonical: 'bsol', aliases: ['bancosol'] },
+  { name: 'Banco Valor', acronym: 'BVB', canonical: 'bvb', aliases: [] },
+  { name: 'Standard Bank Angola', acronym: 'SBA', canonical: 'sba', aliases: ['standard', 'standardbank'] },
+  { name: 'Banco VTB África', acronym: 'VTB', canonical: 'vtb', aliases: [] },
+  { name: 'Banco Yetu', acronym: 'YETU', canonical: 'yetu', aliases: [] },
+].map((b) => ({ ...b, source: SRC_BANK }));
 
-// === 5. PAYMENT BRANDS — global networks =====================================
-const PAYMENT = ['visa', 'mastercard'];
+const PAYMENT = [
+  { name: 'Visa', acronym: 'Visa', canonical: 'visa', aliases: [], source: SRC_PAYMENT },
+  { name: 'Mastercard', acronym: 'Mastercard', canonical: 'mastercard', aliases: [], source: SRC_PAYMENT },
+];
 
 // === Impersonation combos ====================================================
-// Rich suffix set for the brand roots; the narrower official set for ecosystem
-// and banks. Forms are explicit and finite (brief section 5): `x_suffix`,
-// `xsuffix`, and `suffix_x` for brands; `x_suffix` for entities.
 const BRAND_SUFFIXES = [
   'support', 'suporte', 'security', 'seguranca', 'help', 'ajuda',
   'admin', 'official', 'oficial', 'verified', 'verificado',
@@ -128,55 +138,58 @@ const ENTITY_SUFFIXES = ['official', 'oficial', 'support', 'suporte', 'pagamento
 
 function brandCombos(root) {
   const out = [];
-  for (const s of BRAND_SUFFIXES) {
-    out.push(`${root}_${s}`, `${root}${s}`, `${s}_${root}`);
-  }
+  for (const s of BRAND_SUFFIXES) out.push(`${root}_${s}`, `${root}${s}`, `${s}_${root}`);
   return out;
 }
 function entityCombos(root) {
   return ENTITY_SUFFIXES.map((s) => `${root}_${s}`);
 }
 
-// === Assemble the full set (handle -> entry), first category wins ============
+// All institution handles (canonical + aliases) across the structured groups.
+function institutionHandles(groups) {
+  return groups.flatMap((e) => [e.canonical, ...e.aliases]);
+}
+
+// Expand one institution into its impersonation combos for every handle it owns.
+function institutionCombos(e) {
+  return [e.canonical, ...e.aliases].flatMap(entityCombos);
+}
+
+// === Assemble the full set (handle -> entry), first classification wins =======
 function build() {
-  const map = new Map(); // handle -> {ownerType, category, reason, source}
+  const map = new Map();
   const add = (handle, ownerType, category, reason, source) => {
-    if (!creatable(handle)) return; // skip names no grammar can produce
-    if (map.has(handle)) return; // first classification wins (stable precedence)
+    if (!creatable(handle)) return;
+    if (map.has(handle)) return;
     map.set(handle, { handle, ownerType, category, reason, source });
   };
 
-  // Precedence: internal, then brand, ecosystem, bank, payment; combos last.
   for (const h of INTERNAL) add(h, 'SYSTEM', 'internal', 'reserved', SRC_INTERNAL);
   for (const h of BRAND) add(h, 'PROTECTED', 'brand', 'brand', SRC_BRAND);
-  for (const h of ECOSYSTEM) add(h, 'PROTECTED', 'ecosystem', 'ecosystem', SRC_ECOSYSTEM);
-  for (const h of BANKS) add(h, 'PROTECTED', 'bank', 'bank', SRC_BANK);
-  for (const h of PAYMENT) add(h, 'PROTECTED', 'payment-brand', 'payment-brand', SRC_PAYMENT);
+  for (const e of REGULATOR) for (const h of [e.canonical, ...e.aliases]) add(h, 'PROTECTED', 'regulator', 'regulator', e.source);
+  for (const e of ECOSYSTEM) for (const h of [e.canonical, ...e.aliases]) add(h, 'PROTECTED', 'ecosystem', 'ecosystem', e.source);
+  for (const e of BANKS) for (const h of [e.canonical, ...e.aliases]) add(h, 'PROTECTED', 'bank', 'bank', e.source);
+  for (const e of PAYMENT) for (const h of [e.canonical, ...e.aliases]) add(h, 'PROTECTED', 'payment-brand', 'payment-brand', e.source);
 
-  // Impersonation combos (PROTECTED, category 'brand-impersonation').
   for (const root of ['banzami', 'banza', 'banzai']) {
     for (const h of brandCombos(root)) add(h, 'PROTECTED', 'brand-impersonation', 'brand', SRC_BRAND);
   }
-  for (const root of [...ECOSYSTEM, ...BANKS, ...PAYMENT]) {
-    const src = ECOSYSTEM.includes(root) ? SRC_ECOSYSTEM
-      : PAYMENT.includes(root) ? SRC_PAYMENT : SRC_BANK;
-    for (const h of entityCombos(root)) add(h, 'PROTECTED', 'impersonation', 'impersonation', src);
+  for (const e of [...REGULATOR, ...ECOSYSTEM, ...BANKS, ...PAYMENT]) {
+    for (const h of institutionCombos(e)) add(h, 'PROTECTED', 'impersonation', 'impersonation', e.source);
   }
 
   return [...map.values()].sort((a, b) => a.handle.localeCompare(b.handle, 'en'));
 }
 
-// SQL string literal escape (handles are [a-z0-9_] so this is belt-and-braces).
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
 function toSql(rows) {
-  const system = rows.filter((r) => r.ownerType === 'SYSTEM');
-  const protectedRows = rows.filter((r) => r.ownerType === 'PROTECTED');
-
-  const sysValues = system
+  const sysValues = rows
+    .filter((r) => r.ownerType === 'SYSTEM')
     .map((r) => `    (${q(r.handle)}, 'SYSTEM', ${q(r.reason)}, ${q(r.category)}, ${q(r.source)})`)
     .join(',\n');
-  const protValues = protectedRows
+  const protValues = rows
+    .filter((r) => r.ownerType === 'PROTECTED')
     .map((r) => `    (${q(r.handle)}, 'PROTECTED', ${q(r.reason)}, ${q(r.category)}, ${q(r.source)})`)
     .join(',\n');
 
@@ -189,10 +202,11 @@ INSERT INTO handle_registry (handle, owner_type, reserved_reason, protect_catego
 ${sysValues}
 ON CONFLICT (handle) DO NOTHING;
 
--- Protected names (brand, ecosystem, banks, payment brands, impersonation combos).
--- On conflict we UPGRADE an unowned SYSTEM row to PROTECTED with provenance, but
--- the WHERE guard means a row owned by a real CONSUMER/MERCHANT/APPLICATION is
--- left completely untouched — reservation never seizes a name someone holds.
+-- Protected names (brand, regulator, ecosystem, banks, payment brands, and
+-- impersonation combos). On conflict we UPGRADE an unowned SYSTEM row to PROTECTED
+-- with provenance; the WHERE guard leaves any row owned by a real
+-- CONSUMER/MERCHANT/APPLICATION completely untouched — reservation never seizes a
+-- name someone holds.
 INSERT INTO handle_registry (handle, owner_type, reserved_reason, protect_category, protect_source) VALUES
 ${protValues}
 ON CONFLICT (handle) DO UPDATE SET
@@ -204,8 +218,49 @@ WHERE handle_registry.owner_type = 'SYSTEM';
 `;
 }
 
-// Run the CLI only when invoked directly (`node tools/gen-reserved-handles.mjs`),
-// never as a side-effect of `import` (the guard test imports build()).
+// Auditable institution inventory (markdown). One row per institution with its
+// canonical handle, protected aliases, and the impersonation aliases generated.
+function toInventory() {
+  const section = (title, groups) =>
+    [
+      `### ${title}`,
+      '',
+      '| Institution | Acronym | Canonical @banza | Protected aliases | Impersonation aliases generated |',
+      '|---|---|---|---|---|',
+      ...groups.map((e) => {
+        const aliases = e.aliases.length ? e.aliases.map((a) => `\`${a}\``).join(', ') : '—';
+        const combos = institutionCombos(e);
+        return `| ${e.name} | ${e.acronym} | \`${e.canonical}\` | ${aliases} | ${combos.length} (\`${combos[0]}\` …) |`;
+      }),
+      '',
+    ].join('\n');
+
+  const bankCount = BANKS.length;
+  return `<!-- @@GENERATED by tools/gen-reserved-handles.mjs --inventory — do not edit by hand. -->
+# Angola financial-institution @banza namespace inventory
+
+Auditable inventory of the institutions whose @banza handles are **PROTECTED** from
+normal signup (Consumer and Business). Protection is server-side in \`handle_registry\`
+(seeded by migration 0171); this table is generated from the single canonical source
+\`tools/gen-reserved-handles.mjs\`. A PROTECTED name is **not** owned by Banzami — it is
+only ever assignable through an explicit, RBAC-gated, audited operator flow.
+
+- **Primary source:** ${BNA_SOURCE.primary}
+- **Secondary source:** ${BNA_SOURCE.secondary}
+- **Source snapshot date:** ${BNA_SOURCE.snapshotDate}
+- **ALL CURRENT BNA-AUTHORIZED BANKS COVERED: YES** (${bankCount} institutions)
+
+This list is **not** exposed by the public availability API — a protected name reads
+as a single neutral "unavailable".
+
+${section('Regulator', REGULATOR)}${section('Payment infrastructure', ECOSYSTEM)}${section(`Banks — BNA-authorized (${bankCount})`, BANKS)}${section('Global payment brands', PAYMENT)}`;
+}
+
+// Structured institution data (for coverage tests).
+function institutions() {
+  return { REGULATOR, ECOSYSTEM, BANKS, PAYMENT };
+}
+
 import { pathToFileURL } from 'node:url';
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const rows = build();
@@ -213,9 +268,11 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
     process.stdout.write(JSON.stringify(rows, null, 2) + '\n');
   } else if (process.argv.includes('--handles')) {
     process.stdout.write(rows.map((r) => r.handle).join('\n') + '\n');
+  } else if (process.argv.includes('--inventory')) {
+    process.stdout.write(toInventory());
   } else {
     process.stdout.write(toSql(rows));
   }
 }
 
-export { build, creatable, toSql, INTERNAL, BRAND, ECOSYSTEM, BANKS, PAYMENT };
+export { build, toSql, toInventory, institutions, institutionHandles, INTERNAL, BRAND };

@@ -38,19 +38,22 @@ const (
 	lockoutInterval = "15 minutes"
 )
 
-// handleRe: 3-30 chars, lowercase, starts/ends alphanumeric, underscore allowed
-// (no hyphen — matches merchant_profiles + consumer handle conventions).
+// handleRe is THE one canonical @banza grammar (identical for Consumer and
+// Business): 3-30 chars, lowercase, starts with a LETTER, ends alphanumeric,
+// underscore allowed (no hyphen). Consecutive underscores are rejected in
+// ValidateHandle. Unified with the Consumer rule so no handle can be valid for
+// one party type and invalid for the other.
 var (
-	handleRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_]{1,28}[a-z0-9]$`)
+	handleRe = regexp.MustCompile(`^[a-z][a-z0-9_]{1,28}[a-z0-9]$`)
 	// Canonical Banzami PIN: EXACTLY 6 numeric digits (same rule as the Consumer
 	// app). Business login is @banza + PIN; this is the Banzami user PIN, NOT a
 	// BANZADMIN operator credential (those use password/TOTP/recovery codes).
 	pinRe    = regexp.MustCompile(`^[0-9]{6}$`)
 )
 
-// ValidateHandle returns nil if the handle matches the global format rules.
+// ValidateHandle returns nil if the handle matches the canonical @banza grammar.
 func ValidateHandle(handle string) error {
-	if !handleRe.MatchString(handle) {
+	if !handleRe.MatchString(handle) || strings.Contains(handle, "__") {
 		return ErrHandleInvalid
 	}
 	return nil

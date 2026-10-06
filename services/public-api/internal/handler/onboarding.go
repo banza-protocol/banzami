@@ -174,8 +174,10 @@ func (l *onboardingRateLimiter) allowComplete(phone string) bool {
 // e164Re matches E.164 phone numbers. Angola: +244XXXXXXXXX (9 digits after country code).
 var e164Re = regexp.MustCompile(`^\+[1-9]\d{6,14}$`)
 
-// handleRe matches a valid @banza handle: 3–20 chars, starts with lowercase letter.
-var handleRe = regexp.MustCompile(`^[a-z][a-z0-9_]{2,19}$`)
+// handleRe is THE one canonical @banza grammar (identical for Consumer and
+// Business): 3–30 chars, starts with a lowercase letter, ends alphanumeric,
+// only a–z/0–9/_. Consecutive/trailing underscores are rejected below.
+var handleRe = regexp.MustCompile(`^[a-z][a-z0-9_]{1,28}[a-z0-9]$`)
 
 func validatePhone(phone string) bool {
 	return e164Re.MatchString(strings.TrimSpace(phone))
@@ -184,7 +186,7 @@ func validatePhone(phone string) bool {
 func validateHandle(handle string) string {
 	h := strings.TrimSpace(handle)
 	if !handleRe.MatchString(h) {
-		return "handle must be 3–20 characters, start with a letter, and contain only a–z, 0–9, and _"
+		return "handle must be 3–30 characters, start with a letter, and contain only a–z, 0–9, and _"
 	}
 	if strings.Contains(h, "__") {
 		return "handle must not contain consecutive underscores"

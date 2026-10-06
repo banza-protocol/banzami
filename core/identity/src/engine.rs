@@ -304,18 +304,25 @@ mod tests {
         assert!(matches!(err, IdentityError::HandleTaken(_)));
     }
 
+    // Single authority: the engine validates SYNTAX only. A reserved name like
+    // "admin" is syntactically valid and is NOT rejected here — in production it is
+    // refused by the handle_registry PRIMARY KEY (the seeded reserved/protected
+    // row), proven by core/api/src/routes/handle_namespace_tests.rs against a real
+    // DB. The in-memory engine has no registry, so the create succeeds.
     #[tokio::test]
-    async fn reserved_handle_is_rejected() {
+    async fn reserved_name_passes_engine_syntax_and_is_blocked_by_the_registry() {
         let eng = engine();
-        let err = eng
+        let created = eng
             .create(CreateConsumerRequest {
                 handle: "admin".into(),
                 display_name: None,
                 email: None,
             })
-            .await
-            .unwrap_err();
-        assert!(matches!(err, IdentityError::InvalidHandle(_)));
+            .await;
+        assert!(
+            created.is_ok(),
+            "validate_handle must be syntax-only; reserved enforcement belongs to the registry"
+        );
     }
 
     #[tokio::test]

@@ -251,11 +251,14 @@ export function normalizeHandle(raw: string): string {
   return raw.trim().toLowerCase().replace(/^@+/, '');
 }
 
-const HANDLE_RE = /^[a-z0-9][a-z0-9_]{1,28}[a-z0-9]$/;
+// THE one canonical @banza grammar (same for Consumer and Business): 3-30 chars,
+// lowercase, starts with a letter, ends alphanumeric, underscore allowed (no
+// hyphen), no consecutive underscores.
+const HANDLE_RE = /^[a-z][a-z0-9_]{1,28}[a-z0-9]$/;
 
-/** 3-30 chars, lowercase, starts/ends alphanumeric, underscore allowed, no hyphen. */
+/** Canonical @banza format: 3-30, letter start, alnum end, a-z/0-9/_, no `__`. */
 export function isValidHandleFormat(handle: string): boolean {
-  return HANDLE_RE.test(handle);
+  return HANDLE_RE.test(handle) && !handle.includes('__');
 }
 
 /**

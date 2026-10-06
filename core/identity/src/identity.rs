@@ -1,51 +1,12 @@
 use banzami_types::ConsumerId;
 use chrono::{DateTime, Utc};
 
-const RESERVED_HANDLES: &[&str] = &[
-    "admin",
-    "banzami",
-    "banza",
-    "banzai",
-    "banzamii",
-    "support",
-    "help",
-    "api",
-    "system",
-    "root",
-    "superuser",
-    "service",
-    "ops",
-    "security",
-    "compliance",
-    "audit",
-    "finance",
-    "legal",
-    "payments",
-    "transactions",
-    "wallets",
-    "emis",
-    "multicaixa",
-    "angola",
-    "banco",
-    "bna",
-    "angolar",
-    "standard",
-    "atlantico",
-    "bai",
-    "bfa",
-    "bic",
-    "millennium",
-    "bde",
-    // The registry's own SYSTEM names (0051), so the two lists are one (0133).
-    "administrator",
-    "merchant",
-    "business",
-    "pay",
-    "payment",
-    "wallet",
-    "test",
-    "sandbox",
-];
+// Single namespace authority: there is deliberately NO hand-maintained reserved
+// list here. `validate_handle` checks SYNTAX only; whether a name is
+// reserved/protected/allocated/retired is decided by `handle_registry` (seeded
+// from tools/gen-reserved-handles.mjs). A reserved/protected name is refused when
+// the create transaction tries to insert it and hits the registry's PRIMARY KEY.
+// tools/check-reserved-handles.mjs fails CI if a RESERVED_HANDLES list reappears.
 
 /// Lifecycle state of a consumer identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -161,22 +122,27 @@ pub fn normalize_handle(raw: &str) -> String {
     t.strip_prefix('@').unwrap_or(t).to_ascii_lowercase()
 }
 
-/// Validate a normalized handle (no leading `@`, already lowercased).
+/// Validate a normalized handle (no leading `@`, already lowercased) — SYNTAX ONLY.
 ///
-/// Rules (enforced here; also mirrored in the DB CHECK constraint):
-/// - 3–20 characters
+/// This is THE one canonical @banza grammar, identical for Consumer and Business
+/// (and mirrored in every creation path + tools/check-handle-grammar.mjs):
+/// - 3–30 characters
 /// - Must start with a lowercase letter (`a-z`)
 /// - Only lowercase letters (`a-z`), digits (`0-9`), and underscores (`_`)
 /// - Cannot end with `_`
 /// - No consecutive underscores (`__`)
-/// - Not a reserved keyword
+///
+/// It deliberately does NOT decide reserved/protected: that is the registry's job
+/// (see the note at the top of this file). A syntactically valid but reserved
+/// name is refused later, when the create transaction inserts it into
+/// `handle_registry` and hits the PRIMARY KEY.
 pub fn validate_handle(handle: &str) -> Result<(), &'static str> {
     let len = handle.len();
     if len < 3 {
         return Err("handle must be at least 3 characters");
     }
-    if len > 20 {
-        return Err("handle must be at most 20 characters");
+    if len > 30 {
+        return Err("handle must be at most 30 characters");
     }
 
     let bytes = handle.as_bytes();
@@ -196,16 +162,7 @@ pub fn validate_handle(handle: &str) -> Result<(), &'static str> {
         }
     }
 
-    if RESERVED_HANDLES.contains(&handle) {
-        return Err("handle is reserved");
-    }
-
     Ok(())
-}
-
-/// Returns `true` if the handle (already normalized) matches a reserved keyword.
-pub fn is_reserved_handle(handle: &str) -> bool {
-    RESERVED_HANDLES.contains(&handle)
 }
 
 // ---------------------------------------------------------------------------
@@ -230,12 +187,12 @@ mod tests {
 
     #[test]
     fn too_long() {
-        assert!(validate_handle(&"a".repeat(21)).is_err());
+        assert!(validate_handle(&"a".repeat(31)).is_err());
     }
 
     #[test]
-    fn exactly_20_chars_is_valid() {
-        assert!(validate_handle(&"a".repeat(20)).is_ok());
+    fn exactly_30_chars_is_valid() {
+        assert!(validate_handle(&"a".repeat(30)).is_ok());
     }
 
     #[test]
@@ -248,24 +205,19 @@ mod tests {
         assert!(validate_handle("_foo").is_err());
     }
 
+    // Single authority: validate_handle is SYNTAX ONLY. Names that are
+    // reserved/protected in the registry (banzami, bna, bai, emis, admin) are
+    // syntactically valid here — they are refused later by the registry PRIMARY
+    // KEY, not by this function. This pins the authority split so a hand-kept
+    // reserved list cannot creep back in.
     #[test]
-    fn reserved_handles_extended() {
-        for h in &["banza", "emis", "multicaixa", "bna", "bai"] {
-            assert!(validate_handle(h).is_err(), "expected reserved: {h}");
+    fn validate_handle_is_syntax_only_not_a_reserved_list() {
+        for h in &["banzami", "banza", "bna", "bai", "emis", "multicaixa", "admin"] {
+            assert!(
+                validate_handle(h).is_ok(),
+                "{h} failed SYNTAX validation — reserved/protected is the registry's job, not validate_handle's"
+            );
         }
-    }
-
-    #[test]
-    fn is_reserved_handle_works() {
-        assert!(is_reserved_handle("banza"));
-        assert!(is_reserved_handle("emis"));
-        assert!(!is_reserved_handle("ana"));
-    }
-
-    #[test]
-    fn reserved_word_blocked() {
-        assert!(validate_handle("admin").is_err());
-        assert!(validate_handle("banzami").is_err());
     }
 
     #[test]
@@ -303,24 +255,6 @@ mod tests {
                 validate_handle(&n).is_err(),
                 "{alias:?} normalised to a valid handle {n:?}"
             );
-        }
-    }
-
-    #[test]
-    fn the_registry_names_are_reserved_here_too() {
-        for n in [
-            "administrator",
-            "merchant",
-            "business",
-            "pay",
-            "payment",
-            "wallet",
-            "test",
-            "sandbox",
-            "bna",
-            "emis",
-        ] {
-            assert!(validate_handle(n).is_err(), "{n} is not reserved");
         }
     }
 }

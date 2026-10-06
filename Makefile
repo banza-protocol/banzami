@@ -295,12 +295,16 @@ stack-logs:
 check-component-coverage:
 	@node tools/check-component-coverage.mjs
 
-# Protected @banza namespace cannot drift from its canonical source, and the
-# Rust core reserved list stays a subset of the DB seed (CLAUDE.md §2.8).
+# Protected @banza namespace cannot drift from its canonical source; the registry
+# is the single authority (no hand-kept Rust list); BNA banks are covered (CLAUDE.md §2.8).
 check-reserved-handles:
 	@node tools/check-reserved-handles.mjs
 
-.PHONY: check-component-coverage check-reserved-handles check-all test-all check-repo-layout check-pricing-consumers check-economic-authority check-released-operations check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
+# ONE canonical @banza grammar across every creation path (Consumer == Business).
+check-handle-grammar:
+	@node tools/check-handle-grammar.mjs
+
+.PHONY: check-component-coverage check-reserved-handles check-handle-grammar check-all test-all check-repo-layout check-pricing-consumers check-economic-authority check-released-operations check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
@@ -771,7 +775,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage check-reserved-handles security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage check-reserved-handles check-handle-grammar security-check check-openapi-drift check-retired-surfaces check-docs-drift check-implementation-matrix check-validation
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────

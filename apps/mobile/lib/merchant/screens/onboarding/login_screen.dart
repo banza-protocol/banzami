@@ -34,8 +34,10 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
   bool    _loading = false;
   String? _error;
 
-  // 3-30 chars, lowercase, starts/ends alphanumeric, underscore allowed.
-  static final _handleRe = RegExp(r'^[a-z0-9][a-z0-9_]{1,28}[a-z0-9]$');
+  // Canonical @banza grammar (same for Consumer and Business): 3-30 chars,
+  // lowercase, starts with a letter, ends alphanumeric, underscore allowed, no
+  // consecutive underscores.
+  static final _handleRe = RegExp(r'^[a-z][a-z0-9_]{1,28}[a-z0-9]$');
 
   @override
   void dispose() {
@@ -210,7 +212,7 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
               onFieldSubmitted: (_) => _continueToPin(),
               validator: (v) {
                 final h = (v ?? '').trim().toLowerCase().replaceFirst(RegExp(r'^@'), '');
-                if (h.isEmpty || !_handleRe.hasMatch(h)) return '@banza inválido.';
+                if (h.isEmpty || !_handleRe.hasMatch(h) || h.contains('__')) return '@banza inválido.';
                 return null;
               },
             ),

@@ -300,15 +300,13 @@ pub async fn list(
 // ---------------------------------------------------------------------------
 
 fn normalise_handle(raw: &str) -> ApiResult<String> {
-    let h = raw.trim().trim_start_matches('@').to_lowercase();
-    if h.len() < 3 || h.len() > 50 {
-        return Err(ApiError::bad_request("handle must be 3–50 characters"));
-    }
-    if !h.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return Err(ApiError::bad_request(
-            "handle may only contain letters, digits, and underscores",
-        ));
-    }
+    // The ONE canonical @banza grammar, shared with Consumer and Business (fixes
+    // the old divergent 3-50 Unicode-lowercase rule here). normalize_handle strips
+    // one '@' and folds ASCII only; validate_handle enforces syntax (3-30,
+    // letter-start, no '__'/trailing '_'). The DB CHECK (3-50) stays a looser
+    // backstop.
+    let h = banzami_identity::normalize_handle(raw);
+    banzami_identity::validate_handle(&h).map_err(|e| ApiError::bad_request(e))?;
     Ok(h)
 }
 

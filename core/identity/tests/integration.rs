@@ -79,10 +79,14 @@ async fn normalization_collision_rejected(pool: PgPool) {
 
 // ── 4. Reserved handle rejected ──────────────────────────────────────────────
 
+// Single authority: reserved/protected names are refused by the handle_registry
+// (seeded from the canonical source), NOT by validate_handle. They are
+// syntactically valid, so the create reaches the registry insert and fails there
+// with HandleTaken — the same guarantee that stops any party claiming a taken name.
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn reserved_handle_rejected(pool: PgPool) {
+async fn reserved_handle_rejected_by_registry(pool: PgPool) {
     let eng = make_engine(pool);
-    for reserved in &["admin", "banza", "emis", "multicaixa", "bna"] {
+    for reserved in &["admin", "banza", "emis", "multicaixa", "bna", "bai", "visa"] {
         let err = eng
             .create(CreateConsumerRequest {
                 handle: reserved.to_string(),
@@ -92,8 +96,8 @@ async fn reserved_handle_rejected(pool: PgPool) {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, IdentityError::InvalidHandle(_)),
-            "expected InvalidHandle for '{reserved}', got: {err:?}"
+            matches!(err, IdentityError::HandleTaken(_)),
+            "expected HandleTaken (registry-blocked) for '{reserved}', got: {err:?}"
         );
     }
 }
@@ -103,10 +107,10 @@ async fn reserved_handle_rejected(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn invalid_syntax_rejected(pool: PgPool) {
     let eng = make_engine(pool);
-    let too_long = "a".repeat(21);
+    let too_long = "a".repeat(31);
     let bad_handles = vec![
         "ab",              // too short (2 chars)
-        too_long.as_str(), // too long (21 chars)
+        too_long.as_str(), // too long (31 chars; canonical max is 30)
         "1abc",            // starts with digit
         "_foo",            // starts with underscore
         "foo__bar",        // consecutive underscores

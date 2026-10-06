@@ -1,13 +1,17 @@
 package coreclient
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // The handle is derived, never chosen. A caller-chosen handle is a caller-chosen
 // identity, and @banza is a scarce public namespace: a developer naming their
 // Sandbox Business "banco" or "bna" would reserve it.
 //
-// The registry requires 3–20 characters, lowercase letters, digits and
-// underscores, starting with a letter and not ending in one.
+// The canonical @banza grammar requires 3–30 characters, lowercase letters,
+// digits and underscores, starting with a letter, ending alphanumeric, and no
+// consecutive underscores.
 func TestDeriveSandboxHandle(t *testing.T) {
 	cases := []string{
 		"40d24abd-6e69-4e50-bee4-9b582b5d0de6",
@@ -20,14 +24,17 @@ func TestDeriveSandboxHandle(t *testing.T) {
 	seen := map[string]string{}
 	for _, id := range cases {
 		h := DeriveSandboxHandle(id)
-		if n := len(h); n < 3 || n > 20 {
-			t.Errorf("%q → %q: length %d outside the registry's 3..20", id, h, n)
+		if n := len(h); n < 3 || n > 30 {
+			t.Errorf("%q → %q: length %d outside the canonical 3..30", id, h, n)
 		}
 		if h[0] < 'a' || h[0] > 'z' {
 			t.Errorf("%q → %q: must start with a lowercase letter", id, h)
 		}
 		if h[len(h)-1] == '_' {
 			t.Errorf("%q → %q: must not end with an underscore", id, h)
+		}
+		if strings.Contains(h, "__") {
+			t.Errorf("%q → %q: must not contain consecutive underscores", id, h)
 		}
 		for i := 0; i < len(h); i++ {
 			c := h[i]

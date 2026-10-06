@@ -32,11 +32,17 @@ describe('pure helpers', () => {
     expect(normalizeHandle('@@LOJA')).toBe('loja');
   });
 
-  it('validates handle format (no hyphen, 3-30)', () => {
+  it('validates the canonical @banza format (3-30, letter start, no __)', () => {
     expect(isValidHandleFormat('cantina_alex')).toBe(true);
+    expect(isValidHandleFormat('doa')).toBe(true);
+    expect(isValidHandleFormat('a'.repeat(30))).toBe(true); // max length
     expect(isValidHandleFormat('ab')).toBe(false); // too short
+    expect(isValidHandleFormat('a'.repeat(31))).toBe(false); // too long
     expect(isValidHandleFormat('a-b')).toBe(false); // hyphen
     expect(isValidHandleFormat('_loja')).toBe(false); // starts with _
+    expect(isValidHandleFormat('1loja')).toBe(false); // starts with a digit
+    expect(isValidHandleFormat('loja_')).toBe(false); // trailing underscore
+    expect(isValidHandleFormat('a__b')).toBe(false); // consecutive underscores
   });
 
   it('maps reason codes to messages (unavailable is always neutral)', () => {
