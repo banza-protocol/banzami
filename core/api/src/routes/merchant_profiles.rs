@@ -335,7 +335,7 @@ pub async fn list(
 // canonical @banza grammar.
 fn normalise_handle(raw: &str) -> ApiResult<String> {
     let h = banzami_identity::normalize_handle(raw);
-    banzami_identity::validate_handle(&h).map_err(|e| ApiError::bad_request(e))?;
+    banzami_identity::validate_handle(&h).map_err(ApiError::bad_request)?;
     Ok(h)
 }
 
