@@ -131,6 +131,11 @@ const CASES = [
     expect: fails('PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING'),
   },
   {
+    name: 'status — Android availability stops deriving from public-truth',
+    mutate: (d) => edit(d, `${W}/lib/beta.ts`, (s) => s.replace('export const ANDROID_TESTING_AVAILABLE = PUBLIC_TRUTH.appBeta.androidTestingAvailable;', 'export const ANDROID_TESTING_AVAILABLE = true;')),
+    expect: fails('PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING'),
+  },
+  {
     name: 'status — the short Live summary (global Ribbon) stops saying unavailable',
     mutate: (d) => edit(d, `${W}/lib/public-truth.ts`, (s) => s.replace('permanecem indisponíveis, sujeitas às aprovações aplicáveis.', 'estão em preparação, sujeitas às aprovações aplicáveis.')),
     expect: fails('PUBLIC_SITE_LIVE_CLAIMS'),

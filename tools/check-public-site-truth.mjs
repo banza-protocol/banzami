@@ -208,6 +208,13 @@ const kit = read(`${WEB}/components/marketing/kit.tsx`);
 if (!/from '@\/lib\/public-truth'/.test(kit) || !/PUBLIC_TRUTH\.live\b/.test(kit)) {
   findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('components/marketing/kit.tsx (the global Ribbon) no longer binds the environment status to lib/public-truth.ts');
 }
+// Android tester availability states one truth: lib/beta.ts derives the switch
+// from PUBLIC_TRUTH.appBeta, so the platform card and the facts module can never
+// disagree about whether Android testing is open.
+const beta = read(`${WEB}/lib/beta.ts`);
+if (!/ANDROID_TESTING_AVAILABLE\s*=\s*PUBLIC_TRUTH\.appBeta\.androidTestingAvailable\b/.test(beta)) {
+  findings.PUBLIC_SITE_ENVIRONMENT_STATUS_MISSING.push('lib/beta.ts no longer derives ANDROID_TESTING_AVAILABLE from PUBLIC_TRUTH.appBeta — Android availability can diverge');
+}
 // ── /sobre presents BOTH co-founders (institutional truth) ──────────────────────
 // PUBLIC-WEBSITE-OFFICIAL-READINESS-001 §5: two co-founders, never one. The names
 // render in the page's content component, not the route shell.

@@ -12,6 +12,7 @@
 // someone already registered.
 
 import { API_BASE } from '@/lib/api';
+import { PUBLIC_TRUTH } from '@/lib/public-truth';
 
 export type BetaPlatform = 'IOS' | 'ANDROID' | 'BOTH';
 export type BetaApp = 'APP_BANZAMI' | 'APP_MERCHANT';
@@ -46,14 +47,17 @@ export const BETA_APPS: {
   },
 ];
 
-// Android tester distribution availability (single, central switch).
+// Android tester distribution availability. Derived from the single source of
+// product truth (PUBLIC_TRUTH.appBeta) so the site and the facts module can
+// never disagree about Android — tools/check-public-site-truth.mjs enforces the
+// derivation.
 //
 // While false, the public pages do NOT open the Android tester sign-up: the
-// Android platform card shows an "Em breve" badge and, when clicked, opens a
-// short "temporarily unavailable" notice that points to the Beta Web. iOS and
-// the Beta Web are unaffected. Flip this to true to restore the normal Android
-// sign-up flow with no other change to the UI or components.
-export const ANDROID_TESTING_AVAILABLE = false;
+// Android platform card, when clicked, opens a short "temporarily unavailable"
+// notice that points to the Beta Web. iOS and the Beta Web are unaffected. To
+// restore the normal Android sign-up flow, flip androidTestingAvailable in
+// lib/public-truth.ts to true — no other change to the UI or components.
+export const ANDROID_TESTING_AVAILABLE = PUBLIC_TRUTH.appBeta.androidTestingAvailable;
 
 // The channel a platform is tested through, named correctly: TestFlight is
 // Apple's, and Android is NOT "TestFlight" — it is Google Play testing.

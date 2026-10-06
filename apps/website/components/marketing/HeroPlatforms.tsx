@@ -43,8 +43,8 @@ const T = {
     'The Android version for Sandbox testing is not yet available.',
   ),
   naP3: L(
-    'Podes continuar a experimentar a Banzami através da Beta Web ou regressar mais tarde para participar nos testes Android.',
-    'You can keep trying Banzami through the Beta Web, or come back later to join the Android tests.',
+    'Pode continuar a experimentar a Banzami através da Beta Web; os testes para Android serão abertos mais tarde.',
+    'You can keep using Banzami through the Beta Web; Android testing will open later.',
   ),
   naPrimary: L('Experimentar Beta Web', 'Try the Beta Web'),
 };

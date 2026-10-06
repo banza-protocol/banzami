@@ -30,16 +30,19 @@ export const PUBLIC_TRUTH = {
   appInStores: false,
   /**
    * How the mobile apps are actually distributed today (APP-BETA-001). They are
-   * functional and given to invited testers through TestFlight (iOS) and Google
-   * Play testing (Android) — a private beta, not a public store listing. Status
-   * is BETA_TESTING; both apps are on both platforms. This is the single fact
-   * pages and the beta program state, so the product status never contradicts
+   * functional and given to invited testers through TestFlight (iOS) — a private
+   * beta, not a public store listing. Android tester distribution is NOT
+   * available yet (the Google Play organization / D-U-N-S process is pending);
+   * the Beta Web covers Android in the meantime. Status is BETA_TESTING. This is
+   * the single source — lib/beta.ts derives ANDROID_TESTING_AVAILABLE from
+   * `androidTestingAvailable` here — so the product status never contradicts
    * itself across surfaces.
    */
   appBeta: {
     status: 'BETA_TESTING' as const,
     ios: 'TestFlight',
-    android: 'Google Play testing',
+    androidChannel: 'Google Play testing',
+    androidTestingAvailable: false as const,
     inviteOnly: true,
     apps: ['App Banzami', 'App Banzami Business'] as const,
   },
