@@ -258,21 +258,25 @@ export function isValidHandleFormat(handle: string): boolean {
   return HANDLE_RE.test(handle);
 }
 
-/** Maps a check-handle reason code to a clear PT message. */
+/**
+ * Maps a check-handle reason code to a clear PT message. The server returns a
+ * single neutral reason for every unavailable handle (it never discloses whether
+ * a name is reserved, protected, held by a Business, in an application, or was a
+ * deleted account), so the only cases we distinguish are the format hint and the
+ * neutral "unavailable". Older specific codes are kept in the switch so any
+ * cached client still renders a sensible neutral message.
+ */
 export function handleReasonMessage(reason?: string): string {
   switch (reason) {
-    case 'TAKEN':
-      return 'Este @negócio já está em uso.';
-    case 'RESERVED':
-      return 'Este @negócio está reservado.';
-    case 'PENDING':
-      return 'Este @negócio já tem uma candidatura em curso.';
-    case 'BUSINESS':
-      return 'Este @negócio pertence a uma Business Account existente.';
     case 'INVALID':
       return 'Use 3 a 30 caracteres: letras minúsculas, números ou _.';
+    case 'UNAVAILABLE':
+    case 'TAKEN':
+    case 'RESERVED':
+    case 'PENDING':
+    case 'BUSINESS':
     default:
-      return 'Este @negócio não está disponível.';
+      return 'Este @negócio não está disponível. Escolha outro.';
   }
 }
 

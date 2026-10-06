@@ -225,3 +225,150 @@ async fn an_inactive_wallet_does_not_resolve(pool: PgPool) {
         "a locked wallet was offered as a beneficiary"
     );
 }
+
+// ── namespace protection: reserved + protected names, born with a fresh DB ──
+//
+// Protection is a property of the one namespace table every @banza passes
+// through, seeded by migration 0171 from tools/gen-reserved-handles.mjs. These
+// tests run against a FRESHLY migrated DB, so they also prove section-14/21
+// reproducibility: a new Sandbox is born with the namespace protected.
+
+/// The seed is present and substantial on a fresh DB (not a hand-inserted few).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn fresh_db_is_born_with_the_protected_namespace(pool: PgPool) {
+    let count: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM handle_registry WHERE owner_type IN ('SYSTEM','PROTECTED')",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(
+        count >= 500,
+        "fresh DB has only {count} reserved/protected handles — the 0171 seed did not apply"
+    );
+
+    // One representative name from each class, with its expected owner_type.
+    let cases: &[(&str, &str)] = &[
+        ("admin", "SYSTEM"),         // internal reserved
+        ("banzami", "PROTECTED"),    // brand (upgraded from the 0133 SYSTEM row)
+        ("banzami_support", "PROTECTED"), // brand impersonation combo
+        ("bna", "PROTECTED"),        // ecosystem
+        ("bai", "PROTECTED"),        // bank
+        ("visa", "PROTECTED"),       // global payment brand
+    ];
+    for (handle, want_owner) in cases {
+        let owner: Option<String> =
+            sqlx::query_scalar("SELECT owner_type FROM handle_registry WHERE handle = $1")
+                .bind(handle)
+                .fetch_optional(&pool)
+                .await
+                .unwrap();
+        assert_eq!(
+            owner.as_deref(),
+            Some(*want_owner),
+            "handle @{handle} is not seeded as {want_owner} on a fresh DB"
+        );
+    }
+}
+
+/// A consumer cannot take a reserved or protected name: the registry insert the
+/// onboarding transaction makes hits the same PRIMARY KEY that blocks any party
+/// type. Every protection class is enforced by the same atomic guarantee.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_consumer_cannot_take_a_reserved_or_protected_handle(pool: PgPool) {
+    for handle in ["banzami", "bai", "bna", "banzami_support", "visa", "admin"] {
+        let id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO consumers (id, handle, phone_number, status, display_name, created_at, updated_at)
+             VALUES ($1,$2,$3,'ACTIVE','X',now(),now())",
+        )
+        .bind(id)
+        .bind(handle)
+        .bind(format!("+2449{}", &id.to_string()[..8]))
+        .execute(&pool)
+        .await
+        .unwrap();
+        // The authoritative step: claiming the handle in the shared namespace.
+        let claim = sqlx::query(
+            "INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)",
+        )
+        .bind(handle)
+        .bind(id)
+        .execute(&pool)
+        .await;
+        assert!(
+            claim.is_err(),
+            "a consumer claimed the protected/reserved handle @{handle}"
+        );
+    }
+}
+
+/// Case folding cannot escape protection: the app normalizes to ASCII lowercase
+/// before it ever reaches the namespace, and the seeded row is the lowercase
+/// form, so a claim on the normalized spelling is blocked and no upper/mixed-case
+/// variant exists as its own row.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn case_variants_cannot_escape_protection(pool: PgPool) {
+    // The protected name exists only in normalized form.
+    let variants: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM handle_registry WHERE lower(handle)='banzami' AND handle <> 'banzami'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(variants, 0, "a non-normalized spelling of a protected name was seeded");
+
+    // Claiming the normalized spelling (what the app produces from BANZAMI/Banzami)
+    // is blocked.
+    let id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO consumers (id, handle, phone_number, status, display_name, created_at, updated_at)
+         VALUES ($1,'banzami','+244900000009','ACTIVE','X',now(),now())",
+    )
+    .bind(id)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let claim =
+        sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('banzami','CONSUMER',$1)")
+            .bind(id)
+            .execute(&pool)
+            .await;
+    assert!(claim.is_err(), "the normalized spelling of a protected name was claimable");
+}
+
+/// Two concurrent claims on the same free name: the PRIMARY KEY lets exactly one
+/// win. Reserved/protected rows are blocked by the same mechanism, so no race can
+/// hand out a protected name either.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn two_claims_on_one_name_cannot_both_succeed(pool: PgPool) {
+    let name = "raceme";
+    let a = Uuid::new_v4();
+    let b = Uuid::new_v4();
+    for id in [a, b] {
+        sqlx::query(
+            "INSERT INTO consumers (id, handle, phone_number, status, display_name, created_at, updated_at)
+             VALUES ($1,$2,$3,'ACTIVE','X',now(),now())",
+        )
+        .bind(id)
+        .bind(format!("u{}", &id.to_string()[..8]))
+        .bind(format!("+2449{}", &id.to_string()[..8]))
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    let first =
+        sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)")
+            .bind(name)
+            .bind(a)
+            .execute(&pool)
+            .await;
+    let second =
+        sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)")
+            .bind(name)
+            .bind(b)
+            .execute(&pool)
+            .await;
+    assert!(first.is_ok(), "the first claim on a free name failed");
+    assert!(second.is_err(), "a second claim on the same name also succeeded — one @banza, two owners");
+}

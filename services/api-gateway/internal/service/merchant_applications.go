@@ -35,13 +35,25 @@ func (e *IncompleteSubmissionError) Error() string {
 }
 func (e *IncompleteSubmissionError) Is(target error) bool { return target == ErrApplicationIncomplete }
 
-// Handle availability reason codes (non-secret; safe for the public form).
+// Handle availability reason codes.
+//
+// Internal reasons (RESERVED/TAKEN/PENDING/BUSINESS) are used by Submit to pick
+// the right submit-time error (e.g. the "regularise your Business" affordance).
+// They are NOT exposed by the public availability check: CheckHandle collapses
+// every unavailable case to the single neutral HandleReasonUnavailable so an
+// unauthenticated caller cannot tell a reserved/protected name from a retired,
+// consumer-held or business-held one, nor learn that a name belongs to a bank or
+// a deleted account (namespace-protection brief §10/§16). INVALID is kept because
+// it is a non-sensitive format hint.
 const (
-	HandleAvailable      = ""
-	HandleReasonInvalid  = "INVALID"
-	HandleReasonReserved = "RESERVED"
-	HandleReasonTaken    = "TAKEN"
-	HandleReasonPending  = "PENDING" // held by another in-flight application
+	HandleAvailable     = ""
+	HandleReasonInvalid = "INVALID"
+	// HandleReasonUnavailable is the ONLY non-available, non-INVALID reason the
+	// public availability endpoint ever returns.
+	HandleReasonUnavailable = "UNAVAILABLE"
+	HandleReasonReserved    = "RESERVED"
+	HandleReasonTaken       = "TAKEN"
+	HandleReasonPending     = "PENDING" // held by another in-flight application
 	// HandleReasonBusiness: an existing Business Account uses this handle. It
 	// cannot be requested as new; its owner can apply to regularise it
 	// (existing_business), resolved by an operator link.
@@ -176,7 +188,11 @@ func (s *PostgresMerchantApplicationService) notifyCreated(ctx context.Context, 
 // classifyHandle maps a handle_registry row to (available, reason). An expired
 // APPLICATION reservation is treated as available.
 func classifyHandle(ownerType string, reservedReason *string, reservedUntil *time.Time) (bool, string) {
-	if ownerType == "SYSTEM" || reservedReason != nil {
+	// SYSTEM (internal reserved) and PROTECTED (brand/ecosystem/bank/payment, and
+	// impersonation combos) are both blocked from normal signup. A PROTECTED name
+	// is not Banzami's — it is only ever assignable through an explicit, audited
+	// operator flow — but publicly it is indistinguishable from any reserved name.
+	if ownerType == "SYSTEM" || ownerType == "PROTECTED" || reservedReason != nil {
 		return false, HandleReasonReserved
 	}
 	if ownerType == "APPLICATION" {
@@ -212,8 +228,13 @@ func (s *PostgresMerchantApplicationService) CheckHandle(ctx context.Context, ha
 	if err != nil {
 		return false, "", err
 	}
-	available, reason := classifyHandle(ownerType, reserved, until)
-	return available, reason, nil
+	available, _ := classifyHandle(ownerType, reserved, until)
+	if available {
+		return true, HandleAvailable, nil
+	}
+	// Neutral: never disclose which class (reserved/protected/retired/taken/
+	// business/pending) or whose a handle is — only that it is unavailable.
+	return false, HandleReasonUnavailable, nil
 }
 
 func nullStr(s string) any {

@@ -103,6 +103,12 @@ function Faq({ lang }: { lang: Lang }) {
         : 'É o seu nome de utilizador na Banzami. Serve para enviar e receber entre pessoas, sem IBAN nem número de conta.',
     },
     {
+      q: L('Porque é que alguns @banza não estão disponíveis?', 'Why are some @banza unavailable?'),
+      a: lang === 'en'
+        ? 'Some @banza are unavailable or reserved for reasons of security, platform integrity or identity protection. If a name cannot be taken, simply choose another.'
+        : 'Alguns @banza podem estar indisponíveis ou reservados por razões de segurança, integridade da plataforma ou proteção de identidade. Se um nome não puder ser usado, basta escolher outro.',
+    },
+    {
       q: L('Como verifico um comprovativo?', 'How do I verify a receipt?'),
       a: lang === 'en'
         ? (<>Every receipt has a reference starting with BZM-. Enter it in <a href={route('verificar', lang)}>Verify a receipt</a>.</>)

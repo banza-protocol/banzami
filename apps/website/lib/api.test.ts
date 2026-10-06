@@ -39,11 +39,21 @@ describe('pure helpers', () => {
     expect(isValidHandleFormat('_loja')).toBe(false); // starts with _
   });
 
-  it('maps reason codes to messages', () => {
-    expect(handleReasonMessage('TAKEN')).toMatch(/em uso/i);
-    expect(handleReasonMessage('RESERVED')).toMatch(/reservado/i);
-    expect(handleReasonMessage('PENDING')).toMatch(/candidatura/i);
+  it('maps reason codes to messages (unavailable is always neutral)', () => {
+    // The server discloses no class: every unavailable reason renders the same
+    // neutral message, so a @banza being reserved/protected/held cannot leak.
+    expect(handleReasonMessage('UNAVAILABLE')).toMatch(/não está disponível/i);
+    expect(handleReasonMessage('TAKEN')).toMatch(/não está disponível/i);
+    expect(handleReasonMessage('RESERVED')).toMatch(/não está disponível/i);
+    expect(handleReasonMessage('PENDING')).toMatch(/não está disponível/i);
+    expect(handleReasonMessage('BUSINESS')).toMatch(/não está disponível/i);
+    expect(handleReasonMessage(undefined)).toMatch(/não está disponível/i);
+    // The format hint is the one non-sensitive exception.
     expect(handleReasonMessage('INVALID')).toMatch(/caracteres/i);
+    // No reason code must ever surface the words reserved/protected/bank.
+    for (const c of ['UNAVAILABLE', 'TAKEN', 'RESERVED', 'PENDING', 'BUSINESS', undefined]) {
+      expect(handleReasonMessage(c)).not.toMatch(/reservad|protegid|banco|Business Account/i);
+    }
   });
 
   it('validates PIN 4-8 digits', () => {
@@ -59,11 +69,11 @@ describe('check-handle', () => {
     mockFetch(200, { available: true });
     expect(await checkHandle('cantina_alex')).toEqual({ available: true });
   });
-  it('taken with reason', async () => {
-    mockFetch(200, { available: false, reason: 'TAKEN' });
+  it('unavailable returns a neutral reason', async () => {
+    mockFetch(200, { available: false, reason: 'UNAVAILABLE' });
     const r = await checkHandle('doa_sandbox');
     expect(r.available).toBe(false);
-    expect(handleReasonMessage(r.reason)).toMatch(/em uso/i);
+    expect(handleReasonMessage(r.reason)).toMatch(/não está disponível/i);
   });
 });
 
