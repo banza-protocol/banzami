@@ -22,9 +22,17 @@ export const STALE_README_PATTERNS = [
   [/\bpolling-only\b|poll(ing)? for (the )?status/i, 'polling where realtime exists'],
 ];
 
-/** Required statements: the status line and the canonical docs link. */
+/**
+ * Required statements: the status line and the canonical docs link.
+ *
+ * The status line uses the PUBLIC wording "Real-money operations remain
+ * unavailable" — not the internal term "Financial Live", which
+ * tools/check-public-terminology.mjs forbids on every public surface (the
+ * published README is one). The two gates agree: the README must state that real
+ * money is unavailable, in the public terminology.
+ */
 export const REQUIRED_README_STATEMENTS = [
-  [/Financial Live remains unavailable/, 'the Financial Live status'],
+  [/Real-money operations remain unavailable/, 'the real-money operations status'],
   [/Public Sandbox is available and fully self-service/, 'the Sandbox status'],
   [/https:\/\/developers\.banzami\.com\/docs/, 'a link to the canonical documentation'],
 ];

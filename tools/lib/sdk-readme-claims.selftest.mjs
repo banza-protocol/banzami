@@ -30,7 +30,7 @@ const current = readFileSync(join(ROOT, 'sdk/typescript/README.md'), 'utf8');
 const now = readmeFindings(current);
 expect('the source README passes', now.stale.length === 0 && now.missing.length === 0, [...now.stale, ...now.missing].join('; ') || 'clean');
 
-for (const [needle, label] of [['Financial Live remains unavailable', 'Live status'], ['https://developers.banzami.com/docs', 'docs link']]) {
+for (const [needle, label] of [['Real-money operations remain unavailable', 'real-money status'], ['https://developers.banzami.com/docs', 'docs link']]) {
   const r = readmeFindings(current.replaceAll(needle, 'x'));
   expect(`removing the ${label} is reported`, r.missing.length >= 1, r.missing.join('; '));
 }
