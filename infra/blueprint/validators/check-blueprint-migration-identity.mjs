@@ -73,16 +73,19 @@ const eviv = read(resolve(MI, 'scripts', 'validate-derived-evidence.mjs'));
     && /migration_login_least_privilege/.test(vid) && /migration_login_conn_limit_bounded/.test(vid) && /migration_login_valid_until_set/.test(vid)
     && /no_foreign_role_owns_objects/.test(vid);
   const derived = /EXPECT_COUNT/.test(vid) && !/\b97\b/.test(vid) && !/\b97\b/.test(orch);
-  // The expiry invariant must be PHASE-CORRECT: migration phase requires the window OPEN
-  // (> now()), steady phase requires it ELAPSED (<= now()), and BOTH require a FINITE expiry
-  // (IS NOT NULL) so a permanently-valid migration credential fails in either phase. The
-  // steady check must NOT require a future validity (that was the false-FAIL this fixes).
+  // The migration-login verification must be PHASE-CORRECT. Canonical lifecycle: bl_migration is
+  // short-lived — created for a migration, then DROPped. So:
+  //   - migration phase: it exists with a FINITE + OPEN VALID UNTIL (IS NOT NULL AND > now());
+  //     a permanent/NULL window fails.
+  //   - steady phase: it has been REMOVED — asserted read-only as to_regrole('bl_migration') IS
+  //     NULL (a login still present, even expired, fails). No destructive op and no regrole cast
+  //     of a possibly-absent role.
   const phaseAware = /VERIFY_PHASE/.test(vid) && /steady\)/.test(vid);
-  const migrationOpen = /IS NOT NULL AND rolvaliduntil > now\(\)/.test(vid);
-  const steadyElapsed = /IS NOT NULL AND rolvaliduntil <= now\(\)/.test(vid);
-  const rejectsPermanent = migrationOpen && steadyElapsed; // IS NOT NULL in both branches
-  const phaseCorrect = phaseAware && migrationOpen && steadyElapsed && rejectsPermanent;
-  (ok && derived && phaseCorrect) ? pass(7, 'verifier proves privilege separation + least-privilege + no hardcoded count + phase-correct expiry (migration open / steady elapsed; permanent rejected)') : fail(7, `verifier (ok=${ok} derived=${derived} phaseCorrect=${phaseCorrect} aware=${phaseAware} open=${migrationOpen} elapsed=${steadyElapsed})`);
+  const migrationOpen = /rolvaliduntil IS NOT NULL AND rolvaliduntil > now\(\)/.test(vid); // finite+open; NULL rejected
+  const steadyAbsent = /to_regrole\('bl_migration'\) IS NULL/.test(vid);
+  const nullSafeOwnership = !/'bl_migration'::regrole/.test(vid) && /rolname IN \('bl_app_runtime'/.test(vid);
+  const phaseCorrect = phaseAware && migrationOpen && steadyAbsent && nullSafeOwnership;
+  (ok && derived && phaseCorrect) ? pass(7, 'verifier proves privilege separation + least-privilege + no hardcoded count + phase-correct migration login (migration: finite+open, permanent rejected; steady: removed, read-only, NULL-safe ownership)') : fail(7, `verifier (ok=${ok} derived=${derived} phaseCorrect=${phaseCorrect} aware=${phaseAware} open=${migrationOpen} steadyAbsent=${steadyAbsent} nullSafe=${nullSafeOwnership})`);
 }
 // 8. evidence validator asserts derived SBOM+provenance + parent/revision/migration linkage + no secret
 {

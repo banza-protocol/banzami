@@ -210,10 +210,20 @@ concurrency_proof() {
 
 lifecycle_and_secret() {
   local ok=0
-  docker run --rm --network "$BZSB_DATA_NET" -v "$BZSB_SECRET_ROOT/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
-    export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:sbadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
-    psql -h postgres -U sbadmin -d banzami_staging -v ON_ERROR_STOP=1 -q -c "DROP OWNED BY bl_migration" -c "DROP ROLE bl_migration"' >/dev/null 2>&1 \
-    && echo "  migration_login_removed PASS" || { echo "  migration_login_removed FAIL"; ok=1; }
+  if [ "${VERIFY_PHASE:-migration}" = steady ]; then
+    # STEADY: READ-ONLY + IDEMPOTENT. The short-lived login must ALREADY be removed; final
+    # verification performs NO DB mutation (never DROP), so it yields the same PASS every run.
+    [ "$(docker run --rm --network "$BZSB_DATA_NET" -v "$BZSB_SECRET_ROOT/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
+        export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:sbadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
+        psql -h postgres -U sbadmin -d banzami_staging -tAc "SELECT to_regrole('"'"'bl_migration'"'"') IS NULL"' 2>/dev/null | tr -d '[:space:]')" = "t" ] \
+      && echo "  migration_login_removed PASS" || { echo "  migration_login_removed FAIL"; ok=1; }
+  else
+    # MIGRATION: destructive lifecycle proof — remove the short-lived login and confirm removal.
+    docker run --rm --network "$BZSB_DATA_NET" -v "$BZSB_SECRET_ROOT/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
+      export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:sbadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
+      psql -h postgres -U sbadmin -d banzami_staging -v ON_ERROR_STOP=1 -q -c "DROP OWNED BY bl_migration" -c "DROP ROLE bl_migration"' >/dev/null 2>&1 \
+      && echo "  migration_login_removed PASS" || { echo "  migration_login_removed FAIL"; ok=1; }
+  fi
   if docker run --rm --network "$BZSB_DATA_NET" -v "$BZSB_SECRET_ROOT/mi_migration:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
        export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:bl_migration:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
        psql -h postgres -U bl_migration -d banzami_staging -tAc "SELECT 1" >/dev/null 2>&1'; then echo "  credential_unusable FAIL"; ok=1; else echo "  credential_unusable PASS"; fi
