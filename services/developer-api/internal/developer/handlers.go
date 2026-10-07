@@ -461,15 +461,19 @@ func (h *Handlers) configureFinancialSetup(w http.ResponseWriter, r *http.Reques
 	}
 	var in struct {
 		UseCase string `json:"use_case"`
+		// The @banza the human chose for a FIRST provisioning (Path A). Optional:
+		// omitted means Core derives the historical fallback (legacy / m2m). It is
+		// ignored once this Project already has a Business — identity is settled.
+		DesiredHandle string `json:"desired_handle"`
 	}
 	if r.ContentLength != 0 {
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
-			httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "body must be {\"use_case\": \"STANDARD\" | \"APPLICATION\"}")
+			httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "body must be {\"use_case\": \"STANDARD\" | \"APPLICATION\", \"desired_handle\"?: \"...\"}")
 			return
 		}
 	}
 	ip, reqID := reqMeta(r)
-	st, err := h.svc.ConfigureProjectFinancialSandbox(r.Context(), u.ID, chi.URLParam(r, "projID"), in.UseCase, ip, reqID)
+	st, err := h.svc.ConfigureProjectFinancialSandbox(r.Context(), u.ID, chi.URLParam(r, "projID"), in.UseCase, in.DesiredHandle, ip, reqID)
 	if err != nil {
 		financialSetupErr(w, err)
 		return
@@ -508,6 +512,11 @@ func financialSetupErr(w http.ResponseWriter, err error) {
 		httpx.Error(w, http.StatusServiceUnavailable, "SETUP_UNAVAILABLE", "sandbox financial setup is not available on this deployment")
 	case errors.Is(err, ErrInvalidUseCase):
 		httpx.Error(w, http.StatusBadRequest, "INVALID_USE_CASE", err.Error())
+	case errors.Is(err, ErrInvalidHandle):
+		httpx.Error(w, http.StatusBadRequest, "INVALID_HANDLE", "this @banza is not a valid handle; choose another")
+	case errors.Is(err, ErrHandleUnavailable):
+		// Neutral: the developer only learns it cannot have this one.
+		httpx.Error(w, http.StatusConflict, "HANDLE_UNAVAILABLE", "this @banza is not available; choose another")
 	case errors.Is(err, ErrApplicationInProgress):
 		httpx.Error(w, http.StatusConflict, "APPLICATION_IN_PROGRESS", err.Error())
 	case errors.Is(err, ErrUseCaseSealed):

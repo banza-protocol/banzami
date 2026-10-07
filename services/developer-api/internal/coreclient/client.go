@@ -737,11 +737,18 @@ var ErrSandboxBusinessRefused = errors.New("core refused the Sandbox Business op
 
 // ProvisionSandboxBusiness asks Core for this Project's synthetic Sandbox
 // Business. Idempotent in Core on the project id.
-func (c *ProvisionClient) ProvisionSandboxBusiness(ctx context.Context, projectID, projectName, useCase string) (*SandboxBusiness, error) {
+// desiredHandle is the @banza the human chose for a FIRST provisioning; "" lets
+// Core derive the historical fallback (machine-to-machine / legacy paths). Core
+// ignores it once this Project already has a Business (its identity is settled).
+func (c *ProvisionClient) ProvisionSandboxBusiness(ctx context.Context, projectID, projectName, useCase, desiredHandle string) (*SandboxBusiness, error) {
 	var out SandboxBusiness
-	if err := c.sendJSON(ctx, http.MethodPost, "/internal/v1/sandbox/businesses", map[string]any{
+	payload := map[string]any{
 		"project_id": projectID, "project_name": projectName, "use_case": useCase,
-	}, &out); err != nil {
+	}
+	if desiredHandle != "" {
+		payload["desired_handle"] = desiredHandle
+	}
+	if err := c.sendJSON(ctx, http.MethodPost, "/internal/v1/sandbox/businesses", payload, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -776,6 +783,11 @@ type Refusal struct {
 }
 
 func (r *Refusal) Error() string { return r.Code + ": " + r.Message }
+
+// Is keeps every existing `errors.Is(err, ErrSandboxBusinessRefused)` check true
+// now that a reasoned 4xx is carried as a *Refusal: a refusal IS the sentinel,
+// and callers that want the code read it off the *Refusal with errors.As.
+func (r *Refusal) Is(target error) bool { return target == ErrSandboxBusinessRefused }
 
 // ResetProjectSandbox retires a Project's live test data in Core. Idempotent on
 // idempotencyKey; Core reads what the Project owns itself.
@@ -882,8 +894,18 @@ func (c *ProvisionClient) sendJSON(ctx context.Context, method, path string, bod
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(resp.Body)
 	switch {
-	case resp.StatusCode == http.StatusConflict || resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusNotFound:
-		return ErrSandboxBusinessRefused
+	case resp.StatusCode == http.StatusConflict || resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusNotFound:
+		// A reasoned refusal — carry Core's code (HANDLE_UNAVAILABLE,
+		// INVALID_HANDLE, ...) so the caller can map it, while errors.Is still
+		// matches ErrSandboxBusinessRefused via Refusal.Is.
+		var e struct {
+			Error struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		_ = json.Unmarshal(raw, &e)
+		return &Refusal{Status: resp.StatusCode, Code: e.Error.Code, Message: e.Error.Message}
 	case resp.StatusCode >= 400:
 		return ErrUnavailable
 	}

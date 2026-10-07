@@ -90,6 +90,16 @@ pub struct ProvisionBody {
     pub use_case: String,
     /// The Project's name, used for the Business's display name only.
     pub project_name: Option<String>,
+    /// A caller-CHOSEN @banza for a human, interactive flow (the Developer
+    /// Console's "create a new test Business" wizard). When present it is
+    /// validated against the one canonical grammar and allocated race-safely;
+    /// a name already held by another owner is refused with HANDLE_UNAVAILABLE
+    /// before any merchant or wallet is created, so a collision leaves nothing
+    /// behind. When ABSENT the handle is DERIVED from the project id, exactly as
+    /// before — the path that fixtures, tests and non-interactive callers use.
+    /// Only ever consulted on the FIRST provisioning of a project; a project that
+    /// already has a Business keeps the identity it has.
+    pub desired_handle: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -135,6 +145,21 @@ pub async fn provision(
     let use_case = UseCase::parse(&body.use_case)
         .ok_or_else(|| ApiError::bad_request("use_case must be STANDARD or APPLICATION"))?;
 
+    // A caller-chosen handle is normalised and grammar-checked here, before any
+    // work: a malformed name is a client error, not a half-built Business. The
+    // grammar is the one canonical @banza grammar (banzami_identity), identical
+    // for Consumer and Business. INVALID_HANDLE is a distinct, non-neutral signal
+    // (it is a format problem, not an availability oracle); TAKEN stays neutral.
+    let chosen_handle = match body.desired_handle.as_deref().map(str::trim) {
+        Some(h) if !h.is_empty() => {
+            let norm = banzami_identity::normalize_handle(h);
+            banzami_identity::validate_handle(&norm)
+                .map_err(|e| ApiError::bad_request_code("INVALID_HANDLE", e))?;
+            Some(norm)
+        }
+        _ => None,
+    };
+
     // One provisioning per Project at a time. A session-level advisory lock on a
     // dedicated connection: the steps below use the pool, and two requests for
     // the same Project must not both create a merchant.
@@ -145,7 +170,27 @@ pub async fn provision(
         .execute(&mut *lock_conn)
         .await
         .map_err(internal)?;
-    let result = provision_locked(&state, project_id, use_case, body.project_name).await;
+    // A chosen handle has real cross-project contention (two Projects may both
+    // ask for @doa): a SECOND advisory lock on the handle serialises same-handle
+    // provisions, so the availability pre-check inside provision_locked and the
+    // allocation are atomic and a loser never created a merchant or wallet first.
+    // The derived path needs no handle lock — the handle is unique to the project.
+    if let Some(h) = &chosen_handle {
+        sqlx::query("SELECT pg_advisory_lock(hashtextextended($1, 0))")
+            .bind(format!("sandbox_handle:{h}"))
+            .execute(&mut *lock_conn)
+            .await
+            .map_err(internal)?;
+    }
+    let result =
+        provision_locked(&state, project_id, use_case, body.project_name, chosen_handle.clone())
+            .await;
+    if let Some(h) = &chosen_handle {
+        let _ = sqlx::query("SELECT pg_advisory_unlock(hashtextextended($1, 0))")
+            .bind(format!("sandbox_handle:{h}"))
+            .execute(&mut *lock_conn)
+            .await;
+    }
     let _ = sqlx::query("SELECT pg_advisory_unlock(hashtextextended($1, 0))")
         .bind(&lock_key)
         .execute(&mut *lock_conn)
@@ -165,6 +210,7 @@ async fn provision_locked(
     project_id: Uuid,
     use_case: UseCase,
     project_name: Option<String>,
+    chosen_handle: Option<String>,
 ) -> ApiResult<SandboxBusiness> {
     let pool = &state.pool;
     let mut provisioned = false;
@@ -182,6 +228,29 @@ async fn provision_locked(
         Some((_, uc)) => UseCase::parse(uc).unwrap_or(use_case),
         None => use_case,
     };
+
+    // Pre-flight for a chosen handle on a FIRST provisioning: refuse a name that
+    // is already taken BEFORE creating a merchant or wallet, so a collision
+    // leaves nothing behind. The caller holds the sandbox_handle advisory lock,
+    // so this check and the allocation below are atomic — a concurrent Project
+    // cannot take the name in between. Neutral: HANDLE_UNAVAILABLE, never the
+    // reason (RESERVED / PROTECTED / owned-by-whom stay invisible).
+    if existing.is_none() {
+        if let Some(h) = &chosen_handle {
+            let taken: Option<String> =
+                sqlx::query_scalar("SELECT handle FROM handle_registry WHERE handle = $1")
+                    .bind(h)
+                    .fetch_optional(pool)
+                    .await
+                    .map_err(internal)?;
+            if taken.is_some() {
+                return Err(ApiError::conflict(
+                    "HANDLE_UNAVAILABLE",
+                    "this @banza is not available",
+                ));
+            }
+        }
+    }
 
     // 1. The merchant — found by the derived address on a retry.
     let email = format!("sandbox+{project_id}@projects.banzami.test");
@@ -271,8 +340,12 @@ async fn provision_locked(
     .map_err(internal)?
     .ok_or_else(|| ApiError::internal("wallet has no PRIMARY account"))?;
 
-    // 3. The handle — a handle this merchant already owns wins.
-    let desired = derive_handle(&project_id.to_string());
+    // 3. The handle — a handle this merchant already owns wins (idempotent
+    //    retries, and a chosen @banza never overrides a Business's settled
+    //    identity). Otherwise: the @banza the human chose, or — only when none
+    //    was chosen (machine-to-machine provisioning) — the derived fallback.
+    let chose_handle = chosen_handle.is_some();
+    let desired = chosen_handle.unwrap_or_else(|| derive_handle(&project_id.to_string()));
     let owned: Option<String> = sqlx::query_scalar(
         "SELECT handle FROM handle_registry WHERE owner_id = $1 AND owner_type = 'MERCHANT'
           ORDER BY created_at, handle LIMIT 1",
@@ -296,10 +369,17 @@ async fn provision_locked(
             .map_err(internal)?;
             provisioned = true;
             inserted.ok_or_else(|| {
-                ApiError::conflict(
-                    "HANDLE_TAKEN",
-                    "the derived handle is already registered to another owner",
-                )
+                // Under the sandbox_handle advisory lock the pre-flight already
+                // refused a taken chosen handle, so this loses only on a derived
+                // collision (internal) — but for a chosen handle stay neutral.
+                if chose_handle {
+                    ApiError::conflict("HANDLE_UNAVAILABLE", "this @banza is not available")
+                } else {
+                    ApiError::conflict(
+                        "HANDLE_TAKEN",
+                        "the derived handle is already registered to another owner",
+                    )
+                }
             })?
         }
     };
@@ -494,7 +574,7 @@ pub async fn change_use_case(
     .execute(&state.pool)
     .await
     .map_err(internal)?;
-    let b = provision_locked(&state, project_id, use_case, None).await?;
+    let b = provision_locked(&state, project_id, use_case, None, None).await?;
     let _ = merchant_id;
     Ok(Json(b))
 }

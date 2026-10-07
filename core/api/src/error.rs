@@ -31,6 +31,16 @@ impl ApiError {
         }
     }
 
+    /// 400 with a stable code — a malformed input the client can branch on by
+    /// code (e.g. INVALID_HANDLE) rather than parsing the human message.
+    pub fn bad_request_code(code: &'static str, msg: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::BAD_REQUEST,
+            code,
+            message: msg.into(),
+        }
+    }
+
     pub fn conflict(code: &'static str, msg: impl Into<String>) -> Self {
         Self {
             status: StatusCode::CONFLICT,

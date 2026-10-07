@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 )
@@ -255,7 +256,7 @@ func validUseCase(u string) bool { return u == UseCaseStandard || u == UseCaseAp
 
 // SandboxBusinessProvisioner is Core's synthetic Sandbox Business (ADR-060).
 type SandboxBusinessProvisioner interface {
-	ProvisionSandboxBusiness(ctx context.Context, projectID, projectName, useCase string) (*coreclient.SandboxBusiness, error)
+	ProvisionSandboxBusiness(ctx context.Context, projectID, projectName, useCase, desiredHandle string) (*coreclient.SandboxBusiness, error)
 	ChangeSandboxUseCase(ctx context.Context, projectID, useCase string) (*coreclient.SandboxBusiness, error)
 }
 
@@ -271,6 +272,14 @@ var ErrInvalidUseCase = errors.New("use_case must be STANDARD or APPLICATION")
 // pricing and classification are not re-decided by its developer (ADR-055).
 var ErrUseCaseSealed = errors.New("this Project has issued payments; its use case can no longer change")
 
+// ErrHandleUnavailable: the chosen @banza is already taken (or otherwise not
+// allocatable). Neutral — the caller never learns why. See Core's pre-flight.
+var ErrHandleUnavailable = errors.New("this @banza is not available")
+
+// ErrInvalidHandle: the chosen @banza is malformed under the canonical grammar.
+// A format problem, distinct from availability (never an availability oracle).
+var ErrInvalidHandle = errors.New("this @banza is not a valid handle")
+
 // ConfigureProjectFinancialSandbox gives the Project a synthetic Sandbox
 // Business for the chosen use case and binds it (ADR-060). No application, no
 // review, no operator: the Business is a test entity, and Core records it as
@@ -279,7 +288,7 @@ var ErrUseCaseSealed = errors.New("this Project has issued payments; its use cas
 // Idempotent: a Project that already receives answers with its state; a retry
 // after a partial failure finds the same Business in Core (one per Project) and
 // completes the binding.
-func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, projectID, useCase, ip, reqID string) (FinancialSetup, error) {
+func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, projectID, useCase, desiredHandle, ip, reqID string) (FinancialSetup, error) {
 	p, role, err := s.projectAuthz(ctx, actor, projectID)
 	if err != nil {
 		return FinancialSetup{}, err
@@ -315,11 +324,24 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 		}
 	}
 
-	biz, perr := s.sandboxBusinesses.ProvisionSandboxBusiness(ctx, p.ID, p.Name, useCase)
+	biz, perr := s.sandboxBusinesses.ProvisionSandboxBusiness(ctx, p.ID, p.Name, useCase, strings.TrimSpace(desiredHandle))
 	if perr != nil || biz == nil || biz.WalletAccountID == "" {
 		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
 			"PROJECT:"+projectID, ip, reqID, map[string]any{"stage": "sandbox_business", "use_case": useCase})
 		slog.ErrorContext(ctx, "developer.financial_setup.sandbox_business_failed", "project", projectID, "err", fmt.Sprint(perr))
+		// A reasoned refusal carries Core's code: map the chosen-handle outcomes
+		// to typed errors the handler turns into stable public codes. Anything
+		// else stays a generic conflict (never an availability oracle).
+		var refusal *coreclient.Refusal
+		if errors.As(perr, &refusal) {
+			switch refusal.Code {
+			case "HANDLE_UNAVAILABLE":
+				return FinancialSetup{}, ErrHandleUnavailable
+			case "INVALID_HANDLE":
+				return FinancialSetup{}, ErrInvalidHandle
+			}
+			return FinancialSetup{}, ErrConflict
+		}
 		if errors.Is(perr, coreclient.ErrSandboxBusinessRefused) {
 			return FinancialSetup{}, ErrConflict
 		}

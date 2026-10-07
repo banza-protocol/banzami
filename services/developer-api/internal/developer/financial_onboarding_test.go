@@ -53,23 +53,34 @@ func onboardingSvc(t *testing.T) (*Service, *fakeProvisioner, *fakeOnboarding, s
 type fakeSandboxBusinesses struct {
 	calls   int
 	useCase string
+	handle  string
 	changed string
 	err     error
+	// taken, when set, is a handle this fake refuses as unavailable (Path A).
+	taken string
 }
 
-func (f *fakeSandboxBusinesses) ProvisionSandboxBusiness(_ context.Context, projectID, _ string, useCase string) (*coreclient.SandboxBusiness, error) {
+func (f *fakeSandboxBusinesses) ProvisionSandboxBusiness(_ context.Context, projectID, _ string, useCase, desiredHandle string) (*coreclient.SandboxBusiness, error) {
 	f.calls++
 	f.useCase = useCase
+	f.handle = desiredHandle
 	if f.err != nil {
 		return nil, f.err
+	}
+	if f.taken != "" && desiredHandle == f.taken {
+		return nil, &coreclient.Refusal{Status: 409, Code: "HANDLE_UNAVAILABLE", Message: "this @banza is not available"}
 	}
 	typ, profile := "MERCHANT", "sandbox-default"
 	if useCase == UseCaseApplication {
 		typ, profile = "APPLICATION", "sandbox-reference"
 	}
+	handle := "psandbox"
+	if desiredHandle != "" {
+		handle = desiredHandle
+	}
 	return &coreclient.SandboxBusiness{
 		MerchantID: "m_" + projectID, WalletID: "w_" + projectID, WalletAccountID: "wa_" + projectID,
-		Handle: "psandbox", UseCase: useCase, BusinessAccountType: typ, PricingProfile: profile, KybStatus: "SANDBOX_SYNTHETIC",
+		Handle: handle, UseCase: useCase, BusinessAccountType: typ, PricingProfile: profile, KybStatus: "SANDBOX_SYNTHETIC",
 	}, nil
 }
 
@@ -89,7 +100,7 @@ func TestSandboxSetup_ProvisionsByUseCaseWithNoReview(t *testing.T) {
 	if err != nil || !st.SelfService || !st.CanConfigure || st.State != FinancialUnconfigured {
 		t.Fatalf("a fresh Sandbox Project must offer self-service setup: %v %+v", err, st)
 	}
-	st, err = s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseApplication, "", "")
+	st, err = s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseApplication, "", "", "")
 	if err != nil || st.State != FinancialReady {
 		t.Fatalf("configure: %v %s", err, st.State)
 	}
@@ -103,7 +114,7 @@ func TestSandboxSetup_ProvisionsByUseCaseWithNoReview(t *testing.T) {
 		t.Fatalf("use case not reported: %v", st.SandboxUseCase)
 	}
 	// Idempotent: a second press answers with the state and provisions nothing.
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", ""); err != nil || f.calls != 1 {
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", "", ""); err != nil || f.calls != 1 {
 		t.Fatalf("second configure: %v, calls %d", err, f.calls)
 	}
 }
@@ -112,16 +123,16 @@ func TestSandboxSetup_RefusesWhatItMust(t *testing.T) {
 	s, _, _, pid := onboardingSvc(t)
 	f := &fakeSandboxBusinesses{}
 	s.SetSandboxBusinessProvisioner(f)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "PLATFORM", "", ""); !errors.Is(err, ErrInvalidUseCase) {
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "PLATFORM", "", "", ""); !errors.Is(err, ErrInvalidUseCase) {
 		t.Fatalf("an unknown use case: %v", err)
 	}
 	for _, who := range []string{"u_dev", "u_fin", "u_view"} {
-		if _, err := s.ConfigureProjectFinancialSandbox(bg, who, pid, UseCaseStandard, "", ""); !errors.Is(err, ErrForbidden) {
+		if _, err := s.ConfigureProjectFinancialSandbox(bg, who, pid, UseCaseStandard, "", "", ""); !errors.Is(err, ErrForbidden) {
 			t.Fatalf("%s configured a Project: %v", who, err)
 		}
 	}
 	s.SetSandboxEnvironment(false)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", ""); !errors.Is(err, ErrWrongEnvironment) {
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", "", ""); !errors.Is(err, ErrWrongEnvironment) {
 		t.Fatalf("outside the Sandbox: %v", err)
 	}
 	if f.calls != 0 {
@@ -129,11 +140,40 @@ func TestSandboxSetup_RefusesWhatItMust(t *testing.T) {
 	}
 }
 
+// Path A (ADR-060): the developer chooses the @banza when creating a new Sandbox
+// Business. The chosen handle reaches Core, and a taken one comes back as a
+// neutral ErrHandleUnavailable — never why, never which owner.
+func TestSandboxSetup_ChosenHandleIsPassedThroughAndNeutralOnConflict(t *testing.T) {
+	s, _, _, pid := onboardingSvc(t)
+	f := &fakeSandboxBusinesses{}
+	s.SetSandboxBusinessProvisioner(f)
+
+	// A chosen @banza reaches Core and becomes the Business identity.
+	st, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "minha_loja", "", "")
+	if err != nil {
+		t.Fatalf("chosen-handle setup: %v", err)
+	}
+	if f.handle != "minha_loja" {
+		t.Fatalf("the chosen handle did not reach Core: %q", f.handle)
+	}
+	if st.State != FinancialReady {
+		t.Fatalf("state after chosen-handle setup: %s", st.State)
+	}
+
+	// A fresh Project whose chosen handle is taken gets a neutral refusal.
+	s2, _, _, pid2 := onboardingSvc(t)
+	f2 := &fakeSandboxBusinesses{taken: "doa"}
+	s2.SetSandboxBusinessProvisioner(f2)
+	if _, err := s2.ConfigureProjectFinancialSandbox(bg, "u_owner", pid2, UseCaseStandard, "doa", "", ""); !errors.Is(err, ErrHandleUnavailable) {
+		t.Fatalf("a taken @banza must be neutral HANDLE_UNAVAILABLE: %v", err)
+	}
+}
+
 func TestSandboxSetup_UseCaseIsLockedOnceSealed(t *testing.T) {
 	s, _, _, pid := onboardingSvc(t)
 	f := &fakeSandboxBusinesses{}
 	s.SetSandboxBusinessProvisioner(f)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", ""); err != nil {
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, UseCaseStandard, "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.ChangeProjectSandboxUseCase(bg, "u_owner", pid, UseCaseApplication, "", ""); err != nil || f.changed != UseCaseApplication {

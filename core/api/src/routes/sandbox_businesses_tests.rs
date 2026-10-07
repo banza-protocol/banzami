@@ -45,6 +45,16 @@ fn body(project: Uuid, use_case: &str) -> Json<ProvisionBody> {
         project_id: project.to_string(),
         use_case: use_case.into(),
         project_name: Some("Loja de teste".into()),
+        desired_handle: None,
+    })
+}
+
+fn body_handle(project: Uuid, use_case: &str, handle: &str) -> Json<ProvisionBody> {
+    Json(ProvisionBody {
+        project_id: project.to_string(),
+        use_case: use_case.into(),
+        project_name: Some("Loja de teste".into()),
+        desired_handle: Some(handle.into()),
     })
 }
 
@@ -245,6 +255,100 @@ async fn changing_the_use_case_reclassifies_and_reprices(pool: PgPool) {
         ),
         ("APPLICATION", "APPLICATION", "sandbox-reference")
     );
+}
+
+// Path A (ADR-060): a human chooses the @banza. The chosen handle becomes the
+// Business identity instead of the derived fallback.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_chosen_handle_becomes_the_business_identity(pool: PgPool) {
+    let state = state_for(pool.clone(), CoreEnvironment::Sandbox).await;
+    let project = Uuid::new_v4();
+    let (_, Json(b)) = provision(State(state), body_handle(project, "STANDARD", "minha_loja"))
+        .await
+        .expect("a chosen handle provisions");
+    assert_eq!(b.handle, "minha_loja");
+    assert_ne!(
+        b.handle,
+        derive_handle(&project.to_string()),
+        "the chosen handle must replace the derived one"
+    );
+    let owner: String = sqlx::query_scalar(
+        "SELECT owner_type FROM handle_registry WHERE handle = 'minha_loja'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(owner, "MERCHANT");
+}
+
+// A handle that belongs to someone else is refused neutrally BEFORE any merchant
+// or wallet is created — no orphan, no partial Business.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_taken_handle_is_refused_and_writes_nothing(pool: PgPool) {
+    let state = state_for(pool.clone(), CoreEnvironment::Sandbox).await;
+    // A first Project takes @loja.
+    let first = Uuid::new_v4();
+    provision(State(state.clone()), body_handle(first, "STANDARD", "loja"))
+        .await
+        .unwrap();
+    // A second, different Project asks for the same @loja.
+    let second = Uuid::new_v4();
+    let err = provision(State(state), body_handle(second, "STANDARD", "loja"))
+        .await
+        .expect_err("a taken handle must be refused");
+    assert_eq!(err.status, axum::http::StatusCode::CONFLICT);
+    assert_eq!(err.code, "HANDLE_UNAVAILABLE", "the refusal must be neutral");
+    // Nothing was created for the loser.
+    let rows: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM sandbox_businesses WHERE project_id = $1")
+            .bind(second)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let merchants: i64 = sqlx::query_scalar("SELECT count(*) FROM merchants WHERE email = $1")
+        .bind(format!("sandbox+{second}@projects.banzami.test"))
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!((rows, merchants), (0, 0), "a refused chosen handle left state");
+}
+
+// A malformed handle is a distinct, non-neutral INVALID_HANDLE (a format error,
+// not an availability oracle), and nothing is created.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_malformed_handle_is_a_bad_request(pool: PgPool) {
+    let state = state_for(pool.clone(), CoreEnvironment::Sandbox).await;
+    let project = Uuid::new_v4();
+    let err = provision(State(state), body_handle(project, "STANDARD", "a"))
+        .await
+        .expect_err("a one-char handle is invalid");
+    assert_eq!(err.status, axum::http::StatusCode::BAD_REQUEST);
+    assert_eq!(err.code, "INVALID_HANDLE");
+    let rows: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM sandbox_businesses WHERE project_id = $1")
+            .bind(project)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(rows, 0);
+}
+
+// A chosen handle never overrides a Project's already-settled Business identity:
+// an idempotent retry keeps the first handle.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_chosen_handle_does_not_override_a_settled_identity(pool: PgPool) {
+    let state = state_for(pool.clone(), CoreEnvironment::Sandbox).await;
+    let project = Uuid::new_v4();
+    let (_, Json(a)) = provision(State(state.clone()), body_handle(project, "STANDARD", "primeira"))
+        .await
+        .unwrap();
+    // A retry naming a different @banza finds the same Business and keeps @primeira.
+    let (_, Json(b)) = provision(State(state), body_handle(project, "STANDARD", "segunda"))
+        .await
+        .unwrap();
+    assert_eq!(a.merchant_id, b.merchant_id);
+    assert_eq!(b.handle, "primeira", "a retry changed a settled @banza");
+    assert!(!b.provisioned);
 }
 
 #[test]
