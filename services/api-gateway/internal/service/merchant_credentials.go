@@ -48,7 +48,7 @@ var (
 	// Canonical Banzami PIN: EXACTLY 6 numeric digits (same rule as the Consumer
 	// app). Business login is @banza + PIN; this is the Banzami user PIN, NOT a
 	// BANZADMIN operator credential (those use password/TOTP/recovery codes).
-	pinRe    = regexp.MustCompile(`^[0-9]{6}$`)
+	pinRe = regexp.MustCompile(`^[0-9]{6}$`)
 )
 
 // ValidateHandle returns nil if the handle matches the canonical @banza grammar.

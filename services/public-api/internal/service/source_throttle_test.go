@@ -48,7 +48,9 @@ func TestThrottle_BlocksAtCapAndPersists(t *testing.T) {
 
 	th := NewSourceThrottle(pool, "test-pepper")
 	raw := SourceKey("ip:" + uuid.NewString())
-	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM consumer_login_source_throttle WHERE source=$1`, th.key(raw)) })
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM consumer_login_source_throttle WHERE source=$1`, th.key(raw))
+	})
 
 	// Below the cap: not blocked.
 	for i := 0; i < CapPerSource()-1; i++ {
@@ -76,7 +78,9 @@ func TestThrottle_BlocksAtCapAndPersists(t *testing.T) {
 
 	// Independent keys are unaffected.
 	other := SourceKey("ip:" + uuid.NewString())
-	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM consumer_login_source_throttle WHERE source=$1`, th.key(other)) })
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM consumer_login_source_throttle WHERE source=$1`, th.key(other))
+	})
 	if blocked, err := th.Blocked(ctx, other); err != nil || blocked {
 		t.Fatalf("an unrelated key must not be blocked, got %v %v", blocked, err)
 	}

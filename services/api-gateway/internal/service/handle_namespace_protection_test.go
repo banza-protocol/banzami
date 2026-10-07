@@ -62,11 +62,11 @@ func TestCheckHandle_NeutralForReservedAndProtected(t *testing.T) {
 
 	// A representative name from each protected class, plus an internal reserved.
 	suffix := hex10()
-	reserved := "zadmin" + suffix          // internal reserved (SYSTEM)
-	brand := "zbanzami" + suffix           // brand (PROTECTED)
-	bank := "zbai" + suffix                // bank (PROTECTED)
+	reserved := "zadmin" + suffix           // internal reserved (SYSTEM)
+	brand := "zbanzami" + suffix            // brand (PROTECTED)
+	bank := "zbai" + suffix                 // bank (PROTECTED)
 	impersonation := "zbanzamisup" + suffix // impersonation combo (PROTECTED)
-	payment := "zvisa" + suffix            // payment brand (PROTECTED)
+	payment := "zvisa" + suffix             // payment brand (PROTECTED)
 	seed(reserved, "SYSTEM", "reserved", "internal")
 	seed(brand, "PROTECTED", "brand", "brand")
 	seed(bank, "PROTECTED", "bank", "bank")

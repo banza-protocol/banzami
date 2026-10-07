@@ -211,21 +211,21 @@ var (
 // DeletionRequestRow is the operator-facing view of a request. It never carries
 // the OTP hash or any secret — only the lifecycle and the ownership record.
 type DeletionRequestRow struct {
-	ID                 string     `json:"id"`
-	SubjectType        string     `json:"subject_type"`
-	Handle             string     `json:"handle"`
-	ContactEmail       string     `json:"contact_email"`
-	Status             string     `json:"status"`
-	OwnershipVerifiedBy *string   `json:"ownership_verified_by,omitempty"`
+	ID                  string     `json:"id"`
+	SubjectType         string     `json:"subject_type"`
+	Handle              string     `json:"handle"`
+	ContactEmail        string     `json:"contact_email"`
+	Status              string     `json:"status"`
+	OwnershipVerifiedBy *string    `json:"ownership_verified_by,omitempty"`
 	OwnershipVerifiedAt *time.Time `json:"ownership_verified_at,omitempty"`
-	OwnershipResult    string     `json:"ownership_verification_result"`
-	SubjectAccountID   *string    `json:"subject_account_id,omitempty"`
-	RequestID          *string    `json:"request_id,omitempty"`
-	ExecutedAt         *time.Time `json:"executed_at,omitempty"`
-	RejectedAt         *time.Time `json:"rejected_at,omitempty"`
-	Outcome            *string    `json:"outcome,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	OwnershipResult     string     `json:"ownership_verification_result"`
+	SubjectAccountID    *string    `json:"subject_account_id,omitempty"`
+	RequestID           *string    `json:"request_id,omitempty"`
+	ExecutedAt          *time.Time `json:"executed_at,omitempty"`
+	RejectedAt          *time.Time `json:"rejected_at,omitempty"`
+	Outcome             *string    `json:"outcome,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 const deletionRowCols = `id, subject_type, handle, contact_email, status,

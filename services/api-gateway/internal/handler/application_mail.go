@@ -20,8 +20,8 @@ import (
 	"net/url"
 	"strings"
 
-	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/common/obs"
 )
 

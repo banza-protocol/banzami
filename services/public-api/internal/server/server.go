@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
-	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/common/edgestatus"
+	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 

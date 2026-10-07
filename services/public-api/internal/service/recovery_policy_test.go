@@ -49,13 +49,13 @@ func TestValidateAngolaMobile_Only244(t *testing.T) {
 		}
 	}
 	invalid := []string{
-		"+351912345678", // Portugal
-		"+1234567890",   // US-ish
-		"244912345678",  // no +
-		"+244812345678", // not a mobile (does not start 9)
-		"+24491234567",  // too short
+		"+351912345678",  // Portugal
+		"+1234567890",    // US-ish
+		"244912345678",   // no +
+		"+244812345678",  // not a mobile (does not start 9)
+		"+24491234567",   // too short
 		"+2449123456789", // too long
-		"912345678",     // no country code
+		"912345678",      // no country code
 		"",
 	}
 	for _, v := range invalid {
