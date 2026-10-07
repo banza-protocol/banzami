@@ -131,7 +131,7 @@ onboard(){ # $1 = handle-ish suffix -> prints consumer_id
   sid=$(jget session_id)
   call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$sid\",\"otp_code\":\"123456\"}" -
   call "$PUB" 8083 POST /v1/consumer/onboarding/complete \
-    "{\"session_id\":\"$sid\",\"banza_handle\":\"$h\",\"pin\":\"1234\"}" -
+    "{\"session_id\":\"$sid\",\"banza_handle\":\"$h\",\"pin\":\"123456\"}" -
   local cid; cid=$(jget consumer_id)
   # OWNED AT THE MOMENT IT EXISTS. This consumer is funded on the next lines —
   # the payer with GROSS*3, the beneficiary by the settlements — and it was the

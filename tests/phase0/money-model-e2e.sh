@@ -100,7 +100,7 @@ consumer(){ # → consumer_id|handle
   # From the database: $RANDOM repeats inside $( ) subshells, so two consumers
   # created back to back would collide on the same handle.
   h=$(q "SELECT 'mm' || substr(md5(gen_random_uuid()::text), 1, 12)")
-  cid=$(q "INSERT INTO consumers (id, handle, status) VALUES (gen_random_uuid(), '$h', 'ACTIVE') RETURNING id")
+  cid=$(q "INSERT INTO consumers (id, handle, status, display_name) VALUES (gen_random_uuid(), '$h', 'ACTIVE', '$h') RETURNING id")
   [ -n "$cid" ] || return 1
   e2e_own consumer "$cid"
   q "INSERT INTO handle_registry (handle, owner_type, owner_id, created_at) VALUES ('$h','CONSUMER','$cid', now()) ON CONFLICT (handle) DO NOTHING" >/dev/null

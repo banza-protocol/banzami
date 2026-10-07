@@ -96,7 +96,7 @@ onboard(){ local ph="+2449${R:0:4}$1" h="pr${R:0:5}$1" sid
   call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$ph\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}"
   sid=$(jp j.session_id)
   call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$sid\",\"otp_code\":\"123456\"}"
-  call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$sid\",\"banza_handle\":\"$h\",\"pin\":\"1234\"}"
+  call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$sid\",\"banza_handle\":\"$h\",\"pin\":\"123456\"}"
   printf '%s|%s' "$(jp j.consumer_id)" "$h"; }
 IFS='|' read -r PAYER_ID PAYER_HANDLE <<<"$(onboard 81)"
 PAYER_JWT=$(mint customer_id "$PAYER_ID")

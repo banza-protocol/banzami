@@ -53,7 +53,7 @@ PH="+2449${R:0:4}31"; H="hc${R:0:5}p"
 call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -
 SID=$(jget session_id)
 call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
-call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
+call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"123456\"}" -
 PAYER=$(jget consumer_id)
 [ -n "$PAYER" ] || { echo "payer onboarding failed"; exit 1; }
 CJWT=$(mint customer_id "$PAYER")

@@ -110,7 +110,7 @@ PH="+2449${R:0:4}81"; H="cs${R:0:5}p"
 call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -
 SID=$(jget session_id)
 call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
-call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
+call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"123456\"}" -
 PAYER=$(jget consumer_id)
 # Owned the moment it exists: whatever of its funding it does not spend below is
 # retired to the Sandbox funding source, and the consumer suspended.
