@@ -287,7 +287,7 @@ async fn a_taken_handle_is_refused_and_writes_nothing(pool: PgPool) {
     let state = state_for(pool.clone(), CoreEnvironment::Sandbox).await;
     // A first Project takes @loja.
     let first = Uuid::new_v4();
-    provision(State(state.clone()), body_handle(first, "STANDARD", "loja"))
+    let _ = provision(State(state.clone()), body_handle(first, "STANDARD", "loja"))
         .await
         .unwrap();
     // A second, different Project asks for the same @loja.
