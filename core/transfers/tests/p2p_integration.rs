@@ -367,7 +367,10 @@ async fn recipient_not_found(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn malformed_recipient_handle_rejected(pool: PgPool) {
     let cw = cw_engine(pool.clone());
-    let bad = ["1abc", "__foo", "foo_", "ab", &"a".repeat(21), "héros"];
+    // The canonical @banza grammar allows 3-30 chars; 31 is too long (21 used to be,
+    // before the namespace unified on a 30-char maximum). The rest are malformed for
+    // other reasons: leading digit, leading/trailing underscore, too short, non-ASCII.
+    let bad = ["1abc", "__foo", "foo_", "ab", &"a".repeat(31), "héros"];
 
     for h in &bad {
         let err = cw.resolve_to_wallet(h, Currency::AOA).await.unwrap_err();
