@@ -160,6 +160,10 @@ export function SandboxSetupStart({
   const [phase, setPhase] = useState<'form' | 'verify'>('form');
   const [masked, setMasked] = useState('');
   const [code, setCode] = useState('');
+  // The @banza captured at the moment the code is sent. create() uses THIS, not a
+  // live recompute of handleRaw, so the chosen handle cannot drift (or be lost to
+  // a re-render) between sending the code and finalising on the OTP step.
+  const [chosenHandle, setChosenHandle] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -194,6 +198,7 @@ export function SandboxSetupStart({
     setError('');
     try {
       const r = await developerApi.startSandboxBusinessContact(projectId, email.trim(), csrf);
+      setChosenHandle(clean); // freeze the chosen @banza for the finalise step
       setMasked(r.masked_email);
       setPhase('verify');
     } catch (e) {
@@ -208,9 +213,10 @@ export function SandboxSetupStart({
     if (c.length !== 6 || !useCase || busy) return;
     setBusy(true);
     setError('');
+    const h = chosenHandle || clean;
     try {
-      await developerApi.createSandboxBusinessVerified(projectId, useCase, clean, c, csrf);
-      onDone(`Negócio de teste @${clean} criado e ligado a este projeto. Já pode receber pagamentos na Sandbox.`);
+      await developerApi.createSandboxBusinessVerified(projectId, useCase, h, c, csrf);
+      onDone(`Negócio de teste @${h} criado e ligado a este projeto. Já pode receber pagamentos na Sandbox.`);
     } catch (e) {
       if (e instanceof ApiError && (e.code === 'HANDLE_UNAVAILABLE' || e.code === 'INVALID_HANDLE')) {
         setHandle({ k: 'unavailable', message: refusalText(e) });
