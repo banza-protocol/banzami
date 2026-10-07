@@ -182,9 +182,14 @@ pub async fn provision(
             .await
             .map_err(internal)?;
     }
-    let result =
-        provision_locked(&state, project_id, use_case, body.project_name, chosen_handle.clone())
-            .await;
+    let result = provision_locked(
+        &state,
+        project_id,
+        use_case,
+        body.project_name,
+        chosen_handle.clone(),
+    )
+    .await;
     if let Some(h) = &chosen_handle {
         let _ = sqlx::query("SELECT pg_advisory_unlock(hashtextextended($1, 0))")
             .bind(format!("sandbox_handle:{h}"))

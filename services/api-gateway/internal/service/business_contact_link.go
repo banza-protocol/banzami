@@ -166,7 +166,7 @@ func looksLikeBusinessEmail(e string) bool {
 // before a new code is written.
 func (s *BusinessContactService) checkIssuePolicy(ctx context.Context, subjectID, purpose string) error {
 	var (
-		lastAt  *time.Time
+		lastAt   *time.Time
 		inWindow int
 	)
 	if err := s.pool.QueryRow(ctx,
