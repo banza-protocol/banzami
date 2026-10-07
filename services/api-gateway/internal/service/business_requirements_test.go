@@ -167,6 +167,10 @@ func TestSandboxPolicy_MissingSubmissionFieldsMinimalVsFull(t *testing.T) {
 func TestRequestInformation_HoldsTheReviewAndResubmitReturnsIt(t *testing.T) {
 	f := newLifecycle(t)
 	appID, _, _ := f.application("")
+	// Required documents are a LIVE-only requirement (ADR-058 env-aware policy; SANDBOX
+	// onboarding requires none). Exercise the rejected-required-document resubmit path
+	// under LIVE, where BUSINESS_REGISTRATION is mandatory.
+	f.exec(`UPDATE merchant_applications SET environment='LIVE' WHERE id=$1`, appID)
 	seedRequiredDocs(f.ctx, t, f.pool, appID)
 	svc := NewPostgresMerchantApplicationAdminService(f.pool, f.provisioner())
 

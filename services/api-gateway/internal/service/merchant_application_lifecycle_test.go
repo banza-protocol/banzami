@@ -530,12 +530,28 @@ func TestSubmit_EveryMandatoryFieldIsEnforced(t *testing.T) {
 		"business_activity":    func(i *MerchantApplicationInput) { i.BusinessActivity = "" },
 		"terms_accepted":       func(i *MerchantApplicationInput) { i.TermsAccepted = false },
 	}
+	// Requirements are env-aware (ADR-058): the SANDBOX policy requires a minimal set,
+	// the full KYB set applies to LIVE. completeInput builds a SANDBOX application, so a
+	// field is mandatory here only if PolicyFor("SANDBOX") lists it; blanking a field the
+	// Sandbox policy does not require is legitimately accepted.
+	required := map[string]bool{}
+	for _, it := range PolicyFor("SANDBOX") {
+		if it.Kind == RequirementField {
+			required[it.Code] = true
+		}
+	}
 	for code, blankIt := range blank {
 		in := completeInput("ef" + hex10())
 		blankIt(&in)
 		_, err := apps.Submit(f.ctx, in)
+		if !required[code] {
+			if err != nil {
+				t.Errorf("omitting %s (not required in SANDBOX) should be accepted, got %v", code, err)
+			}
+			continue
+		}
 		if !errors.Is(err, ErrApplicationIncomplete) {
-			t.Errorf("omitting %s was accepted: %v", code, err)
+			t.Errorf("omitting required %s was accepted: %v", code, err)
 			continue
 		}
 		var inc *IncompleteSubmissionError
@@ -563,7 +579,7 @@ func TestSubmit_AnIncompleteApplicationReservesNothing(t *testing.T) {
 	handle := "nr" + hex10()
 
 	in := completeInput(handle)
-	in.Nif = ""
+	in.BusinessName = "" // a field the SANDBOX policy requires (ADR-058), so this is incomplete here
 	if _, err := apps.Submit(f.ctx, in); !errors.Is(err, ErrApplicationIncomplete) {
 		t.Fatalf("an incomplete application was accepted: %v", err)
 	}
