@@ -31,12 +31,15 @@ const RELEASE = 'infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh'
 const DEPLOY = 'infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh';
 const VMEXEC = 'infra/blueprint/vm-execution/vm-execute.sh';
 const DOC = 'infra/blueprint/docs/VM_EXECUTION.md';
+const DEPLOYSH = 'deploy.sh';
+const SRCDEP = 'infra/blueprint/sandbox-ops/scripts/sandbox-source-deploy.sh';
+const RNB = 'infra/blueprint/sandbox-ops/scripts/remote-native-build.sh';
 
 const EXPECTED = ['api-gateway-staging', 'core-api-staging', 'developer-api', 'public-api-staging'];
 const norm = (a) => [...new Set(a)].sort();
 const eq = (a) => norm(a).length === EXPECTED.length && norm(a).every((s, i) => s === EXPECTED[i]);
 
-const findings = { SANDBOX_CEREMONY_SET_DRIFT: [], SANDBOX_APP_PLANE_TARGETING: [] };
+const findings = { SANDBOX_CEREMONY_SET_DRIFT: [], SANDBOX_APP_PLANE_TARGETING: [], SANDBOX_TARGET_PROPAGATION: [] };
 
 // ── 1. the four-service set, from each source ──────────────────────────────────
 // release package: the SERVICES=( "name|ctx|df" … ) array — the only service array there.
@@ -90,6 +93,27 @@ for (const fn of ['cmd_deploy_one', 'release_config_env']) {
 // cmd_deploy_one must resolve the stack explicitly before it acts.
 if (!/^\s*_resolve_stack\b/m.test(fnBody(depSrc, 'cmd_deploy_one'))) {
   findings.SANDBOX_APP_PLANE_TARGETING.push(`${DEPLOY} cmd_deploy_one: does not call _resolve_stack (stack identity unresolved)`);
+}
+
+// ── 3. explicit target propagation through the FULL app-plane wrapper ───────────
+// During blue/green (OLD + NEW coexisting) the app-plane wrapper must carry an explicit target
+// (BANZAMI_SANDBOX_TMPDIR → the server-side TMPDIR of the NEW stack) through every layer, so
+// deploy-one resolves NEW from its canonical SANDBOX_STATE — never a global discovery. If any
+// layer drops it, a two-stack deploy silently loses its target.
+{
+  const dsh = read(DEPLOYSH);
+  if (!/BANZAMI_SANDBOX_TMPDIR/.test(dsh)) findings.SANDBOX_TARGET_PROPAGATION.push(`${DEPLOYSH}: does not forward BANZAMI_SANDBOX_TMPDIR to the sandbox source-deploy path`);
+
+  const sd = read(SRCDEP);
+  if (!/BANZAMI_SANDBOX_TMPDIR/.test(sd)) findings.SANDBOX_TARGET_PROPAGATION.push(`${SRCDEP}: does not read BANZAMI_SANDBOX_TMPDIR`);
+  if (!/--sandbox-tmpdir/.test(sd)) findings.SANDBOX_TARGET_PROPAGATION.push(`${SRCDEP}: does not forward --sandbox-tmpdir to remote-native-build`);
+
+  const rnb = read(RNB);
+  if (!/--sandbox-tmpdir\)\s/.test(rnb)) findings.SANDBOX_TARGET_PROPAGATION.push(`${RNB}: does not parse --sandbox-tmpdir`);
+  // fail-closed: an explicit target with no canonical state must abort (never fall back).
+  if (!/banzami-blueprint-sandbox\/current\.run/.test(rnb)) findings.SANDBOX_TARGET_PROPAGATION.push(`${RNB}: does not fail closed when the explicit target has no canonical SANDBOX_STATE`);
+  // deploy-one must run under the target TMPDIR so it resolves the stack from SANDBOX_STATE.
+  if (!/TMPDIR=\$SANDBOX_TMPDIR/.test(rnb)) findings.SANDBOX_TARGET_PROPAGATION.push(`${RNB}: deploy-one is not run under the explicit target TMPDIR`);
 }
 
 let failed = 0;

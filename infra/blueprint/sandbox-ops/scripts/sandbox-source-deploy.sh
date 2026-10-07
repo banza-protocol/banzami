@@ -113,9 +113,14 @@ SVCS_CSV="$(IFS=,; echo "${SERVICES[*]}")"   # comma-separated, space-free (ssh 
 # Bootstrap on the server: verify sha256, unpack (versioned; keep previous), then exec the
 # unpacked remote build script. The script itself ships inside the bundle (no Git on server).
 # Only space-free values are passed (ssh does not preserve arg boundaries).
-ssh -o BatchMode=yes "$REMOTE" bash -s -- "$REMOTE_ROOT" "$SHORT" "$(basename "$BUNDLE")" "$SVCS_CSV" "$DEPLOY_MODE" <<'REMOTE_BOOTSTRAP' || die "server build/deploy failed"
+# Explicit target propagation (blue/green): BANZAMI_SANDBOX_TMPDIR is the SERVER-SIDE TMPDIR of the
+# target Sandbox stack (e.g. /srv/banzami-vmx/tmp for a NEW stack that coexists with OLD). It is
+# space-free, read from the operator's runtime env, and forwarded through every layer so deploy-one
+# resolves the target from the canonical SANDBOX_STATE rather than discovering a stack globally.
+STMPDIR="${BANZAMI_SANDBOX_TMPDIR:-}"
+ssh -o BatchMode=yes "$REMOTE" bash -s -- "$REMOTE_ROOT" "$SHORT" "$(basename "$BUNDLE")" "$SVCS_CSV" "$DEPLOY_MODE" "$STMPDIR" <<'REMOTE_BOOTSTRAP' || die "server build/deploy failed"
 set -euo pipefail
-ROOT="$1"; SHORT="$2"; BUNDLE="$3"; SVCS="$4"; MODE="$5"
+ROOT="$1"; SHORT="$2"; BUNDLE="$3"; SVCS="$4"; MODE="$5"; STMPDIR="${6:-}"
 cd "$HOME/$ROOT/staging"
 shasum -a 256 -c "${BUNDLE%.tar.gz}.sha256" >/dev/null 2>&1 || { echo "  checksum_verify FAIL"; exit 2; }
 echo "  checksum_verify PASS"
@@ -124,7 +129,7 @@ if [ ! -d "$REL" ]; then mkdir -p "$REL"; tar -xzf "$BUNDLE" -C "$REL"; fi
 [ -L "$HOME/$ROOT/current" ] && cp -P "$HOME/$ROOT/current" "$HOME/$ROOT/previous" 2>/dev/null || true
 RB="$REL/infra/blueprint/sandbox-ops/scripts/remote-native-build.sh"
 [ -f "$RB" ] || { echo "  remote-native-build.sh missing from bundle"; exit 3; }
-bash "$RB" --release "$REL" --root "$HOME/$ROOT" --commit "$SHORT" --services "$SVCS" --mode "$MODE"
+bash "$RB" --release "$REL" --root "$HOME/$ROOT" --commit "$SHORT" --services "$SVCS" --mode "$MODE" ${STMPDIR:+--sandbox-tmpdir "$STMPDIR"}
 REMOTE_BOOTSTRAP
 
 # ---- optional E2E (opt-in) ----

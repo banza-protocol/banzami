@@ -15,16 +15,26 @@
 #          --services <csv> --mode <build-only|deploy-only|build-and-deploy>
 set -euo pipefail
 
-REL=""; ROOT=""; COMMIT=""; SERVICES_CSV=""; MODE="build-and-deploy"
+REL=""; ROOT=""; COMMIT=""; SERVICES_CSV=""; MODE="build-and-deploy"; SANDBOX_TMPDIR=""
 while [ $# -gt 0 ]; do case "$1" in
   --release) REL="$2"; shift 2 ;;
   --root) ROOT="$2"; shift 2 ;;
   --commit) COMMIT="$2"; shift 2 ;;
   --services) SERVICES_CSV="$2"; shift 2 ;;
   --mode) MODE="$2"; shift 2 ;;
+  --sandbox-tmpdir) SANDBOX_TMPDIR="$2"; shift 2 ;;
   *) echo "unknown arg: $1" >&2; exit 2 ;;
 esac; done
 [ -d "$REL" ] || { echo "release dir missing" >&2; exit 2; }
+# Explicit target (blue/green): when given, deploy-one must resolve the target stack from its
+# canonical SANDBOX_STATE under this TMPDIR — never a global discovery. Fail closed if the target
+# state is absent so a missing/typo'd target cannot silently fall back to another stack.
+DEPLOY_ENV=()
+if [ -n "$SANDBOX_TMPDIR" ]; then
+  [ -f "$SANDBOX_TMPDIR/banzami-blueprint-sandbox/current.run" ] \
+    || { echo "  explicit sandbox target has no canonical state: $SANDBOX_TMPDIR/banzami-blueprint-sandbox/current.run" >&2; exit 9; }
+  DEPLOY_ENV=(env "TMPDIR=$SANDBOX_TMPDIR")
+fi
 IFS=',' read -r -a SERVICES <<< "$SERVICES_CSV"
 DEPLOY="$REL/infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh"
 RECEIPTS="$ROOT/receipts"; mkdir -p "$RECEIPTS"
@@ -138,10 +148,10 @@ fi
 i=0
 for svc in "${BUILT_SVC[@]}"; do
   tag="${BUILT_TAG[$i]}"; i=$((i+1))
-  echo "  deploying $svc -> $tag (selected-service only)" | tee -a "$RECEIPT"
-  if bash "$DEPLOY" deploy-one "$svc" "$tag" >/dev/null 2>&1; then echo "  $svc deployed_and_healthy PASS" | tee -a "$RECEIPT"
+  echo "  deploying $svc -> $tag (selected-service only)${SANDBOX_TMPDIR:+ · target $SANDBOX_TMPDIR}" | tee -a "$RECEIPT"
+  if "${DEPLOY_ENV[@]}" bash "$DEPLOY" deploy-one "$svc" "$tag" >/dev/null 2>&1; then echo "  $svc deployed_and_healthy PASS" | tee -a "$RECEIPT"
   else echo "  $svc deployed_and_healthy FAIL — attempting rollback" | tee -a "$RECEIPT"
-    bash "$DEPLOY" deploy-one "$svc" "$tag" --rollback >/dev/null 2>&1 || true
+    "${DEPLOY_ENV[@]}" bash "$DEPLOY" deploy-one "$svc" "$tag" --rollback >/dev/null 2>&1 || true
     echo "  $svc ROLLBACK attempted" | tee -a "$RECEIPT"; exit 8
   fi
 done

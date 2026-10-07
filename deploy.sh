@@ -176,6 +176,12 @@ _route_sandbox() {
   { [ "$hasflag" = 1 ] || { [ "$hassvc" = 1 ] && [ "$nonsandbox" = 0 ]; }; }
 }
 if _route_sandbox "$@"; then
+  # Explicit target for blue/green: set BANZAMI_SANDBOX_TMPDIR to the SERVER-SIDE TMPDIR of the
+  # target Sandbox stack (e.g. /srv/banzami-vmx/tmp for a NEW stack coexisting with OLD). It is
+  # inherited by sandbox-source-deploy.sh and propagated through remote-native-build.sh to
+  # deploy-one, which resolves the target from its canonical SANDBOX_STATE — never a global
+  # discovery. Leave it unset only for an unambiguous single-stack deploy.
+  export BANZAMI_SANDBOX_TMPDIR="${BANZAMI_SANDBOX_TMPDIR:-}"
   exec bash "$REPO_ROOT/infra/blueprint/sandbox-ops/scripts/sandbox-source-deploy.sh" "$@"
 fi
 

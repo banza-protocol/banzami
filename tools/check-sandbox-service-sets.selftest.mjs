@@ -19,8 +19,11 @@ const FILES = [
   'infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh',
   'infra/blueprint/vm-execution/vm-execute.sh',
   'infra/blueprint/docs/VM_EXECUTION.md',
+  'deploy.sh',
+  'infra/blueprint/sandbox-ops/scripts/sandbox-source-deploy.sh',
+  'infra/blueprint/sandbox-ops/scripts/remote-native-build.sh',
 ];
-const [RELEASE, DEPLOY, VMEXEC, DOC] = FILES;
+const [RELEASE, DEPLOY, VMEXEC, DOC, DEPLOYSH, SRCDEP, RNB] = FILES;
 
 const tree = () => {
   const dir = mkdtempSync(join(tmpdir(), 'bz-svcsets-'));
@@ -70,6 +73,26 @@ const CASES = [
     name: 'deploy-one stops resolving the stack',
     mutate: (d) => edit(d, DEPLOY, (s) => s.replace('  _resolve_stack\n', '  :\n')),
     expect: fails('SANDBOX_APP_PLANE_TARGETING'),
+  },
+  {
+    name: 'deploy.sh drops the explicit target env',
+    mutate: (d) => edit(d, DEPLOYSH, (s) => s.replace(/BANZAMI_SANDBOX_TMPDIR/g, 'BANZAMI_SANDBOX_UNUSED')),
+    expect: fails('SANDBOX_TARGET_PROPAGATION'),
+  },
+  {
+    name: 'sandbox-source-deploy stops forwarding --sandbox-tmpdir',
+    mutate: (d) => edit(d, SRCDEP, (s) => s.replace(/--sandbox-tmpdir/g, '--sandbox-ignored')),
+    expect: fails('SANDBOX_TARGET_PROPAGATION'),
+  },
+  {
+    name: 'remote-native-build stops running deploy-one under the target TMPDIR',
+    mutate: (d) => edit(d, RNB, (s) => s.replace('TMPDIR=$SANDBOX_TMPDIR', 'TMPDIR_IGNORED=$SANDBOX_TMPDIR')),
+    expect: fails('SANDBOX_TARGET_PROPAGATION'),
+  },
+  {
+    name: 'remote-native-build stops failing closed on a stateless target',
+    mutate: (d) => edit(d, RNB, (s) => s.replace(/banzami-blueprint-sandbox\/current\.run/g, 'banzami-blueprint-sandbox/ignored.run')),
+    expect: fails('SANDBOX_TARGET_PROPAGATION'),
   },
 ];
 
