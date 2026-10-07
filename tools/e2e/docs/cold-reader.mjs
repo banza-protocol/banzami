@@ -31,7 +31,7 @@ const BASE = process.env.BZ_DOCS ?? 'https://developers.banzami.com';
 /** Every canonical documentation route, in both languages. */
 const ROUTES = [
   '/docs', '/docs/get-started', '/docs/concepts', '/docs/payments', '/docs/webhooks', '/docs/refunds',
-  '/docs/settlements', '/docs/receipts', '/docs/transfers', '/docs/doa', '/docs/console', '/docs/reference',
+  '/docs/settlements', '/docs/receipts', '/docs/transfers', '/docs/doa', '/docs/console', '/docs/financial-setup', '/docs/reference',
   '/docs/events', '/docs/errors', '/docs/sdk', '/docs/artifacts', '/docs/testing', '/docs/going-live',
   '/docs/trust', '/docs/glossary', '/docs/troubleshooting', '/docs/support', '/docs/changelog',
 ];

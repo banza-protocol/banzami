@@ -151,13 +151,21 @@ async function prepare({ thenComplete = false } = {}) {
   const call = state.token ? consoleCaller(state.token) : null;
 
   if (J.verdict(1) === 'PASS' && pageSays(2, pages)) {
-    // The page's path for an application: the Application or platform use case.
+    // Financial setup links the Project to the Business that receives its payments
+    // (ADR-060). The documented human flow in /docs/financial-setup is: choose the
+    // @banza, confirm a contact email (BUSINESS_CONTACT_VERIFY), then create — so
+    // nothing exists before the email is verified, and the developer chooses the
+    // @banza. An automated harness cannot read a verification code from an inbox,
+    // so it uses the non-interactive provisioning path (the same POST, for
+    // machine-to-machine / test callers) which derives the handle; the real
+    // developer chooses it in the Console. Either way the @banza belongs to the
+    // Business, not the Project.
     const setup = await call(`/projects/${state.created.project}/financial-setup`, 'POST', { use_case: 'APPLICATION' });
     const b = setup.body?.onboarding?.business;
     const handle = setup.body?.readiness?.financial_identity?.handle ?? b?.handle ?? '';
     state.created.handle = handle.replace(/^@/, '');
     setup.status === 200 && ['READY', 'SEALED'].includes(setup.body?.state) && b?.synthetic === true && setup.body?.sandbox_use_case === 'APPLICATION'
-      ? mark(2, 'PASS', `test Business ${handle} for the Application use case — no application, no review`)
+      ? mark(2, 'PASS', `test Business ${handle} linked to the Project (Application use case; non-interactive provisioning)`)
       : mark(2, 'FAIL', `setup http ${setup.status} state ${setup.body?.state} use_case ${setup.body?.sandbox_use_case}`);
   }
 
