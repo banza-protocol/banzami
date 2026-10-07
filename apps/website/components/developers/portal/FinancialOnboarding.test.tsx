@@ -13,6 +13,8 @@ import type {
 const submit = vi.fn();
 const link = vi.fn();
 const setUpSandbox = vi.fn();
+const startContact = vi.fn();
+const createVerified = vi.fn();
 const share = vi.fn();
 vi.mock('@/lib/developer-api', async (orig) => {
   const real = await orig<typeof import('@/lib/developer-api')>();
@@ -22,6 +24,8 @@ vi.mock('@/lib/developer-api', async (orig) => {
       submitFinancialApplication: (...a: unknown[]) => submit(...a),
       linkExistingBusiness: (...a: unknown[]) => link(...a),
       setUpSandboxBusiness: (...a: unknown[]) => setUpSandbox(...a),
+      startSandboxBusinessContact: (...a: unknown[]) => startContact(...a),
+      createSandboxBusinessVerified: (...a: unknown[]) => createVerified(...a),
       shareSandboxBusiness: (...a: unknown[]) => share(...a),
       changeSandboxUseCase: async () => ({}),
     },
@@ -174,6 +178,7 @@ describe('Configuração financeira — NOT_CONFIGURED', () => {
     const { onChanged } = open(setupFor('NOT_CONFIGURED'));
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar verificação' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ligar negócio existente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tenho um código de ligação' }));
     const input = screen.getByLabelText('Código do negócio') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'abcd efgh jkmn' } });
     expect(input.value).toBe('ABCD-EFGH-JKMN');
@@ -189,6 +194,7 @@ describe('Configuração financeira — NOT_CONFIGURED', () => {
     open(setupFor('NOT_CONFIGURED'));
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar verificação' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ligar negócio existente' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tenho um código de ligação' }));
     const input = screen.getByLabelText('Código do negócio');
     fireEvent.change(input, { target: { value: 'ABCD' } });
     fireEvent.click(screen.getByRole('button', { name: 'Ligar negócio' }));
@@ -346,29 +352,36 @@ describe('who may act', () => {
 
 // ── ADR-060: the Sandbox needs no review ─────────────────────────────────────
 describe('Sandbox self-service Financial Setup', () => {
-  afterEach(() => { cleanup(); setUpSandbox.mockReset(); share.mockReset(); });
+  afterEach(() => { cleanup(); setUpSandbox.mockReset(); startContact.mockReset(); createVerified.mockReset(); share.mockReset(); });
 
-  it('offers a use case, never a classification, a profile or a rate — and no application form', async () => {
+  it('needs a use case, an available @banza and a verified contact email before it creates anything', async () => {
     const setup = { ...setupFor('NOT_CONFIGURED'), self_service: true };
     const onChanged = vi.fn();
-    setUpSandbox.mockResolvedValue(setup);
+    startContact.mockResolvedValue({ masked_email: 'd••••@example.com' });
+    createVerified.mockResolvedValue(setup);
     render(<FinancialOnboardingPanel setup={setup} projectId="p1" csrf="c" onChanged={onChanged} />);
     expect(screen.getByTestId('sandbox-setup-start')).toBeTruthy();
     expect(screen.queryByTestId('onboarding-path-new')).toBeNull();
-    expect(screen.queryByText('Iniciar verificação')).toBeNull();
     const text = screen.getByTestId('financial-onboarding').textContent ?? '';
     expect(text).not.toMatch(/\bbps\b|pricing_profile|business_account_type/);
 
     const go = screen.getByTestId('sandbox-setup-go') as HTMLButtonElement;
     expect(go.disabled).toBe(true);
     fireEvent.click(within(screen.getByTestId('use-case-APPLICATION')).getByRole('radio'));
-    // A use case alone is not enough: the developer must choose an available @banza.
-    expect(go.disabled).toBe(true);
     fireEvent.change(screen.getByTestId('sandbox-handle-input'), { target: { value: 'minha_loja' } });
     await waitFor(() => expect(screen.getByTestId('sandbox-handle-status').textContent).toContain('disponível'));
+    // Still blocked without a contact email — nothing is created before it verifies.
+    expect(go.disabled).toBe(true);
+    fireEvent.change(screen.getByTestId('sandbox-email-input'), { target: { value: 'dono@example.com' } });
     expect(go.disabled).toBe(false);
     fireEvent.click(go);
-    await waitFor(() => expect(setUpSandbox).toHaveBeenCalledWith('p1', 'APPLICATION', 'c', 'minha_loja'));
+    await waitFor(() => expect(startContact).toHaveBeenCalledWith('p1', 'dono@example.com', 'c'));
+    // The OTP step appears; six digits create.
+    await screen.findByTestId('sandbox-setup-verify');
+    for (let i = 0; i < 6; i++) {
+      fireEvent.change(screen.getByTestId(`otp-box-${i}`), { target: { value: String(i + 1) } });
+    }
+    await waitFor(() => expect(createVerified).toHaveBeenCalledWith('p1', 'APPLICATION', 'minha_loja', '123456', 'c'));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 

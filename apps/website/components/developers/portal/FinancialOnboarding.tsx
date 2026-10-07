@@ -19,7 +19,7 @@ import {
 } from '@/lib/financial-onboarding';
 import { ApplicationDocuments } from './ApplicationDocuments';
 import { BusinessApplicationForm } from './BusinessApplicationForm';
-import { ConnectBusinessForm } from './ConnectBusinessForm';
+import { LinkByHandleForm } from './LinkByHandleForm';
 import { FinancialReadinessPanel, FinancialSetupStatus } from './FinancialSetup';
 import { SandboxBusinessPanel, SandboxSetupStart } from './SandboxSetup';
 import { Card, FIELD_ERROR, FIELD_HINT, SECONDARY_BUTTON, primaryButton } from './ui';
@@ -263,7 +263,7 @@ export function FinancialOnboardingPanel({
   if (canStart && mode === 'connect') {
     return (
       <Section view={view}>
-        <ConnectBusinessForm
+        <LinkByHandleForm
           projectId={projectId}
           csrf={csrf}
           onCancel={() => setMode('choose')}

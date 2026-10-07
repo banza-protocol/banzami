@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { developerApi, ApiError, type FinancialSetupState, type SandboxUseCase } from '@/lib/developer-api';
 import { checkHandle, isValidHandleFormat, normalizeHandle } from '@/lib/api';
 import { handleUnavailableText } from '@/lib/financial-onboarding';
+import { OtpBoxes } from './OtpBoxes';
 import { Card, FIELD_ERROR, FIELD_HINT, SECONDARY_BUTTON, primaryButton } from './ui';
 
 /**
@@ -138,20 +139,32 @@ function ChosenHandleField({
   );
 }
 
-/** A Project without a Business, in the Sandbox: pick a use case, choose the @banza, create. */
+function isEmailish(e: string): boolean {
+  const s = e.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
+/**
+ * A Project without a Business, in the Sandbox: pick a use case, choose the
+ * @banza, give a contact email, confirm control of that email, then create.
+ * Nothing — not the Business, not the @banza — is created until the email is
+ * verified (ADR-060 §5/§17), so an abandoned wizard leaves nothing behind.
+ */
 export function SandboxSetupStart({
   projectId, csrf, canAct, onDone, onConnectExisting,
 }: { projectId: string; csrf: string; canAct: boolean; onDone: (message: string) => void; onConnectExisting: () => void }) {
   const [useCase, setUseCase] = useState<SandboxUseCase | null>(null);
   const [handleRaw, setHandleRaw] = useState('');
   const [handle, setHandle] = useState<HandleState>({ k: 'idle' });
+  const [email, setEmail] = useState('');
+  const [phase, setPhase] = useState<'form' | 'verify'>('form');
+  const [masked, setMasked] = useState('');
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const clean = normalizeHandle(handleRaw);
 
-  // Debounced availability: format is judged locally and instantly; a well-formed
-  // handle is then checked against the neutral oracle after a short pause.
   useEffect(() => {
     if (!clean) { setHandle({ k: 'idle' }); return; }
     if (!isValidHandleFormat(clean)) {
@@ -173,24 +186,69 @@ export function SandboxSetupStart({
     return () => { live = false; clearTimeout(t); };
   }, [clean]);
 
-  const ready = !!useCase && handle.k === 'available' && !busy;
+  const formReady = !!useCase && handle.k === 'available' && isEmailish(email) && !busy;
 
-  async function go() {
-    if (!ready || !useCase) return;
+  async function sendCode() {
+    if (!formReady) return;
     setBusy(true);
     setError('');
     try {
-      await developerApi.setUpSandboxBusiness(projectId, useCase, csrf, clean);
+      const r = await developerApi.startSandboxBusinessContact(projectId, email.trim(), csrf);
+      setMasked(r.masked_email);
+      setPhase('verify');
+    } catch (e) {
+      setError(refusalText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function create(submitCode?: string) {
+    const c = submitCode ?? code;
+    if (c.length !== 6 || !useCase || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await developerApi.createSandboxBusinessVerified(projectId, useCase, clean, c, csrf);
       onDone(`Negócio de teste @${clean} criado e ligado a este projeto. Já pode receber pagamentos na Sandbox.`);
     } catch (e) {
-      // A race on the chosen name: send the developer back to the field.
       if (e instanceof ApiError && (e.code === 'HANDLE_UNAVAILABLE' || e.code === 'INVALID_HANDLE')) {
         setHandle({ k: 'unavailable', message: refusalText(e) });
+        setPhase('form');
       }
       setError(refusalText(e));
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!canAct) {
+    return (
+      <div data-testid="sandbox-setup-start">
+        <p style={{ ...P, fontSize: 13.5, color: '#8a7a7e', fontWeight: 700 }}>Só um Owner ou Admin do workspace pode configurar.</p>
+      </div>
+    );
+  }
+
+  if (phase === 'verify') {
+    return (
+      <div data-testid="sandbox-setup-verify">
+        <p style={P}>
+          Confirme o controlo do negócio. Enviámos um código para <strong style={{ color: '#2a2024' }}>{masked}</strong>.
+          A confirmação do email não é uma verificação KYB — serve para confirmar que controla este contacto.
+        </p>
+        <OtpBoxes onChange={setCode} onComplete={(c) => void create(c)} disabled={busy} />
+        <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button type="button" data-testid="sandbox-create-go" onClick={() => void create()} disabled={code.length !== 6 || busy} style={primaryButton(code.length !== 6 || busy)}>
+            {busy ? 'A criar…' : 'Confirmar e criar'}
+          </button>
+          <button type="button" onClick={() => { setPhase('form'); setCode(''); setError(''); }} disabled={busy} style={SECONDARY_BUTTON}>
+            Voltar
+          </button>
+        </div>
+        {error && <p role="alert" style={FIELD_ERROR}>{error}</p>}
+      </div>
+    );
   }
 
   return (
@@ -199,23 +257,38 @@ export function SandboxSetupStart({
         Na Sandbox, cria um negócio de teste para este projeto, sem candidatura e sem esperar por ninguém. É uma entidade
         de teste: não é verificada, e o valor é fictício. Escolhe o @banza — ele pertence ao negócio, não ao projeto.
       </p>
-      <UseCaseChoice value={useCase} onChange={setUseCase} disabled={!canAct || busy} />
+      <UseCaseChoice value={useCase} onChange={setUseCase} disabled={busy} />
       <p style={FIELD_HINT}>
         A classificação e o preço são atribuídos pela Banzami para o uso que escolher. A sua aplicação nunca envia uma taxa.
       </p>
-      <ChosenHandleField value={handleRaw} onChange={setHandleRaw} state={handle} disabled={!canAct || busy} />
-      {canAct ? (
-        <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button type="button" data-testid="sandbox-setup-go" onClick={() => void go()} disabled={!ready} style={primaryButton(!ready)}>
-            {busy ? 'A criar…' : 'Criar e ligar'}
-          </button>
-          <button type="button" onClick={onConnectExisting} style={SECONDARY_BUTTON}>
-            Ligar um negócio que já existe
-          </button>
-        </div>
-      ) : (
-        <p style={{ ...P, fontSize: 13.5, color: '#8a7a7e', fontWeight: 700 }}>Só um Owner ou Admin do workspace pode configurar.</p>
-      )}
+      <ChosenHandleField value={handleRaw} onChange={setHandleRaw} state={handle} disabled={busy} />
+      <div style={{ marginTop: 18, maxWidth: 340 }}>
+        <label htmlFor="sandbox-email" style={{ display: 'block', fontSize: 13, fontWeight: 900, color: '#2a2024', marginBottom: 6 }}>
+          Email de contacto
+        </label>
+        <input
+          id="sandbox-email"
+          data-testid="sandbox-email-input"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={busy}
+          autoComplete="email"
+          placeholder="dono@exemplo.com"
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 10, fontSize: 15, fontWeight: 600, border: '1.5px solid #EBDBD9', background: busy ? '#FAF6F5' : '#fff', color: '#2a2024' }}
+        />
+        <p style={FIELD_HINT}>
+          Utilizaremos este email para confirmar o controlo do negócio e para comunicações de segurança no Sandbox.
+        </p>
+      </div>
+      <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button type="button" data-testid="sandbox-setup-go" onClick={() => void sendCode()} disabled={!formReady} style={primaryButton(!formReady)}>
+          {busy ? 'A enviar…' : 'Confirmar email'}
+        </button>
+        <button type="button" onClick={onConnectExisting} style={SECONDARY_BUTTON}>
+          Ligar um negócio que já existe
+        </button>
+      </div>
       {error && <p role="alert" style={FIELD_ERROR}>{error}</p>}
     </div>
   );

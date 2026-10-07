@@ -780,6 +780,27 @@ export const developerApi = {
     }),
   changeSandboxUseCase: (projectID: string, useCase: SandboxUseCase, csrf: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup/use-case`, { method: 'PUT', body: { use_case: useCase }, csrf }),
+
+  // ── Path B (ADR-060): verified-contact create + link an existing Business ──
+  // Path A step 1: send a contact-verification code to the chosen email (nothing
+  // is created yet; the subject is the project). Returns the masked destination.
+  startSandboxBusinessContact: (projectID: string, email: string, csrf: string) =>
+    req<{ masked_email: string }>(`/projects/${projectID}/financial-setup/contact/start`, { method: 'POST', body: { email }, csrf }),
+  // Path A step 2: confirm the code, then provision + persist the contact + bind.
+  createSandboxBusinessVerified: (projectID: string, useCase: SandboxUseCase, desiredHandle: string, code: string, csrf: string) =>
+    req<FinancialSetupState>(`/projects/${projectID}/financial-setup/create`, { method: 'POST', body: { use_case: useCase, desired_handle: desiredHandle, code }, csrf }),
+  // Path B step 1: resolve a managed @banza and send a link code to its verified
+  // contact. needs_contact=true means the Business must enrol a contact first.
+  startBusinessLinkByHandle: (projectID: string, handle: string, csrf: string) =>
+    req<{ masked_email?: string; needs_contact: boolean }>(`/projects/${projectID}/financial-onboarding/link-by-handle/start`, { method: 'POST', body: { handle }, csrf }),
+  // Path B step 2: confirm the link code and bind the existing Business.
+  confirmBusinessLinkByHandle: (projectID: string, handle: string, code: string, csrf: string) =>
+    req<FinancialSetupState>(`/projects/${projectID}/financial-onboarding/link-by-handle/confirm`, { method: 'POST', body: { handle, code }, csrf }),
+  // Enrol a verified contact on a managed Business (the NeedsContact case).
+  startBusinessContactEnrolment: (projectID: string, handle: string, email: string, csrf: string) =>
+    req<{ masked_email: string }>(`/projects/${projectID}/financial-onboarding/contact/start`, { method: 'POST', body: { handle, email }, csrf }),
+  confirmBusinessContactEnrolment: (projectID: string, handle: string, code: string, csrf: string) =>
+    req<{ masked_email: string }>(`/projects/${projectID}/financial-onboarding/contact/confirm`, { method: 'POST', body: { handle, code }, csrf }),
   // A consent code for this Project's synthetic Business, for another of the
   // developer's Projects to connect with (linkExistingBusiness). Shown once.
   shareSandboxBusiness: (projectID: string, csrf: string) =>
