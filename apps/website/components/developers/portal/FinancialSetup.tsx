@@ -173,10 +173,21 @@ export function FinancialReadinessPanel({
         </span>
       </div>
       <div style={{ marginTop: 12 }}>
-        <Row label="Identidade financeira" value={r.financial_identity.handle ?? 'n/d'} />
+        <Row label="Identidade @banza" value={r.financial_identity.handle ? `@${r.financial_identity.handle.replace(/^@/, '')}` : 'n/d'} />
+        {setup.contact_control && (
+          <Row
+            label="Controlo da identidade"
+            value={setup.contact_control.confirmed
+              ? (setup.contact_control.masked_email ? `Confirmado · ${setup.contact_control.masked_email}` : 'Confirmado')
+              : 'Por confirmar'}
+            ok={setup.contact_control.confirmed}
+          />
+        )}
         <Row
           label="Verificação (KYB)"
-          value={r.kyb.status ? capitalised(kybStatusLabel(r.kyb.status)) : 'n/d'}
+          value={r.kyb.status === 'SANDBOX_SYNTHETIC'
+            ? 'Não aplicável no Sandbox'
+            : r.kyb.status ? capitalised(kybStatusLabel(r.kyb.status)) : 'n/d'}
           ok={r.kyb.status === 'SANDBOX_SYNTHETIC' ? undefined : r.kyb.status === 'APPROVED'}
         />
         <Row label="Carteira" value={`${accountStatusLabel(r.wallet.status)} · ${r.wallet.currency}`} ok={r.wallet.ready} />

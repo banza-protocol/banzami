@@ -81,6 +81,17 @@ type FinancialSetup struct {
 	// SelfService is true where Financial Setup provisions a synthetic Sandbox
 	// Business on request (ADR-060) — the Sandbox. No review is involved.
 	SelfService bool `json:"self_service"`
+	// ContactControl is the Business's identity-control state (ADR-060): whether a
+	// verified contact exists ("Controlo da identidade: Confirmado") and its masked
+	// form. Distinct from KYB. Nil until the Project is bound to a Business.
+	ContactControl *ContactControl `json:"contact_control,omitempty"`
+}
+
+// ContactControl reports whether the bound Business has a verified contact and a
+// masked form of it. The full address is never returned here.
+type ContactControl struct {
+	Confirmed   bool   `json:"confirmed"`
+	MaskedEmail string `json:"masked_email,omitempty"`
 }
 
 // ReadinessReader asks core whether a financial owner can settle. Core evaluates
@@ -231,6 +242,17 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 				out.ReadinessUnavailable = true
 			} else {
 				out.Readiness = r
+			}
+		}
+		// Identity control (ADR-060 §22): whether the Business has a verified
+		// contact, masked. A read failure leaves it nil — control is a second
+		// question, like readiness, and the setup is still READY.
+		if s.onboarding != nil {
+			if has, masked, cerr := s.onboarding.VerifiedContact(ctx, b.MerchantID); cerr == nil {
+				out.ContactControl = &ContactControl{Confirmed: has, MaskedEmail: masked}
+			} else {
+				slog.WarnContext(ctx, "developer.financial_setup.contact_control_unavailable",
+					"project", projectID, "err", cerr.Error())
 			}
 		}
 	} else if s.onboarding == nil && !out.SelfService {

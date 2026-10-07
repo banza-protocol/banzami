@@ -350,6 +350,11 @@ export type FinancialSetupState = {
    * request (ADR-060) — the Sandbox. No review is involved and no KYB is claimed.
    */
   self_service?: boolean;
+  /**
+   * Identity-control state of the bound Business (ADR-060 §22): whether a verified
+   * contact exists and its masked form. Distinct from KYB. Absent until bound.
+   */
+  contact_control?: { confirmed: boolean; masked_email?: string };
 };
 
 export type SandboxUseCase = 'STANDARD' | 'APPLICATION';

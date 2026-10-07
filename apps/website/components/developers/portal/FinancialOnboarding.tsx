@@ -134,6 +134,32 @@ function ApplicationSummary({ app }: { app: OnboardingApplication }) {
   );
 }
 
+/**
+ * §54 recognition: when this Project already has an application (the developer
+ * submitted one and chose a @banza), name the business and identity so they
+ * reuse it through the canonical application path instead of creating a
+ * competing synthetic Business. Only the Project's OWN application is shown —
+ * never a global search — and the backend refuses a second Business while one is
+ * in progress (ErrApplicationInProgress).
+ */
+function RecognizedBusiness({ app }: { app: OnboardingApplication }) {
+  const handle = app.requested_handle ? `@${app.requested_handle.replace(/^@/, '')}` : '';
+  return (
+    <div
+      data-testid="recognized-business"
+      style={{ marginTop: 14, padding: '12px 16px', borderRadius: 12, background: '#F7FBF7', border: '1px solid #D9EAD9' }}
+    >
+      <p style={{ margin: 0, fontSize: 12, fontWeight: 900, color: '#1E6B34', letterSpacing: '.04em' }}>ENCONTRÁMOS UM NEGÓCIO ASSOCIADO À SUA CONTA</p>
+      <p style={{ margin: '6px 0 0', fontSize: 14.5, fontWeight: 800, color: '#2a2024' }}>
+        {app.business_name || 'Negócio'}{handle ? <span style={{ color: '#6a5a5e' }}> · {handle}</span> : null}
+      </p>
+      <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6a5a5e', fontWeight: 600 }}>
+        Pode utilizar esta identidade neste projeto; conclua a verificação do negócio para a ligar. Não é criado um segundo negócio nem um segundo @banza.
+      </p>
+    </div>
+  );
+}
+
 /** The Business a Project receives into: public identity only. */
 export function BusinessCard({ business }: { business: OnboardingBusiness }) {
   const verified = business.verified;
@@ -363,6 +389,7 @@ export function FinancialOnboardingPanel({
             A candidatura deste projeto está com um operador da Banzami. Não precisa de fazer nada enquanto é analisada,
             a não ser enviar os documentos que ainda faltem.
           </p>
+          <RecognizedBusiness app={app} />
           <ApplicationSummary app={app} />
           <RequirementList title="Ainda falta enviar" items={app.requirements.currently_due} testid="requirements-due" />
           <RequirementList title="A aguardar verificação" items={app.requirements.pending_verification} testid="requirements-pending" />
