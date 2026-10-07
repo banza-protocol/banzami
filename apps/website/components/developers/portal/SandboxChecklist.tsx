@@ -34,7 +34,7 @@ export function SandboxChecklist({ projectId }: { projectId: string }) {
     const ok = (s: number) => s >= 200 && s < 300;
     setSteps([
       {
-        id: 'setup', title: 'Configurar a Sandbox', hint: 'Escolha o tipo de uso; a Banzami cria um negócio de teste.',
+        id: 'setup', title: 'Configurar a Sandbox', hint: 'Escolha o tipo de uso e o @banza; crie o negócio de teste ou ligue um que já exista.',
         href: '/financeiro', done: setup?.state === 'READY' || setup?.state === 'SEALED',
       },
       {

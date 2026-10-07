@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { developerApi, ApiError, type FinancialSetupState, type SandboxUseCase } from '@/lib/developer-api';
+import { checkHandle, isValidHandleFormat, normalizeHandle } from '@/lib/api';
+import { handleUnavailableText } from '@/lib/financial-onboarding';
 import { Card, FIELD_ERROR, FIELD_HINT, SECONDARY_BUTTON, primaryButton } from './ui';
 
 /**
@@ -77,26 +79,114 @@ function refusalText(e: unknown): string {
     case 'PROJECT_ALREADY_RECEIVING': return 'Este projeto já recebe num negócio.';
     case 'FORBIDDEN': return 'Só um Owner ou Admin do workspace pode fazer isto.';
     case 'NO_SANDBOX_BUSINESS': return 'Este projeto não tem um negócio de teste próprio para partilhar.';
+    case 'HANDLE_UNAVAILABLE': return 'Este @banza não está disponível. Escolha outro.';
+    case 'INVALID_HANDLE': return 'Este @banza não é válido. Use 3 a 30 caracteres, começando por uma letra.';
     default: return 'Não foi possível concluir agora. Tente novamente.';
   }
 }
 
-/** A Project without a Business, in the Sandbox: pick a use case, done. */
+// The live availability of the @banza the developer is typing. Mirrors the
+// candidatura form: a format check is instant and local; availability is a
+// debounced, neutral call to the one availability oracle (check-handle).
+type HandleState =
+  | { k: 'idle' }
+  | { k: 'checking' }
+  | { k: 'available' }
+  | { k: 'unavailable'; message: string };
+
+/**
+ * The @banza the developer chooses for a NEW Sandbox Business (Path A). The
+ * handle belongs to the Business, not the Project — so the developer names it
+ * here instead of Banzami deriving an opaque one. Availability is checked
+ * neutrally; the field never says why a name is unavailable.
+ */
+function ChosenHandleField({
+  value, onChange, state, disabled,
+}: { value: string; onChange: (v: string) => void; state: HandleState; disabled?: boolean }) {
+  const clean = normalizeHandle(value);
+  return (
+    <div style={{ marginTop: 18 }}>
+      <label htmlFor="sandbox-handle" style={{ display: 'block', fontSize: 13, fontWeight: 900, color: '#2a2024', marginBottom: 6 }}>
+        O @banza do negócio
+      </label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: 340 }}>
+        <span style={{ fontSize: 16, fontWeight: 900, color: '#8a7a7e' }}>@</span>
+        <input
+          id="sandbox-handle"
+          data-testid="sandbox-handle-input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="a_sua_loja"
+          style={{
+            flex: 1, padding: '10px 12px', borderRadius: 10, fontSize: 15, fontWeight: 700,
+            border: `1.5px solid ${state.k === 'unavailable' && clean ? '#B5101F' : state.k === 'available' ? '#1F8A5B' : '#EBDBD9'}`,
+            background: disabled ? '#FAF6F5' : '#fff', color: '#2a2024',
+          }}
+        />
+      </div>
+      <p role="status" aria-live="polite" data-testid="sandbox-handle-status"
+         style={{ ...FIELD_HINT, marginTop: 6, fontWeight: 800, color: state.k === 'available' ? '#1F8A5B' : '#8a7a7e' }}>
+        {state.k === 'checking' ? 'A verificar a disponibilidade…'
+          : state.k === 'available' ? `@${clean} está disponível.`
+          : state.k === 'unavailable' && clean ? state.message
+          : 'O @banza identifica o negócio que recebe os pagamentos. Pertence ao negócio, não ao projeto.'}
+      </p>
+    </div>
+  );
+}
+
+/** A Project without a Business, in the Sandbox: pick a use case, choose the @banza, create. */
 export function SandboxSetupStart({
   projectId, csrf, canAct, onDone, onConnectExisting,
 }: { projectId: string; csrf: string; canAct: boolean; onDone: (message: string) => void; onConnectExisting: () => void }) {
   const [useCase, setUseCase] = useState<SandboxUseCase | null>(null);
+  const [handleRaw, setHandleRaw] = useState('');
+  const [handle, setHandle] = useState<HandleState>({ k: 'idle' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  const clean = normalizeHandle(handleRaw);
+
+  // Debounced availability: format is judged locally and instantly; a well-formed
+  // handle is then checked against the neutral oracle after a short pause.
+  useEffect(() => {
+    if (!clean) { setHandle({ k: 'idle' }); return; }
+    if (!isValidHandleFormat(clean)) {
+      setHandle({ k: 'unavailable', message: handleUnavailableText('INVALID') });
+      return;
+    }
+    setHandle({ k: 'checking' });
+    let live = true;
+    const t = setTimeout(async () => {
+      try {
+        const r = await checkHandle(clean);
+        if (!live) return;
+        if (r && r.available === true) setHandle({ k: 'available' });
+        else setHandle({ k: 'unavailable', message: handleUnavailableText(r?.reason) });
+      } catch {
+        if (live) setHandle({ k: 'unavailable', message: 'Não foi possível verificar a disponibilidade. Tente novamente.' });
+      }
+    }, 350);
+    return () => { live = false; clearTimeout(t); };
+  }, [clean]);
+
+  const ready = !!useCase && handle.k === 'available' && !busy;
+
   async function go() {
-    if (!useCase || busy) return;
+    if (!ready || !useCase) return;
     setBusy(true);
     setError('');
     try {
-      await developerApi.setUpSandboxBusiness(projectId, useCase, csrf);
-      onDone('Negócio de teste criado e ligado a este projeto. Já pode receber pagamentos na Sandbox.');
+      await developerApi.setUpSandboxBusiness(projectId, useCase, csrf, clean);
+      onDone(`Negócio de teste @${clean} criado e ligado a este projeto. Já pode receber pagamentos na Sandbox.`);
     } catch (e) {
+      // A race on the chosen name: send the developer back to the field.
+      if (e instanceof ApiError && (e.code === 'HANDLE_UNAVAILABLE' || e.code === 'INVALID_HANDLE')) {
+        setHandle({ k: 'unavailable', message: refusalText(e) });
+      }
       setError(refusalText(e));
     } finally {
       setBusy(false);
@@ -106,17 +196,18 @@ export function SandboxSetupStart({
   return (
     <div data-testid="sandbox-setup-start">
       <p style={P}>
-        Na Sandbox, a Banzami cria um negócio de teste para este projeto, sem candidatura e sem esperar por ninguém. É
-        uma entidade de teste: não é verificado, e o valor é fictício.
+        Na Sandbox, cria um negócio de teste para este projeto, sem candidatura e sem esperar por ninguém. É uma entidade
+        de teste: não é verificada, e o valor é fictício. Escolhe o @banza — ele pertence ao negócio, não ao projeto.
       </p>
       <UseCaseChoice value={useCase} onChange={setUseCase} disabled={!canAct || busy} />
       <p style={FIELD_HINT}>
         A classificação e o preço são atribuídos pela Banzami para o uso que escolher. A sua aplicação nunca envia uma taxa.
       </p>
+      <ChosenHandleField value={handleRaw} onChange={setHandleRaw} state={handle} disabled={!canAct || busy} />
       {canAct ? (
         <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button type="button" data-testid="sandbox-setup-go" onClick={() => void go()} disabled={!useCase || busy} style={primaryButton(!useCase || busy)}>
-            {busy ? 'A configurar…' : 'Configurar a Sandbox'}
+          <button type="button" data-testid="sandbox-setup-go" onClick={() => void go()} disabled={!ready} style={primaryButton(!ready)}>
+            {busy ? 'A criar…' : 'Criar e ligar'}
           </button>
           <button type="button" onClick={onConnectExisting} style={SECONDARY_BUTTON}>
             Ligar um negócio que já existe

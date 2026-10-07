@@ -769,8 +769,15 @@ export const developerApi = {
   financialSetup: (projectID: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup`),
 
-  setUpSandboxBusiness: (projectID: string, useCase: SandboxUseCase, csrf: string) =>
-    req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, { method: 'POST', body: { use_case: useCase }, csrf }),
+  // The developer chooses the @banza (desiredHandle) for a FIRST provisioning
+  // (Path A). Omit it (or pass '') to let Core derive the historical fallback —
+  // used only by legacy/internal callers, never the interactive human flow.
+  setUpSandboxBusiness: (projectID: string, useCase: SandboxUseCase, csrf: string, desiredHandle?: string) =>
+    req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, {
+      method: 'POST',
+      body: desiredHandle ? { use_case: useCase, desired_handle: desiredHandle } : { use_case: useCase },
+      csrf,
+    }),
   changeSandboxUseCase: (projectID: string, useCase: SandboxUseCase, csrf: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup/use-case`, { method: 'PUT', body: { use_case: useCase }, csrf }),
   // A consent code for this Project's synthetic Business, for another of the

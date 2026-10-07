@@ -362,8 +362,13 @@ describe('Sandbox self-service Financial Setup', () => {
     const go = screen.getByTestId('sandbox-setup-go') as HTMLButtonElement;
     expect(go.disabled).toBe(true);
     fireEvent.click(within(screen.getByTestId('use-case-APPLICATION')).getByRole('radio'));
+    // A use case alone is not enough: the developer must choose an available @banza.
+    expect(go.disabled).toBe(true);
+    fireEvent.change(screen.getByTestId('sandbox-handle-input'), { target: { value: 'minha_loja' } });
+    await waitFor(() => expect(screen.getByTestId('sandbox-handle-status').textContent).toContain('disponível'));
+    expect(go.disabled).toBe(false);
     fireEvent.click(go);
-    await waitFor(() => expect(setUpSandbox).toHaveBeenCalledWith('p1', 'APPLICATION', 'c'));
+    await waitFor(() => expect(setUpSandbox).toHaveBeenCalledWith('p1', 'APPLICATION', 'c', 'minha_loja'));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 
