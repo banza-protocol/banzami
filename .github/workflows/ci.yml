@@ -687,6 +687,14 @@ jobs:
           node tools/check-sandbox-service-sets.mjs
           node tools/check-sandbox-service-sets.selftest.mjs
 
+      # One canonical outbound-egress set, restored on every create/recreate through
+      # the single sandbox-egress.sh mechanism. Regression guard for the core-recreate
+      # egress drop that broke Resend/webhooks on NEW. The selftest breaks it seven ways.
+      - name: Sandbox egress contract gate
+        run: |
+          node tools/check-sandbox-egress-contract.mjs
+          node tools/check-sandbox-egress-contract.selftest.mjs
+
       - name: Public website truth gate
         run: |
           node tools/check-public-site-truth.mjs

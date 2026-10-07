@@ -1205,6 +1205,13 @@ check-sandbox-service-sets:
 	node tools/check-sandbox-service-sets.mjs
 	node tools/check-sandbox-service-sets.selftest.mjs
 
+.PHONY: check-sandbox-egress-contract
+# One canonical outbound-egress set, restored on every create/recreate via the
+# single sandbox-egress.sh mechanism (no second list, no path that drops it).
+check-sandbox-egress-contract:
+	node tools/check-sandbox-egress-contract.mjs
+	node tools/check-sandbox-egress-contract.selftest.mjs
+
 # Capacity is a gate, not an afterthought. Disk exhaustion killed a Rust
 # attestation build mid-compile twice, and ENOSPC surfaces as a compiler error
 # or a hung daemon rather than as "no disk" — an hour after the decision.

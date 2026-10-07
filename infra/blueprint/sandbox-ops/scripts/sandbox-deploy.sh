@@ -74,6 +74,37 @@ hold() { echo "$1"; exit "${2:-43}"; }
 allow_ok() { local n="$1" e; for e in "${DEPLOY_ONE_ALLOWED_SERVICES[@]}"; do [ "${e%%|*}" = "$n" ] && return 0; done; return 1; }
 is_ceremony_service() { local n="$1" s; for s in "${CEREMONY_APPLY_SERVICES[@]}"; do [ "$s" = "$n" ] && return 0; done; return 1; }
 
+# Canonical outbound-egress service set — the ONLY services granted bzsb-egress,
+# and the WHY for each (audited outbound needs; see tools/check-sandbox-egress-contract.mjs):
+#   api-gateway-staging  — delivers merchant webhooks (internal/webhook/signer.go)
+#   developer-api        — Resend (developer mail) + webhook visibility
+#   public-api-staging   — Resend (consumer email verification / PIN recovery)
+#   admin-api            — Resend (operator activation / password-reset mail)
+# core-api-staging is internal-only (no external calls); frontends talk to the
+# gateway over the application network; data services never reach out. This ONE
+# list is consumed by BOTH the ceremony create path (deploy_service) and the
+# application path (deploy-one), so the two can never drift. The data and
+# application networks are `internal: true`; bzsb-egress is the only non-internal
+# one, filtered at the host by sandbox-egress.sh.
+SANDBOX_EGRESS_SERVICES=(api-gateway-staging developer-api public-api-staging admin-api)
+service_needs_egress() { local n="$1" s; for s in "${SANDBOX_EGRESS_SERVICES[@]}"; do [ "$s" = "$n" ] && return 0; done; return 1; }
+
+# ensure_egress — restore the required outbound egress for a service, idempotently,
+# on every create/recreate. Reuses sandbox-egress.sh (the single owner of the
+# network attachment AND the host firewall filter) rather than re-implementing
+# either; a no-op for services not in the canonical set. Attach BEFORE `docker
+# start` so the container has the egress resolver before its first instruction,
+# for the same boot-time-DNS reason deploy_service attaches the app network first.
+ensure_egress() { # <container> <service-name>
+  local cname="$1" name="$2"
+  service_needs_egress "$name" || return 0
+  if bash "$SCRIPT_DIR/sandbox-egress.sh" apply "$cname" >/dev/null 2>&1; then
+    echo "  $name egress attached (bzsb-egress, canonical set)"
+  else
+    echo "  $name egress attach FAILED (bzsb-egress)" >&2; return 1
+  fi
+}
+
 # _resolve_stack — bind a deploy-one to ONE canonical Sandbox stack.
 #
 # Two Sandbox stacks can run at once during a blue/green rebuild (OLD stays alive
@@ -443,6 +474,11 @@ deploy_one() { # <name> <port> <binary> <tag>
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
     --entrypoint sh "$tag" -c "$(secret_entrypoint "$name" "$bin")" >/dev/null 2>&1 || return 1
   docker network connect "$BZSB_APP_NET" "$cname" >/dev/null 2>&1 || true
+  # Outbound egress for the canonical set (api-gateway/developer-api/public-api),
+  # restored on every ceremony create/recreate — before start, for boot-time DNS.
+  # Without this a core recreate silently dropped bzsb-egress and Resend/webhooks
+  # died (public-api: lookup api.resend.com ... server misbehaving → signup 503).
+  ensure_egress "$cname" "$name" || return 1
   docker start "$cname" >/dev/null 2>&1 || return 1
   # health AFTER deployment (docker HEALTHCHECK from the image)
   local i=0 st
@@ -832,17 +868,13 @@ cmd_deploy_one() {
         --entrypoint sh "$tag" -c "$(secret_entrypoint admin-api admin-api)" >/dev/null 2>&1 \
         || { echo "  $name first create FAIL"; return 1; }
       docker network connect "$appnet" "$cname" >/dev/null 2>&1 || true
-      # Outbound internet. The data and application networks are both internal:
-      # bzsb-egress is the only one that is not, and api-gateway and
-      # developer-api are on it because they call Resend and deliver webhooks.
-      #
-      # admin-api was not, and the symptom was not a startup failure — it was a
-      # DNS error inside a send that had already reported success. The console
-      # sends the operator activation and password-reset mail; without egress it
-      # can create an operator who can never activate.
-      local egressnet
-      egressnet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-egress$' | head -1)"
-      [ -n "$egressnet" ] && docker network connect "$egressnet" "$cname" >/dev/null 2>&1 || true
+      # Outbound internet. The data and application networks are both internal;
+      # bzsb-egress is the only non-internal one. admin-api needs it to send the
+      # operator activation and password-reset mail (a DNS error inside a send
+      # that had already reported success — without egress it can create an
+      # operator who can never activate). It goes through the SAME canonical set
+      # and mechanism as the ceremony services, so the two cannot drift.
+      ensure_egress "$cname" "$name" || { echo "  $name first start FAIL (egress)"; return 1; }
       docker start "$cname" >/dev/null 2>&1 || { echo "  $name first start FAIL"; return 1; }
     else
       local extra_env=()
@@ -996,6 +1028,10 @@ cmd_deploy_one() {
   docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (nothing else pruned)
   "${run[@]}" --entrypoint sh "$tag" -c "$ep" >/dev/null 2>&1 || { echo "  $name docker run FAIL"; return 1; }
   local i; for i in "${nets[@]:1}"; do docker network connect "$i" "$cname" >/dev/null 2>&1 || true; done
+  # Enforce the canonical egress set rather than only preserving whatever networks
+  # the previous container happened to have: a prior recreate that dropped
+  # bzsb-egress would otherwise be carried forward unnoticed. Idempotent.
+  ensure_egress "$cname" "$name" || { echo "  $name egress attach FAIL"; return 1; }
   local k=0 st; while :; do st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohc{{end}}' "$cname" 2>/dev/null)"
     [ "$st" = healthy ] && { echo "  $name deployed_and_healthy PASS"; return 0; }
     [ "$st" = nohc ] && { docker exec "$cname" true >/dev/null 2>&1 && { echo "  $name deployed PASS (no healthcheck)"; return 0; }; }
