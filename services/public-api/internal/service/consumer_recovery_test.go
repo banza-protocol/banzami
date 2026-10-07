@@ -169,6 +169,11 @@ func TestSignupOtp_ExpiredAndLockedAndReplaced(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Age the first code past the canonical 60s resend cooldown so the re-request is
+	// allowed; the re-request then supersedes (consumes) it, per the one-live-signup rule.
+	if _, err := pool.Exec(ctx, `UPDATE consumer_email_otps SET created_at = now() - interval '90 seconds' WHERE lower(email)=lower($1)`, email3); err != nil {
+		t.Fatal(err)
+	}
 	second, err := svc.RequestSignupOtp(ctx, email3, "")
 	if err != nil {
 		t.Fatal(err)
@@ -195,8 +200,11 @@ func seedConsumerWithEmail(t *testing.T, pool *pgxpool.Pool, status string, emai
 		emailArg = email
 	}
 	if _, err := pool.Exec(ctx,
+		// $4 is cast to text explicitly: it is passed as an untyped nil for the
+		// no-email case and, used only inside CASE WHEN $4 IS NULL, Postgres cannot
+		// otherwise infer its type (SQLSTATE 42P08).
 		`INSERT INTO consumers (id, handle, status, display_name, email, email_verified_at)
-		 VALUES ($1,$2,$3,$2,$4, CASE WHEN $4 IS NULL THEN NULL ELSE now() END)`,
+		 VALUES ($1,$2,$3,$2,$4::text, CASE WHEN $4::text IS NULL THEN NULL ELSE now() END)`,
 		id, handle, status, emailArg); err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +240,11 @@ func TestPinReset_GrantIsSeparateSingleUseAndBurnsOthers(t *testing.T) {
 	if token == code {
 		t.Fatal("the reset grant must not equal the OTP")
 	}
-	// A second pending grant, to prove ConsumePinResetGrant burns the rest.
+	// A second pending grant, to prove ConsumePinResetGrant burns the rest. Age the first
+	// reset code past the 60s resend cooldown so the second request is allowed.
+	if _, err := pool.Exec(ctx, `UPDATE consumer_email_otps SET created_at = now() - interval '90 seconds' WHERE consumer_id=$1 AND purpose='PIN_RESET'`, consumerID); err != nil {
+		t.Fatal(err)
+	}
 	code2, _ := svc.RequestPinResetOtp(ctx, consumerID, email, "")
 	token2, err := svc.VerifyPinResetOtp(ctx, consumerID, code2)
 	if err != nil {
@@ -312,9 +324,12 @@ func TestOtpIssuePolicy_PersistentCooldownAndWindowCap(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < recoveryMaxPerWindow-1; i++ {
+		// Inserted CONSUMED: the window cap counts rows consumed-or-not (checkIssuePolicy),
+		// but the consumer_email_otps_live_signup_idx allows only ONE live (unconsumed)
+		// SIGNUP_VERIFY per email, so topping up the window must use consumed rows.
 		if _, err := pool.Exec(ctx,
-			`INSERT INTO consumer_email_otps (id, purpose, email, code_hash, expires_at, created_at)
-			 VALUES ($1,'SIGNUP_VERIFY',$2,'x', now()+interval '10 min', now()-interval '2 minutes')`,
+			`INSERT INTO consumer_email_otps (id, purpose, email, code_hash, expires_at, created_at, consumed_at)
+			 VALUES ($1,'SIGNUP_VERIFY',$2,'x', now()+interval '10 min', now()-interval '2 minutes', now()-interval '90 seconds')`,
 			uuid.NewString(), email); err != nil {
 			t.Fatal(err)
 		}

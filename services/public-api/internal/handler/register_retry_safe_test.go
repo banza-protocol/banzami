@@ -45,6 +45,7 @@ func TestRegister_RetrySafeAfterTransientCoreFailure(t *testing.T) {
 		_, _ = pool.Exec(ctx, `DELETE FROM consumer_email_otps WHERE lower(email)=lower($1)`, email)
 		_, _ = pool.Exec(ctx, `DELETE FROM consumer_auth_grants WHERE lower(email)=lower($1)`, email)
 		_, _ = pool.Exec(ctx, `DELETE FROM public_api_credentials WHERE consumer_id=$1`, consumerID)
+		_, _ = pool.Exec(ctx, `DELETE FROM consumers WHERE id=$1`, consumerID)
 	})
 
 	// Scripted Core: first CreateConsumer fails 503 (transient); the retry
@@ -58,6 +59,12 @@ func TestRegister_RetrySafeAfterTransientCoreFailure(t *testing.T) {
 				_, _ = w.Write([]byte(`{"code":"UNAVAILABLE","message":"core busy"}`))
 				return
 			}
+			// The real Core persists the consumers row on a successful create; the fake
+			// must too, or public_api_credentials_consumer_id_fkey fails when the handler
+			// saves the credential. ON CONFLICT keeps it idempotent across the retry.
+			_, _ = pool.Exec(r.Context(),
+				`INSERT INTO consumers (id, handle, status, display_name)
+				 VALUES ($1,$2,'ACTIVE',$2) ON CONFLICT (id) DO NOTHING`, consumerID, handle)
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(service.ConsumerRecord{
 				ID: consumerID, Handle: handle, Status: "ACTIVE",
