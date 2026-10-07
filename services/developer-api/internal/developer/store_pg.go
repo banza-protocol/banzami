@@ -853,6 +853,29 @@ func (s *pgStore) SetBindingUseCase(ctx context.Context, projectID, useCase stri
 	return err
 }
 
+func (s *pgStore) ManagedMerchantByHandle(ctx context.Context, workspaceID, handle string) (string, bool, error) {
+	var merchantID string
+	// Resolve the @banza to a MERCHANT and require that the workspace already
+	// manages it (bound to one of its projects, any state). One query, so the
+	// result is identical whether the handle is wrong or simply not the
+	// workspace's — no row either way (anti-enumeration).
+	err := s.pool.QueryRow(ctx,
+		`SELECT b.merchant_id::text
+		   FROM handle_registry hr
+		   JOIN developer.dev_project_sandbox_binding b ON b.merchant_id = hr.owner_id
+		   JOIN developer.dev_projects p ON p.id = b.project_id
+		  WHERE hr.handle = $1 AND hr.owner_type = 'MERCHANT'
+		    AND p.workspace_id = $2
+		  LIMIT 1`, handle, workspaceID).Scan(&merchantID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return merchantID, true, nil
+}
+
 func (s *pgStore) BindingUseCase(ctx context.Context, projectID string) (string, error) {
 	var uc *string
 	err := s.pool.QueryRow(ctx,

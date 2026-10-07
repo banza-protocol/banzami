@@ -287,6 +287,14 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
 		r.Post("/projects/{projID}/financial-setup", h.configureFinancialSetup)
 		r.Put("/projects/{projID}/financial-setup/use-case", h.changeSandboxUseCase)
+		// Path B (ADR-060): verified-contact create, link an existing managed
+		// Business by its verified contact, and enrol a contact on one.
+		r.Post("/projects/{projID}/financial-setup/contact/start", h.startSandboxBusinessContact)
+		r.Post("/projects/{projID}/financial-setup/create", h.createSandboxBusinessVerified)
+		r.Post("/projects/{projID}/financial-onboarding/link-by-handle/start", h.startBusinessLinkByHandle)
+		r.Post("/projects/{projID}/financial-onboarding/link-by-handle/confirm", h.confirmBusinessLinkByHandle)
+		r.Post("/projects/{projID}/financial-onboarding/contact/start", h.startBusinessContactEnrolment)
+		r.Post("/projects/{projID}/financial-onboarding/contact/confirm", h.confirmBusinessContactEnrolment)
 		r.Post("/projects/{projID}/financial-onboarding/applications", h.submitFinancialApplication)
 		r.Post("/projects/{projID}/financial-onboarding/link", h.linkExistingBusiness)
 		r.Post("/projects/{projID}/financial-setup/share-code", h.shareSandboxBusiness)
@@ -504,6 +512,149 @@ func (h *Handlers) changeSandboxUseCase(w http.ResponseWriter, r *http.Request) 
 	httpx.JSON(w, http.StatusOK, st)
 }
 
+// POST /projects/{projID}/financial-setup/contact/start   {email}
+func (h *Handlers) startSandboxBusinessContact(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "body must be {\"email\": \"...\"}")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	masked, err := h.svc.StartSandboxBusinessContact(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Email, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"masked_email": masked})
+}
+
+// POST /projects/{projID}/financial-setup/create   {use_case, desired_handle, code}
+func (h *Handlers) createSandboxBusinessVerified(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		UseCase       string `json:"use_case"`
+		DesiredHandle string `json:"desired_handle"`
+		Code          string `json:"code"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "invalid request")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	st, err := h.svc.CreateSandboxBusinessVerified(r.Context(), u.ID, chi.URLParam(r, "projID"), in.UseCase, in.DesiredHandle, in.Code, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, st)
+}
+
+// POST /projects/{projID}/financial-onboarding/link-by-handle/start   {handle}
+func (h *Handlers) startBusinessLinkByHandle(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Handle string `json:"handle"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "body must be {\"handle\": \"...\"}")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	res, err := h.svc.StartBusinessLinkByHandle(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Handle, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, res)
+}
+
+// POST /projects/{projID}/financial-onboarding/link-by-handle/confirm   {handle, code}
+func (h *Handlers) confirmBusinessLinkByHandle(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Handle string `json:"handle"`
+		Code   string `json:"code"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "invalid request")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	st, err := h.svc.ConfirmBusinessLinkByHandle(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Handle, in.Code, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, st)
+}
+
+// POST /projects/{projID}/financial-onboarding/contact/start   {handle, email}
+func (h *Handlers) startBusinessContactEnrolment(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Handle string `json:"handle"`
+		Email  string `json:"email"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "invalid request")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	masked, err := h.svc.StartBusinessContactEnrolment(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Handle, in.Email, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"masked_email": masked})
+}
+
+// POST /projects/{projID}/financial-onboarding/contact/confirm   {handle, code}
+func (h *Handlers) confirmBusinessContactEnrolment(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Handle string `json:"handle"`
+		Code   string `json:"code"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "invalid request")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	masked, err := h.svc.ConfirmBusinessContactEnrolment(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Handle, in.Code, ip, reqID)
+	if err != nil {
+		financialSetupErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"masked_email": masked})
+}
+
 func financialSetupErr(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrWrongEnvironment):
@@ -517,6 +668,17 @@ func financialSetupErr(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrHandleUnavailable):
 		// Neutral: the developer only learns it cannot have this one.
 		httpx.Error(w, http.StatusConflict, "HANDLE_UNAVAILABLE", "this @banza is not available; choose another")
+	case errors.Is(err, ErrVerificationCode):
+		httpx.Error(w, http.StatusBadRequest, "INVALID_CODE", "the code is invalid or has expired")
+	case errors.Is(err, ErrVerificationThrottled):
+		httpx.Error(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts; wait before trying again")
+	case errors.Is(err, ErrNoVerifiedContact):
+		httpx.Error(w, http.StatusConflict, "NO_VERIFIED_CONTACT", "this business has no verified contact")
+	case errors.Is(err, ErrLinkAuthorizationInvalid):
+		httpx.Error(w, http.StatusGone, "LINK_GRANT_EXPIRED", "this authorisation is no longer valid")
+	case errors.Is(err, ErrBusinessNotManaged):
+		// Neutral + anti-enumeration: identical to a nonexistent handle.
+		httpx.Error(w, http.StatusNotFound, "NOT_FOUND", "no such business in this workspace")
 	case errors.Is(err, ErrApplicationInProgress):
 		httpx.Error(w, http.StatusConflict, "APPLICATION_IN_PROGRESS", err.Error())
 	case errors.Is(err, ErrUseCaseSealed):

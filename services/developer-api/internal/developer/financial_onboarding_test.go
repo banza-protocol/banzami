@@ -23,6 +23,18 @@ type fakeOnboarding struct {
 	redeemed  []string
 	target    *gatewayclient.LinkTarget
 	redeemErr error
+
+	// Path B
+	contactStarts      []string
+	linkStarts         []string
+	persisted          []string
+	verifiedContact    bool
+	verifiedContactErr error
+	contactErr         error
+	confirmContactErr  error
+	persistErr         error
+	linkErr            error
+	confirmLinkErr     error
 }
 
 func (f *fakeOnboarding) LatestForProject(context.Context, string) (*gatewayclient.ProjectApplication, error) {
@@ -34,6 +46,42 @@ func (f *fakeOnboarding) SubmitForProject(_ context.Context, in gatewayclient.Ap
 }
 func (f *fakeOnboarding) RedeemLinkCode(_ context.Context, code, projectID string) (*gatewayclient.LinkTarget, error) {
 	f.redeemed = append(f.redeemed, code+"@"+projectID)
+	return f.target, f.redeemErr
+}
+
+// Path B fakes. verifiedContact controls VerifiedContact's answer; contactErr /
+// linkErr inject refusals. Codes are accepted as "OK" unless *CodeErr is set.
+func (f *fakeOnboarding) StartContactVerify(_ context.Context, subjectID, email string) (string, error) {
+	f.contactStarts = append(f.contactStarts, subjectID+":"+email)
+	return "m••••@example.com", f.contactErr
+}
+func (f *fakeOnboarding) ConfirmContactVerify(_ context.Context, subjectID, code string) (string, string, error) {
+	if f.confirmContactErr != nil {
+		return "", "", f.confirmContactErr
+	}
+	return "grant-contact", "dono@example.com", nil
+}
+func (f *fakeOnboarding) PersistVerifiedContact(_ context.Context, grant, merchantID string) (string, error) {
+	f.persisted = append(f.persisted, grant+"@"+merchantID)
+	return "d••••@example.com", f.persistErr
+}
+func (f *fakeOnboarding) VerifiedContact(_ context.Context, merchantID string) (bool, string, error) {
+	if f.verifiedContact {
+		return true, "d••••@example.com", f.verifiedContactErr
+	}
+	return false, "", f.verifiedContactErr
+}
+func (f *fakeOnboarding) StartProjectLink(_ context.Context, merchantID, projectID string) (string, error) {
+	f.linkStarts = append(f.linkStarts, merchantID+"@"+projectID)
+	return "d••••@example.com", f.linkErr
+}
+func (f *fakeOnboarding) ConfirmProjectLink(_ context.Context, merchantID, projectID, code string) (string, error) {
+	if f.confirmLinkErr != nil {
+		return "", f.confirmLinkErr
+	}
+	return "grant-link", nil
+}
+func (f *fakeOnboarding) RedeemProjectLink(_ context.Context, grant, projectID string) (*gatewayclient.LinkTarget, error) {
 	return f.target, f.redeemErr
 }
 

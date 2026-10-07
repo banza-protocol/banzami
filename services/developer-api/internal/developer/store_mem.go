@@ -21,6 +21,7 @@ type memStore struct {
 	projects         map[string]*Project
 	apiKeys          []*apiKeyRec
 	bindings         []*SandboxBinding
+	handles          map[string]string // @banza -> merchantID (test seed for Path B)
 	useCases         map[string]string
 	requestLogs      []memRequestLog
 	webhookEndpoints map[string]*memWebhookEndpoint
@@ -755,6 +756,24 @@ func (m *memStore) ProjectsBoundToMerchant(_ context.Context, merchantID string)
 		}
 	}
 	return out, nil
+}
+
+func (m *memStore) ManagedMerchantByHandle(_ context.Context, workspaceID, handle string) (string, bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	merchantID, ok := m.handles[handle]
+	if !ok || merchantID == "" {
+		return "", false, nil
+	}
+	for _, b := range m.bindings {
+		if b.MerchantID != merchantID {
+			continue
+		}
+		if p, ok := m.projects[b.ProjectID]; ok && p.WorkspaceID == workspaceID {
+			return merchantID, true, nil
+		}
+	}
+	return "", false, nil
 }
 
 func (m *memStore) SetBindingUseCase(_ context.Context, projectID, useCase string) error {

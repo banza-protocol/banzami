@@ -221,3 +221,97 @@ func (c *Client) BusinessPublicIdentity(ctx context.Context, merchantID string) 
 	}
 	return &out, nil
 }
+
+// ── Business verified contacts + Path B project link (ADR-060) ──────────────
+// developer-api authorises the caller before any of these; the Gateway binds the
+// OTP/grant to subject/merchant/project/environment and only ever emails the
+// server-resolved destination. The client only ever sees a masked contact.
+
+// StartContactVerify emails a BUSINESS_CONTACT_VERIFY code to email for a subject
+// (project id pre-provision, or merchant id for enrolment). Returns masked email.
+func (c *Client) StartContactVerify(ctx context.Context, subjectID, email string) (string, error) {
+	var out struct {
+		MaskedEmail string `json:"masked_email"`
+	}
+	if err := c.do(ctx, http.MethodPost, "/internal/v1/business-contacts/verify/start",
+		map[string]string{"subject_id": subjectID, "email": email}, &out); err != nil {
+		return "", err
+	}
+	return out.MaskedEmail, nil
+}
+
+// ConfirmContactVerify returns a single-use CONTACT_VERIFIED grant and the proven
+// email on a correct code.
+func (c *Client) ConfirmContactVerify(ctx context.Context, subjectID, code string) (grant, email string, err error) {
+	var out struct {
+		Grant string `json:"grant"`
+		Email string `json:"email"`
+	}
+	if err := c.do(ctx, http.MethodPost, "/internal/v1/business-contacts/verify/confirm",
+		map[string]string{"subject_id": subjectID, "code": code}, &out); err != nil {
+		return "", "", err
+	}
+	return out.Grant, out.Email, nil
+}
+
+// PersistVerifiedContact spends a CONTACT_VERIFIED grant to record merchantID's
+// verified contact. Returns the masked contact.
+func (c *Client) PersistVerifiedContact(ctx context.Context, grant, merchantID string) (string, error) {
+	var out struct {
+		MaskedEmail string `json:"masked_email"`
+	}
+	if err := c.do(ctx, http.MethodPost, "/internal/v1/business-contacts/persist",
+		map[string]string{"grant": grant, "merchant_id": merchantID}, &out); err != nil {
+		return "", err
+	}
+	return out.MaskedEmail, nil
+}
+
+// VerifiedContact reports whether merchantID has a verified contact and its masked
+// form.
+func (c *Client) VerifiedContact(ctx context.Context, merchantID string) (has bool, masked string, err error) {
+	var out struct {
+		HasContact  bool   `json:"has_contact"`
+		MaskedEmail string `json:"masked_email"`
+	}
+	if err := c.do(ctx, http.MethodGet, "/internal/v1/businesses/"+url.PathEscape(merchantID)+"/verified-contact", nil, &out); err != nil {
+		return false, "", err
+	}
+	return out.HasContact, out.MaskedEmail, nil
+}
+
+// StartProjectLink emails a BUSINESS_PROJECT_LINK code to the Business's verified
+// contact. Returns the masked destination. ErrNoVerifiedContact (as a Refusal with
+// code NO_VERIFIED_CONTACT) when there is none.
+func (c *Client) StartProjectLink(ctx context.Context, merchantID, projectID string) (string, error) {
+	var out struct {
+		MaskedEmail string `json:"masked_email"`
+	}
+	if err := c.do(ctx, http.MethodPost, "/internal/v1/business-project-link/start",
+		map[string]string{"merchant_id": merchantID, "project_id": projectID}, &out); err != nil {
+		return "", err
+	}
+	return out.MaskedEmail, nil
+}
+
+// ConfirmProjectLink returns a single-use BUSINESS_PROJECT_LINK grant on a correct code.
+func (c *Client) ConfirmProjectLink(ctx context.Context, merchantID, projectID, code string) (string, error) {
+	var out struct {
+		Grant string `json:"grant"`
+	}
+	if err := c.do(ctx, http.MethodPost, "/internal/v1/business-project-link/confirm",
+		map[string]string{"merchant_id": merchantID, "project_id": projectID, "code": code}, &out); err != nil {
+		return "", err
+	}
+	return out.Grant, nil
+}
+
+// RedeemProjectLink spends the grant and returns the Business as a link target.
+func (c *Client) RedeemProjectLink(ctx context.Context, grant, projectID string) (*LinkTarget, error) {
+	var out LinkTarget
+	if err := c.do(ctx, http.MethodPost, "/internal/v1/business-project-link/redeem",
+		map[string]string{"grant": grant, "project_id": projectID}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

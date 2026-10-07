@@ -60,6 +60,14 @@ type BusinessOnboarding interface {
 	LatestForProject(ctx context.Context, projectID string) (*gatewayclient.ProjectApplication, error)
 	SubmitForProject(ctx context.Context, in gatewayclient.ApplicationInput) (string, error)
 	RedeemLinkCode(ctx context.Context, code, projectID string) (*gatewayclient.LinkTarget, error)
+	// Path B (ADR-060): Business verified contacts + link via the verified contact.
+	StartContactVerify(ctx context.Context, subjectID, email string) (masked string, err error)
+	ConfirmContactVerify(ctx context.Context, subjectID, code string) (grant, email string, err error)
+	PersistVerifiedContact(ctx context.Context, grant, merchantID string) (masked string, err error)
+	VerifiedContact(ctx context.Context, merchantID string) (has bool, masked string, err error)
+	StartProjectLink(ctx context.Context, merchantID, projectID string) (masked string, err error)
+	ConfirmProjectLink(ctx context.Context, merchantID, projectID, code string) (grant string, err error)
+	RedeemProjectLink(ctx context.Context, grant, projectID string) (*gatewayclient.LinkTarget, error)
 }
 
 // ProjectLinkCodes issues consent codes for a Project's own synthetic Sandbox
