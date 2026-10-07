@@ -667,6 +667,18 @@ release_config_env() {
       # credential is INTERNAL_API_KEY from /run/secrets/core_internal_key.
       # Resolved from the running Gateway, like public-api's below.
       echo "GATEWAY_INTERNAL_URL=http://${BZSB_PROJECT}-api-gateway-staging:8080"
+      # Mail configuration for the Developers Console access-code (passwordless
+      # email OTP login) and developer notices. RESEND_API_KEY arrives as a secret
+      # file (secret_exports_for); without EMAIL_PROVIDER the mailer logs
+      # "email not configured — skipping" and login fails with "could not send the
+      # access code" even though the key and egress are present.
+      echo "EMAIL_PROVIDER=resend"
+      echo "EMAIL_DRY_RUN=false"
+      echo "EMAIL_FROM_NAME=Banzami"
+      echo "EMAIL_FROM_ADDRESS=contact@banzami.com"
+      echo "EMAIL_NOREPLY_NAME=Banzami"
+      echo "EMAIL_NOREPLY_ADDRESS=noreply@banzami.com"
+      echo "EMAIL_REPLY_TO=contact@banzami.com"
       ;;
     public-api-staging)
       # Where public-api asks the Gateway to mint a transaction proof.
