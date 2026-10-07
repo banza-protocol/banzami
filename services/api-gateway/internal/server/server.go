@@ -190,6 +190,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	contactHandler := handler.NewContactHandler(deps.Mailer, deps.ContactRecipient)
 	accountDeletionRequestHandler := handler.NewAccountDeletionRequestHandler(
 		service.NewAccountDeletionRequestService(deps.DBPool, cfg.OTPPepper), deps.Mailer, deps.CoreClient)
+	// Business verified contacts + the two Path B OTP flows (ADR-060). Internal
+	// only: developer-api authorises the caller before reaching these.
+	businessContactLinkHandler := handler.NewBusinessContactLinkHandler(
+		service.NewBusinessContactService(deps.DBPool, cfg.OTPPepper, cfg.Environment), deps.Mailer)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate).WithReadiness(deps.SettlementReadinessSvc)
 	businessOnboardingHandler := handler.NewBusinessOnboardingHandler(deps.MerchantAppSvc, deps.MerchantAppAdminSvc, deps.BusinessLinkCodeSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
@@ -357,6 +361,19 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// developer-api spends a Business's consent code for a Project.
 		r.Post("/internal/v1/business-link-codes/redeem", businessOnboardingHandler.RedeemLinkCode)
 		r.Post("/internal/v1/business-link-codes/issue-for-project", businessOnboardingHandler.IssueProjectLinkCode)
+		// Path B: Business verified contacts + project link via the verified contact.
+		// developer-api authorises the caller (an authorised Business-management
+		// context) before reaching these; the engine binds OTP/grant to
+		// merchant/project/environment.
+		if businessContactLinkHandler.Enabled() {
+			r.Post("/internal/v1/business-contacts/verify/start", businessContactLinkHandler.StartContactVerify)
+			r.Post("/internal/v1/business-contacts/verify/confirm", businessContactLinkHandler.ConfirmContactVerify)
+			r.Post("/internal/v1/business-contacts/persist", businessContactLinkHandler.PersistVerifiedContact)
+			r.Get("/internal/v1/businesses/{merchantID}/verified-contact", businessContactLinkHandler.VerifiedContact)
+			r.Post("/internal/v1/business-project-link/start", businessContactLinkHandler.StartProjectLink)
+			r.Post("/internal/v1/business-project-link/confirm", businessContactLinkHandler.ConfirmProjectLink)
+			r.Post("/internal/v1/business-project-link/redeem", businessContactLinkHandler.RedeemProjectLink)
+		}
 		r.Get("/internal/v1/businesses/{merchantID}/state", merchantAppAdminHandler.BusinessStateForMerchant)
 		// An operator gives a Business that forgot its PIN a fresh activation link.
 		if deps.BusinessPinResetSvc != nil {

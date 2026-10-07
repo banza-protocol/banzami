@@ -131,9 +131,9 @@ func TestBusinessContact_ProjectLinkUsesVerifiedContact(t *testing.T) {
 	}
 
 	project := uuid.NewString()
-	lcode, masked, err := f.svc.StartProjectLink(f.ctx, f.merchant, project, "")
-	if err != nil || masked != "d••••@example.com" {
-		t.Fatalf("start link: %v masked=%q", err, masked)
+	lcode, dest, masked, err := f.svc.StartProjectLink(f.ctx, f.merchant, project, "")
+	if err != nil || masked != "d••••@example.com" || dest != "dono@example.com" {
+		t.Fatalf("start link: %v dest=%q masked=%q", err, dest, masked)
 	}
 	lgrant, err := f.svc.ConfirmProjectLink(f.ctx, f.merchant, project, lcode)
 	if err != nil {
@@ -156,7 +156,7 @@ func TestBusinessContact_ProjectLinkUsesVerifiedContact(t *testing.T) {
 // a .test placeholder).
 func TestBusinessContact_NoVerifiedContactRefusesLink(t *testing.T) {
 	f := newContactFixture(t)
-	_, _, err := f.svc.StartProjectLink(f.ctx, f.merchant, uuid.NewString(), "")
+	_, _, _, err := f.svc.StartProjectLink(f.ctx, f.merchant, uuid.NewString(), "")
 	if !errors.Is(err, ErrNoVerifiedContact) {
 		t.Fatalf("a Business with no verified contact was asked to link: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestBusinessContact_CrossProjectGrantRejected(t *testing.T) {
 	_, _ = f.svc.PersistVerifiedContact(f.ctx, grant, f.merchant)
 
 	projectA := uuid.NewString()
-	lcode, _, _ := f.svc.StartProjectLink(f.ctx, f.merchant, projectA, "")
+	lcode, _, _, _ := f.svc.StartProjectLink(f.ctx, f.merchant, projectA, "")
 	lgrant, _ := f.svc.ConfirmProjectLink(f.ctx, f.merchant, projectA, lcode)
 	// Redeeming for a DIFFERENT project must fail.
 	if _, err := f.svc.RedeemProjectLinkGrant(f.ctx, lgrant, uuid.NewString()); !errors.Is(err, ErrBusinessLinkGrantInvalid) {

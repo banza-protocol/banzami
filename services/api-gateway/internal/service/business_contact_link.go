@@ -415,28 +415,29 @@ func (s *BusinessContactService) VerifiedContactFor(ctx context.Context, merchan
 // ── BUSINESS_PROJECT_LINK ───────────────────────────────────────────────────
 
 // StartProjectLink sends a link code to the Business's verified contact (never a
-// request-supplied address) and returns the raw code plus the masked destination.
-// Refuses with ErrNoVerifiedContact when the Business has no verified contact.
-func (s *BusinessContactService) StartProjectLink(ctx context.Context, merchantID, projectID, ip string) (code, masked string, err error) {
+// request-supplied address). It returns the raw code, the real destination (for
+// the internal handler to deliver to — never shown to the client) and a masked
+// form (for the client). Refuses with ErrNoVerifiedContact when there is none.
+func (s *BusinessContactService) StartProjectLink(ctx context.Context, merchantID, projectID, ip string) (code, email, masked string, err error) {
 	if _, e := uuid.Parse(merchantID); e != nil {
-		return "", "", ErrBusinessContactInvalid
+		return "", "", "", ErrBusinessContactInvalid
 	}
 	if _, e := uuid.Parse(projectID); e != nil {
-		return "", "", ErrBusinessContactInvalid
+		return "", "", "", ErrBusinessContactInvalid
 	}
 	email, masked, ok, err := s.VerifiedContactFor(ctx, merchantID)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if !ok {
-		return "", "", ErrNoVerifiedContact
+		return "", "", "", ErrNoVerifiedContact
 	}
 	pid := projectID
 	code, err = s.issueOTP(ctx, merchantID, &pid, "BUSINESS_PROJECT_LINK", email, ip)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return code, masked, nil
+	return code, email, masked, nil
 }
 
 // ConfirmProjectLink checks the link code for (merchant, project) and issues a
