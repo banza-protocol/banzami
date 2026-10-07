@@ -155,7 +155,10 @@ function mentions(file) {
   // The Console list documents the Console's own backend, not the Developer API.
   const consoleRanges = [];
   const consoleRows = [];
-  for (const m of src.matchAll(/<H[23](?: id="[^"]*")?>(?:Console \((?:acesso e chaves|access and keys)\)|Erros da Consola|Console errors)<\/H3>/g)) {
+  // Closing tag: H2 or H3 (the Errors page uses H2; it only ever matched an H3 before, so its Console
+  // table was never checked). "Erros e situações comuns" / "Common errors and situations" is the
+  // Financial setup page's section of the same Console codes.
+  for (const m of src.matchAll(/<H[23](?: id="[^"]*")?>(?:Console \((?:acesso e chaves|access and keys)\)|Erros da Consola|Console errors|Erros e situações comuns|Common errors and situations)<\/H[23]>/g)) {
     const next = [src.indexOf('<H2', m.index + 5), src.indexOf('<NextStepCards', m.index)].filter((x) => x > 0);
     const end = next.length ? Math.min(...next) : src.length;
     consoleRanges.push([m.index, end]);

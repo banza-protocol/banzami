@@ -73,8 +73,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/financial-setup',
     tone: 'ok',
     desc: {
-      pt: 'Devolve a prontidão financeira do projeto: se pode receber e liquidar e, se não puder, o que falta. Cada bloqueio em settlement.blockers é a recusa que uma liquidação devolveria; um projeto por configurar responde 200 com UNCONFIGURED.',
-      en: 'Returns the project’s financial readiness: whether it can receive payments and settle and, if not, what is missing. Each entry in settlement.blockers is the refusal a settlement would return; an unconfigured project answers 200 with UNCONFIGURED.',
+      pt: 'Devolve a prontidão financeira do projeto: se pode receber e liquidar e, se não puder, o que falta. Cada bloqueio em settlement.blockers é a recusa que uma liquidação devolveria; um projeto por configurar responde 200 com UNCONFIGURED. O campo financial_identity.handle é o @banza do negócio ligado, que pertence ao negócio, não ao projeto.',
+      en: 'Returns the project’s financial readiness: whether it can receive payments and settle and, if not, what is missing. Each entry in settlement.blockers is the refusal a settlement would return; an unconfigured project answers 200 with UNCONFIGURED. The financial_identity.handle field is the @banza of the linked Business, which belongs to the Business, not to the Project.',
     },
     credential: { pt: 'Chave secreta do projeto', en: 'Project secret key' },
     curl: `curl https://sandbox-api.banzami.com/v1/financial-setup \\

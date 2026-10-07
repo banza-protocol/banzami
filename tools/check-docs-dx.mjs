@@ -25,7 +25,7 @@ const CODES = new Set(catalogue.errors.map((e) => e.code));
 
 const SLUG = {
   GetStarted: 'get-started', Concepts: 'concepts', Payments: 'payments', Webhooks: 'webhooks', Events: 'events', Refunds: 'refunds',
-  Settlements: 'settlements', Receipts: 'receipts', Transfers: 'transfers', Doa: 'doa', Console: 'console', Reference: 'reference',
+  Settlements: 'settlements', Receipts: 'receipts', Transfers: 'transfers', Doa: 'doa', Console: 'console', FinancialSetup: 'financial-setup', Reference: 'reference',
   Errors: 'errors', Sdk: 'sdk', Artifacts: 'artifacts', Testing: 'testing', GoingLive: 'going-live', Trust: 'trust',
   Troubleshooting: 'troubleshooting', Support: 'support', Changelog: 'changelog', Glossary: 'glossary',
 };

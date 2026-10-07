@@ -44,15 +44,19 @@ export const COVERAGE = {
   DOCS_FINANCIAL_SETUP_COMPLETE: {
     section: 7, heading: 'FINANCIAL SETUP',
     items: [
-      { spec: 'why it exists', pt: /A configuração financeira liga o projeto a um Business/, en: /Financial Setup connects the project to a Business/ },
+      { spec: 'why it exists', pt: /A configuração financeira liga um projeto ao negócio que recebe os seus pagamentos/, en: /Financial setup links a project to the business that receives its payments/ },
       { spec: 'Project → Financial Setup → Business → financial authority', pt: /A autoridade vem da chave\. A chave identifica o projeto, e o projeto determina o Business/, en: /Authority comes from the key\. The key identifies the project, and the project determines the Business/ },
-      // The spec's labels, read under ADR-060 (SANDBOX-SELF-SERVICE-001): in the
-      // Sandbox the "new Business" path is a test Business created from the use
-      // case with no review, and "truthfully" now means saying nobody reviews it.
-      { spec: 'A. new Business application', pt: /Negócio de teste[\s\S]{0,400}Escolhe o tipo de uso/, en: /Test Business[\s\S]{0,400}Choose the use case/ },
-      { spec: 'B. connect existing Business with single-use consent code', pt: /código de consentimento[\s\S]{0,400}utilização única/, en: /consent code[\s\S]{0,400}works once/ },
-      { spec: 'Explain operator\nreview truthfully', pt: /Ninguém espera: a Banzami cria o negócio/, en: /Nobody waits: Banzami creates the Business/ },
-      { spec: 'No auto-KYB fiction', pt: /É uma entidade de teste: não é verificada/, en: /It is a test entity: not verified/ },
+      // The spec's labels, read under ADR-060 (SANDBOX-SELF-SERVICE-001, then the
+      // business identity selection and verified @banza linking): in the Sandbox
+      // the "new Business" path creates a test Business from the use case, a chosen
+      // @banza and a verified contact email, with no review; connecting an existing
+      // Business is done by @banza through its verified contact, or with a
+      // single-use consent code; "truthfully" means saying nobody reviews it; and a
+      // confirmed email is stated to be neither KYB nor legal ownership.
+      { spec: 'A. new Business application', pt: /Criar um novo negócio de teste[\s\S]{0,600}Escolha o tipo de uso/, en: /Create a new test Business[\s\S]{0,600}Choose the use case/ },
+      { spec: 'B. connect existing Business with single-use consent code', pt: /consentimento de uso único/, en: /single-use consent/ },
+      { spec: 'Explain operator\nreview truthfully', pt: /sem candidatura, sem documentos e sem esperar por ninguém/, en: /no application, no documents and no waiting/ },
+      { spec: 'No auto-KYB fiction', pt: /não é verificado e não existe fora do Sandbox/, en: /not verified and does not exist outside the Sandbox/ },
     ],
   },
   DOCS_API_KEYS_COMPLETE: {

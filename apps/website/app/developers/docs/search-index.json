@@ -78,6 +78,13 @@
   },
   {
    "k": "page",
+   "t": "Configuração financeira",
+   "h": "/docs/financial-setup",
+   "d": "Ligar um projeto a um negócio, com o seu @banza.",
+   "a": "financial setup|business|link business|link code|business control|kyb|handle|banza handle|project business"
+  },
+  {
+   "k": "page",
    "t": "Referência da API",
    "h": "/docs/reference",
    "d": "Cada endpoint da API v1.",
@@ -198,7 +205,7 @@
   },
   {
    "k": "section",
-   "t": "Concluir a configuração financeira",
+   "t": "Configurar a identidade financeira",
    "h": "/docs/get-started#passo-4"
   },
   {
@@ -810,6 +817,97 @@
   },
   {
    "k": "section",
+   "t": "O que é a configuração financeira",
+   "h": "/docs/financial-setup#o-que-e"
+  },
+  {
+   "k": "section",
+   "t": "Projeto vs negócio",
+   "h": "/docs/financial-setup#projeto-vs-negocio"
+  },
+  {
+   "k": "section",
+   "t": "O que é o @banza",
+   "h": "/docs/financial-setup#o-que-e-o-banza",
+   "a": "banza handle|handle"
+  },
+  {
+   "k": "section",
+   "t": "Criar um novo negócio de teste",
+   "h": "/docs/financial-setup#criar-negocio",
+   "a": "create business|new business"
+  },
+  {
+   "k": "section",
+   "t": "Ligar um negócio existente",
+   "h": "/docs/financial-setup#ligar-negocio",
+   "a": "link business|link existing business"
+  },
+  {
+   "k": "section",
+   "t": "Confirmar controlo por email",
+   "h": "/docs/financial-setup#confirmar-controlo",
+   "a": "confirm control|email verification"
+  },
+  {
+   "k": "section",
+   "t": "Porque não pode indicar outro email?",
+   "h": "/docs/financial-setup#porque-nao-outro-email"
+  },
+  {
+   "k": "section",
+   "t": "Usar um código de ligação",
+   "h": "/docs/financial-setup#codigo-de-ligacao",
+   "a": "link code"
+  },
+  {
+   "k": "section",
+   "t": "Negócios encontrados na sua conta",
+   "h": "/docs/financial-setup#negocios-na-conta"
+  },
+  {
+   "k": "section",
+   "t": "Candidaturas e @banza já reservado",
+   "h": "/docs/financial-setup#candidaturas"
+  },
+  {
+   "k": "section",
+   "t": "Estado «Pronto»",
+   "h": "/docs/financial-setup#pronto"
+  },
+  {
+   "k": "section",
+   "t": "KYB vs confirmação de controlo",
+   "h": "/docs/financial-setup#kyb",
+   "a": "kyb|business verification"
+  },
+  {
+   "k": "section",
+   "t": "Utilizar o mesmo negócio em mais de um projeto",
+   "h": "/docs/financial-setup#varios-projetos"
+  },
+  {
+   "k": "section",
+   "t": "Segurança e privacidade",
+   "h": "/docs/financial-setup#seguranca"
+  },
+  {
+   "k": "section",
+   "t": "Erros e situações comuns",
+   "h": "/docs/financial-setup#erros-e-situacoes-comuns"
+  },
+  {
+   "k": "section",
+   "t": "Sandbox vs operações com dinheiro real",
+   "h": "/docs/financial-setup#sandbox-vs-dinheiro-real"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/financial-setup"
+  },
+  {
+   "k": "section",
    "t": "Autenticação",
    "h": "/docs/reference#autenticacao"
   },
@@ -908,6 +1006,11 @@
    "k": "section",
    "t": "Rail externo em baixo",
    "h": "/docs/testing#rail-externo"
+  },
+  {
+   "k": "section",
+   "t": "Configuração financeira",
+   "h": "/docs/testing#configuracao-financeira-testes"
   },
   {
    "k": "section",
@@ -2235,7 +2338,7 @@
    "k": "term",
    "t": "@banza",
    "h": "/docs/glossary#glossario-banza-handle",
-   "d": "Identificador público de uma conta Banzami usado para receber transferências."
+   "d": "Identificador único de um negócio na Banzami. O @banza pertence ao negócio, não ao projeto."
   },
   {
    "k": "term",
@@ -2294,26 +2397,56 @@
    "k": "term",
    "t": "Workspace",
    "h": "/docs/glossary#glossario-workspace",
-   "d": "O grupo de pessoas com acesso a um conjunto de projetos, com papéis (Owner, Admin, Developer, Finance, Viewer)."
+   "d": "O grupo de pessoas com acesso a um conjunto de projetos, com papéis (Owner, Admin, Developer, Finance, Viewer).",
+   "a": "workspace"
   },
   {
    "k": "term",
    "t": "Projeto",
    "h": "/docs/glossary#glossario-projeto",
-   "d": "Uma aplicação integrada: as suas chaves, webhooks e registos. O Project ID não muda quando o nome muda."
+   "d": "A integração técnica de uma aplicação: as suas chaves, webhooks e registos. Liga-se a um negócio. O Project ID não muda quando o nome muda.",
+   "a": "project"
   },
   {
    "k": "term",
    "t": "Configuração financeira",
    "h": "/docs/glossary#glossario-configuracao-financeira",
-   "d": "A ligação entre um projeto e o Business que recebe os seus pagamentos. Sem ela, o projeto não recebe pagamentos.",
+   "d": "O passo em que um projeto se liga a um negócio, criado de novo ou já existente. Sem ele, o projeto não recebe pagamentos.",
    "a": "financial setup"
   },
   {
    "k": "term",
-   "t": "Business",
+   "t": "Negócio (Business)",
    "h": "/docs/glossary#glossario-business",
-   "d": "A entidade verificada pela Banzami que recebe os pagamentos de um projeto."
+   "d": "A identidade financeira que recebe os pagamentos e tem um @banza e uma carteira. Um projeto liga-se a um negócio, e um negócio pode receber em mais de um projeto.",
+   "a": "business|business account"
+  },
+  {
+   "k": "term",
+   "t": "Negócio de teste (Sandbox)",
+   "h": "/docs/glossary#glossario-negocio-teste",
+   "d": "Um negócio sintético do Sandbox. Não é verificado, o dinheiro é fictício e não existe fora do Sandbox.",
+   "a": "test business|sandbox business"
+  },
+  {
+   "k": "term",
+   "t": "Confirmação de controlo do negócio",
+   "h": "/docs/glossary#glossario-confirmacao-controlo",
+   "d": "A confirmação por email de que quem cria ou liga um negócio controla o seu contacto. Não é KYB e não prova a titularidade legal de uma empresa.",
+   "a": "business control confirmation|email confirmation"
+  },
+  {
+   "k": "term",
+   "t": "KYB",
+   "h": "/docs/glossary#glossario-kyb",
+   "d": "A verificação de um negócio como entidade, feita pela Banzami. É independente da confirmação por email e não se aplica a um negócio de teste do Sandbox."
+  },
+  {
+   "k": "term",
+   "t": "Código de ligação",
+   "h": "/docs/glossary#glossario-codigo-ligacao",
+   "d": "Um código de uso único, válido dez minutos, que o negócio gera para consentir que outro projeto o use. Liga o mesmo negócio, sem criar outro.",
+   "a": "link code"
   },
   {
    "k": "term",
@@ -2424,6 +2557,12 @@
   },
   {
    "k": "page",
+   "t": "Financial setup",
+   "h": "/docs/en/financial-setup",
+   "d": "Link a project to a business, with its @banza."
+  },
+  {
+   "k": "page",
    "t": "API reference",
    "h": "/docs/en/reference",
    "d": "Every v1 endpoint."
@@ -2531,7 +2670,7 @@
   },
   {
    "k": "section",
-   "t": "Complete Financial Setup",
+   "t": "Set up the financial identity",
    "h": "/docs/en/get-started#step-4"
   },
   {
@@ -3136,6 +3275,91 @@
   },
   {
    "k": "section",
+   "t": "What financial setup is",
+   "h": "/docs/en/financial-setup#what-it-is"
+  },
+  {
+   "k": "section",
+   "t": "Project vs Business",
+   "h": "/docs/en/financial-setup#project-vs-business"
+  },
+  {
+   "k": "section",
+   "t": "What the @banza is",
+   "h": "/docs/en/financial-setup#what-the-banza-is"
+  },
+  {
+   "k": "section",
+   "t": "Create a new test Business",
+   "h": "/docs/en/financial-setup#create-business"
+  },
+  {
+   "k": "section",
+   "t": "Link an existing Business",
+   "h": "/docs/en/financial-setup#link-business"
+  },
+  {
+   "k": "section",
+   "t": "Confirm control by email",
+   "h": "/docs/en/financial-setup#confirm-control"
+  },
+  {
+   "k": "section",
+   "t": "Why can’t you provide another email?",
+   "h": "/docs/en/financial-setup#why-not-another-email"
+  },
+  {
+   "k": "section",
+   "t": "Use a link code",
+   "h": "/docs/en/financial-setup#link-code"
+  },
+  {
+   "k": "section",
+   "t": "Businesses found in your account",
+   "h": "/docs/en/financial-setup#businesses-in-your-account"
+  },
+  {
+   "k": "section",
+   "t": "Applications and an @banza already reserved",
+   "h": "/docs/en/financial-setup#applications"
+  },
+  {
+   "k": "section",
+   "t": "The “Ready” state",
+   "h": "/docs/en/financial-setup#ready"
+  },
+  {
+   "k": "section",
+   "t": "KYB vs confirmation of control",
+   "h": "/docs/en/financial-setup#kyb"
+  },
+  {
+   "k": "section",
+   "t": "Use the same Business in more than one project",
+   "h": "/docs/en/financial-setup#several-projects"
+  },
+  {
+   "k": "section",
+   "t": "Security and privacy",
+   "h": "/docs/en/financial-setup#security"
+  },
+  {
+   "k": "section",
+   "t": "Common errors and situations",
+   "h": "/docs/en/financial-setup#common-errors-and-situations"
+  },
+  {
+   "k": "section",
+   "t": "Sandbox vs real-money operations",
+   "h": "/docs/en/financial-setup#sandbox-vs-real-money"
+  },
+  {
+   "k": "method",
+   "t": "getFinancialSetup",
+   "h": "/docs/en/financial-setup"
+  },
+  {
+   "k": "section",
    "t": "Authentication",
    "h": "/docs/en/reference#authentication"
   },
@@ -3233,6 +3457,11 @@
    "k": "section",
    "t": "External rail down",
    "h": "/docs/en/testing#external-rail"
+  },
+  {
+   "k": "section",
+   "t": "Financial setup",
+   "h": "/docs/en/testing#financial-setup-tests"
   },
   {
    "k": "section",
@@ -4555,7 +4784,7 @@
    "k": "term",
    "t": "@banza",
    "h": "/docs/en/glossary#concepts",
-   "d": "Public identifier of a Banzami account, used to receive transfers."
+   "d": "The unique identifier of a Business on Banzami. The @banza belongs to the Business, not to the Project."
   },
   {
    "k": "term",
@@ -4615,19 +4844,43 @@
    "k": "term",
    "t": "Project",
    "h": "/docs/en/glossary#concepts",
-   "d": "One integrated application: its keys, webhooks and logs. The Project ID does not change when its name does."
+   "d": "The technical integration of an application: its keys, webhooks and logs. It links to a Business. The Project ID does not change when its name does."
   },
   {
    "k": "term",
-   "t": "Financial Setup",
+   "t": "Financial setup",
    "h": "/docs/en/glossary#concepts",
-   "d": "The connection between a project and the Business that receives its payments. Without it, the project cannot be paid."
+   "d": "The step where a project links to a Business, newly created or already existing. Without it, the project cannot be paid."
   },
   {
    "k": "term",
    "t": "Business",
    "h": "/docs/en/glossary#concepts",
-   "d": "The entity, verified by Banzami, that receives a project’s payments."
+   "d": "The financial identity that receives payments and has an @banza and a wallet. A project links to a Business, and a Business can receive in more than one project."
+  },
+  {
+   "k": "term",
+   "t": "Test Business (Sandbox)",
+   "h": "/docs/en/glossary#concepts",
+   "d": "A synthetic Sandbox Business. It is not verified, its money is fictitious, and it does not exist outside the Sandbox."
+  },
+  {
+   "k": "term",
+   "t": "Business control confirmation",
+   "h": "/docs/en/glossary#concepts",
+   "d": "The email confirmation that whoever creates or links a Business controls its contact. It is not KYB and does not prove the legal ownership of a company."
+  },
+  {
+   "k": "term",
+   "t": "KYB",
+   "h": "/docs/en/glossary#concepts",
+   "d": "The verification of a Business as an entity, carried out by Banzami. It is independent of the email confirmation and does not apply to a Sandbox test Business."
+  },
+  {
+   "k": "term",
+   "t": "Link code",
+   "h": "/docs/en/glossary#concepts",
+   "d": "A single-use code, valid for ten minutes, that a Business generates to consent to another project using it. It links the same Business, without creating another."
   },
   {
    "k": "term",

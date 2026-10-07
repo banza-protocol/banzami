@@ -11,10 +11,10 @@
 import { MailLink } from '@/components/MailLink';
 import type { ReactNode } from 'react';
 import { GlossaryTerm } from './GlossaryTerm';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram, MoneyMovementDiagram } from './diagrams';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ProjectBusinessDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram, MoneyMovementDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import { GLOSSARY } from './glossary';
-import { Badge, BODY, Callout, Code, CodeBlock, CodeTabs, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
+import { Badge, BODY, Callout, Code, CodeBlock, CodeTabs, H1_STYLE, H2, H3, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono, type Tone } from './ui';
 import { ResourceReference, ScopeTable } from './reference';
 import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
 import { EventReference } from './EventReference';
@@ -376,7 +376,7 @@ const verificado = banzami.webhooks.constructEvent(raw, assinatura);`;
 
 const QS_STAGES = [
   { title: 'Conta e projeto', steps: [1, 3] as [number, number], note: 'Alguns minutos, com um email.' },
-  { title: 'Configuração financeira', steps: [4, 4] as [number, number], note: 'Revista pela Banzami antes de ficar pronta.' },
+  { title: 'Configuração financeira', steps: [4, 4] as [number, number], note: 'Criar ou ligar um negócio, no Sandbox.' },
   { title: 'Chave e SDK', steps: [5, 7] as [number, number], note: 'Alguns minutos, até à primeira resposta 200.' },
   { title: 'Primeiro pagamento', steps: [8, 12] as [number, number], note: 'Sessão, pagamento, confirmação e webhook.' },
 ];
@@ -421,45 +421,48 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
 
               <H2 id="configuracao-financeira">Configuração financeira</H2>
               <P>
-                A configuração financeira liga o projeto a um <strong>Business</strong>: a entidade que recebe os pagamentos.
+                Um projeto não fica financeiramente pronto quando é criado. A configuração financeira liga-o a um <strong>negócio</strong>: a identidade financeira que recebe os pagamentos, com um @banza e uma carteira.
                 Sem ela, o projeto pode usar chaves, webhooks e a API, mas não pode receber: criar uma sessão responde <Code>403 PAYMENTS_UNAVAILABLE</Code>.
-                No Sandbox, a Banzami cria para o projeto um <strong>negócio de teste</strong> no momento em que escolhe o tipo de uso: sem candidatura, sem documentos e sem esperar. É uma entidade de teste: não é verificada e não existe fora do Sandbox.
+              </P>
+              <P>
+                No Sandbox, faz este passo na Consola: sem candidatura, sem documentos e sem esperar. O negócio é de teste: o dinheiro é fictício, não é verificado e não existe fora do Sandbox.
+                O @banza pertence ao negócio, não ao projeto. <a href="/docs/financial-setup" style={a}>Configuração financeira, passo a passo</a>
               </P>
               <FinancialSetupDiagram l={{
                 title: 'Configuração financeira no Sandbox: dois caminhos, o mesmo resultado',
-                desc: 'O projeto fica financeiramente pronto de uma de duas formas: criando um negócio de teste, de imediato, a partir do tipo de uso, ou ligando um Business existente com o código de consentimento do seu titular.',
+                desc: 'O projeto fica financeiramente pronto de uma de duas formas: criando um novo negócio de teste, depois de confirmar o email, ou ligando um negócio existente, pelo @banza ou com um código de ligação.',
                 project: 'Projeto',
-                newBusiness: 'Criar um negócio de teste', newNote: 'imediato, pelo tipo de uso',
-                existing: 'Ligar um Business existente', existingNote: 'código de consentimento',
+                newBusiness: 'Criar um novo negócio', newNote: 'escolhe o @banza, confirma o email',
+                existing: 'Ligar um negócio existente', existingNote: '@banza ou código de ligação',
                 ready: 'Financeiramente pronto', readyNote: 'o projeto pode receber pagamentos',
               }} />
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}>
                     <th style={TH}></th>
-                    <th style={TH}>Negócio de teste</th>
-                    <th style={TH}>Business existente</th>
+                    <th style={TH}>Criar um novo negócio</th>
+                    <th style={TH}>Ligar um negócio existente</th>
                   </tr></thead>
                   <tbody>
                     {[
-                      ['Quando usar', 'Quase sempre: é o caminho do Sandbox para um projeto novo.', 'Outro projeto seu já tem um negócio de teste, ou quer usar um Business Banzami que já existe.'],
-                      ['O que faz', 'Escolhe o tipo de uso: “Loja, serviço ou negócio” ou “Aplicação ou plataforma”.', 'Introduz o código de consentimento gerado pelo titular, na Consola do outro projeto ou na app Banzami Business.'],
-                      ['Quem decide', 'Ninguém espera: a Banzami cria o negócio e atribui a classificação e o preço para esse uso.', 'O titular, ao gerar o código. O código é de utilização única e vale dez minutos.'],
+                      ['Quando usar', 'O projeto ainda não tem negócio. É o caminho de um projeto novo.', 'O negócio já existe e o seu workspace já o gere, por exemplo porque outro projeto seu já recebe nele.'],
+                      ['O que faz', 'Escolhe o tipo de uso e o @banza, e confirma o email de contacto com um código.', 'Introduz o @banza do negócio e o código enviado ao contacto verificado do negócio, ou um código de ligação.'],
+                      ['Quem confirma', 'Quem controla o email de contacto indicado. Nada é criado antes de o email ser verificado.', 'O contacto já verificado do negócio, ou o próprio negócio com um código de ligação. Nunca um email indicado nesse momento.'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <StepCard lang="pt" n={4} of={12} id="passo-4" title="Concluir a configuração financeira"
-                what="Ligar o projeto ao Business que recebe os pagamentos."
+              <StepCard lang="pt" n={4} of={12} id="passo-4" title="Configurar a identidade financeira"
+                what="Criar um novo negócio de teste, ou ligar um negócio existente, até o projeto ficar pronto."
                 why="O destinatário de um pagamento vem desta configuração, nunca do pedido da sua aplicação."
-                success={<>A Consola mostra o projeto como pronto, e <Code>getFinancialSetup()</Code> devolve <Code>financial_setup.state</Code> igual a <Code>READY</Code> ou <Code>SEALED</Code>.</>}
+                success={<>A Consola mostra o estado Pronto, e <Code>getFinancialSetup()</Code> devolve <Code>financial_setup.state</Code> igual a <Code>READY</Code> ou <Code>SEALED</Code>.</>}
                 next="Criar uma chave secreta.">
-                Na Consola, abra <strong>Configuração financeira</strong>, escolha o tipo de uso e selecione <strong>Configurar a Sandbox</strong>, ou ligue um Business existente com o código. Na aplicação, consulte a prontidão antes de oferecer o pagamento:
+                Na Consola, abra o projeto, selecione <strong>Configuração financeira</strong> e siga um dos caminhos: criar o negócio (tipo de uso, @banza e email confirmado por código), ligá-lo pelo @banza, ou usar um código de ligação. Na aplicação, consulte a prontidão antes de oferecer o pagamento:
                 <CodeBlock label="ts · consultar a prontidão financeira" raw={SAMPLE_READY} onCopy={copy} />
               </StepCard>
-              <Callout>A sua aplicação nunca envia uma classificação, um preço ou uma taxa: a Banzami atribui-os ao Business para o tipo de uso escolhido. O tipo de uso pode mudar até ao primeiro pagamento emitido.</Callout>
+              <Callout>A sua aplicação nunca envia uma classificação, um preço ou uma taxa: a Banzami atribui-os ao negócio para o tipo de uso escolhido. O tipo de uso pode mudar até ao primeiro pagamento emitido.</Callout>
 
               <H2 id="chave-e-sdk">Chave e SDK</H2>
               <StepCard lang="pt" n={5} of={12} id="passo-5" title="Criar uma chave secreta"
@@ -556,7 +559,7 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="conceitos-banzami">
               <h1 style={H1_STYLE}>Como a Banzami funciona</h1>
-              <PageLede>Como a Banzami organiza uma integração (workspace, projeto, Business) e as regras que todos os recursos financeiros seguem. Leia antes da primeira integração, ou quando um termo de outro guia não for claro.</PageLede>
+              <PageLede>Como a Banzami organiza uma integração (workspace, projeto, negócio e @banza) e as regras que todos os recursos financeiros seguem. Leia antes da primeira integração, ou quando um termo de outro guia não for claro.</PageLede>
 
               <H2 id="sandbox-live">Sandbox e Live</H2>
               <P>
@@ -655,16 +658,21 @@ export function PtConcepts({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Conceito</th><th style={TH}>O que é</th><th style={TH}>Não confundir com</th></tr></thead>
                   <tbody>
                     {[
-                      ['Workspace', 'A fronteira de acesso da equipa. Uma pessoa pode pertencer a vários workspaces.', 'Projeto: a fronteira da integração.'],
-                      ['Projeto', 'Uma aplicação: chaves, webhooks e registos.', 'Business: a entidade que recebe.'],
-                      ['Business', 'A entidade verificada que recebe os pagamentos.', 'Conta: onde o valor fica, dentro da carteira do Business.'],
-                      ['Conta', 'Uma divisão da carteira, por exemplo por campanha ou loja.', 'Carteira: o conjunto das contas do Business.'],
+                      ['Workspace', 'A fronteira organizacional: quem tem acesso e com que papel. Uma pessoa pode pertencer a vários workspaces.', 'Projeto: a integração técnica.'],
+                      ['Projeto', 'A integração técnica de uma aplicação: chaves, webhooks e registos.', 'Negócio: a identidade financeira.'],
+                      ['Negócio (Business)', 'A identidade financeira: quem recebe os pagamentos, com um @banza e uma carteira. No Sandbox, um negócio de teste.', 'Projeto: um projeto liga-se a um negócio, não é um negócio.'],
+                      ['@banza', 'O identificador único do negócio. Pertence ao negócio, não ao projeto.', 'Nome do projeto: o projeto não tem @banza.'],
+                      ['Carteira', 'O saldo do negócio, em AOA, dividido em contas.', 'Conta: uma divisão da carteira.'],
+                      ['Conta', 'Uma divisão da carteira, por exemplo por campanha ou loja.', 'Carteira: o conjunto das contas do negócio.'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              <P>
+                O @banza pertence ao negócio, não ao projeto. O projeto liga-se a um negócio na configuração financeira, e o mesmo negócio pode receber em mais de um projeto. <a href="/docs/financial-setup" style={a}>Configuração financeira</a>
+              </P>
               <Callout>
                 <strong>A autoridade vem da chave.</strong> A chave identifica o projeto, e o projeto determina o Business. Os ids que envia selecionam recursos seus; nunca dão acesso a recursos de outro projeto.
               </Callout>
@@ -1442,17 +1450,20 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
 
               <H2 id="doa-preparar">1. Preparar o projeto</H2>
               <ChapterFacts lang="pt" appLabel="DOA"
-                goal="Um projeto com configuração financeira concluída e uma chave com os scopes necessários."
-                app="Cria o workspace e o projeto na Consola, conclui a configuração financeira e guarda a chave e o segredo do webhook no servidor."
-                banzami="Cria o negócio de teste do projeto para o tipo de uso Aplicação ou plataforma (ou aceita o código de consentimento do titular) e atribui a classificação e o perfil de preço."
+                goal="Um projeto com a configuração financeira concluída (estado Pronto) e uma chave com os scopes necessários."
+                app="Cria o workspace Doa Sandbox e o projeto Doa Payments na Consola, conclui a configuração financeira e guarda a chave e o segredo do webhook no servidor."
+                banzami="Cria o negócio Doa com o @doa depois de o email do negócio ser verificado (ou liga um negócio existente) e atribui a classificação e o perfil de preço."
                 result={<><Code>getFinancialSetup()</Code> devolve <Code>financial_setup.state</Code> igual a <Code>READY</Code> ou <Code>SEALED</Code>.</>}
                 failure={<><Code>403 PAYMENTS_UNAVAILABLE</Code> ao criar a sessão: a configuração financeira ainda não está concluída.</>} />
               <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <LI>Na <a href="/docs/console" style={a}>Consola</a>, crie um <strong>workspace</strong> e um <strong>projeto</strong> para a aplicação.</LI>
+                <LI>Na <a href="/docs/console" style={a}>Consola</a>, crie o <strong>workspace</strong> Doa Sandbox e o <strong>projeto</strong> Doa Payments. O projeto não fica financeiramente pronto quando é criado.</LI>
                 <LI>
-                  Conclua a <strong>configuração financeira</strong>: escolha o tipo de uso <strong>Aplicação ou plataforma</strong> (a Banzami cria o negócio de teste com a classificação APPLICATION e o preço de referência, sem esperar por ninguém), ou ligue um Business existente com o
-                  código de consentimento gerado pelo titular. <a href="/docs/get-started#configuracao-financeira" style={a}>Configuração financeira</a>
+                  Abra a <strong>configuração financeira</strong> do projeto e escolha um de três caminhos. <a href="/docs/financial-setup" style={a}>Configuração financeira</a>
                 </LI>
+                <LI>Criar o negócio Doa: escolha o tipo de uso <strong>Aplicação ou plataforma</strong> (a Banzami atribui a classificação APPLICATION e o preço de referência), escolha o @doa e confirme o email de contacto do negócio com o código que recebe.</LI>
+                <LI>Ligar o negócio Doa, se o seu workspace já o gere: introduza o @doa e confirme o código enviado ao contacto verificado do negócio.</LI>
+                <LI>Usar um código de consentimento (o código de ligação) gerado pelo negócio Doa.</LI>
+                <LI>Confirme que o projeto está no estado Pronto. O DOA não tem um caminho especial: usa os mesmos contratos públicos que qualquer developer.</LI>
                 <LI>
                   Crie uma chave secreta com <Code>identity:read</Code>, <Code>wallet_accounts:create</Code>, <Code>wallet_accounts:read</Code>,{' '}
                   <Code>payment_sessions:write</Code>, <Code>payment_sessions:read</Code>, <Code>webhooks:write</Code>, <Code>webhooks:read</Code> e{' '}
@@ -1649,7 +1660,10 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               <PageLede>A Consola, em <Code>developers.banzami.com</Code>, é onde gere workspaces, projetos, configuração financeira, chaves, webhooks e registos.</PageLede>
 
               <H2 id="modelo">O modelo</H2>
-              <P>Pessoa, workspace, projeto e Business são conceitos distintos. <a href="/docs/concepts#modelo" style={a}>O modelo de integração</a></P>
+              <P>
+                Workspace (organizacional), projeto (integração técnica), negócio (identidade financeira), @banza (o identificador único do negócio) e carteira (o saldo do negócio) são conceitos distintos.
+                O caminho na Consola é Workspace, Projetos, Configuração financeira e o negócio ligado. <a href="/docs/concepts#modelo" style={a}>O modelo de integração</a>
+              </P>
 
               <H2 id="conta">Conta</H2>
               <P>A conta pessoal fica em <Code>/conta</Code>. A autenticação é feita com email e um código de seis dígitos; não há palavra-passe.</P>
@@ -1730,11 +1744,21 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
 
               <H2 id="financeiro">Configuração financeira</H2>
               <P>
-                Liga o projeto ao Business que recebe os pagamentos. No Sandbox, escolha o tipo de uso (<strong>Loja, serviço ou negócio</strong> ou <strong>Aplicação ou plataforma</strong>) e a Banzami cria um negócio de teste, com a classificação e o preço desse uso; ou ligue um Business existente com o código de consentimento.
-                Mostra o negócio (um negócio de teste aparece como não verificado), a prontidão para liquidar, o perfil de preço e o destino da taxa. O tipo de uso pode mudar até ao primeiro pagamento emitido, e
-                <strong> Gerar código de ligação</strong> permite que outro projeto seu use o mesmo negócio de teste. <a href="/docs/get-started#configuracao-financeira" style={a}>Os dois caminhos</a>
+                Liga o projeto ao negócio que recebe os seus pagamentos. Um projeto novo não está financeiramente pronto: tem de criar ou ligar um negócio, e só um Owner ou Admin do workspace o pode fazer.
+                A Consola oferece três caminhos para o mesmo resultado.
               </P>
-              <P style={{ fontSize: 13, color: MUT }}>O mesmo estado está disponível por API em <Code>GET /v1/financial-setup</Code>.</P>
+              <UL>
+                <LI><strong>Criar um novo negócio de teste:</strong> escolha o tipo de uso (<strong>Loja, serviço ou negócio</strong> ou <strong>Aplicação ou plataforma</strong>) e o @banza, e confirme o email de contacto com um código. Nada é criado antes de o email ser verificado.</LI>
+                <LI><strong>Ligar um negócio existente:</strong> introduza o @banza do negócio. A Banzami envia um código para o contacto verificado desse negócio, mostrado mascarado, e nunca para um email indicado nesse momento.</LI>
+                <LI><strong>Usar um código de ligação:</strong> um código de uso único, válido dez minutos, que o negócio gera. Liga o mesmo negócio sem criar outro.</LI>
+              </UL>
+              <P>
+                Depois de ligado, a Consola mostra o negócio (um negócio de teste aparece como não verificado), a identidade @banza, o controlo da identidade, a prontidão para liquidar, o perfil de preço e o destino da taxa. O tipo de uso pode mudar até ao primeiro pagamento emitido, e
+                <strong> Gerar código de ligação</strong> permite que outro projeto seu use o mesmo negócio de teste. <a href="/docs/financial-setup" style={a}>Configuração financeira, passo a passo</a>
+              </P>
+              <P style={{ fontSize: 13, color: MUT }}>
+                Estas operações usam a sua sessão na Consola e o seu papel no workspace. Os endpoints que as suportam são internos à Consola e não são API pública. O estado está disponível por API, só para leitura, em <Code>GET /v1/financial-setup</Code>.
+              </P>
 
               <H2 id="chaves">Chaves de API</H2>
               <UL>
@@ -1780,6 +1804,238 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 { href: '/docs/get-started', title: 'Quickstart', desc: 'Da conta ao primeiro pagamento.' },
                 { href: '/docs/trust', title: 'Segurança', desc: 'Chaves, segredos e permissões.' },
                 { href: '/docs/troubleshooting', title: 'Resolução de problemas', desc: 'O que ver na Consola, por sintoma.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function PtFinancialSetup({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="financial-setup">
+              <h1 style={H1_STYLE}>Configuração financeira</h1>
+              <PageLede>A configuração financeira liga um projeto ao negócio que recebe os seus pagamentos. Aqui fica como criar um negócio de teste, como ligar um que já existe e o que cada confirmação prova.</PageLede>
+              <Callout>No Sandbox, todos os valores são fictícios e as operações com dinheiro real estão indisponíveis. O exemplo desta página usa o workspace Doa Sandbox, o projeto Doa Payments, o negócio Doa e o @doa, em AOA.</Callout>
+
+              <H2 id="o-que-e">O que é a configuração financeira</H2>
+              <P>Um projeto é uma integração técnica: tem chaves, webhooks e registos. Quem recebe os pagamentos é um negócio. A configuração financeira é o passo em que o projeto se liga a esse negócio.</P>
+              <P>
+                Um projeto não fica financeiramente pronto quando é criado. Sem a ligação, o projeto usa a API e as chaves, mas criar uma sessão de pagamento responde <Code>403 PAYMENTS_UNAVAILABLE</Code>.
+                A sua aplicação nunca indica quem recebe: o destinatário vem sempre desta ligação.
+              </P>
+              <P>No Sandbox, faz este passo na Consola, em Workspace, Projeto e Configuração financeira, sem candidatura, sem documentos e sem esperar por ninguém. Só um Owner ou um Admin do workspace o pode fazer.</P>
+
+              <H2 id="projeto-vs-negocio">Projeto vs negócio</H2>
+              <ProjectBusinessDiagram l={{
+                title: 'Workspace, projeto, negócio, @banza e carteira',
+                desc: 'O workspace Doa Sandbox contém os projetos Doa Payments e Doa Checkout. Os dois projetos ligam-se ao mesmo negócio Doa. O @doa e a carteira em AOA pertencem ao negócio, não aos projetos.',
+                workspace: 'Workspace', workspaceName: 'Doa Sandbox',
+                project: 'Projeto', projectName: 'Doa Payments', otherProjectName: 'Doa Checkout',
+                business: 'Negócio', businessName: 'Doa',
+                handle: '@doa', wallet: 'Carteira · AOA',
+                links: 'liga-se a', owns: 'pertencem ao negócio',
+              }} />
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Conceito</th><th style={TH}>O que é</th><th style={TH}>No exemplo</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Workspace', 'A fronteira organizacional: quem tem acesso e com que papel.', 'Doa Sandbox'],
+                      ['Projeto', 'A integração técnica: chaves de API, webhooks e registos.', 'Doa Payments'],
+                      ['Negócio', 'A identidade financeira: quem recebe os pagamentos.', 'Doa'],
+                      ['@banza', 'O identificador único do negócio na Banzami.', '@doa'],
+                      ['Carteira', 'O saldo do negócio, na moeda AOA.', 'A carteira do negócio Doa'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>Um projeto liga-se a um único negócio, e um negócio pode receber em mais de um projeto. Ligar um projeto a um negócio que já existe reutiliza esse negócio, com a mesma carteira e o mesmo @banza: não cria um segundo negócio.</P>
+
+              <H2 id="o-que-e-o-banza">O que é o @banza</H2>
+              <P>
+                O @banza é o identificador único de um negócio na Banzami: a palavra que a Banzami usa para «handle». O @banza pertence ao negócio, não ao projeto.
+                O projeto Doa Payments liga-se ao negócio Doa; é o negócio Doa que tem o @doa.
+              </P>
+              <P>
+                Tem 3 a 30 caracteres, começa por uma letra e usa letras minúsculas, números ou o sinal _. Escolhe-o ao criar o negócio: a Consola verifica a disponibilidade enquanto escreve e responde apenas «disponível»
+                ou «não está disponível, escolha outro», sem indicar a razão.
+              </P>
+              <P>Um @banza gerado, como @p0a1b2c3d4e5f, existe apenas em dados internos de teste e em projetos históricos. Nunca é o caminho normal: hoje escolhe o @banza do seu negócio.</P>
+
+              <H2 id="criar-negocio">Criar um novo negócio de teste</H2>
+              <P>É o caminho para um projeto que ainda não tem negócio. Nada é criado antes de o email ser verificado.</P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>Na Consola, abra o projeto Doa Payments, do workspace Doa Sandbox, e selecione <strong>Configuração financeira</strong>.</LI>
+                <LI>Escolha o tipo de uso: <strong>Loja, serviço ou negócio</strong> ou <strong>Aplicação ou plataforma</strong>. A Banzami atribui a classificação e o preço desse uso; a sua aplicação nunca envia uma taxa.</LI>
+                <LI>Escolha o @banza do negócio, por exemplo @doa. A Consola indica se está disponível.</LI>
+                <LI>Indique o email de contacto do negócio e selecione <strong>Confirmar email</strong>. A Banzami envia um código de seis dígitos para esse endereço.</LI>
+                <LI>Introduza o código e selecione <strong>Confirmar e criar</strong>. Só então a Banzami cria o negócio Doa, atribui o @doa, guarda o contacto verificado e liga o projeto.</LI>
+              </ol>
+              <Callout>Se abandonar o assistente, ou se o código for inválido, não fica nenhum negócio, @banza ou carteira para trás. Se o @banza deixar de estar disponível antes do fim, a Consola pede outro.</Callout>
+
+              <H2 id="ligar-negocio">Ligar um negócio existente</H2>
+              <P>Use este caminho quando o negócio já existe e o seu workspace já o gere, por exemplo porque outro projeto do workspace já recebe nele. A ligação reutiliza o mesmo negócio, a mesma carteira e o mesmo @banza.</P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>Em <strong>Configuração financeira</strong>, selecione <strong>Ligar um negócio que já existe</strong>, introduza o @banza do negócio, por exemplo @doa, e selecione <strong>Continuar</strong>.</LI>
+                <LI>A Banzami resolve o @banza, apenas entre os negócios que o workspace já gere, e envia um código para o contacto verificado desse negócio. A Consola mostra-o mascarado, por exemplo f****@example.com.</LI>
+                <LI>Introduza o código de seis dígitos e selecione <strong>Confirmar</strong>. O negócio existente fica ligado ao projeto.</LI>
+              </ol>
+              <P>
+                Se o negócio ainda não tem um contacto verificado, a Consola oferece, a quem tem autorização para isso, confirmar primeiro um contacto do negócio. Só depois de o contacto estar verificado é enviado o código de ligação, e esse código vai para o contacto verificado, não para outro endereço.
+              </P>
+              <P>Um @banza que o workspace não gere recebe a mesma resposta neutra de um @banza que não existe: não encontrado. Esta ligação não revela se esse @banza existe noutro workspace.</P>
+
+              <H2 id="confirmar-controlo">Confirmar controlo por email</H2>
+              <P>Há duas confirmações por email, com propósitos diferentes. Nenhuma delas é uma verificação KYB.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Confirmação</th><th style={TH}>Quando</th><th style={TH}>O que prova</th><th style={TH}>O que fica</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Contacto do negócio', 'Ao criar um negócio de teste, ou ao confirmar um contacto num negócio que ainda não tem um.', 'Que quem controla o negócio consegue receber email nesse endereço.', 'Um contacto verificado do negócio.'],
+                      ['Ligação ao projeto', 'Ao ligar um negócio existente pelo @banza.', 'Que quem liga o projeto controla o contacto já verificado do negócio.', 'Uma ligação autorizada, uma única vez.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <H3 id="porque-nao-outro-email">Porque não pode indicar outro email?</H3>
+              <Callout tone="warn">
+                <strong>Porque não pode indicar outro email?</strong> Ao ligar um @banza existente, a Banzami não utiliza um email indicado nesse momento pelo utilizador. A confirmação é enviada para um contacto previamente verificado associado ao negócio.
+              </Callout>
+              <UL>
+                <LI>Um email escolhido por quem liga só provaria que essa pessoa lê esse email, não que controla o negócio. Se bastasse, qualquer pessoa que conhecesse um @banza poderia ligá-lo a um projeto seu.</LI>
+                <LI>A Banzami só resolve um @banza de um negócio que o workspace já gere, e responde da mesma forma a um @banza que não existe.</LI>
+                <LI>A Consola nunca mostra o endereço completo do contacto, apenas a forma mascarada.</LI>
+                <LI>O código é de uso único, expira, e as tentativas erradas e os pedidos repetidos são limitados.</LI>
+              </UL>
+              <P>Um email confirmado prova acesso a um contacto. Não é KYB e não prova que alguém é o titular legal de uma empresa.</P>
+
+              <H2 id="codigo-de-ligacao">Usar um código de ligação</H2>
+              <P>
+                Um código de ligação é um consentimento de uso único que o próprio negócio emite: na app Banzami Business, ou, num negócio de teste, na Consola do projeto onde foi criado, em <strong>Gerar código de ligação</strong>.
+                Vale dez minutos e uma vez.
+              </P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>No projeto de destino, em <strong>Ligar um negócio que já existe</strong>, selecione <strong>Tenho um código de ligação</strong>.</LI>
+                <LI>Introduza o código. O negócio fica ligado ao projeto.</LI>
+              </ol>
+              <P>O código liga o mesmo negócio: não cria um segundo negócio, uma segunda carteira nem um segundo @banza. Como o código já é o consentimento do negócio, não pede uma confirmação por email.</P>
+
+              <H2 id="negocios-na-conta">Negócios encontrados na sua conta</H2>
+              <P>
+                A Consola só nomeia negócios associados ao seu workspace e ao seu projeto: nunca pesquisa em todos os negócios da Banzami. Quando o projeto já tem uma candidatura com um @banza escolhido, a Consola mostra
+                «Encontrámos um negócio associado à sua conta», com o nome e a identidade, e não cria um segundo negócio nem um segundo @banza.
+              </P>
+              <P>Os negócios de teste criados antes desta configuração continuam a funcionar. Alguns têm um @banza gerado: pode continuar a usá-los e a ligá-los a outro projeto.</P>
+
+              <H2 id="candidaturas">Candidaturas e @banza já reservado</H2>
+              <P>Um email indicado numa candidatura não é considerado confirmado até concluir a verificação. Até lá, a Banzami não o usa para provar o controlo do negócio.</P>
+              <UL>
+                <LI>Enquanto uma candidatura do projeto está em curso, não pode criar um negócio de teste concorrente para o mesmo projeto: a Consola recusa e indica que há uma candidatura em curso.</LI>
+                <LI>Quando o projeto já tem uma candidatura com um @banza escolhido, pode utilizar essa identidade neste projeto depois de concluir a verificação do negócio. Não é criado um segundo negócio nem um segundo @banza.</LI>
+              </UL>
+
+              <H2 id="pronto">Estado «Pronto»</H2>
+              <P>
+                Quando o projeto está ligado, a Consola mostra o estado Pronto e <Code>getFinancialSetup()</Code> devolve <Code>financial_setup.state</Code> igual a <Code>READY</Code>. Depois do primeiro pagamento emitido, o estado passa a <Code>SEALED</Code>:
+                o negócio e o tipo de uso ficam fixados e já não mudam.
+              </P>
+              <P>O cartão de prontidão da Consola mostra, entre outras linhas:</P>
+              <UL>
+                <LI><strong>Identidade @banza:</strong> o @banza do negócio ligado, por exemplo @doa.</LI>
+                <LI><strong>Controlo da identidade:</strong> Confirmado, com o email mascarado (f****@example.com), ou Por confirmar. Aparece quando o projeto já está ligado a um negócio.</LI>
+                <LI><strong>Verificação (KYB):</strong> num negócio de teste do Sandbox mostra «Não aplicável no Sandbox».</LI>
+                <LI><strong>Carteira:</strong> o estado e a moeda, AOA. O preço atribuído e o destino da taxa são definidos pela Banzami.</LI>
+              </UL>
+              <P>
+                A mesma prontidão está em <Code>GET /v1/financial-setup</Code>, com um scope <Code>identity:read</Code>; o campo <Code>financial_identity.handle</Code> é o @banza do negócio ligado.
+                Consulte-a antes de oferecer o pagamento. <a href="/docs/reference#ref-financial-setup" style={a}>Referência de GET /v1/financial-setup</a>
+              </P>
+
+              <H2 id="kyb">KYB vs confirmação de controlo</H2>
+              <P>São garantias diferentes. A confirmação de controlo mostra que o contacto do negócio está acessível a quem o cria ou liga. O KYB é a verificação do negócio como entidade, feita pela Banzami, e não depende de um email.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Confirmação de controlo</th><th style={TH}>KYB</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['O que é', 'Um código enviado por email e introduzido na Consola.', 'A verificação do negócio como entidade, feita pela Banzami.'],
+                      ['O que prova', 'Que o contacto do negócio está acessível a quem o cria ou liga.', 'Que a entidade foi verificada pela Banzami.'],
+                      ['No Sandbox', 'Aplica-se ao criar e ao ligar um negócio.', 'Não aplicável no Sandbox: um negócio de teste mostra «Não aplicável no Sandbox».'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H2 id="varios-projetos">Utilizar o mesmo negócio em mais de um projeto</H2>
+              <P>No exemplo, o projeto Doa Checkout liga-se ao negócio Doa que o projeto Doa Payments já usa: pelo @doa, ou com um código de ligação gerado a partir de Doa Payments.</P>
+              <UL>
+                <LI>Os dois projetos partilham a mesma carteira e o mesmo @doa. Não há saldo duplicado nem um segundo @banza.</LI>
+                <LI>Cada projeto mantém as suas chaves, webhooks e registos.</LI>
+                <LI>As transações e os saldos do negócio aparecem nos dois projetos, incluindo os pagamentos que o outro projeto iniciou.</LI>
+                <LI>Eliminar um projeto não elimina um negócio que outro projeto ainda usa.</LI>
+              </UL>
+
+              <H2 id="seguranca">Segurança e privacidade</H2>
+              <UL>
+                <LI>A confirmação de ligação vai sempre para o contacto verificado do negócio. A Banzami nunca a envia para um email indicado no momento da ligação. <a href="#porque-nao-outro-email" style={a}>Porque não pode indicar outro email?</a></LI>
+                <LI>A Consola mostra o email mascarado e nunca o endereço completo.</LI>
+                <LI>A disponibilidade de um @banza é neutra: diz apenas se está disponível, sem revelar porque razão não está.</LI>
+                <LI>Só um Owner ou um Admin do workspace cria ou liga um negócio.</LI>
+                <LI>Uma chave de API não cria nem liga negócios. Estas operações exigem a sua sessão na Consola e o seu papel no workspace: os endpoints que as suportam são internos à Consola e não fazem parte da API pública.</LI>
+              </UL>
+
+              <H2 id="erros-e-situacoes-comuns">Erros e situações comuns</H2>
+              <P>Decida sempre pelo campo <Code>code</Code> e pelo código HTTP, nunca pela mensagem, que pode mudar. A Consola traduz cada código numa frase para si.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Código</th><th style={TH}>HTTP</th><th style={TH}>O que significa</th><th style={TH}>O que fazer</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['INVALID_HANDLE', '400', 'O @banza não tem um formato válido.', 'Use 3 a 30 caracteres, começando por uma letra: letras minúsculas, números ou _.'],
+                      ['HANDLE_UNAVAILABLE', '409', 'O @banza não está disponível. A resposta não diz porquê.', 'Escolha outro @banza.'],
+                      ['INVALID_CODE', '400', 'O código é inválido ou expirou.', 'Peça um código novo e introduza-o de novo.'],
+                      ['TOO_MANY_ATTEMPTS', '429', 'Houve demasiadas tentativas ou pedidos de código.', 'Aguarde antes de tentar de novo.'],
+                      ['NO_VERIFIED_CONTACT', '409', 'O negócio ainda não tem um contacto verificado.', 'Confirme primeiro um contacto do negócio e repita a ligação.'],
+                      ['LINK_GRANT_EXPIRED', '410', 'A autorização de ligação expirou ou já foi usada.', 'Recomece a ligação.'],
+                      ['NOT_FOUND', '404', 'O @banza não corresponde a um negócio que o workspace gere. É a resposta de um @banza que não existe.', 'Verifique o @banza ou use um código de ligação.'],
+                      ['PROJECT_ALREADY_RECEIVING', '409', 'O projeto já recebe num negócio.', 'Um projeto recebe num único negócio: use outro projeto para outro negócio.'],
+                      ['FORBIDDEN', '403', 'O seu papel no workspace não permite configurar.', 'Peça a um Owner ou Admin do workspace.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI>O código por email não chegou: confirme o endereço mascarado e a pasta de spam, e peça um código novo depois de um curto intervalo.</LI>
+                <LI>O @banza que quer ligar não é encontrado: só se liga por @banza um negócio que o seu workspace já gere. Use um código de ligação gerado pelo negócio.</LI>
+                <LI>Criar uma sessão de pagamento falha porque a configuração financeira ainda não está concluída: o erro está no catálogo da API, não nesta lista. <a href="/docs/errors#catalogo-de-erros" style={a}>Catálogo de erros</a></LI>
+              </UL>
+
+              <H2 id="sandbox-vs-dinheiro-real">Sandbox vs operações com dinheiro real</H2>
+              <P>
+                O Sandbox é o único ambiente disponível. O dinheiro é fictício, e um negócio de teste não é verificado e não existe fora do Sandbox.
+                As operações com dinheiro real estão indisponíveis e sujeitas às aprovações regulatórias, contratuais e operacionais aplicáveis.
+              </P>
+              <P>Um negócio de teste, o seu @banza e a sua carteira não são um pedido nem uma aprovação para operações com dinheiro real. Confirmar um email num negócio de teste não substitui nenhuma verificação futura.</P>
+
+              <NextStepCards lang="pt" items={[
+                { href: '/docs/get-started#configuracao-financeira', title: 'Quickstart', desc: 'A configuração financeira no caminho até ao primeiro pagamento.' },
+                { href: '/docs/console#financeiro', title: 'A Consola', desc: 'Workspaces, projetos e a configuração financeira na Consola.' },
+                { href: '/docs/concepts#modelo', title: 'Como a Banzami funciona', desc: 'Workspace, projeto, negócio, @banza e carteira.' },
+                { href: '/docs/doa#doa-preparar', title: 'Construir como o DOA', desc: 'O exemplo Doa, do workspace ao primeiro pagamento.' },
+                { href: '/docs/testing#configuracao-financeira-testes', title: 'Testar no Sandbox', desc: 'Cenários de teste da configuração financeira.' },
+                { href: '/docs/glossary', title: 'Glossário', desc: 'Negócio, @banza, KYB e código de ligação.' },
+                { href: '/docs/errors#erros-consola', title: 'Erros', desc: 'Os códigos de erro da Consola.' },
               ]} />
             </Section>
     </>
@@ -1921,6 +2177,26 @@ export function PtErrors({ copy }: { copy: CopyFn }) {
                       ['VALIDATION', 'Corrigir os campos indicados.'],
                     ].map((r) => (
                       <tr key={r[0]}><td style={TD_MONO}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>Os erros da configuração financeira têm códigos estáveis. Decida pelo código HTTP e pelo campo <Code>code</Code>, nunca pela mensagem. <a href="/docs/financial-setup#erros-e-situacoes-comuns" style={a}>Erros e situações comuns da configuração financeira</a></P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Código</th><th style={TH}>HTTP</th><th style={TH}>O que fazer</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['INVALID_HANDLE', '400', 'Use 3 a 30 caracteres, começando por uma letra: letras minúsculas, números ou _.'],
+                      ['HANDLE_UNAVAILABLE', '409', 'Escolha outro @banza. A resposta não diz porque não está disponível.'],
+                      ['INVALID_CODE', '400', 'O código do negócio é inválido ou expirou: peça um novo.'],
+                      ['TOO_MANY_ATTEMPTS', '429', 'Houve demasiadas tentativas ou pedidos de código: aguarde antes de tentar de novo.'],
+                      ['NO_VERIFIED_CONTACT', '409', 'O negócio ainda não tem um contacto verificado: confirme-o primeiro e repita a ligação.'],
+                      ['LINK_GRANT_EXPIRED', '410', 'A autorização de ligação expirou ou já foi usada: recomece a ligação.'],
+                      ['NOT_FOUND', '404', 'O @banza não corresponde a um negócio que o workspace gere, ou não existe: verifique-o ou use um código de ligação.'],
+                      ['PROJECT_ALREADY_RECEIVING', '409', 'O projeto já recebe num negócio: use outro projeto para outro negócio.'],
+                    ].map((r) => (
+                      <tr key={r[0]}><td style={TD_MONO}>{r[0]}</td><td style={TD}>{r[1]}</td><td style={TD}>{r[2]}</td></tr>
                     ))}
                   </tbody>
                 </table>
@@ -2099,7 +2375,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Capacidade</th><th style={TH}>Onde</th><th style={TH}>Limites</th></tr></thead>
                   <tbody>
                     {[
-                      ['Negócio de teste para o projeto', 'Consola → Configuração financeira: escolha o tipo de uso', 'Um por projeto. Não é verificado e não existe fora do Sandbox.'],
+                      ['Negócio de teste para o projeto', 'Consola → Configuração financeira: crie um negócio ou ligue um existente', 'Um por projeto. Não é verificado, o dinheiro é fictício e não existe fora do Sandbox.'],
                       ['Pagadores de teste com valor fictício', 'Consola → Dados de teste, ou /v1/sandbox/test-payers', 'Até 10 ativos por projeto; até 10 000 Kz iniciais; carregamentos até 25 000 Kz, saldo até 50 000 Kz, 20 carregamentos e 100 000 Kz por dia.'],
                       ['Resultados de rede externa', 'simulate num pagamento de um pagador de teste', 'DECLINED, PROVIDER_UNAVAILABLE e TIMEOUT. A resposta traz simulated: true.'],
                       ['API Explorer', 'Consola → API Explorer', 'Pedidos com uma chave de 60 segundos, só no Sandbox; 30 por minuto por projeto.'],
@@ -2147,6 +2423,25 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 O estado é só deste projeto: outro projeto ligado ao mesmo negócio não é afetado. Na Consola, em <strong>Dados de teste</strong>, ou pela API: <a href="/docs/concepts#como-o-dinheiro-se-move" style={a}>Como o dinheiro se move</a>
               </P>
               <CodeBlock label="curl · colocar o rail externo em baixo" raw={SAMPLE_CURL_EXTERNAL_RAIL} onCopy={copy} />
+
+              <H2 id="configuracao-financeira-testes">Configuração financeira</H2>
+              <P>Estes cenários exercitam a ligação de um projeto a um negócio, com o exemplo Doa. Todos os valores são fictícios e nada move dinheiro real. <a href="/docs/financial-setup" style={a}>Configuração financeira</a></P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Cenário</th><th style={TH}>Como provocar</th><th style={TH}>Resultado esperado</th><th style={TH}>Onde confirmar</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['A. Criar com um @banza disponível', 'Em Doa Payments, escolha o @doa, indique um email, introduza o código e selecione Confirmar e criar.', 'O negócio Doa é criado com o @doa, o contacto fica verificado e o projeto passa a Pronto.', 'Configuração financeira: Controlo da identidade Confirmado. getFinancialSetup() devolve READY.'],
+                      ['B. Um @banza não disponível', 'Escolha um @banza que não esteja disponível, ou com um formato inválido.', 'A Consola diz apenas que o @banza não está disponível, ou que o formato é inválido, sem dizer porquê. Nada é criado.', 'Configuração financeira: o projeto continua por configurar.'],
+                      ['C. Ligar um negócio existente', 'Em Doa Checkout, introduza o @doa e o código enviado ao contacto verificado do negócio, mostrado mascarado.', 'O projeto liga-se ao negócio Doa que já existe, com a mesma carteira e o mesmo @doa.', 'Configuração financeira: Identidade @doa. getFinancialSetup() devolve o mesmo financial_identity.handle.'],
+                      ['D. Usar um código de ligação', 'Em Doa Payments, selecione Gerar código de ligação e introduza o código em Doa Checkout dentro de dez minutos.', 'O mesmo negócio fica ligado. O código só funciona uma vez.', 'Saldos: as mesmas contas nos dois projetos.'],
+                      ['E. Ligar o mesmo negócio não cria outro', 'Ligue Doa Checkout ao negócio Doa por qualquer caminho e compare os dois projetos.', 'Os dois projetos mostram o mesmo @doa e a mesma carteira. Não há um segundo negócio, uma segunda carteira nem um segundo @banza.', 'Saldos e Transações: os mesmos nos dois projetos.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <H2 id="receitas-base">Chaves e prontidão</H2>
               <RecipeCard lang="pt" r={{ id: 'primeira-chamada', title: 'A chave funciona',
@@ -2604,6 +2899,7 @@ export function PtGlossary({ copy }: { copy: CopyFn }) {
               </dl>
               <NextStepCards lang="pt" items={[
                 { href: '/docs/concepts', title: 'Como a Banzami funciona', desc: 'Os conceitos, em contexto.' },
+                { href: '/docs/financial-setup', title: 'Configuração financeira', desc: 'Negócio, @banza, KYB e código de ligação, na prática.' },
               ]} />
             </div>
 </Section>

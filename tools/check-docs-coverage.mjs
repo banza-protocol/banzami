@@ -50,7 +50,7 @@ function specItems(n, heading) {
 
 async function corpus() {
   if (DEPLOYED) {
-    const routes = ['/docs', '/docs/get-started', '/docs/concepts', '/docs/payments', '/docs/webhooks', '/docs/events', '/docs/refunds', '/docs/settlements', '/docs/receipts', '/docs/transfers', '/docs/doa', '/docs/console', '/docs/reference', '/docs/errors', '/docs/sdk', '/docs/artifacts', '/docs/testing', '/docs/going-live', '/docs/trust', '/docs/glossary', '/docs/troubleshooting', '/docs/support', '/docs/changelog'];
+    const routes = ['/docs', '/docs/get-started', '/docs/concepts', '/docs/payments', '/docs/webhooks', '/docs/events', '/docs/refunds', '/docs/settlements', '/docs/receipts', '/docs/transfers', '/docs/doa', '/docs/console', '/docs/financial-setup', '/docs/reference', '/docs/errors', '/docs/sdk', '/docs/artifacts', '/docs/testing', '/docs/going-live', '/docs/trust', '/docs/glossary', '/docs/troubleshooting', '/docs/support', '/docs/changelog'];
     const get = async (p) => (await fetch(DOCS_URL + p)).text();
     const pt = (await Promise.all(routes.map(get))).join('\n');
     const en = (await Promise.all(routes.map((r) => get(r.replace('/docs', '/docs/en'))))).join('\n');

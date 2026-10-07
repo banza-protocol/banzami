@@ -73,7 +73,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     id: 'banza-handle',
     term: '@banza',
     code: true,
-    def: 'Identificador público de uma conta Banzami usado para receber transferências.',
+    def: 'Identificador único de um negócio na Banzami. O @banza pertence ao negócio, não ao projeto.',
   },
   {
     id: 'api-key',
@@ -124,17 +124,37 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'projeto',
     term: 'Projeto',
-    def: 'Uma aplicação integrada: as suas chaves, webhooks e registos. O Project ID não muda quando o nome muda.',
+    def: 'A integração técnica de uma aplicação: as suas chaves, webhooks e registos. Liga-se a um negócio. O Project ID não muda quando o nome muda.',
   },
   {
     id: 'configuracao-financeira',
     term: 'Configuração financeira',
-    def: 'A ligação entre um projeto e o Business que recebe os seus pagamentos. Sem ela, o projeto não recebe pagamentos.',
+    def: 'O passo em que um projeto se liga a um negócio, criado de novo ou já existente. Sem ele, o projeto não recebe pagamentos.',
   },
   {
     id: 'business',
-    term: 'Business',
-    def: 'A entidade verificada pela Banzami que recebe os pagamentos de um projeto.',
+    term: 'Negócio (Business)',
+    def: 'A identidade financeira que recebe os pagamentos e tem um @banza e uma carteira. Um projeto liga-se a um negócio, e um negócio pode receber em mais de um projeto.',
+  },
+  {
+    id: 'negocio-teste',
+    term: 'Negócio de teste (Sandbox)',
+    def: 'Um negócio sintético do Sandbox. Não é verificado, o dinheiro é fictício e não existe fora do Sandbox.',
+  },
+  {
+    id: 'confirmacao-controlo',
+    term: 'Confirmação de controlo do negócio',
+    def: 'A confirmação por email de que quem cria ou liga um negócio controla o seu contacto. Não é KYB e não prova a titularidade legal de uma empresa.',
+  },
+  {
+    id: 'kyb',
+    term: 'KYB',
+    def: 'A verificação de um negócio como entidade, feita pela Banzami. É independente da confirmação por email e não se aplica a um negócio de teste do Sandbox.',
+  },
+  {
+    id: 'codigo-ligacao',
+    term: 'Código de ligação',
+    def: 'Um código de uso único, válido dez minutos, que o negócio gera para consentir que outro projeto o use. Liga o mesmo negócio, sem criar outro.',
   },
   {
     id: 'wallet-account',

@@ -7,14 +7,14 @@
 
 import { MailLink } from '@/components/MailLink';
 import type { ReactNode } from 'react';
-import { BADGE_LABELS_EN, Badge, BODY, Callout, Code, CodeBlock, CodeTabs, H1_STYLE, H2, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono } from './ui';
+import { BADGE_LABELS_EN, Badge, BODY, Callout, Code, CodeBlock, CodeTabs, H1_STYLE, H2, H3, INK, LI, LINK, MUT, P, PageLede, Section, TABLE, TD, TD_HEAD, TD_MONO, TH, THEAD, UL, mono } from './ui';
 import { ResourceReference, ScopeTable } from './reference';
 import { ErrorCatalogue, HttpClassTable } from './ErrorCatalogue';
 import { EventReference } from './EventReference';
 import { Troubleshooting } from './Troubleshooting';
 import { StageBar, StepCard, NextStepCards, RecipeCard, ChapterFacts, DoDont } from './dx';
 import { EVENT_NAMES } from './events';
-import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram, MoneyMovementDiagram } from './diagrams';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, PathDiagram, FinancialSetupDiagram, ProjectBusinessDiagram, ResponsibilityDiagram, SettlementSplitDiagram, RealtimeChannelsDiagram, MoneyMovementDiagram } from './diagrams';
 import { CapabilityCards } from './CapabilityCards';
 import type { CopyFn } from './content-pt';
 
@@ -30,7 +30,7 @@ const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
   { term: 'OTP', def: 'The six-digit code, sent by email, that signs you in to the Console.' },
   { term: 'Business account', def: 'The Banzami account of an organisation, used to receive payments and manage its activity.' },
   { term: 'Settlement', def: 'Paying out an account balance to a beneficiary, with the fee set by Banzami’s pricing. It happens only when you request it.' },
-  { term: '@banza', def: 'Public identifier of a Banzami account, used to receive transfers.', code: true },
+  { term: '@banza', def: 'The unique identifier of a Business on Banzami. The @banza belongs to the Business, not to the Project.', code: true },
   { term: 'API key', def: 'The credential an application uses to authenticate to the Banzami API. It identifies a project.' },
   { term: 'Publishable key', def: 'A bz_test_pk_ key that may be used client-side, read-only. It never replaces the secret key.' },
   { term: 'Secret key', def: 'A bz_test_sk_ key, reserved for the server. Never put it in a browser, a mobile app or a repository.' },
@@ -40,9 +40,13 @@ const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
   { term: 'Payment session', def: 'A payment request tied to a reference from your application, with a link and a QR code.' },
   { term: 'Receipt', def: 'The document of a confirmed payment, with a publicly verifiable BZM-… reference.' },
   { term: 'Workspace', def: 'The group of people with access to a set of projects, with roles (Owner, Admin, Developer, Finance, Viewer).' },
-  { term: 'Project', def: 'One integrated application: its keys, webhooks and logs. The Project ID does not change when its name does.' },
-  { term: 'Financial Setup', def: 'The connection between a project and the Business that receives its payments. Without it, the project cannot be paid.' },
-  { term: 'Business', def: 'The entity, verified by Banzami, that receives a project’s payments.' },
+  { term: 'Project', def: 'The technical integration of an application: its keys, webhooks and logs. It links to a Business. The Project ID does not change when its name does.' },
+  { term: 'Financial setup', def: 'The step where a project links to a Business, newly created or already existing. Without it, the project cannot be paid.' },
+  { term: 'Business', def: 'The financial identity that receives payments and has an @banza and a wallet. A project links to a Business, and a Business can receive in more than one project.' },
+  { term: 'Test Business (Sandbox)', def: 'A synthetic Sandbox Business. It is not verified, its money is fictitious, and it does not exist outside the Sandbox.' },
+  { term: 'Business control confirmation', def: 'The email confirmation that whoever creates or links a Business controls its contact. It is not KYB and does not prove the legal ownership of a company.' },
+  { term: 'KYB', def: 'The verification of a Business as an entity, carried out by Banzami. It is independent of the email confirmation and does not apply to a Sandbox test Business.' },
+  { term: 'Link code', def: 'A single-use code, valid for ten minutes, that a Business generates to consent to another project using it. It links the same Business, without creating another.' },
   { term: 'Wallet account', def: 'An account inside a Business wallet, to keep funds apart (one per campaign, for example).' },
   { term: 'Payment link', def: 'An address on pay.banzami.com where the payer pays; with a fixed or an open amount.' },
   { term: 'Refund', def: 'Returning a confirmed payment, fully or partially, from the account that received it.' },
@@ -391,7 +395,7 @@ const verified = banzami.webhooks.constructEvent(raw, signature);`;
 
 const QS_STAGES = [
   { title: 'Account and project', steps: [1, 3] as [number, number], note: 'A few minutes, with an email address.' },
-  { title: 'Financial Setup', steps: [4, 4] as [number, number], note: 'Reviewed by Banzami before it is ready.' },
+  { title: 'Financial Setup', steps: [4, 4] as [number, number], note: 'Create or link a Business, in the Sandbox.' },
   { title: 'Key and SDK', steps: [5, 7] as [number, number], note: 'A few minutes, up to the first 200 response.' },
   { title: 'First payment', steps: [8, 12] as [number, number], note: 'Session, payment, confirmation and webhook.' },
 ];
@@ -436,42 +440,45 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
 
               <H2 id="financial-setup">Financial Setup</H2>
               <P>
-                Financial Setup connects the project to a <strong>Business</strong>: the entity that receives payments.
+                A project is not financially ready when it is created. Financial Setup links it to a <strong>Business</strong>: the financial identity that receives payments, with an @banza and a wallet.
                 Without it, the project can use keys, webhooks and the API, but cannot be paid: creating a session returns <Code>403 PAYMENTS_UNAVAILABLE</Code>.
-                In the Sandbox, Banzami creates a <strong>test Business</strong> for the project the moment you choose the use case: no application, no documents, no waiting. It is a test entity: not verified, and it does not exist outside the Sandbox.
+              </P>
+              <P>
+                In the Sandbox, you take this step in the Console: no application, no documents, no waiting. The Business is a test one: money is fictitious, and it is not verified and does not exist outside the Sandbox.
+                The @banza belongs to the Business, not to the Project. <a href="/docs/en/financial-setup" style={a}>Financial setup, step by step</a>
               </P>
               <FinancialSetupDiagram l={{
                 title: 'Financial Setup in the Sandbox: two paths, one result',
-                desc: 'A project becomes financially ready in one of two ways: by creating a test Business, immediately, from the use case, or by connecting an existing Business with a consent code from its owner.',
+                desc: 'A project becomes financially ready in one of two ways: by creating a new test Business, after confirming the email, or by linking an existing Business, by its @banza or with a link code.',
                 project: 'Project',
-                newBusiness: 'Create a test Business', newNote: 'immediate, by use case',
-                existing: 'Connect an existing Business', existingNote: 'owner’s consent code',
+                newBusiness: 'Create a new Business', newNote: 'choose the @banza, confirm email',
+                existing: 'Link an existing Business', existingNote: '@banza or link code',
                 ready: 'Financially ready', readyNote: 'the project can receive payments',
               }} />
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={TABLE}>
                   <thead><tr style={THEAD}>
                     <th style={TH}></th>
-                    <th style={TH}>Test Business</th>
-                    <th style={TH}>Existing Business</th>
+                    <th style={TH}>Create a new Business</th>
+                    <th style={TH}>Link an existing Business</th>
                   </tr></thead>
                   <tbody>
                     {[
-                      ['Use when', 'Almost always: it is the Sandbox path for a new project.', 'Another project of yours already has a test Business, or you want to use a Banzami Business that already exists.'],
-                      ['What you do', 'Choose the use case: “Store, service or business” or “Application or platform”.', 'Enter the consent code its owner generates, in the other project’s Console or in the Banzami Business app.'],
-                      ['Who decides', 'Nobody waits: Banzami creates the Business and assigns the classification and pricing for that use.', 'The owner, by issuing the code. Each code works once, for ten minutes.'],
+                      ['Use when', 'The project has no Business yet. It is the path for a new project.', 'The Business already exists and your workspace already manages it, for example because another project of yours already receives in it.'],
+                      ['What you do', 'Choose the use case and the @banza, and confirm the contact email with a code.', 'Enter the @banza of the Business and the code sent to its verified contact, or a link code.'],
+                      ['Who confirms', 'Whoever controls the contact email provided. Nothing is created before the email is verified.', 'The verified contact of the Business, or the Business itself with a link code. Never an email provided at that moment.'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <StepCard lang="en" n={4} of={12} id="step-4" title="Complete Financial Setup"
-                what="Connect the project to the Business that receives its payments."
+              <StepCard lang="en" n={4} of={12} id="step-4" title="Set up the financial identity"
+                what="Create a new test Business, or link an existing one, until the project is ready."
                 why="The payee of every payment comes from this setup, never from your application’s request."
-                success={<>The Console shows the project as ready, and <Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
+                success={<>The Console shows the state Ready, and <Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
                 next="Create a secret key.">
-                In the Console, open <strong>Financial Setup</strong>, choose the use case and select <strong>Set up the Sandbox</strong>, or connect an existing Business with its code. In your application, check readiness before offering payment:
+                In the Console, open the project, select <strong>Financial setup</strong> and follow one of the paths: create the Business (use case, @banza and an email confirmed by code), link it by its @banza, or use a link code. In your application, check readiness before offering payment:
                 <CodeBlock label="ts · check financial readiness" raw={SAMPLE_READY} onCopy={copy} {...enCopy} />
               </StepCard>
               <Callout>Your application never sends a classification, a price or a fee: Banzami assigns them to the Business for the chosen use case. The use case can change until the first payment is issued.</Callout>
@@ -571,7 +578,7 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="concepts-banzami">
               <h1 style={H1_STYLE}>How Banzami works</h1>
-              <PageLede>How Banzami organises an integration (workspace, project, Business) and the rules every financial resource follows. Read it before your first integration, or when a term in another guide is unclear.</PageLede>
+              <PageLede>How Banzami organises an integration (workspace, project, Business and @banza) and the rules every financial resource follows. Read it before your first integration, or when a term in another guide is unclear.</PageLede>
 
               <H2 id="sandbox-live">Sandbox and Live</H2>
               <P>
@@ -670,9 +677,11 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Concept</th><th style={TH}>What it is</th><th style={TH}>Not to be confused with</th></tr></thead>
                   <tbody>
                     {[
-                      ['Workspace', 'Your team’s access boundary. A person can belong to several workspaces.', 'Project: the integration boundary.'],
-                      ['Project', 'One application: keys, webhooks and logs.', 'Business: the entity that receives payments.'],
-                      ['Business', 'The verified entity that receives payments.', 'Account: where value sits, inside the Business wallet.'],
+                      ['Workspace', 'The organisational boundary: who has access, and with which role. A person can belong to several workspaces.', 'Project: the technical integration.'],
+                      ['Project', 'The technical integration of one application: keys, webhooks and logs.', 'Business: the financial identity.'],
+                      ['Business', 'The financial identity: who receives payments, with an @banza and a wallet. In the Sandbox, a test Business.', 'Project: a project links to a Business, it is not a Business.'],
+                      ['@banza', 'The unique identifier of the Business. It belongs to the Business, not to the Project.', 'The project name: a project has no @banza.'],
+                      ['Wallet', 'The balance of the Business, in AOA, divided into accounts.', 'Account: a division of the wallet.'],
                       ['Account', 'A division of the wallet, per campaign or store for example.', 'Wallet: the set of the Business’s accounts.'],
                     ].map((r) => (
                       <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
@@ -680,6 +689,9 @@ export function EnConcepts({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
+              <P>
+                The @banza belongs to the Business, not to the Project. The project links to a Business in Financial Setup, and the same Business can receive in more than one project. <a href="/docs/en/financial-setup" style={a}>Financial setup</a>
+              </P>
               <Callout>
                 <strong>Authority comes from the key.</strong> The key identifies the project, and the project determines the Business. The ids you send select your own resources; they never grant access to another project’s.
               </Callout>
@@ -1456,17 +1468,20 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
 
               <H2 id="doa-prepare">1. Prepare the project</H2>
               <ChapterFacts lang="en" appLabel="DOA"
-                goal="A project with Financial Setup complete and a key with the scopes it needs."
-                app="Creates the workspace and project in the Console, completes Financial Setup, and stores the key and webhook secret on its server."
-                banzami="Creates the project’s test Business for the Application or platform use case (or accepts the owner’s consent code) and assigns the classification and pricing profile."
+                goal="A project with Financial Setup complete (state Ready) and a key with the scopes it needs."
+                app="Creates the workspace Doa Sandbox and the project Doa Payments in the Console, completes Financial Setup, and stores the key and webhook secret on its server."
+                banzami="Creates the Business Doa with @doa after the Business email is verified (or links an existing Business) and assigns the classification and pricing profile."
                 result={<><Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> <Code>READY</Code> or <Code>SEALED</Code>.</>}
                 failure={<><Code>403 PAYMENTS_UNAVAILABLE</Code> when creating a session: Financial Setup is not complete yet.</>} />
               <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <LI>In the <a href="/docs/en/console" style={a}>Console</a>, create a <strong>workspace</strong> and a <strong>project</strong> for the application.</LI>
+                <LI>In the <a href="/docs/en/console" style={a}>Console</a>, create the <strong>workspace</strong> Doa Sandbox and the <strong>project</strong> Doa Payments. The project is not financially ready when it is created.</LI>
                 <LI>
-                  Complete <strong>Financial Setup</strong>: choose the <strong>Application or platform</strong> use case. Banzami creates the test Business with the APPLICATION classification and the reference price, waiting for nobody; or connect an existing Business with the
-                  consent code its owner generates. <a href="/docs/en/get-started#financial-setup" style={a}>Financial Setup</a>
+                  Open the project’s <strong>Financial setup</strong> and choose one of three paths. <a href="/docs/en/financial-setup" style={a}>Financial setup</a>
                 </LI>
+                <LI>Create the Business Doa: choose the <strong>Application or platform</strong> use case (Banzami assigns the APPLICATION classification and the reference price), choose @doa and confirm the Business contact email with the code you receive.</LI>
+                <LI>Link the Business Doa, if your workspace already manages it: enter @doa and confirm the code sent to the verified contact of the Business.</LI>
+                <LI>Use a consent code (the link code) generated by the Business Doa.</LI>
+                <LI>Confirm that the project is in the state Ready. DOA has no special path: it uses the same public contracts as any developer.</LI>
                 <LI>
                   Create a secret key with <Code>identity:read</Code>, <Code>wallet_accounts:create</Code>, <Code>wallet_accounts:read</Code>,{' '}
                   <Code>payment_sessions:write</Code>, <Code>payment_sessions:read</Code>, <Code>webhooks:write</Code>, <Code>webhooks:read</Code> and{' '}
@@ -1663,7 +1678,10 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               <PageLede>The Console, at <Code>developers.banzami.com</Code>, is where you manage workspaces, projects, Financial Setup, keys, webhooks and logs.</PageLede>
 
               <H2 id="model">The model</H2>
-              <P>Person, workspace, project and Business are distinct concepts. <a href="/docs/en/concepts#model" style={a}>The integration model</a></P>
+              <P>
+                Workspace (organisational), project (technical integration), Business (financial identity), @banza (the unique identifier of the Business) and wallet (the balance of the Business) are distinct concepts.
+                The path in the Console is Workspace, Projects, Financial setup and the linked Business. <a href="/docs/en/concepts#model" style={a}>The integration model</a>
+              </P>
 
               <H2 id="account">Account</H2>
               <P>Your personal account is at <Code>/conta</Code>. You sign in with your email and a six-digit code; there is no password.</P>
@@ -1744,11 +1762,21 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
 
               <H2 id="financial">Financial Setup</H2>
               <P>
-                Connects the project to the Business that receives its payments. In the Sandbox, choose the use case (<strong>Store, service or business</strong> or <strong>Application or platform</strong>) and Banzami creates a test Business with that use’s classification and price; or connect an existing Business with its consent code.
-                It shows the Business (a test Business appears as not verified), settlement readiness, the pricing profile and the fee destination. The use case can change until the first payment is issued, and
-                <strong> Generate connection code</strong> lets another project of yours use the same test Business. <a href="/docs/en/get-started#financial-setup" style={a}>The two paths</a>
+                Links the project to the Business that receives its payments. A new project is not financially ready: you have to create or link a Business, and only an Owner or Admin of the workspace can do it.
+                The Console offers three paths to the same result.
               </P>
-              <P style={{ fontSize: 13, color: MUT }}>The same state is available through the API at <Code>GET /v1/financial-setup</Code>.</P>
+              <UL>
+                <LI><strong>Create a new test Business:</strong> choose the use case (<strong>Store, service or business</strong> or <strong>Application or platform</strong>) and the @banza, and confirm the contact email with a code. Nothing is created before the email is verified.</LI>
+                <LI><strong>Link an existing Business:</strong> enter the @banza of the Business. Banzami sends a code to the verified contact of that Business, shown masked, and never to an email provided at that moment.</LI>
+                <LI><strong>Use a link code:</strong> a single-use code, valid for ten minutes, that the Business generates. It links the same Business without creating another.</LI>
+              </UL>
+              <P>
+                Once linked, the Console shows the Business (a test Business appears as not verified), the @banza identity, identity control, settlement readiness, the pricing profile and the fee destination. The use case can change until the first payment is issued, and
+                <strong> Generate link code</strong> lets another project of yours use the same test Business. <a href="/docs/en/financial-setup" style={a}>Financial setup, step by step</a>
+              </P>
+              <P style={{ fontSize: 13, color: MUT }}>
+                These operations use your Console session and your role in the workspace. The endpoints behind them are internal to the Console and are not public API. The state is available through the API, read-only, at <Code>GET /v1/financial-setup</Code>.
+              </P>
 
               <H2 id="keys">API keys</H2>
               <UL>
@@ -1794,6 +1822,238 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                 { href: '/docs/en/get-started', title: 'Quickstart', desc: 'From account to first payment.' },
                 { href: '/docs/en/trust', title: 'Security', desc: 'Keys, secrets and permissions.' },
                 { href: '/docs/en/troubleshooting', title: 'Troubleshooting', desc: 'What to check in the Console, by symptom.' },
+              ]} />
+            </Section>
+    </>
+  );
+}
+
+export function EnFinancialSetup({ copy }: { copy: CopyFn }) {
+  const a = { color: LINK, fontWeight: 600, textDecoration: 'none' } as const;
+  return (
+    <>
+<Section id="financial-setup">
+              <h1 style={H1_STYLE}>Financial setup</h1>
+              <PageLede>Financial setup links a project to the business that receives its payments. Here: how to create a test business, how to link one that already exists, and what each confirmation proves.</PageLede>
+              <Callout>In the Sandbox, every value is fictitious and real-money operations are unavailable. The example on this page uses the workspace Doa Sandbox, the project Doa Payments, the Business Doa and @doa, in AOA.</Callout>
+
+              <H2 id="what-it-is">What financial setup is</H2>
+              <P>A project is a technical integration: it has keys, webhooks and logs. The party that receives payments is a Business. Financial setup is the step where the project is linked to that Business.</P>
+              <P>
+                A project is not financially ready when it is created. Without the link, the project can use the API and its keys, but creating a Payment Session returns <Code>403 PAYMENTS_UNAVAILABLE</Code>.
+                Your application never says who is paid: the payee always comes from this link.
+              </P>
+              <P>In the Sandbox you take this step in the Console, under Workspace, Project and Financial setup, with no application, no documents and no waiting. Only an Owner or an Admin of the workspace can do it.</P>
+
+              <H2 id="project-vs-business">Project vs Business</H2>
+              <ProjectBusinessDiagram l={{
+                title: 'Workspace, project, Business, @banza and wallet',
+                desc: 'The workspace Doa Sandbox contains the projects Doa Payments and Doa Checkout. Both projects link to the same Business, Doa. The @doa and the AOA wallet belong to the Business, not to the projects.',
+                workspace: 'Workspace', workspaceName: 'Doa Sandbox',
+                project: 'Project', projectName: 'Doa Payments', otherProjectName: 'Doa Checkout',
+                business: 'Business', businessName: 'Doa',
+                handle: '@doa', wallet: 'Wallet · AOA',
+                links: 'links to', owns: 'belong to the Business',
+              }} />
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Concept</th><th style={TH}>What it is</th><th style={TH}>In the example</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Workspace', 'The organisational boundary: who has access, and with which role.', 'Doa Sandbox'],
+                      ['Project', 'The technical integration: API keys, webhooks and logs.', 'Doa Payments'],
+                      ['Business', 'The financial identity: who receives the payments.', 'Doa'],
+                      ['@banza', 'The unique identifier of the Business on Banzami.', '@doa'],
+                      ['Wallet', 'The balance of the Business, in AOA.', 'The wallet of the Business Doa'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>A project links to a single Business, and a Business can receive in more than one project. Linking a project to a Business that already exists reuses that Business, with the same wallet and the same @banza: it does not create a second Business.</P>
+
+              <H2 id="what-the-banza-is">What the @banza is</H2>
+              <P>
+                The @banza is the unique identifier of a Business on Banzami: the word Banzami uses for “handle”. The @banza belongs to the Business, not to the Project.
+                The project Doa Payments links to the Business Doa; it is the Business Doa that has @doa.
+              </P>
+              <P>
+                It has 3 to 30 characters, starts with a letter and uses lowercase letters, digits or the _ sign. You choose it when you create the Business: the Console checks availability as you type and answers only “available”
+                or “not available, choose another”, without saying why.
+              </P>
+              <P>A generated @banza, such as @p0a1b2c3d4e5f, exists only in internal test data and in historical projects. It is never the normal path: today you choose the @banza of your Business.</P>
+
+              <H2 id="create-business">Create a new test Business</H2>
+              <P>This is the path for a project that has no Business yet. Nothing is created before the email is verified.</P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>In the Console, open the project Doa Payments, in the workspace Doa Sandbox, and select <strong>Financial setup</strong>.</LI>
+                <LI>Choose the use case: <strong>Store, service or business</strong> or <strong>Application or platform</strong>. Banzami assigns the classification and the price for that use; your application never sends a fee.</LI>
+                <LI>Choose the @banza of the Business, for example @doa. The Console says whether it is available.</LI>
+                <LI>Enter the contact email of the Business and select <strong>Confirm email</strong>. Banzami sends a six-digit code to that address.</LI>
+                <LI>Enter the code and select <strong>Confirm and create</strong>. Only then does Banzami create the Business Doa, allocate @doa, store the verified contact and link the project.</LI>
+              </ol>
+              <Callout>If you abandon the wizard, or the code is invalid, no Business, @banza or wallet is left behind. If the @banza stops being available before the end, the Console asks you to choose another.</Callout>
+
+              <H2 id="link-business">Link an existing Business</H2>
+              <P>Use this path when the Business already exists and your workspace already manages it, for example because another project in the workspace already receives in it. The link reuses the same Business, the same wallet and the same @banza.</P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>In <strong>Financial setup</strong>, select <strong>Link a Business that already exists</strong>, enter the @banza of the Business, for example @doa, and select <strong>Continue</strong>.</LI>
+                <LI>Banzami resolves the @banza, only among the Businesses your workspace already manages, and sends a code to the verified contact of that Business. The Console shows it masked, for example f****@example.com.</LI>
+                <LI>Enter the six-digit code and select <strong>Confirm</strong>. The existing Business is linked to the project.</LI>
+              </ol>
+              <P>
+                If the Business does not have a verified contact yet, the Console offers, to whoever is authorised, to confirm a contact for the Business first. The link code is sent only after the contact is verified, and it goes to the verified contact, not to any other address.
+              </P>
+              <P>An @banza that the workspace does not manage gets the same neutral answer as an @banza that does not exist: not found. This flow does not reveal whether that @banza exists in another workspace.</P>
+
+              <H2 id="confirm-control">Confirm control by email</H2>
+              <P>There are two confirmations by email, with different purposes. Neither of them is a KYB verification.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Confirmation</th><th style={TH}>When</th><th style={TH}>What it proves</th><th style={TH}>What remains</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['Business contact', 'When you create a test Business, or when you confirm a contact for a Business that has none.', 'That whoever controls the Business can receive email at that address.', 'A verified contact of the Business.'],
+                      ['Link to the project', 'When you link an existing Business by its @banza.', 'That whoever links the project controls the already verified contact of the Business.', 'One authorised link, once.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <H3 id="why-not-another-email">Why can’t you provide another email?</H3>
+              <Callout tone="warn">
+                <strong>Why can’t you provide another email?</strong> When you link an existing @banza, Banzami does not use an email that the user provides at that moment. The confirmation is sent to a previously verified contact associated with the Business.
+              </Callout>
+              <UL>
+                <LI>An email chosen by the person linking would only prove that this person can read that email, not that they control the Business. If that were enough, anyone who knew an @banza could link it to a project of their own.</LI>
+                <LI>Banzami only resolves the @banza of a Business that your workspace already manages, and answers the same way to an @banza that does not exist.</LI>
+                <LI>The Console never shows the full address of the contact, only the masked form.</LI>
+                <LI>The code is single-use and expires, and wrong attempts and repeated requests are limited.</LI>
+              </UL>
+              <P>A confirmed email proves access to a contact. It is not KYB, and it does not prove that someone is the legal owner of a company.</P>
+
+              <H2 id="link-code">Use a link code</H2>
+              <P>
+                A link code is a single-use consent that the Business itself issues: in the Banzami Business app or, for a test Business, in the Console of the project where it was created, under <strong>Generate link code</strong>.
+                It is valid for ten minutes and works once.
+              </P>
+              <ol style={{ margin: '0 0 14px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>In the target project, under <strong>Link a Business that already exists</strong>, select <strong>I have a link code</strong>.</LI>
+                <LI>Enter the code. The Business is linked to the project.</LI>
+              </ol>
+              <P>The code links the same Business: it does not create a second Business, a second wallet or a second @banza. Because the code is already the Business’s consent, it does not ask for an email confirmation.</P>
+
+              <H2 id="businesses-in-your-account">Businesses found in your account</H2>
+              <P>
+                The Console only names Businesses associated with your workspace and your project: it never searches across every Business on Banzami. When the project already has an application with a chosen @banza, the Console shows
+                “We found a business associated with your account”, with the name and the identity, and does not create a second Business or a second @banza.
+              </P>
+              <P>Test Businesses created before this setup keep working. Some have a generated @banza: you can keep using them and link them to another project.</P>
+
+              <H2 id="applications">Applications and an @banza already reserved</H2>
+              <P>An email provided in an application is not considered confirmed until verification is complete. Until then, Banzami does not use it to prove control of the Business.</P>
+              <UL>
+                <LI>While an application for the project is in progress, you cannot create a competing test Business for the same project: the Console refuses and says an application is in progress.</LI>
+                <LI>When the project already has an application with a chosen @banza, you can use that identity in this project after completing the verification of the Business. No second Business or second @banza is created.</LI>
+              </UL>
+
+              <H2 id="ready">The “Ready” state</H2>
+              <P>
+                Once the project is linked, the Console shows the state Ready and <Code>getFinancialSetup()</Code> returns <Code>financial_setup.state</Code> equal to <Code>READY</Code>. After the first payment is issued, the state becomes <Code>SEALED</Code>:
+                the Business and the use case are fixed and no longer change.
+              </P>
+              <P>The readiness card in the Console shows, among other lines:</P>
+              <UL>
+                <LI><strong>@banza identity:</strong> the @banza of the linked Business, for example @doa.</LI>
+                <LI><strong>Identity control:</strong> Confirmed, with the masked email (f****@example.com), or To confirm. It appears once the project is linked to a Business.</LI>
+                <LI><strong>Verification (KYB):</strong> for a Sandbox test Business it shows “Not applicable in the Sandbox”.</LI>
+                <LI><strong>Wallet:</strong> the status and the currency, AOA. The assigned price and the fee destination are set by Banzami.</LI>
+              </UL>
+              <P>
+                The same readiness is available at <Code>GET /v1/financial-setup</Code>, with an <Code>identity:read</Code> scope; the <Code>financial_identity.handle</Code> field is the @banza of the linked Business.
+                Check it before you offer payment. <a href="/docs/en/reference#ref-financial-setup" style={a}>GET /v1/financial-setup reference</a>
+              </P>
+
+              <H2 id="kyb">KYB vs confirmation of control</H2>
+              <P>They are different guarantees. Confirmation of control shows that the contact of the Business is reachable by whoever creates or links it. KYB is the verification of the Business as an entity, carried out by Banzami, and it does not depend on an email.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}></th><th style={TH}>Confirmation of control</th><th style={TH}>KYB</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['What it is', 'A code sent by email and entered in the Console.', 'The verification of the Business as an entity, carried out by Banzami.'],
+                      ['What it proves', 'That the contact of the Business is reachable by whoever creates or links it.', 'That the entity has been verified by Banzami.'],
+                      ['In the Sandbox', 'It applies when you create and when you link a Business.', 'Not applicable in the Sandbox: a test Business shows “Not applicable in the Sandbox”.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H2 id="several-projects">Use the same Business in more than one project</H2>
+              <P>In the example, the project Doa Checkout links to the Business Doa that the project Doa Payments already uses: by @doa, or with a link code generated from Doa Payments.</P>
+              <UL>
+                <LI>Both projects share the same wallet and the same @doa. There is no duplicated balance and no second @banza.</LI>
+                <LI>Each project keeps its own keys, webhooks and logs.</LI>
+                <LI>The transactions and balances of the Business appear in both projects, including the payments that the other project started.</LI>
+                <LI>Deleting a project does not delete a Business that another project still uses.</LI>
+              </UL>
+
+              <H2 id="security">Security and privacy</H2>
+              <UL>
+                <LI>The link confirmation always goes to the verified contact of the Business. Banzami never sends it to an email provided at the moment of linking. <a href="#why-not-another-email" style={a}>Why can’t you provide another email?</a></LI>
+                <LI>The Console shows the masked email and never the full address.</LI>
+                <LI>The availability of an @banza is neutral: it only says whether it is available, without revealing why it is not.</LI>
+                <LI>Only an Owner or an Admin of the workspace creates or links a Business.</LI>
+                <LI>An API key does not create or link Businesses. These operations require your Console session and your role in the workspace: the endpoints behind them are internal to the Console and are not part of the public API.</LI>
+              </UL>
+
+              <H2 id="common-errors-and-situations">Common errors and situations</H2>
+              <P>Always decide by the <Code>code</Code> field and the HTTP status, never by the message, which can change. The Console turns each code into a sentence for you.</P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Code</th><th style={TH}>HTTP</th><th style={TH}>What it means</th><th style={TH}>What to do</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['INVALID_HANDLE', '400', 'The @banza does not have a valid format.', 'Use 3 to 30 characters, starting with a letter: lowercase letters, digits or _.'],
+                      ['HANDLE_UNAVAILABLE', '409', 'The @banza is not available. The response does not say why.', 'Choose another @banza.'],
+                      ['INVALID_CODE', '400', 'The code is invalid or has expired.', 'Ask for a new code and enter it again.'],
+                      ['TOO_MANY_ATTEMPTS', '429', 'There were too many attempts or code requests.', 'Wait before trying again.'],
+                      ['NO_VERIFIED_CONTACT', '409', 'The Business does not have a verified contact yet.', 'Confirm a contact for the Business first, then repeat the link.'],
+                      ['LINK_GRANT_EXPIRED', '410', 'The link authorisation has expired or was already used.', 'Start the link again.'],
+                      ['NOT_FOUND', '404', 'The @banza does not match a Business that the workspace manages. It is the answer for an @banza that does not exist.', 'Check the @banza or use a link code.'],
+                      ['PROJECT_ALREADY_RECEIVING', '409', 'The project already receives in a Business.', 'A project receives in a single Business: use another project for another Business.'],
+                      ['FORBIDDEN', '403', 'Your role in the workspace does not allow setting up.', 'Ask an Owner or Admin of the workspace.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_MONO : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI>The email code did not arrive: check the masked address and the spam folder, and ask for a new code after a short interval.</LI>
+                <LI>The @banza you want to link is not found: you can only link by @banza a Business that your workspace already manages. Use a link code issued by the Business.</LI>
+                <LI>Creating a Payment Session fails because Financial setup is not complete yet: that error is in the API catalogue, not in this list. <a href="/docs/en/errors#error-catalogue" style={a}>Error catalogue</a></LI>
+              </UL>
+
+              <H2 id="sandbox-vs-real-money">Sandbox vs real-money operations</H2>
+              <P>
+                The Sandbox is the only environment available. Money is fictitious, and a test Business is not verified and does not exist outside the Sandbox.
+                Real-money operations are unavailable and subject to the applicable regulatory, contractual and operational approvals.
+              </P>
+              <P>A test Business, its @banza and its wallet are neither a request for nor an approval of real-money operations. Confirming an email on a test Business does not replace any future verification.</P>
+
+              <NextStepCards lang="en" items={[
+                { href: '/docs/en/get-started#financial-setup', title: 'Quickstart', desc: 'Financial setup on the way to the first payment.' },
+                { href: '/docs/en/console#financial', title: 'The Console', desc: 'Workspaces, projects and Financial setup in the Console.' },
+                { href: '/docs/en/concepts#model', title: 'How Banzami works', desc: 'Workspace, project, Business, @banza and wallet.' },
+                { href: '/docs/en/doa#doa-prepare', title: 'Build like DOA', desc: 'The Doa example, from workspace to first payment.' },
+                { href: '/docs/en/testing#financial-setup-tests', title: 'Sandbox testing', desc: 'Test scenarios for Financial setup.' },
+                { href: '/docs/en/glossary', title: 'Glossary', desc: 'Business, @banza, KYB and link code.' },
+                { href: '/docs/en/errors#console-errors', title: 'Errors', desc: 'The Console error codes.' },
               ]} />
             </Section>
     </>
@@ -1935,6 +2195,26 @@ export function EnErrors({ copy }: { copy: CopyFn }) {
                       ['VALIDATION', 'Correct the fields indicated.'],
                     ].map((r) => (
                       <tr key={r[0]}><td style={TD_MONO}>{r[0]}</td><td style={TD}>{r[1]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>Financial setup errors have stable codes. Decide by the HTTP status and the <Code>code</Code> field, never by the message. <a href="/docs/en/financial-setup#common-errors-and-situations" style={a}>Common Financial setup errors and situations</a></P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Code</th><th style={TH}>HTTP</th><th style={TH}>What to do</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['INVALID_HANDLE', '400', 'Use 3 to 30 characters, starting with a letter: lowercase letters, digits or _.'],
+                      ['HANDLE_UNAVAILABLE', '409', 'Choose another @banza. The response does not say why it is not available.'],
+                      ['INVALID_CODE', '400', 'The Business code is invalid or has expired: ask for a new one.'],
+                      ['TOO_MANY_ATTEMPTS', '429', 'There were too many attempts or code requests: wait before trying again.'],
+                      ['NO_VERIFIED_CONTACT', '409', 'The Business does not have a verified contact yet: confirm one first and repeat the link.'],
+                      ['LINK_GRANT_EXPIRED', '410', 'The link authorisation has expired or was already used: start the link again.'],
+                      ['NOT_FOUND', '404', 'The @banza does not match a Business the workspace manages, or does not exist: check it or use a link code.'],
+                      ['PROJECT_ALREADY_RECEIVING', '409', 'The project already receives in a Business: use another project for another Business.'],
+                    ].map((r) => (
+                      <tr key={r[0]}><td style={TD_MONO}>{r[0]}</td><td style={TD}>{r[1]}</td><td style={TD}>{r[2]}</td></tr>
                     ))}
                   </tbody>
                 </table>
@@ -2113,7 +2393,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                   <thead><tr style={THEAD}><th style={TH}>Capability</th><th style={TH}>Where</th><th style={TH}>Limits</th></tr></thead>
                   <tbody>
                     {[
-                      ['A test Business for the project', 'Console → Financial Setup: choose the use case', 'One per project. Not verified, and it does not exist outside the Sandbox.'],
+                      ['A test Business for the project', 'Console → Financial Setup: create a Business or link an existing one', 'One per project. Not verified, money is fictitious, and it does not exist outside the Sandbox.'],
                       ['Test payers with fictitious value', 'Console → Test data, or /v1/sandbox/test-payers', 'Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 25,000 Kz, a 50,000 Kz balance, 20 top-ups and 100,000 Kz a day.'],
                       ['External-network outcomes', 'simulate on a test payer’s payment', 'DECLINED, PROVIDER_UNAVAILABLE and TIMEOUT. The response carries simulated: true.'],
                       ['API Explorer', 'Console → API Explorer', 'Requests with a 60-second key, Sandbox only; 30 a minute per project.'],
@@ -2161,6 +2441,25 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                 The state is this Project’s alone: another Project connected to the same Business is unaffected. In the Console, under <strong>Test data</strong>, or through the API: <a href="/docs/en/concepts#how-money-moves" style={a}>How money moves</a>
               </P>
               <CodeBlock label="curl · take the external rail down" raw={SAMPLE_CURL_EXTERNAL_RAIL} onCopy={copy} {...enCopy} />
+
+              <H2 id="financial-setup-tests">Financial setup</H2>
+              <P>These scenarios exercise the link between a project and a Business, with the Doa example. Every value is fictitious and nothing moves real money. <a href="/docs/en/financial-setup" style={a}>Financial setup</a></P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={TABLE}>
+                  <thead><tr style={THEAD}><th style={TH}>Scenario</th><th style={TH}>How to trigger it</th><th style={TH}>Expected result</th><th style={TH}>Where to confirm</th></tr></thead>
+                  <tbody>
+                    {[
+                      ['A. Create with an available @banza', 'In Doa Payments, choose @doa, enter an email, enter the code and select Confirm and create.', 'The Business Doa is created with @doa, the contact is verified and the project becomes Ready.', 'Financial setup: Identity control Confirmed. getFinancialSetup() returns READY.'],
+                      ['B. An @banza that is not available', 'Choose an @banza that is not available, or one with an invalid format.', 'The Console only says the @banza is not available, or that the format is invalid, without saying why. Nothing is created.', 'Financial setup: the project stays unconfigured.'],
+                      ['C. Link an existing Business', 'In Doa Checkout, enter @doa and the code sent to the verified contact of the Business, shown masked.', 'The project links to the Business Doa that already exists, with the same wallet and the same @doa.', 'Financial setup: @doa identity. getFinancialSetup() returns the same financial_identity.handle.'],
+                      ['D. Use a link code', 'In Doa Payments, select Generate link code and enter the code in Doa Checkout within ten minutes.', 'The same Business is linked. The code works only once.', 'Balances: the same accounts in both projects.'],
+                      ['E. Linking the same Business creates no other', 'Link Doa Checkout to the Business Doa by any path and compare the two projects.', 'Both projects show the same @doa and the same wallet. There is no second Business, second wallet or second @banza.', 'Balances and Transactions: the same in both projects.'],
+                    ].map((r) => (
+                      <tr key={r[0]}>{r.map((c, i) => <td key={i} style={i === 0 ? TD_HEAD : TD}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <H2 id="recipe-basics">Keys and readiness</H2>
               <RecipeCard lang="en" r={{ id: 'first-call', title: 'The key works',
@@ -2617,6 +2916,7 @@ export function EnGlossary({ copy }: { copy: CopyFn }) {
               </dl>
               <NextStepCards lang="en" items={[
                 { href: '/docs/en/concepts', title: 'How Banzami works', desc: 'The concepts, in context.' },
+                { href: '/docs/en/financial-setup', title: 'Financial setup', desc: 'Business, @banza, KYB and link code, in practice.' },
               ]} />
             </div>
 </Section>

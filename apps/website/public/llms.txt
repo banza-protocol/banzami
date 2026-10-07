@@ -27,6 +27,7 @@
 ## Console
 
 - [The Console](https://developers.banzami.com/docs/en/console): Account, workspaces and roles, projects, Financial Setup, API keys, webhooks, logs and activity.
+- [Financial setup](https://developers.banzami.com/docs/en/financial-setup): Link a project to a business: create a test business, link an existing one by @banza or link code, confirm control by email and become ready to receive in the Sandbox.
 
 ## Reference
 

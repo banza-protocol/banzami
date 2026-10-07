@@ -26,7 +26,7 @@ const read = (f) => readFileSync(join(DIR, f), 'utf8');
 
 const SLUG = {
   GetStarted: 'get-started', Concepts: 'concepts', Payments: 'payments', Webhooks: 'webhooks', Events: 'events', Refunds: 'refunds',
-  Settlements: 'settlements', Receipts: 'receipts', Transfers: 'transfers', Doa: 'doa', Console: 'console', Reference: 'reference',
+  Settlements: 'settlements', Receipts: 'receipts', Transfers: 'transfers', Doa: 'doa', Console: 'console', FinancialSetup: 'financial-setup', Reference: 'reference',
   Errors: 'errors', Sdk: 'sdk', Artifacts: 'artifacts', Testing: 'testing', GoingLive: 'going-live', Trust: 'trust',
   Troubleshooting: 'troubleshooting', Support: 'support', Changelog: 'changelog', Glossary: 'glossary',
 };
@@ -47,6 +47,7 @@ const PT_ALIASES = {
   transfers: 'transfer|transfers|wallet account|accounts',
   doa: 'reference implementation|doa tutorial',
   console: 'console|dashboard|api keys|workspace|project',
+  'financial-setup': 'financial setup|business|link business|link code|business control|kyb|handle|banza handle|project business',
   reference: 'api reference|endpoints',
   errors: 'errors|error codes',
   sdk: 'sdk|sdks|library',
@@ -61,7 +62,13 @@ const PT_ALIASES = {
 };
 const PT_SECTION_ALIASES = {
   idempotencia: 'idempotency', rotacao: 'rotate key|key rotation|rotate secret', chaves: 'api key|api keys',
-  'configuracao-financeira': 'financial setup', links: 'payment link|payment links', 'criar-sessao': 'payment session|create payment session',
+  'configuracao-financeira': 'financial setup',
+  'o-que-e-o-banza': 'banza handle|handle',
+  'criar-negocio': 'create business|new business',
+  'ligar-negocio': 'link business|link existing business',
+  'confirmar-controlo': 'confirm control|email verification',
+  'codigo-de-ligacao': 'link code',
+  kyb: 'kyb|business verification', links: 'payment link|payment links', 'criar-sessao': 'payment session|create payment session',
   formato: 'secure_v1 format', verificar: 'verify receipt', 'sandbox-live': 'sandbox and live|live',
 };
 
@@ -116,7 +123,7 @@ function build() {
     }
   }
   const glossary = read('glossary.ts');
-  const TERM_ALIASES = { 'api-key': 'api key', 'chave-secreta': 'secret key', 'chave-publicavel': 'publishable key', 'configuracao-financeira': 'financial setup', 'sessao-pagamento': 'payment session', 'link-pagamento': 'payment link', reembolso: 'refund', comprovativo: 'receipt', liquidacao: 'settlement', 'unidades-menores': 'minor units', idempotencia: 'idempotency', producao: 'live|production' };
+  const TERM_ALIASES = { 'api-key': 'api key', 'chave-secreta': 'secret key', 'chave-publicavel': 'publishable key', 'configuracao-financeira': 'financial setup', 'sessao-pagamento': 'payment session', 'link-pagamento': 'payment link', reembolso: 'refund', comprovativo: 'receipt', liquidacao: 'settlement', 'unidades-menores': 'minor units', idempotencia: 'idempotency', producao: 'live|production', business: 'business|business account', 'negocio-teste': 'test business|sandbox business', 'confirmacao-controlo': 'business control confirmation|email confirmation', 'codigo-ligacao': 'link code', projeto: 'project', workspace: 'workspace' };
   for (const m of glossary.matchAll(/id: '([^']+)',\s*term: '([^']+)',(?:\s*code: true,)?\s*def: '([^']+)'/g)) add('pt', 'term', m[2], `/docs/glossary#glossario-${m[1]}`, m[3], TERM_ALIASES[m[1]] ?? '');
   const en = read('content-en.tsx');
   const concepts = en.slice(en.indexOf('const CONCEPTS'), en.indexOf('];', en.indexOf('const CONCEPTS')));

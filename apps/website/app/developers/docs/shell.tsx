@@ -25,6 +25,7 @@ export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
   { slug: 'transfers', label: 'Contas e transferências', desc: 'Contas segregadas e movimentos entre contas.' },
   { slug: 'doa', label: 'Construir como o DOA', desc: 'Uma integração completa, de referência.' },
   { slug: 'console', label: 'A Consola', desc: 'Workspaces, projetos, chaves, webhooks e registos.' },
+  { slug: 'financial-setup', label: 'Configuração financeira', desc: 'Ligar um projeto a um negócio, com o seu @banza.' },
   { slug: 'reference', label: 'Referência da API', desc: 'Cada endpoint da API v1.' },
   { slug: 'events', label: 'Eventos', desc: 'Os eventos de webhook e os seus campos.' },
   { slug: 'errors', label: 'Erros', desc: 'O envelope de erro e todos os códigos.' },
@@ -51,6 +52,7 @@ export const AREAS_EN: { slug: string; label: string; desc: string }[] = [
   { slug: 'transfers', label: 'Accounts and transfers', desc: 'Segregated accounts and moves between them.' },
   { slug: 'doa', label: 'Build like DOA', desc: 'A complete reference integration.' },
   { slug: 'console', label: 'The Console', desc: 'Workspaces, projects, keys, webhooks and logs.' },
+  { slug: 'financial-setup', label: 'Financial setup', desc: 'Link a project to a business, with its @banza.' },
   { slug: 'reference', label: 'API reference', desc: 'Every v1 endpoint.' },
   { slug: 'events', label: 'Events', desc: 'Webhook events and their fields.' },
   { slug: 'errors', label: 'Errors', desc: 'The error envelope and every code.' },
@@ -69,14 +71,14 @@ export const AREAS_EN: { slug: string; label: string; desc: string }[] = [
 export const NAV_GROUPS: { id: string; title: { pt: string; en: string }; slugs: string[] }[] = [
   { id: 'start', title: { pt: 'Começar', en: 'Get started' }, slugs: ['', 'get-started', 'concepts'] },
   { id: 'build', title: { pt: 'Construir', en: 'Build' }, slugs: ['payments', 'webhooks', 'refunds', 'settlements', 'receipts', 'transfers', 'doa'] },
-  { id: 'console', title: { pt: 'Consola', en: 'Console' }, slugs: ['console'] },
+  { id: 'console', title: { pt: 'Consola', en: 'Console' }, slugs: ['console', 'financial-setup'] },
   { id: 'reference', title: { pt: 'Referência', en: 'Reference' }, slugs: ['reference', 'events', 'errors', 'sdk', 'artifacts'] },
   { id: 'learn', title: { pt: 'Aprender', en: 'Learn' }, slugs: ['testing', 'going-live', 'trust', 'glossary'] },
   { id: 'resources', title: { pt: 'Recursos', en: 'Resources' }, slugs: ['troubleshooting', 'support', 'changelog'] },
 ];
 
 /** Pages long enough to need an "on this page" box. */
-export const TOC_PAGES = ['get-started', 'concepts', 'payments', 'webhooks', 'events', 'refunds', 'settlements', 'receipts', 'transfers', 'doa', 'console', 'reference', 'errors', 'sdk', 'testing', 'going-live', 'trust'];
+export const TOC_PAGES = ['get-started', 'concepts', 'payments', 'webhooks', 'events', 'refunds', 'settlements', 'receipts', 'transfers', 'doa', 'console', 'financial-setup', 'reference', 'errors', 'sdk', 'testing', 'going-live', 'trust'];
 
 const base = (lang: 'pt' | 'en') => (lang === 'pt' ? '/docs' : '/docs/en');
 export const areaHref = (lang: 'pt' | 'en', slug: string) => (slug ? `${base(lang)}/${slug}` : base(lang));

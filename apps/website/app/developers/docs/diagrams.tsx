@@ -309,6 +309,62 @@ export function FinancialSetupDiagram({ l }: { l: FinancialSetupLabels }) {
   );
 }
 
+// ── project, business and @banza: who links to what ───────────────────────────
+
+export type ProjectBusinessLabels = {
+  title: string; desc?: string;
+  workspace: string; workspaceName: string;
+  project: string; projectName: string; otherProjectName: string;
+  business: string; businessName: string;
+  handle: string; wallet: string;
+  links: string; owns: string;
+};
+
+/**
+ * The domain in one picture: the workspace holds projects, a project LINKS to a
+ * business, and the @banza and the wallet belong to the business. A second
+ * project links to the same business without creating another one.
+ */
+export function ProjectBusinessDiagram({ l }: { l: ProjectBusinessLabels }) {
+  const Box = ({ x, y, w, kind, name, tone = 'plain' }: { x: number; y: number; w: number; kind: string; name: string; tone?: 'plain' | 'strong' }) => (
+    <g>
+      <rect x={x} y={y} width={w} height={78} rx={12} fill={tone === 'strong' ? RED : '#FFFFFF'} stroke={tone === 'strong' ? RED_DEEP : BLUSH} strokeWidth={2} />
+      <text x={x + w / 2} y={y + 28} textAnchor="middle" fontFamily={SANS} fontSize={14} fontWeight={600} fill={tone === 'strong' ? '#FFFFFF' : INK_SOFT}>{kind}</text>
+      <text x={x + w / 2} y={y + 58} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(name, w - 24, 21, 15)} fontWeight={700} fill={tone === 'strong' ? '#FFFFFF' : INK}>{name}</text>
+    </g>
+  );
+  return (
+    <Frame title={l.title} desc={l.desc} viewBox="0 0 900 380">
+      <defs>
+        <marker id="bz-pb-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill={RED} />
+        </marker>
+      </defs>
+      <rect width="900" height="380" fill={GROUND} rx={14} />
+
+      <Box x={24} y={104} w={216} kind={l.workspace} name={l.workspaceName} />
+      <Box x={330} y={40} w={216} kind={l.project} name={l.projectName} />
+      <Box x={330} y={170} w={216} kind={l.project} name={l.otherProjectName} />
+      <Box x={650} y={104} w={226} kind={l.business} name={l.businessName} tone="strong" />
+
+      <path d="M240 143 H285 V79 H326" fill="none" stroke={RED_SOFT} strokeWidth={2} strokeLinecap="round" />
+      <path d="M285 143 V209 H326" fill="none" stroke={RED_SOFT} strokeWidth={2} strokeLinecap="round" />
+
+      <path d="M546 79 H566 V143 H646" fill="none" stroke={RED} strokeWidth={2.4} markerEnd="url(#bz-pb-arrow)" />
+      <path d="M546 209 H566 V143" fill="none" stroke={RED} strokeWidth={2.4} />
+      <text x={606} y={133} textAnchor="middle" fontFamily={SANS} fontSize={14} fontWeight={700} fill={RED_DEEP}>{l.links}</text>
+
+      <path d="M702 182 V230" stroke={RED_SOFT} strokeWidth={2} strokeLinecap="round" />
+      <path d="M822 182 V230" stroke={RED_SOFT} strokeWidth={2} strokeLinecap="round" />
+      <text x={762} y={212} textAnchor="middle" fontFamily={SANS} fontSize={14} fontWeight={600} fill={INK_SOFT}>{l.owns}</text>
+      <rect x={650} y={230} width={104} height={50} rx={10} fill={BLUSH} stroke={RED_SOFT} strokeWidth={1.5} />
+      <text x={702} y={262} textAnchor="middle" fontFamily={MONO} fontSize={18} fontWeight={700} fill={RED_DEEP}>{l.handle}</text>
+      <rect x={768} y={230} width={108} height={50} rx={10} fill="#FFFFFF" stroke={BLUSH} strokeWidth={2} />
+      <text x={822} y={262} textAnchor="middle" fontFamily={SANS} fontSize={fitFont(l.wallet, 90, 16, 12)} fontWeight={700} fill={INK}>{l.wallet}</text>
+    </Frame>
+  );
+}
+
 // ── who does what: your application and Banzami, side by side ────────────────
 
 export type ResponsibilityStep = { side: 'app' | 'banzami'; text: string };

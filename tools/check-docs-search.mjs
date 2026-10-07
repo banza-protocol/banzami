@@ -25,6 +25,18 @@ const index = JSON.parse(readFileSync(join(DIR, 'search-index.json'), 'utf8'));
 /** [query, expected href prefixes] — any one of them in the top five passes. */
 const QUERIES = {
   pt: [
+    // Financial setup: business identity selection and verified @banza linking.
+    ['@banza', ['/docs/financial-setup#o-que-e-o-banza', '/docs/glossary#glossario-banza-handle']],
+    ['negócio', ['/docs/financial-setup', '/docs/glossary#glossario-business']],
+    ['business', ['/docs/financial-setup', '/docs/glossary#glossario-business']],
+    ['configuração financeira', ['/docs/financial-setup']],
+    ['ligar negócio', ['/docs/financial-setup#ligar-negocio']],
+    ['link business', ['/docs/financial-setup#ligar-negocio', '/docs/financial-setup']],
+    ['código de ligação', ['/docs/financial-setup#codigo-de-ligacao', '/docs/glossary#glossario-codigo-ligacao']],
+    ['link code', ['/docs/financial-setup#codigo-de-ligacao', '/docs/glossary#glossario-codigo-ligacao']],
+    ['KYB', ['/docs/financial-setup#kyb', '/docs/glossary#glossario-kyb']],
+    ['projeto', ['/docs/financial-setup#projeto-vs-negocio', '/docs/glossary#glossario-projeto']],
+    ['project', ['/docs/financial-setup#projeto-vs-negocio', '/docs/glossary#glossario-projeto', '/docs/console']],
     ['Financial Setup', ['/docs/get-started#configuracao-financeira', '/docs/glossary#glossario-configuracao-financeira', '/docs/console#financeiro']],
     ['configuração financeira', ['/docs/get-started#configuracao-financeira', '/docs/glossary#glossario-configuracao-financeira']],
     ['payment session', ['/docs/payments', '/docs/reference#resource-sessions', '/docs/get-started#passo-8']],
@@ -61,7 +73,15 @@ const QUERIES = {
     ['support', ['/docs/support']],
   ],
   en: [
-    ['Financial Setup', ['/docs/en/get-started#financial-setup', '/docs/en/glossary#concepts', '/docs/en/console#financial']],
+    // Financial setup: business identity selection and verified @banza linking.
+    ['@banza', ['/docs/en/financial-setup#what-the-banza-is', '/docs/en/glossary#concepts']],
+    ['business', ['/docs/en/financial-setup', '/docs/en/glossary#concepts']],
+    ['financial setup', ['/docs/en/financial-setup']],
+    ['link business', ['/docs/en/financial-setup#link-business']],
+    ['link code', ['/docs/en/financial-setup#link-code', '/docs/en/glossary#concepts']],
+    ['KYB', ['/docs/en/financial-setup#kyb', '/docs/en/glossary#concepts']],
+    ['project', ['/docs/en/financial-setup#project-vs-business', '/docs/en/glossary#concepts', '/docs/en/console']],
+    ['Financial Setup', ['/docs/en/financial-setup', '/docs/en/get-started#financial-setup', '/docs/en/glossary#concepts', '/docs/en/console#financial']],
     ['payment session', ['/docs/en/payments', '/docs/en/reference#resource-sessions', '/docs/en/get-started#step-8', '/docs/en/glossary#concepts']],
     ['payment link', ['/docs/en/payments#links', '/docs/en/glossary#concepts']],
     ['refund', ['/docs/en/refunds', '/docs/en/reference#ref-refund-create']],

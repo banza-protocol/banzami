@@ -30,7 +30,7 @@ describe('Chapter navigation — PT', () => {
   it('order matches the canonical AREAS_PT sequence', () => {
     expect(AREAS_PT.map((a) => a.label)).toEqual([
       'Início', 'Quickstart', 'Como a Banzami funciona', 'Aceitar pagamentos', 'Webhooks', 'Reembolsos', 'Liquidações', 'Comprovativos',
-      'Contas e transferências', 'Construir como o DOA', 'A Consola', 'Referência da API', 'Eventos', 'Erros', 'SDKs', 'Artefactos',
+      'Contas e transferências', 'Construir como o DOA', 'A Consola', 'Configuração financeira', 'Referência da API', 'Eventos', 'Erros', 'SDKs', 'Artefactos',
       'Testar no Sandbox', 'Do Sandbox ao Live', 'Segurança', 'Glossário', 'Resolução de problemas', 'Suporte', 'Changelog',
     ]);
   });
@@ -67,7 +67,7 @@ describe('Chapter navigation — EN', () => {
   it('order matches the canonical AREAS_EN sequence and mirrors PT by index', () => {
     expect(AREAS_EN.map((a) => a.label)).toEqual([
       'Home', 'Quickstart', 'How Banzami works', 'Accept payments', 'Webhooks', 'Refunds', 'Settlements', 'Receipts',
-      'Accounts and transfers', 'Build like DOA', 'The Console', 'API reference', 'Events', 'Errors', 'SDKs', 'Artifacts',
+      'Accounts and transfers', 'Build like DOA', 'The Console', 'Financial setup', 'API reference', 'Events', 'Errors', 'SDKs', 'Artifacts',
       'Sandbox testing', 'From Sandbox toward Live', 'Security', 'Glossary', 'Troubleshooting', 'Support', 'Changelog',
     ]);
     expect(AREAS_EN.map((a) => a.slug)).toEqual(AREAS_PT.map((a) => a.slug));
