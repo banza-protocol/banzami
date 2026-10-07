@@ -1,12 +1,19 @@
 /**
- * Migration 0133: every name Core reserves is a SYSTEM row in the one @banza
- * registry — the list Business applications check — and the registry's own
- * seed is reserved by Core too. Two lists let a Business apply for @bna.
+ * The one @banza reserved namespace (migrations 0133 + 0171): the handle_registry
+ * is the SOLE authority for reserved names — there is no second hand-kept list in
+ * the Rust core any more (that list was removed; tools/check-reserved-handles.mjs
+ * fails CI if it ever reappears). The single source of the reserved set is
+ * tools/gen-reserved-handles.mjs, and migration 0171 is seeded from it.
+ *
+ * This is the DB-level proof: on a FRESHLY migrated database the registry's SYSTEM
+ * rows must equal EXACTLY the canonical generator's set — both directions — so the
+ * namespace is reproducible on a clean DB and can never silently diverge from its
+ * one source. (check-reserved-handles.mjs proves the same against the migration SQL
+ * text statically; this proves the realised effect on a real migrated DB.)
  *
  *   DATABASE_URL=postgres://localhost:5432/postgres node --test tests/ops/migration-0133-one-reserved-list.test.mjs
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
@@ -15,10 +22,15 @@ const REPO = join(import.meta.dirname, '../..');
 const ADMIN = process.env.DATABASE_URL ?? 'postgres://localhost:5432/postgres';
 let db; let url;
 const psql = (sql) => execFileSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '-Atc', sql], { encoding: 'utf8' }).trim();
-const core = [...readFileSync(join(REPO, 'core/identity/src/identity.rs'), 'utf8')
-  .match(/const RESERVED_HANDLES[^;]+;/)[0].matchAll(/"([a-z0-9_]+)"/g)].map((m) => m[1]);
+// The ONE source of the reserved set (registry authority, single generator). Each
+// row carries its ownerType (SYSTEM for @banza's own names, PROTECTED for the
+// institution inventory) — the registry must reproduce both the handle AND its
+// classification exactly.
+const canonical = JSON.parse(
+  execFileSync('node', [join(REPO, 'tools/gen-reserved-handles.mjs'), '--json'], { encoding: 'utf8' }),
+).map((r) => `${r.handle}\t${r.ownerType}`).sort();
 
-describe('migration 0133', () => {
+describe('the one @banza reserved namespace', () => {
   before(() => {
     db = `bz_0133_${process.pid}`;
     url = ADMIN.replace(/\/[^/?]+(\?.*)?$/, `/${db}$1`);
@@ -28,15 +40,24 @@ describe('migration 0133', () => {
   });
   after(() => execFileSync('psql', [ADMIN, '-Atc', `DROP DATABASE IF EXISTS ${db}`]));
 
-  it('every name Core reserves is a SYSTEM row in the registry', () => {
-    const system = new Set(psql(`SELECT handle FROM handle_registry WHERE owner_type = 'SYSTEM'`).split('\n'));
-    const missing = core.filter((n) => !system.has(n));
-    assert.deepEqual(missing, [], `reserved by Core but free in the registry: ${missing}`);
+  // The registry's reserved rows (SYSTEM + PROTECTED) are seeded only from the
+  // generator, so the freshly-migrated set must match it exactly — same handles,
+  // same classification, in both directions. The comparison is of the full
+  // (handle, owner_type) mapping to catch a drift in either the set OR the kind.
+  const registryReserved = () =>
+    psql(`SELECT handle || E'\\t' || owner_type FROM handle_registry
+          WHERE owner_type IN ('SYSTEM','PROTECTED') ORDER BY handle, owner_type`)
+      .split('\n').filter(Boolean).sort();
+
+  it('every canonical reserved handle is seeded in the registry with the same classification', () => {
+    const have = new Set(registryReserved());
+    const missing = canonical.filter((n) => !have.has(n));
+    assert.deepEqual(missing, [], `emitted by the generator but missing/misclassified in the registry: ${missing}`);
   });
 
-  it('every SYSTEM row is reserved by Core too', () => {
-    const system = psql(`SELECT handle FROM handle_registry WHERE owner_type = 'SYSTEM'`).split('\n');
-    const missing = system.filter((n) => !core.includes(n));
-    assert.deepEqual(missing, [], `reserved in the registry but not by Core: ${missing}`);
+  it('every reserved registry row comes from the canonical generator (no stray reservations)', () => {
+    const canon = new Set(canonical);
+    const extra = registryReserved().filter((n) => !canon.has(n));
+    assert.deepEqual(extra, [], `reserved in the registry but not emitted by the generator: ${extra}`);
   });
 });
