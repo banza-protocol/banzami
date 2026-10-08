@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { developerApi, ApiError, type OnboardingBusiness } from '@/lib/developer-api';
 import { ConnectBusinessForm } from './ConnectBusinessForm';
 import { OtpBoxes } from './OtpBoxes';
-import { FIELD_ERROR, FIELD_HINT, FIELD_INPUT, FIELD_LABEL, SECONDARY_BUTTON, primaryButton } from './ui';
+import { FIELD_ERROR, FIELD_INPUT, FIELD_LABEL, SECONDARY_BUTTON, primaryButton } from './ui';
 
 /**
  * Path B (ADR-060): link a Business you already control by its @banza. Banzami
@@ -29,10 +29,6 @@ function refusalText(e: unknown): string {
   }
 }
 
-function isEmailish(e: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
-}
-
 type Phase = 'handle' | 'enrol' | 'enrolVerify' | 'linkVerify';
 
 export function LinkByHandleForm({
@@ -46,7 +42,6 @@ export function LinkByHandleForm({
   const [useCode, setUseCode] = useState(false);
   const [phase, setPhase] = useState<Phase>('handle');
   const [handle, setHandle] = useState('');
-  const [email, setEmail] = useState('');
   const [masked, setMasked] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -85,11 +80,13 @@ export function LinkByHandleForm({
   }
 
   async function sendEnrolCode() {
-    if (!isEmailish(email) || busy) return;
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
-      const r = await developerApi.startBusinessContactEnrolment(projectId, cleanHandle, email.trim(), csrf);
+      // No email is supplied: Banzami sends the code to the Business's own
+      // server-side contact and returns only its masked form.
+      const r = await developerApi.startBusinessContactEnrolment(projectId, cleanHandle, csrf);
       setMasked(r.masked_email);
       setPhase('enrolVerify');
     } catch (e) {
@@ -162,18 +159,13 @@ export function LinkByHandleForm({
       <div data-testid="link-by-handle-enrol" style={{ marginTop: 18 }}>
         {heading}
         <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#6a5a5e', fontWeight: 600, lineHeight: 1.6 }}>
-          O negócio <strong>@{cleanHandle}</strong> ainda não tem um contacto confirmado. Confirme um email de contacto
-          antes de o utilizar para ligar este negócio a outro projeto.
+          O negócio <strong>@{cleanHandle}</strong> ainda não tem um contacto confirmado. Para o ligar, confirme o
+          controlo do negócio: a Banzami envia um código para o contacto já associado a este negócio, nunca para um email
+          indicado aqui.
         </p>
-        <div style={{ marginTop: 14, maxWidth: 320 }}>
-          <label htmlFor="enrol-email" style={FIELD_LABEL}>Email de contacto do negócio</label>
-          <input id="enrol-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy}
-                 autoComplete="email" placeholder="dono@exemplo.com" style={FIELD_INPUT} />
-          <p style={FIELD_HINT}>Enviaremos um código para confirmar que controla este endereço.</p>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => void sendEnrolCode()} disabled={!isEmailish(email) || busy} style={primaryButton(!isEmailish(email) || busy)}>
-            {busy ? 'A enviar…' : 'Confirmar contacto'}
+        <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+          <button type="button" data-testid="link-enrol-send" onClick={() => void sendEnrolCode()} disabled={busy} style={primaryButton(busy)}>
+            {busy ? 'A enviar…' : 'Enviar código de confirmação'}
           </button>
           <button type="button" onClick={() => { setPhase('handle'); setError(''); }} disabled={busy} style={SECONDARY_BUTTON}>Voltar</button>
         </div>

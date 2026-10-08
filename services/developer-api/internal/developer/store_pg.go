@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -853,27 +854,47 @@ func (s *pgStore) SetBindingUseCase(ctx context.Context, projectID, useCase stri
 	return err
 }
 
-func (s *pgStore) ManagedMerchantByHandle(ctx context.Context, workspaceID, handle string) (string, bool, error) {
-	var merchantID string
-	// Resolve the @banza to a MERCHANT and require that the workspace already
-	// manages it (bound to one of its projects, any state). One query, so the
-	// result is identical whether the handle is wrong or simply not the
-	// workspace's — no row either way (anti-enumeration).
+func (s *pgStore) LinkableMerchantByHandle(ctx context.Context, handle string) (string, string, bool, bool, error) {
+	var (
+		merchantID  string
+		hasVerified bool
+		storedEmail string
+	)
+	// Resolve the @banza to a real, ACTIVE Business and its server-side contact:
+	// the verified contact if one exists, else the (approved/declared) application
+	// email, else the merchant's own email — never a synthetic .test placeholder.
+	// A business with no deliverable contact (a synthetic Sandbox business) yields
+	// no usable email, so it is not linkable this way (it uses a consent code).
 	err := s.pool.QueryRow(ctx,
-		`SELECT b.merchant_id::text
+		`SELECT m.id::text,
+		        EXISTS(SELECT 1 FROM business_contacts bc
+		                WHERE bc.merchant_id = m.id AND bc.verified_at IS NOT NULL
+		                  AND bc.revoked_at IS NULL AND bc.is_primary),
+		        COALESCE(
+		          (SELECT bc.value_normalized FROM business_contacts bc
+		             WHERE bc.merchant_id = m.id AND bc.verified_at IS NOT NULL
+		               AND bc.revoked_at IS NULL AND bc.is_primary
+		             ORDER BY bc.verified_at DESC LIMIT 1),
+		          (SELECT ma.email FROM merchant_applications ma
+		             WHERE ma.created_merchant_id = m.id AND ma.email IS NOT NULL
+		               AND ma.email NOT LIKE '%.test'
+		             ORDER BY ma.created_at DESC LIMIT 1),
+		          (CASE WHEN m.email NOT LIKE '%.test' THEN m.email ELSE NULL END),
+		          '')
 		   FROM handle_registry hr
-		   JOIN developer.dev_project_sandbox_binding b ON b.merchant_id = hr.owner_id
-		   JOIN developer.dev_projects p ON p.id = b.project_id
-		  WHERE hr.handle = $1 AND hr.owner_type = 'MERCHANT'
-		    AND p.workspace_id = $2
-		  LIMIT 1`, handle, workspaceID).Scan(&merchantID)
+		   JOIN merchants m ON m.id = hr.owner_id
+		  WHERE hr.handle = $1 AND hr.owner_type = 'MERCHANT' AND m.status = 'ACTIVE'
+		  LIMIT 1`, handle).Scan(&merchantID, &hasVerified, &storedEmail)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", false, nil
+		return "", "", false, false, nil
 	}
 	if err != nil {
-		return "", false, err
+		return "", "", false, false, err
 	}
-	return merchantID, true, nil
+	if strings.TrimSpace(storedEmail) == "" {
+		return "", "", false, false, nil // real but no deliverable contact (synthetic)
+	}
+	return merchantID, storedEmail, hasVerified, true, nil
 }
 
 func (s *pgStore) BindingUseCase(ctx context.Context, projectID string) (string, error) {

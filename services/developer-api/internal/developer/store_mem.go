@@ -22,6 +22,8 @@ type memStore struct {
 	apiKeys          []*apiKeyRec
 	bindings         []*SandboxBinding
 	handles          map[string]string // @banza -> merchantID (test seed for Path B)
+	handleContacts   map[string]string // merchantID -> stored contact email (test seed)
+	verifiedContacts map[string]bool   // merchantID -> has a verified contact (test seed)
 	useCases         map[string]string
 	requestLogs      []memRequestLog
 	webhookEndpoints map[string]*memWebhookEndpoint
@@ -758,22 +760,18 @@ func (m *memStore) ProjectsBoundToMerchant(_ context.Context, merchantID string)
 	return out, nil
 }
 
-func (m *memStore) ManagedMerchantByHandle(_ context.Context, workspaceID, handle string) (string, bool, error) {
+func (m *memStore) LinkableMerchantByHandle(_ context.Context, handle string) (string, string, bool, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	merchantID, ok := m.handles[handle]
 	if !ok || merchantID == "" {
-		return "", false, nil
+		return "", "", false, false, nil
 	}
-	for _, b := range m.bindings {
-		if b.MerchantID != merchantID {
-			continue
-		}
-		if p, ok := m.projects[b.ProjectID]; ok && p.WorkspaceID == workspaceID {
-			return merchantID, true, nil
-		}
+	email := m.handleContacts[merchantID]
+	if email == "" {
+		return "", "", false, false, nil
 	}
-	return "", false, nil
+	return merchantID, email, m.verifiedContacts[merchantID], true, nil
 }
 
 func (m *memStore) SetBindingUseCase(_ context.Context, projectID, useCase string) error {

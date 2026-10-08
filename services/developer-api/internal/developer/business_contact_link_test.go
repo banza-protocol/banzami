@@ -13,28 +13,26 @@ import (
 // a managed one with no verified contact asks for enrolment; a managed one with a
 // verified contact sends the link code there.
 
-// manageMerchant seeds a merchant the workspace manages: a second project bound
-// to it, plus the handle→merchant resolution the Postgres store would do.
-func manageMerchant(t *testing.T, s *Service, workspaceID, handle string) string {
+// seedBusiness seeds a resolvable real Business: a @banza -> merchant with a
+// server-side stored contact, and whether it has a verified contact — what the
+// Postgres LinkableMerchantByHandle would return. No workspace binding is needed
+// now: control is proven by the OTP to the stored contact (ADR-060 §7/§8).
+func seedBusiness(t *testing.T, s *Service, handle string, verified bool) string {
 	t.Helper()
 	mem, ok := s.store.(*memStore)
 	if !ok {
 		t.Skip("not the in-memory store")
 	}
 	merchantID := uuid.NewString()
-	// A project in the workspace, ACTIVE-bound to the merchant.
-	proj := mkProject(t, s, "u_owner", workspaceID)
-	if _, err := s.store.CreateBinding(bg, BindingInsert{
-		ProjectID: proj, MerchantID: merchantID,
-		WalletID: uuid.NewString(), WalletAccountID: uuid.NewString(), CreatedByUserID: "u_owner",
-	}); err != nil {
-		t.Fatalf("seed binding: %v", err)
-	}
 	mem.mu.Lock()
 	if mem.handles == nil {
 		mem.handles = map[string]string{}
+		mem.handleContacts = map[string]string{}
+		mem.verifiedContacts = map[string]bool{}
 	}
 	mem.handles[handle] = merchantID
+	mem.handleContacts[merchantID] = "contact@negocio.example"
+	mem.verifiedContacts[merchantID] = verified
 	mem.mu.Unlock()
 	return merchantID
 }
@@ -56,13 +54,12 @@ func TestPathB_UnmanagedHandleIsNeutralNotFound(t *testing.T) {
 	}
 }
 
-func TestPathB_ManagedWithoutContactNeedsEnrolment(t *testing.T) {
-	s, o, pid, ws := pathBSvc(t)
-	manageMerchant(t, s, ws, "doa")
-	o.verifiedContact = false
+func TestPathB_ResolvableWithoutVerifiedContactNeedsEnrolment(t *testing.T) {
+	s, o, pid, _ := pathBSvc(t)
+	seedBusiness(t, s, "doa", false) // real business, stored contact, not verified
 	res, err := s.StartBusinessLinkByHandle(bg, "u_owner", pid, "@doa", "", "")
 	if err != nil {
-		t.Fatalf("managed handle: %v", err)
+		t.Fatalf("resolvable handle: %v", err)
 	}
 	if !res.NeedsContact || res.MaskedEmail != "" {
 		t.Fatalf("expected needs-contact, got %+v", res)
@@ -72,10 +69,9 @@ func TestPathB_ManagedWithoutContactNeedsEnrolment(t *testing.T) {
 	}
 }
 
-func TestPathB_ManagedWithContactSendsLinkCode(t *testing.T) {
-	s, o, pid, ws := pathBSvc(t)
-	merchant := manageMerchant(t, s, ws, "doa")
-	o.verifiedContact = true
+func TestPathB_VerifiedContactSendsLinkCode(t *testing.T) {
+	s, o, pid, _ := pathBSvc(t)
+	merchant := seedBusiness(t, s, "doa", true)
 	res, err := s.StartBusinessLinkByHandle(bg, "u_owner", pid, "doa", "", "")
 	if err != nil || res.NeedsContact || res.MaskedEmail == "" {
 		t.Fatalf("start link: %v %+v", err, res)

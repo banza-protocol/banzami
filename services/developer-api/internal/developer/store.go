@@ -457,13 +457,14 @@ type Store interface {
 	// merchant. Used before adopting an owner recovered from a partial
 	// provisioning run: a merchant somebody else already holds is not a leftover.
 	ProjectsBoundToMerchant(ctx context.Context, merchantID string) ([]string, error)
-	// ManagedMerchantByHandle resolves a @banza to a merchant id ONLY when the
-	// given workspace already manages that Business — i.e. the Business is bound
-	// (any state) to a project in the workspace. This fuses handle resolution and
-	// the Path B enrolment/link authorisation (ADR-060 §11): a workspace that does
-	// not manage the Business gets no row, so knowing a public @banza reveals
-	// nothing (anti-enumeration) and cannot drive an ownership OTP to it.
-	ManagedMerchantByHandle(ctx context.Context, workspaceID, handle string) (merchantID string, ok bool, err error)
+	// LinkableMerchantByHandle resolves a @banza to a real, ACTIVE Business and its
+	// server-side stored contact (verified contact, else the approved application
+	// email, else the merchant email; never a synthetic .test placeholder). It does
+	// NOT require the workspace to manage the Business: control is proven by the OTP
+	// sent to that server-resolved contact, so a standalone Business (ADR-060 §7/§8)
+	// can be linked by its owner. ok=false (neutral) when the handle does not
+	// resolve or has no deliverable contact (a synthetic Business — use a code).
+	LinkableMerchantByHandle(ctx context.Context, handle string) (merchantID, storedEmail string, hasVerified, ok bool, err error)
 	// SupersedeAndCreateBinding replaces a project's ACTIVE binding with a new
 	// one in ONE transaction: the old row moves to DISABLED and the new row is
 	// inserted. Two statements would leave a window in which the project has no

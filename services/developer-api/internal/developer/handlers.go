@@ -616,14 +616,13 @@ func (h *Handlers) startBusinessContactEnrolment(w http.ResponseWriter, r *http.
 	}
 	var in struct {
 		Handle string `json:"handle"`
-		Email  string `json:"email"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<12)).Decode(&in); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "invalid request")
 		return
 	}
 	ip, reqID := reqMeta(r)
-	masked, err := h.svc.StartBusinessContactEnrolment(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Handle, in.Email, ip, reqID)
+	masked, err := h.svc.StartBusinessContactEnrolment(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Handle, ip, reqID)
 	if err != nil {
 		financialSetupErr(w, err)
 		return

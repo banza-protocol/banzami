@@ -801,9 +801,11 @@ export const developerApi = {
   // Path B step 2: confirm the link code and bind the existing Business.
   confirmBusinessLinkByHandle: (projectID: string, handle: string, code: string, csrf: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-onboarding/link-by-handle/confirm`, { method: 'POST', body: { handle, code }, csrf }),
-  // Enrol a verified contact on a managed Business (the NeedsContact case).
-  startBusinessContactEnrolment: (projectID: string, handle: string, email: string, csrf: string) =>
-    req<{ masked_email: string }>(`/projects/${projectID}/financial-onboarding/contact/start`, { method: 'POST', body: { handle, email }, csrf }),
+  // Confirm control of a Business's own contact (the NeedsContact case). The code
+  // goes to the Business's server-side stored contact, never a typed address, so
+  // the client supplies only the @banza.
+  startBusinessContactEnrolment: (projectID: string, handle: string, csrf: string) =>
+    req<{ masked_email: string }>(`/projects/${projectID}/financial-onboarding/contact/start`, { method: 'POST', body: { handle }, csrf }),
   confirmBusinessContactEnrolment: (projectID: string, handle: string, code: string, csrf: string) =>
     req<{ masked_email: string }>(`/projects/${projectID}/financial-onboarding/contact/confirm`, { method: 'POST', body: { handle, code }, csrf }),
   // A consent code for this Project's synthetic Business, for another of the
