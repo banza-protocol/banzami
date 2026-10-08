@@ -760,18 +760,23 @@ func (m *memStore) ProjectsBoundToMerchant(_ context.Context, merchantID string)
 	return out, nil
 }
 
-func (m *memStore) LinkableMerchantByHandle(_ context.Context, handle string) (string, string, bool, bool, error) {
+func (m *memStore) VerifiedLinkContactByHandle(_ context.Context, handle string) (string, string, string, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	merchantID, ok := m.handles[handle]
 	if !ok || merchantID == "" {
-		return "", "", false, false, nil
+		return "", "", "", false, nil
 	}
-	email := m.handleContacts[merchantID]
-	if email == "" {
-		return "", "", false, false, nil
+	enrolmentEmail := m.handleContacts[merchantID]
+	// Synthetic .test placeholders are never a deliverable contact → neutral.
+	if enrolmentEmail == "" || strings.HasSuffix(enrolmentEmail, ".test") {
+		return "", "", "", false, nil
 	}
-	return merchantID, email, m.verifiedContacts[merchantID], true, nil
+	var verifiedEmail string
+	if m.verifiedContacts[merchantID] {
+		verifiedEmail = enrolmentEmail
+	}
+	return merchantID, verifiedEmail, enrolmentEmail, true, nil
 }
 
 func (m *memStore) SetBindingUseCase(_ context.Context, projectID, useCase string) error {

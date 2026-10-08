@@ -7,11 +7,14 @@ package developer
 //
 // developer-api is the authoriser. Every flow here runs projectAuthz (OWNER/ADMIN
 // of the project's workspace). Acting on an EXISTING Business does NOT require the
-// workspace to already manage it (ADR-060 §7/§8): LinkableMerchantByHandle fuses
+// workspace to already manage it (ADR-060 §7/§8): VerifiedLinkContactByHandle fuses
 // @banza resolution with a server-side contact lookup, and control is proven only
 // by the OTP sent to that server-resolved contact — never to an address the caller
-// supplies. So a standalone Business can be linked by its owner, yet knowing a
-// public @banza cannot redirect the proof to someone else. The Gateway binds every
+// supplies. A BUSINESS_PROJECT_LINK OTP goes ONLY to a VERIFIED contact (no
+// application/merchant fallback); an unverified Business bootstraps through a
+// BUSINESS_CONTACT_VERIFY code to its server-side enrolment contact first. So a
+// standalone Business can be linked by its owner, yet knowing a public @banza
+// cannot redirect the proof to someone else. The Gateway binds every
 // OTP/grant to subject/merchant/project/environment; the console only ever sees a
 // masked contact.
 
@@ -206,26 +209,31 @@ type LinkByHandleStart struct {
 	NeedsContact bool   `json:"needs_contact"`
 }
 
-// resolveLinkableMerchant resolves a @banza to a real, ACTIVE Business and its
-// server-side stored contact, or ErrBusinessNotManaged (neutral) when it does not
-// resolve or has no deliverable contact (a synthetic Business). It does NOT require
-// the workspace to manage the Business (ADR-060 §7/§8): control is proven by the
-// OTP sent to that server-resolved contact, so a standalone Business can be linked
-// by its owner, and a @banza nobody can receive mail for stays neutral. The stored
-// email is never disclosed to the client — only used server-side as the OTP target.
-func (s *Service) resolveLinkableMerchant(ctx context.Context, handle string) (merchantID, storedEmail string, hasVerified bool, err error) {
+// resolveVerifiedLinkContact resolves a @banza to a real, ACTIVE Business and its
+// two distinct server-side contacts, or ErrBusinessNotManaged (neutral) when it
+// does not resolve or has no deliverable contact (a synthetic Business). It does
+// NOT require the workspace to manage the Business (ADR-060 §7/§8): control is
+// proven by the OTP sent to the server-resolved contact, so a standalone Business
+// can be linked by its owner, and a @banza nobody can receive mail for stays
+// neutral. Neither address is ever disclosed to the client.
+//
+//   - verifiedEmail: the VERIFIED link contact (or "" if none). The ONLY address a
+//     BUSINESS_PROJECT_LINK OTP may target — there is deliberately no fallback.
+//   - enrolmentEmail: the BUSINESS_CONTACT_VERIFY bootstrap destination (verified
+//     contact, else application email, else merchant email; never .test).
+func (s *Service) resolveVerifiedLinkContact(ctx context.Context, handle string) (merchantID, verifiedEmail, enrolmentEmail string, err error) {
 	h := strings.ToLower(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(handle), "@")))
 	if h == "" {
-		return "", "", false, ErrBusinessNotManaged
+		return "", "", "", ErrBusinessNotManaged
 	}
-	mid, email, verified, ok, qerr := s.store.LinkableMerchantByHandle(ctx, h)
+	mid, verified, enrolment, ok, qerr := s.store.VerifiedLinkContactByHandle(ctx, h)
 	if qerr != nil {
-		return "", "", false, ErrUnavailable
+		return "", "", "", ErrUnavailable
 	}
 	if !ok {
-		return "", "", false, ErrBusinessNotManaged
+		return "", "", "", ErrBusinessNotManaged
 	}
-	return mid, email, verified, nil
+	return mid, verified, enrolment, nil
 }
 
 // StartBusinessLinkByHandle (Path B, step 1) resolves the @banza to a Business the
@@ -240,14 +248,16 @@ func (s *Service) StartBusinessLinkByHandle(ctx context.Context, actor, projectI
 	if b, err := s.store.ActiveBindingForProject(ctx, p.ID); err == nil && b != nil && b.MerchantID != "" {
 		return LinkByHandleStart{}, ErrConflict
 	}
-	merchantID, _, hasVerified, err := s.resolveLinkableMerchant(ctx, handle)
+	merchantID, verifiedEmail, _, err := s.resolveVerifiedLinkContact(ctx, handle)
 	if err != nil {
 		return LinkByHandleStart{}, err
 	}
-	if !hasVerified {
-		// The Business has a server-side contact but it is not verified yet: the
-		// owner confirms control of that contact first (the code goes to it, never
-		// to a typed address). ADR-060 §7/§8.
+	if verifiedEmail == "" {
+		// The Business has a server-side contact but NO verified one yet: a link OTP
+		// is never sent to an unverified application/merchant email. The owner first
+		// confirms control of that contact via enrolment (the code goes to it, never
+		// to a typed address), after which it becomes the verified link contact.
+		// ADR-060 §7/§8.
 		return LinkByHandleStart{NeedsContact: true}, nil
 	}
 	masked, gerr := s.onboarding.StartProjectLink(ctx, merchantID, p.ID)
@@ -270,7 +280,7 @@ func (s *Service) ConfirmBusinessLinkByHandle(ctx context.Context, actor, projec
 	if b, err := s.store.ActiveBindingForProject(ctx, p.ID); err == nil && b != nil && b.MerchantID != "" {
 		return s.ProjectFinancialSetup(ctx, actor, projectID)
 	}
-	merchantID, _, _, err := s.resolveLinkableMerchant(ctx, handle)
+	merchantID, _, _, err := s.resolveVerifiedLinkContact(ctx, handle)
 	if err != nil {
 		return FinancialSetup{}, err
 	}
@@ -292,19 +302,21 @@ func (s *Service) ConfirmBusinessLinkByHandle(ctx context.Context, actor, projec
 
 // StartBusinessContactEnrolment confirms control of a Business's contact when it
 // has no verified one yet (Path B reported NeedsContact). The code is sent to the
-// Business's SERVER-SIDE stored contact (the approved application email, or the
-// merchant email) — never to an address the caller supplies, so knowing a @banza
-// cannot redirect the proof. The subject is the merchant.
+// Business's SERVER-SIDE enrolment contact (the approved application email, else
+// the merchant email) — never to an address the caller supplies, so knowing a
+// @banza cannot redirect the proof. Only after this code verifies is that email
+// persisted as the Business's verified link contact and so becomes eligible to
+// receive a BUSINESS_PROJECT_LINK OTP. The subject is the merchant.
 func (s *Service) StartBusinessContactEnrolment(ctx context.Context, actor, projectID, handle, ip, reqID string) (masked string, err error) {
 	p, err := s.requireSandboxActor(ctx, actor, projectID)
 	if err != nil {
 		return "", err
 	}
-	merchantID, storedEmail, _, err := s.resolveLinkableMerchant(ctx, handle)
+	merchantID, _, enrolmentEmail, err := s.resolveVerifiedLinkContact(ctx, handle)
 	if err != nil {
 		return "", err
 	}
-	masked, gerr := s.onboarding.StartContactVerify(ctx, merchantID, storedEmail)
+	masked, gerr := s.onboarding.StartContactVerify(ctx, merchantID, enrolmentEmail)
 	if gerr != nil {
 		return "", mapGatewayVerificationErr(gerr)
 	}
@@ -320,7 +332,7 @@ func (s *Service) ConfirmBusinessContactEnrolment(ctx context.Context, actor, pr
 	if err != nil {
 		return "", err
 	}
-	merchantID, _, _, err := s.resolveLinkableMerchant(ctx, handle)
+	merchantID, _, _, err := s.resolveVerifiedLinkContact(ctx, handle)
 	if err != nil {
 		return "", err
 	}

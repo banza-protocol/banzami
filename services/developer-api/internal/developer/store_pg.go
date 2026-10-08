@@ -854,22 +854,30 @@ func (s *pgStore) SetBindingUseCase(ctx context.Context, projectID, useCase stri
 	return err
 }
 
-func (s *pgStore) LinkableMerchantByHandle(ctx context.Context, handle string) (string, string, bool, bool, error) {
+func (s *pgStore) VerifiedLinkContactByHandle(ctx context.Context, handle string) (string, string, string, bool, error) {
 	var (
-		merchantID  string
-		hasVerified bool
-		storedEmail string
+		merchantID     string
+		verifiedEmail  string
+		enrolmentEmail string
 	)
-	// Resolve the @banza to a real, ACTIVE Business and its server-side contact:
-	// the verified contact if one exists, else the (approved/declared) application
-	// email, else the merchant's own email — never a synthetic .test placeholder.
-	// A business with no deliverable contact (a synthetic Sandbox business) yields
-	// no usable email, so it is not linkable this way (it uses a consent code).
+	// Resolve the @banza to a real, ACTIVE Business and return two DISTINCT contacts
+	// (never conflated):
+	//   - verifiedEmail: the active, primary, deliverable VERIFIED contact, or '' —
+	//     the ONLY address a link OTP may target. There is NO application/merchant
+	//     fallback here, by design: an unverified email can never receive a link OTP.
+	//   - enrolmentEmail: the CONTACT_VERIFY bootstrap destination — the verified
+	//     contact if any, else the approved/declared application email, else the
+	//     merchant email; never a synthetic .test placeholder.
+	// A Business with no deliverable contact at all (a synthetic Sandbox business)
+	// yields enrolmentEmail '' and is not linkable this way (it uses a consent code).
 	err := s.pool.QueryRow(ctx,
 		`SELECT m.id::text,
-		        EXISTS(SELECT 1 FROM business_contacts bc
-		                WHERE bc.merchant_id = m.id AND bc.verified_at IS NOT NULL
-		                  AND bc.revoked_at IS NULL AND bc.is_primary),
+		        COALESCE(
+		          (SELECT bc.value_normalized FROM business_contacts bc
+		             WHERE bc.merchant_id = m.id AND bc.verified_at IS NOT NULL
+		               AND bc.revoked_at IS NULL AND bc.is_primary
+		             ORDER BY bc.verified_at DESC LIMIT 1),
+		          ''),
 		        COALESCE(
 		          (SELECT bc.value_normalized FROM business_contacts bc
 		             WHERE bc.merchant_id = m.id AND bc.verified_at IS NOT NULL
@@ -884,17 +892,17 @@ func (s *pgStore) LinkableMerchantByHandle(ctx context.Context, handle string) (
 		   FROM handle_registry hr
 		   JOIN merchants m ON m.id = hr.owner_id
 		  WHERE hr.handle = $1 AND hr.owner_type = 'MERCHANT' AND m.status = 'ACTIVE'
-		  LIMIT 1`, handle).Scan(&merchantID, &hasVerified, &storedEmail)
+		  LIMIT 1`, handle).Scan(&merchantID, &verifiedEmail, &enrolmentEmail)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", "", false, false, nil
+		return "", "", "", false, nil
 	}
 	if err != nil {
-		return "", "", false, false, err
+		return "", "", "", false, err
 	}
-	if strings.TrimSpace(storedEmail) == "" {
-		return "", "", false, false, nil // real but no deliverable contact (synthetic)
+	if strings.TrimSpace(enrolmentEmail) == "" {
+		return "", "", "", false, nil // real but no deliverable contact (synthetic)
 	}
-	return merchantID, storedEmail, hasVerified, true, nil
+	return merchantID, strings.TrimSpace(verifiedEmail), enrolmentEmail, true, nil
 }
 
 func (s *pgStore) BindingUseCase(ctx context.Context, projectID string) (string, error) {

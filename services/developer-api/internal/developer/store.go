@@ -457,14 +457,27 @@ type Store interface {
 	// merchant. Used before adopting an owner recovered from a partial
 	// provisioning run: a merchant somebody else already holds is not a leftover.
 	ProjectsBoundToMerchant(ctx context.Context, merchantID string) ([]string, error)
-	// LinkableMerchantByHandle resolves a @banza to a real, ACTIVE Business and its
-	// server-side stored contact (verified contact, else the approved application
-	// email, else the merchant email; never a synthetic .test placeholder). It does
-	// NOT require the workspace to manage the Business: control is proven by the OTP
-	// sent to that server-resolved contact, so a standalone Business (ADR-060 §7/§8)
-	// can be linked by its owner. ok=false (neutral) when the handle does not
-	// resolve or has no deliverable contact (a synthetic Business — use a code).
-	LinkableMerchantByHandle(ctx context.Context, handle string) (merchantID, storedEmail string, hasVerified, ok bool, err error)
+	// VerifiedLinkContactByHandle resolves a @banza to a real, ACTIVE Business and
+	// returns TWO distinct contacts, which must never be conflated (ADR-060 §7/§8):
+	//
+	//   - verifiedEmail — the Business's VERIFIED link contact: an active, primary,
+	//     deliverable business_contacts row with verified_at IS NOT NULL. This is the
+	//     ONLY address a BUSINESS_PROJECT_LINK OTP may ever be sent to. It is "" when
+	//     no such verified contact exists — there is deliberately NO fallback here, so
+	//     an unverified application/merchant email can never receive a link OTP.
+	//   - enrolmentEmail — the destination for a BUSINESS_CONTACT_VERIFY bootstrap
+	//     when there is no verified contact yet: the verified contact if present, else
+	//     the approved/declared application email, else the merchant email; never a
+	//     synthetic .test placeholder. Used ONLY to prove control of a not-yet-verified
+	//     contact, after which it is persisted and becomes a verifiedEmail.
+	//
+	// It does NOT require the workspace to manage the Business: control is proven by
+	// the OTP sent to the server-resolved contact, so a standalone Business can be
+	// linked by its owner, yet knowing a public @banza cannot redirect the proof.
+	// ok=false (neutral, anti-enumeration) when the handle does not resolve to an
+	// ACTIVE Business or has no deliverable contact at all (a synthetic Business —
+	// those link via a consent code, not this flow).
+	VerifiedLinkContactByHandle(ctx context.Context, handle string) (merchantID, verifiedEmail, enrolmentEmail string, ok bool, err error)
 	// SupersedeAndCreateBinding replaces a project's ACTIVE binding with a new
 	// one in ONE transaction: the old row moves to DISABLED and the new row is
 	// inserted. Two statements would leave a window in which the project has no
