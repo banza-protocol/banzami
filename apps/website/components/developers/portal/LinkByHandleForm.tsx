@@ -46,8 +46,24 @@ export function LinkByHandleForm({
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Each OTP challenge is a distinct security ceremony (ADR-060 §6). This counter
+  // bumps on every new code issuance; combined with the phase it keys OtpBoxes, so
+  // moving between BUSINESS_CONTACT_VERIFY and BUSINESS_PROJECT_LINK — or starting a
+  // fresh challenge for another Business/project — remounts the input empty and
+  // refocuses the first box, instead of carrying the previous code's digits over.
+  const [challenge, setChallenge] = useState(0);
 
   const cleanHandle = handle.trim().replace(/^@/, '').toLowerCase();
+
+  // startChallenge moves to a verify phase for a brand-new OTP: it clears the
+  // parent code and bumps the challenge id so the OTP input remounts clean.
+  function startChallenge(next: 'enrolVerify' | 'linkVerify', maskedEmail: string) {
+    setMasked(maskedEmail);
+    setCode('');
+    setError('');
+    setChallenge((n) => n + 1);
+    setPhase(next);
+  }
 
   if (useCode) {
     return (
@@ -69,8 +85,7 @@ export function LinkByHandleForm({
       if (r.needs_contact) {
         setPhase('enrol');
       } else {
-        setMasked(r.masked_email ?? '');
-        setPhase('linkVerify');
+        startChallenge('linkVerify', r.masked_email ?? '');
       }
     } catch (e) {
       setError(refusalText(e));
@@ -87,8 +102,7 @@ export function LinkByHandleForm({
       // No email is supplied: Banzami sends the code to the Business's own
       // server-side contact and returns only its masked form.
       const r = await developerApi.startBusinessContactEnrolment(projectId, cleanHandle, csrf);
-      setMasked(r.masked_email);
-      setPhase('enrolVerify');
+      startChallenge('enrolVerify', r.masked_email);
     } catch (e) {
       setError(refusalText(e));
     } finally {
@@ -102,11 +116,10 @@ export function LinkByHandleForm({
     setError('');
     try {
       await developerApi.confirmBusinessContactEnrolment(projectId, cleanHandle, c, csrf);
-      // Contact verified; now send the project-link code to it.
+      // Contact verified; now send the project-link code to it. This is a NEW,
+      // distinct challenge (different purpose), so the OTP input must remount empty.
       const r = await developerApi.startBusinessLinkByHandle(projectId, cleanHandle, csrf);
-      setMasked(r.masked_email ?? '');
-      setCode('');
-      setPhase('linkVerify');
+      startChallenge('linkVerify', r.masked_email ?? '');
     } catch (e) {
       setError(refusalText(e));
     } finally {
@@ -142,7 +155,10 @@ export function LinkByHandleForm({
           Enviámos um código para o contacto verificado associado a <strong>@{cleanHandle}</strong>: <strong style={{ color: '#2a2024' }}>{masked}</strong>.
           Não lhe pedimos que indique um email — a confirmação vai para o contacto já associado ao negócio.
         </p>
-        <OtpBoxes onChange={setCode} onComplete={(c) => void onComplete(c)} disabled={busy} />
+        {/* Key by purpose (phase) + challenge id: a new ceremony remounts the input
+            empty and refocused, so the enrolment code never carries into the link
+            step. A plain re-render keeps the key, so digit entry/backspace is kept. */}
+        <OtpBoxes key={`${phase}-${challenge}`} onChange={setCode} onComplete={(c) => void onComplete(c)} disabled={busy} />
         <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
           <button type="button" onClick={() => void onComplete(code)} disabled={code.length !== 6 || busy} style={primaryButton(code.length !== 6 || busy)}>
             {busy ? 'A confirmar…' : 'Confirmar'}
