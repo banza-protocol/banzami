@@ -29,10 +29,23 @@ import { safeReturnPath } from '@/lib/return-path';
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 const OTP_LEN = 6;
 
+// Show the destination masked (co•••@doadoa.app), never the full address: the
+// code screen only needs to confirm which inbox to check, and masking keeps the
+// surface consistent with the rest of the Console's contact display.
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 0) return email;
+  const local = email.slice(0, at);
+  const domain = email.slice(at);
+  const keep = local.length <= 2 ? 1 : 2;
+  return `${local.slice(0, keep)}•••${domain}`;
+}
+
 function VerifyInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const email = params.get('email') || 'exemplo@empresa.co.ao';
+  const email = params.get('email') || '';
+  const maskedEmail = maskEmail(email);
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LEN).fill(''));
   const [resend, setResend] = useState(45);
@@ -198,9 +211,8 @@ function VerifyInner() {
         </div>
         <h1 style={{ margin: 0, fontSize: 27, fontWeight: 900, letterSpacing: '-.02em' }}>Verifique o seu email</h1>
         <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.55, color: '#7a6a6e', fontWeight: 600 }}>
-          Enviámos um código de 6 dígitos para
-          <br />
-          <strong style={{ color: '#2a2024', fontWeight: 800 }}>{email}</strong>
+          Introduza o código enviado para{' '}
+          <strong style={{ color: '#2a2024', fontWeight: 800 }}>{maskedEmail}</strong>.
         </p>
       </div>
 
@@ -263,7 +275,7 @@ function VerifyInner() {
           boxShadow: '0 16px 30px -12px rgba(181,16,31,.55)',
         }}
       >
-        {busy ? 'A verificar…' : 'Verificar código'}
+        {busy ? 'A confirmar…' : 'Confirmar'}
       </button>
 
       <div

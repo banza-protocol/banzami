@@ -93,7 +93,7 @@ describe('Developer Console OTP', () => {
     render(<Page />);
     typeAll('123456');
     await waitFor(() => expect(verifyMock).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: /verificar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirmar/i }));
     await new Promise((r) => setTimeout(r, 30));
     expect(verifyMock).toHaveBeenCalledTimes(1);
   });

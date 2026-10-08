@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthShell } from '@/components/developers/portal/AuthShell';
-import { IconEnvelope } from '@/components/developers/portal/icons';
 import { developerApi, ApiError, MESSAGES } from '@/lib/developer-api';
 import { safeReturnPath } from '@/lib/return-path';
 
-// Login (Email only) — dossier ecrã 1. Auth V1 is Email + OTP: no password,
-// phone, Google or name at entry. "Continuar" sends the email to the OTP screen;
-// "Entrar" is the demo shortcut straight to the dashboard.
+// Access (Email only) — Auth V1 is Email + OTP: no password, phone, Google or
+// name at entry, and no separate signup vs login journey. The same email + OTP
+// proof handles a returning developer and a first-time one, so the page shows a
+// single access action ("Continuar") — never a "create account" / "sign in"
+// choice. The backend determines the correct account state after the OTP proof.
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
@@ -48,45 +48,35 @@ export default function DevelopersLoginPage() {
         className="bz-view"
         style={{
           width: '100%',
-          maxWidth: 428,
+          maxWidth: 420,
           background: '#fff',
-          border: '1px solid #F2E2E0',
-          borderRadius: 26,
-          padding: '40px 38px 34px',
-          boxShadow: '0 40px 90px -50px rgba(181,16,31,.5)',
+          border: '1px solid #EFE2E0',
+          borderRadius: 20,
+          padding: '38px 36px 32px',
+          boxShadow: '0 24px 60px -40px rgba(42,32,36,.35)',
         }}
       >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 7,
-            padding: '6px 13px',
-            borderRadius: 30,
-            background: '#FFF1F0',
-            border: '1px solid #F7DAD7',
-            fontSize: 11.5,
-            fontWeight: 900,
-            letterSpacing: '.05em',
-            color: '#B5101F',
-            marginBottom: 22,
-          }}
-        >
-          PLATAFORMA DE DEVELOPERS
-        </div>
-        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', lineHeight: 1.1 }}>
-          Bem-vindo(a) 👋
+        <h1 style={{ margin: 0, fontSize: 25, fontWeight: 900, letterSpacing: '-.02em', lineHeight: 1.18, color: '#2a2024' }}>
+          Aceder à Banzami Developers
         </h1>
-        <p style={{ margin: '12px 0 26px', fontSize: 15, lineHeight: 1.55, color: '#7a6a6e', fontWeight: 600 }}>
-          Insira o seu email para continuar com o acesso à plataforma de developers.
+        <p style={{ margin: '12px 0 26px', fontSize: 14.5, lineHeight: 1.55, color: '#7a6a6e', fontWeight: 600 }}>
+          Introduza o seu email para receber um código de acesso.
         </p>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#6a5a5e', marginBottom: 8 }}>Email</label>
+        <label htmlFor="dev-email" style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#6a5a5e', marginBottom: 8 }}>
+          Email
+        </label>
         <input
+          id="dev-email"
           className="bz-in"
           type="email"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
+          autoCapitalize="none"
+          spellCheck={false}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="exemplo@empresa.co.ao"
+          placeholder="nome@empresa.com"
           onKeyDown={(e) => {
             if (e.key === 'Enter') goVerify();
           }}
@@ -94,7 +84,7 @@ export default function DevelopersLoginPage() {
             width: '100%',
             padding: '14px 16px',
             border: '1.5px solid #EBDBD9',
-            borderRadius: 14,
+            borderRadius: 12,
             fontSize: 15,
             fontWeight: 600,
             color: '#2a2024',
@@ -112,14 +102,14 @@ export default function DevelopersLoginPage() {
             marginTop: 16,
             padding: 15,
             border: 'none',
-            borderRadius: 14,
+            borderRadius: 12,
             background: ctaGradient,
             color: '#fff',
             fontWeight: 800,
             fontSize: 15.5,
             cursor: busy ? 'not-allowed' : 'pointer',
             opacity: busy ? 0.6 : 1,
-            boxShadow: '0 16px 30px -12px rgba(181,16,31,.55)',
+            boxShadow: '0 16px 30px -14px rgba(181,16,31,.5)',
           }}
         >
           {busy ? 'A enviar…' : 'Continuar'}
@@ -129,44 +119,28 @@ export default function DevelopersLoginPage() {
             {error}
           </p>
         ) : null}
-        <p
-          style={{
-            margin: '14px 0 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 12.5,
-            color: '#746469',
-            fontWeight: 700,
-          }}
-        >
-          <span style={{ color: '#B5101F', display: 'inline-flex' }}>
-            <IconEnvelope size={15} />
-          </span>
-          Vamos enviar um código de verificação para o seu email.
+        <p style={{ margin: '14px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.5 }}>
+          Enviaremos um código de verificação para o seu email.
         </p>
-        <div style={{ height: 1, background: '#F2E6E4', margin: '24px 0 18px' }} />
+        <div style={{ height: 1, background: '#F2E6E4', margin: '22px 0 16px' }} />
+        {/* Single access flow: the backend resolves first-time vs returning after
+            the OTP proof, so there is no secondary "sign in" / "create account"
+            control. Absolute URLs: this page is served from developers.banzami.com.
+            Note (owner-directed copy): this line asserts agreement to the Terms at
+            access. Historically sign-in was treated as authentication only, with the
+            Terms accepted explicitly later at business creation
+            (merchant_applications.terms_accepted_at) — see TERMS-INFRASTRUCTURE
+            -CONSISTENCY-001. Kept per the login-redesign brief. */}
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: '#a89a9e', fontWeight: 600 }}>
-          {/* Sign-in is authentication, not contractual acceptance: entering the
-              Console does not accept the Terms (TERMS-INFRASTRUCTURE-CONSISTENCY-001
-              §3/§4). The Privacy Policy applies to the data processed at sign-in;
-              the Terms are accepted explicitly, later, when a business is created.
-              Absolute URLs: this page is served from developers.banzami.com. */}
-          Ao entrar, aplica-se a nossa{' '}
+          Ao continuar, concorda com os{' '}
+          <a href="https://banzami.com/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
+            Termos de Serviço
+          </a>{' '}
+          e a{' '}
           <a href="https://banzami.com/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
             Política de Privacidade
           </a>
-          . Consulte também os{' '}
-          <a href="https://banzami.com/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
-            Termos de Serviço
-          </a>
           .
-        </p>
-        <p style={{ margin: '16px 0 0', textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#7a6a6e' }}>
-          Já tem uma conta?{' '}
-          <Link href="/login" style={{ color: '#B5101F', fontWeight: 800, textDecoration: 'none' }}>
-            Entrar
-          </Link>
         </p>
       </div>
     </AuthShell>
