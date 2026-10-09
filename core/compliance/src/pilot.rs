@@ -44,6 +44,9 @@ pub mod limits {
     /// can always be spent in one payment and a top-up can never fund more than
     /// one payment's worth beyond it.
     const _: () = assert!(CONSUMER_PER_PAYMENT_MINOR <= CONSUMER_MAX_BALANCE_MINOR);
+    /// A Business may hold more than one payment: the per-payment maximum is
+    /// not, and must never become, a cap on what a Business accumulates.
+    const _: () = assert!(MERCHANT_MAX_BALANCE_MINOR > MERCHANT_PER_RECEIVE_MINOR);
     /// Merchant: maximum wallet balance — Kz 100.000.
     pub const MERCHANT_MAX_BALANCE_MINOR: i64 = 10_000_000;
     /// Aggregate: maximum synthetic funds in circulation — Kz 500.000.
@@ -713,7 +716,6 @@ mod tests {
         assert!(ON
             .check_merchant_balance_after_credit(50_000 * KZ, 50_000 * KZ)
             .is_none());
-        assert!(limits::MERCHANT_MAX_BALANCE_MINOR > limits::MERCHANT_PER_RECEIVE_MINOR);
     }
 
     #[test]
