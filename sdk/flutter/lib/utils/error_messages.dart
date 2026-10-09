@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../client/api_exception.dart';
+import '../money/money_engine.dart';
 
 /// The one place a failure becomes words a Banzami user reads.
 ///
@@ -24,6 +25,10 @@ String banzamiErrorMessage(
     final code = error.code.toUpperCase();
     final byContext = codes[code];
     if (byContext != null) return byContext;
+    // A per-payment maximum is stated by the server that enforces it, never
+    // by a number written into the app.
+    final perPayment = _perPaymentMaximum(code, error.data);
+    if (perPayment != null) return perPayment;
     final byCode = _byCode(code);
     if (byCode != null) return byCode;
     final byStatus = statuses[error.statusCode];
@@ -296,6 +301,22 @@ String? _byCode(String code) {
       return 'Este serviço está temporariamente indisponível. Tente novamente dentro de momentos.';
   }
   return null;
+}
+
+/// "O valor máximo por pagamento no Sandbox é 50 000 Kz." — when the refusal
+/// carries the maximum (`limit_minor`), otherwise null and the code's own copy
+/// is used.
+String? _perPaymentMaximum(String code, Map<String, dynamic> data) {
+  if (code != 'PILOT_LIMIT_PER_PAYMENT_EXCEEDED' &&
+      code != 'PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED') {
+    return null;
+  }
+  final limit = data['limit_minor'];
+  if (limit is! int || limit <= 0) return null;
+  final currency =
+      data['currency'] is String ? data['currency'] as String : 'AOA';
+  return 'O valor máximo por pagamento no Sandbox é '
+      '${formatMoneyMinor(limit, currency: currency)}.';
 }
 
 String _pilotLimit(String code) {

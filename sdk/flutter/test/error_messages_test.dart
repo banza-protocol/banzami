@@ -14,6 +14,29 @@ BanzamiApiException _api(int status, String code) => BanzamiApiException(
 
 void main() {
   group('banzamiErrorMessage — by the codes the server really sends', () {
+    test('the per-payment maximum is the one the server states', () {
+      const refusal = BanzamiApiException(
+        statusCode: 422,
+        code: 'PILOT_LIMIT_PER_PAYMENT_EXCEEDED',
+        message: 'this operation exceeds the controlled pilot limit',
+        data: {'limit_minor': 5000000},
+      );
+      expect(banzamiErrorMessage(refusal),
+          'O valor máximo por pagamento no Sandbox é 50 000 Kz.');
+      // A definitive refusal: never the "could not confirm — Verificar" state.
+      expect(isOutcomeUnknown(refusal), isFalse);
+      // Whatever the server says tomorrow is what the app says tomorrow.
+      expect(
+        banzamiErrorMessage(const BanzamiApiException(
+          statusCode: 422,
+          code: 'PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED',
+          message: '',
+          data: {'limit_minor': 7500000},
+        )),
+        'O valor máximo por pagamento no Sandbox é 75 000 Kz.',
+      );
+    });
+
     test(
         'a payment over the per-payment pilot limit says so, and how to proceed',
         () {

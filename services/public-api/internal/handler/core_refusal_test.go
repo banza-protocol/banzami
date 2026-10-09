@@ -26,6 +26,28 @@ func TestCoreRefusal_PilotLimitIsA422WithItsCode(t *testing.T) {
 	if !strings.Contains(w.Body.String(), "PILOT_LIMIT_PER_PAYMENT_EXCEEDED") {
 		t.Fatalf("the code the app maps is missing: %s", w.Body.String())
 	}
+	// …and names the maximum, from the generated constant: Kz 50 000.
+	if !strings.Contains(w.Body.String(), `"limit_minor":5000000`) {
+		t.Fatalf("the per-payment maximum is not stated: %s", w.Body.String())
+	}
+}
+
+// The maximum a refusal names is the one Core enforces, and both sides of a
+// payment share it.
+func TestCoreRefusal_PerOperationMaximumIs50000Kz(t *testing.T) {
+	if pilotPerPaymentMinor != 50_000_00 || pilotPerReceiveMinor != pilotPerPaymentMinor {
+		t.Fatalf("per-payment %d, per-receive %d: want both 5000000", pilotPerPaymentMinor, pilotPerReceiveMinor)
+	}
+	if pilotConsumerMaxBalanceMinor < pilotPerPaymentMinor {
+		t.Fatal("a wallet must be able to hold one maximum payment")
+	}
+	// An aggregate limit is never given a number.
+	w := httptest.NewRecorder()
+	respondCoreRefusal(w, httptest.NewRequest(http.MethodPost, "/", nil),
+		fmt.Errorf("core-api error 422: %s", `{"error":{"code":"PILOT_LIMIT_MERCHANT_BALANCE_EXCEEDED"}}`))
+	if strings.Contains(w.Body.String(), "limit_minor") {
+		t.Fatalf("an aggregate limit was given a number: %s", w.Body.String())
+	}
 }
 
 func TestCoreRefusal_NeverForwardsCoresMessage(t *testing.T) {

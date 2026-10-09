@@ -24,6 +24,14 @@ func respondCoreRefusal(w http.ResponseWriter, r *http.Request, err error) bool 
 	if !ok {
 		return false
 	}
+	// A per-operation maximum is something the payer can act on, so it is named
+	// — in minor units of AOA, the only Sandbox currency, from the same constant Core enforces (generated, never
+	// restated). Aggregate and volume limits stay unnamed.
+	if limit, ok := perOperationLimitMinor(code); ok {
+		apierror.RespondExtra(w, r, http.StatusUnprocessableEntity, code, coreRefusalMessage(code),
+			map[string]any{"limit_minor": limit})
+		return true
+	}
 	apierror.Respond(w, r, http.StatusUnprocessableEntity, code, coreRefusalMessage(code))
 	return true
 }
@@ -58,4 +66,16 @@ func coreRefusalMessage(code string) string {
 	default:
 		return "wallet is not active"
 	}
+}
+
+// perOperationLimitMinor is the maximum a refusal code refers to, when that
+// code is about the size of ONE operation.
+func perOperationLimitMinor(code string) (int64, bool) {
+	switch code {
+	case "PILOT_LIMIT_PER_PAYMENT_EXCEEDED":
+		return pilotPerPaymentMinor, true
+	case "PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED":
+		return pilotPerReceiveMinor, true
+	}
+	return 0, false
 }
