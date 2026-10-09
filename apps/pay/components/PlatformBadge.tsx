@@ -1,8 +1,14 @@
 'use client';
 
+import type React from 'react';
 import { useEffect, useState } from 'react';
 
 const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'https://api.banzami.com').replace(/\/+$/, '');
+
+const VISUALLY_HIDDEN: React.CSSProperties = {
+  position: 'absolute', width: '1px', height: '1px', margin: '-1px', padding: 0,
+  overflow: 'hidden', clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+};
 
 // SANDBOX badge for the Consumer Portal. Production is silent: nothing in LIVE.
 // On any read failure it shows the badge (never assume production).
@@ -28,7 +34,10 @@ export function PlatformBadge() {
   // Consistent SANDBOX corner ribbon (same as banzami.com and the other surfaces).
   return (
     <div role="status" style={{ position: 'fixed', top: 0, left: 0, zIndex: 100, width: '150px', height: '150px', overflow: 'hidden', pointerEvents: 'none' }}>
-      <span className="sr-only">Ambiente SANDBOX — dinheiro fictício. As operações com dinheiro real estão indisponíveis.</span>
+      {/* For assistive tech only. Hidden with inline styles, not a utility class:
+          the class was purged from this app's CSS (Tailwind did not scan
+          components/), and the sentence appeared in the corner of every pay page. */}
+      <span style={VISUALLY_HIDDEN}>Ambiente SANDBOX — dinheiro fictício. As operações com dinheiro real estão indisponíveis.</span>
       <div aria-hidden="true" style={{ position: 'absolute', top: '12px', left: '-52px', transform: 'rotate(-45deg)', width: '150px', padding: '5px 0', textAlign: 'center', background: 'linear-gradient(90deg,#FBE6A6,#F2CD6E)', color: '#7A4A06', fontSize: '9.5px', fontWeight: 900, letterSpacing: '.16em', boxShadow: '0 8px 18px -8px rgba(122,74,6,.5)' }}>SANDBOX</div>
     </div>
   );
