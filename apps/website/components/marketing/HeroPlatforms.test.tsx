@@ -43,7 +43,7 @@ describe('the iPhone sign-up asks for the App Store e-mail', () => {
     await openModal(user);
     const email = screen.getByLabelText(/E-mail da App Store da Apple/) as HTMLInputElement;
     expect(email.type).toBe('email');
-    expect(email.placeholder).toBe('nome@exemplo.ao');
+    expect(email.placeholder).toBe('nome@exemplo.com');
     const hint = screen.getByText('Use o mesmo e-mail associado à sua conta na App Store da Apple e que utiliza no TestFlight.');
     // The helper text is announced with the field, not just shown under it.
     expect(email.getAttribute('aria-describedby')).toBe(hint.id);
@@ -258,5 +258,16 @@ describe('Android distribution flag (ANDROID_TESTING_AVAILABLE)', () => {
     expect(screen.getByText('Inscrição de tester')).toBeTruthy();
     expect(screen.getByText('Android · Google Play')).toBeTruthy(); // modal subtitle (Android)
     expect(noticeHeading()).toBeNull();
+  });
+
+  it('true: the Android form asks for the Google account e-mail, not Apple\'s', async () => {
+    betaFlags.android = true;
+    const user = userEvent.setup();
+    render(<HeroPlatforms lang="pt" />);
+    await user.click(androidBtn());
+    const email = screen.getByLabelText(/E-mail da Google Play Store/) as HTMLInputElement;
+    const hint = screen.getByText('Use o mesmo e-mail da conta Google que utiliza na Google Play Store.');
+    expect(email.getAttribute('aria-describedby')).toBe(hint.id);
+    expect(screen.queryByText(/App Store da Apple/)).toBeNull();
   });
 });

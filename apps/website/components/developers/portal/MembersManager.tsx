@@ -390,7 +390,7 @@ export function MembersManager() {
             <input
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="email@empresa.co.ao"
+              placeholder="email@empresa.com"
               aria-label="Email do novo membro"
               className="bz-in"
               style={{ flex: 1, minWidth: 200, padding: '10px 12px', border: '1.5px solid #EBDBD9', borderRadius: 10, fontSize: 13.5, fontWeight: 600, background: '#FFFDFD', outline: 'none' }}

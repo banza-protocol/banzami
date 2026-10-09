@@ -72,7 +72,13 @@ const T = {
   fNome: L('Nome completo', 'Full name'),
   fNomePh: L('O seu nome completo', 'Your full name'),
   fEmail: L('E-mail', 'Email'),
-  fEmailPh: L('nome@exemplo.ao', 'name@example.com'),
+  fEmailPh: L('nome@exemplo.com', 'name@example.com'),
+  // The store invite only reaches the account the tester's store uses, so once a
+  // mobile platform is chosen the field says which address that is.
+  fEmailIOS: L('E-mail da App Store da Apple', 'Apple App Store email'),
+  fEmailHintIOS: L('Use o mesmo e-mail associado à sua conta na App Store da Apple e que utiliza no TestFlight.', 'Use the same email associated with your Apple App Store account and that you use in TestFlight.'),
+  fEmailAndroid: L('E-mail da Google Play Store', 'Google Play Store email'),
+  fEmailHintAndroid: L('Use o mesmo e-mail da conta Google que utiliza na Google Play Store.', 'Use the same email as the Google account you use in the Google Play Store.'),
   fApp: L('Apps que quer testar', 'Apps you want to test'),
   appBanzami: L('App Banzami', 'Banzami app'),
   appBanzamiDesc: L('Pagar e receber', 'Pay and receive'),
@@ -404,7 +410,7 @@ export function TestesPage({ lang }: { lang: Lang }) {
                       <p style={{ margin: '6px 0 20px', fontSize: '13.5px', fontWeight: 600, color: '#8a7a7e' }}>{T.formSub[lang]}</p>
                       <FGrid cols={2}>
                         <Field name="nome" label={T.fNome[lang]} placeholder={T.fNomePh[lang]} autoComplete="name" value={nome} error={errors.nome} onChange={setNome} />
-                        <Field name="email" label={T.fEmail[lang]} type="email" placeholder={T.fEmailPh[lang]} autoComplete="email" value={email} error={errors.email} onChange={setEmail} />
+                        <Field name="email" label={plataforma === 'iPhone (TestFlight)' ? T.fEmailIOS[lang] : plataforma === 'Android' ? T.fEmailAndroid[lang] : T.fEmail[lang]} hint={plataforma === 'iPhone (TestFlight)' ? T.fEmailHintIOS[lang] : plataforma === 'Android' ? T.fEmailHintAndroid[lang] : undefined} type="email" placeholder={T.fEmailPh[lang]} autoComplete="email" value={email} error={errors.email} onChange={setEmail} />
                         <MultiOptBtns
                           name="apps"
                           label={T.fApp[lang]}

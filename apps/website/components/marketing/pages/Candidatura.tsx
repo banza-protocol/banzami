@@ -49,7 +49,7 @@ const T = {
     l_handle: '@banza', ph_handle: 'cantinadoalex', hint_handle: 'Comece por uma letra. 3 a 30: minúsculas, números ou _. É como recebe pagamentos.',
     l_categoria: 'Categoria', l_municipio: 'Município (opcional)', ph_municipio: 'Talatona',
     l_descricao: 'O que vende? (opcional)', ph_descricao: 'Refeições, bebidas…',
-    l_email: 'E-mail de contacto', ph_email: 'alex@exemplo.ao',
+    l_email: 'E-mail de contacto', ph_email: 'alex@exemplo.com',
     selectPh: 'Selecione…',
     categorias: ['Restauração', 'Comércio a retalho', 'Mercearia e alimentação', 'Serviços', 'Transporte', 'Educação', 'Saúde e beleza', 'Eventos', 'Outro'],
     continuar: 'Continuar',
@@ -59,7 +59,7 @@ const T = {
     repWarn: 'Utilize apenas dados fictícios nesta Sandbox. Não introduza NIF, nomes, contactos ou documentos reais.',
     l_rep_nome: 'Nome do representante', ph_rep_nome: 'Alex Kiala',
     l_rep_papel: 'Cargo', ph_rep_papel: 'Sócio-gerente',
-    l_rep_email: 'E-mail do representante', ph_rep_email: 'alex@exemplo.ao',
+    l_rep_email: 'E-mail do representante', ph_rep_email: 'alex@exemplo.com',
     l_rep_telefone: 'Telefone (opcional)', ph_rep_telefone: '+244 …',
     l_nif: 'NIF', ph_nif: '500…', hint_nif: 'Número de identificação fiscal do negócio.',
     // step 3 — documentos
@@ -117,7 +117,7 @@ const T = {
     l_handle: '@banza', ph_handle: 'alexcanteen', hint_handle: 'Start with a letter. 3 to 30: lowercase, numbers or _. This is how you get paid.',
     l_categoria: 'Category', l_municipio: 'Municipality (optional)', ph_municipio: 'Talatona',
     l_descricao: 'What do you sell? (optional)', ph_descricao: 'Meals, drinks…',
-    l_email: 'Contact email', ph_email: 'alex@example.ao',
+    l_email: 'Contact email', ph_email: 'alex@example.com',
     selectPh: 'Select…',
     categorias: ['Food and drink', 'Retail', 'Grocery', 'Services', 'Transport', 'Education', 'Health and beauty', 'Events', 'Other'],
     continuar: 'Continue',
@@ -126,7 +126,7 @@ const T = {
     repWarn: 'Use only fictitious data in this Sandbox. Do not enter real tax IDs, names, contacts or documents.',
     l_rep_nome: 'Representative name', ph_rep_nome: 'Alex Kiala',
     l_rep_papel: 'Role', ph_rep_papel: 'Managing partner',
-    l_rep_email: 'Representative email', ph_rep_email: 'alex@example.ao',
+    l_rep_email: 'Representative email', ph_rep_email: 'alex@example.com',
     l_rep_telefone: 'Phone (optional)', ph_rep_telefone: '+244 …',
     l_nif: 'Tax ID (NIF)', ph_nif: '500…', hint_nif: 'The business tax identification number.',
     s3t: 'Documents', s3s: 'Attach the two documents required to simulate the application.',
@@ -266,7 +266,7 @@ function DocCard({ name, title, desc, useLabel, loadedLabel, attached, error, on
 const HANDLE_RE = /^(?!.*__)[a-z][a-z0-9_]{1,28}[a-z0-9]$/;
 const NIF_RE = /^[0-9A-Za-z]{5,20}$/;
 // Mask an address for the on-screen "we'll email you" line: keep the first
-// character and the domain, e.g. alex@exemplo.ao → a***@exemplo.ao. Purely
+// character and the domain, e.g. alex@exemplo.com → a***@exemplo.com. Purely
 // presentational — the full address is never rendered here.
 function maskEmail(e: string): string {
   const at = e.indexOf('@');
@@ -356,12 +356,12 @@ export function CandidaturaPage({ lang }: { lang: Lang }) {
     categoria: t.categorias[0],
     municipio: 'Talatona',
     descricao: lang === 'en' ? 'Meals and drinks to go' : 'Refeições e bebidas para levar',
-    email: `negocio.teste${seed()}@exemplo.co.ao`,
+    email: `negocio.teste${seed()}@exemplo.com`,
   });
   const step2Data = (): Partial<FormState> => ({
     rep_nome: lang === 'en' ? 'Alex Test' : 'Alex de Teste',
     rep_papel: lang === 'en' ? 'Managing partner' : 'Sócio-gerente',
-    rep_email: `representante.teste${seed()}@exemplo.co.ao`,
+    rep_email: `representante.teste${seed()}@exemplo.com`,
     rep_telefone: '+244 900 000 000',
     // A clearly-synthetic tax ID — never the operator's real NIF.
     nif: `5000${seed()}00`,

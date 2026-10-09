@@ -151,7 +151,7 @@ class _AddRecoveryEmailScreenState extends State<AddRecoveryEmailScreen> {
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(hintText: 'ana@exemplo.ao'),
+          decoration: const InputDecoration(hintText: 'ana@exemplo.com'),
           onSubmitted: (_) => _sendCode(),
         ),
         if (_error != null) ...[

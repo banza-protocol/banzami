@@ -96,7 +96,7 @@ export function ContactCTA({ lang, label }: { lang: Lang; label?: string }) {
                 <p style={{ margin: '6px 0 20px', fontSize: '13.5px', lineHeight: 1.5, fontWeight: 600, color: '#8a7a7e' }}>{T.sub[lang]}</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '16px 18px' }} className="bz-fgrid">
                   <Field name="nome" label={T.name[lang]} placeholder={T.namePh[lang]} autoComplete="name" value={f.nome} error={err.nome} onChange={(v) => set('nome', v)} />
-                  <Field name="email" label={T.email[lang]} type="email" placeholder="nome@exemplo.ao" autoComplete="email" value={f.email} error={err.email} onChange={(v) => set('email', v)} />
+                  <Field name="email" label={T.email[lang]} type="email" placeholder="nome@exemplo.com" autoComplete="email" value={f.email} error={err.email} onChange={(v) => set('email', v)} />
                   <Field name="assunto" label={T.subject[lang]} options={SUBJECTS.map((s) => s[lang])} selectPlaceholder={T.subjectPh[lang]} span2 value={f.assunto} error={err.assunto} onChange={(v) => set('assunto', v)} />
                   {isOther && <Field name="assunto_outro" label={T.other[lang]} placeholder={T.otherPh[lang]} span2 value={f.assunto_outro} error={err.assunto_outro} onChange={(v) => set('assunto_outro', v)} />}
                   <Field name="mensagem" label={T.message[lang]} type="textarea" placeholder={T.messagePh[lang]} span2 value={f.mensagem} error={err.mensagem} onChange={(v) => set('mensagem', v)} />

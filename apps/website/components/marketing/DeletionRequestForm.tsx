@@ -146,7 +146,7 @@ export function DeletionRequestForm({ lang }: { lang: Lang }) {
               {err.subject && <p role="alert" style={{ margin: 0, fontSize: '12.5px', fontWeight: 700, color: '#C8101F' }}>{err.subject}</p>}
             </div>
             <Field name="handle" label={T.handle[lang]} placeholder="fm65" hint={T.handleHint[lang]} mono value={handle} error={err.handle} onChange={(v) => { setHandle(v); setErr((e) => ({ ...e, handle: '' })); }} />
-            <Field name="email" label={T.email[lang]} type="email" placeholder="nome@exemplo.ao" autoComplete="email" value={email} error={err.email} onChange={(v) => { setEmail(v); setErr((e) => ({ ...e, email: '' })); }} />
+            <Field name="email" label={T.email[lang]} type="email" placeholder="nome@exemplo.com" autoComplete="email" value={email} error={err.email} onChange={(v) => { setEmail(v); setErr((e) => ({ ...e, email: '' })); }} />
           </div>
           {formErr && <p role="alert" style={{ margin: '16px 0 0', fontSize: '12.5px', fontWeight: 700, color: '#C8101F' }}>{formErr}</p>}
           <div style={{ marginTop: '22px' }}><SubmitBtn>{busy ? T.sending[lang] : T.send[lang]}</SubmitBtn></div>

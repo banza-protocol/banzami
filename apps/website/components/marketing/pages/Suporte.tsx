@@ -332,7 +332,7 @@ export function SuportePage({ lang }: { lang: Lang }) {
                     </p>
                     <div className="bz-fgrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '16px 18px' }}>
                       <Field name="nome" label={lang === 'en' ? 'Name' : 'Nome'} placeholder={lang === 'en' ? 'Your name' : 'O seu nome'} autoComplete="name" value={f.nome} error={err.nome} onChange={(v) => setField('nome', v)} />
-                      <Field name="email" label={lang === 'en' ? 'Email' : 'E-mail'} type="email" placeholder={lang === 'en' ? 'name@example.com' : 'nome@exemplo.ao'} autoComplete="email" value={f.email} error={err.email} onChange={(v) => setField('email', v)} />
+                      <Field name="email" label={lang === 'en' ? 'Email' : 'E-mail'} type="email" placeholder={lang === 'en' ? 'name@example.com' : 'nome@exemplo.com'} autoComplete="email" value={f.email} error={err.email} onChange={(v) => setField('email', v)} />
                       <SubjectSelect lang={lang} value={f.assunto} error={err.assunto} onChange={(v) => setField('assunto', v)} />
                       {isOutro && (
                         <Field name="assunto_outro" label={lang === 'en' ? 'What is it about?' : 'Qual é o assunto?'} placeholder={lang === 'en' ? 'Type the subject' : 'Escreva o assunto'} span2 value={f.assunto_outro} error={err.assunto_outro} onChange={(v) => setField('assunto_outro', v)} />
