@@ -76,7 +76,7 @@ const T = {
   // The store invite only reaches the account the tester's store uses, so once a
   // mobile platform is chosen the field says which address that is.
   fEmailIOS: L('E-mail da App Store da Apple', 'Apple App Store email'),
-  fEmailHintIOS: L('Use o mesmo e-mail associado à sua conta na App Store da Apple e que utiliza no TestFlight.', 'Use the same email associated with your Apple App Store account and that you use in TestFlight.'),
+  fEmailHintIOS: L('Use o mesmo e-mail associado à sua conta na App Store da Apple.', 'Use the same email associated with your Apple App Store account.'),
   fEmailAndroid: L('E-mail da Google Play Store', 'Google Play Store email'),
   fEmailHintAndroid: L('Use o mesmo e-mail da conta Google que utiliza na Google Play Store.', 'Use the same email as the Google account you use in the Google Play Store.'),
   fApp: L('Apps que quer testar', 'Apps you want to test'),

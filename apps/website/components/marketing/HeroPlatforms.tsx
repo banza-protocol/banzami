@@ -18,7 +18,7 @@ const T = {
   name: L('Nome completo', 'Full name'), namePh: L('O seu nome completo', 'Your full name'),
   email: L('E-mail', 'Email'),
   emailIOS: L('E-mail da App Store da Apple', 'Apple App Store email'),
-  emailHintIOS: L('Use o mesmo e-mail associado à sua conta na App Store da Apple e que utiliza no TestFlight.', 'Use the same email associated with your Apple App Store account and that you use in TestFlight.'),
+  emailHintIOS: L('Use o mesmo e-mail associado à sua conta na App Store da Apple.', 'Use the same email associated with your Apple App Store account.'),
   appLabel: L('Apps que quer testar', 'Apps you want to test'),
   appBanzami: L('App Banzami', 'App Banzami'), appBanzamiDesc: L('Pagar e receber', 'Pay and get paid'),
   appBusiness: L('Banzami Business', 'Banzami Business'), appBusinessDesc: L('Para negócios', 'For business'),

@@ -44,7 +44,7 @@ describe('the iPhone sign-up asks for the App Store e-mail', () => {
     const email = screen.getByLabelText(/E-mail da App Store da Apple/) as HTMLInputElement;
     expect(email.type).toBe('email');
     expect(email.placeholder).toBe('nome@exemplo.com');
-    const hint = screen.getByText('Use o mesmo e-mail associado à sua conta na App Store da Apple e que utiliza no TestFlight.');
+    const hint = screen.getByText('Use o mesmo e-mail associado à sua conta na App Store da Apple.');
     // The helper text is announced with the field, not just shown under it.
     expect(email.getAttribute('aria-describedby')).toBe(hint.id);
     expect(screen.getByRole('checkbox', { name: /Aceito receber por e-mail o convite do TestFlight e comunicações do Programa Beta\./ })).toBeTruthy();
