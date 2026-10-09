@@ -16,8 +16,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | blocked | 3 |
 | in-audit | 2 |
 | removed | 1 |
-| verified | 20 |
-| **total** | **26** |
+| verified | 21 |
+| **total** | **27** |
 
 ## Capabilities
 
@@ -38,6 +38,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-READINESS-001 | Project financial readiness (GET /v1/financial-setup) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-003 | Console API request logs (project-scoped, request_id correlation) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
+| CAP-DEV-004 | Business verified contact and Project link (Console financial setup, ADR-060) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public | **released** | ✅ | 🔒 no | static-only | verified |
 | CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-SDK-002 | Public Banzami client SDK (banzami_client, Dart/Flutter) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
@@ -56,10 +57,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | internal_only | 2 |
 | quarantined | 3 |
-| released | 20 |
+| released | 21 |
 | removed | 1 |
 
-Public surfaces released: **19/19**. Full external launch requires 19/19.
+Public surfaces released: **20/20**. Full external launch requires 20/20.
 
 ## Detail
 
@@ -298,6 +299,22 @@ Public surfaces released: **19/19**. Full external launch requires 19/19.
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [services/api-gateway/internal/middleware/apilog_test.go (attribution, failures, redaction, non-vacuity), services/developer-api/internal/developer/request_logs_test.go (authority, filters, no-oracle), apps/website/app/developers/request-id-shape.test.ts (docs vs generator)] · integration [services/api-gateway/internal/service/request_log_retention_test.go (real-DB prune)] · e2e_sandbox [tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.* 18/18, incl. Overview real-data assertions)] · negative/security [cross-project 403 both directions, foreign request_id is not an oracle, unauthenticated 401, no credential field in schema or response, credential-shaped path segment redacted, unauthenticated request writes no row]
 - **Evidence:** evidence/assurance/dev-foundation/api-logs-correlation-1788633497.json, docs/adr/ADR-054-developer-api-request-logs.md
+- **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released**
+- **Launch scope:** sandbox
+- **Status:** **verified**
+
+### CAP-DEV-004 — Business verified contact and Project link (Console financial setup, ADR-060)
+
+- **Owner:** developer-platform
+- **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
+- **Authority:** internal — Banzami ADR-060 (§7/§8)
+- **Threat category:** identity-auth
+- **Implementation:** services/developer-api (StartSandboxBusinessContact, CreateSandboxBusinessVerified, Start/ConfirmBusinessLinkByHandle, Start/ConfirmBusinessContactEnrolment), services/api-gateway (business contact codes, single-use link grants, verified-contact resolution), apps/website/components/developers/portal/LinkByHandleForm.tsx, db/migrations/0175_business_verified_contacts.sql
+- **API/UI surface:** POST /projects/{projID}/financial-setup/contact/start (Console session + Origin/CSRF, Project member, Sandbox only), POST /projects/{projID}/financial-setup/create (Console session + Origin/CSRF, Project member, Sandbox only), POST /projects/{projID}/financial-onboarding/link-by-handle/start (Console session + Origin/CSRF, Project member, Sandbox only), POST /projects/{projID}/financial-onboarding/link-by-handle/confirm (Console session + Origin/CSRF, Project member, Sandbox only), POST /projects/{projID}/financial-onboarding/contact/start (Console session + Origin/CSRF, Project member, Sandbox only), POST /projects/{projID}/financial-onboarding/contact/confirm (Console session + Origin/CSRF, Project member, Sandbox only)
+- **Deployment gate:** sandbox-e2e-required
+- **Tests:** unit [services/developer-api/internal/developer/business_contact_link_test.go (TestPathB_* — verified contact only, unverified application/merchant email never receives a link code, test placeholder never used, owner/admin only), apps/website/components/developers/portal/LinkByHandleForm.test.tsx] · integration [services/api-gateway/internal/service/business_contact_link_test.go (TestBusinessContact_* — real database; code replay, cross-Project grant, environment isolation, malformed subject neutral)] · e2e_sandbox [tools/e2e/console/business-link-e2e.mjs (BIZLINK.* 49/49 deployed; positive link of a disposable Project to an existing Business through its verified contact, real code relayed by the owner)] · negative/security [unauthenticated 401 and foreign Origin / missing / foreign CSRF token 403 on all six routes; another tenant's Project 404, indistinguishable from a nonexistent one, request-supplied address ignored by link-by-handle (code goes only to the verified server-side contact, disclosed masked); malformed, look-alike and unknown handles share one neutral 404, wrong code refused; the real code refused for another Project and another tenant before and after use; a bound Project cannot start another link]
+- **Evidence:** evidence/assurance/business-link/e2e-1791547349.json, docs/adr/ADR-060-self-service-public-sandbox.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox

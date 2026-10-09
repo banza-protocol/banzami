@@ -1,0 +1,326 @@
+{
+  "programme": "BANZAMI pre-release security closure — Business verified contact and Project link (ADR-060 §7/§8)",
+  "test": "tools/e2e/console/business-link-e2e.mjs",
+  "date_stamp": "1791547349",
+  "started_at": "2026-10-09T12:01:01.076Z",
+  "code_requested_at": "2026-10-09T12:01:08.366Z",
+  "finished_at": "2026-10-09T12:02:30.600Z",
+  "environment": "sandbox",
+  "console_host": "https://developers.banzami.com",
+  "api_host": "https://developer-api.banzami.com",
+  "source_head": "ecb16dad8fd74d96b058e10a0137f5803eeac395",
+  "deployed_revisions": [
+    "core-api-staging=ecb16dad8fd7",
+    "developer-api=83e8154ffdee",
+    "api-gateway-staging=cbb54fe42bee"
+  ],
+  "routes_covered": [
+    "POST /projects/{projID}/financial-setup/contact/start",
+    "POST /projects/{projID}/financial-setup/create",
+    "POST /projects/{projID}/financial-onboarding/link-by-handle/start",
+    "POST /projects/{projID}/financial-onboarding/link-by-handle/confirm",
+    "POST /projects/{projID}/financial-onboarding/contact/start",
+    "POST /projects/{projID}/financial-onboarding/contact/confirm"
+  ],
+  "target_business": "@doa (existing, KYB-approved, not created or altered by this run)",
+  "verified_contact_masked": "c••••@doadoa.app",
+  "otp_delivery": "real delivery to the Business's verified contact; the code was relayed by the owner — never read from a database, a log or a mailbox, and not recorded here",
+  "fixture_namespace": "bizlink-*-mv0wzdsk@banzami-e2e.test",
+  "not_exercised": [
+    "positive Path A (financial-setup/contact/start → create): it would create a second real Business against a real mailbox; proved by negatives here and by services/developer-api + services/api-gateway tests",
+    "positive BUSINESS_CONTACT_VERIFY enrolment: the target already has a verified contact, so enrolment was correctly not needed; refusals proved here",
+    "grant replay and cross-Business grant: the grant never leaves the server, so a client cannot present one; proved by TestBusinessContact_CrossProjectGrantRejected and the grant single-use tests (real database)"
+  ],
+  "corrections": [
+    "BIZLINK.fixture-address-is-not-ownership-proof was removed: it expected Path A to refuse a developer-chosen address, which is not the contract (the address is the new Business's own contact). The observed answer was HTTP 200. Replaced by BIZLINK.new-business-contact-start-creates-nothing, evaluated in the confirm phase from the same request's effect."
+  ],
+  "invariants": {
+    "before": {
+      "status": "ACTIVE",
+      "businesses": 1,
+      "wallets": 1,
+      "walletIds": "790fd996",
+      "handles": 1,
+      "verifiedContacts": 1,
+      "activeBindings": 1,
+      "liveOtps": 0,
+      "liveGrants": 0,
+      "allMerchants": 40,
+      "allWallets": 40
+    },
+    "after_cleanup": {
+      "status": "ACTIVE",
+      "businesses": 1,
+      "wallets": 1,
+      "walletIds": "790fd996",
+      "handles": 1,
+      "verifiedContacts": 1,
+      "activeBindings": 1,
+      "liveOtps": 0,
+      "liveGrants": 0,
+      "allMerchants": 40,
+      "allWallets": 40
+    }
+  },
+  "cleanup": {
+    "projects": [
+      "p1:202",
+      "p2:202",
+      "pb:202"
+    ],
+    "workspaces": [
+      "wsA:202",
+      "wsB:202"
+    ]
+  },
+  "total": 49,
+  "passed": 49,
+  "failed": 0,
+  "matrix": [
+    {
+      "id": "BIZLINK.env-sandbox",
+      "ok": true,
+      "note": "gateway reports environment=sandbox"
+    },
+    {
+      "id": "BIZLINK.target-active-with-verified-contact",
+      "ok": true,
+      "note": "@doa ACTIVE, verified contacts 1, wallets 1, active bindings 1"
+    },
+    {
+      "id": "BIZLINK.fixtures",
+      "ok": true,
+      "note": "two workspaces, three Projects"
+    },
+    {
+      "id": "BIZLINK.unauth.financial-setup.contact.start",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "BIZLINK.unauth.financial-setup.create",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "BIZLINK.unauth.financial-onboarding.link-by-handle.start",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "BIZLINK.unauth.financial-onboarding.link-by-handle.confirm",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "BIZLINK.unauth.financial-onboarding.contact.start",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "BIZLINK.unauth.financial-onboarding.contact.confirm",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "BIZLINK.csrf.financial-setup.contact.start",
+      "ok": true,
+      "note": "foreign origin 403, no token 403, another session's token 403"
+    },
+    {
+      "id": "BIZLINK.csrf.financial-setup.create",
+      "ok": true,
+      "note": "foreign origin 403, no token 403, another session's token 403"
+    },
+    {
+      "id": "BIZLINK.csrf.financial-onboarding.link-by-handle.start",
+      "ok": true,
+      "note": "foreign origin 403, no token 403, another session's token 403"
+    },
+    {
+      "id": "BIZLINK.csrf.financial-onboarding.link-by-handle.confirm",
+      "ok": true,
+      "note": "foreign origin 403, no token 403, another session's token 403"
+    },
+    {
+      "id": "BIZLINK.csrf.financial-onboarding.contact.start",
+      "ok": true,
+      "note": "foreign origin 403, no token 403, another session's token 403"
+    },
+    {
+      "id": "BIZLINK.csrf.financial-onboarding.contact.confirm",
+      "ok": true,
+      "note": "foreign origin 403, no token 403, another session's token 403"
+    },
+    {
+      "id": "BIZLINK.cross-project.financial-setup.contact.start",
+      "ok": true,
+      "note": "foreign 404 NOT_FOUND = nonexistent 404 NOT_FOUND"
+    },
+    {
+      "id": "BIZLINK.cross-project.financial-setup.create",
+      "ok": true,
+      "note": "foreign 404 NOT_FOUND = nonexistent 404 NOT_FOUND"
+    },
+    {
+      "id": "BIZLINK.cross-project.financial-onboarding.link-by-handle.start",
+      "ok": true,
+      "note": "foreign 404 NOT_FOUND = nonexistent 404 NOT_FOUND"
+    },
+    {
+      "id": "BIZLINK.cross-project.financial-onboarding.link-by-handle.confirm",
+      "ok": true,
+      "note": "foreign 404 NOT_FOUND = nonexistent 404 NOT_FOUND"
+    },
+    {
+      "id": "BIZLINK.cross-project.financial-onboarding.contact.start",
+      "ok": true,
+      "note": "foreign 404 NOT_FOUND = nonexistent 404 NOT_FOUND"
+    },
+    {
+      "id": "BIZLINK.cross-project.financial-onboarding.contact.confirm",
+      "ok": true,
+      "note": "foreign 404 NOT_FOUND = nonexistent 404 NOT_FOUND"
+    },
+    {
+      "id": "BIZLINK.handle-neutral.traversal",
+      "ok": true,
+      "note": "404 NOT_FOUND (unknown handle: 404 NOT_FOUND)"
+    },
+    {
+      "id": "BIZLINK.handle-neutral.empty",
+      "ok": true,
+      "note": "404 NOT_FOUND (unknown handle: 404 NOT_FOUND)"
+    },
+    {
+      "id": "BIZLINK.handle-neutral.unicode",
+      "ok": true,
+      "note": "404 NOT_FOUND (unknown handle: 404 NOT_FOUND)"
+    },
+    {
+      "id": "BIZLINK.handle-neutral.overlong",
+      "ok": true,
+      "note": "404 NOT_FOUND (unknown handle: 404 NOT_FOUND)"
+    },
+    {
+      "id": "BIZLINK.enrolment-unknown-handle-neutral",
+      "ok": true,
+      "note": "404 NOT_FOUND"
+    },
+    {
+      "id": "BIZLINK.link-confirm-without-challenge",
+      "ok": true,
+      "note": "400 INVALID_CODE"
+    },
+    {
+      "id": "BIZLINK.enrolment-confirm-without-challenge",
+      "ok": true,
+      "note": "400 INVALID_CODE"
+    },
+    {
+      "id": "BIZLINK.create-without-verified-contact",
+      "ok": true,
+      "note": "400 INVALID_CODE"
+    },
+    {
+      "id": "BIZLINK.create-refusal-created-nothing",
+      "ok": true,
+      "note": "Businesses 40→40, wallets 40→40"
+    },
+    {
+      "id": "BIZLINK.contact-start-rejects-malformed-address",
+      "ok": true,
+      "note": "400 INVALID_CODE"
+    },
+    {
+      "id": "BIZLINK.link-start-uses-verified-contact",
+      "ok": true,
+      "note": "HTTP 200, sent to c••••@doadoa.app; request-supplied address ignored"
+    },
+    {
+      "id": "BIZLINK.contact-is-masked",
+      "ok": true,
+      "note": "only the first character and the domain are disclosed"
+    },
+    {
+      "id": "BIZLINK.start-binds-nothing",
+      "ok": true,
+      "note": "active bindings 1, live codes 0→1"
+    },
+    {
+      "id": "BIZLINK.new-business-contact-start-creates-nothing",
+      "ok": true,
+      "note": "HTTP 200 at prepare; Businesses 40→40, wallets 40→40"
+    },
+    {
+      "id": "BIZLINK.wrong-code-rejected",
+      "ok": true,
+      "note": "400 INVALID_CODE, active bindings still 1"
+    },
+    {
+      "id": "BIZLINK.code-bound-to-project",
+      "ok": true,
+      "note": "same workspace, other Project 400 INVALID_CODE; other tenant 400 INVALID_CODE; bindings 1"
+    },
+    {
+      "id": "BIZLINK.positive-link",
+      "ok": true,
+      "note": "HTTP 200 "
+    },
+    {
+      "id": "BIZLINK.same-business-no-duplicates",
+      "ok": true,
+      "note": "Businesses 40→40, wallets 40→40, handles 1→1, verified contacts 1→1"
+    },
+    {
+      "id": "BIZLINK.binding-plus-one",
+      "ok": true,
+      "note": "active bindings 1→2"
+    },
+    {
+      "id": "BIZLINK.code-and-grant-spent",
+      "ok": true,
+      "note": "live codes 0, live grants 0"
+    },
+    {
+      "id": "BIZLINK.binding-is-sandbox-and-names-the-business",
+      "ok": true,
+      "note": "environment=SANDBOX, merchant matches=t, wallet is the Business's=t"
+    },
+    {
+      "id": "BIZLINK.readback-shows-the-business",
+      "ok": true,
+      "note": "GET financial-setup 200, names @doa"
+    },
+    {
+      "id": "BIZLINK.readback-not-for-another-tenant",
+      "ok": true,
+      "note": "another tenant: 404"
+    },
+    {
+      "id": "BIZLINK.code-replay-rejected",
+      "ok": true,
+      "note": "other Project 400 INVALID_CODE; other tenant 400 INVALID_CODE; bindings unchanged at 2"
+    },
+    {
+      "id": "BIZLINK.bound-project-cannot-start-another-link",
+      "ok": true,
+      "note": "409 CONFLICT"
+    },
+    {
+      "id": "BIZLINK.cleanup-business-untouched",
+      "ok": true,
+      "note": "@doa ACTIVE; wallets 1; handles 1; verified contacts 1"
+    },
+    {
+      "id": "BIZLINK.cleanup-no-temporary-binding",
+      "ok": true,
+      "note": "active bindings back to 1"
+    },
+    {
+      "id": "BIZLINK.cleanup-no-live-code-or-grant",
+      "ok": true,
+      "note": "live codes 0, live grants 0"
+    }
+  ]
+}

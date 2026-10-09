@@ -723,6 +723,57 @@ capabilities:
     # header, body or credential column and no JSONB to hide one in, pruned on a
     # 30-day retention that the screen states.
 
+  - id: CAP-DEV-004
+    name: Business verified contact and Project link (Console financial setup, ADR-060)
+    owner: developer-platform
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: Banzami ADR-060 (§7/§8)
+    implementation:
+      - services/developer-api (StartSandboxBusinessContact, CreateSandboxBusinessVerified, Start/ConfirmBusinessLinkByHandle, Start/ConfirmBusinessContactEnrolment)
+      - services/api-gateway (business contact codes, single-use link grants, verified-contact resolution)
+      - apps/website/components/developers/portal/LinkByHandleForm.tsx
+      - db/migrations/0175_business_verified_contacts.sql
+    api_surface:
+      - POST /projects/{projID}/financial-setup/contact/start (Console session + Origin/CSRF, Project member, Sandbox only)
+      - POST /projects/{projID}/financial-setup/create (Console session + Origin/CSRF, Project member, Sandbox only)
+      - POST /projects/{projID}/financial-onboarding/link-by-handle/start (Console session + Origin/CSRF, Project member, Sandbox only)
+      - POST /projects/{projID}/financial-onboarding/link-by-handle/confirm (Console session + Origin/CSRF, Project member, Sandbox only)
+      - POST /projects/{projID}/financial-onboarding/contact/start (Console session + Origin/CSRF, Project member, Sandbox only)
+      - POST /projects/{projID}/financial-onboarding/contact/confirm (Console session + Origin/CSRF, Project member, Sandbox only)
+    threat_category: identity-auth
+    tests:
+      unit:
+        - services/developer-api/internal/developer/business_contact_link_test.go (TestPathB_* — verified contact only, unverified application/merchant email never receives a link code, test placeholder never used, owner/admin only)
+        - apps/website/components/developers/portal/LinkByHandleForm.test.tsx
+      integration:
+        - services/api-gateway/internal/service/business_contact_link_test.go (TestBusinessContact_* — real database; code replay, cross-Project grant, environment isolation, malformed subject neutral)
+      e2e_sandbox:
+        - tools/e2e/console/business-link-e2e.mjs (BIZLINK.* 49/49 deployed; positive link of a disposable Project to an existing Business through its verified contact, real code relayed by the owner)
+      negative_security:
+        - unauthenticated 401 and foreign Origin / missing / foreign CSRF token 403 on all six routes; another tenant's Project 404, indistinguishable from a nonexistent one
+        - request-supplied address ignored by link-by-handle (code goes only to the verified server-side contact, disclosed masked); malformed, look-alike and unknown handles share one neutral 404
+        - wrong code refused; the real code refused for another Project and another tenant before and after use; a bound Project cannot start another link
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence:
+      - evidence/assurance/business-link/e2e-1791547349.json
+      - docs/adr/ADR-060-self-service-public-sandbox.md
+    surface: public
+    disposition: released
+    status: verified
+    # These six routes were live on the public Sandbox with unit and real-database
+    # tests and no evidence from the deployment; the route-registration gate was
+    # red because nothing claimed them. The deployed run links a disposable
+    # Project to an existing Business and proves nothing is duplicated: same
+    # Business, same wallet, same @banza, one more binding, and that binding gone
+    # after the Project is deleted. Not exercised end to end, and said so in the
+    # evidence: the positive new-Business path (it needs a second real mailbox)
+    # and enrolment of a first contact (the target already had a verified one).
+
   - id: CAP-DOCS-001
     name: Developer documentation site
     owner: developer-platform
