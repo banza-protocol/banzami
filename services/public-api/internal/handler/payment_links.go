@@ -188,6 +188,9 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "WALLET_NOT_FOUND",
 				"merchant wallet is inactive or not found")
 		default:
+			if respondCoreRefusal(w, r, err) {
+				break
+			}
 			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "payment could not be processed")
 		}
 		return

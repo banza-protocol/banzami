@@ -203,6 +203,9 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_RECIPIENT",
 				"recipient handle format is invalid")
 		default:
+			if respondCoreRefusal(w, r, err) {
+				break
+			}
 			apierror.Respond(w, r, http.StatusInternalServerError, "TRANSFER_FAILED",
 				"transfer could not be processed — please try again")
 		}

@@ -82,7 +82,8 @@ bool isOutcomeUnknown(Object error) {
 /// Whether [code] has copy of its own (rather than its status class's).
 /// For tests that check every code the server sends is worded.
 @visibleForTesting
-bool banzamiErrorCodeHasCopy(String code) => _byCode(code.toUpperCase()) != null;
+bool banzamiErrorCodeHasCopy(String code) =>
+    _byCode(code.toUpperCase()) != null;
 
 String? _byCode(String code) {
   if (code.startsWith('PILOT_LIMIT_')) return _pilotLimit(code);
@@ -304,6 +305,11 @@ String _pilotLimit(String code) {
     case 'PILOT_LIMIT_CONSUMER_BALANCE_EXCEEDED':
     case 'PILOT_LIMIT_MERCHANT_BALANCE_EXCEEDED':
       return 'Esta operação ultrapassa o saldo máximo permitido durante o piloto.';
+    case 'PILOT_LIMIT_PER_PAYMENT_EXCEEDED':
+    case 'PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED':
+      return 'Este valor ultrapassa o máximo por pagamento durante o piloto. Tente um valor mais baixo.';
+    case 'PILOT_LIMIT_CONSUMER_DAILY_EXCEEDED':
+      return 'Atingiu o limite diário de pagamentos do piloto. Tente novamente amanhã.';
     case 'PILOT_LIMIT_MERCHANT_DAILY_EXCEEDED':
       return 'Este negócio atingiu o limite diário do piloto.';
     default:

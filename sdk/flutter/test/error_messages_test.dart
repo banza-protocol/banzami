@@ -14,6 +14,18 @@ BanzamiApiException _api(int status, String code) => BanzamiApiException(
 
 void main() {
   group('banzamiErrorMessage — by the codes the server really sends', () {
+    test(
+        'a payment over the per-payment pilot limit says so, and how to proceed',
+        () {
+      final msg =
+          banzamiErrorMessage(_api(422, 'PILOT_LIMIT_PER_PAYMENT_EXCEEDED'));
+      expect(msg, contains('máximo por pagamento'));
+      expect(msg, isNot(contains('Verificar')));
+      expect(
+          banzamiErrorMessage(_api(422, 'PILOT_LIMIT_CONSUMER_DAILY_EXCEEDED')),
+          contains('limite diário'));
+    });
+
     test('transfer refusals read in Portuguese', () {
       expect(banzamiErrorMessage(_api(400, 'SELF_TRANSFER_NOT_ALLOWED')),
           'Não pode enviar dinheiro para si mesmo.');
@@ -27,7 +39,9 @@ void main() {
           'A transferência não foi concluída. Tente novamente.');
       expect(banzamiErrorMessage(_api(429, 'RATE_LIMITED')),
           'Demasiadas tentativas. Aguarde um momento e tente novamente.');
-      expect(banzamiErrorMessage(_api(422, 'PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED')),
+      expect(
+          banzamiErrorMessage(
+              _api(422, 'PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED')),
           contains('limite total de fundos'));
     });
 

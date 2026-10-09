@@ -134,6 +134,9 @@ func respondQrPayError(w http.ResponseWriter, r *http.Request, err error) {
 		apierror.Respond(w, r, http.StatusBadRequest, "SELF_PAYMENT_NOT_ALLOWED",
 			"you cannot pay your own QR code")
 	default:
+		if respondCoreRefusal(w, r, err) {
+			break
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
 			"payment could not be processed")
 	}

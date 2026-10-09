@@ -160,6 +160,9 @@ func (h *ConsumerPayLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrTransferSelfTransfer):
 			apierror.Respond(w, r, http.StatusBadRequest, "SELF_TRANSFER_NOT_ALLOWED", "cannot pay your own link")
 		default:
+			if respondCoreRefusal(w, r, err) {
+				break
+			}
 			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "payment could not be processed")
 		}
 		return
