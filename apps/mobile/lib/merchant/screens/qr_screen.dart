@@ -57,10 +57,11 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   }
 
   /// Open the official Banzami share card for the Business's persistent static
-  /// receive QR — the SAME card + image/WhatsApp/save flow the Consumer uses,
-  /// with the merchant's identity (name, @banza, Sandbox) and the static QR
-  /// (point.payUrl). This is identity sharing only: no "Copiar link" action, no
-  /// charge, no payment session, no payment link — nothing is created.
+  /// receive QR — the SAME card + image/WhatsApp/save/copy flow the Consumer
+  /// uses, with the merchant's identity (name, @banza, Sandbox) and the static
+  /// QR (point.payUrl). Sharing only: no charge, no payment session, no payment
+  /// link — nothing is created. "Copiar link" copies the receive-point pay URL
+  /// (point.payUrl), which opens the Business pay screen when tapped.
   Future<void> _share() async {
     final point = _point;
     final session = context.read<MerchantSessionService>().session;
@@ -75,8 +76,6 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
       logoWidget:
           BanzamiLogoWidget(assetPath: BrandingAssets.businessLogo, size: 20),
       embeddedLogoImage: AssetImage(BrandingAssets.businessLogo),
-      // A Business receive QR is an identity card, not a copyable pay URL.
-      showCopyLink: false,
     );
   }
 
