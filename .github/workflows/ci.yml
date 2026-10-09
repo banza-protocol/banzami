@@ -74,6 +74,16 @@ jobs:
     # DB-backed suites and can be dispatched against an exact commit.
     runs-on: ubuntu-latest
 
+    # The workspace's test binaries, each statically linked with full debug
+    # info, outgrew the hosted runner's disk: the job died with "No space left
+    # on device" mid-suite and uploaded no log, so a red here said nothing about
+    # the code. Tests do not need debug info (a panic still names its file and
+    # line), and without it the target directory is a fraction of the size.
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_INCREMENTAL: 0
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -100,6 +110,14 @@ jobs:
           echo "runner os   : ${RUNNER_OS:-unknown} / ${RUNNER_ARCH:-unknown}"
           echo "kernel      : $(uname -srm)"
           echo "docker      : $(docker version --format '{{.Server.Version}}' 2>/dev/null || echo unavailable)"
+
+      # Preinstalled SDKs this job never uses, removed before the build needs
+      # the room. Reported before and after so a future squeeze is visible.
+      - name: Free runner disk
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
