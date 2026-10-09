@@ -29,6 +29,10 @@ Future<void> showP2PShareModal(
   bool isSandbox = false,
   Widget? logoWidget,
   ImageProvider? embeddedLogoImage,
+  // A persistent Business receive QR (ADR-065) is shared as an identity card, not
+  // a copyable @banza pay URL: pass false to drop the "Copiar link" action. The
+  // card + image/WhatsApp/save actions are unchanged.
+  bool showCopyLink = true,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -45,6 +49,7 @@ Future<void> showP2PShareModal(
       isSandbox: isSandbox,
       logoWidget: logoWidget,
       embeddedLogoImage: embeddedLogoImage,
+      showCopyLink: showCopyLink,
     ),
   );
 }
@@ -64,6 +69,7 @@ class _P2PShareModal extends StatefulWidget {
   final bool isSandbox;
   final Widget? logoWidget;
   final ImageProvider? embeddedLogoImage;
+  final bool showCopyLink;
 
   const _P2PShareModal({
     required this.handle,
@@ -76,6 +82,7 @@ class _P2PShareModal extends StatefulWidget {
     required this.isSandbox,
     this.logoWidget,
     this.embeddedLogoImage,
+    this.showCopyLink = true,
   });
 
   @override
@@ -278,11 +285,12 @@ class _P2PShareModalState extends State<_P2PShareModal> {
               label: _busy ? 'A processar…' : 'Partilhar imagem',
               onTap: _busy ? null : _shareImage,
             ),
-            _ActionTile(
-              icon: Icons.link_rounded,
-              label: 'Copiar link',
-              onTap: _copyLink,
-            ),
+            if (widget.showCopyLink)
+              _ActionTile(
+                icon: Icons.link_rounded,
+                label: 'Copiar link',
+                onTap: _copyLink,
+              ),
             _ActionTile(
               icon: Icons.chat_rounded,
               label: 'Partilhar WhatsApp',
