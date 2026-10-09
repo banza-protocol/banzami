@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:banzami_flutter/banzami_flutter.dart' show AppPrivacyPolicy;
 
 import '../../branding_assets.dart';
 
@@ -6,6 +7,12 @@ import '../../branding_assets.dart';
 /// switcher's snapshot never shows the balance, payments or a customer's
 /// @banza — the same protection the consumer app has
 /// (SecureAppLifecycleGuard's privacy overlay).
+///
+/// Gated on the SAME single policy the consumer uses
+/// ([AppPrivacyPolicy.active.backgroundPrivacyShieldEnabled]) so the Business
+/// behaves identically: in the Public Sandbox the shield is OFF (backgrounding
+/// is not a security event), and it turns on only when a future Live policy
+/// enables it. No bespoke per-app rule.
 class MerchantPrivacyShield extends StatefulWidget {
   final Widget child;
   const MerchantPrivacyShield({super.key, required this.child});
@@ -33,8 +40,10 @@ class _MerchantPrivacyShieldState extends State<MerchantPrivacyShield>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // inactive is when iOS takes the app-switcher snapshot; paused/hidden when
-    // Android does. Only a resumed app shows its content.
-    final covered = state != AppLifecycleState.resumed;
+    // Android does. Only a resumed app shows its content — AND only when policy
+    // enables the shield (OFF in the Sandbox, matching the consumer app).
+    final covered = AppPrivacyPolicy.active.backgroundPrivacyShieldEnabled &&
+        state != AppLifecycleState.resumed;
     if (covered != _covered && mounted) setState(() => _covered = covered);
   }
 

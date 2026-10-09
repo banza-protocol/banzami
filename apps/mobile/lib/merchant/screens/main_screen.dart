@@ -127,7 +127,13 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
           ? DateTime.now().difference(_pausedAt!).inSeconds
           : _kGraceSeconds + 1;
       _pausedAt = null;
-      if (elapsed >= _kGraceSeconds) {
+      // Foreground relock is a product-policy choice, gated on the SAME single
+      // policy the consumer app uses. In the Public Sandbox it is OFF: returning
+      // from the background is not a security event, so a still-valid session
+      // simply resumes (no PIN/Face ID), exactly like the consumer. Cold-start
+      // PIN, session expiry and revocation are owned elsewhere and stay enforced.
+      if (AppPrivacyPolicy.active.foregroundRelockEnabled &&
+          elapsed >= _kGraceSeconds) {
         context.read<MerchantSessionService>().lock();
       }
     }
