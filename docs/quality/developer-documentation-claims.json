@@ -12825,20 +12825,6 @@
       "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
       "text": "the key was already used for another top-up"
     },
-    "pt:Reference-spec:69d8073f0a": {
-      "page": "Reference-spec",
-      "kind": "spec",
-      "class": "SOURCE",
-      "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-      "text": "pagador retirado, ou o saldo passaria o limite"
-    },
-    "en:Reference-spec:ecf489f984": {
-      "page": "Reference-spec",
-      "kind": "spec",
-      "class": "SOURCE",
-      "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
-      "text": "a retired payer, or the balance would pass its limit"
-    },
     "pt:Reference-spec:c218ed9516": {
       "page": "Reference-spec",
       "kind": "spec",
@@ -20048,6 +20034,34 @@
       "class": "SOURCE",
       "evidence": "core/compliance/src/pilot.rs (CONSUMER_MAX_BALANCE_MINOR = MERCHANT_MAX_BALANCE_MINOR = None; consumer_balance_has_no_cap_in_the_sandbox, merchant_balance_is_not_capped_but_24h_volume_is); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md; apps/website/lib/sandbox-limit-truth.test.ts",
       "text": "Wallet balances | Internal Sandbox policy | The internal Sandbox applies no maximum balance to Consumer or Business wallets. Operational limits apply to transac"
+    },
+    "pt:Reference-spec:ebd3be49a9": {
+      "page": "Reference-spec",
+      "kind": "spec",
+      "class": "SOURCE",
+      "evidence": "services/public-api/internal/handler/sandbox_test_payers.go (422 SANDBOX_FUNDING_REFUSED names Core's refusal); core/api/src/routes/consumer_wallets.rs (check_funding per-operation maximum, check_synthetic_issuance)",
+      "text": "pagador retirado, ou o carregamento foi recusado: acima do máximo por carregamento, ou o fusível global de fundos sintéticos do Sandbox está cheio"
+    },
+    "en:Reference-spec:03fab79bfa": {
+      "page": "Reference-spec",
+      "kind": "spec",
+      "class": "SOURCE",
+      "evidence": "services/public-api/internal/handler/sandbox_test_payers.go (422 SANDBOX_FUNDING_REFUSED names Core's refusal); core/api/src/routes/consumer_wallets.rs (check_funding per-operation maximum, check_synthetic_issuance)",
+      "text": "a retired payer, or the top-up was refused: over the per-top-up maximum, or the Sandbox global synthetic-funds fuse is full"
+    },
+    "pt:Testing:93fbd7b0ab": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (AGGREGATE_FUNDS_MINOR) and pilot_enforce.rs (synthetic_supply_minor, check_synthetic_issuance); core/api/src/routes/synthetic_supply_tests.rs (boundary, concurrency, movement and refund at a full cap, every issuing route); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md §1.1",
+      "text": "Fusível global de fundos sintéticos | Política interna do Sandbox | O Sandbox interno não aplica um teto de saldo por carteira. Existe, contudo, um fusível glob"
+    },
+    "en:Testing:534331e994": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (AGGREGATE_FUNDS_MINOR) and pilot_enforce.rs (synthetic_supply_minor, check_synthetic_issuance); core/api/src/routes/synthetic_supply_tests.rs (boundary, concurrency, movement and refund at a full cap, every issuing route); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md §1.1",
+      "text": "Global synthetic-funds fuse | Internal Sandbox policy | The internal Sandbox applies no per-wallet balance cap. There is, however, a global fuse of 250 000 000 "
     }
   }
 }

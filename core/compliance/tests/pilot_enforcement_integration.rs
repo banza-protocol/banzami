@@ -10,7 +10,9 @@ use sqlx::PgPool;
 
 use banzami_compliance::pilot::limits;
 use banzami_compliance::pilot::PilotLimitPolicy;
-use banzami_compliance::pilot_enforce::{check_funding, check_merchant_credit, Party};
+use banzami_compliance::pilot_enforce::{
+    check_funding, check_merchant_credit, check_synthetic_issuance, synthetic_supply_minor, Party,
+};
 
 const ON: PilotLimitPolicy = PilotLimitPolicy::enabled();
 const OFF: PilotLimitPolicy = PilotLimitPolicy::disabled();
@@ -243,24 +245,140 @@ async fn consumer_balance_is_not_capped_but_a_top_up_is(pool: PgPool) {
     assert_eq!(v.as_str(), "PILOT_LIMIT_PER_PAYMENT_EXCEEDED");
 }
 
-// -- aggregate synthetic funds in circulation: the Sandbox-wide safety fuse ------
-#[sqlx::test(migrations = "../../db/migrations")]
-async fn aggregate_funds_over_is_rejected(pool: PgPool) {
-    let acct = new_account(&pool).await;
-    make_merchant_wallet(&pool, acct).await;
-    credit(
-        &pool,
-        acct,
-        banzami_compliance::pilot::limits::AGGREGATE_FUNDS_MINOR,
-        1,
+// -- synthetic supply: the Sandbox-wide safety fuse ------------------------------
+// Measured at the boundary: the net debit position of the EXTERNAL_TRANSIT and
+// EXTERNAL_BACKING accounts. Decided inside a transaction, under one lock.
+// (The routes that issue value are proven end to end in
+// core/api/src/routes/synthetic_supply_tests.rs.)
+
+async fn boundary_account(pool: &PgPool, role: &str) -> uuid::Uuid {
+    let id = uuid::Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ledger_accounts (id, account_type, name, currency, system_role, synthetic) \
+         VALUES ($1,'ASSET',$2,'AOA',$3,true)",
     )
-    .await; // full circulation already
-    let target = new_account(&pool).await;
-    let v = check_funding(&pool, Party::Merchant, target, 1, ON)
+    .bind(id)
+    .bind(format!("boundary-{id}"))
+    .bind(role)
+    .execute(pool)
+    .await
+    .unwrap();
+    id
+}
+
+/// A balanced posting: DEBIT `from`, CREDIT `to`.
+async fn moved(pool: &PgPool, from: uuid::Uuid, to: uuid::Uuid, amount: i64) {
+    let pid = uuid::Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key) VALUES ($1,'move',$2)",
+    )
+    .bind(pid)
+    .bind(format!("idem-{pid}"))
+    .execute(pool)
+    .await
+    .unwrap();
+    for (account, entry_type) in [(from, "DEBIT"), (to, "CREDIT")] {
+        sqlx::query(
+            "INSERT INTO ledger_entries (posting_id, account_id, entry_type, amount_minor, currency) \
+             VALUES ($1,$2,$3,$4,'AOA')",
+        )
+        .bind(pid)
+        .bind(account)
+        .bind(entry_type)
+        .bind(amount)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+}
+
+async fn supply(pool: &PgPool) -> i64 {
+    let mut conn = pool.acquire().await.unwrap();
+    synthetic_supply_minor(&mut conn).await.unwrap()
+}
+
+async fn issuance(pool: &PgPool, amount: i64, policy: PilotLimitPolicy) -> Option<&'static str> {
+    let mut tx = pool.begin().await.unwrap();
+    check_synthetic_issuance(&mut tx, amount, policy)
         .await
         .unwrap()
-        .unwrap();
-    assert_eq!(v.as_str(), "PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED");
+        .map(|v| v.as_str())
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn synthetic_supply_boundary_and_over(pool: PgPool) {
+    use banzami_compliance::pilot::limits::AGGREGATE_FUNDS_MINOR as CAP;
+    let transit = boundary_account(&pool, "EXTERNAL_TRANSIT").await;
+    let holder = new_account(&pool).await;
+    moved(&pool, transit, holder, CAP - 5_000_000).await;
+
+    // 249 950 000 + 50 000 = 250 000 000: allowed, exactly.
+    assert_eq!(issuance(&pool, 5_000_000, ON).await, None);
+    assert_eq!(
+        issuance(&pool, 5_000_001, ON).await,
+        Some("PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED")
+    );
+
+    // At the cap, nothing more may be issued — not one minor unit.
+    moved(&pool, transit, holder, 5_000_000).await;
+    assert_eq!(supply(&pool).await, CAP);
+    assert_eq!(issuance(&pool, 0, ON).await, None, "a full cap is valid");
+    assert_eq!(
+        issuance(&pool, 1, ON).await,
+        Some("PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED")
+    );
+    // A disabled policy decides nothing.
+    assert_eq!(issuance(&pool, i64::MAX / 4, OFF).await, None);
+}
+
+// Only the boundary moves the supply. Wallet to wallet, available to reserved,
+// a fee to the operator: the number does not change. Destruction lowers it.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn only_issuance_and_destruction_move_the_supply(pool: PgPool) {
+    let transit = boundary_account(&pool, "EXTERNAL_TRANSIT").await;
+    let backing = boundary_account(&pool, "EXTERNAL_BACKING").await;
+    let consumer = new_account(&pool).await;
+    let reserved = new_account(&pool).await;
+    let business = new_account(&pool).await;
+    make_merchant_wallet(&pool, business).await;
+    let revenue = new_account(&pool).await;
+
+    moved(&pool, transit, consumer, 10_000_000).await;
+    assert_eq!(supply(&pool).await, 10_000_000);
+
+    moved(&pool, consumer, business, 4_000_000).await; // a payment
+    moved(&pool, business, consumer, 1_000_000).await; // a refund
+    moved(&pool, consumer, reserved, 2_000_000).await; // a reservation
+    moved(&pool, business, revenue, 30_000).await; // a fee
+    assert_eq!(supply(&pool).await, 10_000_000, "movement issued nothing");
+
+    moved(&pool, business, transit, 500_000).await; // retirement
+    moved(&pool, reserved, backing, 2_000_000).await; // an executed withdrawal
+    assert_eq!(supply(&pool).await, 7_500_000, "destruction lowers it");
+}
+
+// The second issuance cannot measure until the first has finished.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn the_issuance_lock_serialises_concurrent_checks(pool: PgPool) {
+    let _transit = boundary_account(&pool, "EXTERNAL_TRANSIT").await;
+    let mut first = pool.begin().await.unwrap();
+    assert!(check_synthetic_issuance(&mut first, 1, ON)
+        .await
+        .unwrap()
+        .is_none());
+
+    let second_pool = pool.clone();
+    let second = tokio::spawn(async move {
+        let mut tx = second_pool.begin().await.unwrap();
+        check_synthetic_issuance(&mut tx, 1, ON).await.unwrap()
+    });
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    assert!(
+        !second.is_finished(),
+        "the second check ran while the first held the lock"
+    );
+    first.rollback().await.unwrap();
+    assert!(second.await.unwrap().is_none());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -548,45 +666,30 @@ async fn below_limits_passes(pool: PgPool) {
         .is_none());
 }
 
-// -- a Project-owned Sandbox test payer is not held to the shared aggregate cap ---
-// ADR-060 §6: the aggregate funds cap is shared by every developer, so one
-// Project's test payers must not be able to exhaust it for the rest. The
-// per-operation top-up maximum still applies to them; no balance cap does.
+// -- a top-up is bounded per operation, whoever the consumer is -------------------
+// A Project's test payer used to have a funding check of its own, exempt from
+// the Sandbox-wide fuse. It has none now: it is funded through `check_funding`
+// like any consumer, and its issuance passes the same fuse.
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn test_payer_funding_ignores_the_aggregate_but_keeps_the_top_up_maximum(pool: PgPool) {
-    use banzami_compliance::pilot::limits::{AGGREGATE_FUNDS_MINOR, TOP_UP_PER_OPERATION_MINOR};
-    use banzami_compliance::pilot_enforce::check_test_payer_funding;
-    // Fill the Sandbox-wide aggregate through a merchant wallet.
-    let big = new_account(&pool).await;
-    make_merchant_wallet(&pool, big).await;
-    credit(&pool, big, AGGREGATE_FUNDS_MINOR, 0).await;
-
+async fn a_rich_consumer_may_be_topped_up_but_one_top_up_is_bounded(pool: PgPool) {
+    use banzami_compliance::pilot::limits::TOP_UP_PER_OPERATION_MINOR;
     let payer = new_account(&pool).await;
-    // An ordinary consumer is refused by the aggregate…
-    assert!(check_funding(&pool, Party::Consumer, payer, 1_000_000, ON)
-        .await
-        .unwrap()
-        .is_some());
-    // …a test payer is not…
-    assert!(check_test_payer_funding(&pool, payer, 1_000_000, ON)
-        .await
-        .unwrap()
-        .is_none());
-    // …and a payer that already holds a lot may still be topped up…
     credit(&pool, payer, 20_000_000, 0).await;
-    assert!(check_test_payer_funding(&pool, payer, 1, ON)
+    assert!(check_funding(&pool, Party::Consumer, payer, 1, ON)
         .await
         .unwrap()
         .is_none());
-    // …but one top-up is still at most Kz 50.000.
-    assert!(
-        check_test_payer_funding(&pool, payer, TOP_UP_PER_OPERATION_MINOR + 1, ON)
-            .await
-            .unwrap()
-            .is_some()
-    );
-    // And a disabled policy decides nothing.
-    assert!(check_test_payer_funding(&pool, payer, 1, OFF)
+    assert!(check_funding(
+        &pool,
+        Party::Consumer,
+        payer,
+        TOP_UP_PER_OPERATION_MINOR + 1,
+        ON
+    )
+    .await
+    .unwrap()
+    .is_some());
+    assert!(check_funding(&pool, Party::Consumer, payer, 1, OFF)
         .await
         .unwrap()
         .is_none());

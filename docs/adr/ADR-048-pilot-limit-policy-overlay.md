@@ -44,8 +44,8 @@ credit a merchant neither applies the gate nor records why it does not.
 | Consumer per payment | Kz 50 000 | `engine.rs::authorize_operation` → `overlay_consumer_payment` | via the authorization route only |
 | Consumer daily | Kz 250 000 | same | via the authorization route only |
 | Consumer max balance | none (`Option<i64> = None`) | `pilot_enforce::check_funding` evaluates an optional cap; the internal Sandbox has none | n/a |
-| Top-up per operation | Kz 50 000 | `pilot_enforce::check_funding` / `check_test_payer_funding` → `check_top_up_amount` | **yes** |
-| Aggregate synthetic funds in circulation (Sandbox-wide safety fuse) | Kz 250 000 000 | `pilot_enforce::check_funding` (consumer funding) | **yes** |
+| Top-up per operation | Kz 50 000 | `pilot_enforce::check_funding` → `check_top_up_amount` | **yes** |
+| Synthetic supply — value issued and not destroyed, environment-wide (safety fuse; not a wallet limit) | Kz 250 000 000 | `pilot_enforce::check_synthetic_issuance`, inside the posting transaction of every issuing route | **yes** |
 | Merchant per receive | Kz 50 000 | `pilot_enforce::check_merchant_credit` | **yes** |
 | Merchant max balance | none (`Option<i64> = None`) | `pilot_enforce::check_merchant_credit` evaluates an optional cap; the internal Sandbox has none | n/a |
 | Merchant rolling 24h volume | Kz 1 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
@@ -206,6 +206,38 @@ regulatory limit: it bounds the fictitious value in circulation across the whole
 internal Sandbox against accidental unlimited minting, runaway fixtures, bugs
 and abuse of test top-ups. Kz 250 000 000 leaves room for a Kz 100 000 000
 campaign alongside other activity.
+
+**The fuse is on issuance, measured at the boundary (third amendment,
+2026-10-09).** Three defects in how the fuse was applied, found when its
+semantics were checked against its purpose:
+
+1. *It was a read, then a write.* The supply was measured on a pool connection
+   before the posting transaction opened. Two concurrent top-ups each read the
+   supply below the cap and both posted.
+2. *It had exemptions.* Test-payer top-ups skipped it by design (ADR-060 §6);
+   the Console Business top-up, the operator manual credit and the simulated
+   acquiring confirmation had never been subject to it at all. A fuse some
+   issuers do not pass through bounds nothing.
+3. *It measured the wrong set.* "In circulation" was the sum of wallets'
+   `available` accounts. Value in a reserved account or a Business wallet
+   account was not counted, so reserving funds made room under the cap that did
+   not exist.
+
+Now: `synthetic_supply_minor` reads the net debit position of the
+`EXTERNAL_TRANSIT` and `EXTERNAL_BACKING` accounts (ADR-063) — issuance minus
+destruction. A movement between two accounts inside the system cannot change
+it. `check_synthetic_issuance` takes one transaction-scoped advisory lock and
+measures inside the transaction that posts, and every issuing route calls it:
+Consumer test credit (test payers and the registration grant included),
+Console Business top-up, operator credit, simulated acquiring confirmation,
+and the authorisation of a legacy acquiring transaction (an internal Core route
+no deployed service calls). No caller is exempt. A test in the same file names
+every route that touches the transit account and fails when a new one appears
+unclassified. Payments, transfers, refunds, reservations, settlements and
+fees issue nothing and are not subject to it. The cap value is unchanged.
+Proven with a real database in `core/api/src/routes/synthetic_supply_tests.rs`
+(boundary, one unit over, concurrency, movement and refund at a full cap, each
+issuing route) — the concurrency test fails when the lock is removed.
 
 **Top-up.** With no balance cap to bound it, a top-up has an explicit
 per-operation maximum of Kz 50 000. Balance 80 000 + top-up 50 000 = 130 000 is

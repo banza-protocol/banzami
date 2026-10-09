@@ -24,6 +24,9 @@ const MerchantRolling24hMinor int64 = 100000000
 // MerchantRolling30dMinor is MERCHANT_ROLLING_30D_MINOR: one merchant, trailing 30 days.
 const MerchantRolling30dMinor int64 = 3000000000
 
+// AggregateFundsCapMinor is AGGREGATE_FUNDS_MINOR: the Sandbox synthetic-supply fuse — value issued and not destroyed, environment-wide (not a wallet limit).
+const AggregateFundsCapMinor int64 = 25000000000
+
 // QueryGlobalRollingVolume measures merchant-credit volume across EVERY
 // merchant inside a rolling window. $1 is a Postgres interval literal.
 // Read-only: it counts history, it never writes it.
@@ -32,3 +35,9 @@ const QueryGlobalRollingVolume = "SELECT COALESCE(SUM(le.amount_minor), 0)::bigi
 // QueryMerchantRollingVolume measures ONE merchant's available account inside
 // a rolling window. $1 is the account id, $2 the interval literal.
 const QueryMerchantRollingVolume = "SELECT COALESCE(SUM(amount_minor), 0)::bigint FROM ledger_entries WHERE entry_type = 'CREDIT' AND account_id = $1 AND created_at >= now() - $2::interval"
+
+// QueryAggregateFunds measures the synthetic supply: value issued into the
+// environment and not destroyed, read at the system boundary (the net debit
+// position of the EXTERNAL_TRANSIT and EXTERNAL_BACKING accounts). A movement
+// between two wallets cannot change it. Read-only.
+const QueryAggregateFunds = "SELECT COALESCE(SUM(CASE WHEN le.entry_type = 'DEBIT' THEN le.amount_minor ELSE -le.amount_minor END), 0)::bigint FROM ledger_entries le JOIN ledger_accounts la ON la.id = le.account_id WHERE la.system_role IN ('EXTERNAL_TRANSIT', 'EXTERNAL_BACKING')"

@@ -72,6 +72,8 @@ describe('the Sandbox per-payment limit is never presented as a BNA limit', () =
     }
     for (const fine of [
       'Cada pagamento no Sandbox da Banzami pode ser de até 50 000 Kz.',
+      'O Sandbox interno não aplica um teto de saldo por carteira. Existe, contudo, um fusível global de 250 000 000 Kz sobre a quantidade total de fundos sintéticos emitidos/em circulação no ambiente, destinado exclusivamente à segurança operacional do Sandbox.',
+      'É dinheiro fictício e uma política interna da Banzami: não é um limite regulamentar do BNA nem um limite de Live.',
       'Este é um limite operacional do ambiente de testes da Banzami e não representa um limite regulamentar aplicável às operações com dinheiro real.',
       'carregamentos até 50 000 Kz, saldo até 50 000 Kz',
     ]) {
@@ -105,6 +107,8 @@ describe('no copy states a Sandbox wallet balance cap', () => {
     new RegExp(`${BAL_AMOUNT}[^.\\n|;,]{0,12}(?:balance|de\\s+saldo)\\b(?!\\s*(?:cap\\s+)?(?:removed|since))`, 'i'),
     // a balance limit attributed to the regulator
     new RegExp(`${REGULATOR}[^.\\n]{0,80}(?:limit[eo]?s?|m[áa]ximo|maximum|cap)[^.\\n]{0,40}${WALLET}`, 'i'),
+    // a refusal explained by a balance limit, with no amount at all
+    new RegExp(`(?:saldo|balance)[^.\\n|]{0,30}(?:passaria|excederia|ultrapassaria|would\\s+(?:pass|exceed))[^.\\n|]{0,20}(?:limite|limit)`, 'i'),
     // a campaign goal bounded by a wallet balance
     new RegExp(`(?:meta|goal)[^.\\n]{0,60}(?:limitad[ao]|limited|capped|n[ãa]o pode exceder|cannot exceed)[^.\\n]{0,40}${WALLET}`, 'i'),
   ];
@@ -136,6 +140,8 @@ describe('no copy states a Sandbox wallet balance cap', () => {
       'a 50,000 Kz balance',
       'O BNA define um limite de 1 000 000 Kz para o saldo da carteira.',
       'A meta da campanha está limitada pelo saldo da carteira.',
+      'pagador retirado, ou o saldo passaria o limite',
+      'a retired payer, or the balance would pass its limit',
     ]) {
       expect(BALANCE_CLAIMS.some((re) => re.test(bad)), bad).toBe(true);
     }
@@ -144,6 +150,8 @@ describe('no copy states a Sandbox wallet balance cap', () => {
       'Um Business pode receber até 1 000 000 Kz no período de 24 horas aplicável.',
       'carregamentos até 50 000 Kz, 20 carregamentos e 100 000 Kz por dia; sem limite máximo de saldo.',
       'Cada pagamento no Sandbox da Banzami pode ser de até 50 000 Kz.',
+      'O Sandbox interno não aplica um teto de saldo por carteira. Existe, contudo, um fusível global de 250 000 000 Kz sobre a quantidade total de fundos sintéticos emitidos/em circulação no ambiente, destinado exclusivamente à segurança operacional do Sandbox.',
+      'É dinheiro fictício e uma política interna da Banzami: não é um limite regulamentar do BNA nem um limite de Live.',
     ]) {
       expect(BALANCE_CLAIMS.some((re) => re.test(fine)), fine).toBe(false);
     }

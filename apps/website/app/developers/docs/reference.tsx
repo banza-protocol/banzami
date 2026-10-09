@@ -1220,7 +1220,7 @@ data: {"session_id":"payment_session_exemplo","status":"PAID","amount_minor":250
     errors: [
       { code: '400 IDEMPOTENCY_KEY_REQUIRED / INVALID_PARAM', note: { pt: 'sem Idempotency-Key, ou montante fora de 1 a 2 500 000', en: 'no Idempotency-Key, or an amount outside 1 to 2,500,000' } },
       { code: '409 IDEMPOTENCY_KEY_REUSED', note: { pt: 'a chave já foi usada para outro carregamento', en: 'the key was already used for another top-up' } },
-      { code: '422 TEST_PAYER_RETIRED / SANDBOX_FUNDING_REFUSED', note: { pt: 'pagador retirado, ou o saldo passaria o limite', en: 'a retired payer, or the balance would pass its limit' } },
+      { code: '422 TEST_PAYER_RETIRED / SANDBOX_FUNDING_REFUSED', note: { pt: 'pagador retirado, ou o carregamento foi recusado: acima do máximo por carregamento, ou o fusível global de fundos sintéticos do Sandbox está cheio', en: 'a retired payer, or the top-up was refused: over the per-top-up maximum, or the Sandbox global synthetic-funds fuse is full' } },
       { code: '429 SANDBOX_QUOTA_EXCEEDED', note: { pt: 'limite de 24 h do projeto', en: 'the Project’s 24-hour limit' } },
     ],
   },

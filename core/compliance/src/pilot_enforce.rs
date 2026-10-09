@@ -7,9 +7,12 @@
 //! (CREDIT adds, DEBIT subtracts) — the same convention used by the wallet balance
 //! route. Runtime string queries are used (no compile-time sqlx cache dependency).
 //!
-//! Enforcement points (called by the API before posting):
-//!   - funding/top-up (value entering a wallet): consumer/merchant balance cap +
-//!     aggregate funds-in-circulation cap;
+//! Enforcement points:
+//!   - funding/top-up (value entering a wallet): the per-operation top-up maximum
+//!     and the party balance cap, before posting ([`check_funding`]);
+//!   - synthetic ISSUANCE (any posting that brings new value across the system
+//!     boundary): the Sandbox-wide synthetic-supply fuse, INSIDE the posting's
+//!     own transaction and under one lock ([`check_synthetic_issuance`]);
 //!   - merchant receipt (payment to a merchant): merchant per-received cap,
 //!     merchant balance-after cap, and the four ROLLING merchant-credit volume
 //!     windows (owner decision D1).
@@ -45,19 +48,68 @@ async fn account_balance_minor(pool: &PgPool, account_id: uuid::Uuid) -> Result<
     .await
 }
 
-/// Total synthetic funds in circulation: the summed balance of every wallet and
-/// consumer-wallet available account.
-async fn aggregate_funds_minor(pool: &PgPool) -> Result<i64, sqlx::Error> {
+/// The one lock every synthetic issuance takes. Transaction-scoped: it is
+/// released by the commit or rollback of the transaction that took it.
+const SYNTHETIC_SUPPLY_LOCK: &str = "banzami:sandbox:synthetic-supply";
+
+/// **Synthetic funds in circulation**: the value that has been issued into the
+/// environment and not yet destroyed, in minor units.
+///
+/// Measured at the system BOUNDARY, not by adding up wallets: the net debit
+/// position of the EXTERNAL_TRANSIT and EXTERNAL_BACKING accounts (ADR-063).
+/// Every issuance is `DR transit / CR participant`; every destruction
+/// (retirement, an executed withdrawal) credits one of those accounts back. By
+/// double entry that net position equals everything Banzami owes participants
+/// and Businesses (available, reserved, wallet accounts, withdrawals in flight)
+/// plus what it has earned in fees, less what acquirers kept.
+///
+/// It follows that a posting between two accounts inside the system — a
+/// payment, a P2P transfer, a donation, a refund, a reservation, a settlement,
+/// a fee — cannot move this number at all: neither leg touches the boundary.
+/// Nothing is counted twice and nothing is missed because it sat in a reserved
+/// account or a wallet account while it was measured.
+pub async fn synthetic_supply_minor(conn: &mut sqlx::PgConnection) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar(
-        "SELECT COALESCE(SUM(CASE WHEN le.entry_type = 'CREDIT' THEN le.amount_minor \
+        "SELECT COALESCE(SUM(CASE WHEN le.entry_type = 'DEBIT' THEN le.amount_minor \
                                   ELSE -le.amount_minor END), 0)::bigint \
            FROM ledger_entries le \
-          WHERE le.account_id IN ( \
-                SELECT available_account_id FROM wallets \
-                UNION SELECT available_account_id FROM consumer_wallets)",
+           JOIN ledger_accounts la ON la.id = le.account_id \
+          WHERE la.system_role IN ('EXTERNAL_TRANSIT', 'EXTERNAL_BACKING')",
     )
-    .fetch_one(pool)
+    .fetch_one(&mut *conn)
     .await
+}
+
+/// **The synthetic-supply fuse.** Every path that ISSUES synthetic value calls
+/// this with the amount about to be issued, on the connection of the
+/// transaction that will post it (or that brackets the posting), BEFORE the
+/// entries are written.
+///
+/// It takes one transaction-scoped advisory lock, so issuances are serialised:
+/// the second of two concurrent issuances measures the supply only after the
+/// first has committed or rolled back. A check on a separate connection could
+/// not promise that — two top-ups would each read the supply below the cap and
+/// both post.
+///
+/// There is no exemption by caller. A test payer, a Console top-up and an
+/// operator credit all issue value and all pass through here.
+///
+/// Read-only apart from the lock. Fail-closed: an unreadable measurement is an
+/// `Err`, which every caller turns into a refusal.
+pub async fn check_synthetic_issuance(
+    conn: &mut sqlx::PgConnection,
+    issued_minor: i64,
+    policy: PilotLimitPolicy,
+) -> Result<Option<PilotViolation>, sqlx::Error> {
+    if !policy.is_enabled() {
+        return Ok(None);
+    }
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))")
+        .bind(SYNTHETIC_SUPPLY_LOCK)
+        .execute(&mut *conn)
+        .await?;
+    let supply = synthetic_supply_minor(&mut *conn).await?;
+    Ok(policy.check_aggregate_funds_after_add(supply, issued_minor))
 }
 
 /// Merchant-credit volume across EVERY merchant inside a rolling window.
@@ -136,9 +188,13 @@ async fn account_balance_minor_conn(
     .await
 }
 
-/// Funding/top-up: enforce the party balance cap and the aggregate funds cap for a
-/// credit of `credit_minor` into `available_account_id`. Returns the first
-/// violation, or `None` if allowed (or the policy is disabled).
+/// Funding/top-up: enforce the per-operation top-up maximum and the party
+/// balance cap for a credit of `credit_minor` into `available_account_id`.
+/// Returns the first violation, or `None` if allowed (or the policy is disabled).
+///
+/// This is the cheap refusal a caller gets before a transaction is opened. It
+/// does NOT decide the synthetic-supply fuse: that is [`check_synthetic_issuance`],
+/// which must run inside the posting's transaction to mean anything.
 pub async fn check_funding(
     pool: &PgPool,
     party: Party,
@@ -157,36 +213,10 @@ pub async fn check_funding(
         }
     }
     let bal = account_balance_minor(pool, available_account_id).await?;
-    let balance_violation = match party {
+    Ok(match party {
         Party::Consumer => policy.check_consumer_balance_after_credit(bal, credit_minor),
         Party::Merchant => policy.check_merchant_balance_after_credit(bal, credit_minor),
-    };
-    if let Some(v) = balance_violation {
-        return Ok(Some(v));
-    }
-    let funds = aggregate_funds_minor(pool).await?;
-    Ok(policy.check_aggregate_funds_after_add(funds, credit_minor))
-}
-
-/// Funding of a Project-owned Sandbox test payer (ADR-060 §6): the per-party
-/// balance cap applies, the Sandbox-wide aggregate cap does not. That cap is a
-/// resource every developer shares; one Project's test payers could exhaust it
-/// for all the others. Their fictitious value is bounded per Project instead,
-/// by the test-payer quotas in public-api.
-pub async fn check_test_payer_funding(
-    pool: &PgPool,
-    available_account_id: uuid::Uuid,
-    credit_minor: i64,
-    policy: PilotLimitPolicy,
-) -> Result<Option<PilotViolation>, sqlx::Error> {
-    if !policy.is_enabled() {
-        return Ok(None);
-    }
-    if let Some(v) = policy.check_top_up_amount(credit_minor) {
-        return Ok(Some(v));
-    }
-    let bal = account_balance_minor(pool, available_account_id).await?;
-    Ok(policy.check_consumer_balance_after_credit(bal, credit_minor))
+    })
 }
 
 /// **The merchant-credit gate.** Every path that credits a merchant's available

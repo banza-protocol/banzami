@@ -43,6 +43,58 @@ test top-ups. It does not represent a regulatory or LIVE monetary limit, and it
 is not a wallet balance limit, a campaign goal limit or a campaign lifetime
 limit.
 
+### 1.1 Wallet balance cap versus synthetic supply cap
+
+| | Value | What it limits |
+|---|---|---|
+| Wallet balance cap (Consumer, Business) | **none** | nothing: a wallet may hold any amount it legitimately received |
+| Synthetic supply cap | **Kz 250 000 000, globally** | the total fictitious value issued into the environment and not yet destroyed |
+
+> O Sandbox interno não aplica um teto de saldo por carteira. Existe, contudo,
+> um fusível global de 250 000 000 Kz sobre a quantidade total de fundos
+> sintéticos emitidos/em circulação no ambiente, destinado exclusivamente à
+> segurança operacional do Sandbox.
+
+The synthetic supply cap is **not a wallet limit**. It is Banzami internal
+Sandbox policy, it concerns fictitious money only, it is not a BNA regulatory
+limit and it is not a LIVE limit.
+
+**How "in circulation" is measured.** At the system boundary, not by adding up
+wallets: the net debit position of the `EXTERNAL_TRANSIT` and `EXTERNAL_BACKING`
+ledger accounts (ADR-063) — value issued minus value destroyed
+(`pilot_enforce::synthetic_supply_minor`). By double entry this equals what
+Banzami owes Consumers and Businesses (available, reserved, wallet accounts,
+withdrawals in flight) plus the fees it has earned, less what acquirers kept.
+
+| Operation | Effect on the synthetic supply | Subject to the fuse |
+|---|---|---|
+| Test-payer top-up, Consumer test credit, registration grant | issues value | **yes** |
+| Console Business top-up, operator manual credit | issues value | **yes** |
+| Simulated external-rail (acquiring) confirmation | issues value | **yes** |
+| Authorisation of a legacy acquiring transaction (Core internal route; no deployed service calls it) | issues value | **yes** |
+| Payment, P2P transfer, donation, payment link, QR | none: both legs are inside the system | no |
+| Refund, dispute resolution | none: returns existing value | no |
+| Reservation, settlement between accounts, fee | none | no |
+| Retirement of synthetic value, executed withdrawal | lowers it | no |
+
+An internal movement cannot change the measure, so nothing is counted twice. A
+payment, a transfer or a refund while the supply stands at exactly
+Kz 250 000 000 is permitted, subject to its own transaction limits.
+
+**Where it is enforced.** `pilot_enforce::check_synthetic_issuance`, called by
+every route that issues value, inside the transaction that posts it and under
+one transaction-scoped lock. Two concurrent issuances that together would cross
+the cap cannot both post: the second measures only after the first has
+committed. There is no exemption by caller — a test payer, a Console top-up and
+an operator credit pass through the same check. With the supply at
+Kz 249 980 000, an issuance of Kz 50 000 is refused
+(`PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED`) and nothing is written.
+
+**No fixture exemption exists.** No route, flag or caller identity bypasses the
+fuse in the deployed Sandbox. Where the overlay is disabled (it is never
+enabled on LIVE/production) no Sandbox limit applies at all; LIVE has no
+synthetic issuance route to begin with — each is refused outside the Sandbox.
+
 ## 2. Classification
 
 **Voluntary Banzami Sandbox operational limits** — product and test policy for

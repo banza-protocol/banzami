@@ -214,45 +214,22 @@ pub async fn test_credit(
     }
 
     // V1.0 pilot-limit overlay (internal Sandbox / Phase 0; disabled by default,
-    // never on live/production): enforce the consumer balance cap and the aggregate
-    // funds-in-circulation cap BEFORE this synthetic credit posts. A rejection
-    // leaves balances and the ledger unchanged.
+    // never on live/production): the per-operation top-up maximum, refused before
+    // a transaction is opened. A test payer is a consumer like any other here.
+    // The synthetic-supply fuse is decided further down, inside the posting's
+    // transaction.
+    let pilot_policy = state.pilot_policy;
+    if let Some(v) = banzami_compliance::pilot_enforce::check_funding(
+        &state.pool,
+        banzami_compliance::pilot_enforce::Party::Consumer,
+        available_account_id,
+        body.amount_minor,
+        pilot_policy,
+    )
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
     {
-        let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
-        // A Project-owned Sandbox test payer is bounded per Project, not by the
-        // Sandbox-wide aggregate every developer shares (ADR-060 §6).
-        let is_test_payer: bool = !state.environment.is_live()
-            && sqlx::query_scalar(
-                "SELECT EXISTS (SELECT 1 FROM sandbox_test_payers tp
-                                  JOIN consumer_wallets cw ON cw.consumer_id = tp.consumer_id
-                                 WHERE cw.available_account_id = $1 AND tp.retired_at IS NULL)",
-            )
-            .bind(available_account_id)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
-        let violation = if is_test_payer {
-            banzami_compliance::pilot_enforce::check_test_payer_funding(
-                &state.pool,
-                available_account_id,
-                body.amount_minor,
-                policy,
-            )
-            .await
-        } else {
-            banzami_compliance::pilot_enforce::check_funding(
-                &state.pool,
-                banzami_compliance::pilot_enforce::Party::Consumer,
-                available_account_id,
-                body.amount_minor,
-                policy,
-            )
-            .await
-        }
-        .map_err(|e| ApiError::internal(e.to_string()))?;
-        if let Some(v) = violation {
-            return Err(ApiError::unprocessable(v.as_str(), v.message()));
-        }
+        return Err(ApiError::unprocessable(v.as_str(), v.message()));
     }
 
     // Build a balanced double-entry posting:
@@ -321,6 +298,22 @@ pub async fn test_credit(
             }));
         }
         Err(e) => return Err(ApiError::internal(e.to_string())),
+    }
+
+    // The synthetic-supply fuse. This credit issues new value, so it is decided
+    // here: in this transaction, under the lock every issuance takes, after the
+    // idempotency key has been claimed (a replay never reaches this line) and
+    // before an entry is written. A refusal drops the transaction and with it
+    // the posting header — nothing is left behind.
+    if let Some(v) = banzami_compliance::pilot_enforce::check_synthetic_issuance(
+        &mut tx,
+        body.amount_minor,
+        pilot_policy,
+    )
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        return Err(ApiError::unprocessable(v.as_str(), v.message()));
     }
 
     // DEBIT: transit account (ASSET account loses funds — funds flow out to consumer)

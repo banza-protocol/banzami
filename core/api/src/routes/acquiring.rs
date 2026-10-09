@@ -651,6 +651,31 @@ pub async fn test_confirm(
 
     let amount_minor = existing.amount.amount_minor();
 
+    // The synthetic-supply fuse. In the Sandbox the simulated rail's
+    // confirmation is what issues value: settlement posts DR transit / CR the
+    // Business. A rail refuses before it confirms, so the fuse is decided here,
+    // and the payment stays PENDING when it refuses. The lock is held by this
+    // bracketing transaction until the settlement below has committed, so no
+    // other issuance can be measured in between. A payment already confirmed
+    // issues nothing more: its replay is not measured again.
+    let mut issuance_guard = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+    if matches!(existing.status, AcquiringPaymentStatus::Pending) {
+        if let Some(v) = banzami_compliance::pilot_enforce::check_synthetic_issuance(
+            &mut issuance_guard,
+            amount_minor,
+            state.pilot_policy,
+        )
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+        {
+            return Err(ApiError::unprocessable(v.as_str(), v.message()));
+        }
+    }
+
     let (body, signature) = state
         .acquiring
         .generate_test_callback(&q.external_ref, amount_minor, currency)
@@ -670,6 +695,10 @@ pub async fn test_confirm(
     // balance — and an integration verified here would have behaved differently
     // in Live.
     settle_confirmed_payment(&state, &payment).await?;
+    issuance_guard
+        .rollback()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
 
     Ok(Json(payment.into()))
 }

@@ -275,6 +275,33 @@ pub async fn authorize(
         RiskDecision::Allow => {}
     }
 
+    // The synthetic-supply fuse. Authorising reserves the amount FROM the
+    // transit account (DR transit / CR the Business's reserved account): in the
+    // Sandbox that is issuance, like any top-up. The lock is held by this
+    // bracketing transaction until the engine has posted, so no other issuance
+    // is measured in between. A transaction that cannot be authorised issues
+    // nothing and is left to the engine's own transition check.
+    let mut issuance_guard = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+    if pending
+        .status
+        .can_transition_to(banzami_transactions::TransactionStatus::Authorized)
+    {
+        if let Some(v) = banzami_compliance::pilot_enforce::check_synthetic_issuance(
+            &mut issuance_guard,
+            pending.amount.amount_minor(),
+            state.pilot_policy,
+        )
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+        {
+            return Err(ApiError::unprocessable(v.as_str(), v.message()));
+        }
+    }
+
     let tx = state
         .tx_engine
         .authorize(AuthorizeRequest { tx_id })
@@ -287,6 +314,10 @@ pub async fn authorize(
             ),
             other => ApiError::internal(other.to_string()),
         })?;
+    issuance_guard
+        .rollback()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
 
     Ok(Json(serde_json::to_value(&tx).unwrap()))
 }

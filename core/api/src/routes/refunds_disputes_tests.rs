@@ -484,6 +484,70 @@ async fn wallet_native_refund_credits_consumer(pool: PgPool) {
     );
 }
 
+// A refund at a FULL synthetic-supply cap goes through: it returns value that
+// already exists to the payer and issues none, so the fuse has nothing to say
+// and the measured supply is the same before and after.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_at_a_full_synthetic_supply_cap_is_permitted(pool: PgPool) {
+    use banzami_compliance::pilot::{limits, PilotLimitPolicy};
+    use banzami_compliance::pilot_enforce::synthetic_supply_minor;
+    use banzami_ledger::system::{register_system_account, SystemRole};
+
+    let mut state = build_state(pool.clone()).await;
+    state.pilot_policy = PilotLimitPolicy::enabled();
+    register_system_account(
+        &pool,
+        state.transit_account_id,
+        SystemRole::ExternalTransit,
+        true,
+    )
+    .await
+    .unwrap();
+    let s = seed_wallet_payment(&pool, 2_000).await;
+
+    // Fill the cap: DR transit / CR the Business that is about to refund.
+    let fill = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key) VALUES ($1, 'issued', $2)",
+    )
+    .bind(fill)
+    .bind(format!("issued-{fill}"))
+    .execute(&pool)
+    .await
+    .unwrap();
+    for (account, entry_type) in [
+        (state.transit_account_id.as_uuid(), "DEBIT"),
+        (s.merchant_account, "CREDIT"),
+    ] {
+        sqlx::query(
+            "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency)
+             VALUES (gen_random_uuid(), $1, $2, $3, $4, 'AOA')",
+        )
+        .bind(fill)
+        .bind(account)
+        .bind(entry_type)
+        .bind(limits::AGGREGATE_FUNDS_MINOR)
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    let mut conn = pool.acquire().await.unwrap();
+    assert_eq!(
+        synthetic_supply_minor(&mut conn).await.unwrap(),
+        limits::AGGREGATE_FUNDS_MINOR
+    );
+
+    let (_, Json(resp)) = refunds::create(State(state), Json(wp_refund_body(&s, 2_000, "at-cap")))
+        .await
+        .expect("a refund at a full cap moves existing value");
+    assert_eq!(resp.status, "SUCCEEDED");
+    assert_eq!(
+        synthetic_supply_minor(&mut conn).await.unwrap(),
+        limits::AGGREGATE_FUNDS_MINOR,
+        "a refund issued nothing"
+    );
+}
+
 // Over-refund is rejected and partials aggregate by the wallet-payment source.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn wallet_native_ceiling_by_source(pool: PgPool) {

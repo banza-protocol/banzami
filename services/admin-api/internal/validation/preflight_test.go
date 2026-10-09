@@ -235,17 +235,18 @@ func TestPreflight_MeasuredCannotCarryASecret(t *testing.T) {
 // the run, which is precisely the situation that produced an INSUFFICIENT_FUNDS
 // that looked like a product fault.
 func TestPreflight_AggregateFundsIsItsOwnBudgetCheck(t *testing.T) {
-	if AggregateFundsCapMinor != 50_000_000 {
-		t.Errorf("the shared funded-value cap changed to %d; the preflight and the executor "+
-			"must move together", AggregateFundsCapMinor)
+	// The cap is Core's, extracted into pilot_gen.go and drift-guarded there; a
+	// literal here would be the restatement that went stale once already.
+	if AggregateFundsCapMinor <= 0 {
+		t.Errorf("the synthetic-supply cap is %d", AggregateFundsCapMinor)
 	}
-	// The query must read HELD value across BOTH wallet families. Counting only
-	// merchant wallets would miss the synthetic consumers that actually
-	// exhausted the cap.
-	for _, want := range []string{"available_account_id FROM wallets", "consumer_wallets", "SUM("} {
+	// The query must read the supply at the system BOUNDARY — value issued and
+	// not destroyed. Adding up wallets' available accounts missed reserved
+	// accounts and wallet accounts, and changed when value merely moved.
+	for _, want := range []string{"EXTERNAL_TRANSIT", "EXTERNAL_BACKING", "system_role", "SUM("} {
 		if !strings.Contains(QueryAggregateFunds, want) {
 			t.Errorf("QueryAggregateFunds no longer contains %q — it would stop measuring "+
-				"the thing that ran out", want)
+				"the thing the fuse limits", want)
 		}
 	}
 	if strings.Contains(strings.ToUpper(QueryAggregateFunds), "UPDATE") ||

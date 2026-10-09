@@ -150,6 +150,10 @@ pub struct AppState {
     pub pool: PgPool,
     pub transit_account_id: AccountId,
     pub environment: CoreEnvironment,
+    /// The pilot-limit overlay the synthetic-issuance routes decide with.
+    /// Resolved from the environment once, at construction: disabled unless
+    /// `BANZAMI_PILOT_LIMITS` asks for it, and never enabled on live/production.
+    pub pilot_policy: banzami_compliance::pilot::PilotLimitPolicy,
     pub wallet: Arc<WalletEng>,
     pub tx_engine: Arc<TxEng>,
     pub merchant: Arc<MerchantEng>,
@@ -351,6 +355,7 @@ impl AppState {
             pool,
             transit_account_id,
             environment,
+            pilot_policy: banzami_compliance::pilot::PilotLimitPolicy::from_env(),
             wallet,
             tx_engine,
             merchant,

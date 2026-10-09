@@ -92,6 +92,8 @@ mod settlement_readiness_tests;
 pub mod settlements;
 pub mod splits;
 #[cfg(test)]
+mod synthetic_supply_tests;
+#[cfg(test)]
 mod tenant_scoping_tests;
 pub mod transactions;
 pub mod transfers;

@@ -299,16 +299,10 @@ func (p *Preflighter) checkActorsResolve(ctx context.Context, add func(Check)) {
 // credit volume are extracted from core/compliance (pilot_gen.go), never
 // restated here: a preflight that measured headroom differently from the engine
 // that enforces it would clear a run the ledger then refuses halfway through.
-// AggregateFundsCapMinor is the Sandbox's shared ceiling on funded value —
-// money HELD, as opposed to the rolling windows' money MOVED.
-const AggregateFundsCapMinor int64 = 50_000_000
-
-// QueryAggregateFunds sums funded value across merchant and consumer wallets.
-// Read-only: it counts what is held, it never changes it.
-const QueryAggregateFunds = `SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END), 0)::bigint
-    FROM ledger_entries WHERE account_id IN (
-      SELECT available_account_id FROM wallets
-      UNION SELECT available_account_id FROM consumer_wallets)`
+// AggregateFundsCapMinor and QueryAggregateFunds — the Sandbox synthetic-supply
+// fuse and the read that measures it — are extracted from core/compliance into
+// pilot_gen.go, like the windows above. They were restated here once, and the
+// restatement kept the old cap after Core's had moved.
 
 // checkAggregateFunds reports the shared funded-value cap as its own check.
 //

@@ -255,6 +255,20 @@ pub async fn sandbox_credit(
         Err(e) => return Err(ApiError::internal(e.to_string())),
     }
 
+    // The synthetic-supply fuse: this credit issues new value. Decided in this
+    // transaction, under the lock every issuance takes, after the idempotency
+    // key is claimed and before an entry is written.
+    if let Some(v) = banzami_compliance::pilot_enforce::check_synthetic_issuance(
+        &mut tx,
+        body.amount_minor,
+        state.pilot_policy,
+    )
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        return Err(ApiError::unprocessable(v.as_str(), v.message()));
+    }
+
     // DEBIT: transit account (ASSET — the float pays out)
     sqlx::query(
         "INSERT INTO ledger_entries
@@ -464,6 +478,20 @@ pub async fn admin_credit(
             }));
         }
         Err(e) => return Err(ApiError::internal(e.to_string())),
+    }
+
+    // The synthetic-supply fuse: this credit issues new value. Decided in this
+    // transaction, under the lock every issuance takes, after the idempotency
+    // key is claimed and before an entry is written.
+    if let Some(v) = banzami_compliance::pilot_enforce::check_synthetic_issuance(
+        &mut tx,
+        body.amount_minor,
+        state.pilot_policy,
+    )
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        return Err(ApiError::unprocessable(v.as_str(), v.message()));
     }
 
     sqlx::query(
