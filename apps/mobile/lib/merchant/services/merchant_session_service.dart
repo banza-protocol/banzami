@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:banzami_flutter/banzami_flutter.dart' show MerchantAuthTokens, RenewedSession;
 import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
+import '../../platform/biometric_error.dart';
 
 import '../../services/banzami_keychain.dart';
 import '../../services/pin_hasher.dart';
@@ -746,13 +747,24 @@ class MerchantSessionService extends ChangeNotifier {
     } catch (_) { return false; }
   }
 
+  /// The reason the last biometric attempt failed (a human PT message), or null
+  /// after a success. Lets the UI explain a silent failure instead of just not
+  /// turning the toggle on — the Business Face ID symptom reported on iOS.
+  String? lastBiometricError;
+
   Future<bool> authenticateWithBiometrics() async {
     try {
-      return await _bio.authenticate(
+      final ok = await _bio.authenticate(
         localizedReason: 'Autentique para aceder ao painel Banzami Business',
         options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
       );
-    } catch (_) { return false; }
+      if (ok) lastBiometricError = null;
+      return ok;
+    } catch (e) {
+      lastBiometricError = biometricErrorMessage(e);
+      debugPrint('[biometrics] authenticate failed: $e');
+      return false;
+    }
   }
 
   Future<void> enableBiometrics() async {

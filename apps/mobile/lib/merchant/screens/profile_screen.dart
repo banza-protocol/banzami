@@ -250,7 +250,14 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     try {
       if (enable) {
         final ok = await svc.authenticateWithBiometrics();
-        if (ok) await svc.enableBiometrics();
+        if (ok) {
+          await svc.enableBiometrics();
+        } else if (mounted) {
+          // Explain the failure instead of silently leaving the toggle off —
+          // the reported Business Face ID symptom was exactly this silence.
+          BanzamiToast.showError(
+              context, svc.lastBiometricError ?? 'Não foi possível ativar o Face ID.');
+        }
       } else {
         await svc.disableBiometrics();
       }

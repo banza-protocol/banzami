@@ -134,7 +134,13 @@ class _SecurityScreenState extends State<SecurityScreen> {
     try {
       if (enable) {
         final ok = await svc.authenticateWithBiometrics();
-        if (ok) await svc.enableBiometrics();
+        if (ok) {
+          await svc.enableBiometrics();
+        } else if (mounted) {
+          // Explain the failure instead of silently leaving the toggle off.
+          BanzamiToast.showError(
+              context, svc.lastBiometricError ?? 'Não foi possível ativar o Face ID.');
+        }
       } else {
         await svc.disableBiometrics();
       }

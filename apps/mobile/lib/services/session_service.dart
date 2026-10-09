@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
+import '../platform/biometric_error.dart';
 
 import 'banzami_keychain.dart';
 import 'pin_hasher.dart';
@@ -308,13 +309,24 @@ class SessionService extends ChangeNotifier {
     } catch (_) { return false; }
   }
 
+  /// The reason the last biometric attempt failed (a human PT message), or null
+  /// after a success. Lets the UI explain a silent failure instead of just not
+  /// turning the toggle on.
+  String? lastBiometricError;
+
   Future<bool> authenticateWithBiometrics() async {
     try {
-      return await _bio.authenticate(
+      final ok = await _bio.authenticate(
         localizedReason: 'Autentique para entrar na Banzami',
         options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
       );
-    } catch (_) { return false; }
+      if (ok) lastBiometricError = null;
+      return ok;
+    } catch (e) {
+      lastBiometricError = biometricErrorMessage(e);
+      debugPrint('[biometrics] authenticate failed: $e');
+      return false;
+    }
   }
 
   Future<void> enableBiometrics() async {
