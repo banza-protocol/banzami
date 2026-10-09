@@ -38,6 +38,7 @@ import { mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, chmodSync }
 import { join } from 'node:path';
 import { registerCleanup, cleanupRun } from './lib/run-cleanup.mjs';
 import { fixtureSession } from './lib/mint.mjs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const ORIGIN = process.env.CONSOLE_ORIGIN ?? 'https://developers.banzami.com';
@@ -406,9 +407,10 @@ const evidence = {
   total: matrix.length, passed: matrix.length - failed, failed,
   matrix,
 };
-const dir = join(repo, 'evidence/assurance/business-link');
-mkdirSync(dir, { recursive: true });
-const file = join(dir, `e2e-${stampSec}.json`);
+// Runtime evidence is written OUTSIDE the worktree (tools/e2e/lib/assurance-output.mjs).
+// Registering a run in the assurance manifest is a separate, deliberate act:
+// the artefact is reviewed and then committed under the evidence zone by hand.
+const file = join(assuranceDir('business-link', head), `e2e-${stampSec}.json`);
 writeFileSync(file, `${JSON.stringify(evidence, null, 2)}\n`);
-console.log(`\n${matrix.length - failed}/${matrix.length} passed · evidence: evidence/assurance/business-link/e2e-${stampSec}.json`);
+console.log(`\n${matrix.length - failed}/${matrix.length} passed · evidence: ${file}`);
 process.exit(failed === 0 ? 0 : 1);
