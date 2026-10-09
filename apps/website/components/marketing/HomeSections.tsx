@@ -124,6 +124,20 @@ const Connector = ({ delay }: { delay: string }) => (
   </div>
 );
 
+// The three-phone payment flow (scan → confirm → receipt) with its connectors.
+// Extracted verbatim from HomeComoFunciona so the exact same markup, styles,
+// transforms, CSS keyframes (bzScanline/bzdotmove/bzspin, globals.css) and
+// content can be reused by an internal, local-only render surface for exporting
+// the homepage animation to video — without duplicating the animation or
+// changing the homepage. HomeComoFunciona renders this component unchanged.
+export function PaymentFlowPhones() {
+  return (
+    <div className="bz-phones" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <PhoneScan /><Connector delay="0s" /><PhoneConfirm /><Connector delay="1.8s" /><PhoneReceipt />
+    </div>
+  );
+}
+
 export function HomeComoFunciona({ lang }: { lang: Lang }) {
   return (
     <section id="como-funciona" style={{ position: 'relative', padding: 'clamp(64px,7vw,104px) 24px clamp(56px,6vw,88px)', overflow: 'hidden' }}>
@@ -138,9 +152,7 @@ export function HomeComoFunciona({ lang }: { lang: Lang }) {
         </div>
         <div style={{ position: 'relative', minHeight: '540px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <div aria-hidden="true" style={{ position: 'absolute', left: '4%', right: '-6%', top: '4%', bottom: '4%', borderRadius: '46% 54% 40% 60% / 55% 40% 60% 45%', background: 'radial-gradient(circle at 55% 45%,#FFD9D7 0%,#FFE8E6 50%,rgba(255,240,239,0) 75%)' }} />
-          <div className="bz-phones" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <PhoneScan /><Connector delay="0s" /><PhoneConfirm /><Connector delay="1.8s" /><PhoneReceipt />
-          </div>
+          <PaymentFlowPhones />
           <Rotator mode="card" className="bz-g3" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,168px))', gap: '18px', marginTop: '40px' }}>
             {CF.steps.map((s, i) => (
               <div key={i} data-ri style={{ position: 'relative', overflow: 'hidden', padding: '16px 16px 18px', borderRadius: '20px', border: '1px solid rgba(181,16,31,.06)', background: 'rgba(255,255,255,.45)', transition: 'background .6s,border-color .6s,box-shadow .6s,transform .6s cubic-bezier(.16,1,.3,1)' }}>
