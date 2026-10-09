@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sandboxContainer } from './lib/validation-sandbox-stack.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const JSON_OUT = process.argv.includes('--json');
@@ -100,12 +101,12 @@ function probeOperator() {
 /** Balance, read straight from the ledger through the operator role. */
 function merchantWindow24h(accountId) {
   const q = `SELECT COALESCE(SUM(amount_minor),0)::bigint FROM ledger_entries WHERE entry_type='CREDIT' AND account_id='${accountId}' AND created_at >= now() - interval '24 hours'`;
-  return Number(onHost(`U=$(cat /root/.banzami/operator_db_url); docker exec bzsandbox-20260708184104-1708617-23807-postgres-1 psql "$U" -tAc ${JSON.stringify(q)}`) || 0);
+  return Number(onHost(`U=$(cat /root/.banzami/operator_db_url); docker exec ${sandboxContainer('postgres')} psql "$U" -tAc ${JSON.stringify(q)}`) || 0);
 }
 
 function accountBalance(accountId) {
   const q = `SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END),0)::bigint FROM ledger_entries WHERE account_id='${accountId}'`;
-  const out = onHost(`U=$(cat /root/.banzami/operator_db_url); docker exec bzsandbox-20260708184104-1708617-23807-postgres-1 psql "$U" -tAc ${JSON.stringify(q)}`);
+  const out = onHost(`U=$(cat /root/.banzami/operator_db_url); docker exec ${sandboxContainer('postgres')} psql "$U" -tAc ${JSON.stringify(q)}`);
   return Number(out || 0);
 }
 
@@ -117,9 +118,18 @@ const registry = JSON.parse(execFileSync('python3',
 // policy rather than restated, so a re-sizing cannot leave this stale.
 const pilot = readFileSync(resolve(ROOT, 'core/compliance/src/pilot.rs'), 'utf8');
 const limit = (name) => Number((pilot.match(new RegExp(`pub const ${name}: i64 = ([0-9_]+);`)) ?? [])[1]?.replace(/_/g, '') ?? 0);
+// A balance cap is OPTIONAL in the policy (`Option<i64>`): the internal Sandbox
+// has none. null means "no cap" — never 0, which would fail every actor.
+const optionalLimit = (name) => {
+  const m = pilot.match(new RegExp(`pub const ${name}: Option<i64> = (None|Some\\(([0-9_]+)\\));`));
+  if (!m) throw new Error(`${name} not found as Option<i64> in pilot.rs`);
+  return m[2] ? Number(m[2].replace(/_/g, '')) : null;
+};
+const underCap = (bal, cap) => cap === null || bal <= cap;
+const capText = (cap) => (cap === null ? 'no cap' : `cap ${cap}`);
 const CAPS = {
-  consumer_balance: limit('CONSUMER_MAX_BALANCE_MINOR'),
-  merchant_balance: limit('MERCHANT_MAX_BALANCE_MINOR'),
+  consumer_balance: optionalLimit('CONSUMER_MAX_BALANCE_MINOR'),
+  merchant_balance: optionalLimit('MERCHANT_MAX_BALANCE_MINOR'),
   merchant_24h: limit('MERCHANT_ROLLING_24H_MINOR'),
 };
 
@@ -164,7 +174,7 @@ for (const a of actors) {
     add('auth', code === '200' ? 'ok' : 'fail',
       `POST /v1/merchant/auth/token -> ${code || 'no answer'}${code === '200' ? '' : ` · ${body}`}`);
     const bal = accountBalance(ids.available_account_id);
-    add('balance', bal <= CAPS.merchant_balance ? 'ok' : 'fail', `${bal} / cap ${CAPS.merchant_balance}`);
+    add('balance', underCap(bal, CAPS.merchant_balance) ? 'ok' : 'fail', `${bal} / ${capText(CAPS.merchant_balance)}`);
     const used = merchantWindow24h(ids.available_account_id);
     add('window-headroom', used < CAPS.merchant_24h ? 'ok' : 'fail',
       `24h ${used} / cap ${CAPS.merchant_24h}`);
@@ -173,7 +183,7 @@ for (const a of actors) {
     add('auth', code === '200' ? 'ok' : 'fail',
       `POST /v1/auth/token -> ${code || 'no answer'}${code === '200' ? '' : ` · ${body}`}`);
     const bal = accountBalance(ids.available_account_id);
-    add('balance', bal <= CAPS.consumer_balance ? 'ok' : 'fail', `${bal} / cap ${CAPS.consumer_balance}`);
+    add('balance', underCap(bal, CAPS.consumer_balance) ? 'ok' : 'fail', `${bal} / ${capText(CAPS.consumer_balance)}`);
     add('window-headroom', 'ok', 'consumers hold no merchant-credit window');
   } else if (a.type === 'operator') {
     const r = probeOperator();
@@ -216,8 +226,8 @@ if (JSON_OUT) {
     const mark = r.state === 'HEALTHY' ? '✓' : r.state === 'UNHEALTHY' ? '✗' : '·';
     console.log(`  ${mark} ${r.actor.padEnd(4)} ${String(r.handle ?? r.type).padEnd(10)} ${r.state}`);
   }
-  console.log(`\n  caps read from policy: consumer balance ${CAPS.consumer_balance}, ` +
-              `merchant balance ${CAPS.merchant_balance}, merchant 24h ${CAPS.merchant_24h} (minor)`);
+  console.log(`\n  caps read from policy: consumer balance ${capText(CAPS.consumer_balance)}, ` +
+              `merchant balance ${capText(CAPS.merchant_balance)}, merchant 24h ${CAPS.merchant_24h} (minor)`);
   console.log(`\n  VALIDATION_ACTOR_COUNT=${actors.length}`);
   console.log(`  VALIDATION_ACTORS_PROVISIONED=${provisionedCount}`);
   console.log(`  VALIDATION_ACTORS_BLOCKED_ON_OWNER=${blockedCount}`);

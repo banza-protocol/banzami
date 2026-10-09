@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sandboxContainer } from './lib/validation-sandbox-stack.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -89,7 +90,7 @@ const businesses = (actors.actors ?? [])
 // multi-line template emits literal \n escapes, which the shell passes through
 // to psql verbatim and psql reads as a syntax error at a backslash.
 const sql = (q) => execFileSync('ssh', ['-o', 'ConnectTimeout=25', '-o', 'BatchMode=yes', REMOTE,
-  `U=$(cat /root/.banzami/operator_db_url); docker exec bzsandbox-20260708184104-1708617-23807-postgres-1 psql "$U" -tAc ${JSON.stringify(q.replace(/\s+/g, ' ').trim())}`],
+  `U=$(cat /root/.banzami/operator_db_url); docker exec ${sandboxContainer('postgres')} psql "$U" -tAc ${JSON.stringify(q.replace(/\s+/g, ' ').trim())}`],
   { encoding: 'utf8' }).trim();
 
 const globalWindow = (iv) => Number(sql(

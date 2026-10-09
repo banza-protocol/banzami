@@ -5,7 +5,24 @@
 #   C01 C02 C03  provisioned — POST /v1/auth/register (no operator needed)
 #   D01 D02      provisioned — Console OTP sign-in, then workspace + project
 #   B01 B02 B03  provisioned — public application, approved by A01, activated
-#   A01          provisioned — owner ceremony completed 2026-09-18
+#   A01          provisioned — owner ceremony completed 2026-09-18;
+#                RE-PROVISIONED 2026-10-09 (see below)
+#
+# CLEAN RESET, 2026-10-06. The Sandbox was rebuilt from empty and every actor's
+# product rows went with it. As of 2026-10-09, probed (`--probe`):
+#
+#   A01          HEALTHY   — re-provisioned on the owner's instruction, through
+#                            tools/validation-a01-provision.sh (same email, same
+#                            COMPLIANCE role, a new real TOTP)
+#   D01 D02      HEALTHY
+#   C01 C02 C03  UNHEALTHY — the accounts no longer exist; the product_ids
+#   B01 B02 B03  UNHEALTHY   recorded below are those of the previous database
+#
+# `status: provisioned` on the six C/B entries records that they were walked
+# through the product once; it is not a claim about the current database. Their
+# re-provisioning (public registration; public application approved by A01) has
+# not been authorised or performed. `make validation-actor-health --probe` is
+# what says whether an actor works today — this file never did.
 #
 # All nine exist. Every one came through the product's own door: no SQL identity
 # insertion, no auth bypass, no merchant-lifecycle bypass, no Core special case
@@ -221,12 +238,16 @@ actors:
                     invite link read back from the Resend sent-message API,
                     password set, TOTP enrolled with the seed captured BEFORE
                     confirmation and proven by generating the confirming code
-                    from the stored seed"]
+                    from the stored seed",
+                   "RE-PROVISIONED 2026-10-09 after the clean reset, on the
+                    owner's instruction — tools/validation-a01-provision.sh:
+                    admin-bootstrap (the image's own operator-creation command)
+                    with role COMPLIANCE, then the same four steps"]
     product_ids:
-      admin_user_id: 8fe23a98-5dd2-4f87-89e5-3715416046e4
+      admin_user_id: dcc56aac-86c1-4d26-a7fc-f084b620635a
     status: provisioned
-    provisioned_at: "2026-09-18"
-    creation_evidence: "BANZADMIN operator, role COMPLIANCE, MFA confirmed 10:49:24; recovery codes issued and acknowledged"
+    provisioned_at: "2026-10-09"
+    creation_evidence: "admin-bootstrap --role COMPLIANCE -> INVITED; activation link read back from the sent message; password set through /auth/password-reset; TOTP confirmed from the stored seed; recovery codes stored and acknowledged; proven: role COMPLIANCE, GET /operators 403, banzadmin-authority-e2e passes"
     supersedes: "admin01@banzami-e2e.test — SUSPENDED; its TOTP seed was lost before capture" 
     note: >-
       MFAService.BeginEnrolment returns the TOTP secret in plaintext exactly

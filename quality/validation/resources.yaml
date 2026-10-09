@@ -63,8 +63,10 @@ classes:
     description: >-
       Surplus synthetic balance on a persistent actor. Retired, never reset:
       resetting to zero would delete financial history, and accumulating without
-      limit would hit CONSUMER_MAX_BALANCE (Kz 50 000) or MERCHANT_MAX_BALANCE
-      (Kz 100 000) and stop the actor working.
+      limit would consume the Sandbox-wide synthetic-supply fuse
+      (AGGREGATE_FUNDS, Kz 250 000 000 of value issued and not destroyed) that
+      every other user shares. Retirement is what lowers that measure. The
+      internal Sandbox applies no per-wallet balance cap.
     mechanism: POST /internal/v1/sandbox/retire-funds
     examples:
       - consumer balance above what the next run needs

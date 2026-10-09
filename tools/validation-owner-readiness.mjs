@@ -24,6 +24,7 @@ import { submitCapacity, runnerBucket, vmBucket, aggregateFunds,
 import { workspaceLimits, workspaceConsumption, workspaceUsage, withKnownActors,
          retryReserve, activeHeadroom, creationHeadroom,
          earliestSufficient } from './lib/validation-workspace-capacity.mjs';
+import { sandboxContainer } from './lib/validation-sandbox-stack.mjs';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 const run = (cmd, args) => { try { execFileSync(cmd, args, { cwd: repo, stdio: 'pipe' }); return true; } catch { return false; } };
@@ -130,7 +131,7 @@ const barrier = (() => {
     const q = Buffer.from(
       "SELECT count(*) FROM information_schema.columns WHERE table_name='validation_run_journeys' " +
       "AND column_name IN ('functional_result','cleanup_result','cleanup_detail');", 'utf8').toString('base64');
-    const PGC = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+    const PGC = sandboxContainer('postgres');
     return Number(execFileSync('ssh', ['-o', 'BatchMode=yes', process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248',
       `echo ${q} | base64 -d | docker exec -i ${PGC} sh -lc ` +
       `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d banzami_staging -Atq'`],
@@ -172,7 +173,7 @@ const wsGates = (() => {
   const consumption = workspaceConsumption(plan, { barrier });
   let usage;
   try {
-    const PGW = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+    const PGW = sandboxContainer('postgres');
     const HOSTW = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
     const q = (stmt) => {
       const b64 = Buffer.from(stmt, 'utf8').toString('base64');
@@ -219,7 +220,7 @@ try {
   // looks like a data problem — the runner learned that one the hard way.
   const q = Buffer.from(
     "SELECT count(*) FROM validation_runs WHERE state IN ('QUEUED','RUNNING');", 'utf8').toString('base64');
-  const PGC = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+  const PGC = sandboxContainer('postgres');
   const n = Number(ssh(`echo ${q} | base64 -d | docker exec -i ${PGC} sh -lc ` +
     `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d banzami_staging -Atq'`).trim());
   gate('ACTIVE_VALIDATION_RUN_COUNT', n === 0, `${n} active`);
@@ -233,7 +234,7 @@ try {
     `SELECT count(*) FROM validation_run_provenance p
       WHERE p.run_id = (SELECT id FROM validation_runs ORDER BY updated_at DESC LIMIT 1);`,
     'utf8').toString('base64');
-  const PGC2 = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+  const PGC2 = sandboxContainer('postgres');
   const n = Number(ssh(`echo ${q} | base64 -d | docker exec -i ${PGC2} sh -lc ` +
     `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d banzami_staging -Atq'`).trim());
   gate('PROVENANCE_CAPTURE', n > 0,

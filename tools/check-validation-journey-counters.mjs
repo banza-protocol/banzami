@@ -24,14 +24,15 @@
  *   node tools/check-validation-journey-counters.mjs
  */
 import { execFileSync } from 'node:child_process';
+import { sandboxContainer } from './lib/validation-sandbox-stack.mjs';
 
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
-const PG = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+const PG = () => sandboxContainer('postgres');
 const SEP = '\t';
 
 function sql(statement) {
   const b64 = Buffer.from(statement, 'utf8').toString('base64');
-  const remote = `echo ${b64} | base64 -d | docker exec -i ${PG} sh -lc ` +
+  const remote = `echo ${b64} | base64 -d | docker exec -i ${PG()} sh -lc ` +
     `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d banzami_staging -Atq -F"${SEP}" -v ON_ERROR_STOP=1'`;
   return execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, remote], { encoding: 'utf8', maxBuffer: 1 << 24 })
     .split('\n').filter(Boolean).map((l) => l.split(SEP));
@@ -136,18 +137,28 @@ check('control arm: the OLD unscoped counter DOES move (detector works)',
   `unscoped not_reached ${bOld} → ${aOld}; if this did not move, the scoped ` +
   'assertions above are vacuous');
 
-// The historical run is evidence and is read, never rewritten.
-const [[histJ, histC, histNR]] = sql(`
+// The historical run is evidence and is read, never rewritten — where it
+// exists. The Sandbox was rebuilt from empty on 2026-10-06 and its run history
+// went with it, so a database that never held this run has nothing to be
+// rewritten: that is said plainly below, and is not counted as a pass of the
+// claim. A database that DOES hold it must still read exactly these numbers.
+const HIST = 'BZV-20260920-0001';
+const hist = sql(`
   SELECT (SELECT count(*) FROM validation_run_journeys j
            WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY'),
          (SELECT count(*) FROM validation_run_journeys j
            WHERE j.run_id = r.id AND j.record_kind = 'CONTROL'),
          (SELECT count(*) FROM validation_run_journeys j
            WHERE j.run_id = r.id AND j.record_kind = 'JOURNEY' AND j.outcome = 'NOT_REACHED')
-    FROM validation_runs r WHERE r.run_ref = 'BZV-20260920-0001';`);
-check('BZV-20260920-0001 reads 38 JOURNEY · 1 CONTROL · 19 journey NOT_REACHED',
-  Number(histJ) === 38 && Number(histC) === 1 && Number(histNR) === 19,
-  `${histJ} JOURNEY · ${histC} CONTROL · ${histNR} not reached`);
+    FROM validation_runs r WHERE r.run_ref = '${HIST}';`);
+if (hist.length === 0) {
+  console.log(`  – ${HIST} is not in this database (rebuilt since); the historical read is not applicable`);
+} else {
+  const [histJ, histC, histNR] = hist[0];
+  check(`${HIST} reads 38 JOURNEY · 1 CONTROL · 19 journey NOT_REACHED`,
+    Number(histJ) === 38 && Number(histC) === 1 && Number(histNR) === 19,
+    `${histJ} JOURNEY · ${histC} CONTROL · ${histNR} not reached`);
+}
 
 const [[leaked]] = sql(`SELECT count(*) FROM validation_runs WHERE run_ref = '${REF}';`);
 check('probe rolled back — no row survives', Number(leaked) === 0, `${leaked} row(s) left`);

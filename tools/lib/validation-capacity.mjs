@@ -19,9 +19,11 @@
  * the slot you are waiting for.
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { sandboxContainer } from './validation-sandbox-stack.mjs';
 
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
-const REDIS = process.env.BANZAMI_SANDBOX_REDIS || 'bzsandbox-20260708184104-1708617-23807-redis-1';
+const REDIS = () => sandboxContainer('redis');
 
 /** The limiter's own numbers (services/api-gateway/internal/server/server.go). */
 export const SUBMIT_LIMIT = 30;
@@ -39,17 +41,17 @@ const ssh = (cmd) =>
 export function submitCapacity() {
   const now = Date.now();
   const cutoff = now - SUBMIT_WINDOW_SECONDS * 1000;
-  const keys = ssh(`docker exec ${REDIS} redis-cli --scan --pattern '${KEY_PREFIX}*' 2>/dev/null`)
+  const keys = ssh(`docker exec ${REDIS()} redis-cli --scan --pattern '${KEY_PREFIX}*' 2>/dev/null`)
     .split('\n').map((l) => l.trim()).filter(Boolean);
 
   const buckets = [];
   for (const key of keys) {
     const used = Number(ssh(
-      `docker exec ${REDIS} redis-cli ZCOUNT '${key}' ${cutoff} ${now} 2>/dev/null`).trim());
+      `docker exec ${REDIS()} redis-cli ZCOUNT '${key}' ${cutoff} ${now} 2>/dev/null`).trim());
     if (!Number.isFinite(used)) continue;
     // The oldest entry in the window is the next slot to come back.
     const oldest = ssh(
-      `docker exec ${REDIS} redis-cli ZRANGEBYSCORE '${key}' ${cutoff} ${now} WITHSCORES LIMIT 0 1 2>/dev/null`)
+      `docker exec ${REDIS()} redis-cli ZRANGEBYSCORE '${key}' ${cutoff} ${now} WITHSCORES LIMIT 0 1 2>/dev/null`)
       .split('\n').map((l) => l.trim()).filter(Boolean);
     const oldestMs = oldest.length >= 2 ? Number(oldest[1]) : null;
     buckets.push({
@@ -182,19 +184,29 @@ export function submitCost(harnessRelPath, src) {
  * cap and the next funding call was refused as INSUFFICIENT_FUNDS, a message
  * that reads like a product fault and is not one.
  */
-export const AGGREGATE_FUNDS_CAP = 50_000_000;
+// Core's own cap and Core's own measurement, read from the generated file that
+// tools/gen-pilot-limits.mjs extracts from core/compliance and drift-guards.
+// Both were restated here once; the restatement kept the old cap, and the old
+// measurement, after Core's had moved.
+const PILOT_GEN = readFileSync(
+  new URL('../../services/admin-api/internal/validation/pilot_gen.go', import.meta.url), 'utf8');
+const pilotGen = (re, what) => {
+  const m = PILOT_GEN.match(re);
+  if (!m) throw new Error(`pilot_gen.go has no ${what} — run make gen-pilot-limits`);
+  return m[1];
+};
+export const AGGREGATE_FUNDS_CAP = Number(pilotGen(/const AggregateFundsCapMinor int64 = (\d+)/, 'AggregateFundsCapMinor'));
+const QUERY_AGGREGATE_FUNDS = JSON.parse(pilotGen(/const QueryAggregateFunds = ("(?:[^"\\]|\\.)*")/, 'QueryAggregateFunds'));
 
 /** Sandbox consumer registration AUTO-GRANTS this much (public-api auth.go). */
 export const REGISTRATION_GRANT = 1_000_000;
 
-/** Live aggregate funded value across merchant and consumer wallets. Read-only. */
+/** The live synthetic supply: value issued and not destroyed. Read-only. */
 export function aggregateFunds() {
+  const b64 = Buffer.from(QUERY_AGGREGATE_FUNDS, 'utf8').toString('base64');
   const out = ssh(
     `U=$(cat /root/.banzami/operator_db_url); ` +
-    `docker exec ${process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1'} ` +
-    `psql "$U" -tAc "SELECT SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END) ` +
-    `FROM ledger_entries WHERE account_id IN (SELECT available_account_id FROM wallets ` +
-    `UNION SELECT available_account_id FROM consumer_wallets)"`).trim();
+    `echo ${b64} | base64 -d | docker exec -i ${sandboxContainer('postgres')} psql "$U" -tA`).trim();
   const used = Number(out);
   if (!Number.isFinite(used)) throw new Error(`unreadable aggregate funds: ${JSON.stringify(out)}`);
   return { cap: AGGREGATE_FUNDS_CAP, used, available: Math.max(0, AGGREGATE_FUNDS_CAP - used) };

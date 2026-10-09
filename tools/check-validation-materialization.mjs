@@ -21,15 +21,16 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { sandboxContainer } from './lib/validation-sandbox-stack.mjs';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
-const PG = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+const PG = () => sandboxContainer('postgres');
 const SEP = '\t';
 
 function sql(statement) {
   const b64 = Buffer.from(statement, 'utf8').toString('base64');
-  const remote = `echo ${b64} | base64 -d | docker exec -i ${PG} sh -lc ` +
+  const remote = `echo ${b64} | base64 -d | docker exec -i ${PG()} sh -lc ` +
     `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d banzami_staging -Atq -F"${SEP}" -v ON_ERROR_STOP=1'`;
   return execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, remote], { encoding: 'utf8', maxBuffer: 1 << 24 })
     .split('\n').filter(Boolean).map((l) => l.split(SEP));

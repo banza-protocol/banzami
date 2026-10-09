@@ -38,10 +38,11 @@ import { workspaceLimits, workspaceConsumption, workspaceUsage, withKnownActors,
          earliestSufficient, reserveFor } from './lib/validation-workspace-capacity.mjs';
 import { attributablePeak, exposureVerdict } from './lib/validation-exposure.mjs';
 import { resolveFinancialAccounts, ownershipCompleteness, scopeOf, RESOURCE_SCOPE } from './lib/validation-resource-scope.mjs';
+import { sandboxContainer } from './lib/validation-sandbox-stack.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const HOST = process.env.BANZAMI_SANDBOX_HOST || 'root@217.160.9.248';
-const PG = process.env.BANZAMI_SANDBOX_PG || 'bzsandbox-20260708184104-1708617-23807-postgres-1';
+const PG = () => sandboxContainer('postgres');
 
 /** The one database this runner may touch. Named, not defaulted. */
 const DATABASE = 'banzami_staging';
@@ -126,7 +127,7 @@ function sql(statement, { rows = true } = {}) {
   // -q suppresses the command tag: psql prints `UPDATE 1` after a RETURNING, and
   // -t does not remove it. It arrived as a phantom row with one field.
   const remote =
-    `echo ${b64} | base64 -d | docker exec -i ${PG} sh -lc ` +
+    `echo ${b64} | base64 -d | docker exec -i ${PG()} sh -lc ` +
     `'PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE") psql -U "$POSTGRES_USER" -d ${DATABASE} -Atq -F"${SEP}" -v ON_ERROR_STOP=1'`;
   const out = execFileSync('ssh', ['-o', 'BatchMode=yes', HOST, remote], {
     encoding: 'utf8', maxBuffer: 1 << 26,
