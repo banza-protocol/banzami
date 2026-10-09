@@ -17,10 +17,13 @@ const T = {
   subAndroid: L('Android · Google Play', 'Android · Google Play'),
   name: L('Nome completo', 'Full name'), namePh: L('O seu nome completo', 'Your full name'),
   email: L('E-mail', 'Email'),
+  emailIOS: L('E-mail da App Store da Apple', 'Apple App Store email'),
+  emailHintIOS: L('Use o mesmo e-mail associado à sua conta na App Store da Apple e que utiliza no TestFlight.', 'Use the same email associated with your Apple App Store account and that you use in TestFlight.'),
   appLabel: L('Apps que quer testar', 'Apps you want to test'),
   appBanzami: L('App Banzami', 'App Banzami'), appBanzamiDesc: L('Pagar e receber', 'Pay and get paid'),
   appBusiness: L('Banzami Business', 'Banzami Business'), appBusinessDesc: L('Para negócios', 'For business'),
   consent: L('Aceito receber o convite e comunicações do Programa Beta por e-mail.', 'I agree to receive the Beta Programme invite and communications by email.'),
+  consentIOS: L('Aceito receber por e-mail o convite do TestFlight e comunicações do Programa Beta.', 'I agree to receive the TestFlight invite and Beta Programme communications by email.'),
   privacy: L('Privacidade', 'Privacy'),
   send: L('Enviar inscrição', 'Send sign-up'), sending: L('A enviar…', 'Sending…'),
   badName: L('Introduza o seu nome completo, incluindo nome e apelido.', 'Enter your full name, including first and last name.'),
@@ -186,9 +189,9 @@ export function HeroPlatforms({ lang }: { lang: Lang }) {
                 <p style={{ margin: '6px 0 20px', fontSize: '13.5px', fontWeight: 700, color: '#B5101F' }}>{platform === 'IOS' ? T.subIOS[lang] : T.subAndroid[lang]}</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '16px 18px' }} className="bz-fgrid">
                   <Field name="nome" label={T.name[lang]} placeholder={T.namePh[lang]} autoComplete="name" value={f.nome} error={err.nome} onChange={(v) => { setF((s) => ({ ...s, nome: v })); setErr((e) => ({ ...e, nome: '' })); }} />
-                  <Field name="email" label={T.email[lang]} type="email" placeholder="nome@exemplo.ao" autoComplete="email" value={f.email} error={err.email} onChange={(v) => { setF((s) => ({ ...s, email: v })); setErr((e) => ({ ...e, email: '' })); }} />
+                  <Field name="email" label={platform === 'IOS' ? T.emailIOS[lang] : T.email[lang]} hint={platform === 'IOS' ? T.emailHintIOS[lang] : undefined} type="email" placeholder="nome@exemplo.ao" autoComplete="email" value={f.email} error={err.email} onChange={(v) => { setF((s) => ({ ...s, email: v })); setErr((e) => ({ ...e, email: '' })); }} />
                   <MultiOptBtns name="apps" label={T.appLabel[lang]} selected={apps} error={err.apps} onToggle={toggleApp} options={[{ id: 'APP_BANZAMI', title: T.appBanzami[lang], desc: T.appBanzamiDesc[lang], icon: 'phone' }, { id: 'APP_MERCHANT', title: T.appBusiness[lang], desc: T.appBusinessDesc[lang], icon: 'store' }]} />
-                  <Check name="consent" checked={f.consent} error={err.consent} onChange={(v) => { setF((s) => ({ ...s, consent: v })); setErr((e) => ({ ...e, consent: '' })); }} label={<>{T.consent[lang]} <a href={route('privacidade', lang)} style={{ color: '#B5101F', fontWeight: 800 }}>{T.privacy[lang]}</a>.</>} />
+                  <Check name="consent" checked={f.consent} error={err.consent} onChange={(v) => { setF((s) => ({ ...s, consent: v })); setErr((e) => ({ ...e, consent: '' })); }} label={<>{platform === 'IOS' ? T.consentIOS[lang] : T.consent[lang]} <a href={route('privacidade', lang)} style={{ color: '#B5101F', fontWeight: 800 }}>{T.privacy[lang]}</a>.</>} />
                 </div>
                 {sendErr && <p role="alert" style={{ margin: '16px 0 0', fontSize: '12.5px', fontWeight: 700, color: '#C8101F' }}>{sendErr}</p>}
                 <div style={{ marginTop: '22px' }}><SubmitBtn>{sending ? T.sending[lang] : T.send[lang]}</SubmitBtn></div>

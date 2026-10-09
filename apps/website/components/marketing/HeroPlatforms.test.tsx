@@ -37,6 +37,20 @@ const appBox = (name: string) => screen.getByRole('checkbox', { name });
 const consentBox = () => screen.getByRole('checkbox', { name: /Programa Beta/ });
 const submitBtn = () => screen.getByRole('button', { name: /Enviar inscrição/ });
 
+describe('the iPhone sign-up asks for the App Store e-mail', () => {
+  it('labels the field, explains which address to use, and names TestFlight in the consent', async () => {
+    const user = userEvent.setup();
+    await openModal(user);
+    const email = screen.getByLabelText(/E-mail da App Store da Apple/) as HTMLInputElement;
+    expect(email.type).toBe('email');
+    expect(email.placeholder).toBe('nome@exemplo.ao');
+    const hint = screen.getByText('Use o mesmo e-mail associado à sua conta na App Store da Apple e que utiliza no TestFlight.');
+    // The helper text is announced with the field, not just shown under it.
+    expect(email.getAttribute('aria-describedby')).toBe(hint.id);
+    expect(screen.getByRole('checkbox', { name: /Aceito receber por e-mail o convite do TestFlight e comunicações do Programa Beta\./ })).toBeTruthy();
+  });
+});
+
 async function fillValid(user: ReturnType<typeof userEvent.setup>) {
   await user.type(nameField(), 'Fidel Monteiro');
   await user.type(emailField(), 'fidel@exemplo.ao');

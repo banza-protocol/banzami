@@ -27,13 +27,14 @@ export function Field({ name, label, type = 'text', placeholder = '', required =
   onChange: (v: string) => void;
 }) {
   const id = 'f_' + name;
+  const hintId = hint ? id + '_hint' : undefined;
   const focus = (e: React.FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#D8121F'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(216,18,31,.12)'; };
   const blur = (e: React.FocusEvent<HTMLElement>) => { e.currentTarget.style.borderColor = '#EFDCDA'; e.currentTarget.style.boxShadow = 'none'; };
   let ctl: ReactNode;
   if (options) {
     ctl = (
       <div style={{ position: 'relative' }}>
-        <select id={id} name={name} value={value} aria-required={required} onChange={(e) => onChange(e.target.value)} onFocus={focus} onBlur={blur} style={{ ...inSt, appearance: 'none', WebkitAppearance: 'none', paddingRight: '40px', cursor: 'pointer' }}>
+        <select id={id} name={name} value={value} aria-required={required} aria-describedby={hintId} onChange={(e) => onChange(e.target.value)} onFocus={focus} onBlur={blur} style={{ ...inSt, appearance: 'none', WebkitAppearance: 'none', paddingRight: '40px', cursor: 'pointer' }}>
           <option value="">{selectPlaceholder}</option>
           {options.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -41,15 +42,15 @@ export function Field({ name, label, type = 'text', placeholder = '', required =
       </div>
     );
   } else if (type === 'textarea') {
-    ctl = <textarea id={id} name={name} value={value} rows={5} placeholder={placeholder} aria-required={required} onChange={(e) => onChange(e.target.value)} onFocus={focus} onBlur={blur} style={{ ...inSt, resize: 'vertical', minHeight: '130px', lineHeight: 1.5 }} />;
+    ctl = <textarea id={id} name={name} value={value} rows={5} placeholder={placeholder} aria-required={required} aria-describedby={hintId} onChange={(e) => onChange(e.target.value)} onFocus={focus} onBlur={blur} style={{ ...inSt, resize: 'vertical', minHeight: '130px', lineHeight: 1.5 }} />;
   } else {
-    ctl = <input id={id} name={name} type={type} value={value} placeholder={placeholder} aria-required={required} autoComplete={autoComplete} onChange={(e) => onChange(e.target.value)} onFocus={focus} onBlur={blur} style={{ ...inSt, ...(mono ? { fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.04em' } : {}) }} />;
+    ctl = <input id={id} name={name} type={type} value={value} placeholder={placeholder} aria-required={required} aria-describedby={hintId} autoComplete={autoComplete} onChange={(e) => onChange(e.target.value)} onFocus={focus} onBlur={blur} style={{ ...inSt, ...(mono ? { fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.04em' } : {}) }} />;
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', minWidth: 0, ...(span2 ? { gridColumn: '1 / -1' } : {}) }}>
       <label htmlFor={id} style={{ fontSize: '13px', fontWeight: 800, color: '#2a2024' }}>{label}{required && <span aria-hidden="true" style={{ color: '#B5101F' }}> *</span>}</label>
       {ctl}
-      {hint && <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#9a8487' }}>{hint}</p>}
+      {hint && <p id={hintId} style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#9a8487' }}>{hint}</p>}
       {statusNode}
       <ErrP msg={error} />
     </div>
