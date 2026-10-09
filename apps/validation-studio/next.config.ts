@@ -8,6 +8,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const nextConfig: NextConfig = {
+  // Do not advertise the framework to whoever is fingerprinting the site.
+  poweredByHeader: false,
   eslint: { ignoreDuringBuilds: true },
 }
 

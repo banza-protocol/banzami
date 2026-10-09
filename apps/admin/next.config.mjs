@@ -18,6 +18,8 @@ const securityHeaders = [
 
 
 const nextConfig = {
+  // Do not advertise the framework to whoever is fingerprinting the site.
+  poweredByHeader: false,
   output: 'standalone',
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];

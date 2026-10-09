@@ -8,9 +8,16 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy',        value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy',     value: 'camera=(), microphone=(), geolocation=()' },
+  // banzami.com and developers.banzami.com are this app, and the Console signs
+  // people in. Without HSTS a first visit over http:// can be intercepted before
+  // the redirect. Scoped to the host that sends it (no includeSubDomains): the
+  // apex does not get to decide for every other *.banzami.com name.
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
 ];
 
 const nextConfig = {
+  // Do not advertise the framework to whoever is fingerprinting the site.
+  poweredByHeader: false,
   output: 'standalone',
   // The production build typechecks the application, not the tests. The tests
   // read the assurance manifest from the repository root, and only apps/website/
