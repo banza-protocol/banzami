@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../branding_assets.dart';
+import '../../platform/share_origin.dart';
 import '../config.dart';
 
 /// What cancelling does, in words that stay true whatever happens to the
@@ -234,7 +235,12 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
     final head = c != null
         ? 'Cobrança dividida Banzami — ${formatMinor(c.totalAmountMinor, c.currency)}'
         : 'Cobrança dividida Banzami';
-    await Share.share('$head\n\n${lines.join('\n')}');
+    if (!mounted) return;
+    final origin = shareOrigin(context);
+    await Share.share(
+      '$head\n\n${lines.join('\n')}',
+      sharePositionOrigin: origin,
+    );
   }
 
   @override
@@ -411,7 +417,10 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
             Expanded(
               child: BanzamiPrimaryButton(
                 label: 'Partilhar',
-                onPressed: () => Share.share(payUrl),
+                onPressed: () => Share.share(
+                  payUrl,
+                  sharePositionOrigin: shareOrigin(ctx),
+                ),
               ),
             ),
           ]),

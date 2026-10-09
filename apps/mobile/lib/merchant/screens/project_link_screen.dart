@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../platform/share_origin.dart';
 import '../services/merchant_session_service.dart';
 
 /// How long Banzami keeps a consent code (services/api-gateway
@@ -149,6 +150,7 @@ class _ProjectLinkScreenState extends State<ProjectLinkScreen> {
       await Share.share(
         'Código da Banzami para ligar o seu projeto a $businessName: $code\n'
         'É válido durante 10 minutos e só pode ser usado uma vez.',
+        sharePositionOrigin: shareOrigin(context),
       );
     } on PlatformException {
       if (mounted) BanzamiToast.showError(context, 'Não foi possível partilhar o código.');

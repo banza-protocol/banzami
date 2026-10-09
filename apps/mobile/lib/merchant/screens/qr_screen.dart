@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../branding_assets.dart';
+import '../../platform/share_origin.dart';
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
 
@@ -26,6 +27,11 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   bool _loading = true;
   bool _sharing = false;
   String? _error;
+  // Anchors the iOS share sheet. share_plus rejects a zero-rect
+  // sharePositionOrigin on iOS (it throws before the sheet opens), so the share
+  // button carries a key we resolve to its on-screen rect — mirroring the
+  // Consumer app's share. Never pass a zero/absent origin.
+  final GlobalKey _shareButtonKey = GlobalKey();
 
   @override
   void initState() {
@@ -63,13 +69,18 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     if (point == null || _sharing) return;
     setState(() => _sharing = true);
     try {
-      await Share.share(point.payUrl, subject: 'O meu QR Banzami');
+      await Share.share(
+        point.payUrl,
+        subject: 'O meu QR Banzami',
+        sharePositionOrigin: shareOrigin(context, key: _shareButtonKey),
+      );
     } catch (e) {
       if (mounted) BanzamiToast.showError(context, 'Erro ao partilhar: $e');
     } finally {
       if (mounted) setState(() => _sharing = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +142,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                     ),
                     const SizedBox(height: BanzamiSpacing.sm),
                     BanzamiSecondaryButton(
+                      key: _shareButtonKey,
                       label: 'Partilhar QR',
                       onPressed: _sharing ? null : _share,
                     ),

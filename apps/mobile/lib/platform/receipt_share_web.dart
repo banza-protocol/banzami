@@ -2,6 +2,7 @@
 // non-web build never sees it. Silence the web-library and deprecation infos.
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
+import 'dart:ui' show Rect;
 
 /// Web: hand the browser the official Banzami PDF as a download. There is no OS
 /// share sheet in a browser tab, so "partilhar comprovativo" becomes "descarregar
@@ -12,6 +13,9 @@ Future<void> saveOrShareReceiptPdf({
   required List<int> bytes,
   required String fileName,
   required String subject,
+  // Accepted for signature parity with the native adapter; a browser download
+  // has no share popover to anchor, so it is ignored on Web.
+  Rect? sharePositionOrigin,
 }) async {
   final blob = html.Blob(<Object>[bytes], 'application/pdf');
   final url = html.Url.createObjectUrlFromBlob(blob);

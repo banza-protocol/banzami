@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../platform/receipt_share.dart';
+import '../../platform/share_origin.dart';
 import '../models/merchant_payment_entry.dart';
 import '../services/receipt_file_name.dart';
 import '../services/merchant_refresh_bus.dart';
@@ -658,6 +659,9 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
     if (_busyReceipt) return;
     setState(() => _busyReceipt = true);
     final client = context.read<BanzamiClient>();
+    // Capture the iOS share-popover anchor before any await (and before the
+    // widget could unmount); a zero/absent origin throws on iOS.
+    final origin = shareOrigin(context);
     // Share the official Banzami PDF only (Document Engine: dados + QR de
     // verificação). Never plain text. On failure show a clear error — tocar de
     // novo tenta outra vez. The save/share itself is a platform adapter: the OS
@@ -670,6 +674,7 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
         subject: p.reference.trim().isNotEmpty
             ? 'Comprovativo Banzami · ${p.reference.trim()}'
             : 'Comprovativo Banzami',
+        sharePositionOrigin: origin,
       );
     } catch (_) {
       if (mounted) _snack('Não foi possível obter o comprovativo.');
