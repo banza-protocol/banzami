@@ -322,9 +322,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
         // opens (BanzamiReceivePointScreen) is what makes a shared business link
         // behave like a shared @banza link instead of dead-ending on Home. A
         // deep link is attacker-reachable, so only a slug-shaped segment routes.
-        if (segs.length >= 2 &&
-            BanzamiQrParser.isPaymentSlug(segs[1]) &&
-            !_refuseOtherEnvironment(uri)) {
+        //
+        // No client-side environment gate: like a payment link, a receive-point
+        // slug carries NO ?sandbox marker and resolves only on the stack that
+        // issued it — the server resolve is authoritative (see send_screen's scan
+        // path). Applying the @banza/request env gate here wrongly refuses every
+        // Sandbox /b/ link (none carry the marker) and dead-ends on Home.
+        if (segs.length >= 2 && BanzamiQrParser.isPaymentSlug(segs[1])) {
           _openReceivePoint(segs[1]);
         }
     }
@@ -435,11 +439,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     // banzami://pay/business/{slug} — a persistent Business Receive Point
     // (ADR-065), the custom-scheme twin of https://pay.banzami.com/b/{slug}.
-    // Only a slug-shaped segment routes (a deep link is attacker-reachable).
+    // Only a slug-shaped segment routes (a deep link is attacker-reachable). No
+    // environment gate: the slug is server-resolved and carries no marker (as for
+    // a payment link), so the gate would wrongly refuse Sandbox links.
     if (segs.length >= 2 &&
         segs[0] == 'business' &&
         BanzamiQrParser.isPaymentSlug(segs[1])) {
-      if (!_refuseOtherEnvironment(uri)) _openReceivePoint(segs[1]);
+      _openReceivePoint(segs[1]);
       return;
     }
 
