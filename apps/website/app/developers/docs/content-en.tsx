@@ -2394,7 +2394,8 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {[
                       ['A test Business for the project', 'Console → Financial Setup: create a Business or link an existing one', 'One per project. Not verified, money is fictitious, and it does not exist outside the Sandbox.'],
-                      ['Test payers with fictitious value', 'Console → Test data, or /v1/sandbox/test-payers', 'Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 25,000 Kz, a 50,000 Kz balance, 20 top-ups and 100,000 Kz a day.'],
+                      ['Test payers with fictitious value', 'Console → Test data, or /v1/sandbox/test-payers', 'Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 50,000 Kz, a 50,000 Kz balance, 20 top-ups and 100,000 Kz a day.'],
+                      ['Maximum per payment', 'Enforced by the server on every Sandbox payment', 'Each payment in the Banzami Sandbox can be up to 50,000 Kz. This is an operational limit of Banzami\'s test environment and does not represent a regulatory limit applicable to real-money operations. A campaign\'s goal or accumulated total can exceed that amount.'],
                       ['External-network outcomes', 'simulate on a test payer’s payment', 'DECLINED, PROVIDER_UNAVAILABLE and TIMEOUT. The response carries simulated: true.'],
                       ['API Explorer', 'Console → API Explorer', 'Requests with a 60-second key, Sandbox only; 30 a minute per project.'],
                       ['Test webhook event', 'Console → Webhooks, or POST /v1/webhooks/endpoints/{id}/test', 'webhook.test, marked synthetic; moves nothing.'],

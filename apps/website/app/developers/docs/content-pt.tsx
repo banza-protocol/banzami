@@ -2376,7 +2376,8 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {[
                       ['Negócio de teste para o projeto', 'Consola → Configuração financeira: crie um negócio ou ligue um existente', 'Um por projeto. Não é verificado, o dinheiro é fictício e não existe fora do Sandbox.'],
-                      ['Pagadores de teste com valor fictício', 'Consola → Dados de teste, ou /v1/sandbox/test-payers', 'Até 10 ativos por projeto; até 10 000 Kz iniciais; carregamentos até 25 000 Kz, saldo até 50 000 Kz, 20 carregamentos e 100 000 Kz por dia.'],
+                      ['Pagadores de teste com valor fictício', 'Consola → Dados de teste, ou /v1/sandbox/test-payers', 'Até 10 ativos por projeto; até 10 000 Kz iniciais; carregamentos até 50 000 Kz, saldo até 50 000 Kz, 20 carregamentos e 100 000 Kz por dia.'],
+                      ['Valor máximo por pagamento', 'Aplicado pelo servidor em todos os pagamentos do Sandbox', 'Cada pagamento no Sandbox da Banzami pode ser de até 50 000 Kz. Este é um limite operacional do ambiente de testes da Banzami e não representa um limite regulamentar aplicável às operações com dinheiro real. A meta ou o total acumulado de uma campanha pode ultrapassar esse valor.'],
                       ['Resultados de rede externa', 'simulate num pagamento de um pagador de teste', 'DECLINED, PROVIDER_UNAVAILABLE e TIMEOUT. A resposta traz simulated: true.'],
                       ['API Explorer', 'Consola → API Explorer', 'Pedidos com uma chave de 60 segundos, só no Sandbox; 30 por minuto por projeto.'],
                       ['Evento de webhook de teste', 'Consola → Webhooks, ou POST /v1/webhooks/endpoints/{id}/test', 'webhook.test, marcado synthetic; não move nada.'],

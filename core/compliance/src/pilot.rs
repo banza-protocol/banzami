@@ -21,7 +21,15 @@ pub mod limits {
     /// payer could hold more test money than any single payment would take: a
     /// 42.000 Kz donation was refused at confirmation. One number now bounds a
     /// single top-up (through the balance cap below), a single payment and a
-    /// single receipt. This is a Sandbox test limit, not a regulatory one.
+    /// single receipt.
+    ///
+    /// CLASSIFICATION: a voluntary Banzami Sandbox OPERATIONAL limit — a product
+    /// and test policy for an environment of fictitious money. It is not a BNA
+    /// limit, not a limit of the BNA Regulatory Sandbox (whose test parameters
+    /// are agreed case by case with the BNA), and not a LIVE limit. Nothing in
+    /// LIVE or in any regulated account class may be derived from this number:
+    /// those limits come from the applicable regulatory profile and approved
+    /// operating conditions. See docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md.
     pub const CONSUMER_PER_PAYMENT_MINOR: i64 = 5_000_000;
     /// Consumer: maximum cumulative payments per day — Kz 50.000.
     pub const CONSUMER_DAILY_MINOR: i64 = 5_000_000;

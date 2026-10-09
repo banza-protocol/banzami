@@ -3445,12 +3445,19 @@
       "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
       "text": "Repor não é necessário para eliminar: para remover o projeto e tudo o que é dele, elimine-o."
     },
-    "pt:Testing:d14ab19d3d": {
+    "pt:Testing:9e628a4741": {
       "page": "Testing",
       "kind": "row",
-      "class": "GATE",
-      "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
+      "class": "SOURCE",
+      "evidence": "services/public-api/internal/service/test_payers.go (TestPayerMaxTopUpMinor, held equal to the generated Sandbox per-operation maximum by services/public-api/internal/handler/core_refusal_test.go); tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs",
       "text": "Pagadores de teste com valor fictício | Consola → Dados de teste, ou /v1/sandbox/test-payers | Até 10 ativos por projeto; até 10 000 Kz iniciais; carregamentos "
+    },
+    "pt:Testing:443f89ac22": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (CONSUMER_PER_PAYMENT_MINOR = MERCHANT_PER_RECEIVE_MINOR = 5 000 000, boundary tests 42 000 / 50 000 / 50 001); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md (classification); apps/website/lib/sandbox-limit-truth.test.ts",
+      "text": "Valor máximo por pagamento | Aplicado pelo servidor em todos os pagamentos do Sandbox | Cada pagamento no Sandbox da Banzami pode ser de até 50 000 Kz. Este é u"
     },
     "pt:Testing:107c58b9b5": {
       "page": "Testing",
@@ -8457,12 +8464,19 @@
       "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
       "text": "You do not need to reset before deleting: to remove the project and everything it owns, delete it."
     },
-    "en:Testing:94086e58cc": {
+    "en:Testing:2e294991b3": {
       "page": "Testing",
       "kind": "row",
-      "class": "GATE",
-      "evidence": "tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs (reachable routes = OpenAPI = reference)",
-      "text": "Test payers with fictitious value | Console → Test data, or /v1/sandbox/test-payers | Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 25,00"
+      "class": "SOURCE",
+      "evidence": "services/public-api/internal/service/test_payers.go (TestPayerMaxTopUpMinor, held equal to the generated Sandbox per-operation maximum by services/public-api/internal/handler/core_refusal_test.go); tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs",
+      "text": "Test payers with fictitious value | Console → Test data, or /v1/sandbox/test-payers | Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 50,00"
+    },
+    "en:Testing:b032b1af91": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (CONSUMER_PER_PAYMENT_MINOR = MERCHANT_PER_RECEIVE_MINOR = 5 000 000, boundary tests 42 000 / 50 000 / 50 001); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md (classification); apps/website/lib/sandbox-limit-truth.test.ts",
+      "text": "Maximum per payment | Enforced by the server on every Sandbox payment | Each payment in the Banzami Sandbox can be up to 50,000 Kz. This is an operational limit"
     },
     "en:Testing:148f191ec3": {
       "page": "Testing",

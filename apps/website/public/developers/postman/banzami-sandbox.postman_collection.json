@@ -1063,7 +1063,7 @@
                 }
               ]
             },
-            "description": "Add fictitious value to a test payer\n\nA fictitious top-up through the ledger — never a balance edit. The Idempotency-Key header is required and identifies the top-up. Limits: 2500000 per top-up, a 5000000 payer balance, and 20 top-ups and 10000000 per Project per 24 hours. Credential: Sandbox project key with sandbox:write.",
+            "description": "Add fictitious value to a test payer\n\nA fictitious top-up through the ledger — never a balance edit. The Idempotency-Key header is required and identifies the top-up. Limits: 5000000 per top-up, a 5000000 payer balance, and 20 top-ups and 10000000 per Project per 24 hours. Credential: Sandbox project key with sandbox:write.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"amount_minor\": 500000\n}",

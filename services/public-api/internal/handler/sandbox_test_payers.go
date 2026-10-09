@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -267,7 +268,7 @@ func (h *TestPayerHandler) Fund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.AmountMinor <= 0 || body.AmountMinor > service.TestPayerMaxTopUpMinor {
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", "amount_minor must be between 1 and 2500000")
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM", fmt.Sprintf("amount_minor must be between 1 and %d", service.TestPayerMaxTopUpMinor))
 		return
 	}
 	key := strings.TrimSpace(body.IdempotencyKey)

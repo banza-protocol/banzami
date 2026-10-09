@@ -157,6 +157,14 @@ route also answered that refusal as a 500; that mapping was fixed separately.
 - It is not a regulatory limit and it does not touch LIVE: the overlay is
   inert outside the Sandbox.
 
+**Classification.** Kz 50 000 is a *voluntary Banzami Sandbox operational
+limit*: product and test policy for an environment of fictitious money. It is
+not a BNA-mandated limit, not "the limit of the BNA Regulatory Sandbox", and
+not a limit of any electronic-money account class. Future LIVE or regulated
+limits are not derived from it. The regulatory context, and what this
+repository does and does not document about the earlier Kz 25 000 value, is in
+`docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md`.
+
 **Unchanged, and worth knowing.** Consumer daily payments Kz 50 000; consumer
 balance Kz 50 000; merchant balance Kz 100 000; merchant rolling 24h volume
 Kz 250 000. With a Kz 50 000 payment now allowed, one such payment uses a

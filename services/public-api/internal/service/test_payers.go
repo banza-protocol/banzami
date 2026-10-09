@@ -22,7 +22,7 @@ import (
 const (
 	TestPayerMaxActivePerProject = 10
 	TestPayerGrantMinor          = 1_000_000  // 10 000 Kz
-	TestPayerMaxTopUpMinor       = 2_500_000  // 25 000 Kz per top-up
+	TestPayerMaxTopUpMinor       = 5_000_000  // 50 000 Kz per top-up — the Sandbox per-operation maximum (pilot.rs; held equal by a test)
 	TestPayerMaxTopUpsPerDay     = 20         // per Project
 	TestPayerMaxTopUpMinorPerDay = 10_000_000 // 100 000 Kz per Project per day
 )

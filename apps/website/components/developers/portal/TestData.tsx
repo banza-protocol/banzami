@@ -219,7 +219,7 @@ export function TestData() {
               <span style={FIELD_LABEL}>Montante a carregar (Kz)</span>
               <input style={FIELD_INPUT} inputMode="decimal" value={fund.amount} onChange={(e) => setFund({ ...fund, amount: e.target.value })} placeholder="5000" />
             </label>
-            <p style={FIELD_HINT}>Até 25 000 Kz por carregamento. Idempotency-Key: <code style={{ fontFamily: mono }}>{fund.key}</code></p>
+            <p style={FIELD_HINT}>Até 50 000 Kz por carregamento. Idempotency-Key: <code style={{ fontFamily: mono }}>{fund.key}</code></p>
             <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
               <button type="button" onClick={() => void doFund()} disabled={busy} style={primaryButton(busy)}>Carregar</button>
               <button type="button" onClick={() => setFund(null)} style={SECONDARY_BUTTON}>Cancelar</button>

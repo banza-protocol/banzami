@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
 // A Sandbox pilot limit is a refusal, not an outage. Live case: 42 000 Kz
@@ -93,5 +95,14 @@ func TestCoreRefusal_EveryPayHandlerUsesIt(t *testing.T) {
 		if !strings.Contains(string(src), "if respondCoreRefusal(w, r, err) {") {
 			t.Fatalf("%s falls through to a 500 without asking whether Core refused the payment", f)
 		}
+	}
+}
+
+// A developer's test-payer top-up is a top-up like any other: one operation,
+// bounded by the same Sandbox per-operation maximum Core enforces.
+func TestTestPayerTopUpMaximumIsTheSandboxPerOperationMaximum(t *testing.T) {
+	if service.TestPayerMaxTopUpMinor != pilotPerPaymentMinor {
+		t.Fatalf("test-payer top-up maximum %d, Sandbox per-operation maximum %d",
+			service.TestPayerMaxTopUpMinor, pilotPerPaymentMinor)
 	}
 }
