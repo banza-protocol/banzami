@@ -49,6 +49,10 @@ func New(cfg *config.Config, deps Deps) http.Handler {
 	r.Use(edgestatus.Middleware("/internal/"))
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(30 * time.Second))
+	// A global ceiling on request bodies. Most handlers bound their own read, but
+	// some decode r.Body directly, and one of those must not be the way to make
+	// this process buffer whatever a client sends.
+	r.Use(bodyCap())
 	r.Use(cors(cfg.ConsoleOrigin))
 
 	r.Get("/health", health(cfg, deps.Pool))
@@ -126,3 +130,9 @@ func health(cfg *config.Config, pool *pgxpool.Pool) http.HandlerFunc {
 		})
 	}
 }
+
+// maxRequestBody is the most any route may read from a request body
+// (the largest body any Console route reads is 64 KB).
+const maxRequestBody = 256 << 10
+
+func bodyCap() func(http.Handler) http.Handler { return chimw.RequestSize(maxRequestBody) }

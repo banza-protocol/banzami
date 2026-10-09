@@ -43,6 +43,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	r.Use(edgestatus.Middleware("/internal/"))
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))
+	// A global ceiling on request bodies. Most handlers bound their own read, but
+	// some decode r.Body directly, and one of those must not be the way to make
+	// this process buffer whatever a client sends.
+	r.Use(bodyCap())
 	r.Use(middleware.RouteSpan) // enriches otelhttp span with chi route pattern
 
 	// Health and metrics — unauthenticated
@@ -521,3 +525,9 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
 }
+
+// maxRequestBody is the most any route may read from a request body
+// (the largest body any operator route reads is 16 KB).
+const maxRequestBody = 1 << 20
+
+func bodyCap() func(http.Handler) http.Handler { return chimiddleware.RequestSize(maxRequestBody) }
