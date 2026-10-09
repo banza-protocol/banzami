@@ -17,6 +17,19 @@ import '../utils/qr_logo_utils.dart';
 // Public entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// The temp-file name for a shared card image.
+///
+/// The handle becomes part of a file path, so only the @banza alphabet survives
+/// (`a-z 0-9 _`): a separator or `..` can never leave the temp directory, even
+/// if a caller passes something that is not a handle.
+String shareCardFileName(String prefix, String handle) {
+  final safe = handle.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '');
+  final stem = safe.isEmpty
+      ? 'banzami'
+      : (safe.length > 32 ? safe.substring(0, 32) : safe);
+  return '${prefix}_$stem.png';
+}
+
 Future<void> showP2PShareModal(
   BuildContext context, {
   required String handle,
@@ -144,8 +157,8 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       await WidgetsBinding.instance.endOfFrame;
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
-      final file =
-          await _writeTempFile(bytes, 'banzami_share_${widget.handle}.png');
+      final file = await _writeTempFile(
+          bytes, shareCardFileName('banzami_share', widget.handle));
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
@@ -213,8 +226,8 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       await WidgetsBinding.instance.endOfFrame;
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
-      final file =
-          await _writeTempFile(bytes, 'banzami_qr_${widget.handle}.png');
+      final file = await _writeTempFile(
+          bytes, shareCardFileName('banzami_qr', widget.handle));
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],

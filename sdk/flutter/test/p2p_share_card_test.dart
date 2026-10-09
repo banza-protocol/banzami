@@ -71,4 +71,35 @@ void main() {
     // Not sandbox → no badge.
     expect(find.text('SANDBOX'), findsNothing);
   });
+
+  // The handle is interpolated into a temp-file path. Whatever reaches it, the
+  // name stays a plain file name inside the temp directory.
+  group('shareCardFileName', () {
+    test('a normal handle is used as is', () {
+      expect(shareCardFileName('banzami_share', 'loja_da_ana'),
+          'banzami_share_loja_da_ana.png');
+    });
+    test('path separators and traversal never survive', () {
+      for (final hostile in [
+        '../../etc/passwd',
+        r'..\..\x',
+        'a/b',
+        'a\u0000b',
+        '~/x',
+        'a b.png/../c'
+      ]) {
+        final name = shareCardFileName('banzami_qr', hostile);
+        expect(name, matches(RegExp(r'^banzami_qr_[a-z0-9_]{1,32}\.png$')),
+            reason: hostile);
+      }
+    });
+    test('an empty or symbol-only handle still yields a valid name', () {
+      expect(shareCardFileName('banzami_qr', ''), 'banzami_qr_banzami.png');
+      expect(
+          shareCardFileName('banzami_qr', '../..'), 'banzami_qr_banzami.png');
+    });
+    test('the name is bounded', () {
+      expect(shareCardFileName('p', 'a' * 500).length, lessThan(48));
+    });
+  });
 }
