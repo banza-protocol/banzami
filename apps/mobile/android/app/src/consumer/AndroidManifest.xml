@@ -15,7 +15,7 @@
                 <!-- The Sandbox build is opened by banzami-sandbox:// links (A8-11). -->
                 <data android:scheme="banzami-sandbox" android:host="pay"/>
             </intent-filter>
-            <!-- Android App Links: https://pay.banzami.com/pay/* /r/* /u/*
+            <!-- Android App Links: https://pay.banzami.com/pay/* /r/* /u/* /b/*
                  (.com is the canonical Banzami payment host; .org is reserved
                  for the BANZA protocol and is NOT a payment host).
                  autoVerify triggers verification against /.well-known/assetlinks.json
@@ -27,6 +27,8 @@
                 <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/pay/"/>
                 <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/r/"/>
                 <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/u/"/>
+                <!-- Persistent Business Receive Point (ADR-065) — shared like a QR. -->
+                <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/b/"/>
             </intent-filter>
         </activity>
     </application>

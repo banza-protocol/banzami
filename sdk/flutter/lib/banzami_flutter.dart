@@ -119,3 +119,4 @@ export 'screens/payment_received_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
 export 'screens/qr_pay_screen.dart';
+export 'screens/receive_point_screen.dart';

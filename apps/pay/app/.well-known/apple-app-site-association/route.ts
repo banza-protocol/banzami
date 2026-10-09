@@ -23,6 +23,7 @@ const AASA = {
           { '/': '/pay/*', comment: 'Payment links (canonical) — /pay/<slug>' },
           { '/': '/r/*',   comment: 'Consumer pay-request links — /r/<code>' },
           { '/': '/u/*',   comment: 'Handle-based pay links — /u/<handle>' },
+          { '/': '/b/*',   comment: 'Business receive points (ADR-065) — /b/<slug>' },
         ],
       },
     ],

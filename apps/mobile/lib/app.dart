@@ -61,6 +61,9 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // A @banza pay link (…/u/{handle}[?amount=]) — parked like the others: it
   // used to be dropped on a cold start.
   Uri?      _pendingHandleUri;
+  // A Business Receive Point slug (pay.banzami.com/b/{slug}) — parked like the
+  // others so a cold-start business share link opens its pay screen post-splash.
+  String?   _pendingReceivePointSlug;
   bool      _splashComplete = false;
 
   // ── Locked deep link ───────────────────────────────────────────────────────
@@ -311,6 +314,19 @@ class _BanzamiAppState extends State<BanzamiApp> {
         // Payment link — https://pay.banzami.com/pay/{slug}; same target as
         // the custom scheme banzami://pay/link/{slug}.
         if (segs.length >= 2) _openPaymentLink(segs[1]);
+
+      case 'b':
+        // Persistent Business Receive Point (ADR-065) —
+        // https://pay.banzami.com/b/{slug}. A merchant shares this link exactly
+        // as a payer scans its QR; routing it to the SAME native screen the scan
+        // opens (BanzamiReceivePointScreen) is what makes a shared business link
+        // behave like a shared @banza link instead of dead-ending on Home. A
+        // deep link is attacker-reachable, so only a slug-shaped segment routes.
+        if (segs.length >= 2 &&
+            BanzamiQrParser.isPaymentSlug(segs[1]) &&
+            !_refuseOtherEnvironment(uri)) {
+          _openReceivePoint(segs[1]);
+        }
     }
   }
 
@@ -361,6 +377,47 @@ class _BanzamiAppState extends State<BanzamiApp> {
     ));
   }
 
+  /// Open a persistent Business Receive Point (ADR-065) — the same native screen
+  /// a QR scan opens (scan_screen `_openReceivePoint`), so a shared business
+  /// link lands on the pay surface for that merchant instead of Home. The screen
+  /// resolves the slug, fails closed on an unknown/cross-environment slug, and
+  /// mints a fresh payment session per payment.
+  void _openReceivePoint(String slug) {
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) {
+      // Cold start: navigator not mounted yet — park and retry when session loads.
+      debugPrint('[deep-link] ctxNull=true receivePoint=$slug — deferred');
+      _pendingReceivePointSlug = slug;
+      return;
+    }
+    final svc     = ctx.read<SessionService>();
+    final session = svc.session;
+    if (session == null) {
+      // Cold start: session not ready yet — park and retry when session loads.
+      debugPrint('[deep-link] sessionNull=true receivePoint=$slug — deferred');
+      _pendingReceivePointSlug = slug;
+      return;
+    }
+    if (svc.isLocked) {
+      // Security gate: should not reach here — _handleLink catches this first.
+      debugPrint('[deep-link] SECURITY appLocked=true — rejecting receive-point open');
+      return;
+    }
+    _pendingReceivePointSlug = null; // clear any stale pending
+    final client = ctx.read<ConsumerPublicClient>();
+    debugPrint('[deep-link] pushing BanzamiReceivePointScreen slug=$slug');
+    _navigatorKey.currentState?.push(MaterialPageRoute(
+      builder: (_) => BanzamiReceivePointScreen(
+        client:        client,
+        slug:          slug,
+        ownHandle:     session.handle,
+        onSuccess:     (_) => _signalBalanceRefresh(),
+        isSandbox:     AppConfig.isSandbox,
+        logoAssetPath: BrandingAssets.icon,
+      ),
+    ));
+  }
+
   void _handleBanzamiScheme(Uri uri) {
     final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
 
@@ -373,6 +430,16 @@ class _BanzamiAppState extends State<BanzamiApp> {
     // banzami://pay/u/{handle}?amount={minor}&currency={currency}
     if (segs.isNotEmpty && segs[0] == 'u' && segs.length >= 2) {
       if (!_refuseOtherEnvironment(uri)) _openHandlePay(uri, segs[1]);
+      return;
+    }
+
+    // banzami://pay/business/{slug} — a persistent Business Receive Point
+    // (ADR-065), the custom-scheme twin of https://pay.banzami.com/b/{slug}.
+    // Only a slug-shaped segment routes (a deep link is attacker-reachable).
+    if (segs.length >= 2 &&
+        segs[0] == 'business' &&
+        BanzamiQrParser.isPaymentSlug(segs[1])) {
+      if (!_refuseOtherEnvironment(uri)) _openReceivePoint(segs[1]);
       return;
     }
 
@@ -543,6 +610,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
       _pendingRequestCode = null;
       debugPrint('[deep-link] coldStart processing code=$code (post-splash)');
       _openPaymentRequest(code);
+      return;
+    }
+    final rpSlug = _pendingReceivePointSlug;
+    if (rpSlug != null) {
+      _pendingReceivePointSlug = null;
+      debugPrint('[deep-link] coldStart processing receivePoint=$rpSlug (post-splash)');
+      _openReceivePoint(rpSlug);
       return;
     }
     final handleUri = _pendingHandleUri;
