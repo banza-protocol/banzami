@@ -6,10 +6,10 @@
 // Amounts are in minor units (1 AOA = 100 minor) and are non-monetary in Phase 0.
 
 export const PILOT_LIMITS_MINOR = {
-  consumer_per_payment: 2_500_000, // Kz 25.000
+  consumer_per_payment: 5_000_000, // Kz 50.000
   consumer_daily: 5_000_000, // Kz 50.000
   consumer_max_balance: 5_000_000, // Kz 50.000
-  merchant_per_receive: 2_500_000, // Kz 25.000
+  merchant_per_receive: 5_000_000, // Kz 50.000
   merchant_daily_receive: 10_000_000, // Kz 100.000
   merchant_max_balance: 10_000_000, // Kz 100.000
   aggregate_funds: 50_000_000, // Kz 500.000

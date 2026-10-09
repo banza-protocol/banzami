@@ -14,14 +14,28 @@
 
 /// V1.0 pilot limits (minor units, AOA).
 pub mod limits {
-    /// Consumer: maximum per single payment — Kz 25.000.
-    pub const CONSUMER_PER_PAYMENT_MINOR: i64 = 2_500_000;
+    /// Consumer: maximum per single payment — Kz 50.000.
+    ///
+    /// THE Sandbox per-operation payment maximum (owner decision, 2026-10-09).
+    /// It was Kz 25.000 while a wallet could be topped up to Kz 50.000, so a
+    /// payer could hold more test money than any single payment would take: a
+    /// 42.000 Kz donation was refused at confirmation. One number now bounds a
+    /// single top-up (through the balance cap below), a single payment and a
+    /// single receipt. This is a Sandbox test limit, not a regulatory one.
+    pub const CONSUMER_PER_PAYMENT_MINOR: i64 = 5_000_000;
     /// Consumer: maximum cumulative payments per day — Kz 50.000.
     pub const CONSUMER_DAILY_MINOR: i64 = 5_000_000;
     /// Consumer: maximum wallet balance — Kz 50.000.
     pub const CONSUMER_MAX_BALANCE_MINOR: i64 = 5_000_000;
-    /// Merchant: maximum per single received payment — Kz 25.000.
-    pub const MERCHANT_PER_RECEIVE_MINOR: i64 = 2_500_000;
+    /// Merchant: maximum per single received payment — Kz 50.000. Always equal
+    /// to the payer-side maximum: a payment one side may send and the other may
+    /// not receive is the inconsistency this pair exists to rule out.
+    pub const MERCHANT_PER_RECEIVE_MINOR: i64 = 5_000_000;
+    const _: () = assert!(MERCHANT_PER_RECEIVE_MINOR == CONSUMER_PER_PAYMENT_MINOR);
+    /// A single payment never exceeds what a wallet may hold, so a full wallet
+    /// can always be spent in one payment and a top-up can never fund more than
+    /// one payment's worth beyond it.
+    const _: () = assert!(CONSUMER_PER_PAYMENT_MINOR <= CONSUMER_MAX_BALANCE_MINOR);
     /// Merchant: maximum wallet balance — Kz 100.000.
     pub const MERCHANT_MAX_BALANCE_MINOR: i64 = 10_000_000;
     /// Aggregate: maximum synthetic funds in circulation — Kz 500.000.
@@ -636,13 +650,77 @@ mod tests {
         assert!(overlay_consumer_payment(OFF, true, i64::MAX, 0).is_none());
     }
 
+    // ── Sandbox per-operation maximum: Kz 50.000 (owner decision 2026-10-09) ──
+    // The live failure: a 42.000 Kz donation was refused by the old Kz 25.000
+    // per-payment limit while the payer's wallet could hold Kz 50.000.
+    const KZ: i64 = 100;
+
+    #[test]
+    fn a_42_000_kz_payment_is_within_the_per_payment_limit() {
+        assert!(ON.check_consumer_payment(42_000 * KZ, 0).is_none());
+        assert!(ON.check_merchant_receipt_amount(42_000 * KZ).is_none());
+    }
+
+    #[test]
+    fn exactly_50_000_kz_is_allowed_and_one_more_kwanza_is_not() {
+        assert!(ON.check_consumer_payment(50_000 * KZ, 0).is_none());
+        assert!(ON.check_merchant_receipt_amount(50_000 * KZ).is_none());
+        assert_eq!(
+            ON.check_consumer_payment(50_001 * KZ, 0).unwrap().code,
+            PilotLimitCode::PerPayment
+        );
+        assert_eq!(
+            ON.check_merchant_receipt_amount(50_001 * KZ).unwrap().code,
+            PilotLimitCode::MerchantReceive
+        );
+        // …and not by a single centimo either.
+        assert!(ON.check_consumer_payment(50_000 * KZ + 1, 0).is_some());
+        assert!(ON.check_merchant_receipt_amount(50_000 * KZ + 1).is_some());
+    }
+
+    #[test]
+    fn a_top_up_is_bounded_at_50_000_kz_per_operation() {
+        // There is no separate top-up limit: a single top-up is bounded by what
+        // the wallet may hold, so the per-operation maximum is the same number.
+        assert!(ON
+            .check_consumer_balance_after_credit(0, 49_999 * KZ)
+            .is_none());
+        assert!(ON
+            .check_consumer_balance_after_credit(0, 50_000 * KZ)
+            .is_none());
+        assert_eq!(
+            ON.check_consumer_balance_after_credit(0, 50_001 * KZ)
+                .unwrap()
+                .code,
+            PilotLimitCode::ConsumerBalance
+        );
+    }
+
+    #[test]
+    fn the_per_payment_limit_is_not_a_cap_on_what_a_business_accumulates() {
+        // 50.000 + 50.000 received: each payment passes the per-receipt check on
+        // its own amount. What bounds the running total is a DIFFERENT limit —
+        // the merchant balance cap — which is deliberately not Kz 50.000.
+        assert!(ON.check_merchant_receipt_amount(50_000 * KZ).is_none());
+        assert!(ON
+            .check_merchant_balance_after_credit(50_000 * KZ, 50_000 * KZ)
+            .is_none());
+        assert!(limits::MERCHANT_MAX_BALANCE_MINOR > limits::MERCHANT_PER_RECEIVE_MINOR);
+    }
+
+    #[test]
+    fn none_of_this_applies_outside_the_sandbox_overlay() {
+        assert!(OFF.check_consumer_payment(50_001 * KZ, 0).is_none());
+        assert!(OFF.check_merchant_receipt_amount(50_001 * KZ).is_none());
+    }
+
     #[test]
     fn limit_values_match_v1_policy() {
         // Kz 25.000 / 50.000 / 100.000 / 500.000 / 2.000.000 in minor units.
-        assert_eq!(limits::CONSUMER_PER_PAYMENT_MINOR, 2_500_000);
+        assert_eq!(limits::CONSUMER_PER_PAYMENT_MINOR, 5_000_000);
         assert_eq!(limits::CONSUMER_DAILY_MINOR, 5_000_000);
         assert_eq!(limits::CONSUMER_MAX_BALANCE_MINOR, 5_000_000);
-        assert_eq!(limits::MERCHANT_PER_RECEIVE_MINOR, 2_500_000);
+        assert_eq!(limits::MERCHANT_PER_RECEIVE_MINOR, 5_000_000);
         assert_eq!(limits::MERCHANT_MAX_BALANCE_MINOR, 10_000_000);
         assert_eq!(limits::AGGREGATE_FUNDS_MINOR, 50_000_000);
     }

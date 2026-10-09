@@ -10,7 +10,7 @@ The Phase 0 / Fase 1 internal test plan (Plano de Teste Detalhado Banzami V1.0)
 defines automatic, system-enforced pilot limits for a controlled pilot. The
 operator already enforces a general **KYC-tier** limit model (single/daily limits
 by verification level) plus request rate limits. The specific V1.0 pilot limits
-(per-payment 25.000, consumer daily 50.000, balance caps, merchant receiving
+(per-payment 50.000 — raised from 25.000 on 2026-10-09, see the amendment below — consumer daily 50.000, balance caps, merchant receiving
 limits, and aggregate pilot caps) are stricter than, and distinct from, that
 general model, and were not previously enforced by the system.
 
@@ -41,11 +41,11 @@ credit a merchant neither applies the gate nor records why it does not.
 
 | Limit | Value | Enforcement site | Wired |
 |---|---:|---|---|
-| Consumer per payment | Kz 25 000 | `engine.rs::authorize_operation` → `overlay_consumer_payment` | via the authorization route only |
+| Consumer per payment | Kz 50 000 | `engine.rs::authorize_operation` → `overlay_consumer_payment` | via the authorization route only |
 | Consumer daily | Kz 50 000 | same | via the authorization route only |
 | Consumer max balance | Kz 50 000 | `pilot_enforce::check_funding` (consumer funding) | **yes** |
 | Aggregate funds in circulation | Kz 500 000 | `pilot_enforce::check_funding` (consumer funding) | **yes** |
-| Merchant per receive | Kz 25 000 | `pilot_enforce::check_merchant_credit` | **yes** |
+| Merchant per receive | Kz 50 000 | `pilot_enforce::check_merchant_credit` | **yes** |
 | Merchant max balance | Kz 100 000 | `pilot_enforce::check_merchant_credit` | **yes** |
 | Merchant rolling 24h volume | Kz 250 000 | `pilot_enforce::check_merchant_credit` | **yes** |
 | Merchant rolling 30d volume | Kz 1 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
@@ -134,3 +134,31 @@ answer different questions — but it surprises anyone reading the numbers alone
   controls.
 - **Changing the KYC-tier thresholds to the pilot values** — rejected: that would
   weaken/replace the general model rather than add a controlled overlay.
+
+## Amendment — one Sandbox per-operation maximum: Kz 50 000 (2026-10-09)
+
+**Decision (owner).** The Sandbox maximum for a single payment is Kz 50 000,
+on both sides: `CONSUMER_PER_PAYMENT_MINOR` and `MERCHANT_PER_RECEIVE_MINOR` are
+both 5 000 000 and are held equal at compile time.
+
+**Why.** A wallet could be topped up to Kz 50 000 (the consumer balance cap)
+while a single payment was limited to Kz 25 000. A payer could therefore hold
+more test money than any one payment would take, and a Kz 42 000 donation
+through a third-party integration was refused at confirmation. The payment-link
+route also answered that refusal as a 500; that mapping was fixed separately.
+
+**What this is not.**
+
+- It is not a cap on what a Business or a campaign accumulates. A per-payment
+  limit bounds one payment's amount; the running total is bounded by the
+  merchant balance cap and the rolling volume windows, which are unchanged.
+- It is not a separate top-up limit. A single top-up is bounded by the consumer
+  balance cap (Kz 50 000), which is the same number and is unchanged.
+- It is not a regulatory limit and it does not touch LIVE: the overlay is
+  inert outside the Sandbox.
+
+**Unchanged, and worth knowing.** Consumer daily payments Kz 50 000; consumer
+balance Kz 50 000; merchant balance Kz 100 000; merchant rolling 24h volume
+Kz 250 000. With a Kz 50 000 payment now allowed, one such payment uses a
+payer's whole day, and three use a Business's balance headroom until it
+settles or pays out.

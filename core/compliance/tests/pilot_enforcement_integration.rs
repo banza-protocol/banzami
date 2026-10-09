@@ -147,20 +147,20 @@ async fn balance(pool: &PgPool, account: uuid::Uuid) -> i64 {
     .unwrap()
 }
 
-// -- merchant per-received (Kz 25.000 = 2_500_000) ------------------------------
+// -- merchant per-received (Kz 50.000 = 5_000_000) ------------------------------
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn merchant_per_received_over_is_rejected(pool: PgPool) {
     let acct = new_account(&pool).await;
     make_merchant_wallet(&pool, acct).await;
     // at cap → allowed
     assert!(
-        check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 2_500_000, ON)
+        check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 5_000_000, ON)
             .await
             .unwrap()
             .is_none()
     );
     // over cap → PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED
-    let v = check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 2_500_001, ON)
+    let v = check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 5_000_001, ON)
         .await
         .unwrap()
         .unwrap();
