@@ -86,7 +86,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev
@@ -183,7 +183,7 @@ jobs:
     # to connect (DATABASE_URL is set workflow-wide).
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev
@@ -229,7 +229,7 @@ jobs:
     # workflow-wide.
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev
@@ -279,7 +279,7 @@ jobs:
     # DATABASE_URL is set workflow-wide.
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev
@@ -336,7 +336,7 @@ jobs:
     # set workflow-wide.
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev
@@ -1090,7 +1090,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev
@@ -1255,7 +1255,7 @@ jobs:
     # Same Postgres and migrations as the go-gateway job, so they run for real.
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev

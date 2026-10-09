@@ -62,7 +62,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER:     banzami
           POSTGRES_PASSWORD: banzami_dev
