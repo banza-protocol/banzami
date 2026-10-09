@@ -65,7 +65,10 @@ describe('Developers login — redesigned access surface', () => {
 
   it('shows the single "Ao continuar" legal line with Terms and Privacy links', () => {
     render(<LoginPage />);
-    expect(screen.getByText(/Ao continuar, concorda com os/)).toBeTruthy();
+    // Authentication is not Terms acceptance: the line says what continuing
+    // does (signs in) and points at the documents, never "concorda".
+    expect(screen.getByText(/Ao continuar, prossegue com a autenticação\. Consulte os/)).toBeTruthy();
+    expect(document.body.textContent ?? '').not.toMatch(/concorda/i);
     const terms = screen.getByRole('link', { name: 'Termos de Serviço' });
     const privacy = screen.getByRole('link', { name: 'Política de Privacidade' });
     expect(terms.getAttribute('href')).toBe('https://banzami.com/termos');

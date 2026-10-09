@@ -46,8 +46,12 @@ describe('Terms versioning scaffold', () => {
   });
   it('developer sign-in does not treat continuing as Terms acceptance', () => {
     const login = read('app/developers/login/page.tsx');
-    expect(login).not.toContain('concorda com os nossos');
-    expect(login).toContain('Ao entrar, aplica-se a nossa');
+    // Signing in authenticates and nothing else. No wording of the sign-in page
+    // may assert agreement; the canonical line only points at the documents.
+    const rendered = login.replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+    expect(rendered).not.toMatch(/concorda/i);
+    expect(rendered).not.toMatch(/aceita/i);
+    expect(rendered).toContain('Ao continuar, prossegue com a autenticação. Consulte os');
   });
   it('a PUBLISHED Terms page is indexable (no noindex)', () => {
     // Published legal documents belong in the index; a DRAFT one would be noindex.

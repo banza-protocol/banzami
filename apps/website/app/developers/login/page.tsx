@@ -126,13 +126,13 @@ export default function DevelopersLoginPage() {
         {/* Single access flow: the backend resolves first-time vs returning after
             the OTP proof, so there is no secondary "sign in" / "create account"
             control. Absolute URLs: this page is served from developers.banzami.com.
-            Note (owner-directed copy): this line asserts agreement to the Terms at
-            access. Historically sign-in was treated as authentication only, with the
-            Terms accepted explicitly later at business creation
-            (merchant_applications.terms_accepted_at) — see TERMS-INFRASTRUCTURE
-            -CONSISTENCY-001. Kept per the login-redesign brief. */}
+            Authentication is not Terms acceptance (TERMS-INFRASTRUCTURE
+            -CONSISTENCY-001, owner decision 2026-10-09): signing in only signs
+            in, and this line points at the documents without asserting agreement.
+            The Terms are accepted explicitly later, at business creation
+            (merchant_applications.terms_accepted_at). */}
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: '#a89a9e', fontWeight: 600 }}>
-          Ao continuar, concorda com os{' '}
+          Ao continuar, prossegue com a autenticação. Consulte os{' '}
           <a href="https://banzami.com/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#9A1B22', fontWeight: 800, textDecoration: 'none' }}>
             Termos de Serviço
           </a>{' '}
