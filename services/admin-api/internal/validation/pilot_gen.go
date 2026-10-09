@@ -13,16 +13,16 @@
 package validation
 
 // GlobalRolling24hMinor is GLOBAL_ROLLING_24H_MINOR: every merchant, trailing 24 hours.
-const GlobalRolling24hMinor int64 = 50000000
+const GlobalRolling24hMinor int64 = 200000000
 
 // GlobalRolling30dMinor is GLOBAL_ROLLING_30D_MINOR: every merchant, trailing 30 days.
-const GlobalRolling30dMinor int64 = 400000000
+const GlobalRolling30dMinor int64 = 6000000000
 
 // MerchantRolling24hMinor is MERCHANT_ROLLING_24H_MINOR: one merchant, trailing 24 hours.
-const MerchantRolling24hMinor int64 = 25000000
+const MerchantRolling24hMinor int64 = 100000000
 
 // MerchantRolling30dMinor is MERCHANT_ROLLING_30D_MINOR: one merchant, trailing 30 days.
-const MerchantRolling30dMinor int64 = 100000000
+const MerchantRolling30dMinor int64 = 3000000000
 
 // QueryGlobalRollingVolume measures merchant-credit volume across EVERY
 // merchant inside a rolling window. $1 is a Postgres interval literal.

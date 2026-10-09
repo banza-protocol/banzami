@@ -7,23 +7,49 @@ Source of the values: `core/compliance/src/pilot.rs` (enforced by Core; generate
 into the services that state them — `make gen-pilot-limits`)
 Decision record: `docs/adr/ADR-048-pilot-limit-policy-overlay.md` (amendment of 2026-10-09)
 
-## 1. What the limit is
+## 1. The policy
 
-In the Banzami Sandbox, **each payment may be up to Kz 50 000**. The same number
-bounds, per operation:
+Internal Banzami Sandbox — owner decision of 2026-10-09.
 
-| Operation | Maximum per operation | Enforced by |
+| Parameter | Value | Enforced by |
 |---|---|---|
-| Payment sent by a consumer (P2P, QR, payment link, pay link) | Kz 50 000 | `CONSUMER_PER_PAYMENT_MINOR` |
-| Payment received by a Business (including a donation through an integrator such as DOA) | Kz 50 000 | `MERCHANT_PER_RECEIVE_MINOR` (held equal to the above at compile time) |
-| Top-up of a Sandbox wallet | Kz 50 000 | no limit of its own: bounded by the wallet balance cap, `CONSUMER_MAX_BALANCE_MINOR` |
+| Pagamento máximo por operação | Kz 50 000 | `CONSUMER_PER_PAYMENT_MINOR` = `MERCHANT_PER_RECEIVE_MINOR` |
+| Carregamento máximo por operação | Kz 50 000 | `TOP_UP_PER_OPERATION_MINOR` |
+| Pagamentos Consumer por dia | Kz 250 000 | `CONSUMER_DAILY_MINOR` |
+| Saldo máximo Consumer | Sem limite máximo definido pela política interna do Sandbox | `CONSUMER_MAX_BALANCE_MINOR = None` |
+| Recebimentos Business em 24 h | Kz 1 000 000 | `MERCHANT_ROLLING_24H_MINOR` |
+| Recebimentos Business em 30 dias | Kz 30 000 000 | `MERCHANT_ROLLING_30D_MINOR` |
+| Recebimentos de todos os Business em 24 h / 30 dias | Kz 2 000 000 / Kz 60 000 000 | `GLOBAL_ROLLING_24H_MINOR` / `GLOBAL_ROLLING_30D_MINOR` |
+| Saldo máximo Business | Sem limite máximo definido pela política interna do Sandbox | `MERCHANT_MAX_BALANCE_MINOR = None` |
+| Limite global de segurança para fundos sintéticos em circulação no Sandbox interno da Banzami | Kz 250 000 000 | `AGGREGATE_FUNDS_MINOR` |
+| Meta e total acumulado de uma campanha | not constrained by these operational limits | — |
+
+Wallet balance ≠ payment limit ≠ daily or 24 h volume ≠ lifetime receipts ≠
+campaign goal. Transactional controls are enforced independently of what a
+wallet holds: a wallet may hold more than any of them, and may never spend more
+than its actual available balance.
+
+> No Sandbox interno da Banzami não é aplicado um limite máximo de saldo da
+> carteira. Os limites operacionais são aplicados às transações e aos volumes
+> definidos para o ambiente de testes.
+>
+> Esta política é interna ao ambiente Sandbox da Banzami e não representa uma
+> afirmação sobre os limites regulamentares aplicáveis a operações com dinheiro
+> real.
+
+The synthetic-funds ceiling is a voluntary internal Sandbox safety control —
+a fuse against accidental unlimited minting, runaway fixtures, bugs and abuse of
+test top-ups. It does not represent a regulatory or LIVE monetary limit, and it
+is not a wallet balance limit, a campaign goal limit or a campaign lifetime
+limit.
 
 ## 2. Classification
 
-**A voluntary Banzami Sandbox operational limit** — product and test policy for
-an internal test environment that uses fictitious money.
+**Voluntary Banzami Sandbox operational limits** — product and test policy for
+an internal test environment that uses fictitious money. This applies to every
+value in §1.
 
-It is **not**:
+They are **not**:
 
 - a limit mandated by the Banco Nacional de Angola;
 - "the limit of the BNA Regulatory Sandbox";
@@ -41,15 +67,30 @@ For an integrator's donation flow (DOA):
 > Cada doação no Sandbox pode ser de até 50 000 Kz. A meta e o total acumulado
 > da campanha podem ultrapassar esse valor.
 
-## 3. What it does not limit
+## 3. What the limits do not limit
 
-The limit applies to **each** payment or donation. It does not apply to a
-campaign goal, to the cumulative amount a campaign raises, or to a Business's
-total receipts. A campaign with a goal of Kz 100 000 000 is valid and may
-accumulate many donations of up to Kz 50 000 each.
+The per-operation and per-period limits apply to **each** payment or donation
+and to the volume **within a window**. They do not apply to a campaign goal, to
+the cumulative amount a campaign raises, to a Business's lifetime receipts, or
+to a wallet balance. A campaign with a goal of Kz 100 000 000 is valid and may
+accumulate many donations of up to Kz 50 000 each, across many payers and days.
+Settlement is its own financial flow and is not needed to free wallet capacity.
 
-Other Sandbox limits exist and are separate from this one (see §6). They bound
-balances and volumes, not the size of one payment.
+Canonical public wording:
+
+> Um Consumer pode realizar até 250 000 Kz em pagamentos dentro do período
+> diário aplicável. Um Business pode receber até 1 000 000 Kz no período de 24
+> horas aplicável. O Sandbox interno não aplica um limite máximo de saldo às
+> carteiras Consumer ou Business. Os limites por operação e por período não
+> constituem um limite para a meta ou para o total histórico acumulado de uma
+> campanha. Estes valores são parâmetros operacionais de teste definidos pela
+> Banzami e não representam limites regulamentares aplicáveis às operações com
+> dinheiro real.
+
+Nothing here says what a regulator allows. In particular this note does not
+claim that balances are unlimited under any regulation, or that no regulatory
+balance limit exists: that would have to be established separately and
+authoritatively for the applicable future product and profile.
 
 ## 4. Regulatory context (owner's clarification, 2026-10-09)
 
@@ -79,18 +120,11 @@ electronic-money account profile, rather than being a universal Sandbox limit.
 **This repository contains no source that confirms that alignment**; it is
 recorded here as an unverified rationale, not as a fact.
 
-## 6. Other Sandbox limits (unchanged by this decision)
+## 6. Developer test-payer quotas (per Project, ADR-060)
 
-| Limit | Value | Kind |
-|---|---|---|
-| Consumer: cumulative payments per day | Kz 50 000 | daily aggregate |
-| Consumer: wallet balance | Kz 50 000 | balance cap |
-| Business: wallet balance | Kz 100 000 | balance cap |
-| Business: received volume, rolling 24 h / 30 d | Kz 250 000 / Kz 1 000 000 | rolling volume |
-| All Businesses: received volume, rolling 24 h / 30 d | Kz 500 000 / Kz 4 000 000 | rolling volume |
-| Synthetic funds in circulation | Kz 500 000 | aggregate stock |
-
-These are operational test limits of the same classification as §2.
+Separate from §1 and enforced by the consumer API: up to 10 active test payers,
+a Kz 10 000 initial grant, up to Kz 50 000 per top-up, 20 top-ups and Kz 100 000
+of top-ups per Project per 24 hours. No balance cap per payer.
 
 ## 7. LIVE and future regulated operation
 
@@ -98,4 +132,14 @@ The Sandbox overlay is inert outside the Sandbox. Limits for LIVE, for regulated
 account classes, or for participation in the BNA Regulatory Sandbox must come
 from the applicable regulatory and account profile and the approved operating
 conditions. They are not to be copied from, defaulted to, or derived from the
-values in this note.
+values in this note. The policy engine keeps the ability to enforce a wallet
+balance ceiling (an optional value, absent in the internal Sandbox); "no cap" is
+a property of this environment's policy, not of the architecture.
+
+## 8. Follow-up
+
+Expose the current operational limits through the API and SDK
+(`payment_max_per_operation`, `consumer_daily_payment_limit`,
+`business_received_24h_limit`, `consumer_wallet_max_balance = null`,
+`business_wallet_max_balance = null`) so integrators such as DOA can validate
+early without duplicating constants.

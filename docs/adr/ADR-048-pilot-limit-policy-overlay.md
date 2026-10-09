@@ -42,15 +42,16 @@ credit a merchant neither applies the gate nor records why it does not.
 | Limit | Value | Enforcement site | Wired |
 |---|---:|---|---|
 | Consumer per payment | Kz 50 000 | `engine.rs::authorize_operation` → `overlay_consumer_payment` | via the authorization route only |
-| Consumer daily | Kz 50 000 | same | via the authorization route only |
-| Consumer max balance | Kz 50 000 | `pilot_enforce::check_funding` (consumer funding) | **yes** |
-| Aggregate funds in circulation | Kz 500 000 | `pilot_enforce::check_funding` (consumer funding) | **yes** |
+| Consumer daily | Kz 250 000 | same | via the authorization route only |
+| Consumer max balance | none (`Option<i64> = None`) | `pilot_enforce::check_funding` evaluates an optional cap; the internal Sandbox has none | n/a |
+| Top-up per operation | Kz 50 000 | `pilot_enforce::check_funding` / `check_test_payer_funding` → `check_top_up_amount` | **yes** |
+| Aggregate synthetic funds in circulation (Sandbox-wide safety fuse) | Kz 250 000 000 | `pilot_enforce::check_funding` (consumer funding) | **yes** |
 | Merchant per receive | Kz 50 000 | `pilot_enforce::check_merchant_credit` | **yes** |
-| Merchant max balance | Kz 100 000 | `pilot_enforce::check_merchant_credit` | **yes** |
-| Merchant rolling 24h volume | Kz 250 000 | `pilot_enforce::check_merchant_credit` | **yes** |
-| Merchant rolling 30d volume | Kz 1 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
-| Global rolling 24h volume | Kz 500 000 | `pilot_enforce::check_merchant_credit` | **yes** |
-| Global rolling 30d volume | Kz 4 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
+| Merchant max balance | none (`Option<i64> = None`) | `pilot_enforce::check_merchant_credit` evaluates an optional cap; the internal Sandbox has none | n/a |
+| Merchant rolling 24h volume | Kz 1 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
+| Merchant rolling 30d volume | Kz 30 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
+| Global rolling 24h volume | Kz 2 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
+| Global rolling 30d volume | Kz 60 000 000 | `pilot_enforce::check_merchant_credit` | **yes** |
 
 `check_merchant_credit` is applied by `core/transfers/src/engine.rs` (the
 wallet-native chokepoint: payment links, QR, Business Receive Point, Collection
@@ -99,11 +100,11 @@ database independently refuses any mutation of a posted entry
 (`raise_ledger_immutable`), which is asserted directly in
 `the_ledger_itself_refuses_mutation`.
 
-**Interaction to be aware of.** `MERCHANT_MAX_BALANCE` (Kz 100 000) is *lower*
-than `MERCHANT_ROLLING_24H` (Kz 250 000), so a merchant that never settles or
-pays out hits the balance cap first. Only a merchant that actually moves money
-onward reaches its volume window. That is intended — a stock cap and a flow cap
-answer different questions — but it surprises anyone reading the numbers alone.
+**Interaction, as it was and as it is.** Until 2026-10-09 `MERCHANT_MAX_BALANCE`
+(Kz 100 000) was lower than `MERCHANT_ROLLING_24H` (Kz 250 000), so a merchant
+that never settled hit the balance cap first. The internal Sandbox now applies
+**no wallet balance cap** (see the second amendment below): only flows are
+bounded, and settlement is no longer needed merely to free wallet capacity.
 
 ## Rationale
 
@@ -165,8 +166,58 @@ limits are not derived from it. The regulatory context, and what this
 repository does and does not document about the earlier Kz 25 000 value, is in
 `docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md`.
 
-**Unchanged, and worth knowing.** Consumer daily payments Kz 50 000; consumer
-balance Kz 50 000; merchant balance Kz 100 000; merchant rolling 24h volume
-Kz 250 000. With a Kz 50 000 payment now allowed, one such payment uses a
-payer's whole day, and three use a Business's balance headroom until it
-settles or pays out.
+**Superseded the same day** by the second amendment below, which re-sizes the
+daily and rolling limits and removes the wallet balance caps.
+
+## Second amendment — transactions are limited, balances are not (2026-10-09)
+
+**Decision (owner).** The canonical policy of the internal Banzami Sandbox:
+
+| Parameter | Value | Constant |
+|---|---:|---|
+| Payment, per operation | Kz 50 000 | `CONSUMER_PER_PAYMENT_MINOR` = `MERCHANT_PER_RECEIVE_MINOR` |
+| Top-up, per operation | Kz 50 000 | `TOP_UP_PER_OPERATION_MINOR` |
+| Consumer payments, per day | Kz 250 000 | `CONSUMER_DAILY_MINOR` |
+| Consumer wallet balance | **no cap** | `CONSUMER_MAX_BALANCE_MINOR: Option<i64> = None` |
+| Business received volume, rolling 24 h | Kz 1 000 000 | `MERCHANT_ROLLING_24H_MINOR` |
+| Business received volume, rolling 30 d | Kz 30 000 000 | `MERCHANT_ROLLING_30D_MINOR` |
+| All Businesses, rolling 24 h | Kz 2 000 000 | `GLOBAL_ROLLING_24H_MINOR` |
+| All Businesses, rolling 30 d | Kz 60 000 000 | `GLOBAL_ROLLING_30D_MINOR` |
+| Business wallet balance | **no cap** | `MERCHANT_MAX_BALANCE_MINOR: Option<i64> = None` |
+| Synthetic funds in circulation, whole Sandbox | Kz 250 000 000 | `AGGREGATE_FUNDS_MINOR` |
+
+**Principle.** Wallet balance ≠ payment limit ≠ daily or 24 h volume ≠ lifetime
+receipts ≠ campaign goal. A wallet may hold more than any transactional limit;
+what it may *spend* or *receive* in an operation or a window is enforced
+independently of what it holds. A consumer holding Kz 300 000 may pay five
+times Kz 50 000 in a day and not a sixth.
+
+**Representation.** "No cap" is `None`, not a large number: a large number is a
+hidden cap. The balance checks remain and evaluate an optional ceiling, so a
+future LIVE or regulated profile expresses one by supplying a value. This is not
+"unlimited balance everywhere" — it is the internal Sandbox having none.
+
+**Rolling windows.** A Business may receive Kz 1 000 000 in 24 hours; its 30-day
+window is thirty such days, so it does not block a Business after a few days of
+valid activity; global capacity is twice per-Business capacity in both windows.
+
+**The synthetic-funds ceiling is a safety fuse**, not a balance, campaign or
+regulatory limit: it bounds the fictitious value in circulation across the whole
+internal Sandbox against accidental unlimited minting, runaway fixtures, bugs
+and abuse of test top-ups. Kz 250 000 000 leaves room for a Kz 100 000 000
+campaign alongside other activity.
+
+**Top-up.** With no balance cap to bound it, a top-up has an explicit
+per-operation maximum of Kz 50 000. Balance 80 000 + top-up 50 000 = 130 000 is
+valid. A top-up over the maximum is refused with the per-operation code.
+
+**Not changed.** Insufficient-funds checks, ledger balancing, wallet ownership,
+idempotency, integer money, Sandbox/LIVE isolation, settlement semantics. All of
+these values are voluntary Banzami Sandbox test policy; none is a BNA or LIVE
+limit (`docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md`).
+
+**Follow-up (not blocking).** Expose the current operational limits through the
+API and SDK — `payment_max_per_operation`, `consumer_daily_payment_limit`,
+`business_received_24h_limit`, `consumer_wallet_max_balance = null`,
+`business_wallet_max_balance = null` — so that integrators can validate early
+without duplicating constants.

@@ -167,47 +167,94 @@ async fn merchant_per_received_over_is_rejected(pool: PgPool) {
     assert_eq!(v.as_str(), "PILOT_LIMIT_MERCHANT_RECEIVE_EXCEEDED");
 }
 
-// -- merchant balance (Kz 100.000 = 10_000_000) ---------------------------------
+// -- merchant balance: NO cap in the internal Sandbox; Kz 1.000.000 received per 24h --
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn merchant_balance_over_is_rejected(pool: PgPool) {
+async fn merchant_balance_is_not_capped_but_24h_volume_is(pool: PgPool) {
+    // A Business holding Kz 5.000.000 accumulated over time (35 days ago, so in
+    // neither rolling window) receives another payment: balance alone refuses
+    // nothing. This is a campaign past any transaction limit.
     let acct = new_account(&pool).await;
     make_merchant_wallet(&pool, acct).await;
-    credit(&pool, acct, 10_000_000, 2).await; // balance at cap, but NOT today (daily=0)
-    let before = balance(&pool, acct).await;
-    let v = check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 1, ON)
+    credit(&pool, acct, 500_000_000, 35).await;
+    assert!(
+        check_merchant_credit(&mut pool.acquire().await.unwrap(), acct, 5_000_000, ON)
+            .await
+            .unwrap()
+            .is_none()
+    );
+
+    // Volume is what is bounded: Kz 950.000 received in the last 24h, then one
+    // more Kz 50.000 payment lands exactly on Kz 1.000.000 — allowed…
+    let busy = new_account(&pool).await;
+    make_merchant_wallet(&pool, busy).await;
+    credit(&pool, busy, 95_000_000, 0).await;
+    let before = balance(&pool, busy).await;
+    assert!(
+        check_merchant_credit(&mut pool.acquire().await.unwrap(), busy, 5_000_000, ON)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    // …and a centimo past it is refused, by the VOLUME code, not a balance one.
+    credit(&pool, busy, 5_000_000, 0).await;
+    let v = check_merchant_credit(&mut pool.acquire().await.unwrap(), busy, 1, ON)
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(v.as_str(), "PILOT_LIMIT_MERCHANT_BALANCE_EXCEEDED");
-    // rejected check must not mutate ledger state
-    assert_eq!(balance(&pool, acct).await, before);
+    assert_eq!(v.as_str(), "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED");
+    // a refused check never mutates the ledger
+    assert_eq!(balance(&pool, busy).await, before + 5_000_000);
 }
 
-// -- consumer balance (Kz 50.000 = 5_000_000) -----------------------------------
+// -- consumer balance: NO cap in the internal Sandbox; top-up Kz 50.000 per operation --
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn consumer_balance_over_is_rejected(pool: PgPool) {
+async fn consumer_balance_is_not_capped_but_a_top_up_is(pool: PgPool) {
+    use banzami_compliance::pilot::limits::TOP_UP_PER_OPERATION_MINOR;
+    // A wallet already holding Kz 80.000 — above the old Kz 50.000 ceiling —
+    // takes another full top-up: 130.000 afterwards, and nothing objects.
     let acct = new_account(&pool).await;
-    credit(&pool, acct, 5_000_000, 0).await; // at cap
-    let v = check_funding(&pool, Party::Consumer, acct, 1, ON)
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(v.as_str(), "PILOT_LIMIT_CONSUMER_BALANCE_EXCEEDED");
-    // below cap → allowed
-    let acct2 = new_account(&pool).await;
-    credit(&pool, acct2, 1_000_000, 0).await;
-    assert!(check_funding(&pool, Party::Consumer, acct2, 1_000_000, ON)
+    credit(&pool, acct, 8_000_000, 0).await;
+    assert!(
+        check_funding(&pool, Party::Consumer, acct, TOP_UP_PER_OPERATION_MINOR, ON)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    // …and so does one holding Kz 1.000.000.
+    let rich = new_account(&pool).await;
+    credit(&pool, rich, 100_000_000, 0).await;
+    assert!(check_funding(&pool, Party::Consumer, rich, 1, ON)
         .await
         .unwrap()
         .is_none());
+    // The operation itself is bounded: Kz 50.000,01 in one top-up is refused,
+    // whatever the balance — with the per-operation code, never a balance one.
+    let empty = new_account(&pool).await;
+    let v = check_funding(
+        &pool,
+        Party::Consumer,
+        empty,
+        TOP_UP_PER_OPERATION_MINOR + 1,
+        ON,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(v.as_str(), "PILOT_LIMIT_PER_PAYMENT_EXCEEDED");
 }
 
-// -- aggregate funds in circulation (Kz 500.000 = 50_000_000) -------------------
+// -- aggregate synthetic funds in circulation: the Sandbox-wide safety fuse ------
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn aggregate_funds_over_is_rejected(pool: PgPool) {
     let acct = new_account(&pool).await;
     make_merchant_wallet(&pool, acct).await;
-    credit(&pool, acct, 50_000_000, 1).await; // full circulation already
+    credit(
+        &pool,
+        acct,
+        banzami_compliance::pilot::limits::AGGREGATE_FUNDS_MINOR,
+        1,
+    )
+    .await; // full circulation already
     let target = new_account(&pool).await;
     let v = check_funding(&pool, Party::Merchant, target, 1, ON)
         .await
@@ -504,10 +551,10 @@ async fn below_limits_passes(pool: PgPool) {
 // -- a Project-owned Sandbox test payer is not held to the shared aggregate cap ---
 // ADR-060 §6: the aggregate funds cap is shared by every developer, so one
 // Project's test payers must not be able to exhaust it for the rest. The
-// per-party balance cap still applies to them.
+// per-operation top-up maximum still applies to them; no balance cap does.
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn test_payer_funding_ignores_the_aggregate_but_keeps_the_balance_cap(pool: PgPool) {
-    use banzami_compliance::pilot::limits::{AGGREGATE_FUNDS_MINOR, CONSUMER_MAX_BALANCE_MINOR};
+async fn test_payer_funding_ignores_the_aggregate_but_keeps_the_top_up_maximum(pool: PgPool) {
+    use banzami_compliance::pilot::limits::{AGGREGATE_FUNDS_MINOR, TOP_UP_PER_OPERATION_MINOR};
     use banzami_compliance::pilot_enforce::check_test_payer_funding;
     // Fill the Sandbox-wide aggregate through a merchant wallet.
     let big = new_account(&pool).await;
@@ -525,12 +572,19 @@ async fn test_payer_funding_ignores_the_aggregate_but_keeps_the_balance_cap(pool
         .await
         .unwrap()
         .is_none());
-    // …but its own balance cap still holds.
-    credit(&pool, payer, CONSUMER_MAX_BALANCE_MINOR, 0).await;
+    // …and a payer that already holds a lot may still be topped up…
+    credit(&pool, payer, 20_000_000, 0).await;
     assert!(check_test_payer_funding(&pool, payer, 1, ON)
         .await
         .unwrap()
-        .is_some());
+        .is_none());
+    // …but one top-up is still at most Kz 50.000.
+    assert!(
+        check_test_payer_funding(&pool, payer, TOP_UP_PER_OPERATION_MINOR + 1, ON)
+            .await
+            .unwrap()
+            .is_some()
+    );
     // And a disabled policy decides nothing.
     assert!(check_test_payer_funding(&pool, payer, 1, OFF)
         .await

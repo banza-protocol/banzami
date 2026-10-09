@@ -3445,13 +3445,6 @@
       "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
       "text": "Repor não é necessário para eliminar: para remover o projeto e tudo o que é dele, elimine-o."
     },
-    "pt:Testing:9e628a4741": {
-      "page": "Testing",
-      "kind": "row",
-      "class": "SOURCE",
-      "evidence": "services/public-api/internal/service/test_payers.go (TestPayerMaxTopUpMinor, held equal to the generated Sandbox per-operation maximum by services/public-api/internal/handler/core_refusal_test.go); tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs",
-      "text": "Pagadores de teste com valor fictício | Consola → Dados de teste, ou /v1/sandbox/test-payers | Até 10 ativos por projeto; até 10 000 Kz iniciais; carregamentos "
-    },
     "pt:Testing:443f89ac22": {
       "page": "Testing",
       "kind": "row",
@@ -8463,13 +8456,6 @@
       "class": "SOURCE",
       "evidence": "core/api/src/routes/payment_sessions.rs (amount 0 → BAD_REQUEST, omitted → open amount); services/api-gateway/internal/middleware/idempotency.go; services/public-api/internal/handler/auth.go (Sandbox registration grant 1 000 000 minor units); services/api-gateway/internal/service/postgres_webhooks.go",
       "text": "You do not need to reset before deleting: to remove the project and everything it owns, delete it."
-    },
-    "en:Testing:2e294991b3": {
-      "page": "Testing",
-      "kind": "row",
-      "class": "SOURCE",
-      "evidence": "services/public-api/internal/service/test_payers.go (TestPayerMaxTopUpMinor, held equal to the generated Sandbox per-operation maximum by services/public-api/internal/handler/core_refusal_test.go); tools/check-openapi-route-drift.mjs + tools/check-docs-drift.mjs",
-      "text": "Test payers with fictitious value | Console → Test data, or /v1/sandbox/test-payers | Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 50,00"
     },
     "en:Testing:b032b1af91": {
       "page": "Testing",
@@ -20020,6 +20006,48 @@
       "class": "SOURCE",
       "evidence": "services/api-gateway/internal/handler (per-route emissions, derived by tools/lib/error-surface.mjs routeCodes) and core/api/src/routes",
       "text": "Returns the project’s financial readiness: whether it can receive payments and settle and, if not, what is missing. Each entry in settlement.blockers is the ref"
+    },
+    "pt:Testing:a42f097933": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "services/public-api/internal/service/test_payers.go (quotas; top-up maximum held equal to the generated Sandbox per-operation maximum); core/compliance/src/pilot.rs (CONSUMER_MAX_BALANCE_MINOR = None)",
+      "text": "Pagadores de teste com valor fictício | Consola → Dados de teste, ou /v1/sandbox/test-payers | Até 10 ativos por projeto; até 10 000 Kz iniciais; carregamentos "
+    },
+    "pt:Testing:83eb8543f8": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (CONSUMER_DAILY_MINOR = 25 000 000, MERCHANT_ROLLING_24H_MINOR = 100 000 000; boundary tests in pilot.rs and tests/pilot_enforcement_integration.rs); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md",
+      "text": "Limites por período | Aplicados pelo servidor | Um Consumer pode realizar até 250 000 Kz em pagamentos dentro do período diário aplicável. Um Business pode rece"
+    },
+    "pt:Testing:9a0c3c1b06": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (CONSUMER_MAX_BALANCE_MINOR = MERCHANT_MAX_BALANCE_MINOR = None; consumer_balance_has_no_cap_in_the_sandbox, merchant_balance_is_not_capped_but_24h_volume_is); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md; apps/website/lib/sandbox-limit-truth.test.ts",
+      "text": "Saldo das carteiras | Política interna do Sandbox | O Sandbox interno não aplica um limite máximo de saldo às carteiras Consumer ou Business. Os limites operaci"
+    },
+    "en:Testing:826e72eaa4": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "services/public-api/internal/service/test_payers.go (quotas; top-up maximum held equal to the generated Sandbox per-operation maximum); core/compliance/src/pilot.rs (CONSUMER_MAX_BALANCE_MINOR = None)",
+      "text": "Test payers with fictitious value | Console → Test data, or /v1/sandbox/test-payers | Up to 10 active per project; up to 10,000 Kz to start; top-ups up to 50,00"
+    },
+    "en:Testing:a0ffde1b57": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (CONSUMER_DAILY_MINOR = 25 000 000, MERCHANT_ROLLING_24H_MINOR = 100 000 000; boundary tests in pilot.rs and tests/pilot_enforcement_integration.rs); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md",
+      "text": "Limits per period | Enforced by the server | A Consumer can make up to 250,000 Kz in payments within the applicable daily period. A Business can receive up to 1"
+    },
+    "en:Testing:2edf62ed3a": {
+      "page": "Testing",
+      "kind": "row",
+      "class": "SOURCE",
+      "evidence": "core/compliance/src/pilot.rs (CONSUMER_MAX_BALANCE_MINOR = MERCHANT_MAX_BALANCE_MINOR = None; consumer_balance_has_no_cap_in_the_sandbox, merchant_balance_is_not_capped_but_24h_volume_is); docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md; apps/website/lib/sandbox-limit-truth.test.ts",
+      "text": "Wallet balances | Internal Sandbox policy | The internal Sandbox applies no maximum balance to Consumer or Business wallets. Operational limits apply to transac"
     }
   }
 }

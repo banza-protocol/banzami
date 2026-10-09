@@ -14,5 +14,5 @@ const pilotPerPaymentMinor int64 = 5000000
 // pilotPerReceiveMinor is MERCHANT_PER_RECEIVE_MINOR: the most a Business may receive in a single Sandbox payment (minor units).
 const pilotPerReceiveMinor int64 = 5000000
 
-// pilotConsumerMaxBalanceMinor is CONSUMER_MAX_BALANCE_MINOR: the most a Sandbox wallet may hold, and so the most a single top-up can add (minor units).
-const pilotConsumerMaxBalanceMinor int64 = 5000000
+// pilotTopUpPerOperationMinor is TOP_UP_PER_OPERATION_MINOR: the most a single Sandbox top-up may add (a limit on the operation; wallets have no balance cap) (minor units).
+const pilotTopUpPerOperationMinor int64 = 5000000

@@ -3,13 +3,13 @@
   "synthetic": true,
   "note": "SYNTHETIC fixtures only. No real personal data, documents, bank accounts or payment rails.",
   "pilot_limits_minor": {
-    "consumer_per_payment": 2500000,
-    "consumer_daily": 5000000,
-    "consumer_max_balance": 5000000,
-    "merchant_per_receive": 2500000,
+    "consumer_per_payment": 5000000,
+    "consumer_daily": 25000000,
+    "consumer_max_balance": null,
+    "merchant_per_receive": 5000000,
     "merchant_daily_receive": 10000000,
-    "merchant_max_balance": 10000000,
-    "aggregate_funds": 50000000,
+    "merchant_max_balance": null,
+    "aggregate_funds": 25000000000,
     "aggregate_volume": 200000000
   },
   "consumers": [

@@ -147,12 +147,19 @@ if (!/## Enforcement table/.test(adr)) adrFail(`${ADR} has no enforcement table`
 
 // Every limit constant the ADR states must exist with that value.
 const STATED = [
-  ['CONSUMER_PER_PAYMENT_MINOR', 5_000_000], ['CONSUMER_DAILY_MINOR', 5_000_000],
-  ['CONSUMER_MAX_BALANCE_MINOR', 5_000_000], ['AGGREGATE_FUNDS_MINOR', 50_000_000],
-  ['MERCHANT_PER_RECEIVE_MINOR', 5_000_000], ['MERCHANT_MAX_BALANCE_MINOR', 10_000_000],
-  ['MERCHANT_ROLLING_24H_MINOR', 25_000_000], ['MERCHANT_ROLLING_30D_MINOR', 100_000_000],
-  ['GLOBAL_ROLLING_24H_MINOR', 50_000_000], ['GLOBAL_ROLLING_30D_MINOR', 400_000_000],
+  ['CONSUMER_PER_PAYMENT_MINOR', 5_000_000], ['CONSUMER_DAILY_MINOR', 25_000_000],
+  ['TOP_UP_PER_OPERATION_MINOR', 5_000_000], ['AGGREGATE_FUNDS_MINOR', 25_000_000_000],
+  ['MERCHANT_PER_RECEIVE_MINOR', 5_000_000],
+  ['MERCHANT_ROLLING_24H_MINOR', 100_000_000], ['MERCHANT_ROLLING_30D_MINOR', 3_000_000_000],
+  ['GLOBAL_ROLLING_24H_MINOR', 200_000_000], ['GLOBAL_ROLLING_30D_MINOR', 6_000_000_000],
 ];
+// The internal Sandbox has NO wallet balance cap (owner decision 2026-10-09).
+// "None" must stay None: a number here — however large — would be a hidden cap.
+for (const name of ['CONSUMER_MAX_BALANCE_MINOR', 'MERCHANT_MAX_BALANCE_MINOR']) {
+  if (!new RegExp(`pub const ${name}: Option<i64> = None;`).test(pilot)) {
+    adrFail(`${name} must be \`Option<i64> = None\` in pilot.rs — the Sandbox applies no wallet balance cap`);
+  }
+}
 for (const [name, value] of STATED) {
   const re = new RegExp(`pub const ${name}: i64 = ([0-9_]+);`);
   const m = pilot.match(re);

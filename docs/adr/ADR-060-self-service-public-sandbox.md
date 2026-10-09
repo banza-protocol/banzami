@@ -146,8 +146,8 @@ aggregate funds cap does not apply to the registration grant and test-payer
 funding of synthetic payers, because one developer could otherwise exhaust
 funding for every other developer. Instead: at most 10 active test payers per
 Project, a grant of at most 10 000 Kz each (`initial_balance_minor`, default
-1 000 000 minor units), at most 50 000 Kz per top-up (raised from 25 000 on 2026-10-09 with the Sandbox per-operation maximum, ADR-048), a 50 000 Kz balance per
-payer, and at most 20 top-ups and 100 000 Kz of top-ups per Project per 24
+1 000 000 minor units), at most 50 000 Kz per top-up (raised from 25 000 on 2026-10-09 with the Sandbox per-operation maximum, ADR-048), no balance cap per payer (removed
+2026-10-09 with the Sandbox wallet balance caps), and at most 20 top-ups and 100 000 Kz of top-ups per Project per 24
 hours; counted per Project and answered with `429 SANDBOX_QUOTA_EXCEEDED`. A
 top-up exceeding the payer's balance cap answers `422 SANDBOX_FUNDING_REFUSED`.
 

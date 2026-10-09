@@ -33,7 +33,7 @@ function responseError(status: number, body: unknown): string {
   const code = (body as { code?: string } | undefined)?.code ?? '';
   const MSG: Record<string, string> = {
     SANDBOX_QUOTA_EXCEEDED: 'Chegou a um limite da Sandbox do projeto: 10 pagadores ativos, ou 20 carregamentos e 100 000 Kz em 24 horas.',
-    SANDBOX_FUNDING_REFUSED: 'O carregamento passaria o saldo máximo de um pagador de teste (50 000 Kz).',
+    SANDBOX_FUNDING_REFUSED: 'O carregamento foi recusado pelos limites do Sandbox (até 50 000 Kz por carregamento).',
     TEST_PAYER_RETIRED: 'Este pagador foi retirado.',
     INSUFFICIENT_FUNDS: 'O pagador não tem saldo suficiente. Carregue-o primeiro.',
     INTERFACE_UNAVAILABLE: 'A sessão não oferece esta via (uma sessão de montante aberto paga-se por link).',

@@ -49,8 +49,8 @@ No finding is open.
   step 5) and sees none in its lists (step 6).
 - Pays only its Project's own Business: the gateway names the payee from the
   session, link or QR and refuses another merchant's (`404`, step 3).
-- Quotas per Project (10 active, 10 000 Kz grant, 50 000 Kz top-up, 50 000 Kz
-  balance, 20 top-ups and 100 000 Kz a day); the value perimeter (SSR-1) bounds
+- Quotas per Project (10 active, 10 000 Kz grant, 50 000 Kz top-up, no balance
+  cap since 2026-10-09, 20 top-ups and 100 000 Kz a day); the value perimeter (SSR-1) bounds
   where that value can go.
 - `simulate` outcomes change nothing (`DECLINED`, `PROVIDER_UNAVAILABLE`) or
   execute once and answer ambiguously (`TIMEOUT`, the real result kept 24 h under

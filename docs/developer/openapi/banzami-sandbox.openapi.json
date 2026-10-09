@@ -2717,7 +2717,7 @@
         "operationId": "fundTestPayer",
         "summary": "Add fictitious value to a test payer",
         "x-banzami-scope": "sandbox:write",
-        "description": "A fictitious top-up through the ledger — never a balance edit. The Idempotency-Key header is required and identifies the top-up. Limits: 5000000 per top-up, a 5000000 payer balance, and 20 top-ups and 10000000 per Project per 24 hours. Credential: Sandbox project key with sandbox:write.",
+        "description": "A fictitious top-up through the ledger — never a balance edit. The Idempotency-Key header is required and identifies the top-up. Limits: 5000000 per top-up (no payer balance cap), and 20 top-ups and 10000000 per Project per 24 hours. Credential: Sandbox project key with sandbox:write.",
         "parameters": [
           {
             "name": "id",

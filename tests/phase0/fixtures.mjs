@@ -7,12 +7,12 @@
 
 export const PILOT_LIMITS_MINOR = {
   consumer_per_payment: 5_000_000, // Kz 50.000
-  consumer_daily: 5_000_000, // Kz 50.000
-  consumer_max_balance: 5_000_000, // Kz 50.000
+  consumer_daily: 25_000_000, // Kz 250.000
+  consumer_max_balance: null, // no wallet balance cap in the internal Sandbox
   merchant_per_receive: 5_000_000, // Kz 50.000
   merchant_daily_receive: 10_000_000, // Kz 100.000
-  merchant_max_balance: 10_000_000, // Kz 100.000
-  aggregate_funds: 50_000_000, // Kz 500.000
+  merchant_max_balance: null, // no wallet balance cap in the internal Sandbox
+  aggregate_funds: 25_000_000_000, // Kz 250.000.000 — Sandbox-wide synthetic-funds safety fuse
   aggregate_volume: 200_000_000, // Kz 2.000.000
 };
 

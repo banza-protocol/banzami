@@ -40,9 +40,6 @@ func TestCoreRefusal_PerOperationMaximumIs50000Kz(t *testing.T) {
 	if pilotPerPaymentMinor != 50_000_00 || pilotPerReceiveMinor != pilotPerPaymentMinor {
 		t.Fatalf("per-payment %d, per-receive %d: want both 5000000", pilotPerPaymentMinor, pilotPerReceiveMinor)
 	}
-	if pilotConsumerMaxBalanceMinor < pilotPerPaymentMinor {
-		t.Fatal("a wallet must be able to hold one maximum payment")
-	}
 	// An aggregate limit is never given a number.
 	w := httptest.NewRecorder()
 	respondCoreRefusal(w, httptest.NewRequest(http.MethodPost, "/", nil),
@@ -101,7 +98,7 @@ func TestCoreRefusal_EveryPayHandlerUsesIt(t *testing.T) {
 // A developer's test-payer top-up is a top-up like any other: one operation,
 // bounded by the same Sandbox per-operation maximum Core enforces.
 func TestTestPayerTopUpMaximumIsTheSandboxPerOperationMaximum(t *testing.T) {
-	if service.TestPayerMaxTopUpMinor != pilotPerPaymentMinor {
+	if service.TestPayerMaxTopUpMinor != pilotTopUpPerOperationMinor || pilotTopUpPerOperationMinor != pilotPerPaymentMinor {
 		t.Fatalf("test-payer top-up maximum %d, Sandbox per-operation maximum %d",
 			service.TestPayerMaxTopUpMinor, pilotPerPaymentMinor)
 	}

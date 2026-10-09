@@ -31,10 +31,21 @@ pub mod limits {
     /// those limits come from the applicable regulatory profile and approved
     /// operating conditions. See docs/compliance/SANDBOX_OPERATIONAL_LIMITS.md.
     pub const CONSUMER_PER_PAYMENT_MINOR: i64 = 5_000_000;
-    /// Consumer: maximum cumulative payments per day — Kz 50.000.
-    pub const CONSUMER_DAILY_MINOR: i64 = 5_000_000;
-    /// Consumer: maximum wallet balance — Kz 50.000.
-    pub const CONSUMER_MAX_BALANCE_MINOR: i64 = 5_000_000;
+    /// Consumer: maximum cumulative payments per day — Kz 250.000.
+    pub const CONSUMER_DAILY_MINOR: i64 = 25_000_000;
+    /// Consumer: maximum wallet balance — NONE in the internal Sandbox.
+    ///
+    /// A balance is not a transaction. What a wallet holds is bounded by what
+    /// was validly put into it; what it may SPEND is bounded per payment and
+    /// per day, independently of how much it holds. `None` means "no cap", not
+    /// a large number: a future LIVE or regulated profile expresses a ceiling
+    /// by putting a value here, and the check below enforces it unchanged.
+    pub const CONSUMER_MAX_BALANCE_MINOR: Option<i64> = None;
+    /// A single top-up — Kz 50.000. Explicit now that no balance cap bounds it:
+    /// the per-operation maximum for adding test money is the same number as
+    /// for spending it, and is a limit on the operation, never on the balance.
+    pub const TOP_UP_PER_OPERATION_MINOR: i64 = 5_000_000;
+    const _: () = assert!(TOP_UP_PER_OPERATION_MINOR == CONSUMER_PER_PAYMENT_MINOR);
     /// Merchant: maximum per single received payment — Kz 50.000. Always equal
     /// to the payer-side maximum: a payment one side may send and the other may
     /// not receive is the inconsistency this pair exists to rule out.
@@ -43,17 +54,22 @@ pub mod limits {
     /// A single payment never exceeds what a wallet may hold, so a full wallet
     /// can always be spent in one payment and a top-up can never fund more than
     /// one payment's worth beyond it.
-    const _: () = assert!(CONSUMER_PER_PAYMENT_MINOR <= CONSUMER_MAX_BALANCE_MINOR);
-    /// A Business may hold more than one payment: the per-payment maximum is
-    /// not, and must never become, a cap on what a Business accumulates.
-    const _: () = assert!(MERCHANT_MAX_BALANCE_MINOR > MERCHANT_PER_RECEIVE_MINOR);
-    /// Merchant: maximum wallet balance — Kz 100.000.
-    pub const MERCHANT_MAX_BALANCE_MINOR: i64 = 10_000_000;
-    /// Aggregate: maximum synthetic funds in circulation — Kz 500.000.
+    const _: () = assert!(CONSUMER_PER_PAYMENT_MINOR <= CONSUMER_DAILY_MINOR);
+    /// Merchant: maximum wallet balance — NONE in the internal Sandbox. A
+    /// Business accumulates what it validly receives; what bounds RECEIVING is
+    /// the per-payment maximum and the rolling volume windows below. Not a cap
+    /// on a campaign's goal or lifetime total either. `None`, as above.
+    pub const MERCHANT_MAX_BALANCE_MINOR: Option<i64> = None;
+    /// Aggregate: maximum synthetic funds in circulation — Kz 250.000.000.
+    ///
+    /// A SAFETY FUSE for the whole internal Sandbox — against accidental
+    /// unlimited minting, runaway fixtures, bugs and abuse of test top-ups. It
+    /// is not a wallet balance limit, not a campaign limit, not regulatory and
+    /// not LIVE.
     ///
     /// This one is a STOCK, not a flow: it is a signed sum, so retiring synthetic
     /// value (the exact reverse posting) reduces it. It needs no window.
-    pub const AGGREGATE_FUNDS_MINOR: i64 = 50_000_000;
+    pub const AGGREGATE_FUNDS_MINOR: i64 = 25_000_000_000;
 
     // ── Rolling merchant-credit volume windows (owner decision D1) ───────────
     //
@@ -79,14 +95,20 @@ pub mod limits {
     // concentrate a whole run onto three Businesses, which turns a limit that
     // never fired into one that fires routinely.
 
-    /// Global: merchant-credit volume in any rolling 24 hours — Kz 500.000.
-    pub const GLOBAL_ROLLING_24H_MINOR: i64 = 50_000_000;
-    /// Global: merchant-credit volume in any rolling 30 days — Kz 4.000.000.
-    pub const GLOBAL_ROLLING_30D_MINOR: i64 = 400_000_000;
-    /// Per merchant: merchant-credit volume in any rolling 24 hours — Kz 250.000.
-    pub const MERCHANT_ROLLING_24H_MINOR: i64 = 25_000_000;
-    /// Per merchant: merchant-credit volume in any rolling 30 days — Kz 1.000.000.
-    pub const MERCHANT_ROLLING_30D_MINOR: i64 = 100_000_000;
+    // Re-sized by owner decision on 2026-10-09: a Business may receive
+    // Kz 1.000.000 in 24 hours; its 30-day window is thirty such days, so it
+    // never blocks a Business after a few days of valid activity; global
+    // capacity is twice the per-Business capacity in both windows. These bound
+    // received VOLUME in a window — never a balance, a campaign goal or a
+    // lifetime total.
+    /// Global: merchant-credit volume in any rolling 24 hours — Kz 2.000.000.
+    pub const GLOBAL_ROLLING_24H_MINOR: i64 = 200_000_000;
+    /// Global: merchant-credit volume in any rolling 30 days — Kz 60.000.000.
+    pub const GLOBAL_ROLLING_30D_MINOR: i64 = 6_000_000_000;
+    /// Per merchant: merchant-credit volume in any rolling 24 hours — Kz 1.000.000.
+    pub const MERCHANT_ROLLING_24H_MINOR: i64 = 100_000_000;
+    /// Per merchant: merchant-credit volume in any rolling 30 days — Kz 30.000.000.
+    pub const MERCHANT_ROLLING_30D_MINOR: i64 = 3_000_000_000;
 
     // Relationships the numbers must keep, checked at COMPILE time so a future
     // re-sizing cannot quietly break them. A runtime test could not: these are
@@ -231,9 +253,27 @@ impl PilotLimitPolicy {
         if !self.enabled {
             return None;
         }
-        if current_balance_minor.saturating_add(credit_minor) > limits::CONSUMER_MAX_BALANCE_MINOR {
+        if exceeds_cap(
+            limits::CONSUMER_MAX_BALANCE_MINOR,
+            current_balance_minor.saturating_add(credit_minor),
+        ) {
             return Some(PilotViolation {
                 code: PilotLimitCode::ConsumerBalance,
+            });
+        }
+        None
+    }
+
+    /// A single top-up: the per-operation maximum for adding test money. About
+    /// the size of ONE operation, so it answers with the per-operation code;
+    /// the balance it lands in is not examined here.
+    pub fn check_top_up_amount(self, credit_minor: i64) -> Option<PilotViolation> {
+        if !self.enabled {
+            return None;
+        }
+        if credit_minor > limits::TOP_UP_PER_OPERATION_MINOR {
+            return Some(PilotViolation {
+                code: PilotLimitCode::PerPayment,
             });
         }
         None
@@ -263,7 +303,10 @@ impl PilotLimitPolicy {
         if !self.enabled {
             return None;
         }
-        if current_balance_minor.saturating_add(credit_minor) > limits::MERCHANT_MAX_BALANCE_MINOR {
+        if exceeds_cap(
+            limits::MERCHANT_MAX_BALANCE_MINOR,
+            current_balance_minor.saturating_add(credit_minor),
+        ) {
             return Some(PilotViolation {
                 code: PilotLimitCode::MerchantBalance,
             });
@@ -369,6 +412,13 @@ pub fn overlay_consumer_payment(
 // ---------------------------------------------------------------------------
 // Tests — pure, deterministic; no database, no environment races.
 // ---------------------------------------------------------------------------
+/// Whether `after` is over an OPTIONAL cap. No cap, no violation — whatever the
+/// amount. This is how "no balance ceiling" is expressed: by absence, not by a
+/// number large enough to be mistaken for one.
+fn exceeds_cap(cap: Option<i64>, after: i64) -> bool {
+    cap.is_some_and(|max| after > max)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -426,14 +476,27 @@ mod tests {
     }
 
     #[test]
-    fn consumer_balance_cap() {
+    fn consumer_balance_has_no_cap_in_the_sandbox() {
+        // CONSUMER_WALLET_MAX_BALANCE = NONE. No balance, however large, is
+        // refused for being a balance.
+        assert!(limits::CONSUMER_MAX_BALANCE_MINOR.is_none());
+        for balance_kz in [50_000, 50_001, 250_000, 1_000_000, 100_000_000] {
+            assert!(ON
+                .check_consumer_balance_after_credit(balance_kz * KZ, 50_000 * KZ)
+                .is_none());
+        }
         assert!(ON
-            .check_consumer_balance_after_credit(limits::CONSUMER_MAX_BALANCE_MINOR, 0)
+            .check_consumer_balance_after_credit(i64::MAX - 1, i64::MAX - 1)
             .is_none());
-        let v = ON
-            .check_consumer_balance_after_credit(limits::CONSUMER_MAX_BALANCE_MINOR, 1)
-            .unwrap();
-        assert_eq!(v.as_str(), "PILOT_LIMIT_CONSUMER_BALANCE_EXCEEDED");
+    }
+
+    #[test]
+    fn a_balance_ceiling_is_still_expressible_for_another_profile() {
+        // The mechanism is kept: a future LIVE or regulated profile puts a value
+        // where the Sandbox has none, and the same check enforces it.
+        assert!(!exceeds_cap(None, i64::MAX));
+        assert!(!exceeds_cap(Some(5_000_000), 5_000_000));
+        assert!(exceeds_cap(Some(5_000_000), 5_000_001));
     }
 
     #[test]
@@ -449,11 +512,14 @@ mod tests {
     }
 
     #[test]
-    fn merchant_balance_cap() {
-        let v = ON
-            .check_merchant_balance_after_credit(limits::MERCHANT_MAX_BALANCE_MINOR, 1)
-            .unwrap();
-        assert_eq!(v.as_str(), "PILOT_LIMIT_MERCHANT_BALANCE_EXCEEDED");
+    fn merchant_balance_has_no_cap_in_the_sandbox() {
+        // BUSINESS_WALLET_MAX_BALANCE = NONE.
+        assert!(limits::MERCHANT_MAX_BALANCE_MINOR.is_none());
+        for balance_kz in [100_000, 1_000_000, 1_000_001, 5_000_000, 100_000_000] {
+            assert!(ON
+                .check_merchant_balance_after_credit(balance_kz * KZ, 50_000 * KZ)
+                .is_none());
+        }
     }
 
     #[test]
@@ -690,32 +756,58 @@ mod tests {
     }
 
     #[test]
-    fn a_top_up_is_bounded_at_50_000_kz_per_operation() {
-        // There is no separate top-up limit: a single top-up is bounded by what
-        // the wallet may hold, so the per-operation maximum is the same number.
-        assert!(ON
-            .check_consumer_balance_after_credit(0, 49_999 * KZ)
-            .is_none());
-        assert!(ON
-            .check_consumer_balance_after_credit(0, 50_000 * KZ)
-            .is_none());
+    fn a_top_up_is_bounded_at_50_000_kz_per_operation_not_by_the_balance() {
+        assert!(ON.check_top_up_amount(49_999 * KZ).is_none());
+        assert!(ON.check_top_up_amount(50_000 * KZ).is_none());
         assert_eq!(
-            ON.check_consumer_balance_after_credit(0, 50_001 * KZ)
-                .unwrap()
-                .code,
-            PilotLimitCode::ConsumerBalance
+            ON.check_top_up_amount(50_001 * KZ).unwrap().code,
+            PilotLimitCode::PerPayment
         );
+        // Balance 80.000 + top-up 50.000 = 130.000: valid. The limit is on the
+        // operation; the balance it produces is not examined.
+        assert!(ON
+            .check_consumer_balance_after_credit(80_000 * KZ, 50_000 * KZ)
+            .is_none());
+        assert!(OFF.check_top_up_amount(i64::MAX).is_none());
+    }
+
+    #[test]
+    fn a_full_wallet_does_not_bypass_the_daily_or_per_payment_limit() {
+        // A consumer holding 300.000 Kz may pay 5 x 50.000 in a day, not a sixth,
+        // and never more than 50.000 at once.
+        let mut used = 0;
+        for _ in 0..5 {
+            assert!(ON.check_consumer_payment(50_000 * KZ, used).is_none());
+            used += 50_000 * KZ;
+        }
+        assert_eq!(used, 250_000 * KZ);
+        assert_eq!(
+            ON.check_consumer_payment(1, used).unwrap().code,
+            PilotLimitCode::ConsumerDaily
+        );
+        assert_eq!(
+            ON.check_consumer_payment(50_001 * KZ, 0).unwrap().code,
+            PilotLimitCode::PerPayment
+        );
+        // exactly 250.000 in the day passes; 250.000,01 does not
+        assert!(ON
+            .check_consumer_payment(50_000 * KZ, 200_000 * KZ)
+            .is_none());
+        assert!(ON
+            .check_consumer_payment(50_000 * KZ, 200_000 * KZ + 1)
+            .is_some());
     }
 
     #[test]
     fn the_per_payment_limit_is_not_a_cap_on_what_a_business_accumulates() {
-        // 50.000 + 50.000 received: each payment passes the per-receipt check on
-        // its own amount. What bounds the running total is a DIFFERENT limit —
-        // the merchant balance cap — which is deliberately not Kz 50.000.
-        assert!(ON.check_merchant_receipt_amount(50_000 * KZ).is_none());
-        assert!(ON
-            .check_merchant_balance_after_credit(50_000 * KZ, 50_000 * KZ)
-            .is_none());
+        // Each payment is judged on its own amount; the balance it lands in is
+        // not capped. A campaign past 50.000, 250.000 or 1.000.000 Kz is fine.
+        for held_kz in [50_000, 250_000, 1_000_000, 99_950_000] {
+            assert!(ON.check_merchant_receipt_amount(50_000 * KZ).is_none());
+            assert!(ON
+                .check_merchant_balance_after_credit(held_kz * KZ, 50_000 * KZ)
+                .is_none());
+        }
     }
 
     #[test]
@@ -725,22 +817,68 @@ mod tests {
     }
 
     #[test]
-    fn limit_values_match_v1_policy() {
-        // Kz 25.000 / 50.000 / 100.000 / 500.000 / 2.000.000 in minor units.
-        assert_eq!(limits::CONSUMER_PER_PAYMENT_MINOR, 5_000_000);
-        assert_eq!(limits::CONSUMER_DAILY_MINOR, 5_000_000);
-        assert_eq!(limits::CONSUMER_MAX_BALANCE_MINOR, 5_000_000);
-        assert_eq!(limits::MERCHANT_PER_RECEIVE_MINOR, 5_000_000);
-        assert_eq!(limits::MERCHANT_MAX_BALANCE_MINOR, 10_000_000);
-        assert_eq!(limits::AGGREGATE_FUNDS_MINOR, 50_000_000);
+    fn limit_values_match_the_sandbox_policy() {
+        // Owner decision, 2026-10-09 — voluntary Banzami Sandbox test policy.
+        assert_eq!(limits::CONSUMER_PER_PAYMENT_MINOR, 50_000 * KZ);
+        assert_eq!(limits::MERCHANT_PER_RECEIVE_MINOR, 50_000 * KZ);
+        assert_eq!(limits::TOP_UP_PER_OPERATION_MINOR, 50_000 * KZ);
+        assert_eq!(limits::CONSUMER_DAILY_MINOR, 250_000 * KZ);
+        assert_eq!(limits::CONSUMER_MAX_BALANCE_MINOR, None);
+        assert_eq!(limits::MERCHANT_MAX_BALANCE_MINOR, None);
+        assert_eq!(limits::MERCHANT_ROLLING_24H_MINOR, 1_000_000 * KZ);
+        assert_eq!(limits::GLOBAL_ROLLING_24H_MINOR, 2_000_000 * KZ);
+        assert_eq!(limits::MERCHANT_ROLLING_30D_MINOR, 30_000_000 * KZ);
+        assert_eq!(limits::GLOBAL_ROLLING_30D_MINOR, 60_000_000 * KZ);
+        assert_eq!(limits::AGGREGATE_FUNDS_MINOR, 250_000_000 * KZ);
     }
 
     #[test]
-    fn rolling_window_values_match_owner_decision_d1() {
-        // Kz 500.000 / 4.000.000 global; Kz 250.000 / 1.000.000 per merchant.
-        assert_eq!(limits::GLOBAL_ROLLING_24H_MINOR, 50_000_000);
-        assert_eq!(limits::GLOBAL_ROLLING_30D_MINOR, 400_000_000);
-        assert_eq!(limits::MERCHANT_ROLLING_24H_MINOR, 25_000_000);
-        assert_eq!(limits::MERCHANT_ROLLING_30D_MINOR, 100_000_000);
+    fn rolling_window_values_match_the_owner_decision_of_2026_10_09() {
+        // Kz 2.000.000 / 60.000.000 global; Kz 1.000.000 / 30.000.000 per Business.
+        assert_eq!(limits::GLOBAL_ROLLING_24H_MINOR, 2_000_000 * KZ);
+        assert_eq!(limits::GLOBAL_ROLLING_30D_MINOR, 60_000_000 * KZ);
+        assert_eq!(limits::MERCHANT_ROLLING_24H_MINOR, 1_000_000 * KZ);
+        assert_eq!(limits::MERCHANT_ROLLING_30D_MINOR, 30_000_000 * KZ);
+        // 30 full days fit in the 30-day window; global is twice per-Business.
+        assert_eq!(
+            limits::MERCHANT_ROLLING_30D_MINOR,
+            30 * limits::MERCHANT_ROLLING_24H_MINOR
+        );
+        assert_eq!(
+            limits::GLOBAL_ROLLING_24H_MINOR,
+            2 * limits::MERCHANT_ROLLING_24H_MINOR
+        );
+        assert_eq!(
+            limits::GLOBAL_ROLLING_30D_MINOR,
+            2 * limits::MERCHANT_ROLLING_30D_MINOR
+        );
+    }
+
+    #[test]
+    fn a_business_may_receive_one_million_in_24h_and_not_a_kwanza_more() {
+        let none = RollingVolumeUsage {
+            global_24h_minor: 0,
+            global_30d_minor: 0,
+            merchant_24h_minor: 0,
+            merchant_30d_minor: 0,
+        };
+        // 20 payments of 50.000 = 1.000.000 in the window: the last one passes…
+        let before_last = RollingVolumeUsage {
+            merchant_24h_minor: 950_000 * KZ,
+            global_24h_minor: 950_000 * KZ,
+            merchant_30d_minor: 950_000 * KZ,
+            global_30d_minor: 950_000 * KZ,
+        };
+        assert!(ON
+            .check_rolling_volume_after_add(none, 50_000 * KZ)
+            .is_none());
+        assert!(ON
+            .check_rolling_volume_after_add(before_last, 50_000 * KZ)
+            .is_none());
+        // …and 1.000.000,01 does not.
+        let v = ON
+            .check_rolling_volume_after_add(before_last, 50_000 * KZ + 1)
+            .unwrap();
+        assert_eq!(v.as_str(), "PILOT_LIMIT_MERCHANT_24H_VOLUME_EXCEEDED");
     }
 }

@@ -149,6 +149,13 @@ pub async fn check_funding(
     if !policy.is_enabled() {
         return Ok(None);
     }
+    // A consumer top-up is one operation and has a per-operation maximum of its
+    // own, independent of the balance it lands in.
+    if matches!(party, Party::Consumer) {
+        if let Some(v) = policy.check_top_up_amount(credit_minor) {
+            return Ok(Some(v));
+        }
+    }
     let bal = account_balance_minor(pool, available_account_id).await?;
     let balance_violation = match party {
         Party::Consumer => policy.check_consumer_balance_after_credit(bal, credit_minor),
@@ -174,6 +181,9 @@ pub async fn check_test_payer_funding(
 ) -> Result<Option<PilotViolation>, sqlx::Error> {
     if !policy.is_enabled() {
         return Ok(None);
+    }
+    if let Some(v) = policy.check_top_up_amount(credit_minor) {
+        return Ok(Some(v));
     }
     let bal = account_balance_minor(pool, available_account_id).await?;
     Ok(policy.check_consumer_balance_after_credit(bal, credit_minor))
