@@ -687,6 +687,22 @@ type TransactionView struct {
 	// Operator acquiring/execution state — NOT a protocol state, and never a
 	// substitute for Status above. Nil for anything that is not a payment.
 	Acquiring *AcquiringView `json:"acquiring,omitempty"`
+
+	// Refund economics for a PAYMENT row (nil on a refund/transfer). RefundedMinor
+	// is the sum of SUCCEEDED refunds whose typed source resolves to this payment;
+	// RemainingRefundableMinor is what may still be returned (captured − refunded),
+	// and drives the Console's refund action — a payment with 0 remaining is shown
+	// "Reembolsado" with no active "Reembolsar". Both are operator read-model fields
+	// derived from the ledger; they add nothing to any BANZA wire contract.
+	RefundedMinor            *int64 `json:"refunded_minor,omitempty"`
+	RemainingRefundableMinor *int64 `json:"remaining_refundable_minor,omitempty"`
+
+	// For a REFUND row (empty on a payment/transfer): the ORIGINAL payment this
+	// refund returns, resolved deterministically from the refund's own typed source
+	// (never matched by amount/time). OriginalReference is that payment's human
+	// reference; OriginalSessionID is its session id, for the Console to link to it.
+	OriginalReference string `json:"original_reference,omitempty"`
+	OriginalSessionID string `json:"original_session_id,omitempty"`
 }
 
 // AcquiringView is what the OPERATOR knows about a payment's execution, kept in

@@ -1068,7 +1068,16 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 		          CASE WHEN settled.credited_account IS NOT NULL THEN settled.credited_account::text
 		               WHEN s.status = 'PAID'
 		                    THEN COALESCE(pl.wallet_account_id::text, s.wallet_account_id::text, '')
-		               ELSE '' END AS acq_account
+		               ELSE '' END AS acq_account,
+		     COALESCE((
+		       SELECT SUM(rf.amount_minor) FROM refunds rf
+		        WHERE rf.merchant_id = s.merchant_id AND rf.status = 'SUCCEEDED'
+		          AND rf.source_type = 'WALLET_PAYMENT'
+		          AND rf.source_id IN (
+		            SELECT wp2.id FROM wallet_payments wp2
+		             WHERE wp2.payment_link_id = s.payment_link_id AND wp2.merchant_id = s.merchant_id)
+		     ), 0) AS refunded_minor,
+		     ''::text AS orig_reference, ''::text AS orig_session_id
 		     FROM payment_sessions s
 		     LEFT JOIN payment_links pl ON pl.id = s.payment_link_id
 		     LEFT JOIN qr_codes      q  ON q.id  = s.qr_code_id
@@ -1095,19 +1104,28 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 		   SELECT r.id::text, 'refund', r.status::text,
 		          r.amount_minor::bigint, r.currency::text,
 		          '', COALESCE(r.source_type::text,''), COALESCE(r.source_id::text,''), r.created_at,
-		          '', '', NULL::timestamptz, NULL::bigint, ''
+		          '', '', NULL::timestamptz, NULL::bigint, '',
+		     NULL::bigint AS refunded_minor,
+		     COALESCE((SELECT s2.reference_id::text FROM wallet_payments wp3
+		                JOIN payment_sessions s2 ON s2.payment_link_id = wp3.payment_link_id AND s2.merchant_id = r.merchant_id
+		               WHERE wp3.id = r.source_id AND r.source_type = 'WALLET_PAYMENT' LIMIT 1), '') AS orig_reference,
+		     COALESCE((SELECT s2.id::text FROM wallet_payments wp3
+		                JOIN payment_sessions s2 ON s2.payment_link_id = wp3.payment_link_id AND s2.merchant_id = r.merchant_id
+		               WHERE wp3.id = r.source_id AND r.source_type = 'WALLET_PAYMENT' LIMIT 1), '') AS orig_session_id
 		     FROM refunds r WHERE r.merchant_id = $1
 		   UNION ALL
 		   SELECT t.id::text, 'transfer', t.status::text,
 		          t.amount_minor::bigint, t.currency::text,
 		          COALESCE(t.dest_account_id::text,''), 'WALLET_ACCOUNT',
 		          COALESCE(t.source_account_id::text,''), t.created_at,
-		          '', '', NULL::timestamptz, NULL::bigint, ''
+		          '', '', NULL::timestamptz, NULL::bigint, '',
+		     NULL::bigint, ''::text, ''::text
 		     FROM wallet_account_transfers t WHERE t.merchant_id = $1
 		 )
 		 SELECT id, type, status, amount_minor, currency, wallet_account_id,
 		        reference_type, reference_id, created_at,
-		        acq_state, acq_interface, acq_paid_at, acq_amount_minor, acq_account
+		        acq_state, acq_interface, acq_paid_at, acq_amount_minor, acq_account,
+		   refunded_minor, orig_reference, orig_session_id
 		   FROM ops
 		  WHERE ($2 = '' OR type = $2)
 		    AND ($3 = '' OR status = $3)
@@ -1127,9 +1145,12 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 		var acqState, acqInterface, acqAccount string
 		var acqPaidAt *time.Time
 		var acqAmount *int64
+		var refundedMinor *int64
+		var origRef, origSession string
 		if err := rows.Scan(&v.ID, &v.Type, &v.Status, &v.AmountMinor, &v.Currency,
 			&v.WalletAccountID, &v.ReferenceType, &v.ReferenceID, &v.CreatedAt,
-			&acqState, &acqInterface, &acqPaidAt, &acqAmount, &acqAccount); err != nil {
+			&acqState, &acqInterface, &acqPaidAt, &acqAmount, &acqAccount,
+			&refundedMinor, &origRef, &origSession); err != nil {
 			return nil, err
 		}
 		// Only a payment has an execution state; a refund or an internal transfer
@@ -1149,6 +1170,35 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 				a.ProtocolNote = AcquiringProtocolNote
 			}
 			v.Acquiring = a
+		}
+		// Payment refund economics: how much of this payment has been returned, and
+		// how much may still be. Remaining is defined only for a PAID payment —
+		// captured minus refunded, floored at zero — and 0 remaining is what the
+		// Console reads as "Reembolsado" with no active refund action.
+		if v.Type == "payment" {
+			refunded := int64(0)
+			if refundedMinor != nil {
+				refunded = *refundedMinor
+			}
+			v.RefundedMinor = &refunded
+			if acqState == "PAID" {
+				base := int64(0)
+				if acqAmount != nil {
+					base = *acqAmount
+				} else if v.AmountMinor != nil {
+					base = *v.AmountMinor
+				}
+				rem := base - refunded
+				if rem < 0 {
+					rem = 0
+				}
+				v.RemainingRefundableMinor = &rem
+			}
+		}
+		// A refund points back at the payment it returns (deterministic source link).
+		if v.Type == "refund" {
+			v.OriginalReference = origRef
+			v.OriginalSessionID = origSession
 		}
 		out = append(out, v)
 	}

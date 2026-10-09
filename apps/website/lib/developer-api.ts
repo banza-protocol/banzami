@@ -318,6 +318,16 @@ export type DeveloperTransaction = {
     /** Present only where the acquiring state and the protocol status disagree. */
     protocol_note?: string;
   };
+  /** PAYMENT only. How much of this payment has been returned by SUCCEEDED
+   *  refunds, and how much may still be (remaining = captured − refunded, defined
+   *  only once PAID). A payment with remaining 0 is fully refunded: it shows
+   *  "Reembolsado" and offers no active refund action. */
+  refunded_minor?: number;
+  remaining_refundable_minor?: number;
+  /** REFUND only. The original payment this refund returns, resolved from the
+   *  refund's own typed source — its human reference and session id. */
+  original_reference?: string;
+  original_session_id?: string;
 };
 
 /** Where a project stands financially, in the developer's own terms. */

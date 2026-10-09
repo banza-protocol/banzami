@@ -52,6 +52,9 @@ const PAID = ['PAID', 'COMPLETED', 'SUCCEEDED', 'SETTLED'];
 // asking `status` alone would refuse to refund payments the merchant is holding.
 function refundable(t: DeveloperTransaction): boolean {
   if (t.type !== 'payment') return false;
+  // A fully-refunded payment (nothing left to return) offers no refund action —
+  // the control follows remaining_refundable, not merely status === PAID.
+  if (t.remaining_refundable_minor === 0) return false;
   return PAID.includes(t.status.toUpperCase()) || t.acquiring?.state === 'PAID';
 }
 
@@ -263,14 +266,26 @@ function Transactions() {
                                 </a>
                               </span>
                             )}
+                            {typeof t.refunded_minor === 'number' && t.refunded_minor > 0 && (
+                              <span style={{ fontSize: 11.5, fontWeight: 800, color: '#9A1B22', whiteSpace: 'nowrap' }}>
+                                {t.remaining_refundable_minor === 0
+                                  ? 'Reembolsado integralmente'
+                                  : `Reembolsado ${formatMoneyDisplay(t.refunded_minor, t.currency)}`}
+                              </span>
+                            )}
                           </div>
+                        ) : t.type === 'refund' && t.original_reference ? (
+                          <span style={{ fontSize: 11.5, color: '#8a7a7e' }}>
+                            Pagamento original:{' '}
+                            <span style={{ fontFamily: mono, color: '#5a4a4e' }}>{t.original_reference}</span>
+                          </span>
                         ) : (
                           <span style={{ fontSize: 12, color: '#b9a9ad' }}>n/d</span>
                         )}
                       </td>
                       {canRefund && (
                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          {refundable(t) && (
+                          {refundable(t) ? (
                             <button
                               onClick={() => setRefunding(t)}
                               aria-label={`Reembolsar o pagamento ${merchantReference(t) ?? `de ${money(t.amount_minor, t.currency)}`}`}
@@ -278,7 +293,9 @@ function Transactions() {
                             >
                               Reembolsar
                             </button>
-                          )}
+                          ) : t.type === 'payment' && t.remaining_refundable_minor === 0 ? (
+                            <span style={{ fontSize: 12.5, fontWeight: 800, color: '#9A1B22', whiteSpace: 'nowrap' }}>Reembolsado</span>
+                          ) : null}
                         </td>
                       )}
                     </tr>
