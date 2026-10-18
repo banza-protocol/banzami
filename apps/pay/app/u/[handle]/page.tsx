@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { deepLink as deepLinkFor } from '@/lib/deep-link';
+import { GetTheApp } from '@/components/GetTheApp';
 import { formatAmount } from '@/lib/api';
 
 interface Props {
@@ -76,8 +77,9 @@ export default async function UserPayPage({ params, searchParams }: Props) {
             )}
 
             <p className="text-center text-xs text-gray-400 leading-relaxed">
-              Precisa de ter a app Banzami instalada.
+              Precisa da app Banzami para concluir o pagamento.
             </p>
+            <GetTheApp />
           </div>
         </div>
 

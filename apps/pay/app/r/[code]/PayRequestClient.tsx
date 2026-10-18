@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ConsumerPayLink } from '@/lib/api';
 import { formatMoneyDisplay as formatAmt } from '@/lib/money';
+import { GetTheApp } from '@/components/GetTheApp';
 
 type Phase = 'loading' | 'success' | 'not_found' | 'network_error' | 'timeout';
 
@@ -362,8 +363,9 @@ export default function PayRequestClient({
                   </span>
                 </a>
                 <p className="text-center text-xs text-gray-400 leading-relaxed">
-                  Precisa de ter a app Banzami instalada.
+                  Precisa da app Banzami para concluir o pagamento.
                 </p>
+                <GetTheApp />
               </>
             )}
 
@@ -439,6 +441,7 @@ export default function PayRequestClient({
                 >
                   Tentar novamente
                 </button>
+                <GetTheApp />
               </div>
             )}
 
